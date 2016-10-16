@@ -151,7 +151,7 @@ def random_lkey(numbers=256):      #create random lamport signature scheme keypa
 
     return priv, pub
 
-def verify_mss(sig, data, message, ots_pubkey=0):       #verifies that the sig is generated from pub..for now need to specify keypair..
+def verify_mss(sig, data, message, ots_key=0):       #verifies that the sig is generated from pub..for now need to specify keypair..
 
     if not sig:
         return False
@@ -159,13 +159,13 @@ def verify_mss(sig, data, message, ots_pubkey=0):       #verifies that the sig i
     if not message:
         return False
 
-    if ots_pubkey > len(data):
-        return False
+    if ots_key > len(data)-1:
+        raise Exception('OTS key higher than available signatures')
 
     if data[0].type == 'WOTS':
-        return verify_wkey(sig, message, data[ots_pubkey].pub)
+        return verify_wkey(sig, message, data[ots_key].pub)
     elif data[0].type == 'LDOTS':
-        return verify_lkey(sig, message, data[ots_pubkey].pub)
+        return verify_lkey(sig, message, data[ots_key].pub)
 
 def verify_root(pub, merkle_root, merkle_path):
 
@@ -204,7 +204,8 @@ def sign_mss(data, message, ots_key=0):
     if not message:
         return False
 
-    if ots_key > len(data):
+    if ots_key > len(data)-1:
+        raise Exception('OTS key number greater than available signatures')
         return False
 
     if data[0].type == 'WOTS':
