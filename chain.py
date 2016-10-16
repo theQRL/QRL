@@ -56,14 +56,31 @@ def f_read_chain():
         		pickle.dump(block_list, myfile)
 
 	try:
-			print 'loading blockchain to memory..'
+			#print 'loading blockchain to memory..'
 			with open('./chain.dat', 'r') as myfile:
 				return pickle.load(myfile)
 	except:
 			print 'IO error'
 			return False
-	
 
+
+def inspect_chain():												# returns 3 lists of addresses, signatures and types..basic at present..
+	data = f_read_chain()
+	if data is not False:
+			#num_sigs = []
+			#types = []
+			blocks = []
+			#for x in range(len(data)):
+				#addresses.append(data[x][0])
+				#num_sigs.append(len(data[x][1]))
+				#types.append(data[x][1][0].type)
+			#return addresses, num_sigs, types
+			return len(data)
+	return False
+
+def f_get_last_block():
+	data = f_read_chain()
+	return data[len(data)-1]
 
 def f_append_block(block_data):
 
@@ -77,6 +94,9 @@ def f_append_block(block_data):
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
+
+def show_tx_pool():
+	return transaction_pool
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
@@ -111,12 +131,30 @@ class BlockHeader():
 		self.headerhash = sha256(str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
 
 
+def create_some_tx(n):
+	for x in range(n):
+		a,b = wallet.getnewaddress(), wallet.getnewaddress()
+		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
+
 
 class CreateBlock():
 
-	def __init__(self, blocknumber, prev_blockheaderhash, transaction_pool):
-		pass
+	def __init__(self):
 
+		data = f_last_block()
+		lastblocknumber = data.blockheader.blocknumber
+		prev_blockheaderhash = data.blockheader.headerhash
+		if not transaction_pool:
+			hashedtransactions = sha256('')
+		else:
+			txhashes = []
+			for transaction in transaction_pool:
+				txhashes.append(transaction.txhash)
+			hashedtransactions = sha256(''.join(txhashes))
+		
+		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
+
+		self.transactions = transaction_pool
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..

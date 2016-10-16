@@ -3,6 +3,7 @@ __author__ = 'pete'
 import sys
 import time
 import wallet
+import chain
 
 from twisted.internet.protocol import ServerFactory, Protocol, ClientFactory
 from twisted.internet import reactor
@@ -164,6 +165,11 @@ class WalletFactory(ServerFactory):
 if __name__ == "__main__":
 
 	start_time = time.time()
+
+	chain.f_read_chain()
+	print str(chain.inspect_chain())+' blocks..'
+
+
 	stuff = 'QRL node connection established.'+'\r\n'
 	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	port2 = reactor.listenTCP(9000, p2pFactory(stuff))
