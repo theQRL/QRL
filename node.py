@@ -10,7 +10,7 @@ from twisted.internet import reactor
 
 node_list = [('127.0.0.1', 9000),('127.0.0.1', 9001)]
 
-cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo']
+cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight']
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -67,6 +67,9 @@ class WalletProtocol(Protocol):
 						self.transport.write('Address: '+addresses[x]+'\r\n')
 			elif data == 'getinfo':
 					self.transport.write('Uptime: '+str(time.time()-start_time)+'\r\n')
+
+			elif data == 'blockheight':
+					self.transport.write('Blockheight: '+str(chain.f_get_last_block().blockheader.blocknumber)+'\r\n')
 		else:
 			return False
 
@@ -165,9 +168,10 @@ class WalletFactory(ServerFactory):
 if __name__ == "__main__":
 
 	start_time = time.time()
-
+	print 'QRL blockchain ledger v 0.00'
+	print 'Reading chain..'
 	chain.f_read_chain()
-	print str(chain.inspect_chain())+' blocks..'
+	print str(chain.inspect_chain())+' blockheight'
 
 
 	stuff = 'QRL node connection established.'+'\r\n'
@@ -176,6 +180,6 @@ if __name__ == "__main__":
 
 	print port.getHost()
 	print port2.getHost()
-	print 'QRL blockchain ledger v 0.00'
+	
 
 	reactor.run()

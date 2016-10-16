@@ -19,7 +19,10 @@ import pickle
 
 
 global transaction_pool
+global block_pool
+
 transaction_pool = []
+
 
 def roottoaddr(merkle_root):
 	return 'Q'+sha256(merkle_root)+sha256(sha256(merkle_root))[:4]
@@ -98,6 +101,18 @@ def add_tx_to_pool(tx_class_obj):
 def show_tx_pool():
 	return transaction_pool
 
+def flush_tx_pool():
+	del transaction_pool[:]
+
+def validate_block(block):
+	pass
+	#verify it includes previous hash. verify header hash is valid. verify sha256(concat(txhash)) = valid. verify blockheight is valid.
+
+def validate_tx(tx):						
+	#verify sig, check merkle proof, check address from root.
+	#from blockchain - check nonce + public key, check balance is valid.
+	pass
+
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
 	def __init__(self, txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
@@ -141,7 +156,7 @@ class CreateBlock():
 
 	def __init__(self):
 
-		data = f_last_block()
+		data = f_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
 		prev_blockheaderhash = data.blockheader.headerhash
 		if not transaction_pool:
@@ -155,6 +170,8 @@ class CreateBlock():
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
 
 		self.transactions = transaction_pool
+
+		flush_tx_pool()				#we have bundled the new transactions into the block..need to add some validation code for transactions..
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
