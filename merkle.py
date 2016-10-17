@@ -73,11 +73,12 @@ def verify_wkey(signature, message, pub):
     
     for x in range(len(signature)):
         a = signature[x]
-        for z in range(ord(bin_msg[x:x+1])-1):      #f is all but last hash..
+                                                    #f is all but last hash..
+        for z in range(ord(bin_msg[x:x+1])):
                 a=sha256(a)
-        a = sha256(a)                               #g is the final hash, separate so can be changed..
+        #a = sha256(a)                               #g is the final hash, separate so can be changed..
         verify.append(a)
-        
+  
     if pub != verify:
         return False
 
@@ -184,7 +185,7 @@ def verify_root(pub, merkle_root, merkle_path):
 
     for x in range(len(merkle_path)):
         if len(merkle_path[x]) == 1:
-            if merkle_path[x] == merkle_root:
+            if ''.join(merkle_path[x]) == merkle_root:
                 return True
             else:
                 print 'root check failed'

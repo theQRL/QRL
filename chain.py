@@ -30,7 +30,8 @@ def roottoaddr(merkle_root):
 def checkaddress(merkle_root, address):
 	if 'Q'+sha256(merkle_root)+sha256(sha256(merkle_root))[:4] == address:
 		return True
-	else: 
+	else:
+		#print 'checkaddress failed'
 		return False
 
 def createsimpletransaction(txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
@@ -108,10 +109,32 @@ def validate_block(block):
 	pass
 	#verify it includes previous hash. verify header hash is valid. verify sha256(concat(txhash)) = valid. verify blockheight is valid.
 
-def validate_tx(tx):						
-	#verify sig, check merkle proof, check address from root.
+def validate_tx(tx):
+	if not tx:
+		raise Exception('No transaction to validate.')
+
+	if tx.type == 'WOTS':
+		if merkle.verify_wkey(tx.signature, tx.txhash, tx.pub) is False:
+				print 'key verification failure'
+				return False
+	elif tx.type == 'LDOTS':
+		if merkle.verify_lkey(tx.signature, tx.txhash, tx.pub) is False:
+				return False
+	else: 
+		raise Exception('Unrecognised OTS type')
+
+	if checkaddress(tx.merkle_root, tx.txfrom) is False:
+	#		print 'checkaddress failed'
+			return False
+
+	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
+	#		print 'verify root failed'
+			return False
+
+	return True
+
 	#from blockchain - check nonce + public key, check balance is valid.
-	pass
+	
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
