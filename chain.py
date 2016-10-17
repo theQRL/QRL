@@ -174,6 +174,13 @@ def create_some_tx(n):
 		a,b = wallet.getnewaddress(), wallet.getnewaddress()
 		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
 
+def create_block():
+
+	f_append_block(CreateBlock())
+	flush_tx_pool()
+	return
+
+
 
 class CreateBlock():
 
@@ -189,12 +196,13 @@ class CreateBlock():
 			for transaction in transaction_pool:
 				txhashes.append(transaction.txhash)
 			hashedtransactions = sha256(''.join(txhashes))
+		self.transactions = transaction_pool
 		
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
 
-		self.transactions = transaction_pool
+		
 
-		flush_tx_pool()				#we have bundled the new transactions into the block..need to add some validation code for transactions..
+						#we have bundled the new transactions into the block..need to add some validation code for transactions..
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
