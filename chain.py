@@ -34,6 +34,8 @@ def tx_bytestream(tx_obj):
 def bk_bytestream(block_obj):
 	return 'BK'+bytestream(block_obj)
 
+# chain functions
+
 def f_read_chain():
 	block_list = []
 	if os.path.isfile('./chain.dat') is False:
@@ -47,8 +49,6 @@ def f_read_chain():
 	except:
 			print 'IO error'
 			return False
-
-# chain functions
 
 def inspect_chain():												# returns 3 lists of addresses, signatures and types..basic at present..
 	data = f_read_chain()
@@ -65,9 +65,7 @@ def inspect_chain():												# returns 3 lists of addresses, signatures and t
 	return False
 
 def f_add_block():
-	for transaction in transaction_pool:
-		if validate_tx(transaction) is false:
-			raise Exception('Invalid transaction in block: '+transaction)
+	
 	f_append_block(CreateBlock())
 	flush_tx_pool()
 	return
@@ -96,11 +94,30 @@ def add_tx_to_pool(tx_class_obj):
 def remove_tx_from_pool(tx_class_obj):
 	transaction_pool.remove(tx_class_obj)
 
+def remove_tx_from_block(tx_obj, block_obj):
+	block_obj.remove(tx_obj)
+
 def show_tx_pool():
 	return transaction_pool
 
 def flush_tx_pool():
 	del transaction_pool[:]
+
+def validate_tx_in_block(block_obj):
+	x = 0
+	for transaction in block_obj.transactions:
+		if validate_tx(transaction) is False:
+			print 'invalid tx: ',transaction, 'in block'
+			x+=1
+	if x > 0:
+		return False
+	return True
+
+def validate_tx_pool(transaction_pool):									#invalid transactions are auto removed from pool..
+	for transaction in transaction_pool:
+		if validate_tx(transaction) is False:
+			remove_tx_from_pool(transaction)
+			print 'invalid tx: ',transaction, 'removed from pool'
 
 def validate_tx(tx):
 	#todo - from blockchain - check nonce + public key, check balance is valid.
@@ -114,7 +131,7 @@ def validate_tx(tx):
 		if merkle.verify_lkey(tx.signature, tx.txhash, tx.pub) is False:
 				return False
 	else: 
-		raise Exception('Unrecognised OTS type')
+		return False
 
 	if checkaddress(tx.merkle_root, tx.txfrom) is False:
 			return False
@@ -153,8 +170,11 @@ def creategenesisblock():
 	return CreateGenesisBlock()
 
 def validate_block(block):
+	#get last block..look at headerhash, block number 
+	#check arg block for block number +1, ensure prevblockheaderhash matches.
+	#check tx hash matches tx.hash sha(concat) of all transactions in block
+	#validate tx in block
 	pass
-	#verify it includes previous hash. verify header hash is valid. verify sha256(concat(txhash)) = valid. verify blockheight is valid.
 
 class BlockHeader():
 
