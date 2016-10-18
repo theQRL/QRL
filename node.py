@@ -8,6 +8,9 @@ import chain
 from twisted.internet.protocol import ServerFactory, Protocol, ClientFactory
 from twisted.internet import reactor
 
+global p2p_list
+p2p_list = []
+
 node_list = [('127.0.0.1', 9000),('127.0.0.1', 9001)]
 
 cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight']
@@ -93,7 +96,12 @@ class WalletProtocol(Protocol):
 			self.transport.write('only one local connection allowed, sorry')
 			self.transport.loseConnection()
 		else:
-			print '** new local connection', str(self.factory.connections)
+			if self.transport.getPeer().host == '127.0.0.1':
+				print '** new local connection', str(self.factory.connections)
+				print "connection from", self.transport.getPeer()
+			else:
+				self.transport.loseConnection()
+				print 'Unauthorised remote login attempt.'
 
 	def connectionLost(self, reason):
 		print 'lost connection'

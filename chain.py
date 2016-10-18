@@ -6,23 +6,13 @@ import merkle
 import wallet
 import pickle
 
-# each account is created from the merkle root of a MSS 
-# account address = 'Q' + sha256(root)+ sha256(sha256(root))[:4]
-# Thus each address starts with Q and has a 4 byte double hashed appended checksum.
-# transactions originate from accounts and transfer units to one or many other addresses.
-
-# transactions are class objects transmitted as pickled bytestreams.
-# blocks are class objects as below, and are transmitted as pickled bytestreams.
-# each block has a header, then body.
-# the header is as follows: class object containing - 
-# the body is simply a list of transaction class objects
-
-
 global transaction_pool
-global block_pool
+global m_blockchain
 
+m_blockchain = []
 transaction_pool = []
 
+# address functions
 
 def roottoaddr(merkle_root):
 	return 'Q'+sha256(merkle_root)+sha256(sha256(merkle_root))[:4]
@@ -31,14 +21,9 @@ def checkaddress(merkle_root, address):
 	if 'Q'+sha256(merkle_root)+sha256(sha256(merkle_root))[:4] == address:
 		return True
 	else:
-		#print 'checkaddress failed'
 		return False
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
-	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, nonce, ots_key)
-
-def creategenesisblock():
-	return CreateGenesisBlock()
+# network functions
 
 def bytestream(obj):
 	return pickle.dumps(obj)
@@ -50,23 +35,20 @@ def bk_bytestream(block_obj):
 	return 'BK'+bytestream(block_obj)
 
 def f_read_chain():
-
 	block_list = []
-
 	if os.path.isfile('./chain.dat') is False:
 		print 'Creating new chain file'
 		block_list.append(creategenesisblock())
 		with open("./chain.dat", "a") as myfile:				#add in a new call to create random_otsmss
         		pickle.dump(block_list, myfile)
-
 	try:
-			#print 'loading blockchain to memory..'
 			with open('./chain.dat', 'r') as myfile:
 				return pickle.load(myfile)
 	except:
 			print 'IO error'
 			return False
 
+# chain functions
 
 def inspect_chain():												# returns 3 lists of addresses, signatures and types..basic at present..
 	data = f_read_chain()
@@ -82,12 +64,19 @@ def inspect_chain():												# returns 3 lists of addresses, signatures and t
 			return len(data)
 	return False
 
+def f_add_block():
+	for transaction in transaction_pool:
+		if validate_tx(transaction) is false:
+			raise Exception('Invalid transaction in block: '+transaction)
+	f_append_block(CreateBlock())
+	flush_tx_pool()
+	return
+
 def f_get_last_block():
 	data = f_read_chain()
 	return data[len(data)-1]
 
 def f_append_block(block_data):
-
 		data2 = f_read_chain()
 		data2.append(block_data)
 		if block_data is not False:
@@ -96,8 +85,16 @@ def f_append_block(block_data):
         			pickle.dump(data2, myfile)
 		return
 
+#tx functions and classes
+
+def createsimpletransaction(txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
+	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, nonce, ots_key)
+
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
+
+def remove_tx_from_pool(tx_class_obj):
+	transaction_pool.remove(tx_class_obj)
 
 def show_tx_pool():
 	return transaction_pool
@@ -105,17 +102,13 @@ def show_tx_pool():
 def flush_tx_pool():
 	del transaction_pool[:]
 
-def validate_block(block):
-	pass
-	#verify it includes previous hash. verify header hash is valid. verify sha256(concat(txhash)) = valid. verify blockheight is valid.
-
 def validate_tx(tx):
+	#todo - from blockchain - check nonce + public key, check balance is valid.
 	if not tx:
 		raise Exception('No transaction to validate.')
 
 	if tx.type == 'WOTS':
 		if merkle.verify_wkey(tx.signature, tx.txhash, tx.pub) is False:
-				print 'key verification failure'
 				return False
 	elif tx.type == 'LDOTS':
 		if merkle.verify_lkey(tx.signature, tx.txhash, tx.pub) is False:
@@ -124,24 +117,22 @@ def validate_tx(tx):
 		raise Exception('Unrecognised OTS type')
 
 	if checkaddress(tx.merkle_root, tx.txfrom) is False:
-	#		print 'checkaddress failed'
 			return False
 
 	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
-	#		print 'verify root failed'
 			return False
-
 	return True
 
-	#from blockchain - check nonce + public key, check balance is valid.
-	
+def create_some_tx(n):				#create tx for debugging
+	for x in range(n):
+		a,b = wallet.getnewaddress(), wallet.getnewaddress()
+		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
 	def __init__(self, txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
 		if ots_key > len(data)-1:
 			raise Exception('OTS key greater than available signatures')
-
 		self.txfrom = txfrom
 		self.nonce = nonce
 		self.txto = txto
@@ -150,14 +141,20 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 		self.ots_key = ots_key
 		self.pub = data[ots_key].pub
 		self.type = data[ots_key].type
-
 		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			#high level kludge!
 		self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
 		self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
-		
 		self.merkle_root = data[0].merkle_root
 		self.merkle_path = data[ots_key].merkle_path
 
+# block functions and classes
+
+def creategenesisblock():
+	return CreateGenesisBlock()
+
+def validate_block(block):
+	pass
+	#verify it includes previous hash. verify header hash is valid. verify sha256(concat(txhash)) = valid. verify blockheight is valid.
 
 class BlockHeader():
 
@@ -168,24 +165,9 @@ class BlockHeader():
 		self.hashedtransactions = hashedtransactions
 		self.headerhash = sha256(str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
 
-
-def create_some_tx(n):
-	for x in range(n):
-		a,b = wallet.getnewaddress(), wallet.getnewaddress()
-		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
-
-def create_block():
-
-	f_append_block(CreateBlock())
-	flush_tx_pool()
-	return
-
-
-
 class CreateBlock():
 
 	def __init__(self):
-
 		data = f_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
 		prev_blockheaderhash = data.blockheader.headerhash
@@ -196,18 +178,11 @@ class CreateBlock():
 			for transaction in transaction_pool:
 				txhashes.append(transaction.txhash)
 			hashedtransactions = sha256(''.join(txhashes))
-		self.transactions = transaction_pool
-		
+		self.transactions = transaction_pool						#add transactions in pool to block
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
-
-		
-
-						#we have bundled the new transactions into the block..need to add some validation code for transactions..
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
 
 	def __init__(self):
 		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
-
-	
