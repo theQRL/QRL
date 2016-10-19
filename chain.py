@@ -169,12 +169,30 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 def creategenesisblock():
 	return CreateGenesisBlock()
 
-def validate_block(block):
-	#get last block..look at headerhash, block number 
-	#check arg block for block number +1, ensure prevblockheaderhash matches.
-	#check tx hash matches tx.hash sha(concat) of all transactions in block
-	#validate tx in block
-	pass
+def validate_block(block):		#check validity of new block..
+	b = block.blockheader
+	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+		return False
+
+	if f_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+		return False
+
+	if f_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
+		return False
+	
+	if validate_tx_in_block(block) == False:
+		return False
+
+	txhashes = []
+	for transaction in block.transactions:
+		txhashes.append(transaction.txhash)
+	
+	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+		return False
+
+	# add code to validate individual tx based upon actual blockchain..
+
+	return True
 
 class BlockHeader():
 
