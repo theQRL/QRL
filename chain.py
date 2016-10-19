@@ -74,23 +74,32 @@ def f_add_block():
 	return True
 
 def f_get_last_block():
-	data = f_read_chain()
-	return data[len(data)-1]
+	return f_read_chain()[-1]
 
 def f_append_block(block_data):
-		data2 = f_read_chain()
-		data2.append(block_data)
+		data = f_read_chain()
+		data.append(block_data)
 		if block_data is not False:
 			print 'Appending block to chain'
 			with open("./chain.dat", "w+") as myfile:				#overwrites wallet..
-        			pickle.dump(data2, myfile)
+        			pickle.dump(data, myfile)
 		return
 
 def m_load_chain():
-	m_blockchain = f_read_chain()
+	data = f_read_chain()
+	for datum in data:
+		m_blockchain.append(datum)
 	return m_blockchain
 
+def m_read_chain():
+	if not m_blockchain:
+		m_load_chain()
+	else:
+		return m_blockchain
+
 def m_get_last_block():
+	if not m_blockchain:
+		m_load_chain()
 	return m_blockchain[-1]
 
 def m_add_block(block_obj):
