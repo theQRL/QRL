@@ -86,6 +86,30 @@ def f_append_block(block_data):
         			pickle.dump(data2, myfile)
 		return
 
+def m_load_chain():
+	m_blockchain = f_read_chain()
+	return m_blockchain
+
+def m_get_last_block():
+	return m_blockchain[-1]
+
+def m_add_block(block_obj):
+	if validate_block(block_obj) is True:
+		m_append_block(block_obj)
+		if block_obj == CreateBlock():
+			flush_tx_pool()
+	else:
+		return False
+	return True
+
+def m_append_block(block_obj):
+	m_blockchain.append(block_obj)
+
+def m_f_sync_chain():
+	pass
+	#synchronise the memory chain and file chain - to reduce disk activity calls..
+
+
 #tx functions and classes
 
 def createsimpletransaction(txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
