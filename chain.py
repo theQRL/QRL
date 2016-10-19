@@ -65,10 +65,13 @@ def inspect_chain():												# returns 3 lists of addresses, signatures and t
 	return False
 
 def f_add_block():
-	
-	f_append_block(CreateBlock())
-	flush_tx_pool()
-	return
+	if validate_block(CreateBlock()) is True:
+		f_append_block(CreateBlock())
+		flush_tx_pool()
+	else:
+		#validate_tx_pool() 
+		return False
+	return True
 
 def f_get_last_block():
 	data = f_read_chain()
@@ -113,7 +116,7 @@ def validate_tx_in_block(block_obj):
 		return False
 	return True
 
-def validate_tx_pool(transaction_pool):									#invalid transactions are auto removed from pool..
+def validate_tx_pool():									#invalid transactions are auto removed from pool..
 	for transaction in transaction_pool:
 		if validate_tx(transaction) is False:
 			remove_tx_from_pool(transaction)
@@ -186,7 +189,7 @@ def validate_block(block):		#check validity of new block..
 	txhashes = []
 	for transaction in block.transactions:
 		txhashes.append(transaction.txhash)
-	
+
 	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
 		return False
 
