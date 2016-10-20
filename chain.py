@@ -81,7 +81,7 @@ def m_read_chain():
 	return m_blockchain
 
 def m_get_block(n):
-	return m_read_chain()[n:n+1]
+	return m_read_chain()[n]
 
 def m_get_last_block():
 	return m_read_chain()[-1]
@@ -103,10 +103,12 @@ def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
 	
 def m_chain_verify():
-	#for block in m_read_chain()[2:]:
-	#	if validate_block(block) is False:
-	#		return False
-	#return True
+	n = 0
+	for block in m_read_chain()[1:]:
+		if validate_block(block,last_block=n) is False:
+				return False
+		n+=1
+	return True
 
 #tx functions and classes
 
@@ -196,17 +198,22 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 def creategenesisblock():
 	return CreateGenesisBlock()
 
-def validate_block(block):		#check validity of new block..
+def validate_block(block, last_block='default'):		#check validity of new block..
 	b = block.blockheader
 	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
 		return False
 
-	if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
-		return False
+	if last_block=='default':
+		if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			return False
+		if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
+			return False
+	else:
+		if m_get_block(last_block).blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			return False
+		if m_get_block(last_block).blockheader.blocknumber != block.blockheader.blocknumber-1:
+			return False
 
-	if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
-		return False
-	
 	if validate_tx_in_block(block) == False:
 		return False
 
