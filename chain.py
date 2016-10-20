@@ -80,6 +80,9 @@ def m_read_chain():
 		m_load_chain()
 	return m_blockchain
 
+def m_get_block(n):
+	return m_read_chain()[n:n+1]
+
 def m_get_last_block():
 	return m_read_chain()[-1]
 
@@ -99,6 +102,11 @@ def m_add_block(block_obj):
 def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
 	
+def m_chain_verify():
+	#for block in m_read_chain()[2:]:
+	#	if validate_block(block) is False:
+	#		return False
+	#return True
 
 #tx functions and classes
 
@@ -110,9 +118,6 @@ def add_tx_to_pool(tx_class_obj):
 
 def remove_tx_from_pool(tx_class_obj):
 	transaction_pool.remove(tx_class_obj)
-
-def remove_tx_from_block(tx_obj, block_obj):
-	block_obj.remove(tx_obj)
 
 def show_tx_pool():
 	return transaction_pool
