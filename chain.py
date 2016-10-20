@@ -50,12 +50,6 @@ def f_read_chain():
 			print 'IO error'
 			return False
 
-def inspect_chain():												
-	data = f_read_chain()
-	if data is not False:
-			return len(data)
-	return False
-
 def f_get_last_block():
 	return f_read_chain()[-1]
 
