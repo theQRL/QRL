@@ -50,74 +50,55 @@ def f_read_chain():
 			print 'IO error'
 			return False
 
-def inspect_chain():												# returns 3 lists of addresses, signatures and types..basic at present..
+def inspect_chain():												
 	data = f_read_chain()
 	if data is not False:
-			#num_sigs = []
-			#types = []
-			blocks = []
-			#for x in range(len(data)):
-				#addresses.append(data[x][0])
-				#num_sigs.append(len(data[x][1]))
-				#types.append(data[x][1][0].type)
-			#return addresses, num_sigs, types
 			return len(data)
 	return False
-
-def f_add_block():
-	if validate_block(CreateBlock()) is True:
-		f_append_block(CreateBlock())
-		flush_tx_pool()
-	else:
-		#validate_tx_pool() 
-		return False
-	return True
 
 def f_get_last_block():
 	return f_read_chain()[-1]
 
-def f_append_block(block_data):
+def f_write_chain(block_data):											
 		data = f_read_chain()
-		data.append(block_data)
+		for block in block_data:
+				data.append(block)
 		if block_data is not False:
-			print 'Appending block to chain'
-			with open("./chain.dat", "w+") as myfile:				#overwrites wallet..
+			print 'Appending data to chain'
+			with open("./chain.dat", "w+") as myfile:				#overwrites wallet..must use w+ as cannot append pickle item
         			pickle.dump(data, myfile)
 		return
 
 def m_load_chain():
-	data = f_read_chain()
-	for datum in data:
-		m_blockchain.append(datum)
+	del m_blockchain[:]
+	for block in f_read_chain():
+		m_blockchain.append(block)
 	return m_blockchain
 
 def m_read_chain():
 	if not m_blockchain:
 		m_load_chain()
-	else:
-		return m_blockchain
+	return m_blockchain
 
 def m_get_last_block():
-	if not m_blockchain:
-		m_load_chain()
-	return m_blockchain[-1]
+	return m_read_chain()[-1]
+
+def m_create_block():
+	return CreateBlock()
 
 def m_add_block(block_obj):
+	if not m_blockchain:
+		m_load_chain()
 	if validate_block(block_obj) is True:
-		m_append_block(block_obj)
-		if block_obj == CreateBlock():
-			flush_tx_pool()
+		m_blockchain.append(block_obj)
+		remove_tx_in_block_from_pool(block_obj)
 	else:
 		return False
 	return True
 
-def m_append_block(block_obj):
-	m_blockchain.append(block_obj)
-
 def m_f_sync_chain():
-	pass
-	#synchronise the memory chain and file chain - to reduce disk activity calls..
-
+	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
+	
 
 #tx functions and classes
 
@@ -135,6 +116,11 @@ def remove_tx_from_block(tx_obj, block_obj):
 
 def show_tx_pool():
 	return transaction_pool
+
+def remove_tx_in_block_from_pool(block_obj):
+	for tx in block_obj.transactions:
+		if tx in transaction_pool:
+			remove_tx_from_pool(tx)
 
 def flush_tx_pool():
 	del transaction_pool[:]
@@ -210,10 +196,10 @@ def validate_block(block):		#check validity of new block..
 	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
 		return False
 
-	if f_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+	if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
 		return False
 
-	if f_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
+	if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
 		return False
 	
 	if validate_tx_in_block(block) == False:
@@ -242,7 +228,7 @@ class BlockHeader():
 class CreateBlock():
 
 	def __init__(self):
-		data = f_get_last_block()
+		data = m_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
 		prev_blockheaderhash = data.blockheader.headerhash
 		if not transaction_pool:
@@ -252,7 +238,9 @@ class CreateBlock():
 			for transaction in transaction_pool:
 				txhashes.append(transaction.txhash)
 			hashedtransactions = sha256(''.join(txhashes))
-		self.transactions = transaction_pool						#add transactions in pool to block
+		self.transactions = []
+		for tx in transaction_pool:
+			self.transactions.append(tx)						#copy memory rather than sym link
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
 
 
