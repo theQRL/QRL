@@ -98,10 +98,14 @@ def m_blockheight():
 	return len(m_read_chain())-1
 
 def m_info_block(n):
+	if n > m_blockheight():
+		print 'No such block exists yet..'
+		return False
 	b = m_get_block(n)
 	print 'Block: ', b, str(b.blockheader.blocknumber)
 	print 'Blocksize, ', str(len(bytestream(b)))
 	print 'Number of transactions: ', str(len(b.transactions))
+	print 'Validates: ', validate_block(b, last_block = n-1)
 
 def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
