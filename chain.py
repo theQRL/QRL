@@ -2,6 +2,7 @@ __author__ = 'pete'
 
 from bitcoin import sha256
 import os
+import sys
 import merkle
 import wallet
 import pickle
@@ -85,7 +86,7 @@ def m_create_block():
 
 def m_add_block(block_obj):
 	if not m_blockchain:
-		m_load_chain()
+		m_read_chain()
 	if validate_block(block_obj) is True:
 		m_blockchain.append(block_obj)
 		remove_tx_in_block_from_pool(block_obj)
@@ -96,12 +97,15 @@ def m_add_block(block_obj):
 def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
 	
-def m_chain_verify():
+def m_verify_chain(verbose=0):
 	n = 0
 	for block in m_read_chain()[1:]:
-		if validate_block(block,last_block=n) is False:
+		if validate_block(block,last_block=n, verbose=verbose) is False:
 				return False
 		n+=1
+		if verbose is 1:
+			sys.stdout.write('.')
+			sys.stdout.flush()
 	return True
 
 #tx functions and classes
@@ -192,7 +196,8 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 def creategenesisblock():
 	return CreateGenesisBlock()
 
-def validate_block(block, last_block='default'):		#check validity of new block..
+def validate_block(block, last_block='default', verbose=0):		#check validity of new block..
+
 	b = block.blockheader
 	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
 		return False
@@ -219,6 +224,9 @@ def validate_block(block, last_block='default'):		#check validity of new block..
 		return False
 
 	# add code to validate individual tx based upon actual blockchain..
+
+	if verbose==1:
+		print block, 'True'
 
 	return True
 

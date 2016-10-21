@@ -177,10 +177,13 @@ if __name__ == "__main__":
 
 	start_time = time.time()
 	print 'QRL blockchain ledger v 0.00'
+
 	print 'Reading chain..'
 	chain.m_load_chain()
-	print 'Verifying chain', chain.m_chain_verify()
-	print str(len(chain.m_blockchain))+' blockheight'
+	print str(len(chain.m_blockchain))+' blocks'
+	print 'Verifying chain' 
+	chain.m_verify_chain(verbose=1)
+	
 
 
 	stuff = 'QRL node connection established.'+'\r\n'

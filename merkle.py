@@ -227,7 +227,7 @@ def random_wmss(signatures=4, verbose=0):  #create a w-ots mms with multiple sig
     for i in range(len(data)):
         pubhashes.append(data[i].pubhash)
 
-    a = Merkle(pub=pubhashes,verbose=verbose)
+    a = Merkle(base=pubhashes,verbose=verbose)
 
     for y in range(signatures):
         data[y].merkle_root = ''.join(a.root)
@@ -248,7 +248,7 @@ def random_ldmss(signatures=4, verbose=0):
     for i in range(len(data)):
         pubhashes.append(data[i].pubhash)
 
-    a = Merkle(pub=pubhashes, verbose=verbose)
+    a = Merkle(base=pubhashes, verbose=verbose)
 
     for y in range(signatures):
         data[y].merkle_root = ''.join(a.root)
@@ -312,10 +312,8 @@ class WOTS():
 
 class Merkle():
 
- def __init__(self, pub=[],priv=[],signatures=0, verbose=0):
-    self.base = pub
-    self.priv = priv
-    self.signatures = len(priv)
+ def __init__(self, base=[], verbose=0):
+    self.base = base
     self.verbose = verbose
     self.tree = []
     self.num_leaves = len(self.base)
