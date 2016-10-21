@@ -94,6 +94,15 @@ def m_add_block(block_obj):
 		return False
 	return True
 
+def m_blockheight():
+	return len(m_read_chain())-1
+
+def m_info_block(n):
+	b = m_get_block(n)
+	print 'Block: ', b, str(b.blockheader.blocknumber)
+	print 'Blocksize, ', str(len(bytestream(b)))
+	print 'Number of transactions: ', str(len(b.transactions))
+
 def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
 	
@@ -262,3 +271,4 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 
 	def __init__(self):
 		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
+		self.transactions = []
