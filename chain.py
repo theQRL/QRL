@@ -6,12 +6,22 @@ import sys
 import merkle
 import wallet
 import pickle
+import db
 
 global transaction_pool
 global m_blockchain
+global my
+
+my = wallet.f_read_wallet()
+
 
 m_blockchain = []
 transaction_pool = []
+block_state = []
+
+print 'loading db'
+db = db.DB()
+
 
 # address functions
 
@@ -109,6 +119,7 @@ def m_info_block(n):
 
 def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
+	db.put('blockheight', m_blockheight())
 	
 def m_verify_chain(verbose=0):
 	n = 0
@@ -120,6 +131,50 @@ def m_verify_chain(verbose=0):
 			sys.stdout.write('.')
 			sys.stdout.flush()
 	return True
+
+#state functions
+#first iteration - state data stored in leveldb file, each 
+
+def state_to_block():									#check state db marker to current blockheight.
+	if m_blockheight() == db.get('blockheight'):
+		return True
+	return False
+
+def state_put_address():
+	pass
+
+def state_balance(addr):
+	try: return db.get(addr)[1]
+	except:	return False
+
+def state_nonce(addr):
+	try: return db.get(addr)[0]
+	except:	return False
+	
+def fresh_state():
+	print 'genesis'					#from genesis block state is read for coin distribution
+	c = m_get_block(0).state
+	for address in c:
+		print address[0], address[1]
+		db.put(address[0], address[1])
+
+	c = m_read_chain()[1:]
+
+	for block in c:
+		print block
+		for tx in block.transactions:
+			print '--------'
+			print tx, tx.txhash, str(tx.amount)+' qrl'
+			[nonce, balance]  = db.get(tx.txfrom)
+			print 'state change to'
+			db.put(tx.txfrom, [nonce+1, balance-tx.amount])
+			print tx.txfrom, str(nonce+1), str(balance-tx.amount)
+			[nonce, balance] = db.get(tx.txto)
+			db.put(tx.txto, [nonce, balance+tx.amount])
+			print tx.txto, str(nonce), str(balance+tx.amount)
+			print '--------'
+
+	# functional. need to add state proof creation code to block and check in here..
 
 #tx functions and classes
 
@@ -180,6 +235,9 @@ def validate_tx(tx):
 			return False
 	return True
 
+def create_valid_tx_from_wallet(n):
+	transaction_pool.append(createsimpletransaction(my[0][0],my[1][0],n, my[0][1]))
+
 def create_some_tx(n):				#create tx for debugging
 	for x in range(n):
 		a,b = wallet.getnewaddress(), wallet.getnewaddress()
@@ -201,7 +259,8 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			#high level kludge!
 		self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
 		self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
-		self.merkle_root = data[0].merkle_root
+		#self.merkle_root = data[0].merkle_root #temporarily use ''.join although this is fixed..old addresses in wallet..
+		self.merkle_root = ''.join(data[0].merkle_root)
 		self.merkle_path = data[ots_key].merkle_path
 
 # block functions and classes
@@ -271,8 +330,23 @@ class CreateBlock():
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
 
 
+		# state code..
+		# for each transaction there is a change in the state which much be recorded in the state part of the block. 
+
+
+
+class State():
+	# for each transaction we must check the old state, check the new state, calculate balance and attach the appropriate address and txhash. 
+
+	def __init__(self, transaction_list):
+		pass
+
+
+
 class CreateGenesisBlock():			#first block has no previous header to reference..
 
 	def __init__(self):
 		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
 		self.transactions = []
+		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000]], ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000]]]
+

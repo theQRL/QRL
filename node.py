@@ -1,9 +1,9 @@
 __author__ = 'pete'
 
+import chain
 import sys
 import time
 import wallet
-import chain
 
 from twisted.internet.protocol import ServerFactory, Protocol, ClientFactory
 from twisted.internet import reactor
@@ -67,12 +67,12 @@ class WalletProtocol(Protocol):
 					
 					for x in range(len(addresses)):
 						self.transport.write(str(x)+': type '+types[x]+', signatures possible: '+str(num_sigs[x])+'\r\n')
-						self.transport.write('Address: '+addresses[x]+'\r\n')
+						self.transport.write('Address: '+addresses[x]+' Balance: '+str(chain.state_balance(addresses[x]))+'\r\n')
 			elif data == 'getinfo':
 					self.transport.write('Uptime: '+str(time.time()-start_time)+'\r\n')
 
 			elif data == 'blockheight':
-					self.transport.write('Blockheight: '+str(chain.f_get_last_block().blockheader.blocknumber)+'\r\n')
+					self.transport.write('Blockheight: '+str(chain.m_blockheight)+'\r\n')
 		else:
 			return False
 
