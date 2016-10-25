@@ -3,6 +3,7 @@
 __author__ = 'pete'
 
 from bitcoin import sha256
+from random import randint
 import os
 import sys
 import merkle
@@ -152,7 +153,11 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000, []]] , ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000,[]]]]
 
 
+# debugging functions
 
+def test_tx(n):
+	for x in range(n):
+		create_my_tx(randint(0,5), randint(0,5),0.06)
 
 # address functions
 
@@ -309,6 +314,8 @@ def state_pubhash(addr):
 
 # add some form of hash check to confirm block correct..
 
+# state_add_block and state_read_chain - can be turned into state_read_block(block)
+
 def state_add_block():
 
 	block = m_get_last_block()
@@ -317,29 +324,6 @@ def state_add_block():
 
 	for tx in block.transactions:
 
-		#get state of addresses in tx
-
-		#print tx, tx.type, 'amount: ', str(tx.amount)
-		s1 = state_get_address(tx.txfrom)
-		#print tx.txfrom, s1
-		s2 = state_get_address(tx.txto)
-		#print tx.txto, s2
-
-		#confirm existing balance exceeds transfer amount
-
-		assert s1[1] - tx.amount > 0, 'tx exceeds balance, invalid tx'
-		
-		#confirm nonce correct
-		assert tx.nonce == s1[0]+1, 'nonce incorrect, invalid tx'
-
-		#correct state to account for new tx..
-
-		s1[0]+=1
-		s1[1] = s1[1]-tx.amount
-		s2[1] = s2[1]+tx.amount
-
-		#create the pubhash..
-
 		pub = tx.pub
 		if tx.type == 'LDOTS':
 				   pub = [i for sub in pub for i in sub]
@@ -347,14 +331,25 @@ def state_add_block():
 				pass
 		pubhash = sha256(''.join(pub))
 
-		#append the pubhash as a tx id..
+		s1 = state_get_address(tx.txfrom)
+		
+		if s1[1] - tx.amount < 0:
+			print tx, tx.txfrom, 'exceeds balance, invalid tx'
+			return False
 
+		if tx.nonce != s1[0]+1:
+			print 'nonce incorrect, invalid tx'
+			print tx, tx.txfrom, tx.nonce
+			return False
+
+		s1[0]+=1
+		s1[1] = s1[1]-tx.amount
 		s1[2].append(pubhash)
-		s2[2].append(pubhash)
-
-		#return updated state to leveldb
-
 		db.put(tx.txfrom, s1)
+
+		s2 = state_get_address(tx.txto)
+		s2[1] = s2[1]+tx.amount
+		s2[2].append(pubhash)
 		db.put(tx.txto, s2)
 
 	db.put('blockheight', m_blockheight())
@@ -373,31 +368,7 @@ def state_read_chain():
 
 	for block in c:
 
-		#print block
-
 		for tx in block.transactions:
-
-		#	print tx, tx.type, 'amount: ', str(tx.amount)
-			s1 = state_get_address(tx.txfrom)
-		#	print tx.txfrom, s1
-			s2 = state_get_address(tx.txto)
-		#	print tx.txto, s2
-
-			#confirm existing balance exceeds transfer amount
-
-			assert s1[1] - tx.amount > 0, 'tx exceeds balance, invalid tx'
-		
-			#confirm nonce correct
-			assert tx.nonce == s1[0]+1, 'nonce incorrect, invalid tx'
-
-			#correct state to account for new tx..
-
-			s1[0]+=1
-			s1[1] = s1[1]-tx.amount
-			s2[1] = s2[1]+tx.amount
-
-			#create the pubhash..
-
 			pub = tx.pub
 			if tx.type == 'LDOTS':
 				  	pub = [i for sub in pub for i in sub]
@@ -405,14 +376,24 @@ def state_read_chain():
 					pass
 			pubhash = sha256(''.join(pub))
 
-			#append the pubhash as a tx id..
+			s1 = state_get_address(tx.txfrom)
 
+			if s1[1] - tx.amount < 0:
+				print tx, tx.txfrom, 'exceeds balance, invalid tx'
+				return False
+
+			if tx.nonce != s1[0]+1:
+				print 'nonce incorrect, invalid tx'
+				return False
+
+			s1[0]+=1
+			s1[1] = s1[1]-tx.amount
 			s1[2].append(pubhash)
+			db.put(tx.txfrom, s1)							#must be ordered in case tx.txfrom = tx.txto
+
+			s2 = state_get_address(tx.txto)
+			s2[1] = s2[1]+tx.amount
 			s2[2].append(pubhash)
-
-			#return updated state to leveldb
-
-			db.put(tx.txfrom, s1)
 			db.put(tx.txto, s2)			
 
 		print block, str(len(block.transactions)), 'tx ', ' passed'
@@ -484,15 +465,15 @@ def validate_tx(tx, new=0):
 	
 	#state validity, if -1 then we are validating a tx in the present for a new block using current state snapshot
 
-	if new == 1:
-		try: assert state_uptodate()
-		except: 	
-				print 'failed here'
-				return False
-		try: assert state_balance(tx.txfrom) > tx.amount
-		except:	
-				print 'failed here 2'
-				return False 
+	#if new == 1:
+	#	try: assert state_uptodate()
+	#	except: 	
+	#			print 'failed here'
+	#			return False
+	#	try: assert state_balance(tx.txfrom) <= tx.amount
+	#	except:	
+	#			print 'failed here 2'
+	#			return False 
 
 
 
