@@ -8,6 +8,9 @@ import chain
 import pickle 
 import os
 
+global mywallet
+mywallet = []
+
 def log(string_data):
     with open("./log/log.txt", "a") as myfile:
         myfile.write(string_data)
@@ -23,8 +26,6 @@ def f_read_wallet():
 		addr_list.append(getnewaddress(4))
 		with open("./wallet.dat", "a") as myfile:				#add in a new call to create random_otsmss
         		pickle.dump(addr_list, myfile)
-        		
-	
 
 	try:
 			with open('./wallet.dat', 'r') as myfile:
@@ -62,6 +63,17 @@ def inspect_wallet():												# returns 3 lists of addresses, signatures and 
 			return addresses, num_sigs, types
 	return False
 	
+
+
+def list_addresses():
+	addr = f_read_wallet()
+	list_addr = []
+	for address in addr:
+		list_addr.append([address[0], chain.state_balance(address[0])])
+	return list_addr
+
+
+
 
 
 def getnewaddress(signatures=4, type='WOTS'):						#new address format is a list of two items [address, data structure from random_mss call]

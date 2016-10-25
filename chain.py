@@ -1,3 +1,5 @@
+#if we read the chainstate and it has no errors reading the chain, then we can rely upon that. For acute tx valid look to current state
+
 __author__ = 'pete'
 
 from bitcoin import sha256
@@ -12,15 +14,144 @@ global transaction_pool
 global m_blockchain
 global my
 
-my = wallet.f_read_wallet()
-
-
 m_blockchain = []
 transaction_pool = []
 block_state = []
 
 print 'loading db'
 db = db.DB()
+
+class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
+
+	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0):
+		if ots_key > len(data)-1:
+			raise Exception('OTS key greater than available signatures')
+		self.txfrom = txfrom
+		#self.nonce = nonce
+		
+		if state_uptodate() is False:
+			print 'state not at latest block in chain'
+			return False
+
+		self.nonce = state_nonce(txfrom)+1
+
+		#search for any tx from txfrom already in the the transaction_pool, if so, they must be valid and the nonce must be adjusted..
+
+		for t in transaction_pool:
+			if t.txfrom == self.txfrom:
+				self.nonce+=1
+
+		self.txto = txto
+		
+		if state_balance(txfrom) is 0:
+			print 'empty address'
+			return False 
+
+		if state_balance(txfrom) < amount: 
+			print 'insufficient funds for valid tx'
+			return False
+
+		self.amount = amount
+		self.fee = fee
+		self.ots_key = ots_key
+		self.pub = data[ots_key].pub
+		self.type = data[ots_key].type
+		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			#high level kludge!
+		self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
+		self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
+		#self.merkle_root = data[0].merkle_root #temporarily use ''.join although this is fixed..old addresses in wallet..
+		self.merkle_root = ''.join(data[0].merkle_root)
+		self.merkle_path = data[ots_key].merkle_path
+
+
+
+# block functions and classes
+
+def creategenesisblock():
+	return CreateGenesisBlock()
+
+def validate_block(block, last_block='default', verbose=0, new=0):		#check validity of new block..
+
+	b = block.blockheader
+	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+		return False
+
+	if last_block=='default':
+		if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			print 'yoyoyo'
+			return False
+		if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
+			print 'yldfkjlskfj'
+			return False
+	else:
+		if m_get_block(last_block).blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			return False
+		if m_get_block(last_block).blockheader.blocknumber != block.blockheader.blocknumber-1:
+			return False
+
+	if validate_tx_in_block(block, new=new) == False:
+		'print yaya'
+		return False
+
+	txhashes = []
+	for transaction in block.transactions:
+		txhashes.append(transaction.txhash)
+
+	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+		return False
+
+	if verbose==1:
+		print block, 'True'
+
+	return True
+
+class BlockHeader():
+
+	def __init__(self, blocknumber, prev_blockheaderhash, number_transactions, hashedtransactions ):
+		self.blocknumber = blocknumber
+		self.prev_blockheaderhash = prev_blockheaderhash
+		self.number_transactions = number_transactions
+		self.hashedtransactions = hashedtransactions
+		self.headerhash = sha256(str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+
+class CreateBlock():
+
+	def __init__(self):
+		data = m_get_last_block()
+		lastblocknumber = data.blockheader.blocknumber
+		prev_blockheaderhash = data.blockheader.headerhash
+		if not transaction_pool:
+			hashedtransactions = sha256('')
+		else:
+			txhashes = []
+			for transaction in transaction_pool:
+				txhashes.append(transaction.txhash)
+			hashedtransactions = sha256(''.join(txhashes))
+		self.transactions = []
+		for tx in transaction_pool:
+			self.transactions.append(tx)						#copy memory rather than sym link
+		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
+
+
+		# state code..
+		# for each transaction there is a change in the state which much be recorded in the state part of the block. 
+
+
+class State():
+	# for each transaction we must check the old state, check the new state, calculate balance and attach the appropriate address and txhash. 
+
+	def __init__(self, transaction_list):
+		pass
+
+
+class CreateGenesisBlock():			#first block has no previous header to reference..
+
+	def __init__(self):
+		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
+		self.transactions = []
+		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000, []]] , ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000,[]]]]
+
+
 
 
 # address functions
@@ -97,12 +228,24 @@ def m_create_block():
 def m_add_block(block_obj):
 	if not m_blockchain:
 		m_read_chain()
-	if validate_block(block_obj) is True:
+	if validate_block(block_obj, new=1) is True:
 		m_blockchain.append(block_obj)
-		remove_tx_in_block_from_pool(block_obj)
+		if state_add_block() is True:
+				remove_tx_in_block_from_pool(block_obj)
+		else: 	
+				m_remove_last_block()
+				print 'last block failed state checks, removed from chain'
+				return False
 	else:
-		return False
+		print 'this point'
+		return block_obj
+	m_f_sync_chain()
 	return True
+
+def m_remove_last_block():
+	if not m_blockchain:
+		m_read_chain()
+	m_blockchain.pop()
 
 def m_blockheight():
 	return len(m_read_chain())-1
@@ -119,7 +262,6 @@ def m_info_block(n):
 
 def m_f_sync_chain():
 	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
-	db.put('blockheight', m_blockheight())
 	
 def m_verify_chain(verbose=0):
 	n = 0
@@ -132,54 +274,158 @@ def m_verify_chain(verbose=0):
 			sys.stdout.flush()
 	return True
 
-#state functions
-#first iteration - state data stored in leveldb file, each 
 
-def state_to_block():									#check state db marker to current blockheight.
+
+#state functions
+#first iteration - state data stored in leveldb file
+#state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
+
+def state_uptodate():									#check state db marker to current blockheight.
 	if m_blockheight() == db.get('blockheight'):
 		return True
 	return False
 
-def state_put_address():
-	pass
+def state_blockheight():
+	return db.get('blockheight')
+
+def state_get_address(addr):
+	try: return db.get(addr)
+	except:	return [0,0,[]]
 
 def state_balance(addr):
 	try: return db.get(addr)[1]
-	except:	return False
+	#except:	return False
+	except:	return 0 
 
 def state_nonce(addr):
 	try: return db.get(addr)[0]
-	except:	return False
-	
-def fresh_state():
-	print 'genesis'					#from genesis block state is read for coin distribution
+	except: return 0
+	#except:	return False
+
+def state_pubhash(addr):
+	try: return db.get(addr)[2]
+	except: return []
+	#except:	return False
+
+# add some form of hash check to confirm block correct..
+
+def state_add_block():
+
+	block = m_get_last_block()
+	print block, 'with: ', str(len(block.transactions)), ' tx'
+	assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
+
+	for tx in block.transactions:
+
+		#get state of addresses in tx
+
+		#print tx, tx.type, 'amount: ', str(tx.amount)
+		s1 = state_get_address(tx.txfrom)
+		#print tx.txfrom, s1
+		s2 = state_get_address(tx.txto)
+		#print tx.txto, s2
+
+		#confirm existing balance exceeds transfer amount
+
+		assert s1[1] - tx.amount > 0, 'tx exceeds balance, invalid tx'
+		
+		#confirm nonce correct
+		assert tx.nonce == s1[0]+1, 'nonce incorrect, invalid tx'
+
+		#correct state to account for new tx..
+
+		s1[0]+=1
+		s1[1] = s1[1]-tx.amount
+		s2[1] = s2[1]+tx.amount
+
+		#create the pubhash..
+
+		pub = tx.pub
+		if tx.type == 'LDOTS':
+				   pub = [i for sub in pub for i in sub]
+		elif tx.type == 'WOTS':
+				pass
+		pubhash = sha256(''.join(pub))
+
+		#append the pubhash as a tx id..
+
+		s1[2].append(pubhash)
+		s2[2].append(pubhash)
+
+		#return updated state to leveldb
+
+		db.put(tx.txfrom, s1)
+		db.put(tx.txto, s2)
+
+	db.put('blockheight', m_blockheight())
+	print block, str(len(block.transactions)),'tx ',' passed'
+	return True
+
+
+def state_read_chain():
+	db.zero_all_addresses()
+						#from genesis block state is read for coin distribution
 	c = m_get_block(0).state
 	for address in c:
-		print address[0], address[1]
 		db.put(address[0], address[1])
 
 	c = m_read_chain()[1:]
 
 	for block in c:
-		print block
+
+		#print block
+
 		for tx in block.transactions:
-			print '--------'
-			print tx, tx.txhash, str(tx.amount)+' qrl'
-			[nonce, balance]  = db.get(tx.txfrom)
-			print 'state change to'
-			db.put(tx.txfrom, [nonce+1, balance-tx.amount])
-			print tx.txfrom, str(nonce+1), str(balance-tx.amount)
-			[nonce, balance] = db.get(tx.txto)
-			db.put(tx.txto, [nonce, balance+tx.amount])
-			print tx.txto, str(nonce), str(balance+tx.amount)
-			print '--------'
+
+		#	print tx, tx.type, 'amount: ', str(tx.amount)
+			s1 = state_get_address(tx.txfrom)
+		#	print tx.txfrom, s1
+			s2 = state_get_address(tx.txto)
+		#	print tx.txto, s2
+
+			#confirm existing balance exceeds transfer amount
+
+			assert s1[1] - tx.amount > 0, 'tx exceeds balance, invalid tx'
+		
+			#confirm nonce correct
+			assert tx.nonce == s1[0]+1, 'nonce incorrect, invalid tx'
+
+			#correct state to account for new tx..
+
+			s1[0]+=1
+			s1[1] = s1[1]-tx.amount
+			s2[1] = s2[1]+tx.amount
+
+			#create the pubhash..
+
+			pub = tx.pub
+			if tx.type == 'LDOTS':
+				  	pub = [i for sub in pub for i in sub]
+			elif tx.type == 'WOTS':
+					pass
+			pubhash = sha256(''.join(pub))
+
+			#append the pubhash as a tx id..
+
+			s1[2].append(pubhash)
+			s2[2].append(pubhash)
+
+			#return updated state to leveldb
+
+			db.put(tx.txfrom, s1)
+			db.put(tx.txto, s2)			
+
+		print block, str(len(block.transactions)), 'tx ', ' passed'
+	db.put('blockheight', m_blockheight())
+	return True
+
 
 	# functional. need to add state proof creation code to block and check in here..
 
 #tx functions and classes
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
-	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, nonce, ots_key)
+def createsimpletransaction(txfrom, txto, amount, data, fee=0, ots_key=0):
+	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, ots_key)
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
@@ -198,10 +444,10 @@ def remove_tx_in_block_from_pool(block_obj):
 def flush_tx_pool():
 	del transaction_pool[:]
 
-def validate_tx_in_block(block_obj):
+def validate_tx_in_block(block_obj, new=0):
 	x = 0
 	for transaction in block_obj.transactions:
-		if validate_tx(transaction) is False:
+		if validate_tx(transaction, new=new) is False:
 			print 'invalid tx: ',transaction, 'in block'
 			x+=1
 	if x > 0:
@@ -214,8 +460,10 @@ def validate_tx_pool():									#invalid transactions are auto removed from pool
 			remove_tx_from_pool(transaction)
 			print 'invalid tx: ',transaction, 'removed from pool'
 
-def validate_tx(tx):
-	#todo - from blockchain - check nonce + public key, check balance is valid.
+def validate_tx(tx, new=0):
+
+	#cryptographic checks
+
 	if not tx:
 		raise Exception('No transaction to validate.')
 
@@ -233,120 +481,37 @@ def validate_tx(tx):
 
 	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
 			return False
+	
+	#state validity, if -1 then we are validating a tx in the present for a new block using current state snapshot
+
+	if new == 1:
+		try: assert state_uptodate()
+		except: 	
+				print 'failed here'
+				return False
+		try: assert state_balance(tx.txfrom) > tx.amount
+		except:	
+				print 'failed here 2'
+				return False 
+
+
+
+	# balance at blockheight
+
+
 	return True
 
-def create_valid_tx_from_wallet(n):
-	transaction_pool.append(createsimpletransaction(my[0][0],my[1][0],n, my[0][1]))
+
+def create_my_tx(txfrom, txto, n):
+	my = wallet.f_read_wallet()
+	tx = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+	transaction_pool.append(tx)
+	return tx
 
 def create_some_tx(n):				#create tx for debugging
 	for x in range(n):
 		a,b = wallet.getnewaddress(), wallet.getnewaddress()
 		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
 
-class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
-	def __init__(self, txfrom, txto, amount, data, fee=0, nonce=0, ots_key=0):
-		if ots_key > len(data)-1:
-			raise Exception('OTS key greater than available signatures')
-		self.txfrom = txfrom
-		self.nonce = nonce
-		self.txto = txto
-		self.amount = amount
-		self.fee = fee
-		self.ots_key = ots_key
-		self.pub = data[ots_key].pub
-		self.type = data[ots_key].type
-		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			#high level kludge!
-		self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
-		self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
-		#self.merkle_root = data[0].merkle_root #temporarily use ''.join although this is fixed..old addresses in wallet..
-		self.merkle_root = ''.join(data[0].merkle_root)
-		self.merkle_path = data[ots_key].merkle_path
-
-# block functions and classes
-
-def creategenesisblock():
-	return CreateGenesisBlock()
-
-def validate_block(block, last_block='default', verbose=0):		#check validity of new block..
-
-	b = block.blockheader
-	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
-		return False
-
-	if last_block=='default':
-		if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
-			return False
-		if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
-			return False
-	else:
-		if m_get_block(last_block).blockheader.headerhash != block.blockheader.prev_blockheaderhash:
-			return False
-		if m_get_block(last_block).blockheader.blocknumber != block.blockheader.blocknumber-1:
-			return False
-
-	if validate_tx_in_block(block) == False:
-		return False
-
-	txhashes = []
-	for transaction in block.transactions:
-		txhashes.append(transaction.txhash)
-
-	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
-		return False
-
-	# add code to validate individual tx based upon actual blockchain..
-
-	if verbose==1:
-		print block, 'True'
-
-	return True
-
-class BlockHeader():
-
-	def __init__(self, blocknumber, prev_blockheaderhash, number_transactions, hashedtransactions ):
-		self.blocknumber = blocknumber
-		self.prev_blockheaderhash = prev_blockheaderhash
-		self.number_transactions = number_transactions
-		self.hashedtransactions = hashedtransactions
-		self.headerhash = sha256(str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
-
-class CreateBlock():
-
-	def __init__(self):
-		data = m_get_last_block()
-		lastblocknumber = data.blockheader.blocknumber
-		prev_blockheaderhash = data.blockheader.headerhash
-		if not transaction_pool:
-			hashedtransactions = sha256('')
-		else:
-			txhashes = []
-			for transaction in transaction_pool:
-				txhashes.append(transaction.txhash)
-			hashedtransactions = sha256(''.join(txhashes))
-		self.transactions = []
-		for tx in transaction_pool:
-			self.transactions.append(tx)						#copy memory rather than sym link
-		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
-
-
-		# state code..
-		# for each transaction there is a change in the state which much be recorded in the state part of the block. 
-
-
-
-class State():
-	# for each transaction we must check the old state, check the new state, calculate balance and attach the appropriate address and txhash. 
-
-	def __init__(self, transaction_list):
-		pass
-
-
-
-class CreateGenesisBlock():			#first block has no previous header to reference..
-
-	def __init__(self):
-		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
-		self.transactions = []
-		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000]], ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000]]]
 

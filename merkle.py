@@ -177,6 +177,9 @@ def verify_root(pub, merkle_root, merkle_path):
     if not merkle_path:
         return False
 
+    if len(pub) == 256:             #then LDOTS, need to add this to correctly concat the pub->pubhash
+        pub = [i for sub in pub for i in sub] 
+
     pubhash = sha256(''.join(pub))
 
     if pubhash not in merkle_path[0]:
