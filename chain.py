@@ -1,4 +1,7 @@
-#if we read the chainstate and it has no errors reading the chain, then we can rely upon that. For acute tx valid look to current state
+#QRL main blockchain, state, transaction functions.
+# todo: enforce OTS-key/public key single use discipline.
+# todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without.
+
 
 __author__ = 'pete'
 
@@ -403,6 +406,28 @@ def validate_tx_pool():									#invalid transactions are auto removed from pool
 
 def validate_tx(tx, new=0):
 
+		#cryptographic checks
+
+	if not tx:
+		raise Exception('No transaction to validate.')
+
+	if tx.type == 'WOTS':
+		if merkle.verify_wkey(tx.signature, tx.txhash, tx.pub) is False:
+				return False
+	elif tx.type == 'LDOTS':
+		if merkle.verify_lkey(tx.signature, tx.txhash, tx.pub) is False:
+				return False
+	else: 
+		return False
+
+	if checkaddress(tx.merkle_root, tx.txfrom) is False:
+			return False
+
+	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
+			return False
+			
+	return True
+
 # block validation
 
 def validate_block(block, last_block='default', verbose=0, new=0):		#check validity of new block..
@@ -437,29 +462,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 
 	return True
 
-	#cryptographic checks
 
-	if not tx:
-		raise Exception('No transaction to validate.')
-
-	if tx.type == 'WOTS':
-		if merkle.verify_wkey(tx.signature, tx.txhash, tx.pub) is False:
-				return False
-	elif tx.type == 'LDOTS':
-		if merkle.verify_lkey(tx.signature, tx.txhash, tx.pub) is False:
-				return False
-	else: 
-		return False
-
-	if checkaddress(tx.merkle_root, tx.txfrom) is False:
-			return False
-
-	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
-			return False
-			
-	return True
-
-# simple transaction creation functions..
+# simple transaction creation functions using the wallet file..
 
 def create_my_tx(txfrom, txto, n):
 	my = wallet.f_read_wallet()
