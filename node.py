@@ -183,8 +183,9 @@ if __name__ == "__main__":
 	print str(len(chain.m_blockchain))+' blocks'
 	print 'Verifying chain' 
 	chain.m_verify_chain(verbose=1)
+	print 'Building state leveldb'
+	chain.state_read_chain()
 	
-
 
 	stuff = 'QRL node connection established.'+'\r\n'
 	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')

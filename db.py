@@ -37,7 +37,6 @@ class DB():
 		leveldb.DestroyDB('./state')
 
 	def put(self, key_obj, value_obj):					#serialise with pickle into a string 
-		#if isinstance(value_obj, list):
 		value_obj = pickle.dumps(value_obj)
 		self.db.Put(key_obj, value_obj)
 		return
@@ -48,7 +47,6 @@ class DB():
 		 	return pickle.loads(value_obj)
 		except:
 			return value_obj
-
 
 
 	def delete(self, key_obj):

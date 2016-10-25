@@ -22,6 +22,8 @@ block_state = []
 print 'loading db'
 db = db.DB()
 
+#classes
+
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
 	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0):
@@ -29,8 +31,6 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 			raise Exception('OTS key greater than available signatures')
 		self.txfrom = txfrom
 		self.nonce = state_nonce(txfrom)+1
-
-		#search for any tx from txfrom already in the the transaction_pool, if so, they must be valid and the nonce must be adjusted..
 
 		for t in transaction_pool:
 			if t.txfrom == self.txfrom:
@@ -42,16 +42,13 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 		self.ots_key = ots_key
 		self.pub = data[ots_key].pub
 		self.type = data[ots_key].type
-		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			#high level kludge!
+		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			
 		self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
 		self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
 		#self.merkle_root = data[0].merkle_root #temporarily use ''.join although this is fixed..old addresses in wallet..
 		self.merkle_root = ''.join(data[0].merkle_root)
 		self.merkle_path = data[ots_key].merkle_path
 
-
-
-# block functions and classes
 
 def creategenesisblock():
 	return CreateGenesisBlock()
@@ -119,24 +116,12 @@ class CreateBlock():
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
 
 
-		# state code..
-		# for each transaction there is a change in the state which much be recorded in the state part of the block. 
-
-
-class State():
-	# for each transaction we must check the old state, check the new state, calculate balance and attach the appropriate address and txhash. 
-
-	def __init__(self, transaction_list):
-		pass
-
-
 class CreateGenesisBlock():			#first block has no previous header to reference..
 
 	def __init__(self):
 		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
 		self.transactions = []
 		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000, []]] , ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000,[]]]]
-
 
 # address functions
 
@@ -293,16 +278,11 @@ def state_pubhash(addr):
 
 def state_add_block(block):
 
-	#ensure state at end of chain in memory
-
-	print block, 'with: ', str(len(block.transactions)), ' tx'
+	print block, 'with: ', str(len(block.transactions)), ' tx'								#ensure state at end of chain in memory
 	assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
 
-	#snapshot of state in case we need to revert to it..
-
-	st1 = []
+	st1 = []	#snapshot of state in case we need to revert to it..
 	st2 = []
-
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
 		st2.append(state_get_address(tx.txto))
@@ -344,11 +324,7 @@ def state_add_block(block):
 
 		y+=1
 
-#	print str(y), str(len(block.transactions))
-
-	# if we havent done all the tx in the block we have break, need to revert state back to before the change.
-
-	if y<len(block.transactions):
+	if y<len(block.transactions):			# if we havent done all the tx in the block we have break, need to revert state back to before the change.
 		print 'failed to state check entire block'
 		print 'reverting state'
 
@@ -483,21 +459,25 @@ def validate_tx(tx, new=0):
 	
 	return True
 
+# simple transaction creation functions..
 
-# debugging functions
+def create_my_tx(txfrom, txto, n):
+	my = wallet.f_read_wallet()
+	if isinstance(txto, int):
+		tx = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+	elif isinstance(txto, str):
+		tx = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+	if tx is not False:
+		transaction_pool.append(tx)
+	return tx
 
 def test_tx(n):
 	for x in range(n):
 		create_my_tx(randint(0,5), randint(0,5),0.06)
 
-def create_my_tx(txfrom, txto, n):
-	my = wallet.f_read_wallet()
-	tx = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
-	if tx is not False:
-		transaction_pool.append(tx)
-	return tx
+# debugging functions
 
-def create_some_tx(n):				#create tx for debugging
+def create_some_tx(n):				
 	for x in range(n):
 		a,b = wallet.getnewaddress(), wallet.getnewaddress()
 		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
