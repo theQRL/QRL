@@ -53,40 +53,6 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 def creategenesisblock():
 	return CreateGenesisBlock()
 
-def validate_block(block, last_block='default', verbose=0, new=0):		#check validity of new block..
-
-	b = block.blockheader
-	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
-		return False
-
-	if last_block=='default':
-		if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
-			print 'yoyoyo'
-			return False
-		if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
-			print 'yldfkjlskfj'
-			return False
-	else:
-		if m_get_block(last_block).blockheader.headerhash != block.blockheader.prev_blockheaderhash:
-			return False
-		if m_get_block(last_block).blockheader.blocknumber != block.blockheader.blocknumber-1:
-			return False
-
-	if validate_tx_in_block(block, new=new) == False:
-		'print yaya'
-		return False
-
-	txhashes = []
-	for transaction in block.transactions:
-		txhashes.append(transaction.txhash)
-
-	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
-		return False
-
-	if verbose==1:
-		print block, 'True'
-
-	return True
 
 class BlockHeader():
 
@@ -437,6 +403,40 @@ def validate_tx_pool():									#invalid transactions are auto removed from pool
 
 def validate_tx(tx, new=0):
 
+# block validation
+
+def validate_block(block, last_block='default', verbose=0, new=0):		#check validity of new block..
+
+	b = block.blockheader
+	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+		return False
+
+	if last_block=='default':
+		if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			return False
+		if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
+			return False
+	else:
+		if m_get_block(last_block).blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			return False
+		if m_get_block(last_block).blockheader.blocknumber != block.blockheader.blocknumber-1:
+			return False
+
+	if validate_tx_in_block(block, new=new) == False:
+		return False
+
+	txhashes = []
+	for transaction in block.transactions:
+		txhashes.append(transaction.txhash)
+
+	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+		return False
+
+	if verbose==1:
+		print block, 'True'
+
+	return True
+
 	#cryptographic checks
 
 	if not tx:
@@ -456,7 +456,7 @@ def validate_tx(tx, new=0):
 
 	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
 			return False
-	
+			
 	return True
 
 # simple transaction creation functions..
