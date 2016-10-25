@@ -28,12 +28,6 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 		if ots_key > len(data)-1:
 			raise Exception('OTS key greater than available signatures')
 		self.txfrom = txfrom
-		#self.nonce = nonce
-		
-		if state_uptodate() is False:
-			print 'state not at latest block in chain'
-			return False
-
 		self.nonce = state_nonce(txfrom)+1
 
 		#search for any tx from txfrom already in the the transaction_pool, if so, they must be valid and the nonce must be adjusted..
@@ -43,15 +37,6 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 				self.nonce+=1
 
 		self.txto = txto
-		
-		if state_balance(txfrom) is 0:
-			print 'empty address'
-			return False 
-
-		if state_balance(txfrom) < amount: 
-			print 'insufficient funds for valid tx'
-			return False
-
 		self.amount = amount
 		self.fee = fee
 		self.ots_key = ots_key
@@ -153,12 +138,6 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000, []]] , ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000,[]]]]
 
 
-# debugging functions
-
-def test_tx(n):
-	for x in range(n):
-		create_my_tx(randint(0,5), randint(0,5),0.06)
-
 # address functions
 
 def roottoaddr(merkle_root):
@@ -235,7 +214,7 @@ def m_add_block(block_obj):
 		m_read_chain()
 	if validate_block(block_obj, new=1) is True:
 		m_blockchain.append(block_obj)
-		if state_add_block() is True:
+		if state_add_block(m_get_last_block()) is True:
 				remove_tx_in_block_from_pool(block_obj)
 		else: 	
 				m_remove_last_block()
@@ -279,8 +258,6 @@ def m_verify_chain(verbose=0):
 			sys.stdout.flush()
 	return True
 
-
-
 #state functions
 #first iteration - state data stored in leveldb file
 #state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
@@ -312,15 +289,26 @@ def state_pubhash(addr):
 	except: return []
 	#except:	return False
 
-# add some form of hash check to confirm block correct..
+# add some form of header hash check to confirm block correct..
 
-# state_add_block and state_read_chain - can be turned into state_read_block(block)
+def state_add_block(block):
 
-def state_add_block():
+	#ensure state at end of chain in memory
 
-	block = m_get_last_block()
 	print block, 'with: ', str(len(block.transactions)), ' tx'
 	assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
+
+	#snapshot of state in case we need to revert to it..
+
+	st1 = []
+	st2 = []
+
+	for tx in block.transactions:
+		st1.append(state_get_address(tx.txfrom))
+		st2.append(state_get_address(tx.txto))
+
+	y = 0
+	x = len(block.transactions)
 
 	for tx in block.transactions:
 
@@ -335,12 +323,14 @@ def state_add_block():
 		
 		if s1[1] - tx.amount < 0:
 			print tx, tx.txfrom, 'exceeds balance, invalid tx'
-			return False
+			#return False
+			break
 
 		if tx.nonce != s1[0]+1:
 			print 'nonce incorrect, invalid tx'
 			print tx, tx.txfrom, tx.nonce
-			return False
+			#return False
+			break
 
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
@@ -352,14 +342,30 @@ def state_add_block():
 		s2[2].append(pubhash)
 		db.put(tx.txto, s2)
 
+		y+=1
+
+#	print str(y), str(len(block.transactions))
+
+	# if we havent done all the tx in the block we have break, need to revert state back to before the change.
+
+	if y<len(block.transactions):
+		print 'failed to state check entire block'
+		print 'reverting state'
+
+		for x in range(len(block.transactions)):
+			db.put(block.transactions[x].txfrom, st1[x])
+			db.put(block.transactions[x].txto, st2[x])
+
+		return False
+
 	db.put('blockheight', m_blockheight())
 	print block, str(len(block.transactions)),'tx ',' passed'
 	return True
 
 
 def state_read_chain():
+
 	db.zero_all_addresses()
-						#from genesis block state is read for coin distribution
 	c = m_get_block(0).state
 	for address in c:
 		db.put(address[0], address[1])
@@ -400,12 +406,24 @@ def state_read_chain():
 	db.put('blockheight', m_blockheight())
 	return True
 
-
-	# functional. need to add state proof creation code to block and check in here..
-
 #tx functions and classes
 
 def createsimpletransaction(txfrom, txto, amount, data, fee=0, ots_key=0):
+
+	#few state checks to ensure tx is valid..
+
+	if state_uptodate() is False:
+			print 'state not at latest block in chain'
+			return False
+
+	if state_balance(txfrom) is 0:
+			print 'empty address'
+			return False 
+
+	if state_balance(txfrom) < amount: 
+			print 'insufficient funds for valid tx'
+			return False
+
 	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, ots_key)
 
 def add_tx_to_pool(tx_class_obj):
@@ -463,30 +481,20 @@ def validate_tx(tx, new=0):
 	if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
 			return False
 	
-	#state validity, if -1 then we are validating a tx in the present for a new block using current state snapshot
-
-	#if new == 1:
-	#	try: assert state_uptodate()
-	#	except: 	
-	#			print 'failed here'
-	#			return False
-	#	try: assert state_balance(tx.txfrom) <= tx.amount
-	#	except:	
-	#			print 'failed here 2'
-	#			return False 
-
-
-
-	# balance at blockheight
-
-
 	return True
 
+
+# debugging functions
+
+def test_tx(n):
+	for x in range(n):
+		create_my_tx(randint(0,5), randint(0,5),0.06)
 
 def create_my_tx(txfrom, txto, n):
 	my = wallet.f_read_wallet()
 	tx = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
-	transaction_pool.append(tx)
+	if tx is not False:
+		transaction_pool.append(tx)
 	return tx
 
 def create_some_tx(n):				#create tx for debugging
