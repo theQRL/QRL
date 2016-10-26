@@ -31,7 +31,9 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 
 	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0):
 		if ots_key > len(data)-1:
-			raise Exception('OTS key greater than available signatures')
+			#raise Exception('OTS key greater than available signatures')
+			print 'OTS key greater than available signatures - choosing 0'
+			ots_key = 0
 		self.txfrom = txfrom
 		self.nonce = state_nonce(txfrom)+1
 
@@ -352,7 +354,7 @@ def state_read_chain():
 
 #tx functions and classes
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0, ots_key=0):
+def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 
 	#few state checks to ensure tx is valid..
 
@@ -360,16 +362,19 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, ots_key=0):
 	#should search state for address to confirm pubhash is not out in the open
 	#then need to add a state check to check each tx in new blocks for existence of pubhash..
 	#then truly OTS with no pubkey reuse.
+
 	s = data[0].signatures-state_nonce(txfrom)
 
 	if s <= 5:
 		print 'Warning: less than 5 signatures remaining without reuse'
 
-	if s == 2: 
+	elif s == 2: 
 		print 'Warning: only 1 remaining signature remaining'
 
-	if s <= 0:
-		print 'Warning: no signatures remaining'
+	elif s <= 0:
+		print 'Warning: no signatures remaining. Cryptographic security compromised.'
+
+	ots_key = state_nonce(txfrom)
 
 	if state_uptodate() is False:
 			print 'state not at latest block in chain'
@@ -382,6 +387,7 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, ots_key=0):
 	if state_balance(txfrom) < amount: 
 			print 'insufficient funds for valid tx'
 			return False
+
 
 	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, ots_key)
 
