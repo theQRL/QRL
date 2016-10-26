@@ -30,10 +30,10 @@ db = db.DB()
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
 	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0):
-		if ots_key > len(data)-1:
+		#if ots_key > len(data)-1:
 			#raise Exception('OTS key greater than available signatures')
-			print 'OTS key greater than available signatures - choosing 0'
-			ots_key = 0
+			#print 'OTS key greater than available signatures - choosing 0'
+			#ots_key = 0
 		self.txfrom = txfrom
 		self.nonce = state_nonce(txfrom)+1
 
@@ -289,7 +289,7 @@ def state_add_block(block):
 
 		s2 = state_get_address(tx.txto)
 		s2[1] = s2[1]+tx.amount
-		s2[2].append(pubhash)
+		#s2[2].append(pubhash)				#no need to record public key for the sent tx..
 		db.put(tx.txto, s2)
 
 		y+=1
@@ -345,7 +345,7 @@ def state_read_chain():
 
 			s2 = state_get_address(tx.txto)
 			s2[1] = s2[1]+tx.amount
-			s2[2].append(pubhash)
+			#s2[2].append(pubhash)
 			db.put(tx.txto, s2)			
 
 		print block, str(len(block.transactions)), 'tx ', ' passed'
@@ -357,24 +357,6 @@ def state_read_chain():
 def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 
 	#few state checks to ensure tx is valid..
-
-	#need to check state to find nonce and select appropriate key to use..
-	#should search state for address to confirm pubhash is not out in the open
-	#then need to add a state check to check each tx in new blocks for existence of pubhash..
-	#then truly OTS with no pubkey reuse.
-
-	s = data[0].signatures-state_nonce(txfrom)
-
-	if s <= 5:
-		print 'Warning: less than 5 signatures remaining without reuse'
-
-	elif s == 2: 
-		print 'Warning: only 1 remaining signature remaining'
-
-	elif s <= 0:
-		print 'Warning: no signatures remaining. Cryptographic security compromised.'
-
-	ots_key = state_nonce(txfrom)
 
 	if state_uptodate() is False:
 			print 'state not at latest block in chain'
@@ -388,6 +370,29 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 			print 'insufficient funds for valid tx'
 			return False
 
+	#need to check state to find nonce and select appropriate OTS key to use..
+	#should search state for address to confirm pubhash is not out in the open
+	#then need to add a state check to check each tx in new blocks for existence of pubhash..
+	#then truly OTS with no pubkey reuse.
+	#could aim to choose ots_key based upon either nonce or previous pubhash usage..
+
+	s = data[0].signatures-state_nonce(txfrom)
+
+	if s <= 0:
+		print 'Warning: no signatures remaining. Cryptographic security compromised.'	
+	elif s == 2: 
+		print 'Warning: only 1 remaining signature remaining'
+	elif s <= 5:
+		print 'Warning: less than 5 signatures remaining without reuse'
+
+	if state_nonce(txfrom) <= data[0].signatures:
+		ots_key = state_nonce(txfrom)
+	else: 
+		ots_key = 0
+
+	for pubhash in state_pubhash(txfrom):
+		if pubhash == data[ots_key].pubhash:
+			print 'Warning: public key already exposed in a previous transaction'
 
 	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, ots_key)
 

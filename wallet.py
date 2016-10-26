@@ -76,7 +76,7 @@ def list_addresses():
 
 
 
-def getnewaddress(signatures=4, type='WOTS'):						#new address format is a list of two items [address, data structure from random_mss call]
+def getnewaddress(signatures=64, type='WOTS'):						#new address format is a list of two items [address, data structure from random_mss call]
 	addr = []
 	if type == 'WOTS':
 		new = merkle.random_wmss(signatures=signatures)
@@ -89,3 +89,6 @@ def getnewaddress(signatures=4, type='WOTS'):						#new address format is a list
 	addr.append(new)
 
 	return addr
+
+def savenewaddress(signatures=64, type='WOTS'):
+	f_append_wallet(getnewaddress(signatures, type))
