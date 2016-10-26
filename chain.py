@@ -90,7 +90,7 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 	def __init__(self):
 		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
 		self.transactions = []
-		self.state = [['Qa03e1af90a5f4ece073d686bf68168f6aee960be15dd557191089b3b29b591bdd748', [0, 10000, []]] , ['Q8213bd6365de0e81512e9caf26808638f1d1b58a01112c2591e02cb735b3f1356050',[0, 10000,[]]]]
+		self.state = [['Qcea29b1402248d53469e352de662923986f3a94cf0f51522bedd08fb5e64948af479', [0, 10000, []]] , ['Qd17b7c86e782546fee27b8004d686e2dbcd3800792831de7486304e3019c1f938f5b',[0, 10000,[]]]]
 
 # address functions
 
@@ -257,8 +257,7 @@ def state_add_block(block):
 		st2.append(state_get_address(tx.txto))
 
 	y = 0
-	x = len(block.transactions)
-
+	
 	for tx in block.transactions:
 
 		pub = tx.pub
@@ -356,6 +355,21 @@ def state_read_chain():
 def createsimpletransaction(txfrom, txto, amount, data, fee=0, ots_key=0):
 
 	#few state checks to ensure tx is valid..
+
+	#need to check state to find nonce and select appropriate key to use..
+	#should search state for address to confirm pubhash is not out in the open
+	#then need to add a state check to check each tx in new blocks for existence of pubhash..
+	#then truly OTS with no pubkey reuse.
+	s = data[0].signatures-state_nonce(txfrom)
+
+	if s <= 5:
+		print 'Warning: less than 5 signatures remaining without reuse'
+
+	if s == 2: 
+		print 'Warning: only 1 remaining signature remaining'
+
+	if s <= 0:
+		print 'Warning: no signatures remaining'
 
 	if state_uptodate() is False:
 			print 'state not at latest block in chain'

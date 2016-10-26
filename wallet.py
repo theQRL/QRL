@@ -69,7 +69,7 @@ def list_addresses():
 	addr = f_read_wallet()
 	list_addr = []
 	for address in addr:
-		list_addr.append([address[0], chain.state_balance(address[0]),chain.state_nonce(address[0])])
+		list_addr.append([address[0], 'balance: '+str(chain.state_balance(address[0])), 'nonce:'+str(chain.state_nonce(address[0])), 'remaining signatures: '+str(address[1][0].signatures-chain.state_nonce(address[0]))])
 	return list_addr
 
 
