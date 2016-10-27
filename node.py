@@ -1,4 +1,4 @@
-# need to write txt via a buffer function instead of line by line..
+# next do getnewaddress args..
 
 __author__ = 'pete'
 
@@ -32,7 +32,6 @@ class WalletProtocol(Protocol):
 
 		data = data.split()
 		args = data[1:]
-		print data[0], data, args
 
 
 		if data[0] in cmd_list:			#can nest a further 'for word in data' or split data into a list and use data[0] to allow args..
@@ -91,13 +90,12 @@ class WalletProtocol(Protocol):
 					self.transport.write('Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
 					return
 
-				print str(int(args[2]))
-
 				if balance < int(args[2]):
 					self.transport.write('Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
 					return
 
 				tx = chain.create_my_tx(int(args[0]), args[1], int(args[2]))
+				print 'new local tx: ', tx
 				self.transport.write(str(tx)+'\r\n')
 				self.transport.write('From: '+str(tx.txfrom)+'\r\n'+'To: '+str(tx.txto)+'\r\n'+'For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
 				return
