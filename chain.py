@@ -20,7 +20,6 @@ global my
 
 m_blockchain = []
 transaction_pool = []
-block_state = []
 
 print 'loading db'
 db = db.DB()
