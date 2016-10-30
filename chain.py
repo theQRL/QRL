@@ -110,7 +110,7 @@ def bytestream(obj):
 	return pickle.dumps(obj)
 
 def tx_bytestream(tx_obj):
-	return 'TT'+bytestream(tx_obj)
+	return 'TX'+bytestream(tx_obj)
 
 def bk_bytestream(block_obj):
 	return 'BK'+bytestream(block_obj)
@@ -176,8 +176,8 @@ def m_add_block(block_obj):
 				print 'last block failed state checks, removed from chain'
 				return False
 	else:
-		print 'this point'
-		return block_obj
+		print 'm_add_block failed - invalid blocks'
+		return False
 	m_f_sync_chain()
 	return True
 

@@ -11,9 +11,12 @@ from twisted.internet.protocol import ServerFactory, Protocol, ClientFactory
 from twisted.internet import reactor
 
 global p2p_list
+global connected_nodes
+
+connected_nodes = []
 p2p_list = []
 
-node_list = [('127.0.0.1', 9000),('127.0.0.1', 9001)]
+node_list = []
 
 cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'send']
 
@@ -24,7 +27,7 @@ def parse(data):
 
 class WalletProtocol(Protocol):
 
-	def __init__(self):		#way of passing data back to parent factory - use self.factory.whatever
+	def __init__(self):		
 		pass
 		
 
@@ -34,9 +37,7 @@ class WalletProtocol(Protocol):
 		args = data[1:]
 
 
-		if data[0] in cmd_list:			#can nest a further 'for word in data' or split data into a list and use data[0] to allow args..
-			pass
-			#self.transport.write('Command: '+data+'\r\n')
+		if data[0] in cmd_list:			
 
 			if data[0] == 'getnewaddress':
 				addr = wallet.getnewaddress(4)
@@ -164,45 +165,94 @@ class WalletProtocol(Protocol):
 
 class p2pProtocol(Protocol):
 
-	def __init__(self):		#way of passing data back to parent factory - use self.factory.whatever
+	def __init__(self):		
 		pass
 
-	def parse_cmd(self, data):
+	def parse_msg(self, data):
+		prefix = data[0:2]
+		data = data[2:]
 
-		if data in cmd_list:
-			pass
-			self.transport.write('Command: '+data+'\r\n')
 
-			if data == 'getnewaddress':
-				pass
-			elif data == 'quit' or data == 'exit':
+		if prefix == 'TX':				#tx received..
+			print 'tx received'
+
+			try: tx = pickle.loads(data)
+			except: 
+				print 'tx rejected - unable to decode serialised data - closing connection'
 				self.transport.loseConnection()
-		else:
-			return False
+				return
 
-		return True
+			if chain.validate_tx(tx) == True:
+				chain.add_tx_to_pool(tx)
+			else:
+				print 'tx invalid - closing connection'
+				self.transport.loseConnection()
+			return	
+
+
+		elif prefix == 'BK':			#block received
+			print 'block received'
+
+			try: block = pickle.loads(data)
+			except:
+				print 'block rejected - unable to decode serialised data - closing connection'
+				self.transport.loseConnection()
+				return
+
+			if chain.m_add_block(block) is True:
+				print 'received block added to chain and tx in pool pruned'
+				return
+			else:
+				print 'block received invalid and discarded'
+				return
+
+
+
+		elif prefix == 'LB':			#request for last block to be sent
+				print 'sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block())))
+				self.transport.write(chain.bk_bytestream(chain.m_get_last_block()))
+				return
+
+
+
+		elif prefix == 'BN':			#request for block number
+				if int(data) <= chain.m_blockheight():
+						print 'sending block number', str(int(data)), str(len(chain.bytestream(chain.m_get_block(int(data)))))
+						self.transport.write(chain.bk_bytestream(chain.m_get_block(int(data))))
+						return
+				else:
+					print 'BN request without valid block number', data, '- closing connection'
+					self.transport.loseConnection()
+					return
+
+		elif prefix == 'PI':
+			if data[0:2] == 'NG':
+				self.transport.write('PONG')
+			else:
+				self.transport.loseConnection()
+				return
+
+		else:
+			print 'Data from node not understood - closing connection.'
+			self.transport.loseConnection()
+		
+
+		return
 
 
 	def dataReceived(self, data):
-		sys.stdout.write('.')
-		sys.stdout.flush()
-		self.factory.recn += 1
-		if self.parse_cmd(parse(data)) == False:
-			self.transport.write('Command not recognised. Use help for details'+'\r\n')
-	
+		self.parse_msg(data)
+		
 		
 
 	def connectionMade(self):
-		self.transport.write(self.factory.stuff)
 		self.factory.connections += 1
-		print '** new p2p connection', str(self.factory.connections)
+		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
+
 
 	def connectionLost(self, reason):
-		print 'lost connection'
+		print 'peer disconnnected: ', reason
 		self.factory.connections -= 1
-
-	#def nodeConnect(self, host, port, factory=p2pCliFactory):
-	#	reactor.connectTCP(host, port, factory)
 
 class p2pCliFactory(ClientFactory):
 	protocol = p2pProtocol
@@ -212,10 +262,12 @@ class p2pFactory(ServerFactory):
 
 	protocol = p2pProtocol
 
-	def __init__(self, stuff):
-		self.stuff = stuff
+	def __init__(self):
+		#self.stuff = stuff
 		self.recn = 0
 		self.connections = 0
+
+
 
 class WalletFactory(ServerFactory):
 
@@ -244,7 +296,7 @@ if __name__ == "__main__":
 
 	stuff = 'QRL node connection established.'+'\r\n'
 	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
-	port2 = reactor.listenTCP(9000, p2pFactory(stuff))
+	port2 = reactor.listenTCP(9000, p2pFactory())
 
 	print port.getHost()
 	print port2.getHost()
