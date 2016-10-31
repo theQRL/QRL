@@ -182,7 +182,7 @@ class p2pProtocol(Protocol):
 
 				for peer in self.factory.peers:
 					if peer != self:
-						self.factory.write(chain.tx_bytestream(tx))
+						peer.factory.write(chain.tx_bytestream(tx))
 			else:
 				print 'tx invalid - closing connection'
 				self.transport.loseConnection()
@@ -204,7 +204,7 @@ class p2pProtocol(Protocol):
 				print 'transmitting block to connected peers..'
 				for peer in self.factory.peers:
 					if peer != self:
-						self.transport.write(chain.bk_bytestream(block))
+						peer.transport.write(chain.bk_bytestream(block))
 				return
 			else:
 				print 'block received invalid and discarded'
@@ -214,6 +214,14 @@ class p2pProtocol(Protocol):
 				print 'sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block())))
 				self.transport.write(chain.bk_bytestream(chain.m_get_last_block()))
 				return
+
+		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
+			if not data:
+				self.transport.write('MB'+str(chain.m_blockheight()))
+			else:
+				if int(data) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
+					print 'local node behind connection by ', str(int(data)-chain.m_blockheight()), 'blocks'
+					
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(data) <= chain.m_blockheight():
@@ -256,10 +264,32 @@ class p2pProtocol(Protocol):
 		
 		return
 
+	def get_latest_block_from_connection(self):
+		self.transport.write('LB')
+		return
+
+	def get_m_blockheight_from_connection(self):
+		self.transport.write('MB')
+		return
+
+	def get_block_n(self, n):
+		self.transport.write('BN'+str(n))
+		return
 
 	def dataReceived(self, data):
 		self.parse_msg(data)
-			
+		return
+	
+	def send_tx_to_peers(self, tx):
+		for peer in self.factory.peers:
+			peer.transport.write(chain.tx_bytestream(tx))
+		return
+
+	def send_block_to_peers(self, block):
+		for peer in self.factory.peers:
+			peer.transport.write(chain.bk_bytestream(block))
+		return
+
 	def connectionMade(self):
 		self.factory.connections += 1
 		self.factory.peers.append(self)
