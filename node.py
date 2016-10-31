@@ -179,6 +179,10 @@ class p2pProtocol(Protocol):
 
 			if chain.validate_tx(tx) == True:
 				chain.add_tx_to_pool(tx)
+
+				for peer in self.factory.peers:
+					if peer != self:
+						self.factory.write(chain.tx_bytestream(tx))
 			else:
 				print 'tx invalid - closing connection'
 				self.transport.loseConnection()
@@ -194,8 +198,13 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-			if chain.m_add_block(block) is True:
+			if chain.m_add_block(block) is True:										#crude..should check blocknumber instead..
 				print 'received block added to chain and tx in pool pruned'
+				
+				print 'transmitting block to connected peers..'
+				for peer in self.factory.peers:
+					if peer != self:
+						self.transport.write(chain.bk_bytestream(block))
 				return
 			else:
 				print 'block received invalid and discarded'
@@ -205,7 +214,6 @@ class p2pProtocol(Protocol):
 				print 'sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block())))
 				self.transport.write(chain.bk_bytestream(chain.m_get_last_block()))
 				return
-
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(data) <= chain.m_blockheight():
@@ -240,7 +248,6 @@ class p2pProtocol(Protocol):
 				peers_list = []
 				for peer in self.factory.peers:
 					peers_list.append(peer.transport.getPeer().host)
-				#peers_list = chain.state_get_peers()
 				self.transport.write('PL'+chain.bytestream(peers_list))
 
 		else:
@@ -264,15 +271,13 @@ class p2pProtocol(Protocol):
 			chain.state_save_peers()
 		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
 
+		# here goes the code for handshake..using functions within the p2pprotocol class
+		# should ask for latest block/block number..
+
 	def connectionLost(self, reason):
 		print 'peer disconnnected: ', reason
 		self.factory.connections -= 1
 		self.factory.peers.remove(self)
-
-	
-
-#class p2pCliFactory(ClientFactory):
-#	protocol = p2pProtocol
 
 
 class p2pFactory(ServerFactory):
@@ -332,10 +337,9 @@ if __name__ == "__main__":
 	print port2.getHost()
 	
 	print 'Connecting to nodes in peer.dat'
-	f = p2pFactory()
 
 	for peer in chain.state_get_peers():
-		reactor.connectTCP(peer, 9000, f)
+		reactor.connectTCP(peer, 9000, p2pFactory())
 
 	reactor.run()
 	    
