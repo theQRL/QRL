@@ -8,7 +8,7 @@ import sys
 import time
 import wallet
 import pickle
-from twisted.internet.protocol import ServerFactory, Protocol, ClientFactory
+from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 
 
@@ -253,7 +253,6 @@ class p2pProtocol(Protocol):
 	def dataReceived(self, data):
 		self.parse_msg(data)
 			
-
 	def connectionMade(self):
 		self.factory.connections += 1
 		self.factory.peers.append(self)
@@ -265,16 +264,15 @@ class p2pProtocol(Protocol):
 			chain.state_save_peers()
 		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
 
-
 	def connectionLost(self, reason):
 		print 'peer disconnnected: ', reason
 		self.factory.connections -= 1
 		self.factory.peers.remove(self)
 
+	
 
-
-class p2pCliFactory(ClientFactory):
-	protocol = p2pProtocol
+#class p2pCliFactory(ClientFactory):
+#	protocol = p2pProtocol
 
 
 class p2pFactory(ServerFactory):
@@ -284,6 +282,16 @@ class p2pFactory(ServerFactory):
 	def __init__(self):
 		self.peers = []
 		self.connections = 0
+
+	def clientConnectionLost(self, connector, reason):		#try and reconnect
+		print 'connection lost: ', reason, 'trying reconnect'
+		connector.connect()
+
+	def clientConnectionFailed(self, connector, reason):
+		print 'connection failed: ', reason
+
+	def startedConnecting(self, connector):
+		print 'Started to connect.', connector
 
 
 
@@ -323,5 +331,11 @@ if __name__ == "__main__":
 	print port.getHost()
 	print port2.getHost()
 	
+	print 'Connecting to nodes in peer.dat'
+	f = p2pFactory()
+
+	for peer in chain.state_get_peers():
+		reactor.connectTCP(peer, 9000, f)
+
 	reactor.run()
 	    
