@@ -5,7 +5,8 @@ __author__ = 'pete'
 from bitcoin import sha256
 import merkle
 import chain
-import pickle 
+import pickle
+import node 
 import os
 
 global mywallet
@@ -15,6 +16,8 @@ def log(string_data):
     with open("./log/log.txt", "a") as myfile:
         myfile.write(string_data)
     return
+
+
 
 
 def f_read_wallet():
@@ -89,6 +92,7 @@ def getnewaddress(signatures=64, type='WOTS'):						#new address format is a lis
 	addr.append(new)
 
 	return addr
+
 
 def savenewaddress(signatures=64, type='WOTS'):
 	f_append_wallet(getnewaddress(signatures, type))

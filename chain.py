@@ -17,7 +17,9 @@ import db
 global transaction_pool
 global m_blockchain
 global my
+global node_list
 
+node_list = ['127.0.0.2']
 m_blockchain = []
 transaction_pool = []
 
@@ -216,6 +218,29 @@ def m_verify_chain(verbose=0):
 #state functions
 #first iteration - state data stored in leveldb file
 #state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
+
+def state_load_peers():
+	if os.path.isfile('./peers.dat') is True:
+		print 'Opening peers.dat'
+		with open('./peers.dat', 'r') as myfile:
+			state_put_peers(pickle.load(myfile))
+	else:
+		print 'Creating peers.dat'
+	 	with open('./peers.dat', 'w+') as myfile:
+			pickle.dump(node_list, myfile)
+			state_put_peers(node_list)
+
+def state_save_peers():
+	with open("./peers.dat", "w+") as myfile:			
+        			pickle.dump(state_get_peers(), myfile)
+
+def state_get_peers():
+	try: return db.get('node_list')
+	except: return False
+	
+def state_put_peers(peer_list):
+	try: db.put('node_list', peer_list)
+	except: return False
 
 def state_uptodate():									#check state db marker to current blockheight.
 	if m_blockheight() == db.get('blockheight'):

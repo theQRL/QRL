@@ -1,22 +1,17 @@
-# next do getnewaddress args..
+# Next functionality is to incorporate client
 
 __author__ = 'pete'
 
+import os
 import chain
 import sys
 import time
 import wallet
-
+import pickle
 from twisted.internet.protocol import ServerFactory, Protocol, ClientFactory
 from twisted.internet import reactor
 
-global p2p_list
-global connected_nodes
 
-connected_nodes = []
-p2p_list = []
-
-node_list = []
 
 cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'send']
 
@@ -206,16 +201,13 @@ class p2pProtocol(Protocol):
 				print 'block received invalid and discarded'
 				return
 
-
-
 		elif prefix == 'LB':			#request for last block to be sent
 				print 'sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block())))
 				self.transport.write(chain.bk_bytestream(chain.m_get_last_block()))
 				return
 
 
-
-		elif prefix == 'BN':			#request for block number
+		elif prefix == 'BN':			#request for block (n)
 				if int(data) <= chain.m_blockheight():
 						print 'sending block number', str(int(data)), str(len(chain.bytestream(chain.m_get_block(int(data)))))
 						self.transport.write(chain.bk_bytestream(chain.m_get_block(int(data))))
@@ -232,27 +224,54 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
+		elif prefix == 'PL':			#receiving a list of peers to save into peer list..
+			print 'Received peers'
+			data = pickle.loads(data)
+			peers_list = chain.state_get_peers()
+			for node in data:
+				if node not in peers_list:
+					peers_list.append(node)
+			chain.state_put_peers(peers_list)
+			chain.state_save_peers()
+
+		elif prefix == 'PE':			#get a list of connected peers..
+			if data[0:3] == 'ERS':
+				print 'Get peers request - sending active inbound connections..'
+				peers_list = []
+				for peer in self.factory.peers:
+					peers_list.append(peer.transport.getPeer().host)
+				#peers_list = chain.state_get_peers()
+				self.transport.write('PL'+chain.bytestream(peers_list))
+
 		else:
 			print 'Data from node not understood - closing connection.'
 			self.transport.loseConnection()
 		
-
 		return
 
 
 	def dataReceived(self, data):
 		self.parse_msg(data)
-		
-		
+			
 
 	def connectionMade(self):
 		self.factory.connections += 1
+		self.factory.peers.append(self)
+		peer_list = chain.state_get_peers()
+		if self.transport.getPeer().host not in peer_list:
+			print 'Adding to peer_list'
+			peer_list.append(self.transport.getPeer().host)
+			chain.state_put_peers(peer_list)
+			chain.state_save_peers()
 		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
 
 
 	def connectionLost(self, reason):
 		print 'peer disconnnected: ', reason
 		self.factory.connections -= 1
+		self.factory.peers.remove(self)
+
+
 
 class p2pCliFactory(ClientFactory):
 	protocol = p2pProtocol
@@ -263,8 +282,7 @@ class p2pFactory(ServerFactory):
 	protocol = p2pProtocol
 
 	def __init__(self):
-		#self.stuff = stuff
-		self.recn = 0
+		self.peers = []
 		self.connections = 0
 
 
@@ -293,13 +311,17 @@ if __name__ == "__main__":
 	print 'Building state leveldb'
 	chain.state_read_chain()
 	
+	print 'Loading node list..'			# load the peers for connection based upon previous history..
+	chain.state_load_peers()
+	print chain.state_get_peers()
 
 	stuff = 'QRL node connection established.'+'\r\n'
+	print 'Listening..'
 	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	port2 = reactor.listenTCP(9000, p2pFactory())
 
 	print port.getHost()
 	print port2.getHost()
 	
-
 	reactor.run()
+	    
