@@ -165,13 +165,15 @@ class p2pProtocol(Protocol):
 
 	def parse_msg(self, data):
 		prefix = data[0:2]
-		data = data[2:]
+		#data = data[2:]			#not sure why this isnt working..
+		suffix = data[2:]
+		
 
 
 		if prefix == 'TX':				#tx received..
 			print 'tx received'
 
-			try: tx = pickle.loads(data)
+			try: tx = pickle.loads(suffix)
 			except: 
 				print 'tx rejected - unable to decode serialised data - closing connection'
 				self.transport.loseConnection()
@@ -192,7 +194,7 @@ class p2pProtocol(Protocol):
 		elif prefix == 'BK':			#block received
 			print 'block received'
 
-			try: block = pickle.loads(data)
+			try: block = pickle.loads(suffix)
 			except:
 				print 'block rejected - unable to decode serialised data - closing connection'
 				self.transport.loseConnection()
@@ -216,25 +218,28 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
-			if not data:
+			if not suffix:
+				print 'Sending current blockheight to node..'
 				self.transport.write('MB'+str(chain.m_blockheight()))
 			else:
-				if int(data) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
-					print 'local node behind connection by ', str(int(data)-chain.m_blockheight()), 'blocks'
-					
+				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
+					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks'
+
+					#code to ask all connections for the missing blocks..
+
 
 		elif prefix == 'BN':			#request for block (n)
-				if int(data) <= chain.m_blockheight():
-						print 'sending block number', str(int(data)), str(len(chain.bytestream(chain.m_get_block(int(data)))))
-						self.transport.write(chain.bk_bytestream(chain.m_get_block(int(data))))
+				if int(suffix) <= chain.m_blockheight():
+						print 'sending block number', str(int(suffix)), str(len(chain.bytestream(chain.m_get_block(int(suffix)))))
+						self.transport.write(chain.bk_bytestream(chain.m_get_block(int(suffix))))
 						return
 				else:
-					print 'BN request without valid block number', data, '- closing connection'
+					print 'BN request without valid block number', suffix, '- closing connection'
 					self.transport.loseConnection()
 					return
 
 		elif prefix == 'PI':
-			if data[0:2] == 'NG':
+			if suffix[0:2] == 'NG':
 				self.transport.write('PONG')
 			else:
 				self.transport.loseConnection()
@@ -242,7 +247,7 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'PL':			#receiving a list of peers to save into peer list..
 			print 'Received peers'
-			data = pickle.loads(data)
+			data = pickle.loads(suffix)
 			peers_list = chain.state_get_peers()
 			for node in data:
 				if node not in peers_list:
@@ -251,7 +256,7 @@ class p2pProtocol(Protocol):
 			chain.state_save_peers()
 
 		elif prefix == 'PE':			#get a list of connected peers..
-			if data[0:3] == 'ERS':
+			if suffix[0:3] == 'ERS':
 				print 'Get peers request - sending active inbound connections..'
 				peers_list = []
 				for peer in self.factory.peers:
@@ -300,6 +305,8 @@ class p2pProtocol(Protocol):
 			chain.state_put_peers(peer_list)
 			chain.state_save_peers()
 		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
+
+		self.get_m_blockheight_from_connection()
 
 		# here goes the code for handshake..using functions within the p2pprotocol class
 		# should ask for latest block/block number..

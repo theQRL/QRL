@@ -19,7 +19,7 @@ global m_blockchain
 global my
 global node_list
 
-node_list = ['127.0.0.2']
+node_list = ['104.251.219.145']
 m_blockchain = []
 transaction_pool = []
 
