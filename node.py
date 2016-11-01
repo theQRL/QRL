@@ -193,7 +193,7 @@ class p2pProtocol(Protocol):
 
 				for peer in self.factory.peers:
 					if peer != self:
-						peer.factory.write(chain.tx_bytestream(tx))
+						peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
 			else:
 				print 'tx invalid - closing connection'
 				self.transport.loseConnection()
@@ -215,7 +215,7 @@ class p2pProtocol(Protocol):
 				print 'transmitting block to connected peers..'
 				for peer in self.factory.peers:
 					if peer != self:
-						peer.transport.write(chain.bk_bytestream(block))
+						peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
 				return
 			else:
 				print 'block received invalid and discarded'
@@ -223,13 +223,13 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'LB':			#request for last block to be sent
 				print 'sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block())))
-				self.transport.write(chain.bk_bytestream(chain.m_get_last_block()))
+				self.transport.write(self.wrap_message(chain.bk_bytestream(chain.m_get_last_block())))
 				return
 
 		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
 			if not suffix:
 				print 'Sending current blockheight to node..'
-				self.transport.write('MB'+str(chain.m_blockheight()))
+				self.transport.write(self.wrap_message('MB'+str(chain.m_blockheight())))
 			else:
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks'
@@ -239,7 +239,7 @@ class p2pProtocol(Protocol):
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
 						print 'sending block number', str(int(suffix)), str(len(chain.bytestream(chain.m_get_block(int(suffix)))))
-						self.transport.write(chain.bk_bytestream(chain.m_get_block(int(suffix))))
+						self.transport.write(self.wrap_message(chain.bk_bytestream(chain.m_get_block(int(suffix)))))
 						return
 				else:
 					print 'BN request without valid block number', suffix, '- closing connection'
@@ -248,7 +248,7 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'PI':
 			if suffix[0:2] == 'NG':
-				self.transport.write('PONG')
+				self.transport.write(self.wrap_message('PONG'))
 			else:
 				self.transport.loseConnection()
 				return
@@ -269,7 +269,7 @@ class p2pProtocol(Protocol):
 				peers_list = []
 				for peer in self.factory.peers:
 					peers_list.append(peer.transport.getPeer().host)
-				self.transport.write('PL'+chain.bytestream(peers_list))
+				self.transport.write(self.wrap_message('PL'+chain.bytestream(peers_list)))
 
 		else:
 			print 'Data from node not understood - closing connection.'
@@ -278,15 +278,15 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_latest_block_from_connection(self):
-		self.transport.write('LB')
+		self.transport.write(self.wrap_message('LB'))
 		return
 
 	def get_m_blockheight_from_connection(self):
-		self.transport.write('MB')
+		self.transport.write(self.wrap_message('MB'))
 		return
 
 	def get_block_n(self, n):
-		self.transport.write('BN'+str(n))
+		self.transport.write(self.wrap_message('BN'+str(n)))
 		return
 
 	def wrap_message(self, data):		
@@ -337,12 +337,12 @@ class p2pProtocol(Protocol):
 	
 	def send_tx_to_peers(self, tx):
 		for peer in self.factory.peers:
-			peer.transport.write(chain.tx_bytestream(tx))
+			peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
 		return
 
 	def send_block_to_peers(self, block):
 		for peer in self.factory.peers:
-			peer.transport.write(chain.bk_bytestream(block))
+			peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
 		return
 
 	def connectionMade(self):
