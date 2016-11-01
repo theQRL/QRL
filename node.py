@@ -11,6 +11,7 @@ __author__ = 'pete'
 import os
 import chain
 import sys
+import struct
 import time
 import wallet
 import pickle
@@ -167,6 +168,8 @@ class WalletProtocol(Protocol):
 class p2pProtocol(Protocol):
 
 	def __init__(self):		
+		self.buffer = ''
+		self.messages = []
 		pass
 
 	def parse_msg(self, data):
@@ -230,9 +233,8 @@ class p2pProtocol(Protocol):
 			else:
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks'
-					for 
-					#code to ask all connections for the missing blocks..
-
+					for x in range(str(int(suffix)-chain.m_blockheight())):
+						self.get_block_n(chain.m_blockheight()+x)
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
@@ -287,8 +289,50 @@ class p2pProtocol(Protocol):
 		self.transport.write('BN'+str(n))
 		return
 
-	def dataReceived(self, data):
-		self.parse_msg(data)
+	def wrap_message(self, data):		
+		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
+
+		#struct.pack('>L', len(data))
+
+	def parse_buffer(self):
+		d = self.buffer.find(chr(255)+chr(0)+chr(0))
+
+		if d != -1:
+			m = struct.unpack('>L', self.buffer[d+3])[0]	#get length of message
+			self.buffer = self.buffer[d:]					#delete up to the start of message
+		else:
+			del self.buffer[:]
+			return False
+
+		e = self.buffer.find(chr(0)+chr(0)+chr(255))
+
+		if e == -1 and len(self.buffer) >= 8+m+3:			#we already have more than the message length with no terminator, cant trust data
+			del self.buffer[:]
+			return False
+
+		if e == -1:											#no end to message in the buffer yet..
+			return False
+
+		self.messages.append(self.buffer[8:8+m])
+		self.buffer = self.buffer[8+m+3:]
+		return True
+
+	def dataReceived(self, data):		# adds data received to buffer. then tries to parse the buffer twice..
+
+		self.buffer += data
+
+		if self.parse_buffer() == False:	
+			return
+		else:								# 2nd attempt to parse as buffer not empty..
+			if len(self.buffer) > 0:
+				if self.parse.buffer() == False:
+					return
+				else: 
+					pass
+
+		for msg in self.messages:
+				self.parse_msg(msg)
+
 		return
 	
 	def send_tx_to_peers(self, tx):
@@ -330,6 +374,7 @@ class p2pFactory(ServerFactory):
 	def __init__(self):
 		self.peers = []
 		self.connections = 0
+		self.buffer = ''
 
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
 		print 'connection lost: ', reason, 'trying reconnect'
