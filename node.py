@@ -216,9 +216,11 @@ class p2pProtocol(Protocol):
 				for peer in self.factory.peers:
 					if peer != self:
 						peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
+				self.get_m_blockheight_from_connection()
 				return
 			else:
-				print 'block received invalid and discarded'
+				print 'block:', block, block.blockheader.blocknumber, ' received invalid and discarded'
+				self.get_m_blockheight_from_connection()
 				return
 
 		elif prefix == 'LB':			#request for last block to be sent
@@ -228,13 +230,22 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
 			if not suffix:
-				print 'Sending current blockheight to node..'
-				self.transport.write(self.wrap_message('MB'+str(chain.m_blockheight())))
-			else:
+				print 'Sending current blockheight to node..', self.transport.getPeer().host
+				self.transport.write(self.wrap_message('CB'+str(chain.m_blockheight())))
+			
+		elif prefix == 'CB':
+				print 'Received CB node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight())
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
-					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks'
-					for x in range(str(int(suffix)-chain.m_blockheight())):
-						self.get_block_n(chain.m_blockheight()+x)
+					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
+					
+					self.get_block_n(chain.m_blockheight()+1)
+					#if int(suffix)-chain.m_blockheight() == 1:
+					#	self.get_latest_block_from_connection()
+
+					#else:
+
+					#	for x in range(int(suffix)-chain.m_blockheight()):
+					#		self.get_block_n(chain.m_blockheight()+x)
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
@@ -278,36 +289,44 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_latest_block_from_connection(self):
+		print 'Requested last block from', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('LB'))
 		return
 
 	def get_m_blockheight_from_connection(self):
+		print 'Requesting blockheight from', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('MB'))
 		return
 
 	def get_block_n(self, n):
+		print 'Requested block: ', str(n), 'from ', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('BN'+str(n)))
 		return
 
-	def wrap_message(self, data):		
+	def wrap_message(self, data):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
 
 		#struct.pack('>L', len(data))
 
 	def parse_buffer(self):
+		if not self.buffer:
+			return False
+
 		d = self.buffer.find(chr(255)+chr(0)+chr(0))
 
 		if d != -1:
-			m = struct.unpack('>L', self.buffer[d+3])[0]	#get length of message
+			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
 			self.buffer = self.buffer[d:]					#delete up to the start of message
 		else:
-			del self.buffer[:]
+			print 'Data received buffer full of garbage and deleted.'
+			self.buffer = ''
 			return False
 
 		e = self.buffer.find(chr(0)+chr(0)+chr(255))
 
 		if e == -1 and len(self.buffer) >= 8+m+3:			#we already have more than the message length with no terminator, cant trust data
-			del self.buffer[:]
+			print 'Data received in buffer invalid and deleted.'
+			self.buffer = ''
 			return False
 
 		if e == -1:											#no end to message in the buffer yet..
@@ -321,17 +340,14 @@ class p2pProtocol(Protocol):
 
 		self.buffer += data
 
-		if self.parse_buffer() == False:	
-			return
-		else:								# 2nd attempt to parse as buffer not empty..
-			if len(self.buffer) > 0:
-				if self.parse.buffer() == False:
-					return
-				else: 
-					pass
-
+		self.parse_buffer()				# need a way of iterating through the parse_buffer better..functional..
+		self.parse_buffer()
+		self.parse_buffer()
+		
 		for msg in self.messages:
 				self.parse_msg(msg)
+
+		del self.messages[:]
 
 		return
 	
