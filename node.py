@@ -1,7 +1,4 @@
-# Need to add in some buffer functionality to the datareceiver / parser.. protocol will need an initiator byte/word and a terminator byte/word.
-# can iterate through the data buffer for multiple commands if necessary and then feed to the parser..
-# next create a sync chain system..if MB > m_blockheight then ask for next block from connected peer, can ask for other blocks from other peers..
-# will need to integreate a block_list [] global for this..
+# todo
 # work out a way to get from tx create in walletfactory to tx/block transmission through p2pfactory
 # need to setup a new factory which will call the POW library py
 
