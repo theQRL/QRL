@@ -42,7 +42,30 @@ class WalletProtocol(Protocol):
 		if data[0] in cmd_list:			
 
 			if data[0] == 'getnewaddress':
-				addr = wallet.getnewaddress(4)
+
+				if not args or len(args) > 2:
+					self.transport.write('Arguments not recognised. Creating a 128 signature WOTS-MSS address. Please wait.'+'\r\n')
+					addr = wallet.getnewaddress(128,'WOTS')
+				
+				else:
+					try:	int(args[0])
+					except:
+							self.transport.write('Invalid number of signatures. Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
+							self.transport.write('>>> i.e. getnewaddress 196 WOTS'+'\r\n')
+							return
+
+					if args[1] != 'WOTS' or args[1] != 'wots' or args[1] != 'LDOTS' or args[1] != 'ldots' or args[1] != 'LD':
+						self.transport.write('Invalid signature address type. Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
+						self.transport.write('>>> i.e. getnewaddress 128 LDOTS'+'\r\n')
+						return
+
+					if int(args[0]) > 256:
+						self.transport.write('Try a lower number of signatures or you may be waiting a very long time...'+'\r\n')
+						return
+
+					addr = wallet.getnewaddress(int(args[0], args[1]))
+
+
 				self.transport.write('Keypair type: '+''.join(addr[1][0].type+'\r\n'))
 				self.transport.write('Signatures possible with address: '+str(len(addr[1]))+'\r\n')
 				self.transport.write('Address: '+''.join(addr[0])+'\r\n')
