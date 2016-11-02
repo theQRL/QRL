@@ -255,11 +255,13 @@ class p2pProtocol(Protocol):
 				self.transport.write(self.wrap_message('CB'+str(chain.m_blockheight())))
 			
 		elif prefix == 'CB':
-				print 'Received CB node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight())
+				print 'Received current latest block from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight())
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
 					
 					self.get_block_n(chain.m_blockheight()+1)
+					return
+				
 					
 
 		elif prefix == 'BN':			#request for block (n)

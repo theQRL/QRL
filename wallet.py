@@ -26,7 +26,7 @@ def f_read_wallet():
 
 	if os.path.isfile('./wallet.dat') is False:
 		print 'Creating new wallet file'
-		addr_list.append(getnewaddress(4))
+		addr_list.append(getnewaddress(128, 'WOTS'))
 		with open("./wallet.dat", "a") as myfile:				#add in a new call to create random_otsmss
         		pickle.dump(addr_list, myfile)
 
