@@ -124,6 +124,7 @@ class WalletProtocol(Protocol):
 				print 'new local tx: ', tx
 				self.transport.write(str(tx)+'\r\n')
 				self.transport.write('From: '+str(tx.txfrom)+'\r\n'+'To: '+str(tx.txto)+'\r\n'+'For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
+				
 				return
 
 			
@@ -247,7 +248,7 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'LB':			#request for last block to be sent
-				print 'sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block())))
+				print 'Sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
 				self.transport.write(self.wrap_message(chain.bk_bytestream(chain.m_get_last_block())))
 				return
 
@@ -262,17 +263,11 @@ class p2pProtocol(Protocol):
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
 					
 					self.get_block_n(chain.m_blockheight()+1)
-					#if int(suffix)-chain.m_blockheight() == 1:
-					#	self.get_latest_block_from_connection()
-
-					#else:
-
-					#	for x in range(int(suffix)-chain.m_blockheight()):
-					#		self.get_block_n(chain.m_blockheight()+x)
+					
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
-						print 'sending block number', str(int(suffix)), str(len(chain.bytestream(chain.m_get_block(int(suffix)))))
+						print 'Sending block number', str(int(suffix)), str(len(chain.bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host
 						self.transport.write(self.wrap_message(chain.bk_bytestream(chain.m_get_block(int(suffix)))))
 						return
 				else:
@@ -401,8 +396,9 @@ class p2pProtocol(Protocol):
 		# should ask for latest block/block number..
 
 	def connectionLost(self, reason):
-		print 'peer disconnnected: ', reason
 		self.factory.connections -= 1
+		print self.transport.getPeer().host,  ' disconnnected: ', reason 
+		print 'Remaining connections: ', str(self.factory.connections)
 		self.factory.peers.remove(self)
 
 
