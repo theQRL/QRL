@@ -522,7 +522,9 @@ def create_my_tx(txfrom, txto, n):
 		tx = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
 	if tx is not False:
 		transaction_pool.append(tx)
-	return tx
+		return tx
+	else:
+		return False
 
 def test_tx(n):
 	for x in range(n):

@@ -15,8 +15,6 @@ import pickle
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 
-
-
 cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'send']
 
 def parse(data):
@@ -118,7 +116,12 @@ class WalletProtocol(Protocol):
 					return
 
 				tx = chain.create_my_tx(int(args[0]), args[1], int(args[2]))
+				if tx is False:
+					self.transport.write('transaction creation failed..'+'\r\n')
+					return
+				
 				print 'new local tx: ', tx
+				f.send_tx_to_peers(tx)
 				self.transport.write(str(tx)+'\r\n')
 				self.transport.write('From: '+str(tx.txfrom)+'\r\n'+'To: '+str(tx.txto)+'\r\n'+'For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
 				
@@ -201,8 +204,7 @@ class p2pProtocol(Protocol):
 
 
 		if prefix == 'TX':				#tx received..
-			print 'tx received'
-
+			
 			try: tx = pickle.loads(suffix)
 			except: 
 				print 'tx rejected - unable to decode serialised data - closing connection'
@@ -210,13 +212,16 @@ class p2pProtocol(Protocol):
 				return
 
 			if chain.validate_tx(tx) == True:
+				print 'Validated tx received and added to pool: ', tx, 'from: ', self.transport.getPeer().host
+
 				chain.add_tx_to_pool(tx)
 
 				for peer in self.factory.peers:
+					print 'Sending tx: ', tx, 'to other connected nodes than originator..'
 					if peer != self:
 						peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
 			else:
-				print 'tx invalid - closing connection'
+				print 'Tx invalid - closing connection'
 				self.transport.loseConnection()
 			return	
 
@@ -261,7 +266,7 @@ class p2pProtocol(Protocol):
 					
 					self.get_block_n(chain.m_blockheight()+1)
 					return
-				
+
 					
 
 		elif prefix == 'BN':			#request for block (n)
@@ -367,16 +372,6 @@ class p2pProtocol(Protocol):
 		del self.messages[:]
 
 		return
-	
-	def send_tx_to_peers(self, tx):
-		for peer in self.factory.peers:
-			peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
-		return
-
-	def send_block_to_peers(self, block):
-		for peer in self.factory.peers:
-			peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
-		return
 
 	def connectionMade(self):
 		self.factory.connections += 1
@@ -409,6 +404,21 @@ class p2pFactory(ServerFactory):
 		self.peers = []
 		self.connections = 0
 		self.buffer = ''
+
+	def f_wrap_message(self, data):
+		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
+
+	def send_tx_to_peers(self, tx):
+		print 'Transmitting tx: ', tx
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message(chain.tx_bytestream(tx)))
+		return
+
+	def send_block_to_peers(self, block):
+		print 'Transmitting block: ', block
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message(chain.bk_bytestream(block)))
+		return
 
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
 		print 'connection lost: ', reason, 'trying reconnect'
@@ -452,16 +462,21 @@ if __name__ == "__main__":
 
 	stuff = 'QRL node connection established.'+'\r\n'
 	print 'Listening..'
-	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
-	port2 = reactor.listenTCP(9000, p2pFactory())
+	
+	f = p2pFactory()
 
-	print port.getHost()
-	print port2.getHost()
+	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
+	#port2 = reactor.listenTCP(9000, p2pFactory())
+
+	reactor.listenTCP(9000, f)
+
+	#print port.getHost()
+	#print port2.getHost()
 	
 	print 'Connecting to nodes in peer.dat'
 
 	for peer in chain.state_get_peers():
-		reactor.connectTCP(peer, 9000, p2pFactory())
-
+		#reactor.connectTCP(peer, 9000, p2pFactory())
+		reactor.connectTCP(peer, 9000, f)
 	reactor.run()
 	    
