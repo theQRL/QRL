@@ -7,6 +7,8 @@ __author__ = 'pete'
 
 from bitcoin import sha256
 from random import randint
+from time import time
+
 import os
 import sys
 import merkle
@@ -30,18 +32,13 @@ db = db.DB()
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
-	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0):
+	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0):
 		#if ots_key > len(data)-1:
 			#raise Exception('OTS key greater than available signatures')
 			#print 'OTS key greater than available signatures - choosing 0'
 			#ots_key = 0
 		self.txfrom = txfrom
-		self.nonce = state_nonce(txfrom)+1
-
-		for t in transaction_pool:
-			if t.txfrom == self.txfrom:
-				self.nonce+=1
-
+		self.nonce = nonce 
 		self.txto = txto
 		self.amount = amount
 		self.fee = fee
@@ -62,12 +59,17 @@ def creategenesisblock():
 
 class BlockHeader():
 
-	def __init__(self, blocknumber, prev_blockheaderhash, number_transactions, hashedtransactions ):
+	def __init__(self,  blocknumber, prev_blockheaderhash, number_transactions, hashedtransactions ):
 		self.blocknumber = blocknumber
+		if self.blocknumber == 0:
+			self.timestamp = 0
+		else:
+			self.timestamp = time()
 		self.prev_blockheaderhash = prev_blockheaderhash
 		self.number_transactions = number_transactions
 		self.hashedtransactions = hashedtransactions
-		self.headerhash = sha256(str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+		self.headerhash = sha256(str(self.timestamp)+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+
 
 class CreateBlock():
 
@@ -118,6 +120,12 @@ def bk_bytestream(block_obj):
 	return 'BK'+bytestream(block_obj)
 
 # chain functions
+
+
+def f_chain_exist():
+	if os.path.isfile('./chain.dat') is True:
+		return True
+	return False
 
 def f_read_chain():
 	block_list = []
@@ -269,11 +277,83 @@ def state_pubhash(addr):
 	except: return []
 	#except:	return False
 
+
+def state_validate_tx(tx):		#checks a tx validity based upon node statedb and node mempool. different to state_add_block validation which is an ordered update of state based upon statedb alone.
+
+	if state_uptodate() is False:
+			print 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'
+			#return False
+
+	if state_balance(tx.txfrom) is 0:
+			print 'State validation failed for', tx.txhash, 'because: Empty address'
+			return False 
+
+	if state_balance(tx.txfrom) < tx.amount: 
+			print 'State validation failed for', tx.txhash,  'because: Insufficient'
+			return False
+
+	# nonce and public key can be in the mempool (transaction_pool) and so these must be checked also..
+	# if the tx is new to node then simple check would work. but if we are checking a tx in the transaction_pool, then order has to be correct..
+
+	z = 0
+	x = 0
+	for t in transaction_pool:
+			if t.txfrom == tx.txfrom:
+					x+=1
+					if t.txhash == tx.txhash:		#this is our unique tx..
+						z = x
+
+	if x == 0:
+		z+=1
+
+	if state_nonce(tx.txfrom)+z != tx.nonce:
+			print 'State validation failed for', tx.txhash, 'because: Invalid nonce'
+			return False
+
+	pub = tx.pub
+	if tx.type == 'LDOTS':
+		pub = [i for sub in pub for i in sub]
+	elif tx.type == 'WOTS':
+				pass
+	pubhash = sha256(''.join(pub))
+
+	for txn in transaction_pool:
+	  if txn.txhash == tx.txhash:
+	  	pass
+	  else:
+		pub = txn.pub
+		if txn.type == 'LDOTS':
+			pub = [i for sub in pub for i in sub]
+		elif txn.type == 'WOTS':
+				pass
+		pubhashn = sha256(''.join(pub))
+
+		if pubhashn == pubhash:
+			print 'State validation failed for', tx.txhash, 'because: Public key re-use detected'
+			return False
+
+
+	if pubhash in state_pubhash(tx.txfrom):
+			print 'State validation failed for', tx.txhash, 'because: Public key re-use detected'
+			return False
+
+	return True
+
+def state_validate_tx_pool():
+	x=0
+	for tx in transaction_pool:
+		if state_validate_tx(tx) is False:
+			x+=1
+			print 'tx', tx.txhash, 'failed..'
+	if x > 0:
+		return False
+	return True
+
 # add some form of header hash check to confirm block correct..
 
 def state_add_block(block):
 
-	print block, 'with: ', str(len(block.transactions)), ' tx'								#ensure state at end of chain in memory
+	#print block, 'with: ', str(len(block.transactions)), ' tx'								#ensure state at end of chain in memory
 	assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
 
 	st1 = []	#snapshot of state in case we need to revert to it..
@@ -306,6 +386,10 @@ def state_add_block(block):
 			#return False
 			break
 
+		if pubhash in s1[2]:
+			print 'pubkey reuse detected: invalid tx', tx.txhash
+			break
+
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
 		s1[2].append(pubhash)
@@ -329,7 +413,7 @@ def state_add_block(block):
 		return False
 
 	db.put('blockheight', m_blockheight())
-	print block, str(len(block.transactions)),'tx ',' passed'
+	print block.blockheader.headerhash, str(len(block.transactions)),'tx ',' passed verification.'
 	return True
 
 
@@ -355,11 +439,18 @@ def state_read_chain():
 			s1 = state_get_address(tx.txfrom)
 
 			if s1[1] - tx.amount < 0:
-				print tx, tx.txfrom, 'exceeds balance, invalid tx'
+				print tx, tx.txfrom, 'exceeds balance, invalid tx', tx.txhash
+				print block.blockheader.headerhash, 'failed state checks'
 				return False
 
 			if tx.nonce != s1[0]+1:
-				print 'nonce incorrect, invalid tx'
+				print 'nonce incorrect, invalid tx', tx.txhash
+				print block.blockheader.headerhash, 'failed state checks'
+				return False
+
+			if pubhash in s1[2]:
+				print 'public key re-use detected, invalid tx', tx.txhash
+				print block.blockheader.headerhash, 'failed state checks'
 				return False
 
 			s1[0]+=1
@@ -378,9 +469,10 @@ def state_read_chain():
 
 #tx functions and classes
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0):
+def createsimpletransaction(txfrom, txto, amount, data, fee=0):	
 
-	#few state checks to ensure tx is valid..
+	#few state checks to ensure tx is valid, including tx already in the transaction_pool
+	#need to avoid errors in nonce and public key re-use which will invalidate the tx at other nodes
 
 	if state_uptodate() is False:
 			print 'state not at latest block in chain'
@@ -394,31 +486,42 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 			print 'insufficient funds for valid tx'
 			return False
 
-	#need to check state to find nonce and select appropriate OTS key to use..
-	#should search state for address to confirm pubhash is not out in the open
-	#then need to add a state check to check each tx in new blocks for existence of pubhash..
-	#then truly OTS with no pubkey reuse.
-	#could aim to choose ots_key based upon either nonce or previous pubhash usage..
+	# signatures remaining is important to check - once all the public keys are used then any funds left will be frozen and unspendable..
 
-	s = data[0].signatures-state_nonce(txfrom)
+	nonce = state_nonce(txfrom)+1
 
-	if s <= 0:
-		print 'Warning: no signatures remaining. Cryptographic security compromised.'	
-	elif s == 2: 
-		print 'Warning: only 1 remaining signature remaining'
+	for t in transaction_pool:
+		if t.txfrom == txfrom:
+				nonce+=1
+
+	s = data[0].signatures-nonce
+
+	if s == 0: 
+		if state_balance(txfrom)-amount > 0:
+			print '***WARNING***: Only ONE remaining transaction possible from this address without leaving funds inaccessible. If you wish to proceed either create the tx manually or move ALL funds from this address with next transaction.'
+			print 'Transaction cancelled. Please try again.'
+			return False
+		else:
+			print 'Creating final transaction with address..'
+
+	if s < 0:
+		print 'No valid transactions from this address can be performed as there are no remaining valid signatures available, sorry.'	#not strictly true..
+		return False
+	if s == 1:
+			print 'Warning: only', str(s), 'remaining transactions possible from this address - consider moving funds to a new address immediately.'
 	elif s <= 5:
-		print 'Warning: less than 5 signatures remaining without reuse'
+		print 'Warning: only', str(s), 'further transactions possible from this address before one-time signatures run out.'
 
-	if state_nonce(txfrom) <= data[0].signatures:
-		ots_key = state_nonce(txfrom)
-	else: 
-		ots_key = 0
+	#need to determine which public key in the OTS-MSS to use..
+
+	ots_key = nonce-1		#nonce for first tx from an address is 1, first ots signature is 0..
 
 	for pubhash in state_pubhash(txfrom):
 		if pubhash == data[ots_key].pubhash:
-			print 'Warning: public key already exposed in a previous transaction'
+			print 'Wallet error: pubhash at ots_key has already been used. Compose a transaction manually and move funds to a new address.'
+			return False
 
-	return CreateSimpleTransaction(txfrom, txto, amount, data, fee, ots_key)
+	return CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, nonce=nonce, data=data, fee=fee, ots_key=ots_key)
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
@@ -453,6 +556,8 @@ def validate_tx_pool():									#invalid transactions are auto removed from pool
 			remove_tx_from_pool(transaction)
 			print 'invalid tx: ',transaction, 'removed from pool'
 
+	return True
+
 def validate_tx(tx, new=0):
 
 		#cryptographic checks
@@ -482,7 +587,9 @@ def validate_tx(tx, new=0):
 def validate_block(block, last_block='default', verbose=0, new=0):		#check validity of new block..
 
 	b = block.blockheader
-	if sha256(str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+
+	
+	if sha256(str(b.timestamp)+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
 		return False
 
 	if last_block=='default':
@@ -525,6 +632,8 @@ def create_my_tx(txfrom, txto, n):
 		return tx
 	else:
 		return False
+
+
 
 def test_tx(n):
 	for x in range(n):

@@ -211,7 +211,7 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-			if chain.validate_tx(tx) == True:
+			if chain.validate_tx(tx) == True and chain.state_validate_tx(tx) == True:
 				print 'Validated tx received and added to pool: ', tx, 'from: ', self.transport.getPeer().host
 
 				chain.add_tx_to_pool(tx)
@@ -227,13 +227,15 @@ class p2pProtocol(Protocol):
 
 
 		elif prefix == 'BK':			#block received
-			print 'block received'
-
+			
 			try: block = pickle.loads(suffix)
 			except:
 				print 'block rejected - unable to decode serialised data - closing connection'
 				self.transport.loseConnection()
 				return
+
+			print 'block received: ', block.blockheader.headerhash, 'timestamp: ', block.blockheader.timestamp
+
 
 			if chain.m_add_block(block) is True:										#crude..should check blocknumber instead..
 				print 'received block added to chain and tx in pool pruned'
@@ -260,7 +262,7 @@ class p2pProtocol(Protocol):
 				self.transport.write(self.wrap_message('CB'+str(chain.m_blockheight())))
 			
 		elif prefix == 'CB':
-				print 'Received current latest block from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight())
+				print 'Received current latest blockheight from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight())
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
 					
@@ -404,12 +406,13 @@ class p2pFactory(ServerFactory):
 		self.peers = []
 		self.connections = 0
 		self.buffer = ''
+		self.synchronised = 0
 
 	def f_wrap_message(self, data):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
 
 	def send_tx_to_peers(self, tx):
-		print 'Transmitting tx: ', tx
+		print 'Transmitting tx: ', tx, tx.txhash
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.tx_bytestream(tx)))
 		return
@@ -421,15 +424,17 @@ class p2pFactory(ServerFactory):
 		return
 
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
-		print 'connection lost: ', reason, 'trying reconnect'
+		#print 'connection lost: ', reason, 'trying reconnect'
 		connector.connect()
+		return
 
 	def clientConnectionFailed(self, connector, reason):
-		print 'connection failed: ', reason
+		#print 'connection failed: ', reason
+		return
 
 	def startedConnecting(self, connector):
-		print 'Started to connect.', connector
-
+		#print 'Started to connect.', connector
+		return
 
 
 class WalletFactory(ServerFactory):
