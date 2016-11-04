@@ -5,7 +5,6 @@ cleanup:
 -alter the startup to seek the genesis block from the network rather than create locally..
 
 chain:
--disable public key reuse completely.
 -enable state hash in blocks to allow node to verify address state updates after each new block
 
 new:
