@@ -475,16 +475,19 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 	#need to avoid errors in nonce and public key re-use which will invalidate the tx at other nodes
 
 	if state_uptodate() is False:
-			print 'state not at latest block in chain'
-			return False
+			msg = 'state not at latest block in chain'
+			print msg
+			return (False, msg)
 
 	if state_balance(txfrom) is 0:
-			print 'empty address'
-			return False 
+			msg = 'empty address'
+			print msg
+			return (False, msg) 
 
 	if state_balance(txfrom) < amount: 
-			print 'insufficient funds for valid tx'
-			return False
+			msg = 'insufficient funds for valid tx'
+			print msg
+			return (False, msg)
 
 	# signatures remaining is important to check - once all the public keys are used then any funds left will be frozen and unspendable..
 
@@ -498,30 +501,36 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 
 	if s == 0: 
 		if state_balance(txfrom)-amount > 0:
-			print '***WARNING***: Only ONE remaining transaction possible from this address without leaving funds inaccessible. If you wish to proceed either create the tx manually or move ALL funds from this address with next transaction.'
-			print 'Transaction cancelled. Please try again.'
-			return False
+			msg = '***WARNING***: Only ONE remaining transaction possible from this address without leaving funds inaccessible. If you wish to proceed either create the tx manually or move ALL funds from this address with next transaction attempt. Transaction cancelled.'
+			print msg
+			return (False, msg)
 		else:
-			print 'Creating final transaction with address..'
+			msg = 'Creating final transaction with address..'
+			print msg
 
-	if s < 0:
-		print 'No valid transactions from this address can be performed as there are no remaining valid signatures available, sorry.'	#not strictly true..
-		return False
+	if s < 0: 
+		msg = 'No valid transactions from this address can be performed as there are no remaining valid signatures available, sorry.'	#not strictly true..
+		print msg
+		return (False, msg)
 	if s == 1:
-			print 'Warning: only', str(s), 'remaining transactions possible from this address - consider moving funds to a new address immediately.'
+			msg = 'Warning: only', str(s), 'remaining transactions possible from this address - consider moving funds to a new address immediately.'
+			print msg
 	elif s <= 5:
-		print 'Warning: only', str(s), 'further transactions possible from this address before one-time signatures run out.'
-
+		msg = 'Warning: only', str(s), 'further transactions possible from this address before one-time signatures run out.'
+		print msg
+	else:
+		msg = str(s)+' further transactions can be signed from this address.'	
 	#need to determine which public key in the OTS-MSS to use..
 
 	ots_key = nonce-1		#nonce for first tx from an address is 1, first ots signature is 0..
 
 	for pubhash in state_pubhash(txfrom):
 		if pubhash == data[ots_key].pubhash:
-			print 'Wallet error: pubhash at ots_key has already been used. Compose a transaction manually and move funds to a new address.'
-			return False
+			msg = 'Wallet error: pubhash at ots_key has already been used. Compose a transaction manually and move funds to a new address.'
+			print msg
+			return (False, msg)
 
-	return CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, nonce=nonce, data=data, fee=fee, ots_key=ots_key)
+	return (CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, nonce=nonce, data=data, fee=fee, ots_key=ots_key), msg)
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
@@ -624,14 +633,14 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 def create_my_tx(txfrom, txto, n):
 	my = wallet.f_read_wallet()
 	if isinstance(txto, int):
-		tx = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+		(tx, msg) = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
 	elif isinstance(txto, str):
-		tx = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
 	if tx is not False:
 		transaction_pool.append(tx)
-		return tx
+		return (tx, msg)
 	else:
-		return False
+		return (False, msg)
 
 
 

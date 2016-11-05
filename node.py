@@ -1,7 +1,6 @@
 # todo
-# work out a way to get from tx create in walletfactory to tx/block transmission through p2pfactory
 # need to setup a new factory which will call the POW library py
-
+# add a check tx details prior to sending.., add A instead of amount to send to allow all funds to be moved..
 
 __author__ = 'pete'
 
@@ -26,7 +25,6 @@ class WalletProtocol(Protocol):
 
 	def __init__(self):		
 		pass
-		
 
 	def parse_cmd(self, data):
 
@@ -37,100 +35,16 @@ class WalletProtocol(Protocol):
 		if data[0] in cmd_list:			
 
 			if data[0] == 'getnewaddress':
-
-				if not args or len(args) > 2:
-					self.transport.write('Arguments not recognised. Creating a 128 signature WOTS-MSS address. Please wait.'+'\r\n')
-					addr = wallet.getnewaddress(128,'WOTS')
-				
-				else:
-					try:	int(args[0])
-					except:
-							self.transport.write('Invalid number of signatures. Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
-							self.transport.write('>>> i.e. getnewaddress 196 WOTS'+'\r\n')
-							return
-
-					if args[1] != 'WOTS' or args[1] != 'wots' or args[1] != 'LDOTS' or args[1] != 'ldots' or args[1] != 'LD':
-						self.transport.write('Invalid signature address type. Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
-						self.transport.write('>>> i.e. getnewaddress 128 LDOTS'+'\r\n')
-						return
-
-					if int(args[0]) > 256:
-						self.transport.write('Try a lower number of signatures or you may be waiting a very long time...'+'\r\n')
-						return
-
-					addr = wallet.getnewaddress(int(args[0], args[1]))
-
-
-				self.transport.write('Keypair type: '+''.join(addr[1][0].type+'\r\n'))
-				self.transport.write('Signatures possible with address: '+str(len(addr[1]))+'\r\n')
-				self.transport.write('Address: '+''.join(addr[0])+'\r\n')
-				self.transport.write("type 'savenewaddress' to append to wallet file"+'\r\n')
-				self.factory.newaddress = addr
+				self.getnewaddress(args)
 
 			elif data[0] == 'savenewaddress':
-				if not self.factory.newaddress:
-					print 'no new addresses, yet'
-					self.transport.write("No new addresses created, yet. Try 'getnewaddress'"+'\r\n')
-					return
-				wallet.f_append_wallet(self.factory.newaddress)
-				print 'writing wallet'
-
+				self.savenewaddress()
 		
-
 			elif data[0] == 'send':
-				if not args or len(args) < 3:
-					self.transport.write('Usage: send <from> <to> <amount>'+'\r\n')
-					self.transport.write('i.e. send 0 4 100'+'\r\n')
-					self.transport.write('^ will send 100 coins from address 0 to 4 from the wallet'+'\r\n')
-					self.transport.write('<to> can be a pasted address (starts with Q)'+'\r\n')
-					return
-
-				try: int(args[0])
-				except: 
-					self.transport.write('Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
-					return
-				if int(args[0]) > len(wallet.list_addresses())-1:
-					self.transport.write('Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
-					return
-
-				if args[1][0] == 'Q':
-					pass
-				else:
-					try: int(args[1])
-					except:
-						self.transport.write('Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
-						return
-					if int(args[1]) > len(wallet.list_addresses())-1:
-						self.transport.write('Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
-						return
-					args[1] = int(args[1])
-				balance = chain.state_balance(wallet.f_read_wallet()[int(args[0])][0])
-
-				try: int(args[2])
-				except: 
-					self.transport.write('Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
-					return
-
-				if balance < int(args[2]):
-					self.transport.write('Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
-					return
-
-				tx = chain.create_my_tx(int(args[0]), args[1], int(args[2]))
-				if tx is False:
-					self.transport.write('transaction creation failed..'+'\r\n')
-					return
-				
-				print 'new local tx: ', tx
-				f.send_tx_to_peers(tx)
-				self.transport.write(str(tx)+'\r\n')
-				self.transport.write('From: '+str(tx.txfrom)+'\r\n'+'To: '+str(tx.txto)+'\r\n'+'For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
-				
-				return
-
-			
+				self.send_tx(args)
 
 			elif data[0] == 'help':
-				self.transport.write('QRL ledger help: try quit, wallet, send or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send or getnewaddress'+'\r\n')
 
 			elif data[0] == 'quit' or data == 'exit':
 				self.transport.loseConnection()
@@ -142,34 +56,26 @@ class WalletProtocol(Protocol):
 						self.transport.write(str(x)+', '+addresses[x]+'\r\n')
 
 			elif data[0] == 'wallet':
-					if chain.state_uptodate() == False:
-						chain.state_read_chain()
-					self.transport.write('Wallet contents:'+'\r\n')
-					y=0
-					for address in wallet.list_addresses():
-						self.transport.write(str(y)+str(address)+'\r\n')
-						y+=1
+					self.wallet()
 					
 			elif data[0] == 'getinfo':
-					self.transport.write('Uptime: '+str(time.time()-start_time)+'\r\n')
+					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
+					self.tranport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
 
 			elif data[0] == 'blockheight':
-					self.transport.write('Blockheight: '+str(chain.m_blockheight())+'\r\n')
+					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
 		else:
 			return False
 
 		return True
-
 
 	def dataReceived(self, data):
 		sys.stdout.write('.')
 		sys.stdout.flush()
 		self.factory.recn += 1
 		if self.parse_cmd(parse(data)) == False:
-			self.transport.write("Command not recognised. Use 'help' for details"+'\r\n')
+			self.transport.write(">>> Command not recognised. Use 'help' for details"+'\r\n')
 	
-		
-
 	def connectionMade(self):
 		self.transport.write(self.factory.stuff)
 		self.factory.connections += 1
@@ -188,6 +94,113 @@ class WalletProtocol(Protocol):
 	def connectionLost(self, reason):
 		print 'lost connection'
 		self.factory.connections -= 1
+
+	# local wallet access functions..
+
+	def getnewaddress(self, args):
+		if not args or len(args) > 2:
+			self.transport.write('>>> Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
+			self.transport.write('>>> i.e. getnewaddress 196 WOTS'+'\r\n')
+			self.transport.write('>>> or: getnewaddress 128 LDOTS'+'\r\n')
+			self.transport.write('>>> (new address creation can take a while, please be patient..)'+'\r\n')
+			return 
+		else:
+			try:	int(args[0])
+			except:
+					self.transport.write('>>> Invalid number of signatures. Usage: getnewaddress <n signatures> <type (WOTS or LDOTS)>'+'\r\n')
+					self.transport.write('>>> i.e. getnewaddress 196 WOTS'+'\r\n')
+					return
+
+		if args[1] != 'WOTS' and args[1] != 'wots' and args[1] != 'LDOTS' and args[1] != 'ldots' and args[1] != 'LD':
+			self.transport.write('>>> Invalid signature address type. Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
+			self.transport.write('>>> i.e. getnewaddress 128 LDOTS'+'\r\n')
+			return
+
+		if args[1] == 'wots':
+			args[1] = 'WOTS'
+
+		if args[1] == 'ldots' or args[1] == 'LD':
+			args[1] = 'LDOTS'
+
+		if int(args[0]) > 256:
+			self.transport.write('>>> Try a lower number of signatures or you may be waiting a very long time...'+'\r\n')
+			return
+
+		addr = wallet.getnewaddress(int(args[0]), args[1])
+
+		self.transport.write('>>> Keypair type: '+''.join(addr[1][0].type+'\r\n'))
+		self.transport.write('>>> Signatures possible with address: '+str(len(addr[1]))+'\r\n')
+		self.transport.write('>>> Address: '+''.join(addr[0])+'\r\n')
+		self.transport.write(">>> type 'savenewaddress' to append to wallet file"+'\r\n')
+		self.factory.newaddress = addr
+		return
+
+	def savenewaddress(self):
+		if not self.factory.newaddress:
+			self.transport.write(">>> No new addresses created, yet. Try 'getnewaddress'"+'\r\n')
+			return
+		wallet.f_append_wallet(self.factory.newaddress)
+		self.transport.write('>>> new address saved in wallet.'+'\r\n')
+		return
+
+	def send_tx(self, args):
+		if not args or len(args) < 3:
+			self.transport.write('>>> Usage: send <from> <to> <amount>'+'\r\n')
+			self.transport.write('>>> i.e. send 0 4 100'+'\r\n')
+			self.transport.write('>>> ^ will send 100 coins from address 0 to 4 from the wallet'+'\r\n')
+			self.transport.write('>>> <to> can be a pasted address (starts with Q)'+'\r\n')
+			return
+
+		try: int(args[0])
+		except: 
+				self.transport.write('>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
+				return
+				if int(args[0]) > len(wallet.list_addresses())-1:
+					self.transport.write('>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
+					return
+
+		if args[1][0] == 'Q':
+			pass
+		else:
+			try: int(args[1])
+			except:
+					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
+					return
+					if int(args[1]) > len(wallet.list_addresses())-1:
+						self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
+						return	
+					args[1] = int(args[1])
+		
+		balance = chain.state_balance(wallet.f_read_wallet()[int(args[0])][0])
+
+		try: int(args[2])
+		except: 
+				self.transport.write('>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
+				return
+
+		if balance < int(args[2]):
+				self.transport.write('>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
+				return
+
+		(tx, msg) = chain.create_my_tx(int(args[0]), args[1], int(args[2]))
+		self.transport.write(msg+'\r\n')
+		if tx is False:
+				return
+				
+		print 'new local tx: ', tx
+		f.send_tx_to_peers(tx)
+		self.transport.write('>>> '+str(tx.txhash))
+		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
+		return
+
+	def wallet(self):
+		if chain.state_uptodate() == False:
+			chain.state_read_chain()
+		self.transport.write('>>> Wallet contents:'+'\r\n')
+		y=0
+		for address in wallet.list_addresses():
+			self.transport.write(str(y)+str(address)+'\r\n')
+			y+=1
 
 class p2pProtocol(Protocol):
 
