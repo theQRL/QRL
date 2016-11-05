@@ -5,7 +5,7 @@ __author__ = 'pete'
 from bitcoin import sha256
 import merkle
 import chain
-import pickle
+import cPickle as pickle
 import node 
 import os
 
@@ -17,16 +17,13 @@ def log(string_data):
         myfile.write(string_data)
     return
 
-
-
-
 def f_read_wallet():
 
 	addr_list = []
 
 	if os.path.isfile('./wallet.dat') is False:
 		print 'Creating new wallet file'
-		addr_list.append(getnewaddress(128, 'WOTS'))
+		addr_list.append(getnewaddress(196, 'WOTS'))
 		with open("./wallet.dat", "a") as myfile:				#add in a new call to create random_otsmss
         		pickle.dump(addr_list, myfile)
 
@@ -37,8 +34,6 @@ def f_read_wallet():
 			print 'IO error'
 			return False
 	
-
-
 def f_append_wallet(data):
 
 		data2 = f_read_wallet()
@@ -48,10 +43,6 @@ def f_append_wallet(data):
 			with open("./wallet.dat", "w+") as myfile:				#overwrites wallet..
         			pickle.dump(data2, myfile)
 		return
-
-
-			
-
 
 def inspect_wallet():												# returns 3 lists of addresses, signatures and types..basic at present..
 	data = f_read_wallet()
@@ -66,8 +57,6 @@ def inspect_wallet():												# returns 3 lists of addresses, signatures and 
 			return addresses, num_sigs, types
 	return False
 	
-
-
 def list_addresses():
 	addr = f_read_wallet()
 	list_addr = []
@@ -82,10 +71,6 @@ def list_addresses():
 		list_addr.append([address[0], 'type:', address[1][0].type, 'balance: '+str(chain.state_balance(address[0]))+'('+str(chain.state_balance(address)-x)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1][0].signatures-chain.state_nonce(address[0]))+' ('+str(address[1][0].signatures-chain.state_nonce(address[0])-y)+'/'+str(address[1][0].signatures)+')' ])
 	return list_addr
 
-
-
-
-
 def getnewaddress(signatures=64, type='WOTS'):						#new address format is a list of two items [address, data structure from random_mss call]
 	addr = []
 	if type == 'WOTS':
@@ -99,7 +84,6 @@ def getnewaddress(signatures=64, type='WOTS'):						#new address format is a lis
 	addr.append(new)
 
 	return addr
-
 
 def savenewaddress(signatures=64, type='WOTS'):
 	f_append_wallet(getnewaddress(signatures, type))

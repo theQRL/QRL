@@ -1,7 +1,7 @@
 #QRL main blockchain, state, transaction functions.
 # todo: enforce OTS-key/public key single use discipline.
 # todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without.
-
+# once functional, remove pickle from the project as unsafe..json encoder..
 
 __author__ = 'pete'
 
@@ -13,8 +13,11 @@ import os
 import sys
 import merkle
 import wallet
-import pickle
+import cPickle as pickle
 import db
+import jsonpickle
+import json
+
 
 global transaction_pool
 global m_blockchain
@@ -30,13 +33,35 @@ db = db.DB()
 
 #classes
 
+class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..unicode
+	
+	def __init__(self, json_obj):
+		self.nonce = json_obj['nonce']
+		self.fee = json_obj['fee']
+		self.type = json_obj['type'].encode('latin1')
+		self.verify = json_obj['verify']
+		self.merkle_root = json_obj['merkle_root'].encode('latin1')
+		self.amount = json_obj['amount']
+		self.pub = json_obj['pub']
+		#for key in self.pub:
+		#	key.encode('latin1')
+		self.ots_key = json_obj['ots_key']
+		self.txhash = json_obj['txhash'].encode('latin1')
+		self.txto = json_obj['txto'].encode('latin1')
+		self.signature = json_obj['signature']
+		#for sig in self.signature:
+		#	sig.encode('latin1')
+		self.merkle_path = []
+		for pair in json_obj['merkle_path']:
+			if isinstance(pair, dict):
+				self.merkle_path.append(pair['py/tuple'])#.encode('latin1'))
+			elif isinstance(pair, list):
+				self.merkle_path.append(pair)#.encode('latin1'))
+		self.txfrom = json_obj['txfrom'].encode('latin1')
+
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
 	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0):
-		#if ots_key > len(data)-1:
-			#raise Exception('OTS key greater than available signatures')
-			#print 'OTS key greater than available signatures - choosing 0'
-			#ots_key = 0
 		self.txfrom = txfrom
 		self.nonce = nonce 
 		self.txto = txto
@@ -108,7 +133,19 @@ def checkaddress(merkle_root, address):
 	else:
 		return False
 
-# network functions
+# network serialising functions
+
+def json_decode_tx(serialised_obj):
+	return ReCreateSimpleTransaction(json.loads(serialised_obj[2:]))
+	
+def json_bytestream_tx(tx_obj):
+	return 'TX'+jsonpickle.encode(tx_obj)
+
+def json_bytestream_bk(block_obj):
+	return 'BK'+jsonpickle.encode(block_obj)
+
+def print_json(obj):
+	print json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
 
 def bytestream(obj):
 	return pickle.dumps(obj)

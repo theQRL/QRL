@@ -10,7 +10,7 @@ import sys
 import struct
 import time
 import wallet
-import pickle
+import cPickle as pickle
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 
@@ -209,60 +209,16 @@ class p2pProtocol(Protocol):
 		self.messages = []
 		pass
 
+
 	def parse_msg(self, data):
 		prefix = data[0:2]
-		#data = data[2:]			#not sure why this isnt working..
 		suffix = data[2:]
 		
-
-
 		if prefix == 'TX':				#tx received..
+			self.recv_tx(suffix)
 			
-			try: tx = pickle.loads(suffix)
-			except: 
-				print 'tx rejected - unable to decode serialised data - closing connection'
-				self.transport.loseConnection()
-				return
-
-			if chain.validate_tx(tx) == True and chain.state_validate_tx(tx) == True:
-				print 'Validated tx received and added to pool: ', tx, 'from: ', self.transport.getPeer().host
-
-				chain.add_tx_to_pool(tx)
-
-				for peer in self.factory.peers:
-					print 'Sending tx: ', tx, 'to other connected nodes than originator..'
-					if peer != self:
-						peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
-			else:
-				print 'Tx invalid - closing connection'
-				self.transport.loseConnection()
-			return	
-
-
 		elif prefix == 'BK':			#block received
-			
-			try: block = pickle.loads(suffix)
-			except:
-				print 'block rejected - unable to decode serialised data - closing connection'
-				self.transport.loseConnection()
-				return
-
-			print 'block received: ', block.blockheader.headerhash, 'timestamp: ', block.blockheader.timestamp
-
-
-			if chain.m_add_block(block) is True:										#crude..should check blocknumber instead..
-				print 'received block added to chain and tx in pool pruned'
-				
-				print 'transmitting block to connected peers..'
-				for peer in self.factory.peers:
-					if peer != self:
-						peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
-				self.get_m_blockheight_from_connection()
-				return
-			else:
-				print 'block:', block, block.blockheader.blocknumber, ' received invalid and discarded'
-				self.get_m_blockheight_from_connection()
-				return
+			self.recv_block(suffix)
 
 		elif prefix == 'LB':			#request for last block to be sent
 				print 'Sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
@@ -409,6 +365,45 @@ class p2pProtocol(Protocol):
 		print self.transport.getPeer().host,  ' disconnnected: ', reason 
 		print 'Remaining connections: ', str(self.factory.connections)
 		self.factory.peers.remove(self)
+
+
+	def recv_block(self, pickled_block):
+		try: block = pickle.loads(pickled_block)
+		except:
+				print 'block rejected - unable to decode serialised data - closing connection to -', self.transport.getPeer().host
+				self.transport.loseConnection()
+				return
+		print 'BLOCK - ', block.blockheader.headerhash, block.blockheader.timestamp, str(len(pickled_block)), 'bytes - ', self.transport.getPeer().host
+		
+		if chain.m_add_block(block) is True:						
+				for peer in self.factory.peers:
+					if peer != self:
+						peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
+				self.get_m_blockheight_from_connection()
+				return
+		else:
+				print 'BAD BLOCK:', block.blockheader.headerhash, block.blockheader.blocknumber, ' invalid and discarded -', self.transport.getPeer().host
+				self.get_m_blockheight_from_connection()
+				return
+
+	def recv_tx(self, pickled_tx):
+		try: tx = pickle.loads(pickled_tx)
+		except: 
+				print 'tx rejected - unable to decode serialised data - closing connection'
+				self.transport.loseConnection()
+				return
+
+		if chain.validate_tx(tx) == True and chain.state_validate_tx(tx) == True:
+				print 'TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'
+				chain.add_tx_to_pool(tx)
+				for peer in self.factory.peers:
+					if peer != self:
+						peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
+		else:
+				print 'Tx',tx.txhash, ' invalid - closing connection to ', self.transport.getPeer().host
+				self.transport.loseConnection()
+		return	
+
 
 
 class p2pFactory(ServerFactory):
