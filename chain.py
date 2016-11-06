@@ -1,5 +1,4 @@
 #QRL main blockchain, state, transaction functions.
-# todo: enforce OTS-key/public key single use discipline.
 # todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without.
 # once functional, remove pickle from the project as unsafe..json encoder..
 
@@ -33,7 +32,7 @@ db = db.DB()
 
 #classes
 
-class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..unicode
+class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..unicode requires conversion..
 	
 	def __init__(self, json_obj):
 		self.nonce = json_obj['nonce']
@@ -42,22 +41,35 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 		self.verify = json_obj['verify']
 		self.merkle_root = json_obj['merkle_root'].encode('latin1')
 		self.amount = json_obj['amount']
-		self.pub = json_obj['pub']
-		#for key in self.pub:
-		#	key.encode('latin1')
+		pub = json_obj['pub']
+		self.pub = []
+		for key in pub:
+			if self.type == 'LDOTS':
+				x = key['py/tuple']
+				self.pub.append((x[0].encode('latin1'), x[1].encode('latin1')))
+			else:
+				self.pub.append(key.encode('latin1'))
 		self.ots_key = json_obj['ots_key']
 		self.txhash = json_obj['txhash'].encode('latin1')
 		self.txto = json_obj['txto'].encode('latin1')
-		self.signature = json_obj['signature']
-		#for sig in self.signature:
-		#	sig.encode('latin1')
+		signature = json_obj['signature']
+		self.signature = []
+		for sig in signature:#for sig in self.signature:
+			self.signature.append(sig.encode('latin1'))#	sig.encode('latin1')
 		self.merkle_path = []
 		for pair in json_obj['merkle_path']:
 			if isinstance(pair, dict):
-				self.merkle_path.append(pair['py/tuple'])#.encode('latin1'))
+				y = pair['py/tuple']
+				self.merkle_path.append((y[0].encode('latin1'),y[1].encode('latin1')))
 			elif isinstance(pair, list):
-				self.merkle_path.append(pair)#.encode('latin1'))
+				self.merkle_path.append([''.join(pair).encode('latin1')])
 		self.txfrom = json_obj['txfrom'].encode('latin1')
+
+class ReCreateBlock():
+
+	def __init__(self):
+		pass
+
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
@@ -135,25 +147,25 @@ def checkaddress(merkle_root, address):
 
 # network serialising functions
 
-def json_decode_tx(serialised_obj):
-	return ReCreateSimpleTransaction(json.loads(serialised_obj[2:]))
+def json_decode_tx(serialised_obj):										#recreate transaction class object safely 
+	return ReCreateSimpleTransaction(json.loads(serialised_obj))#[2:]))
 	
-def json_bytestream_tx(tx_obj):
+def json_bytestream_tx(tx_obj):											#JSON serialise tx object
 	return 'TX'+jsonpickle.encode(tx_obj)
 
-def json_bytestream_bk(block_obj):
+def json_bytestream_bk(block_obj):										# "" block object
 	return 'BK'+jsonpickle.encode(block_obj)
 
-def print_json(obj):
+def print_json(obj):													#prettify output from JSON for export purposes
 	print json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
 
-def bytestream(obj):
+def bytestream(obj):													#to be removed
 	return pickle.dumps(obj)
 
-def tx_bytestream(tx_obj):
+def tx_bytestream(tx_obj):												#to be removed
 	return 'TX'+bytestream(tx_obj)
 
-def bk_bytestream(block_obj):
+def bk_bytestream(block_obj):											#to be removed
 	return 'BK'+bytestream(block_obj)
 
 # chain functions

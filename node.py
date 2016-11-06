@@ -386,8 +386,8 @@ class p2pProtocol(Protocol):
 				self.get_m_blockheight_from_connection()
 				return
 
-	def recv_tx(self, pickled_tx):
-		try: tx = pickle.loads(pickled_tx)
+	def recv_tx(self, json_tx_obj):
+		try: tx = chain.json_decode_tx(json_tx_obj)
 		except: 
 				print 'tx rejected - unable to decode serialised data - closing connection'
 				self.transport.loseConnection()
@@ -422,7 +422,7 @@ class p2pFactory(ServerFactory):
 	def send_tx_to_peers(self, tx):
 		print 'Transmitting tx: ', tx, tx.txhash
 		for peer in self.peers:
-			peer.transport.write(self.f_wrap_message(chain.tx_bytestream(tx)))
+			peer.transport.write(self.f_wrap_message(chain.json_bytestream_tx(tx)))
 		return
 
 	def send_block_to_peers(self, block):
