@@ -1,6 +1,6 @@
 #QRL main blockchain, state, transaction functions.
 # todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without.
-# once functional, remove pickle from the project as unsafe..json encoder..
+# make security assessment over keeping tx and blocks in class object form..may need to keep them as JSON actually..
 
 __author__ = 'pete'
 
@@ -31,45 +31,6 @@ print 'loading db'
 db = db.DB()
 
 #classes
-
-class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..unicode requires conversion..
-	
-	def __init__(self, json_obj):
-		self.nonce = json_obj['nonce']
-		self.fee = json_obj['fee']
-		self.type = json_obj['type'].encode('latin1')
-		self.verify = json_obj['verify']
-		self.merkle_root = json_obj['merkle_root'].encode('latin1')
-		self.amount = json_obj['amount']
-		pub = json_obj['pub']
-		self.pub = []
-		for key in pub:
-			if self.type == 'LDOTS':
-				x = key['py/tuple']
-				self.pub.append((x[0].encode('latin1'), x[1].encode('latin1')))
-			else:
-				self.pub.append(key.encode('latin1'))
-		self.ots_key = json_obj['ots_key']
-		self.txhash = json_obj['txhash'].encode('latin1')
-		self.txto = json_obj['txto'].encode('latin1')
-		signature = json_obj['signature']
-		self.signature = []
-		for sig in signature:#for sig in self.signature:
-			self.signature.append(sig.encode('latin1'))#	sig.encode('latin1')
-		self.merkle_path = []
-		for pair in json_obj['merkle_path']:
-			if isinstance(pair, dict):
-				y = pair['py/tuple']
-				self.merkle_path.append((y[0].encode('latin1'),y[1].encode('latin1')))
-			elif isinstance(pair, list):
-				self.merkle_path.append([''.join(pair).encode('latin1')])
-		self.txfrom = json_obj['txfrom'].encode('latin1')
-
-class ReCreateBlock():
-
-	def __init__(self):
-		pass
-
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
 
@@ -134,6 +95,50 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.transactions = []
 		self.state = [['Qcea29b1402248d53469e352de662923986f3a94cf0f51522bedd08fb5e64948af479', [0, 10000, []]] , ['Qd17b7c86e782546fee27b8004d686e2dbcd3800792831de7486304e3019c1f938f5b',[0, 10000,[]]]]
 
+class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..?add type/len checks??
+	
+	def __init__(self, json_obj):
+		self.nonce = json_obj['nonce']
+		self.fee = json_obj['fee']
+		self.type = json_obj['type'].encode('latin1')
+		self.verify = json_obj['verify']
+		self.merkle_root = json_obj['merkle_root'].encode('latin1')
+		self.amount = json_obj['amount']
+		pub = json_obj['pub']
+		self.pub = []
+		for key in pub:
+			if self.type == 'LDOTS':
+				x = key['py/tuple']
+				self.pub.append((x[0].encode('latin1'), x[1].encode('latin1')))
+			else:
+				self.pub.append(key.encode('latin1'))
+		self.ots_key = json_obj['ots_key']
+		self.txhash = json_obj['txhash'].encode('latin1')
+		self.txto = json_obj['txto'].encode('latin1')
+		signature = json_obj['signature']
+		self.signature = []
+		for sig in signature:								#for sig in self.signature:
+			self.signature.append(sig.encode('latin1'))		#sig.encode('latin1')
+		self.merkle_path = []
+		for pair in json_obj['merkle_path']:
+			if isinstance(pair, dict):
+				y = pair['py/tuple']
+				self.merkle_path.append((y[0].encode('latin1'),y[1].encode('latin1')))
+			elif isinstance(pair, list):
+				self.merkle_path.append([''.join(pair).encode('latin1')])
+		self.txfrom = json_obj['txfrom'].encode('latin1')
+
+
+class ReCreateBlock():						#recreate block class from JSON variables for processing
+
+	def __init__(self, json_block):
+		pass
+		#get blockheader
+	
+
+
+		#for each tx we can instantiate ReCreateSimpleTransaction class
+
 # address functions
 
 def roottoaddr(merkle_root):
@@ -147,9 +152,15 @@ def checkaddress(merkle_root, address):
 
 # network serialising functions
 
-def json_decode_tx(serialised_obj):										#recreate transaction class object safely 
-	return ReCreateSimpleTransaction(json.loads(serialised_obj))#[2:]))
-	
+def json_decode_tx(json_tx):										#recreate transaction class object safely 
+	return ReCreateSimpleTransaction(json.loads(json_tx))
+
+def json_decode_block(json_block):
+	return ReCreateBlock(json.loads(json_block))
+
+def json_bytestream_obj(obj):
+	return jsonpickle.encode(obj)
+
 def json_bytestream_tx(tx_obj):											#JSON serialise tx object
 	return 'TX'+jsonpickle.encode(tx_obj)
 
@@ -168,8 +179,34 @@ def tx_bytestream(tx_obj):												#to be removed
 def bk_bytestream(block_obj):											#to be removed
 	return 'BK'+bytestream(block_obj)
 
-# chain functions
 
+# tx, address chain search functions
+
+def search_txhash(txhash):				#txhash is unique due to nonce.
+	for tx in transaction_pool:
+		if tx.txhash == txhash:
+			print txhash, 'found in transaction pool..'
+			return print_json(tx)
+	for block in m_blockchain:
+		for tx in block.transactions:
+			if tx.txhash== txhash:
+				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
+				return print_json(tx)
+	print txhash, 'does not exist in pool or chain..'
+	return False
+
+def search_tx(txcontains, long=1):
+	for tx in transaction_pool:
+		if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
+			print txcontains, 'found in transaction pool..'
+			if long==1: print_json(tx)
+	for block in m_blockchain:
+		for tx in block.transactions:
+			if tx.txhash== txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
+				print txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
+				if long==1: print_json(tx)
+	return
+# chain functions
 
 def f_chain_exist():
 	if os.path.isfile('./chain.dat') is True:
@@ -677,7 +714,10 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 	return True
 
 
-# simple transaction creation functions using the wallet file..
+# simple transaction creation and wallet functions using the wallet file..
+
+def wlt():
+	return merkle.numlist(wallet.list_addresses())
 
 def create_my_tx(txfrom, txto, n):
 	my = wallet.f_read_wallet()
