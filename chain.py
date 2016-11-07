@@ -33,7 +33,6 @@ db = db.DB()
 #classes
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
-
 	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0):
 		self.txfrom = txfrom
 		self.nonce = nonce 
@@ -56,7 +55,6 @@ def creategenesisblock():
 
 
 class BlockHeader():
-
 	def __init__(self,  blocknumber, prev_blockheaderhash, number_transactions, hashedtransactions ):
 		self.blocknumber = blocknumber
 		if self.blocknumber == 0:
@@ -70,7 +68,6 @@ class BlockHeader():
 
 
 class CreateBlock():
-
 	def __init__(self):
 		data = m_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
@@ -89,14 +86,14 @@ class CreateBlock():
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
-
 	def __init__(self):
 		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
 		self.transactions = []
 		self.state = [['Qcea29b1402248d53469e352de662923986f3a94cf0f51522bedd08fb5e64948af479', [0, 10000, []]] , ['Qd17b7c86e782546fee27b8004d686e2dbcd3800792831de7486304e3019c1f938f5b',[0, 10000,[]]]]
 
-class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..?add type/len checks??
-	
+# JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)
+
+class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..
 	def __init__(self, json_obj):
 		self.nonce = json_obj['nonce']
 		self.fee = json_obj['fee']
@@ -130,14 +127,22 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 
 
 class ReCreateBlock():						#recreate block class from JSON variables for processing
-
 	def __init__(self, json_block):
-		pass
-		#get blockheader
+		self.blockheader = ReCreateBlockHeader(json_block['blockheader'])
 	
+		transactions = json_block['transactions']
+		self.transactions = []
+		for tx in transactions:
+			self.transactions.append(json_decode_tx(json.dumps(tx)))
 
-
-		#for each tx we can instantiate ReCreateSimpleTransaction class
+class ReCreateBlockHeader():
+	def __init__(self, json_blockheader):
+		self.headerhash = json_blockheader['headerhash'].encode('latin1')
+		self.number_transactions = json_blockheader['number_transactions']
+		self.timestamp = json_blockheader['timestamp']
+		self.hashedtransactions = json_blockheader['hashedtransactions'].encode('latin1')
+		self.blocknumber = json_blockheader['blocknumber']
+		self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
 
 # address functions
 
@@ -158,7 +163,7 @@ def json_decode_tx(json_tx):										#recreate transaction class object safely
 def json_decode_block(json_block):
 	return ReCreateBlock(json.loads(json_block))
 
-def json_bytestream_obj(obj):
+def json_bytestream(obj):
 	return jsonpickle.encode(obj)
 
 def json_bytestream_tx(tx_obj):											#JSON serialise tx object
@@ -167,7 +172,7 @@ def json_bytestream_tx(tx_obj):											#JSON serialise tx object
 def json_bytestream_bk(block_obj):										# "" block object
 	return 'BK'+jsonpickle.encode(block_obj)
 
-def print_json(obj):													#prettify output from JSON for export purposes
+def json_print(obj):													#prettify output from JSON for export purposes
 	print json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
 
 def bytestream(obj):													#to be removed
@@ -186,12 +191,12 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 	for tx in transaction_pool:
 		if tx.txhash == txhash:
 			print txhash, 'found in transaction pool..'
-			return print_json(tx)
+			return json_print(tx)
 	for block in m_blockchain:
 		for tx in block.transactions:
 			if tx.txhash== txhash:
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
-				return print_json(tx)
+				return json_print(tx)
 	print txhash, 'does not exist in pool or chain..'
 	return False
 
@@ -206,6 +211,7 @@ def search_tx(txcontains, long=1):
 				print txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
 				if long==1: print_json(tx)
 	return
+
 # chain functions
 
 def f_chain_exist():

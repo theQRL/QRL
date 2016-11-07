@@ -4,16 +4,11 @@
 
 __author__ = 'pete'
 
-import os
+import os, sys, time, struct
 import chain
-import sys
-import struct
-import time
 import wallet
-import cPickle as pickle
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
-
 cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'send']
 
 def parse(data):
@@ -221,8 +216,8 @@ class p2pProtocol(Protocol):
 			self.recv_block(suffix)
 
 		elif prefix == 'LB':			#request for last block to be sent
-				print 'Sending last block', str(chain.m_blockheight()), str(len(chain.bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
-				self.transport.write(self.wrap_message(chain.bk_bytestream(chain.m_get_last_block())))
+				print 'Sending last block', str(chain.m_blockheight()), str(len(chain.json_bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
+				self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_last_block())))
 				return
 
 		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
@@ -242,8 +237,8 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
-						print 'Sending block number', str(int(suffix)), str(len(chain.bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host
-						self.transport.write(self.wrap_message(chain.bk_bytestream(chain.m_get_block(int(suffix)))))
+						print 'Sending block number', str(int(suffix)), str(len(chain.json_bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host
+						self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_block(int(suffix)))))
 						return
 				else:
 					print 'BN request without valid block number', suffix, '- closing connection'
@@ -257,15 +252,15 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-		elif prefix == 'PL':			#receiving a list of peers to save into peer list..
-			print 'Received peers'
-			data = pickle.loads(suffix)
-			peers_list = chain.state_get_peers()
-			for node in data:
-				if node not in peers_list:
-					peers_list.append(node)
-			chain.state_put_peers(peers_list)
-			chain.state_save_peers()
+		#elif prefix == 'PL':			#receiving a list of peers to save into peer list..
+		#	print 'Received peers'
+		#	data = pickle.loads(suffix)
+		#	peers_list = chain.state_get_peers()
+		#	for node in data:
+		#		if node not in peers_list:
+		#			peers_list.append(node)
+		#	chain.state_put_peers(peers_list)
+		#	chain.state_save_peers()
 
 		elif prefix == 'PE':			#get a list of connected peers..
 			if suffix[0:3] == 'ERS':
@@ -367,18 +362,18 @@ class p2pProtocol(Protocol):
 		self.factory.peers.remove(self)
 
 
-	def recv_block(self, pickled_block):
-		try: block = pickle.loads(pickled_block)
+	def recv_block(self, json_block_obj):
+		try: block = chain.json_decode_block(json_block_obj)
 		except:
 				print 'block rejected - unable to decode serialised data - closing connection to -', self.transport.getPeer().host
 				self.transport.loseConnection()
 				return
-		print 'BLOCK - ', block.blockheader.headerhash, block.blockheader.timestamp, str(len(pickled_block)), 'bytes - ', self.transport.getPeer().host
+		print 'BLOCK - ', block.blockheader.headerhash, block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
 		
 		if chain.m_add_block(block) is True:						
 				for peer in self.factory.peers:
 					if peer != self:
-						peer.transport.write(self.wrap_message(chain.bk_bytestream(block)))
+						peer.transport.write(self.wrap_message(chain.json_bytestream_bk(block)))
 				self.get_m_blockheight_from_connection()
 				return
 		else:
@@ -398,7 +393,7 @@ class p2pProtocol(Protocol):
 				chain.add_tx_to_pool(tx)
 				for peer in self.factory.peers:
 					if peer != self:
-						peer.transport.write(self.wrap_message(chain.tx_bytestream(tx)))
+						peer.transport.write(self.wrap_message(chain.json_bytestream_tx(tx)))
 		else:
 				print 'Tx',tx.txhash, ' invalid - closing connection to ', self.transport.getPeer().host
 				self.transport.loseConnection()
@@ -428,7 +423,7 @@ class p2pFactory(ServerFactory):
 	def send_block_to_peers(self, block):
 		print 'Transmitting block: ', block
 		for peer in self.peers:
-			peer.transport.write(self.f_wrap_message(chain.bk_bytestream(block)))
+			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
 		return
 
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
