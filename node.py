@@ -204,7 +204,6 @@ class p2pProtocol(Protocol):
 		self.messages = []
 		pass
 
-
 	def parse_msg(self, data):
 		prefix = data[0:2]
 		suffix = data[2:]
@@ -231,9 +230,7 @@ class p2pProtocol(Protocol):
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
 					
 					self.get_block_n(chain.m_blockheight()+1)
-					return
-
-					
+					return			
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
@@ -252,28 +249,32 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-		#elif prefix == 'PL':			#receiving a list of peers to save into peer list..
-		#	print 'Received peers'
-		#	data = pickle.loads(suffix)
-		#	peers_list = chain.state_get_peers()
-		#	for node in data:
-		#		if node not in peers_list:
-		#			peers_list.append(node)
-		#	chain.state_put_peers(peers_list)
-		#	chain.state_save_peers()
+		elif prefix == 'PL':			#receiving a list of peers to save into peer list..
+				self.recv_peers(suffix)
 
-		elif prefix == 'PE':			#get a list of connected peers..
-			if suffix[0:3] == 'ERS':
-				print 'Get peers request - sending active inbound connections..'
-				peers_list = []
-				for peer in self.factory.peers:
-					peers_list.append(peer.transport.getPeer().host)
-				self.transport.write(self.wrap_message('PL'+chain.bytestream(peers_list)))
+		elif prefix == 'PE':			#get a list of connected peers..need to add some ddos and type checking proteection here..
+				self.get_peers()
 
 		else:
 			print 'Data from node not understood - closing connection.'
 			self.transport.loseConnection()
 		
+		return
+
+
+	def recv_peers(self, json_data):
+		data = chain.json_decode(json_data)
+		new_ips = []
+		for ip in data:
+				new_ips.append(ip.encode('latin1'))
+		peers_list = chain.state_get_peers()
+		print self.transport.getPeer().host, 'peers: ', new_ips
+		for node in new_ips:
+				if node not in peers_list:
+					if node != self.transport.getHost().host:
+						peers_list.append(node)
+		chain.state_put_peers(peers_list)
+		chain.state_save_peers()
 		return
 
 	def get_latest_block_from_connection(self):
@@ -284,6 +285,14 @@ class p2pProtocol(Protocol):
 	def get_m_blockheight_from_connection(self):
 		print 'Requesting blockheight from', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('MB'))
+		return
+
+	def get_peers(self):
+		print 'Sending connected peers to', self.transport.getPeer().host
+		peers_list = []
+		for peer in self.factory.peers:
+			peers_list.append(peer.transport.getPeer().host)
+		self.transport.write(self.wrap_message('PL'+chain.json_encode(peers_list)))
 		return
 
 	def get_block_n(self, n):
@@ -349,16 +358,17 @@ class p2pProtocol(Protocol):
 			chain.state_put_peers(peer_list)
 			chain.state_save_peers()
 		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
+		
 
 		self.get_m_blockheight_from_connection()
+		self.get_peers()
 
 		# here goes the code for handshake..using functions within the p2pprotocol class
 		# should ask for latest block/block number..
 
 	def connectionLost(self, reason):
 		self.factory.connections -= 1
-		print self.transport.getPeer().host,  ' disconnnected: ', reason 
-		print 'Remaining connections: ', str(self.factory.connections)
+		print self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections) #, reason 
 		self.factory.peers.remove(self)
 
 
@@ -450,6 +460,7 @@ class WalletFactory(ServerFactory):
 		self.recn = 0
 		self.maxconnections = 1
 		self.connections = 0
+
 
 if __name__ == "__main__":
 

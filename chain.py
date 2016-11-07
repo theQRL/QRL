@@ -163,6 +163,12 @@ def json_decode_tx(json_tx):										#recreate transaction class object safely
 def json_decode_block(json_block):
 	return ReCreateBlock(json.loads(json_block))
 
+def json_encode(obj):
+	return json.dumps(obj)
+
+def json_decode(js_obj):
+	return json.loads(js_obj)
+
 def json_bytestream(obj):
 	return jsonpickle.encode(obj)
 
@@ -691,6 +697,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 
 	
 	if sha256(str(b.timestamp)+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+		print '1'
 		return False
 
 	if last_block=='default':
