@@ -181,15 +181,6 @@ def json_bytestream_bk(block_obj):										# "" block object
 def json_print(obj):													#prettify output from JSON for export purposes
 	print json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
 
-def bytestream(obj):													#to be removed
-	return pickle.dumps(obj)
-
-def tx_bytestream(tx_obj):												#to be removed
-	return 'TX'+bytestream(tx_obj)
-
-def bk_bytestream(block_obj):											#to be removed
-	return 'BK'+bytestream(block_obj)
-
 
 # tx, address chain search functions
 
@@ -303,7 +294,7 @@ def m_info_block(n):
 		return False
 	b = m_get_block(n)
 	print 'Block: ', b, str(b.blockheader.blocknumber)
-	print 'Blocksize, ', str(len(bytestream(b)))
+	print 'Blocksize, ', str(len(json_bytestream(b)))
 	print 'Number of transactions: ', str(len(b.transactions))
 	print 'Validates: ', validate_block(b, last_block = n-1)
 

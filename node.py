@@ -410,7 +410,6 @@ class p2pProtocol(Protocol):
 		return	
 
 
-
 class p2pFactory(ServerFactory):
 
 	protocol = p2pProtocol
@@ -484,18 +483,12 @@ if __name__ == "__main__":
 	
 	f = p2pFactory()
 
-	port = reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
-	#port2 = reactor.listenTCP(9000, p2pFactory())
-
+	reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	reactor.listenTCP(9000, f)
 
-	#print port.getHost()
-	#print port2.getHost()
-	
 	print 'Connecting to nodes in peer.dat'
 
-	for peer in chain.state_get_peers():
-		#reactor.connectTCP(peer, 9000, p2pFactory())
+	for peer in chain.state_get_peers():			
 		reactor.connectTCP(peer, 9000, f)
 	reactor.run()
 	    
