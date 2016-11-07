@@ -8,20 +8,12 @@ from bitcoin import sha256
 from random import randint
 from time import time
 
-import os
-import sys
-import merkle
-import wallet
+import os, sys, json, jsonpickle
+import merkle, wallet, db
+
 import cPickle as pickle
-import db
-import jsonpickle
-import json
 
-
-global transaction_pool
-global m_blockchain
-global my
-global node_list
+global transaction_pool, m_blockchain, my, node_list
 
 node_list = ['104.251.219.145']
 m_blockchain = []
@@ -173,10 +165,10 @@ def json_bytestream(obj):
 	return jsonpickle.encode(obj)
 
 def json_bytestream_tx(tx_obj):											#JSON serialise tx object
-	return 'TX'+jsonpickle.encode(tx_obj)
+	return 'TX'+json_bytestream(tx_obj)
 
 def json_bytestream_bk(block_obj):										# "" block object
-	return 'BK'+jsonpickle.encode(block_obj)
+	return 'BK'+json_bytestream(block_obj)
 
 def json_print(obj):													#prettify output from JSON for export purposes
 	print json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
