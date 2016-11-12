@@ -1,14 +1,12 @@
 # todo
 
-# 1. move the mining function to the factory out of the protocol...it isnt breaking out when self.factory.sync is set..
-
-# 1. alter the thread simulated mining function so that if a new block arrives it terminates..break loop
-# 2. blocks received must be put through a function which checks the length of chain of connected peers..block requests should not be automatic but 
-# follow the longest connected peer..so if >1 connected peer then check the latest block and choose that. 
-
-
-# move pow functions to the factory from protocol. add in POW.
-# add a check tx details prior to sending.., add A instead of amount to send to allow all funds to be moved..
+# 1. move the mining function to the factory out of the protocol...
+# 2. change the initial handshake to obtain information from each connected peer and deploy a function after a time period which constructs
+# an array related to each connected node - block number, last 5 headerhashes etc. This will be used to identify orphan blocks and choose the chain which produces the
+# longest chain in the next few blocks..this will stop us forking the chain and allow the client to reset the chain to the longest valid chain rather than finding all blocks
+# from other nodes invalid and mining on its own..
+# try to abstract the node behaviour away from protocol to the factory whilst keeping the rules simple.
+# 3. now we have a working non blocking threaded mining function with a random time sleep in place, implement the POW algorithm - need to edit block header to add nonce...
 
 __author__ = 'pete'
 
