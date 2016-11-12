@@ -15,7 +15,7 @@ import cPickle as pickle
 
 global transaction_pool, m_blockchain, my, node_list
 
-node_list = ['104.251.219.145']
+node_list = ['86.164.190.159']
 m_blockchain = []
 transaction_pool = []
 
@@ -186,19 +186,20 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 			if tx.txhash== txhash:
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
 				return json_print(tx)
-	print txhash, 'does not exist in pool or chain..'
+	print txhash, 'does not exist in memory pool or local blockchain..'
 	return False
 
-def search_tx(txcontains, long=1):
+def search(txcontains, long=1):
 	for tx in transaction_pool:
 		if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
 			print txcontains, 'found in transaction pool..'
-			if long==1: print_json(tx)
+			if long==1: json_print(tx)
 	for block in m_blockchain:
 		for tx in block.transactions:
 			if tx.txhash== txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
 				print txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
-				if long==1: print_json(tx)
+				if long==0: print '<tx:txhash> '+tx.txhash
+				if long==1: json_print(tx)
 	return
 
 # chain functions
@@ -258,6 +259,12 @@ def m_create_block():
 def m_add_block(block_obj):
 	if not m_blockchain:
 		m_read_chain()
+
+	for block in m_blockchain[-5:-1]:
+		if block.blockheader.headerhash == block_obj.blockheader.headerhash:
+			print block_obj.blockheader.headerhash, str(block_obj.blockheader.blocknumber), ' already validated and appended to chain.'
+			return False
+
 	if validate_block(block_obj, new=1) is True:
 		m_blockchain.append(block_obj)
 		if state_add_block(m_get_last_block()) is True:
@@ -265,9 +272,10 @@ def m_add_block(block_obj):
 		else: 	
 				m_remove_last_block()
 				print 'last block failed state checks, removed from chain'
+				state_validate_tx_pool()
 				return False
 	else:
-		print 'm_add_block failed - invalid blocks'
+		print 'm_add_block failed - block failed validation.'
 		return False
 	m_f_sync_chain()
 	return True
@@ -359,7 +367,7 @@ def state_pubhash(addr):
 	#except:	return False
 
 
-def state_validate_tx(tx):		#checks a tx validity based upon node statedb and node mempool. different to state_add_block validation which is an ordered update of state based upon statedb alone.
+def state_validate_tx(tx):		#checks new tx validity based upon node statedb and node mempool. different to state_add_block validation which is an ordered update of state based upon statedb alone.
 
 	if state_uptodate() is False:
 			print 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'
@@ -426,6 +434,7 @@ def state_validate_tx_pool():
 		if state_validate_tx(tx) is False:
 			x+=1
 			print 'tx', tx.txhash, 'failed..'
+			remove_tx_from_pool(tx)
 	if x > 0:
 		return False
 	return True
@@ -594,10 +603,10 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 		print msg
 		return (False, msg)
 	if s == 1:
-			msg = 'Warning: only', str(s), 'remaining transactions possible from this address - consider moving funds to a new address immediately.'
+			msg = 'Warning: only '+str(s)+'remaining transactions possible from this address - consider moving funds to a new address immediately.'
 			print msg
 	elif s <= 5:
-		msg = 'Warning: only', str(s), 'further transactions possible from this address before one-time signatures run out.'
+		msg = 'Warning: only '+ str(s)+'further transactions possible from this address before one-time signatures run out.'
 		print msg
 	else:
 		msg = str(s)+' further transactions can be signed from this address.'	
@@ -624,8 +633,9 @@ def show_tx_pool():
 
 def remove_tx_in_block_from_pool(block_obj):
 	for tx in block_obj.transactions:
-		if tx in transaction_pool:
-			remove_tx_from_pool(tx)
+		for txn in transaction_pool:
+			if tx.txhash == txn.txhash:
+				remove_tx_from_pool(txn)
 
 def flush_tx_pool():
 	del transaction_pool[:]
@@ -726,7 +736,6 @@ def create_my_tx(txfrom, txto, n):
 		return (tx, msg)
 	else:
 		return (False, msg)
-
 
 
 def test_tx(n):

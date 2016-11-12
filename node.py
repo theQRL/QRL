@@ -1,10 +1,18 @@
 # todo
-# need to setup a new factory which will call the POW library py
+
+# 1. move the mining function to the factory out of the protocol...it isnt breaking out when self.factory.sync is set..
+
+# 1. alter the thread simulated mining function so that if a new block arrives it terminates..break loop
+# 2. blocks received must be put through a function which checks the length of chain of connected peers..block requests should not be automatic but 
+# follow the longest connected peer..so if >1 connected peer then check the latest block and choose that. 
+
+
+# move pow functions to the factory from protocol. add in POW.
 # add a check tx details prior to sending.., add A instead of amount to send to allow all funds to be moved..
 
 __author__ = 'pete'
 
-import os, sys, time, struct
+import os, sys, time, struct, random
 import chain
 import wallet
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
@@ -55,7 +63,7 @@ class WalletProtocol(Protocol):
 					
 			elif data[0] == 'getinfo':
 					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
-					self.tranport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
+					self.transport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
@@ -161,10 +169,10 @@ class WalletProtocol(Protocol):
 			except:
 					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
 					return
-					if int(args[1]) > len(wallet.list_addresses())-1:
-						self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
-						return	
-					args[1] = int(args[1])
+			if int(args[1]) > len(wallet.list_addresses())-1:
+					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
+					return	
+			args[1] = int(args[1])
 		
 		balance = chain.state_balance(wallet.f_read_wallet()[int(args[0])][0])
 
@@ -221,16 +229,22 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
 			if not suffix:
-				print 'Sending current blockheight to node..', self.transport.getPeer().host
+				print 'Sending current blockheight to node..', self.transport.getPeer().host, str(time.time())
 				self.transport.write(self.wrap_message('CB'+str(chain.m_blockheight())))
 			
 		elif prefix == 'CB':
-				print 'Received current latest blockheight from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight())
+				print 'Received current latest blockheight from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
+					self.factory.sync = 0
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
-					
 					self.get_block_n(chain.m_blockheight()+1)
-					return			
+					return
+				else:
+					self.factory.sync = 1
+					if self.factory.mining == 0:
+						self.factory.newblock = 0
+						reactor.callInThread(self.mining)
+					return
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
@@ -349,6 +363,9 @@ class p2pProtocol(Protocol):
 		return
 
 	def connectionMade(self):
+		if self.transport.getPeer().host == self.transport.getHost().host:
+						self.transport.loseConnection()
+						return
 		self.factory.connections += 1
 		self.factory.peers.append(self)
 		peer_list = chain.state_get_peers()
@@ -364,13 +381,56 @@ class p2pProtocol(Protocol):
 		self.get_peers()
 
 		# here goes the code for handshake..using functions within the p2pprotocol class
-		# should ask for latest block/block number..
+		# should ask for latest block/block number.
+
+
+# the mining thread/function is activated when the node state is sync'd with longest chain amongst connected nodes.
+# it is activated after a MB check from another node (to be coded after logic for synchronisation with longest chain amongst nodes rather than first call..)
+#
+# Reasons for mining function to finish prematurely:
+# 1) timing fn or mining fn finds a block
+# 2) new block arrives through network from a peer and is validated/statedb'd and added to the chain..
+# 
+# flags used for the mining function from the factory: sync, mining and newblock
+# mining only called when sync = 1. sync = 0 set when node:m_blockheight is > local. When a new validated block arrives newblock is set by recv_block.
+
+	def mining(self):
+		print 'mining function called..'
+		self.factory.mining = 1			#to prevent other protocol instances launching the function..
+		while True:
+				for x in range(60):
+					time.sleep(1+random.randint(0,1))
+					if self.factory.newblock == 1:
+						print 'mining finished..other new block found first..6'
+						self.factory.mining = 0
+						self.factory.newblock = 0
+						reactor.callFromThread(self.get_m_blockheight_from_connection)
+						return
+					
+					print 'x', str(x)
+					print 'sync', str(self.factory.sync), 'mining', str(self.factory.mining), 'newblock', str(self.factory.newblock)
+				print 'simulated search over..found a MINED BLOCK'
+				if not self.factory.peers:
+					print 'mining finished..without creating block - no connected peers 4'
+					return
+				if self.factory.sync == 1:
+						b = chain.m_create_block()
+						if chain.m_add_block(b) == True:
+							reactor.callFromThread(f.send_block_to_peers, b)
+							self.factory.mining = 0
+							self.factory.newblock = 0
+							reactor.callFromThread(self.get_m_blockheight_from_connection)
+							print 'mining finished..after creation of new block 2', str(time.time())
+							return
+			
+				self.factory.mining = 0
+				print 'mining finished..3..reached end of loop', str(time.time())
+				return
 
 	def connectionLost(self, reason):
 		self.factory.connections -= 1
 		print self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections) #, reason 
 		self.factory.peers.remove(self)
-
 
 	def recv_block(self, json_block_obj):
 		try: block = chain.json_decode_block(json_block_obj)
@@ -378,16 +438,26 @@ class p2pProtocol(Protocol):
 				print 'block rejected - unable to decode serialised data - closing connection to -', self.transport.getPeer().host
 				self.transport.loseConnection()
 				return
-		print 'BLOCK - ', block.blockheader.headerhash, block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
+
+		if block.blockheader.blocknumber != chain.m_blockheight()+1:
+			print 'BLOCK - out of order - ', str(block.blockheader.blocknumber), block.blockheader.headerhash
+			return
+
+		print 'BLOCK - ', block.blockheader.headerhash, str(block.blockheader.blocknumber), block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
 		
-		if chain.m_add_block(block) is True:						
-				for peer in self.factory.peers:
-					if peer != self:
-						peer.transport.write(self.wrap_message(chain.json_bytestream_bk(block)))
-				self.get_m_blockheight_from_connection()
+		if chain.m_add_block(block) is True:
+				self.factory.newblock = 1
+								#new valid block detected..need to inform the mining thread 
+				print 'sync', str(self.factory.sync), 'mining', str(self.factory.mining), 'newblock', str(self.factory.newblock)
+
+				if self.factory.sync == 1:						
+					for peer in self.factory.peers:
+						if peer != self:
+							peer.transport.write(self.wrap_message(chain.json_bytestream_bk(block)))
+				self.get_m_blockheight_from_connection()	
 				return
 		else:
-				print 'BAD BLOCK:', block.blockheader.headerhash, block.blockheader.blocknumber, ' invalid and discarded -', self.transport.getPeer().host
+				#print 'BAD BLOCK:', block.blockheader.headerhash, block.blockheader.blocknumber, ' invalid and discarded -', self.transport.getPeer().host
 				self.get_m_blockheight_from_connection()
 				return
 
@@ -398,16 +468,24 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-		if chain.validate_tx(tx) == True and chain.state_validate_tx(tx) == True:
-				print 'TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'
+		for t in chain.transaction_pool:			#duplicate tx already received, would mess up nonce..
+			if tx.txhash == t.txhash:
+				return
+
+		if chain.validate_tx(tx) == True:
 				chain.add_tx_to_pool(tx)
+
+		if chain.state_validate_tx(tx) == True:
+				print 'TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'
+				
 				for peer in self.factory.peers:
 					if peer != self:
 						peer.transport.write(self.wrap_message(chain.json_bytestream_tx(tx)))
 		else:
+				chain.remove_tx_from_pool(tx)
 				print 'Tx',tx.txhash, ' invalid - closing connection to ', self.transport.getPeer().host
 				self.transport.loseConnection()
-		return	
+		return
 
 
 class p2pFactory(ServerFactory):
@@ -418,7 +496,9 @@ class p2pFactory(ServerFactory):
 		self.peers = []
 		self.connections = 0
 		self.buffer = ''
-		self.synchronised = 0
+		self.sync = 0
+		self.mining = 0
+		self.newblock = 0
 
 	def f_wrap_message(self, data):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
@@ -430,7 +510,7 @@ class p2pFactory(ServerFactory):
 		return
 
 	def send_block_to_peers(self, block):
-		print 'Transmitting block: ', block
+		print 'Transmitting block: ', block.blockheader.headerhash
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
 		return
