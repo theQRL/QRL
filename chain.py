@@ -47,8 +47,10 @@ def creategenesisblock():
 
 
 class BlockHeader():
-	def __init__(self,  blocknumber, prev_blockheaderhash, number_transactions, hashedtransactions ):
+	def __init__(self,  blocknumber, difficulty, nonce, prev_blockheaderhash, number_transactions, hashedtransactions ):
 		self.blocknumber = blocknumber
+		self.difficulty = 232
+		self.nonce = nonce
 		if self.blocknumber == 0:
 			self.timestamp = 0
 		else:
@@ -56,11 +58,12 @@ class BlockHeader():
 		self.prev_blockheaderhash = prev_blockheaderhash
 		self.number_transactions = number_transactions
 		self.hashedtransactions = hashedtransactions
-		self.headerhash = sha256(str(self.timestamp)+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+		self.headerhash = sha256(str(self.timestamp)+str(self.difficulty)+self.nonce+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
 
 
 class CreateBlock():
-	def __init__(self):
+	def __init__(self, nonce):
+		difficulty = 232
 		data = m_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
 		prev_blockheaderhash = data.blockheader.headerhash
@@ -74,12 +77,12 @@ class CreateBlock():
 		self.transactions = []
 		for tx in transaction_pool:
 			self.transactions.append(tx)						#copy memory rather than sym link
-		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
+		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, difficulty=difficulty, nonce=nonce, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
 	def __init__(self):
-		self.blockheader = BlockHeader(blocknumber=0, prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
+		self.blockheader = BlockHeader(blocknumber=0, difficulty=232, nonce='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
 		self.transactions = []
 		self.state = [['Qcea29b1402248d53469e352de662923986f3a94cf0f51522bedd08fb5e64948af479', [0, 10000, []]] , ['Qd17b7c86e782546fee27b8004d686e2dbcd3800792831de7486304e3019c1f938f5b',[0, 10000,[]]]]
 
@@ -131,7 +134,9 @@ class ReCreateBlockHeader():
 	def __init__(self, json_blockheader):
 		self.headerhash = json_blockheader['headerhash'].encode('latin1')
 		self.number_transactions = json_blockheader['number_transactions']
+		self.nonce = json_blockheader['nonce'].encode('latin1')
 		self.timestamp = json_blockheader['timestamp']
+		self.difficulty = json_blockheader['difficulty']
 		self.hashedtransactions = json_blockheader['hashedtransactions'].encode('latin1')
 		self.blocknumber = json_blockheader['blocknumber']
 		self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
@@ -253,8 +258,8 @@ def m_get_block(n):
 def m_get_last_block():
 	return m_read_chain()[-1]
 
-def m_create_block():
-	return CreateBlock()
+def m_create_block(nonce):
+	return CreateBlock(nonce)
 
 def m_add_block(block_obj):
 	if not m_blockchain:
@@ -350,6 +355,10 @@ def state_blockheight():
 def state_get_address(addr):
 	try: return db.get(addr)
 	except:	return [0,0,[]]
+
+def state_address_used(addr):							#if excepts then address does not exist..
+	try: return db.get(addr)
+	except: return False 
 
 def state_balance(addr):
 	try: return db.get(addr)[1]
@@ -688,8 +697,11 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 
 	b = block.blockheader
 
+	if int(sha256(b.prev_blockheaderhash+b.nonce),16) >= 2**b.difficulty:
+		print '0'
+		return False
 	
-	if sha256(str(b.timestamp)+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+	if sha256(str(b.timestamp)+str(b.difficulty)+b.nonce+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
 		print '1'
 		return False
 

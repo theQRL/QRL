@@ -1,5 +1,7 @@
 # todo
 
+# interrupt sigint with twisted to allow ctrl-c to kill server..
+
 # 1. move the mining function to the factory out of the protocol...
 # 2. change the initial handshake to obtain information from each connected peer and deploy a function after a time period which constructs
 # an array related to each connected node - block number, last 5 headerhashes etc. This will be used to identify orphan blocks and choose the chain which produces the
@@ -13,9 +15,10 @@ __author__ = 'pete'
 import os, sys, time, struct, random
 import chain
 import wallet
+import pow
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
-cmd_list = ['balance', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'send']
+cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight']
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -40,15 +43,23 @@ class WalletProtocol(Protocol):
 
 			elif data[0] == 'savenewaddress':
 				self.savenewaddress()
-		
+			
+			elif data[0] == 'mining':
+				self.transport.write('>>> Mining set to: '+str(f.nomining)+'\r\n')
+				f.nomining = not f.nomining
+				print 'No-Mining flag set to: ', str(f.nomining)
+
 			elif data[0] == 'send':
 				self.send_tx(args)
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance or getnewaddress'+'\r\n')
 
 			elif data[0] == 'quit' or data == 'exit':
 				self.transport.loseConnection()
+
+			elif data[0] == 'balance':
+				self.getbalance(args)
 
 			elif data[0] == 'listaddresses':
 					addresses, num_sigs, types = wallet.inspect_wallet()
@@ -97,6 +108,22 @@ class WalletProtocol(Protocol):
 		self.factory.connections -= 1
 
 	# local wallet access functions..
+
+	def getbalance(self, addr):
+		if chain.state_uptodate() is False:
+			self.transport.write('>>> LevelDB not up to date..'+'\r\n')
+			return
+		if not addr: 
+			self.transport.write('>>> Usage: getbalance <address> (Addresses begin with Q)'+'\r\n')
+			return
+		if addr[0][0] != 'Q':
+			self.transport.write('>>> Usage: getbalance <address> (Addresses begin with Q)'+'\r\n')
+			return
+		if chain.state_address_used(addr[0]) is False:
+			self.transport.write('>>> Unused address.'+'\r\n')
+			return
+		self.transport.write('>>> balance:  '+str(chain.state_balance(addr[0]))+'\r\n')
+		return
 
 	def getnewaddress(self, args):
 		if not args or len(args) > 2:
@@ -241,7 +268,7 @@ class p2pProtocol(Protocol):
 					self.factory.sync = 1
 					if self.factory.mining == 0:
 						self.factory.newblock = 0
-						reactor.callInThread(self.mining)
+						reactor.callInThread(f.mining_fn)
 					return
 
 		elif prefix == 'BN':			#request for block (n)
@@ -380,50 +407,7 @@ class p2pProtocol(Protocol):
 
 		# here goes the code for handshake..using functions within the p2pprotocol class
 		# should ask for latest block/block number.
-
-
-# the mining thread/function is activated when the node state is sync'd with longest chain amongst connected nodes.
-# it is activated after a MB check from another node (to be coded after logic for synchronisation with longest chain amongst nodes rather than first call..)
-#
-# Reasons for mining function to finish prematurely:
-# 1) timing fn or mining fn finds a block
-# 2) new block arrives through network from a peer and is validated/statedb'd and added to the chain..
-# 
-# flags used for the mining function from the factory: sync, mining and newblock
-# mining only called when sync = 1. sync = 0 set when node:m_blockheight is > local. When a new validated block arrives newblock is set by recv_block.
-
-	def mining(self):
-		print 'mining function called..'
-		self.factory.mining = 1			#to prevent other protocol instances launching the function..
-		while True:
-				for x in range(60):
-					time.sleep(1+random.randint(0,1))
-					if self.factory.newblock == 1:
-						print 'mining finished..other new block found first..6'
-						self.factory.mining = 0
-						self.factory.newblock = 0
-						reactor.callFromThread(self.get_m_blockheight_from_connection)
-						return
-					
-					print 'x', str(x)
-					print 'sync', str(self.factory.sync), 'mining', str(self.factory.mining), 'newblock', str(self.factory.newblock)
-				print 'simulated search over..found a MINED BLOCK'
-				if not self.factory.peers:
-					print 'mining finished..without creating block - no connected peers 4'
-					return
-				if self.factory.sync == 1:
-						b = chain.m_create_block()
-						if chain.m_add_block(b) == True:
-							reactor.callFromThread(f.send_block_to_peers, b)
-							self.factory.mining = 0
-							self.factory.newblock = 0
-							reactor.callFromThread(self.get_m_blockheight_from_connection)
-							print 'mining finished..after creation of new block 2', str(time.time())
-							return
-			
-				self.factory.mining = 0
-				print 'mining finished..3..reached end of loop', str(time.time())
-				return
+		
 
 	def connectionLost(self, reason):
 		self.factory.connections -= 1
@@ -446,7 +430,7 @@ class p2pProtocol(Protocol):
 		if chain.m_add_block(block) is True:
 				self.factory.newblock = 1
 								#new valid block detected..need to inform the mining thread 
-				print 'sync', str(self.factory.sync), 'mining', str(self.factory.mining), 'newblock', str(self.factory.newblock)
+				#print 'sync', str(self.factory.sync), 'mining', str(self.factory.mining), 'newblock', str(self.factory.newblock)
 
 				if self.factory.sync == 1:						
 					for peer in self.factory.peers:
@@ -491,12 +475,60 @@ class p2pFactory(ServerFactory):
 	protocol = p2pProtocol
 
 	def __init__(self):
+		self.nomining = True			#default to mining off as the wallet functions are not that responsive at present with it enabled..
 		self.peers = []
 		self.connections = 0
 		self.buffer = ''
 		self.sync = 0
 		self.mining = 0
 		self.newblock = 0
+		self.exit = 0
+
+# mining
+
+	def mining_fn(self):
+		self.mining = 1			#to prevent other protocol instances launching the function..
+		while True:
+				if self.nomining == True:
+					print 'Mining disabled (telnet into localhost:2000 and type "mining" to switch mining to active'
+				else:
+					print 'Mining for next block..'
+				
+				for x in range(600):
+					if self.nomining == True:
+						time.sleep(1)
+						pass
+					else:
+
+						b_nonce = pow.pow_find_block()
+						if b_nonce is False:
+							pass
+						else:
+							if self.sync == 1:
+								b = chain.m_create_block(b_nonce)
+								#chain.json_print(b)
+								print chain.validate_block(b)
+								if chain.m_add_block(b) == True:
+									reactor.callFromThread(f.send_block_to_peers, b)
+									self.mining = 0
+									self.newblock = 0
+									reactor.callFromThread(self.get_m_blockheight_from_connection)
+									print 'Mining cycle finished. 2', str(time.time())
+									return
+					if self.newblock == 1:
+						print 'Mining cycle finished..3'
+						self.mining = 0
+						self.newblock = 0
+						reactor.callFromThread(self.get_m_blockheight_from_connection)
+						return
+
+					if not self.peers:
+						print 'Mining cyle finished..without creating block - no connected peers 4'
+						return
+
+
+
+# factory network functions
 
 	def f_wrap_message(self, data):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
@@ -512,6 +544,8 @@ class p2pFactory(ServerFactory):
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
 		return
+
+# connection functions
 
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
 		#print 'connection lost: ', reason, 'trying reconnect'
@@ -540,7 +574,7 @@ class WalletFactory(ServerFactory):
 
 
 if __name__ == "__main__":
-
+ 
 	start_time = time.time()
 	print 'QRL blockchain ledger v 0.00'
 
