@@ -1,14 +1,8 @@
 # todo
 
-# interrupt sigint with twisted to allow ctrl-c to kill server..
-
-# 1. move the mining function to the factory out of the protocol...
-# 2. change the initial handshake to obtain information from each connected peer and deploy a function after a time period which constructs
-# an array related to each connected node - block number, last 5 headerhashes etc. This will be used to identify orphan blocks and choose the chain which produces the
-# longest chain in the next few blocks..this will stop us forking the chain and allow the client to reset the chain to the longest valid chain rather than finding all blocks
-# from other nodes invalid and mining on its own..
+# more sophisticated block tracking to enable chain split/fork to be identified and to ensure orphan solo chains do not appear
 # try to abstract the node behaviour away from protocol to the factory whilst keeping the rules simple.
-# 3. now we have a working non blocking threaded mining function with a random time sleep in place, implement the POW algorithm - need to edit block header to add nonce...
+
 
 __author__ = 'pete'
 
