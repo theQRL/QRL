@@ -6,13 +6,13 @@
 
 __author__ = 'pete'
 
-import os, sys, time, struct, random
-import chain
-import wallet
-import pow
+import time, struct, random
+import chain, wallet
+
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 from bitcoin import sha256
+
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight']
 
 def parse(data):
@@ -77,8 +77,8 @@ class WalletProtocol(Protocol):
 		return True
 
 	def dataReceived(self, data):
-		sys.stdout.write('.')
-		sys.stdout.flush()
+		#sys.stdout.write('.')
+		#sys.stdout.flush()
 		self.factory.recn += 1
 		if self.parse_cmd(parse(data)) == False:
 			self.transport.write(">>> Command not recognised. Use 'help' for details"+'\r\n')
