@@ -12,6 +12,7 @@ import wallet
 import pow
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
+from bitcoin import sha256
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight']
 
 def parse(data):
@@ -262,7 +263,7 @@ class p2pProtocol(Protocol):
 					self.factory.sync = 1
 					if self.factory.mining == 0:
 						self.factory.newblock = 0
-						reactor.callInThread(f.mining_fn)
+						reactor.callInThread(f.mining_fn, chain.m_get_last_block().blockheader)
 					return
 
 		elif prefix == 'BN':			#request for block (n)
@@ -480,7 +481,8 @@ class p2pFactory(ServerFactory):
 
 # mining
 
-	def mining_fn(self):
+	def mining_fn(self, block_obj_header):
+		
 		self.mining = 1			#to prevent other protocol instances launching the function..
 		while True:
 				if self.nomining == True:
@@ -488,35 +490,48 @@ class p2pFactory(ServerFactory):
 				else:
 					print 'Mining for next block..'
 				
+				z = 0
+
 				for x in range(600):
 					if self.nomining == True:
 						time.sleep(1)
 						pass
 					else:
 
-						b_nonce = pow.pow_find_block()
-						if b_nonce is False:
-							pass
-						else:
-							if self.sync == 1:
-								b = chain.m_create_block(b_nonce)
-								#chain.json_print(b)
-								print chain.validate_block(b)
-								if chain.m_add_block(b) == True:
-									reactor.callFromThread(f.send_block_to_peers, b)
-									self.mining = 0
-									self.newblock = 0
-									reactor.callFromThread(self.get_m_blockheight_from_connection)
-									print 'Mining cycle finished. 2', str(time.time())
-									return
+						h_hash = block_obj_header.headerhash
+						diff = 2**block_obj_header.difficulty
+						
+						y = random.randint(0,2**255)
+						for x in range(y,y+1000000):
+							z+=1
+							if int(sha256(h_hash+str(x)),16) < diff:
+								print 'MINED block in ',str(z), 'attempts, at diff 2**', str(block_obj_header.difficulty)
+
+								if self.sync == 1:
+									b = chain.m_create_block(str(x))
+									#chain.json_print(b)
+									print chain.validate_block(b)
+									print 'time between blocks= '+str(b.blockheader.timestamp-block_obj_header.timestamp)
+									if chain.m_add_block(b) == True:	
+										reactor.callFromThread(f.send_block_to_peers, b)
+										self.mining = 0
+										self.newblock = 0
+										for peer in self.peers:
+											reactor.callFromThread(peer.get_m_blockheight_from_connection)
+										print 'Mining cycle finished. 2', str(time.time())
+										return
+
 					if self.newblock == 1:
 						print 'Mining cycle finished..3'
 						self.mining = 0
 						self.newblock = 0
-						reactor.callFromThread(self.get_m_blockheight_from_connection)
+						for peer in self.peers:
+							reactor.callFromThread(peer.get_m_blockheight_from_connection)
 						return
 
 					if not self.peers:
+						self.mining = 0
+						self.newblock = 0
 						print 'Mining cyle finished..without creating block - no connected peers 4'
 						return
 
