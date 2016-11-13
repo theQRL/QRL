@@ -92,14 +92,13 @@ class WalletProtocol(Protocol):
 			self.transport.loseConnection()
 		else:
 			if self.transport.getPeer().host == '127.0.0.1':
-				print '** new local connection', str(self.factory.connections)
-				print "connection from", self.transport.getPeer()
+				print '>>> new local connection', str(self.factory.connections), self.transport.getPeer()
 			else:
 				self.transport.loseConnection()
-				print 'Unauthorised remote login attempt.'
+				print 'Unauthorised remote login attempt..'
 
 	def connectionLost(self, reason):
-		print 'lost connection'
+		#print 'lost connection'
 		self.factory.connections -= 1
 
 	# local wallet access functions..
@@ -243,17 +242,17 @@ class p2pProtocol(Protocol):
 			self.recv_block(suffix)
 
 		elif prefix == 'LB':			#request for last block to be sent
-				print 'Sending last block', str(chain.m_blockheight()), str(len(chain.json_bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
+				print '<<<Sending last block', str(chain.m_blockheight()), str(len(chain.json_bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
 				self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_last_block())))
 				return
 
 		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
 			if not suffix:
-				print 'Sending current blockheight to node..', self.transport.getPeer().host, str(time.time())
+				print '<<<Sending current blockheight to node..', self.transport.getPeer().host, str(time.time())
 				self.transport.write(self.wrap_message('CB'+str(chain.m_blockheight())))
 			
 		elif prefix == 'CB':
-				print 'Received current latest blockheight from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
+				print '>>>Received current latest blockheight from  node@', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
 				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					self.factory.sync = 0
 					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
@@ -268,7 +267,7 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
-						print 'Sending block number', str(int(suffix)), str(len(chain.json_bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host
+						print '<<<Sending block number', str(int(suffix)), str(len(chain.json_bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host
 						self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_block(int(suffix)))))
 						return
 				else:
@@ -312,17 +311,17 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_latest_block_from_connection(self):
-		print 'Requested last block from', self.transport.getPeer().host
+		print '<<<Requested last block from', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('LB'))
 		return
 
 	def get_m_blockheight_from_connection(self):
-		print 'Requesting blockheight from', self.transport.getPeer().host
+		print '<<<Requesting blockheight from', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('MB'))
 		return
 
 	def get_peers(self):
-		print 'Sending connected peers to', self.transport.getPeer().host
+		print '<<<Sending connected peers to', self.transport.getPeer().host
 		peers_list = []
 		for peer in self.factory.peers:
 			peers_list.append(peer.transport.getPeer().host)
@@ -330,7 +329,7 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_block_n(self, n):
-		print 'Requested block: ', str(n), 'from ', self.transport.getPeer().host
+		print '<<<Requested block: ', str(n), 'from ', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('BN'+str(n)))
 		return
 
@@ -416,11 +415,16 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
+		for b in chain.m_blockchain[-5:-1]:
+			if block.blockheader.headerhash == b.blockheader.headerhash:
+				print '>>>BLOCK - already received - ', str(block.blockheader.blocknumber), block.blockheader.headerhash
+				return
+
 		if block.blockheader.blocknumber != chain.m_blockheight()+1:
-			print 'BLOCK - out of order - ', str(block.blockheader.blocknumber), block.blockheader.headerhash
+			print '>>>BLOCK - out of order - need', str(chain.m_blockheight()+1), ' received ', str(block.blockheader.blocknumber), block.blockheader.headerhash, ' from ', self.transport.getPeer().host
 			return
 
-		print 'BLOCK - ', block.blockheader.headerhash, str(block.blockheader.blocknumber), block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
+		print '>>>BLOCK - ', block.blockheader.headerhash, str(block.blockheader.blocknumber), block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
 		
 		if chain.m_add_block(block) is True:
 				self.factory.newblock = 1
@@ -453,14 +457,14 @@ class p2pProtocol(Protocol):
 				chain.add_tx_to_pool(tx)
 
 		if chain.state_validate_tx(tx) == True:
-				print 'TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'
+				print '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'
 				
 				for peer in self.factory.peers:
 					if peer != self:
 						peer.transport.write(self.wrap_message(chain.json_bytestream_tx(tx)))
 		else:
 				chain.remove_tx_from_pool(tx)
-				print 'Tx',tx.txhash, ' invalid - closing connection to ', self.transport.getPeer().host
+				print '>>>TX',tx.txhash, ' invalid - closing connection to ', self.transport.getPeer().host
 				self.transport.loseConnection()
 		return
 
@@ -505,7 +509,7 @@ class p2pFactory(ServerFactory):
 						for x in range(y,y+1000000):
 							z+=1
 							if int(sha256(h_hash+str(x)),16) < diff:
-								print 'MINED block in ',str(z), 'attempts, at diff 2**', str(block_obj_header.difficulty)
+								print '>>>MINED block in ',str(z), 'attempts, at diff 2**', str(block_obj_header.difficulty)
 
 								if self.sync == 1:
 									b = chain.m_create_block(str(x))
@@ -543,13 +547,13 @@ class p2pFactory(ServerFactory):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
 
 	def send_tx_to_peers(self, tx):
-		print 'Transmitting tx: ', tx, tx.txhash
+		print '<<<Transmitting TX: ', tx, tx.txhash
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_tx(tx)))
 		return
 
 	def send_block_to_peers(self, block):
-		print 'Transmitting block: ', block.blockheader.headerhash
+		print '<<<Transmitting block: ', block.blockheader.headerhash
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
 		return
@@ -599,15 +603,15 @@ if __name__ == "__main__":
 	chain.state_load_peers()
 	print chain.state_get_peers()
 
-	stuff = 'QRL node connection established.'+'\r\n'
-	print 'Listening..'
+	stuff = 'QRL node connection established. Try starting with "help"'+'\r\n'
+	print '>>>Listening..'
 	
 	f = p2pFactory()
 
 	reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	reactor.listenTCP(9000, f)
 
-	print 'Connecting to nodes in peer.dat'
+	print '<<<Connecting to nodes in peer.dat'
 
 	for peer in chain.state_get_peers():			
 		reactor.connectTCP(peer, 9000, f)
