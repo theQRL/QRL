@@ -178,8 +178,25 @@ def json_bytestream_bk(block_obj):										# "" block object
 def json_print(obj):													#prettify output from JSON for export purposes
 	print json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
 
+def json_print_telnet(obj):
+	return json.dumps(json.loads(jsonpickle.encode(obj)), indent=4)
 
 # tx, address chain search functions
+
+def search_telnet(txcontains, long=1):
+	tx_list = []
+	for tx in transaction_pool:
+		if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
+			#print txcontains, 'found in transaction pool..'
+			if long==0: tx_list.append('<tx:txhash> '+tx.txhash+' <transaction_pool>')
+			if long==1: tx_list.append(json_print_telnet(tx))
+	for block in m_blockchain:
+		for tx in block.transactions:
+			if tx.txhash== txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
+				#print txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
+				if long==0: tx_list.append('<tx:txhash> '+tx.txhash+' <block> '+str(block.blockheader.blocknumber))
+				if long==1: tx_list.append(json_print_telnet(tx))
+	return tx_list
 
 def search_txhash(txhash):				#txhash is unique due to nonce.
 	for tx in transaction_pool:

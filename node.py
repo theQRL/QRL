@@ -13,7 +13,7 @@ from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 from bitcoin import sha256
 
-cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight']
+cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -36,6 +36,40 @@ class WalletProtocol(Protocol):
 			if data[0] == 'getnewaddress':
 				self.getnewaddress(args)
 
+			elif data[0] == 'search':
+				if not args:
+					self.transport.write('Usage: search <txhash or address>'+'\r\n')
+					return
+				for result in chain.search_telnet(args[0], long=0):
+					self.transport.write(result+'\r\n')
+				return
+
+			elif data[0] == 'json_search':
+				if not args:
+					self.transport.write('Usage: search <txhash or address>'+'\r\n')
+					return
+				for result in chain.search_telnet(args[0], long=1):
+					self.transport.write(result+'\r\n')
+				return
+
+			elif data[0] == 'json_block':
+				
+				if not args:
+					#chain.json_print(chain.m_get_last_block())
+					self.transport.write(chain.json_print_telnet(chain.m_get_last_block())+'\r\n')
+					return
+				try: int(args[0])
+				except:	
+						self.transport.write('Try "json_block <block number>" '+'\r\n') 
+						return
+
+				if int(args[0]) > chain.m_blockheight():
+					self.transport.write('Block > Blockheight'+'\r\n')
+					return
+
+				self.transport.write(chain.json_print_telnet(chain.m_get_block(int(args[0])))+'\r\n')
+				return
+
 			elif data[0] == 'savenewaddress':
 				self.savenewaddress()
 			
@@ -48,9 +82,9 @@ class WalletProtocol(Protocol):
 				self.send_tx(args)
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, json_block, json_search, mining, getinfo, blockheight or getnewaddress'+'\r\n')
 
-			elif data[0] == 'quit' or data == 'exit':
+			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
 
 			elif data[0] == 'balance':
@@ -209,7 +243,7 @@ class WalletProtocol(Protocol):
 		if tx is False:
 				return
 				
-		print 'new local tx: ', tx
+		#print 'new local tx: ', tx
 		f.send_tx_to_peers(tx)
 		self.transport.write('>>> '+str(tx.txhash))
 		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
@@ -416,6 +450,8 @@ class p2pProtocol(Protocol):
 				return
 
 		for b in chain.m_blockchain[-5:-1]:
+			print b.blockheader.headerhash
+			print block.blockheader.headerhash
 			if block.blockheader.headerhash == b.blockheader.headerhash:
 				print '>>>BLOCK - already received - ', str(block.blockheader.blocknumber), block.blockheader.headerhash
 				return
@@ -547,7 +583,7 @@ class p2pFactory(ServerFactory):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
 
 	def send_tx_to_peers(self, tx):
-		print '<<<Transmitting TX: ', tx, tx.txhash
+		print '<<<Transmitting TX: ', tx.txhash
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_tx(tx)))
 		return
@@ -560,9 +596,13 @@ class p2pFactory(ServerFactory):
 
 # connection functions
 
+	def connect_peers(self):
+		for peer in chain.state_get_peers():
+			reactor.connectTCP(peer, 9000, f)
+
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
 		#print 'connection lost: ', reason, 'trying reconnect'
-		connector.connect()
+		#connector.connect()
 		return
 
 	def clientConnectionFailed(self, connector, reason):
@@ -613,7 +653,6 @@ if __name__ == "__main__":
 
 	print '<<<Connecting to nodes in peer.dat'
 
-	for peer in chain.state_get_peers():			
-		reactor.connectTCP(peer, 9000, f)
+	f.connect_peers()
 	reactor.run()
 	    
