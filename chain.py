@@ -2,6 +2,12 @@
 # todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without.
 # make security assessment over keeping tx and blocks in class object form..may need to keep them as JSON actually..
 
+
+# add a tx option for a name for txfrom...eg. 'pete' which is stored in state_db and in future any send to address pete translates to the Q address..human readable proxy
+# addresses..
+# need to alter state functions to check for .hrs and create a new state_db entry for that..
+
+
 __author__ = 'pete'
 
 from bitcoin import sha256
@@ -25,7 +31,7 @@ db = db.DB()
 #classes
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be pickled and sent into the p2p network..
-	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0):
+	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0, hrs=''):
 		self.txfrom = txfrom
 		self.nonce = nonce 
 		self.txto = txto
@@ -37,6 +43,8 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))			
 		self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
 		self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
+		
+		self.hrs = hrs
 		#self.merkle_root = data[0].merkle_root #temporarily use ''.join although this is fixed..old addresses in wallet..
 		self.merkle_root = ''.join(data[0].merkle_root)
 		self.merkle_path = data[ots_key].merkle_path
@@ -109,8 +117,8 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 		self.txto = json_obj['txto'].encode('latin1')
 		signature = json_obj['signature']
 		self.signature = []
-		for sig in signature:								#for sig in self.signature:
-			self.signature.append(sig.encode('latin1'))		#sig.encode('latin1')
+		for sig in signature:								
+			self.signature.append(sig.encode('latin1'))		#encode('latin1') converts unicode back..
 		self.merkle_path = []
 		for pair in json_obj['merkle_path']:
 			if isinstance(pair, dict):
@@ -119,6 +127,8 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 			elif isinstance(pair, list):
 				self.merkle_path.append([''.join(pair).encode('latin1')])
 		self.txfrom = json_obj['txfrom'].encode('latin1')
+		#if json_obj['hrs']:
+		self.hrs = json_obj['hrs'].encode('latin1')
 
 
 class ReCreateBlock():						#recreate block class from JSON variables for processing
@@ -392,6 +402,10 @@ def state_pubhash(addr):
 	except: return []
 	#except:	return False
 
+def state_hrs(hrs):
+	try: return db.get('hrs'+hrs)
+	except: return False
+
 
 def state_validate_tx(tx):		#checks new tx validity based upon node statedb and node mempool. different to state_add_block validation which is an ordered update of state based upon statedb alone.
 
@@ -407,6 +421,13 @@ def state_validate_tx(tx):		#checks new tx validity based upon node statedb and 
 			print 'State validation failed for', tx.txhash,  'because: Insufficient'
 			return False
 
+	if state_hrs(tx.hrs) is not False:				#if false - not used before..so pass..
+		if state_hrs(tx.hrs) != tx.txfrom:			#if another address found in state_db than txfrom then invalid..
+			print 'Human readable string already seen in ledger associated with another address, tx therefore invalid: ', tx.txhash
+			return False
+		if tx.hrs[0] == 'Q':
+			print 'Human readable string invalid for ', tx.txhash
+			return False
 	# nonce and public key can be in the mempool (transaction_pool) and so these must be checked also..
 	# if the tx is new to node then simple check would work. but if we are checking a tx in the transaction_pool, then order has to be correct..
 
@@ -469,17 +490,22 @@ def state_validate_tx_pool():
 
 def state_add_block(block):
 
-	#print block, 'with: ', str(len(block.transactions)), ' tx'								#ensure state at end of chain in memory
 	assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
 
-	st1 = []	#snapshot of state in case we need to revert to it..
+	#snapshot of state in case we need to revert to it..
+
+	st1 = []	
 	st2 = []
+	st3 = []
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
 		st2.append(state_get_address(tx.txto))
+		st3.append(state_hrs(tx.hrs))
 
 	y = 0
 	
+	# cycle through every tx in the new block to check state
+
 	for tx in block.transactions:
 
 		pub = tx.pub
@@ -491,6 +517,8 @@ def state_add_block(block):
 
 		s1 = state_get_address(tx.txfrom)
 		
+		# basic tx state checks..
+
 		if s1[1] - tx.amount < 0:
 			print tx, tx.txfrom, 'exceeds balance, invalid tx'
 			#return False
@@ -506,6 +534,18 @@ def state_add_block(block):
 			print 'pubkey reuse detected: invalid tx', tx.txhash
 			break
 
+		#hrs checks for tx validity, adds tx.hrs string to statedb if valid..
+		if len(tx.hrs) != 0:
+			if state_hrs(tx.hrs) is not False:
+				print 'Invalid hrs string (already associated with another Q-address'
+				break
+			if tx.hrs[0] == 'Q':
+				print 'Invalid hrs string (begins with Q)', tx.txhash
+				break
+			db.put('hrs'+tx.hrs, tx.txfrom)
+
+		# commit new changes to statedb for txfrom, txto
+
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
 		s1[2].append(pubhash)
@@ -513,7 +553,6 @@ def state_add_block(block):
 
 		s2 = state_get_address(tx.txto)
 		s2[1] = s2[1]+tx.amount
-		#s2[2].append(pubhash)				#no need to record public key for the sent tx..
 		db.put(tx.txto, s2)
 
 		y+=1
@@ -525,7 +564,10 @@ def state_add_block(block):
 		for x in range(len(block.transactions)):
 			db.put(block.transactions[x].txfrom, st1[x])
 			db.put(block.transactions[x].txto, st2[x])
-
+			if st3[x] == False:									
+				pass
+			else:
+				db.put('hrs'+block.transactions[x].hrs, st3[x])			#only revert write hrs into state_db if there is an address entry previously..
 		return False
 
 	db.put('blockheight', m_blockheight())
@@ -569,6 +611,15 @@ def state_read_chain():
 				print block.blockheader.headerhash, 'failed state checks'
 				return False
 
+			if len(tx.hrs) != 0:
+				if state_hrs(tx.hrs) is not False:
+					print 'hrs invalid re-use attempt in tx ', tx.txhash
+					return False
+				if tx.hrs[0] == 'Q':
+					print 'hrs invalid, starts with "Q"', tx.txhash
+					return False
+				db.put('hrs'+tx.hrs, tx.txfrom)
+
 			s1[0]+=1
 			s1[1] = s1[1]-tx.amount
 			s1[2].append(pubhash)
@@ -576,7 +627,6 @@ def state_read_chain():
 
 			s2 = state_get_address(tx.txto)
 			s2[1] = s2[1]+tx.amount
-			#s2[2].append(pubhash)
 			db.put(tx.txto, s2)			
 
 		print block, str(len(block.transactions)), 'tx ', ' passed'
@@ -585,7 +635,7 @@ def state_read_chain():
 
 #tx functions and classes
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0):	
+def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):	
 
 	#few state checks to ensure tx is valid, including tx already in the transaction_pool
 	#need to avoid errors in nonce and public key re-use which will invalidate the tx at other nodes
@@ -604,6 +654,17 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 			msg = 'insufficient funds for valid tx'
 			print msg
 			return (False, msg)
+	
+	if len(hrs) != 0:
+		if hrs[0] == 'Q':
+			msg = 'cannot start a human readable string with "Q"'
+			print msg
+			return (False, msg)
+		if state_hrs(hrs) is not False:
+			msg = 'human readable string already associated with another address'
+			print msg
+			return (False, msg)
+	
 
 	# signatures remaining is important to check - once all the public keys are used then any funds left will be frozen and unspendable..
 
@@ -646,7 +707,7 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 			print msg
 			return (False, msg)
 
-	return (CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, nonce=nonce, data=data, fee=fee, ots_key=ots_key), msg)
+	return (CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, nonce=nonce, data=data, fee=fee, ots_key=ots_key, hrs=hrs), msg)
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
@@ -754,17 +815,31 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 def wlt():
 	return merkle.numlist(wallet.list_addresses())
 
-def create_my_tx(txfrom, txto, n):
+def create_my_tx(txfrom, txto, n, hrs=''):
 	my = wallet.f_read_wallet()
 	if isinstance(txto, int):
-		(tx, msg) = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+		(tx, msg) = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], hrs=hrs)
 	elif isinstance(txto, str):
-		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1])
+		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], hrs=hrs)
 	if tx is not False:
 		transaction_pool.append(tx)
 		return (tx, msg)
 	else:
 		return (False, msg)
+
+def create_hrs_tx(txfrom, hrs):
+
+	my = wallet.f_read_wallet()
+	if isinstance(txfrom, int):
+		(tx, msg) = createsimpletransaction(txto=my[txfrom][0],txfrom=my[txfrom][0],amount=0, data=my[txfrom][1], hrs=hrs)
+	elif isinstance(txfrom, str):
+		return (False, 'failed: txfrom is not an int')
+	if tx is not False:
+		transaction_pool.append(tx)
+		return (tx, msg)
+	else:
+		return (False, msg)
+
 
 
 def test_tx(n):

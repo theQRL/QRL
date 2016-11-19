@@ -1,8 +1,17 @@
-# todo
+# todo prior to public testnet release
 
+# 1)
 # more sophisticated block tracking to enable chain split/fork to be identified and to ensure orphan solo chains do not appear
 # try to abstract the node behaviour away from protocol to the factory whilst keeping the rules simple.
 
+# 2)
+# implement human readable string substitution for addresses in state-db and transaction validation and state-validation code..
+
+# 3)
+# correct currency unit handling..need to use big int with checks rather than a float..
+
+# 4)
+# sort out the POW algo occasional errors..
 
 __author__ = 'pete'
 
@@ -13,7 +22,7 @@ from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 from bitcoin import sha256
 
-cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -26,7 +35,7 @@ class WalletProtocol(Protocol):
 		pass
 
 	def parse_cmd(self, data):
-
+	
 		data = data.split()
 		args = data[1:]
 
@@ -35,10 +44,48 @@ class WalletProtocol(Protocol):
 
 			if data[0] == 'getnewaddress':
 				self.getnewaddress(args)
+				return
+
+			elif data[0] == 'hrs':
+				if not args:
+					self.transport.write('>>> Human Readable String allows you to receive transactions to a user chosen text string instead of the Q-address you hold the private key for.'+'\r\n')
+					self.transport.write('>>> Usage: hrs <valid wallet address number>'+'\r\n')
+					self.transport.write('>>> e.g. "hrs 0 david@gmail.com" allows users from other QRL nodes to send transactions directly to david@gmail.com instead of the Q-address at wallet position 0'+'\r\n')
+					return
+				try: int(args[0])
+				except: 
+						self.transport.write('>>> Usage: hrs <wallet address number>'+'\r\n')
+						return 
+				if int(args[0]) > len(wallet.list_addresses())-1:
+					self.transport.write('>>> Wallet number invalid. Usage: hrs <wallet address number to substitute for a human readable string>'+'\r\n')
+					return
+
+				if not args[1]:
+					self.transport.write('>>> no hrs string supplied..'+'\r\n')
+					return
+
+				(tx, msg) = chain.create_hrs_tx(int(args[0]), args[1])
+				if tx is not False:
+					f.send_tx_to_peers(tx)
+					self.transport.write('<<< HRS TX from '+args[0]+' for string: '+args[1]+' sent into network..'+'\r\n')
+				else:
+					self.transport.write('>>> HRS TX Failed: '+msg+'\r\n')
+				return
+
+			elif data[0] == 'hrs_check':
+				if not args:
+					self.transport.write('>>> Usage: hrs <human readable string>'+'\r\n')
+					self.transport.write('>>> Returns the Q-address associated with the string'+'\r\n')
+				hrs = chain.state_hrs(args[0])
+				if hrs is not False:
+					self.transport.write(hrs+'\r\n')
+				else:
+					self.transport.write('>>> Human readable string not found in blockchain.'+'\r\n')
+				return
 
 			elif data[0] == 'search':
 				if not args:
-					self.transport.write('Usage: search <txhash or address>'+'\r\n')
+					self.transport.write('>>> Usage: search <txhash or Q-address>'+'\r\n')
 					return
 				for result in chain.search_telnet(args[0], long=0):
 					self.transport.write(result+'\r\n')
@@ -46,7 +93,7 @@ class WalletProtocol(Protocol):
 
 			elif data[0] == 'json_search':
 				if not args:
-					self.transport.write('Usage: search <txhash or address>'+'\r\n')
+					self.transport.write('>>>Usage: search <txhash or Q-address>'+'\r\n')
 					return
 				for result in chain.search_telnet(args[0], long=1):
 					self.transport.write(result+'\r\n')
@@ -60,11 +107,11 @@ class WalletProtocol(Protocol):
 					return
 				try: int(args[0])
 				except:	
-						self.transport.write('Try "json_block <block number>" '+'\r\n') 
+						self.transport.write('>>> Try "json_block <block number>" '+'\r\n') 
 						return
 
 				if int(args[0]) > chain.m_blockheight():
-					self.transport.write('Block > Blockheight'+'\r\n')
+					self.transport.write('>>> Block > Blockheight'+'\r\n')
 					return
 
 				self.transport.write(chain.json_print_telnet(chain.m_get_block(int(args[0])))+'\r\n')
@@ -82,7 +129,7 @@ class WalletProtocol(Protocol):
 				self.send_tx(args)
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, json_block, json_search, mining, getinfo, blockheight or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, json_block, json_search, hrs, hrs_check, mining, getinfo, blockheight or getnewaddress'+'\r\n')
 
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
@@ -449,9 +496,7 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-		for b in chain.m_blockchain[-5:-1]:
-			print b.blockheader.headerhash
-			print block.blockheader.headerhash
+		for b in chain.m_blockchain[-5:-1]:	#non functional
 			if block.blockheader.headerhash == b.blockheader.headerhash:
 				print '>>>BLOCK - already received - ', str(block.blockheader.blocknumber), block.blockheader.headerhash
 				return
@@ -624,6 +669,7 @@ class WalletFactory(ServerFactory):
 		self.recn = 0
 		self.maxconnections = 1
 		self.connections = 0
+		self.last_cmd = 'help'
 
 
 if __name__ == "__main__":
