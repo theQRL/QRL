@@ -1,12 +1,5 @@
 #QRL main blockchain, state, transaction functions.
-# todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without.
-# make security assessment over keeping tx and blocks in class object form..may need to keep them as JSON actually..
-
-
-# add a tx option for a name for txfrom...eg. 'pete' which is stored in state_db and in future any send to address pete translates to the Q address..human readable proxy
-# addresses..
-# need to alter state functions to check for .hrs and create a new state_db entry for that..
-
+# todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without..
 
 __author__ = 'pete'
 

@@ -3,14 +3,9 @@
 # 1)
 # more sophisticated block tracking to enable chain split/fork to be identified and to ensure orphan solo chains do not appear
 # try to abstract the node behaviour away from protocol to the factory whilst keeping the rules simple.
-
 # 2)
-# implement human readable string substitution for addresses in state-db and transaction validation and state-validation code..
-
-# 3)
 # correct currency unit handling..need to use big int with checks rather than a float..
-
-# 4)
+# 3)
 # sort out the POW algo occasional errors..
 
 __author__ = 'pete'
