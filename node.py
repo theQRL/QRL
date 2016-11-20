@@ -34,8 +34,8 @@ class WalletProtocol(Protocol):
 		data = data.split()
 		args = data[1:]
 
-
-		if data[0] in cmd_list:			
+		if len(data) != 0:
+		 if data[0] in cmd_list:			
 
 			if data[0] == 'getnewaddress':
 				self.getnewaddress(args)
@@ -153,8 +153,6 @@ class WalletProtocol(Protocol):
 		return True
 
 	def dataReceived(self, data):
-		#sys.stdout.write('.')
-		#sys.stdout.flush()
 		self.factory.recn += 1
 		if self.parse_cmd(parse(data)) == False:
 			self.transport.write(">>> Command not recognised. Use 'help' for details"+'\r\n')
@@ -174,7 +172,6 @@ class WalletProtocol(Protocol):
 				print 'Unauthorised remote login attempt..'
 
 	def connectionLost(self, reason):
-		#print 'lost connection'
 		self.factory.connections -= 1
 
 	# local wallet access functions..
@@ -224,6 +221,7 @@ class WalletProtocol(Protocol):
 			self.transport.write('>>> Try a lower number of signatures or you may be waiting a very long time...'+'\r\n')
 			return
 
+		self.transport.write('>>> Creating address..please wait'+'\r\n')
 		addr = wallet.getnewaddress(int(args[0]), args[1])
 
 		self.transport.write('>>> Keypair type: '+''.join(addr[1][0].type+'\r\n'))
@@ -257,15 +255,17 @@ class WalletProtocol(Protocol):
 					self.transport.write('>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
 					return
 
-		if args[1][0] == 'Q':
+		if len(args[1]) > 1 and args[1][0] != 'Q' and chain.state_hrs(args[1]) != False:
+			pass
+		elif args[1][0] == 'Q':
 			pass
 		else:
 			try: int(args[1])
 			except:
-					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
+					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number from your wallet.'+'\r\n')
 					return
 			if int(args[1]) > len(wallet.list_addresses())-1:
-					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number your wallet.'+'\r\n')
+					self.transport.write('>>> Invalid receiving address - addresses must start with Q. Try a number from your wallet.'+'\r\n')
 					return	
 			args[1] = int(args[1])
 		

@@ -492,7 +492,10 @@ def state_add_block(block):
 	st3 = []
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
-		st2.append(state_get_address(tx.txto))
+		if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#if hrs then get balance from actual txto..
+			st2.append(state_get_address(state_hrs(tx.txto)))
+		else:
+			st2.append(state_get_address(tx.txto))
 		st3.append(state_hrs(tx.hrs))
 
 	y = 0
@@ -537,16 +540,21 @@ def state_add_block(block):
 				break
 			db.put('hrs'+tx.hrs, tx.txfrom)
 
-		# commit new changes to statedb for txfrom, txto
+		# commit new changes to statedb for txfrom, txto (which could be a hrs->actual txto)
 
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
 		s1[2].append(pubhash)
 		db.put(tx.txfrom, s1)
 
-		s2 = state_get_address(tx.txto)
+		if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#update the actual balance of txto not hrs
+			to = state_hrs(tx.txto)
+		else:
+			to = tx.txto
+	
+		s2 = state_get_address(to)
 		s2[1] = s2[1]+tx.amount
-		db.put(tx.txto, s2)
+		db.put(to, s2)
 
 		y+=1
 
@@ -618,9 +626,14 @@ def state_read_chain():
 			s1[2].append(pubhash)
 			db.put(tx.txfrom, s1)							#must be ordered in case tx.txfrom = tx.txto
 
-			s2 = state_get_address(tx.txto)
+
+			if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:		#if hrs then need to update state of actual txto..
+				to = state_hrs(tx.txto)
+			else:
+				to = tx.txto
+			s2 = state_get_address(to)
 			s2[1] = s2[1]+tx.amount
-			db.put(tx.txto, s2)			
+			db.put(to, s2)			
 
 		print block, str(len(block.transactions)), 'tx ', ' passed'
 	db.put('blockheight', m_blockheight())
@@ -740,10 +753,14 @@ def validate_tx_pool():									#invalid transactions are auto removed from pool
 
 def validate_tx(tx, new=0):
 
+
 		#cryptographic checks
 
 	if not tx:
 		raise Exception('No transaction to validate.')
+
+	if tx.txhash != sha256(''.join(tx.txfrom+str(tx.nonce))+tx.txto+str(tx.amount)+str(tx.fee)):
+		return False
 
 	if tx.type == 'WOTS':
 		if merkle.verify_wkey(tx.signature, tx.txhash, tx.pub) is False:
