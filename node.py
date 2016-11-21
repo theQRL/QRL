@@ -251,9 +251,10 @@ class WalletProtocol(Protocol):
 		except: 
 				self.transport.write('>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
 				return
-				if int(args[0]) > len(wallet.list_addresses())-1:
-					self.transport.write('>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
-					return
+		
+		if int(args[0]) > len(wallet.list_addresses())-1:
+				self.transport.write('>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.'+'\r\n')
+				return
 
 		if len(args[1]) > 1 and args[1][0] != 'Q' and chain.state_hrs(args[1]) != False:
 			pass

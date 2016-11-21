@@ -188,14 +188,29 @@ def json_print_telnet(obj):
 
 def search_telnet(txcontains, long=1):
 	tx_list = []
+	hrs_list = []
+
+	#because we allow hrs substitution in txto for transactions, we need to identify where this occurs for searching..
+
+	if txcontains[0] == 'Q':
+		for block in m_blockchain:
+			for tx in block.transactions:
+				if tx.txfrom == txcontains:
+					if len(tx.hrs) > 0:
+						if state_hrs(tx.hrs) == txcontains:
+							hrs_list.append(tx.hrs)
+
+
+
 	for tx in transaction_pool:
-		if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
+		if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
 			#print txcontains, 'found in transaction pool..'
 			if long==0: tx_list.append('<tx:txhash> '+tx.txhash+' <transaction_pool>')
 			if long==1: tx_list.append(json_print_telnet(tx))
+
 	for block in m_blockchain:
 		for tx in block.transactions:
-			if tx.txhash== txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
+			if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
 				#print txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
 				if long==0: tx_list.append('<tx:txhash> '+tx.txhash+' <block> '+str(block.blockheader.blocknumber))
 				if long==1: tx_list.append(json_print_telnet(tx))

@@ -66,9 +66,14 @@ def list_addresses():
 		for t in chain.transaction_pool:
 			if t.txfrom == address[0]:
 				y+=1
+				x-=t.amount
+
+			if t.txto == address[0]:
 				x+=t.amount
 
-		list_addr.append([address[0], 'type:', address[1][0].type, 'balance: '+str(chain.state_balance(address[0]))+'('+str(chain.state_balance(address)-x)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1][0].signatures-chain.state_nonce(address[0]))+' ('+str(address[1][0].signatures-chain.state_nonce(address[0])-y)+'/'+str(address[1][0].signatures)+')' ])
+		#add state check for 
+
+		list_addr.append([address[0], 'type:', address[1][0].type, 'balance: '+str(chain.state_balance(address[0]))+'('+str(chain.state_balance(address[0])+x)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1][0].signatures-chain.state_nonce(address[0]))+' ('+str(address[1][0].signatures-chain.state_nonce(address[0])-y)+'/'+str(address[1][0].signatures)+')' ])
 	return list_addr
 
 def getnewaddress(signatures=64, type='WOTS'):						#new address format is a list of two items [address, data structure from random_mss call]
