@@ -41,6 +41,12 @@ def chain_fn(x,r,i,k):
             x = fn_k(hex(int(x,16)^int(r[y],16)),k)
     return x
 
+def chain_fn2(x,r,i,k):
+        for y in range(i,15):
+            x = fn_k(hex(int(x,16)^int(r[y],16)),k)
+        return x
+
+
 def random_wpkey(w=16):
 
     # first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
@@ -74,7 +80,7 @@ def random_wpkey(w=16):
     return priv, pub
 
 
-def sign_wpkey(priv, pub, message, w=16):            
+def sign_wpkey(priv, message, pub, w=16):            
 
     m = 256
     if w==16:
@@ -96,11 +102,7 @@ def sign_wpkey(priv, pub, message, w=16):
         s.append(y)
         checksum += w-1-y
 
-    print 'checksum', str(checksum)
-
     c = (hex(checksum))[2:]
-
-    print 'hex checksum', str(c)
 
     if len(c) < 3:
         c = '0'+c
@@ -137,11 +139,7 @@ def verify_wpkey(signature, message, pub, w=16):
         s.append(y)
         checksum += w-1-y
 
-    print 'checksum', str(checksum)
-
     c = (hex(checksum))[2:]
-
-    print 'hex checksum', str(c)
 
     if len(c) < 3:
         c = '0'+c
@@ -150,9 +148,15 @@ def verify_wpkey(signature, message, pub, w=16):
         y = int(c[x],16)
         s.append(y)
 
-    
+    pub2 = []
 
-    return True
+    for x in range(int(l)):         #merkle.chain_fn(priv[0],pub[0][0],15,pub[0][1])
+        pub2.append(chain_fn2(signature[x],pub[0][0],s[x],pub[0][1]))
+
+    if pub2 == pub[1:]:
+        return True
+
+    return False
 
 # winternitz ots
 
