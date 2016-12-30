@@ -4,10 +4,10 @@
 
 # creates winternitz OTS key pairs, signs and verifies a winternitz one time signature. 
 # creates lamport-diffie OTS key pairs, signs and verifies a lamport one time signature.
+# creates winternitz OTS+ key pairs, signs and verifies the OTS.
 #
-# todo first: WOTS+, alter merkle trees to use an XOR bitmask (do not require underlying hash function to be collision resistant)
 # 
-# todo: full implementation of Winternitz+, IETF Hash-Based Signatures draft-mcgrew-hash-sigs-02 LDWM scheme,
+# todo: IETF Hash-Based Signatures draft-mcgrew-hash-sigs-02 LDWM scheme,
 # GMSS and XMSS.
 
 
