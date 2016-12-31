@@ -34,8 +34,8 @@ def numlist(array):
 # need to add code to create bm[] from seed.
 
 def t_bm():
+    bm = []
     for x in range(14):
-        bm = []
         bm.append(random_key())
     return bm
 
@@ -48,9 +48,8 @@ def l_tree(pub, bm, l=67):
     l_array = []
     l_array.append(pub[1:])
 
-    next_layer = []
-
     for x in range(j):
+        next_layer = []
         i = len(l_array[x])%2 + len(l_array[x])/2
         z=0
         for y in range(i):
@@ -59,6 +58,7 @@ def l_tree(pub, bm, l=67):
             else:    
                 next_layer.append(sha256(hex(int(l_array[x][z],16)^int(bm[2*x],16))[2:-1]+hex(int(l_array[x][z+1],16)^int(bm[2*x+1],16))[2:-1]))
             z+=2
+        #print str(len(next_layer))
         l_array.append(next_layer)
     return l_array[-1]
 
