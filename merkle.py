@@ -33,6 +33,12 @@ def numlist(array):
 # where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e 0,8), and are 2 bm's per layer in tree, r + l
 # need to add code to create bm[] from seed.
 
+def t_bm():
+    for x in range(14):
+        bm = []
+        bm.append(random_key())
+    return bm
+
 def l_tree(pub, bm, l=67):
     if l==67:
         j=7
@@ -51,7 +57,7 @@ def l_tree(pub, bm, l=67):
             if len(l_array[x])== z+1:
                 next_layer.append(l_array[x][z])
             else:    
-                next_layer.append(sha256(l_array[x][z]^bm[2*x]+l_array[x][z+1]^bm[2*x+1]))
+                next_layer.append(sha256(hex(int(l_array[x][z],16)^int(bm[2*x],16))[2:-1]+hex(int(l_array[x][z+1],16)^int(bm[2*x+1],16))[2:-1]))
             z+=2
         l_array.append(next_layer)
     return l_array[-1]
@@ -69,12 +75,12 @@ def chain_fn(x,r,i,k):
         return x
     else:
         for y in range(i):
-            x = fn_k(hex(int(x,16)^int(r[y],16)),k)
+            x = fn_k(hex(int(x,16)^int(r[y],16))[2:-1],k)
     return x
 
 def chain_fn2(x,r,i,k):
         for y in range(i,15):
-            x = fn_k(hex(int(x,16)^int(r[y],16)),k)
+            x = fn_k(hex(int(x,16)^int(r[y],16))[2:-1],k)
         return x
 
 
