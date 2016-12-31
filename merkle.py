@@ -20,12 +20,43 @@ import time
 import random
 
 
-
-
 def numlist(array):
     for a,b in enumerate(array):
         print a,b
     return
+
+
+# xmss python implementation
+
+
+# l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the randomly generated bm array.
+# where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e 0,8), and are 2 bm's per layer in tree, r + l
+# need to add code to create bm[] from seed.
+
+def l_tree(pub, bm, l=67):
+    if l==67:
+        j=7
+    else:
+        j = ceil(log(l,2))          
+    
+    l_array = []
+    l_array.append(pub[1:])
+
+    next_layer = []
+
+    for x in range(j):
+        i = len(l_array[x])%2 + len(l_array[x])/2
+        z=0
+        for y in range(i):
+            if len(l_array[x])== z+1:
+                next_layer.append(l_array[x][z])
+            else:    
+                next_layer.append(sha256(l_array[x][z]^bm[2*x]+l_array[x][z+1]^bm[2*x+1]))
+            z+=2
+        l_array.append(next_layer)
+    return l_array[-1]
+
+
 
 
 # winternitz ots+               #need to generate a seed from PRF to populate sk_1->sk_l1, r and k. Otherwise need the public key and private key to sign..
@@ -52,10 +83,15 @@ def random_wpkey(w=16):
     # first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
     # if using SHA-256 then m and n = 256
 
-    m = 256
-    l_1 = ceil(m/log(w,2))
-    l_2 = floor(log((l_1*(w-1)),2)/log(w,2)) + 1
-    l = int(l_1+l_2)
+    if w==16:
+        l=67
+        l_1=64
+        l_2=3
+    else:
+        m = 256
+        l_1 = ceil(m/log(w,2))
+        l_2 = floor(log((l_1*(w-1)),2)/log(w,2)) + 1
+        l = int(l_1+l_2)
 
     sk = []
     pub = []
@@ -113,7 +149,7 @@ def sign_wpkey(priv, message, pub, w=16):
 
     signature = []
 
-    for x in range(int(l)):         #merkle.chain_fn(priv[0],pub[0][0],15,pub[0][1])
+    for x in range(int(l)):        
         signature.append(chain_fn(priv[x],pub[0][0],s[x],pub[0][1]))
 
     return signature
