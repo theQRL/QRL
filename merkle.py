@@ -26,14 +26,96 @@ def numlist(array):
     return
 
 
-# xmss python implementation
+# xmss python implementation - need to integrate PRF from SEED and key to ge
 
+# An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used
+# and SK_PRF, an m-byte key for the PRF.
+
+# The XMSS public key PK consists of the root of the binary hash tree and the bitmasks from xmss and l-tree.
+
+# a class which creates an xmss tree for a chosen number of signatures. inset functions allow easy interaction.
+
+class XMSS():
+    def __init__(self, signatures):
+        self.index = 0
+        self.signatures = signatures
+        self.tree, self.x_bms, self.l_bms, self.privs, self.pubs = xmss_tree(signatures)
+        self.root = ''.join(self.tree[-1])
+        self.PK = [self.root, self.x_bms, self.l_bms]
+        self.catPK = [''.join(self.root),''.join(self.x_bms),''.join(self.l_bms)]
+        self.address = 'Q'+sha256(''.join(self.catPK))+sha256(sha256(''.join(self.catPK)))[:4]
+
+    def index(self):
+        return self.index
+
+    def set_index(self,i):
+        self.index = i
+
+    def sk(self, i=0):
+        return self.privs[i]
+
+    def pk(self, i=0):
+        return self.pubs[i]
+
+    def sign(self, msg, i=0):
+        return sign_wpkey(self.privs[i], msg, self.pubs[i])
+
+    def verify(self, signature, msg, i=0):
+        return verify_wpkey(signature, msg, self.pubs[i])
+
+    def auth_route(self, i=0):
+        return
+
+
+def xmss_tree(n):
+    #no.leaves = 2^h
+    h = ceil(log(n,2))
+
+    # generate the OTS keys, bitmasks and l_trees randomly (change to SEED+KEY PRF)
+
+    leafs = []
+    pubs = []
+    privs = []
+    x_bms = []
+
+    l_bms = l_bm()
+
+    for x in range(n):
+        priv, pub = random_wpkey()
+        leaf = l_tree(pub,l_bms)
+        leafs.append(leaf)
+        pubs.append(pub)
+        privs.append(priv)
+        
+    # create xmss tree with 2^n leaves, need 2 bitmasks per node (excluding layer 0), therefore for a perfect binary tree n_bm = 2*n_leaves-1
+    # for odd trees n_bm <= 2*n_leaves+log2(n_leaves-1)
+
+    xmss_array = []
+    xmss_array.append(leafs)
+    
+    for x in range(int(h)):
+        next_layer = []
+        i = len(xmss_array[x])%2 + len(xmss_array[x])/2
+        z=0
+        for y in range(i):
+            if len(xmss_array[x])== z+1:
+                next_layer.append(xmss_array[x][z])
+            else:
+                bm_l = random_key()
+                x_bms.append(bm_l)
+                bm_r = random_key()
+                x_bms.append(bm_r) 
+                next_layer.append(sha256(hex(int(xmss_array[x][z],16)^int(bm_l[2*x],16))[2:-1]+hex(int(xmss_array[x][z+1],16)^int(bm_r[2*x+1],16))[2:-1]))
+            z+=2 
+        xmss_array.append(next_layer)
+
+    return xmss_array, x_bms, l_bms, privs, pubs
 
 # l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the randomly generated bm array.
 # where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e 0,8), and are 2 bm's per layer in tree, r + l
 # need to add code to create bm[] from seed.
 
-def t_bm():
+def l_bm():
     bm = []
     for x in range(14):
         bm.append(random_key())
@@ -46,7 +128,7 @@ def l_tree(pub, bm, l=67):
         j = ceil(log(l,2))          
     
     l_array = []
-    l_array.append(pub[1:])
+    l_array.append(pub[1:])        #pk_0 = (r,k) - given with the OTS pk but not in the xmss tree.. 
 
     for x in range(j):
         next_layer = []
@@ -55,12 +137,12 @@ def l_tree(pub, bm, l=67):
         for y in range(i):
             if len(l_array[x])== z+1:
                 next_layer.append(l_array[x][z])
-            else:    
+            else:
+                #print str(l_array[x][z])    
                 next_layer.append(sha256(hex(int(l_array[x][z],16)^int(bm[2*x],16))[2:-1]+hex(int(l_array[x][z+1],16)^int(bm[2*x+1],16))[2:-1]))
             z+=2
-        #print str(len(next_layer))
         l_array.append(next_layer)
-    return l_array[-1]
+    return ''.join(l_array[-1])
 
 
 
@@ -84,8 +166,9 @@ def chain_fn2(x,r,i,k):
         return x
 
 
-def random_wpkey(w=16):
-
+def random_wpkey(w=16, verbose=0):
+    if verbose==1:
+        start_time = time.time()
     # first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
     # if using SHA-256 then m and n = 256
 
@@ -119,6 +202,8 @@ def random_wpkey(w=16):
     for sk_ in priv:
         pub.append(chain_fn(sk_,r,w-1,k))
 
+    if verbose==1:
+        print str(time.time() - start_time)
     return priv, pub
 
 
