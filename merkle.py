@@ -6,9 +6,9 @@
 # creates lamport-diffie OTS key pairs, signs and verifies a lamport one time signature.
 # creates winternitz OTS+ key pairs, signs and verifies the OTS.
 #
-# 
-# todo: IETF Hash-Based Signatures draft-mcgrew-hash-sigs-02 LDWM scheme,
-# GMSS and XMSS.
+# creates XMSS trees with W-OTS+ 
+ 
+
 
 
 __author__ = 'pete'
@@ -57,50 +57,26 @@ class XMSS():
     def pk(self, i=0):          #return OTS public key at position i
         return self.pubs[i]
 
+    def auth_route(self, i=0):                                  #calculate auth route for keypair i
+        return xmss_route(self.x_bms, self.tree, i)
+
+    def verify_auth(self, auth_route, i_bms, i=0):                  #verify auth route using pk's 
+        return verify_auth(auth_route, i_bms, self.pk(i), self.PK)
+
     def sign(self, msg, i=0):
         return sign_wpkey(self.privs[i], msg, self.pubs[i])     #sign with OTS private key at position i
 
     def verify(self, signature, msg, i=0):                      #verify OTS signature
         return verify_wpkey(signature, msg, self.pubs[i])   
 
-    def verify_xmss(self,signature, msg,i=0):
-        # first regenerate l_tree leaf using pk_i and l_bitmasks
-        # compare with leaf in signature
-        # then regenerate xmss root using AUTH and x_bitmasks 
-        return
+    def SIGN(self, msg, i=0):
+        s = self.sign(msg, i)
+        auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
+        return i, s, auth_route, i_bms, self.pk(i), self.PK     #SIG
 
-    def auth_route(self, i=0):      
-        auth_route = []
-        nodehash_list = [item for sublist in self.tree for item in sublist]
-        h = len(self.tree)
-        leaf = self.tree[0][i]
-        for x in range(h):
-            if len(self.tree[x])== 1:
-                if node == self.root:
-                    auth_route.append(self.root)
-                else:
-                    print 'Failed'
-            else:
-                n = nodehash_list.index(leaf)           #position in the list == bitmask..
-                if i % 2 == 0:          #left leaf, go right..
-                    node = sha256(hex(int(leaf,16)^int(self.x_bms[n],16))[2:-1]+hex(int(nodehash_list[n+1],16)^int(self.x_bms[n+1],16))[2:-1])
-                    pair = nodehash_list[n+1]
-                    auth_route.append(pair)
 
-                elif i % 2 == 1:          #right leaf go left..
-                    node = sha256(hex(int(nodehash_list[n-1],16)^int(self.x_bms[n-1],16))[2:-1]+hex(int(leaf,16)^int(self.x_bms[n],16))[2:-1])
-                    pair = nodehash_list[n-1]
-                    auth_route.append(pair)
-
-                try: self.tree[x+1].index(node)     #confirm node matches a hash in next layer up?
-                except:    
-                        print 'Failed'
-                        return
-                leaf = node
-                i = self.tree[x+1].index(leaf)
-
-        return auth_route
-
+    def VERIFY(self, msg, SIG):
+        return xmss_verify(msg, SIG)
 
 def xmss_tree(n):
     #no.leaves = 2^h
@@ -145,6 +121,81 @@ def xmss_tree(n):
         xmss_array.append(next_layer)
 
     return xmss_array, x_bms, l_bms, privs, pubs
+
+# generate the xmss tree merkle auth route for a given ots key (starts at 0)
+
+def xmss_route(x_bms, x_tree, i=0):      
+        auth_route = []
+        i_bms =[]
+        nodehash_list = [item for sublist in x_tree for item in sublist]
+        h = len(x_tree)
+        leaf = x_tree[0][i]
+        for x in range(h):
+            if len(x_tree[x])== 1:
+                if node == ''.join(x_tree[x]):
+                    auth_route.append(''.join(x_tree[x]))
+                else:
+                    print 'Failed'
+            else:
+                n = nodehash_list.index(leaf)           #position in the list == bitmask..
+                if i % 2 == 0:          #left leaf, go right..
+                    node = sha256(hex(int(leaf,16)^int(x_bms[n],16))[2:-1]+hex(int(nodehash_list[n+1],16)^int(x_bms[n+1],16))[2:-1])
+                    pair = nodehash_list[n+1]
+                    auth_route.append(pair)
+                    i_bms.append(('L',n,n+1))
+
+                elif i % 2 == 1:          #right leaf go left..
+                    node = sha256(hex(int(nodehash_list[n-1],16)^int(x_bms[n-1],16))[2:-1]+hex(int(leaf,16)^int(x_bms[n],16))[2:-1])
+                    pair = nodehash_list[n-1]
+                    auth_route.append(pair)
+                    i_bms.append((n-1, n))
+
+                try: x_tree[x+1].index(node)     #confirm node matches a hash in next layer up?
+                except:    
+                        print 'Failed'
+                        return
+                leaf = node
+                i = x_tree[x+1].index(leaf)
+
+        return auth_route, i_bms
+
+# verify an XMSS auth root path..requires the xmss authentication route, OTS public key and XMSS public key (containing merkle root, x and l bitmasks) and i
+# regenerate leaf from pub[i] and l_bm, use auth route to navigate up merkle tree to regenerate the root and compare with PK[0]
+
+def verify_auth(auth_route, i_bms, pub, PK):
+
+    root = PK[0]
+    x_bms = PK[1]
+    l_bms = PK[2]
+
+    leaf = l_tree(pub, l_bms)
+
+    h = len(auth_route)
+
+    for x in range(h-1):        #last check is simply to confirm root = pair, no need for sha xor..
+        if i_bms[x][0] == 'L':
+            node = sha256(hex(int(leaf,16)^int(x_bms[i_bms[x][1]],16))[2:-1]+hex(int(auth_route[x],16)^int(x_bms[i_bms[x][2]],16))[2:-1])
+        else: 
+            node = sha256(hex(int(auth_route[x],16)^int(x_bms[i_bms[x][0]],16))[2:-1]+hex(int(leaf,16)^int(x_bms[i_bms[x][1]],16))[2:-1])
+
+        leaf = node
+     
+    if node == root:
+        return True
+    return False
+
+# verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
+# SIG is a list compossed of: i, s, auth_route, i_bms, pk[i], PK
+
+def xmss_verify(msg, SIG):
+
+    if verify_wpkey(SIG[1], msg, SIG[4]) == False:
+            return False
+
+    if verify_auth(SIG[2], SIG[3], SIG[4], SIG[5])== False:
+            return False
+
+    return True
 
 # l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the randomly generated bm array.
 # where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e 0,8), and are 2 bm's per layer in tree, r + l
