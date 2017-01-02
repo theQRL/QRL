@@ -7,6 +7,7 @@
 # creates winternitz OTS+ key pairs, signs and verifies the OTS.
 #
 # creates XMSS trees with W-OTS+ 
+# todo: added PRF functionality to compress key sizes down massively..
  
 
 
