@@ -7,25 +7,104 @@
 # creates winternitz OTS+ key pairs, signs and verifies the OTS.
 #
 # creates XMSS trees with W-OTS+ 
-# todo: add PRF functionality to compress key sizes down massively..
- 
-
-
 
 __author__ = 'pete'
-from bitcoin import sha256
-from bitcoin import random_key
-from binascii import unhexlify
+
+import hmac
+import hashlib
+from binascii import unhexlify, hexlify
 from math import ceil, floor, log
 import time
-import random
-
+from os import urandom
 
 def numlist(array):
     for a,b in enumerate(array):
         print a,b
     return
 
+# sha256 short form
+
+def sha256(message):
+    return hashlib.sha256(message).hexdigest()
+
+# sample entropy from OS for true random numbers such as seeds and private keys
+
+def random_key():                   #returns a 256 bit hex encoded (64 bytes) random number
+    return hexlify(urandom(32))
+
+
+def SEED(n=48):                     #returns a n-byte binary random string
+    return urandom(n)
+
+# pseudo random function generator (PRF) utilising hash-based message authentication code deterministic random bit generation (HMAC_DRBG)
+# k, v = key and value..
+
+class HMAC_DRBG():
+
+    def __init__(self, entropy, personalisation_string="", security_strength=256):   #entropy should be 1.5X length of strength..384 bits / 48 bytes   
+        self.security_strength=security_strength
+        self.instantiate(entropy, personalisation_string)
+
+    def hmac(self, key, data):
+        return hmac.new(key, data, hashlib.sha256).digest()
+
+    def generate(self,num_bytes, requested_security_strength=256):
+        if (num_bytes * 8) > 7500:
+            raise RuntimeError ("generate cannot generate more than 7500 bits in a single call.")
+
+        if requested_security_strength > self.security_strength:
+            raise RuntimeError ("requested_security_strength exceeds this instance's security_strength (%d)" % self.security_strength)
+
+        if self.reseed_counter >= 10000:
+            return None
+
+        temp = b""
+
+        while len (temp) < num_bytes:
+            self.V = self.hmac(self.K, self.V)
+            temp += self.V
+
+        self.update(None)
+        self.reseed_counter += 1
+
+        return temp[:num_bytes]
+
+    def reseed(self):
+        self.update(entropy)
+        self.reseed_counter = 1
+        return
+
+    def instantiate(self, entropy, personalisation_string=""):
+        seed_material = entropy+personalisation_string
+        
+        self.K = b"\x00" * 32
+        self.V = b"\x01" * 32
+
+        self.update(seed_material)
+        self.reseed_counter = 1
+        return
+
+    def update(self, seed_material=None):
+        self.K = self.hmac (self.K, self.V + b"\x00" + (b"" if seed_material is None else seed_material))
+        self.V = self.hmac (self.K, self.V)
+
+        if seed_material is not None:
+            self.K = self.hmac (self.K, self.V + b"\x01" + seed_material)
+            self.V = self.hmac (self.K, self.V)
+
+        return    
+
+
+# PRF overlay functions
+
+def GEN(SEED,i,l=32):                #generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
+    if i < 1:
+        print 'i must be greater than 1'
+        return
+    z = HMAC_DRBG(SEED)
+    for x in range(i):
+        y = z.generate(l)
+    return hexlify(y)
 
 # xmss python implementation - need to integrate PRF from SEED and key to ge
 
@@ -74,7 +153,6 @@ class XMSS():
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         return i, s, auth_route, i_bms, self.pk(i), self.PK     #SIG
-
 
     def VERIFY(self, msg, SIG):
         return xmss_verify(msg, SIG)
