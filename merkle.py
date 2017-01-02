@@ -33,7 +33,7 @@ def numlist(array):
 
 # The XMSS public key PK consists of the root of the binary hash tree and the bitmasks from xmss and l-tree.
 
-# a class which creates an xmss tree for a chosen number of signatures. inset functions allow easy interaction.
+# a class which creates an xmss wrapper.
 
 class XMSS():
     def __init__(self, signatures):
@@ -45,26 +45,61 @@ class XMSS():
         self.catPK = [''.join(self.root),''.join(self.x_bms),''.join(self.l_bms)]
         self.address = 'Q'+sha256(''.join(self.catPK))+sha256(sha256(''.join(self.catPK)))[:4]
 
-    def index(self):
+    def index(self):            #return next OTS key to sign with
         return self.index
 
-    def set_index(self,i):
+    def set_index(self,i):      #set the index
         self.index = i
 
-    def sk(self, i=0):
+    def sk(self, i=0):          #return OTS private key at position i
         return self.privs[i]
 
-    def pk(self, i=0):
+    def pk(self, i=0):          #return OTS public key at position i
         return self.pubs[i]
 
     def sign(self, msg, i=0):
-        return sign_wpkey(self.privs[i], msg, self.pubs[i])
+        return sign_wpkey(self.privs[i], msg, self.pubs[i])     #sign with OTS private key at position i
 
-    def verify(self, signature, msg, i=0):
-        return verify_wpkey(signature, msg, self.pubs[i])
+    def verify(self, signature, msg, i=0):                      #verify OTS signature
+        return verify_wpkey(signature, msg, self.pubs[i])   
 
-    def auth_route(self, i=0):
+    def verify_xmss(self,signature, msg,i=0):
+        # first regenerate l_tree leaf using pk_i and l_bitmasks
+        # compare with leaf in signature
+        # then regenerate xmss root using AUTH and x_bitmasks 
         return
+
+    def auth_route(self, i=0):      
+        auth_route = []
+        nodehash_list = [item for sublist in self.tree for item in sublist]
+        h = len(self.tree)
+        leaf = self.tree[0][i]
+        for x in range(h):
+            if len(self.tree[x])== 1:
+                if node == self.root:
+                    auth_route.append(self.root)
+                else:
+                    print 'Failed'
+            else:
+                n = nodehash_list.index(leaf)           #position in the list == bitmask..
+                if i % 2 == 0:          #left leaf, go right..
+                    node = sha256(hex(int(leaf,16)^int(self.x_bms[n],16))[2:-1]+hex(int(nodehash_list[n+1],16)^int(self.x_bms[n+1],16))[2:-1])
+                    pair = nodehash_list[n+1]
+                    auth_route.append(pair)
+
+                elif i % 2 == 1:          #right leaf go left..
+                    node = sha256(hex(int(nodehash_list[n-1],16)^int(self.x_bms[n-1],16))[2:-1]+hex(int(leaf,16)^int(self.x_bms[n],16))[2:-1])
+                    pair = nodehash_list[n-1]
+                    auth_route.append(pair)
+
+                try: self.tree[x+1].index(node)     #confirm node matches a hash in next layer up?
+                except:    
+                        print 'Failed'
+                        return
+                leaf = node
+                i = self.tree[x+1].index(leaf)
+
+        return auth_route
 
 
 def xmss_tree(n):
@@ -105,7 +140,7 @@ def xmss_tree(n):
                 x_bms.append(bm_l)
                 bm_r = random_key()
                 x_bms.append(bm_r) 
-                next_layer.append(sha256(hex(int(xmss_array[x][z],16)^int(bm_l[2*x],16))[2:-1]+hex(int(xmss_array[x][z+1],16)^int(bm_r[2*x+1],16))[2:-1]))
+                next_layer.append(sha256(hex(int(xmss_array[x][z],16)^int(bm_l,16))[2:-1]+hex(int(xmss_array[x][z+1],16)^int(bm_r,16))[2:-1]))
             z+=2 
         xmss_array.append(next_layer)
 
