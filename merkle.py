@@ -6,7 +6,9 @@
 # creates lamport-diffie OTS key pairs, signs and verifies a lamport one time signature.
 # creates winternitz OTS+ key pairs, signs and verifies the OTS.
 #
-# creates XMSS trees with W-OTS+ 
+# creates XMSS trees with W-OTS+
+
+# TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 
 __author__ = 'pete'
 
@@ -16,6 +18,12 @@ from binascii import unhexlify, hexlify
 from math import ceil, floor, log
 import time
 from os import urandom
+
+def t(n):
+    start_time = time.time()
+    z = XMSS(n)
+    print str(time.time()-start_time)
+    return z
 
 def numlist(array):
     for a,b in enumerate(array):
@@ -27,10 +35,13 @@ def numlist(array):
 def sha256(message):
     return hashlib.sha256(message).hexdigest()
 
+def sha256b(message):
+    return hashlib.sha256(message).digest()
+
 # sample entropy from OS for true random numbers such as seeds and private keys
 
-def random_key():                   #returns a 256 bit hex encoded (64 bytes) random number
-    return hexlify(urandom(32))
+def random_key(n=32):                   #returns a 256 bit hex encoded (64 bytes) random number
+    return hexlify(urandom(n))
 
 
 def SEED(n=48):                     #returns a n-byte binary random string
@@ -99,12 +110,24 @@ class HMAC_DRBG():
 
 def GEN(SEED,i,l=32):                #generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
     if i < 1:
-        print 'i must be greater than 1'
+        print 'i must be integer greater than 0'
         return
     z = HMAC_DRBG(SEED)
     for x in range(i):
         y = z.generate(l)
     return hexlify(y)
+
+def GEN_range(SEED, start_i, end_i, l=32):      #returns start -> end iteration of hex PRF (inclusive at both ends)
+    if start_i < 1:
+        print 'starting i must be integer greater than 0'
+        return
+    z = HMAC_DRBG(SEED)
+    random_arr = []
+    for x in range(1,end_i+1):
+        y = hexlify(z.generate(l))
+        if x >= start_i:
+            random_arr.append(y)
+    return random_arr
 
 # xmss python implementation - need to integrate PRF from SEED and key to ge
 
@@ -116,14 +139,30 @@ def GEN(SEED,i,l=32):                #generates l: 256 bit PRF hexadecimal strin
 # a class which creates an xmss wrapper.
 
 class XMSS():
-    def __init__(self, signatures):
+    def __init__(self, signatures, public_SEED=None, private_SEED=None):
         self.index = 0
-        self.signatures = signatures
-        self.tree, self.x_bms, self.l_bms, self.privs, self.pubs = xmss_tree(signatures)
+        self.signatures = signatures        #number of OTS keypairs in tree to generate: n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
+
+        # use supplied 48 byte SEEDS, else create randomly from os
+        if not private_SEED:  
+            private_SEED = SEED()
+        self.private_SEED = private_SEED
+        if not public_SEED:    
+            public_SEED = SEED()
+        self.public_SEED = public_SEED
+
+        # create the tree
+        self.tree, self.x_bms, self.l_bms, self.privs, self.pubs = xmss_tree(n=signatures, private_SEED=self.private_SEED, public_SEED=self.public_SEED)
         self.root = ''.join(self.tree[-1])
+
         self.PK = [self.root, self.x_bms, self.l_bms]
         self.catPK = [''.join(self.root),''.join(self.x_bms),''.join(self.l_bms)]
         self.address = 'Q'+sha256(''.join(self.catPK))+sha256(sha256(''.join(self.catPK)))[:4]
+
+        # derived from SEED
+        self.PK_short = [self.root,hexlify(self.public_SEED)]
+        self.catPK_short = self.root+hexlify(self.public_SEED)
+        self.address_short = 'Q'+sha256(self.catPK_short)+sha256(sha256(self.catPK_short))[:4]
 
     def index(self):            #return next OTS key to sign with
         return self.index
@@ -157,7 +196,7 @@ class XMSS():
     def VERIFY(self, msg, SIG):
         return xmss_verify(msg, SIG)
 
-def xmss_tree(n):
+def xmss_tree(n, private_SEED, public_SEED):
     #no.leaves = 2^h
     h = ceil(log(n,2))
 
@@ -167,6 +206,9 @@ def xmss_tree(n):
     pubs = []
     privs = []
     x_bms = []
+
+    # for random key generation: public_SEED: 14 = l_bm,  
+
 
     l_bms = l_bm()
 
