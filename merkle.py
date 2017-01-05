@@ -6,9 +6,10 @@
 # creates lamport-diffie OTS key pairs, signs and verifies a lamport one time signature.
 # creates winternitz OTS+ key pairs, signs and verifies the OTS.
 #
-# creates XMSS trees with W-OTS+
+# creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
+# get a large words file from github (mymonero i.e) to code the seed for memorable key..
 
 __author__ = 'pete'
 
@@ -24,6 +25,7 @@ def t(n):
     z = XMSS(n)
     print str(time.time()-start_time)
     return z
+
 
 def numlist(array):
     for a,b in enumerate(array):
@@ -129,7 +131,20 @@ def GEN_range(SEED, start_i, end_i, l=32):      #returns start -> end iteration 
             random_arr.append(y)
     return random_arr
 
-# xmss python implementation - need to integrate PRF from SEED and key to ge
+# seed creation for xmss scheme for an address. Take a 48 bytes entropy from os.random, generate two 48 byte keys..public_SEED and private_SEED
+# public_SEED used to generate PK, private_SEED taken as seed for PRF to generate 2^h sk seeds from which to derive sk elements + r,k
+# each private key has 67 sk elements + w-1 +k = 83 -> 339968 keys to generate for a 4096 xmss tree!
+# so we take the private key seed and generate 4096 seeds with hmac_drbg, then generate 83 sk elements from each seed..
+# it is vital therefore the original 48 byte seed is kept secret. A word file with 65536 words in it can then be used to generate a 24 word list to be kept by the user
+
+def new_keys(seed=None, n=9999):                         #four digit pin to separate the public and private by n iterations of PRF (n=9999 0.38s)
+    if not seed:
+        seed = SEED(48)
+    private_SEED = GEN(seed,1,l=48)
+    public_SEED = GEN(seed,n,l=48)
+    return seed, public_SEED, private_SEED
+
+# xmss python implementation 
 
 # An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used
 # and SK_PRF, an m-byte key for the PRF.
@@ -139,19 +154,15 @@ def GEN_range(SEED, start_i, end_i, l=32):      #returns start -> end iteration 
 # a class which creates an xmss wrapper.
 
 class XMSS():
-    def __init__(self, signatures, public_SEED=None, private_SEED=None):
+    def __init__(self, signatures, SEED=None):
         self.index = 0
         if signatures > 4986:               #after this we need to update seed for PRF..
             signatures = 4986
         self.signatures = signatures        #number of OTS keypairs in tree to generate: n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
 
-        # use supplied 48 byte SEEDS, else create randomly from os
-        if not private_SEED:  
-            private_SEED = SEED()
-        self.private_SEED = private_SEED
-        if not public_SEED:    
-            public_SEED = SEED()
-        self.public_SEED = public_SEED
+        # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
+        
+        self.SEED, self.public_SEED, self.private_SEED = new_keys(SEED)
 
         # create the tree
         self.tree, self.x_bms, self.l_bms, self.privs, self.pubs = xmss_tree(n=signatures, private_SEED=self.private_SEED, public_SEED=self.public_SEED)
@@ -190,7 +201,7 @@ class XMSS():
     def sign(self, msg, i=0):
         return sign_wpkey(self.privs[i], msg, self.pubs[i])         #sign with OTS private key at position i
 
-    def verify(self, signature, msg, i=0):                          #verify OTS signature
+    def verify(self, msg, signature, i=0):                          #verify OTS signature
         return verify_wpkey(signature, msg, self.pubs[i])   
 
     def SIGN(self, msg, i=0):
@@ -203,10 +214,10 @@ class XMSS():
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         return i, s, auth_route, i_bms, self.pk(i), self.PK_short   #shorter SIG due to SEED rather than bitmasks
 
-    def VERIFY(self, msg, SIG):
+    def VERIFY(self, msg, SIG):                                     #verify xmss sig
         return xmss_verify(msg, SIG)
 
-    def VERIFY_short(self, msg, SIG):
+    def VERIFY_short(self, msg, SIG):                               #verify an xmss sig with shorter PK
         return xmss_verify_short(msg, SIG)
 
 def xmss_tree(n, private_SEED, public_SEED):
@@ -226,10 +237,12 @@ def xmss_tree(n, private_SEED, public_SEED):
     l_bms = rand_keys[:14]
     x_bms = rand_keys[14:]
     
-    #l_bms = l_bm()
+    # generate n hexlified private key seeds from PRF
+
+    sk_keys = GEN_range(private_SEED, 1, n, 32)
 
     for x in range(n):
-        priv, pub = random_wpkey()
+        priv, pub = random_wpkey_xmss(seed=sk_keys[x])
         leaf = l_tree(pub,l_bms)
         leafs.append(leaf)
         pubs.append(pub)
@@ -423,6 +436,42 @@ def chain_fn2(x,r,i,k):
             x = fn_k(hex(int(x,16)^int(r[y],16))[2:-1],k)
         return x
 
+def random_wpkey_xmss(seed, w=16, verbose=0):
+    if verbose==1:
+        start_time = time.time()
+    # first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
+    # if using SHA-256 then m and n = 256
+
+    if w==16:
+        l=67
+        l_1=64
+        l_2=3
+    else:
+        m = 256
+        l_1 = ceil(m/log(w,2))
+        l_2 = floor(log((l_1*(w-1)),2)/log(w,2)) + 1
+        l = int(l_1+l_2)
+
+    pub = []
+
+    # first create l+w-1 256 bit secret key fragments from PRF seed (derived from PRF on private_SEED)
+    # l n-bits will be private key, remaining w-1 will be r, the randomisation elements for the chaining function
+    # finally generate k the key for the chaining function..
+
+    sk = GEN_range(seed, 1, l+w-1+1, 32)
+
+    priv = sk[:l]
+    r = sk[l:l+w-1]
+    k = sk[-1]
+
+    pub.append((r,k))       #pk_0 = (r,k) ..where r is a list of w-1 randomisation elements
+
+    for sk_ in priv:
+        pub.append(chain_fn(sk_,r,w-1,k))
+
+    if verbose==1:
+        print str(time.time() - start_time)
+    return priv, pub
 
 def random_wpkey(w=16, verbose=0):
     if verbose==1:
