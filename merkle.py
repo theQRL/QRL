@@ -155,6 +155,7 @@ def new_keys(seed=None, n=9999):                         #four digit pin to sepa
 
 class XMSS():
     def __init__(self, signatures, SEED=None):
+        self.type = 'xmss'
         self.index = 0
         if signatures > 4986:               #after this we need to update seed for PRF..
             signatures = 4986
@@ -204,7 +205,7 @@ class XMSS():
     def verify(self, msg, signature, i=0):                          #verify OTS signature
         return verify_wpkey(signature, msg, self.pubs[i])   
 
-    def SIGN(self, msg, i=0):
+    def SIGN_long(self, msg, i=0):
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         return i, s, auth_route, i_bms, self.pk(i), self.PK         #SIG
@@ -214,10 +215,18 @@ class XMSS():
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         return i, s, auth_route, i_bms, self.pk(i), self.PK_short   #shorter SIG due to SEED rather than bitmasks
 
-    def VERIFY(self, msg, SIG):                                     #verify xmss sig
+    def SIGN(self,msg):
+        i = self.index
+        print 'xmss signing with OTS n = ', str(self.index)                 #formal sign and increment the index to the next OTS to be used..
+        s = self.sign(msg, i)
+        auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
+        self.index+=1
+        return i, s, auth_route, i_bms, self.pk(i), self.PK_short
+
+    def VERIFY_long(self, msg, SIG):                                     #verify xmss sig
         return xmss_verify(msg, SIG)
 
-    def VERIFY_short(self, msg, SIG):                               #verify an xmss sig with shorter PK
+    def VERIFY(self, msg, SIG):                               #verify an xmss sig with shorter PK
         return xmss_verify_short(msg, SIG)
 
 def xmss_tree(n, private_SEED, public_SEED):
