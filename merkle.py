@@ -354,15 +354,16 @@ def verify_auth(auth_route, i_bms, pub, PK):
 
 # same but using the shorter PK which is {root, hex(public_SEED)} to reconstitute the long PK with bitmasks then call above..
 
-def verify_auth_SEED(auth_route, i_bms, pub, PK):
-
-    root = PK[0]
-    public_SEED = unhexlify(PK[1])
+def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
+    PK = []
+    root = PK_short[0]
+    public_SEED = unhexlify(PK_short[1])
 
     rand_keys = GEN_range(public_SEED, 1, 14+i_bms[-1][-1]+1, 32)   #i_bms[-1][-1] is the last bitmask in the tree. +1 because it counts from 0.
 
-    PK[1] = rand_keys[14:]           #x_bms
-    PK.append(rand_keys[:14])        #l_bms
+    PK.append(root)
+    PK.append(rand_keys[14:])               #x_bms
+    PK.append(rand_keys[:14])               #l_bms
 
     return verify_auth(auth_route, i_bms, pub, PK)
 
