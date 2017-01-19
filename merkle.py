@@ -229,6 +229,15 @@ class XMSS():
     def VERIFY(self, msg, SIG):                               #verify an xmss sig with shorter PK
         return xmss_verify_short(msg, SIG)
 
+    def addr(self, i=None):
+        if i==None: 
+            i = self.signatures
+        xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i,self.private_SEED, self.public_SEED)
+        i_PK = [''.join(xmss_array[-1]),''.join(x_bms),''.join(l_bms)]
+        return 'Q'+sha256(''.join(i_PK))+sha256(sha256(''.join(i_PK)))[:4]
+
+
+
 def xmss_tree(n, private_SEED, public_SEED):
     #no.leaves = 2^h
     h = ceil(log(n,2))
