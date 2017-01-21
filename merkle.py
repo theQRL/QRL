@@ -151,7 +151,7 @@ def new_keys(seed=None, n=9999):                         #four digit pin to sepa
 
 # The XMSS public key PK consists of the root of the binary hash tree and the bitmasks from xmss and l-tree.
 
-# a class which creates an xmss wrapper.
+# a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures. 
 
 class XMSS():
     def __init__(self, signatures, SEED=None):
@@ -160,7 +160,7 @@ class XMSS():
         if signatures > 4986:               #after this we need to update seed for PRF..
             signatures = 4986
         self.signatures = signatures        #number of OTS keypairs in tree to generate: n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
-
+        self.remaining = signatures
         # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
         
         self.SEED, self.public_SEED, self.private_SEED = new_keys(SEED)
@@ -177,6 +177,10 @@ class XMSS():
         self.PK_short = [self.root,hexlify(self.public_SEED)]
         self.catPK_short = self.root+hexlify(self.public_SEED)
         self.address_short = 'Q'+sha256(self.catPK_short)+sha256(sha256(self.catPK_short))[:4]
+
+        # data to allow signing of smaller xmss trees/different addresses derived from same SEED..
+        self.addresses = [(0, self.address, self.signatures)]             # position in wallet denoted by first number and address/tree by signatures
+        self.subtrees = [(0, self.signatures, self.tree, self.x_bms)]
 
     def index(self):            #return next OTS key to sign with
         return self.index
@@ -221,6 +225,7 @@ class XMSS():
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         self.index+=1
+        self.remaining-=1
         return i, s, auth_route, i_bms, self.pk(i), self.PK_short
 
     def VERIFY_long(self, msg, SIG):                                     #verify xmss sig
@@ -229,14 +234,19 @@ class XMSS():
     def VERIFY(self, msg, SIG):                               #verify an xmss sig with shorter PK
         return xmss_verify_short(msg, SIG)
 
-    def addr(self, i=None):
+    def address_add(self, i=None):                           #derive new address from an xmss tree using the same SEED but i base leaves..allows deterministic address creation
         if i==None: 
             i = self.signatures
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i,self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]),''.join(x_bms),''.join(l_bms)]
-        return 'Q'+sha256(''.join(i_PK))+sha256(sha256(''.join(i_PK)))[:4]
+        new_addr = 'Q'+sha256(''.join(i_PK))+sha256(sha256(''.join(i_PK)))[:4]
+        self.addresses.append((len(self.addresses), new_addr, i))
+        self.subtrees.append((len(self.subtrees), i, xmss_array, x_bms))                   #x_bms could be limited to the length..
+        return new_addr
 
+    #def SIGN_deterministic_address(self, ):
 
+        #TODO
 
 def xmss_tree(n, private_SEED, public_SEED):
     #no.leaves = 2^h
@@ -377,7 +387,7 @@ def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
     return verify_auth(auth_route, i_bms, pub, PK)
 
 # verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
-# SIG is a list compossed of: i, s, auth_route, i_bms, pk[i], PK
+# SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
 
 def xmss_verify(msg, SIG):
 
