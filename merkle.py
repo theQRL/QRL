@@ -171,16 +171,16 @@ class XMSS():
 
         self.PK = [self.root, self.x_bms, self.l_bms]
         self.catPK = [''.join(self.root),''.join(self.x_bms),''.join(self.l_bms)]
-        self.address = 'Q'+sha256(''.join(self.catPK))+sha256(sha256(''.join(self.catPK)))[:4]
+        self.address_long = 'Q'+sha256(''.join(self.catPK))+sha256(sha256(''.join(self.catPK)))[:4]
 
         # derived from SEED
         self.PK_short = [self.root,hexlify(self.public_SEED)]
         self.catPK_short = self.root+hexlify(self.public_SEED)
-        self.address_short = 'Q'+sha256(self.catPK_short)+sha256(sha256(self.catPK_short))[:4]
+        self.address = 'Q'+sha256(self.catPK_short)+sha256(sha256(self.catPK_short))[:4]
 
         # data to allow signing of smaller xmss trees/different addresses derived from same SEED..
         self.addresses = [(0, self.address, self.signatures)]             # position in wallet denoted by first number and address/tree by signatures
-        self.subtrees = [(0, self.signatures, self.tree, self.x_bms)]      #optimise by only storing length of x_bms..[:x]
+        self.subtrees = [(0, self.signatures, self.tree, self.x_bms, self.PK_short)]      #optimise by only storing length of x_bms..[:x]
 
     def index(self):            #return next OTS key to sign with
         return self.index
@@ -235,16 +235,18 @@ class XMSS():
         return xmss_verify_short(msg, SIG)
 
     def address_add(self, i=None):                           #derive new address from an xmss tree using the same SEED but i base leaves..allows deterministic address creation
+        if i==None: 
+            i = self.signatures-len(self.addresses)
         if i>self.signatures or i < self.index:
             print 'ERROR: i cannot be below signing index or above the pre-calculated signature count for xmss tree'
             return False
-        if i==None: 
-            i = self.signatures
+        
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i,self.private_SEED, self.public_SEED)
-        i_PK = [''.join(xmss_array[-1]),''.join(x_bms),''.join(l_bms)]
+        i_PK = [''.join(xmss_array[-1]),hexlify(self.public_SEED)]
+        #i_PK = [''.join(xmss_array[-1]),''.join(x_bms),''.join(l_bms)]
         new_addr = 'Q'+sha256(''.join(i_PK))+sha256(sha256(''.join(i_PK)))[:4]
         self.addresses.append((len(self.addresses), new_addr, i))
-        self.subtrees.append((len(self.subtrees), i, xmss_array, x_bms))                   #x_bms could be limited to the length..
+        self.subtrees.append((len(self.subtrees), i, xmss_array, x_bms, i_PK))                   #x_bms could be limited to the length..
         return new_addr
 
     def SIGN_subtree(self, msg, t=0):                       #default to full xmss tree with max sigs
@@ -255,12 +257,12 @@ class XMSS():
         if self.addresses[t][2] < i:
                 print 'ERROR: xmss index above address derivation i'
                 return False
-        print 'xmss signing subtree (',str(t[2]),' signatures) with OTS n = ', str(self.index)
+        print 'xmss signing subtree (',str(self.addresses[t][2]),' signatures) with OTS n = ', str(self.index)
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
         self.index+=1
         self.remaining-=1
-        return i, s, auth_route, i_bms, self.pk(i), self.PK_short
+        return i, s, auth_route, i_bms, self.pk(i), self.subtrees[t][4]
 
     def list_addresses(self):
         addr_arr = []
