@@ -180,7 +180,7 @@ class XMSS():
 
         # data to allow signing of smaller xmss trees/different addresses derived from same SEED..
         self.addresses = [(0, self.address, self.signatures)]             # position in wallet denoted by first number and address/tree by signatures
-        self.subtrees = [(0, self.signatures, self.tree, self.x_bms)]
+        self.subtrees = [(0, self.signatures, self.tree, self.x_bms)]      #optimise by only storing length of x_bms..[:x]
 
     def index(self):            #return next OTS key to sign with
         return self.index
@@ -235,6 +235,9 @@ class XMSS():
         return xmss_verify_short(msg, SIG)
 
     def address_add(self, i=None):                           #derive new address from an xmss tree using the same SEED but i base leaves..allows deterministic address creation
+        if i>self.signatures or i < self.index:
+            print 'ERROR: i cannot be below signing index or above the pre-calculated signature count for xmss tree'
+            return False
         if i==None: 
             i = self.signatures
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i,self.private_SEED, self.public_SEED)
@@ -244,9 +247,32 @@ class XMSS():
         self.subtrees.append((len(self.subtrees), i, xmss_array, x_bms))                   #x_bms could be limited to the length..
         return new_addr
 
-    #def SIGN_deterministic_address(self, ):
+    def SIGN_subtree(self, msg, t=0):                       #default to full xmss tree with max sigs
+        if len(self.addresses) < t+1:                   #no new addresses added 
+                print 'ERROR: self.addresses new address does not exist'
+                return False
+        i = self.index
+        if self.addresses[t][2] < i:
+                print 'ERROR: xmss index above address derivation i'
+                return False
+        print 'xmss signing subtree (',str(t[2]),' signatures) with OTS n = ', str(self.index)
+        s = self.sign(msg, i)
+        auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
+        self.index+=1
+        self.remaining-=1
+        return i, s, auth_route, i_bms, self.pk(i), self.PK_short
 
-        #TODO
+    def list_addresses(self):
+        addr_arr = []
+        for addr in self.addresses:
+            addr_arr.append(addr[1])
+        return addr_arr
+
+    def address_n(self, t):
+        if len(self.addresses) < t+1:                 
+                print 'ERROR: self.addresses new address does not exist'
+                return False
+        return self.addresses[t][1]
 
 def xmss_tree(n, private_SEED, public_SEED):
     #no.leaves = 2^h
