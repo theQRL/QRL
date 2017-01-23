@@ -145,6 +145,10 @@ def new_keys(seed=None, n=9999):                         #four digit pin to sepa
     public_SEED = GEN(seed,n,l=48)
     return seed, public_SEED, private_SEED
 
+# 48 byte SEED converted to a backup 32 word mnemonic wordlist to allow backup retrieval of keys and addresses.
+# SEED parsed 12 bits at a time and a word looked up from a dictionary with 4096 unique words in it..
+# another approach would be a hexseed and QR code or BIP38 style encryption of the SEED with a passphrase..
+
 # mnemonic back to SEED
 
 def mnemonic_to_seed(mnemonic):                     #takes a string..could use type or isinstance here..must be space not comma delimited..
@@ -278,11 +282,22 @@ class XMSS():
             return False
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i,self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]),hexlify(self.public_SEED)]
-        #i_PK = [''.join(xmss_array[-1]),''.join(x_bms),''.join(l_bms)]
         new_addr = 'Q'+sha256(''.join(i_PK))+sha256(sha256(''.join(i_PK)))[:4]
         self.addresses.append((len(self.addresses), new_addr, i))
         self.subtrees.append((len(self.subtrees), i, xmss_array, x_bms, i_PK))                   #x_bms could be limited to the length..
         return new_addr
+
+    def address_adds(self, start_i, stop_i):                                #batch creation of multiple addresses..
+        if start_i > self.signatures or stop_i > self.signatures:
+            print 'ERROR: i cannot be greater than pre-calculated signature count for xmss tree'
+            return False
+        if start_i >= stop_i:
+            print 'ERROR: starting i must be lower than stop_i'
+            return False
+
+        for i in range(start_i, stop_i):
+            self.address_add(i)
+        return 
 
     def SIGN_subtree(self, msg, t=0):                       #default to full xmss tree with max sigs
         if len(self.addresses) < t+1:                   
