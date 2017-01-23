@@ -13,7 +13,7 @@
 
 __author__ = 'pete'
 
-from words import wordlist  #2048 unique word list for mnemonic SEED retrieval..
+from words import wordlist  #4096 unique word list for mnemonic SEED retrieval..
 import hmac
 import hashlib
 from binascii import unhexlify, hexlify
@@ -145,6 +145,37 @@ def new_keys(seed=None, n=9999):                         #four digit pin to sepa
     public_SEED = GEN(seed,n,l=48)
     return seed, public_SEED, private_SEED
 
+# mnemonic back to SEED
+
+def mnemonic_to_seed(mnemonic):                     #takes a string..could use type or isinstance here..must be space not comma delimited..
+
+    words = mnemonic.lower().split()
+    if len(words) != 32:
+        print 'ERROR: mnemonic is not 32 words in length..'
+        return False
+    SEED = ''
+    y=0
+    for x in range(16):
+        n = format(wordlist.index(words[y]),'012b')+format(wordlist.index(words[y+1]),'012b')
+        SEED+=chr(int(n[:8],2))+chr(int(n[8:16],2))+chr(int(n[16:],2))
+        y+=2
+    return SEED
+
+# SEED to mnemonic
+
+def seed_to_mnemonic(SEED):
+    if len(SEED) != 48:
+         print 'ERROR: SEED is not 48 bytes in length..'
+         return False
+    words = []
+    y=0
+    for x in range(16):
+            three_bytes = format(ord(SEED[y]),'08b')+format(ord(SEED[y+1]),'08b')+format(ord(SEED[y+2]),'08b')
+            words.append(wordlist[int(three_bytes[:12],2)])
+            words.append(wordlist[int(three_bytes[12:],2)])
+            y+=3
+    return ' '.join(words)
+
 # xmss python implementation 
 
 # An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used
@@ -167,16 +198,8 @@ class XMSS():
         self.SEED, self.public_SEED, self.private_SEED = new_keys(SEED)
 
         # create the mnemonic..
-        self.hexSEED = hexlify(self.SEED)
-        
-        words = []
-        y=0
-        for x in range(16):
-            three_bytes = bin(ord(self.SEED[y]))[2:]+bin(ord(self.SEED[y+1]))[2:]+bin(ord(self.SEED[y+2]))[2:]
-            words.append(wordlist[int(three_bytes[:12],2)])
-            words.append(wordlist[int(three_bytes[12:],2)])
-            y+=3
-        self.mnemonic = words
+        self.hexSEED = hexlify(self.SEED) 
+        self.mnemonic = seed_to_mnemonic(self.SEED)
 
         # create the tree
         self.tree, self.x_bms, self.l_bms, self.privs, self.pubs = xmss_tree(n=signatures, private_SEED=self.private_SEED, public_SEED=self.public_SEED)
