@@ -168,9 +168,14 @@ class XMSS():
 
         # create the mnemonic..
         self.hexSEED = hexlify(self.SEED)
+        
         words = []
-        for x in range(48):
-            words.append(wordlist[ord(self.SEED[x])])       #can use 12 bit -> 32 words for smaller recovery phrase
+        y=0
+        for x in range(16):
+            three_bytes = bin(ord(self.SEED[y]))[2:]+bin(ord(self.SEED[y+1]))[2:]+bin(ord(self.SEED[y+2]))[2:]
+            words.append(wordlist[int(three_bytes[:12],2)])
+            words.append(wordlist[int(three_bytes[12:],2)])
+            y+=3
         self.mnemonic = words
 
         # create the tree
