@@ -10,7 +10,6 @@
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
-# get a large words file from github (mymonero i.e) to code the seed for memorable key..
 
 __author__ = 'pete'
 
