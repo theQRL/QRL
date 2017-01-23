@@ -9,10 +9,12 @@
 # creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
+# look at winternitz-ots fn_k to see if we need to pad it..
 # get a large words file from github (mymonero i.e) to code the seed for memorable key..
 
 __author__ = 'pete'
 
+from words import wordlist  #2048 unique word list for mnemonic SEED retrieval..
 import hmac
 import hashlib
 from binascii import unhexlify, hexlify
@@ -165,6 +167,13 @@ class XMSS():
         
         self.SEED, self.public_SEED, self.private_SEED = new_keys(SEED)
 
+        # create the mnemonic..
+        self.hexSEED = hexlify(self.SEED)
+        words = []
+        for x in range(48):
+            words.append(wordlist[ord(self.SEED[x])])       #can use 12 bit -> 32 words for smaller recovery phrase
+        self.mnemonic = words
+
         # create the tree
         self.tree, self.x_bms, self.l_bms, self.privs, self.pubs = xmss_tree(n=signatures, private_SEED=self.private_SEED, public_SEED=self.public_SEED)
         self.root = ''.join(self.tree[-1])
@@ -240,7 +249,6 @@ class XMSS():
         if i>self.signatures or i < self.index:
             print 'ERROR: i cannot be below signing index or above the pre-calculated signature count for xmss tree'
             return False
-        
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i,self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]),hexlify(self.public_SEED)]
         #i_PK = [''.join(xmss_array[-1]),''.join(x_bms),''.join(l_bms)]
@@ -250,7 +258,7 @@ class XMSS():
         return new_addr
 
     def SIGN_subtree(self, msg, t=0):                       #default to full xmss tree with max sigs
-        if len(self.addresses) < t+1:                   #no new addresses added 
+        if len(self.addresses) < t+1:                   
                 print 'ERROR: self.addresses new address does not exist'
                 return False
         i = self.index
@@ -264,7 +272,7 @@ class XMSS():
         self.remaining-=1
         return i, s, auth_route, i_bms, self.pk(i), self.subtrees[t][4]
 
-    def list_addresses(self):
+    def list_addresses(self):                               #list the addresses derived in the main tree
         addr_arr = []
         for addr in self.addresses:
             addr_arr.append(addr[1])
