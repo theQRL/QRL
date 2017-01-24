@@ -21,6 +21,7 @@ cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', '
 
 api_list = ['block_data','stats', 'txhash', 'address', 'empty']
 
+
 def parse(data):
 		return data.replace('\r\n','')
 
@@ -31,13 +32,24 @@ class ApiProtocol(Protocol):
 
 	def parse_cmd(self, data):
 
-
+		print data
 		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
 		
 		print data
 
-		if data[0] != 'GET':
+		if data[0] != 'GET' and data[0] != 'OPTIONS':
 			return False
+
+		if data[0] == 'OPTIONS':
+			http_header_OPTIONS = ("HTTP/1.1 200 OK\r\n"
+								   "Access-Control-Allow-Origin: *\r\n"
+								   "Access-Control-Allow-Methods: GET\r\n"
+								   "Access-Control-Allow-Headers: x-prototype-version,x-requested-with\r\n"
+								   "Content-Length: 0\r\n"
+								   "Access-Control-Max-Age: 2520\r\n"
+								   "\r\n")
+			self.transport.write(http_header_OPTIONS)
+			return 
 
 		data = data[1][1:].split('/')
 
@@ -51,15 +63,30 @@ class ApiProtocol(Protocol):
 			data[1] = 'empty'
 
 		if data[1].lower() not in api_list:			#supported {command} in api_list
+			error = {'status': 'Error', 'error': 'supported method not supplied', 'parameter' : data[1] }
+			self.transport.write(chain.json_print_telnet(error))
 			return False
 		
 		my_cls = ApiProtocol()					#call the command from api_list directly
 		api_call = getattr(my_cls, data[1].lower())	
 		
 		if len(data) < 3:
-			self.transport.write(api_call())
+			json_txt = api_call()
+			#self.transport.write(api_call())
 		else:
-			self.transport.write(api_call(data[2]))
+			json_txt = api_call(data[2])
+			#self.transport.write(api_call(data[2]))
+
+		http_header_GET = ("HTTP/1.1 200 OK\r\n"
+						   "Content-Type: application/json\r\n"
+						   "Content-Length: %s\r\n"
+						   "Access-Control-Allow-Headers: x-prototype-version,x-requested-with\r\n"
+						   "Access-Control-Max-Age: 2520\r\n"
+						   "Access-Control-Allow-Origin: *\r\n"
+						   "Access-Control-Allow-Methods: GET\r\n"
+						   "\r\n") % (str(len(json_txt)))
+
+		self.transport.write(http_header_GET+json_txt)
 
 		return
 
@@ -68,7 +95,7 @@ class ApiProtocol(Protocol):
 		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
-		error = {'status': 'Error','block_data' : data}
+		error = {'status': 'Error', 'error' : 'block not found', 'method': 'block_data', 'parameter' : data}
 		print '<<< API block data call', data	
 		if not data:
 			return chain.json_print_telnet(chain.m_get_last_block())
