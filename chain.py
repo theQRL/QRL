@@ -1,9 +1,15 @@
 #QRL main blockchain, state, transaction functions.
 # todo: add a .state to .blockheader, some form of concat hash or a merkle tree of changes for client to proof, though it works without..
+# tx optimisations for wots: 
+# a) the pub is not needed, using the sig and message it can be generated and proven valid through the merkle base hash and -> auths + root
+# b) merkle_root is not needed, the merkle_auth contains it
+# c) the merkle_auth does not need both pairs of values at each tree layer, once can be concat hashed from the level below..
+# d) the text in the CreateSimpleTransaction object can be shortened to a single letter..
+
 
 __author__ = 'pete'
 
-from bitcoin import sha256
+from merkle import sha256
 from random import randint
 from time import time
 
@@ -200,8 +206,6 @@ def search_telnet(txcontains, long=1):
 						if state_hrs(tx.hrs) == txcontains:
 							hrs_list.append(tx.hrs)
 
-
-
 	for tx in transaction_pool:
 		if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
 			#print txcontains, 'found in transaction pool..'
@@ -216,18 +220,80 @@ def search_telnet(txcontains, long=1):
 				if long==1: tx_list.append(json_print_telnet(tx))
 	return tx_list
 
+# used for port 80 api - produces JSON output of a specific tx hash, including status of tx, in a block or unconfirmed + timestampe of parent block
+
 def search_txhash(txhash):				#txhash is unique due to nonce.
 	for tx in transaction_pool:
 		if tx.txhash == txhash:
 			print txhash, 'found in transaction pool..'
-			return json_print(tx)
+			tx_new = tx
+			tx_new.block = 'unconfirmed'
+			return json_print_telnet(tx_new)
 	for block in m_blockchain:
 		for tx in block.transactions:
 			if tx.txhash== txhash:
+				tx_new = tx
+				tx_new.block = str(block.blockheader.blocknumber)
+				tx_new.timestamp = block.blockheader.timestamp
+				tx_new.confirmations = str(m_blockheight()-block.blockheader.blocknumber)
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
-				return json_print(tx)
+				return json_print_telnet(tx_new)
 	print txhash, 'does not exist in memory pool or local blockchain..'
-	return False
+	err = {'status' : 'Error', 'txhash' : txhash}
+	return json_print_telnet(err)
+	#return False
+
+# used for port 80 api - produces JSON output reporting every transaction for an address, plus final balance..
+
+def search_address(address):
+	
+	addr = {}
+	addr['transactions'] = {}
+
+
+	if state_address_used(address) != False:
+		nonce, balance, pubhash_list = state_get_address(address)
+		addr['state'] = {}
+		addr['state']['address'] = address
+		addr['state']['balance'] = str(balance)
+		addr['state']['nonce'] = str(nonce)
+		#pubhashes used could be put here..
+
+	for tx in transaction_pool:
+		if tx.txto == address or tx.txfrom == address:
+			print address, 'found in transaction pool'
+			addr['transactions'][tx.txhash] = {}
+			addr['transactions'][tx.txhash]['txhash'] = tx.txhash
+			addr['transactions'][tx.txhash]['block'] = 'unconfirmed'
+			addr['transactions'][tx.txhash]['amount'] = tx.amount
+			addr['transactions'][tx.txhash]['fee'] = tx.fee
+			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
+			addr['transactions'][tx.txhash]['ots key'] = tx.ots_key
+			addr['transactions'][tx.txhash]['txto'] = tx.txto
+			addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom
+
+	for block in m_blockchain:
+		for tx in block.transactions:
+		 if tx.txto == address or tx.txfrom == address:
+			print address, 'found in block ', str(block.blockheader.blocknumber), '..' 
+			addr['transactions'][tx.txhash]= {}
+			addr['transactions'][tx.txhash]['txhash'] = tx.txhash
+			addr['transactions'][tx.txhash]['block'] = str(block.blockheader.blocknumber)
+			addr['transactions'][tx.txhash]['timestamp'] = str(block.blockheader.timestamp)
+			addr['transactions'][tx.txhash]['amount'] = tx.amount
+			addr['transactions'][tx.txhash]['fee'] = tx.fee
+			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
+			addr['transactions'][tx.txhash]['ots key'] = tx.ots_key
+			addr['transactions'][tx.txhash]['txto'] = tx.txto
+			addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom	
+
+	if len(addr['transactions']) > 0:
+		addr['state']['transactions'] = str(len(addr['transactions']))
+	
+	if addr == {'transactions': {}}:
+		addr = {'status': 'error', 'error' : 'address not found'}
+
+	return json_print_telnet(addr)
 
 def search(txcontains, long=1):
 	for tx in transaction_pool:
@@ -288,6 +354,8 @@ def m_read_chain():
 	return m_blockchain
 
 def m_get_block(n):
+	if n > len(m_blockchain)-1 or n < 0:
+		return False
 	return m_read_chain()[n]
 
 def m_get_last_block():
@@ -865,7 +933,19 @@ def create_hrs_tx(txfrom, hrs):
 	else:
 		return (False, msg)
 
+# xmss data stored in the class object from which addresses may be derived and signed. set up to immediately allow signing from address derived from ots_key = [-1]
+# from the class object e.g xmss the following data can be passed: xmss.address, xmss.PK, xmss.pk(ots_key), xmss.SEED, xmss.public_SEED, xmss.private_SEED, xmss.index
+# 
+# signatures can be made xmss.SIGN -> returns i, s, auth_route, i_bms, self.pk(i), self.PK_short
 
+#--------------------------------------------
+
+def create_xmss_tx(txfrom, txto, n):
+	my=wallet.f_read_wallet()
+	#if isinstance(txfrom, int):
+	#	(tx, msg) = createsimpletransaction(txto=,txfrom=,amount=, data=, )
+
+#--------------------------------------------
 
 def test_tx(n):
 	for x in range(n):

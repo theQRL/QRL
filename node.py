@@ -19,12 +19,7 @@ from merkle import sha256
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
-api_list = ['block_data','stats', 'tx', 'address']
-
-web_template_start = 'HTTP/1.1 200 OK' 
-web_template_start2 = 'Connection: closed <html><body>'
-web_template_end  = '</body></html>'
-
+api_list = ['block_data','stats', 'txhash', 'address']
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -36,42 +31,55 @@ class ApiProtocol(Protocol):
 
 	def parse_cmd(self, data):
 
-		data = data.lower().split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
-		if data[0] != 'get':
+		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
+		if data[0] != 'GET':
 			return False
 
 		data = data[1][1:].split('/')
 
-		if data[0] != 'api':
+		if data[0].lower() != 'api':
 			return False
 
-		if data[1] not in api_list:			#supported {command} in api_list
+		if data[1].lower() not in api_list:			#supported {command} in api_list
 			return False
 		
-		print '<<< API call'
-
 		my_cls = ApiProtocol()					#call the command from api_list directly
-		api_call = getattr(my_cls, data[1])	
-		api_call(data[2])
+		api_call = getattr(my_cls, data[1].lower())	
 		
+		if len(data) < 3:
+			self.transport.write(api_call())
+		else:
+			self.transport.write(api_call(data[2]))
+
 		return
 
 
-	def block_data(self, data=None):				# if no data = last block ([-1])
-		print '<<< API block data call', data
-		return
+	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
+		error = {'status': 'Error','block_data' : data}
+		print '<<< API block data call', data	
+		if not data:
+			return chain.json_print_telnet(chain.m_get_last_block())
+		try: int(data)														# is the data actually a number?
+		except: 
+			return chain.json_print_telnet(error)
+		js_bk = chain.json_print_telnet(chain.m_get_block(int(data)))
+		if js_bk == 'false':
+			return chain.json_print_telnet(error)
+		else:
+			return js_bk
 
 	def stats(self, data=None):
-		print '<<< API stats call', data
-		return
+		print '<<< API stats call'
+		net_stats = {'uptime': str(time.time()-start_time), 'blockheight' : str(chain.m_blockheight()), 'nodes' : str(len(f.peers)) }
+		return chain.json_print_telnet(net_stats)
 
-	def tx(self, data=None):
+	def txhash(self, data=None):
 		print '<<< API tx/hash call', data
-		return
+		return chain.search_txhash(data)
 
 	def address(self, data=None):
 		print '<<< API address call', data
-		return
+		return chain.search_address(data)
 
 
 	def dataReceived(self, data=None):
@@ -80,10 +88,10 @@ class ApiProtocol(Protocol):
 	
 	def connectionMade(self):
 		self.factory.connections += 1
-		print '>>> new API connection'
+		#print '>>> new API connection'
 
 	def connectionLost(self, reason):
-		print '<<< API disconnected'
+		#print '<<< API disconnected'
 		self.factory.connections -= 1
 
 
