@@ -21,11 +21,19 @@ from math import ceil, floor, log
 import time
 from os import urandom
 
+
+# timing runs..
+
 def t(n):
     start_time = time.time()
     z = XMSS(n)
     print str(time.time()-start_time)
     return z
+
+def t2(s, m):
+    start_time = time.time()
+    xmss_verify(m, s)
+    print str(time.time()-start_time)
 
 
 def numlist(array):

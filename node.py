@@ -17,7 +17,7 @@ from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
 from merkle import sha256
 
-cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
 api_list = ['block_data','stats', 'txhash', 'address', 'empty']
 
@@ -32,7 +32,6 @@ class ApiProtocol(Protocol):
 
 	def parse_cmd(self, data):
 
-		print data
 		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
 		
 		print data
@@ -120,7 +119,6 @@ class ApiProtocol(Protocol):
 	def address(self, data=None):
 		print '<<< API address call', data
 		return chain.search_address(data)
-
 
 	def dataReceived(self, data=None):
 		self.parse_cmd(data)
@@ -237,6 +235,9 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'send':
 				self.send_tx(args)
 
+			elif data[0] == 'mempool':
+				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
+
 			elif data[0] == 'help':
 				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, json_block, json_search, hrs, hrs_check, mining, getinfo, blockheight or getnewaddress'+'\r\n')
 
@@ -258,6 +259,7 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'getinfo':
 					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
 					self.transport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
+					self.transport.write('>>> Not mining flag set to: '+ str(f.nomining)+'\r\n')
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
