@@ -19,7 +19,7 @@ from merkle import sha256
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
-api_list = ['block_data','stats', 'txhash', 'address']
+api_list = ['block_data','stats', 'txhash', 'address', 'empty']
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -31,7 +31,11 @@ class ApiProtocol(Protocol):
 
 	def parse_cmd(self, data):
 
+
 		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
+		
+		print data
+
 		if data[0] != 'GET':
 			return False
 
@@ -39,6 +43,12 @@ class ApiProtocol(Protocol):
 
 		if data[0].lower() != 'api':
 			return False
+
+		if len(data) == 1:
+			data.append('')
+
+		if data[1] == '':
+			data[1] = 'empty'
 
 		if data[1].lower() not in api_list:			#supported {command} in api_list
 			return False
@@ -53,6 +63,9 @@ class ApiProtocol(Protocol):
 
 		return
 
+	def empty(self, data=None):
+		error = {'status': 'Error','error' : 'no data supplied'}
+		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
 		error = {'status': 'Error','block_data' : data}
