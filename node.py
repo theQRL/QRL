@@ -15,12 +15,78 @@ import chain, wallet
 
 from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
 from twisted.internet import reactor
-from bitcoin import sha256
+from merkle import sha256
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
+api_list = ['block_data','stats', 'tx', 'address']
+
+web_template_start = 'HTTP/1.1 200 OK' 
+web_template_start2 = 'Connection: closed <html><body>'
+web_template_end  = '</body></html>'
+
+
 def parse(data):
 		return data.replace('\r\n','')
+
+class ApiProtocol(Protocol):
+
+	def __init__(self):
+		pass
+
+	def parse_cmd(self, data):
+
+		data = data.lower().split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
+		if data[0] != 'get':
+			return False
+
+		data = data[1][1:].split('/')
+
+		if data[0] != 'api':
+			return False
+
+		if data[1] not in api_list:			#supported {command} in api_list
+			return False
+		
+		print '<<< API call'
+
+		my_cls = ApiProtocol()					#call the command from api_list directly
+		api_call = getattr(my_cls, data[1])	
+		api_call(data[2])
+		
+		return
+
+
+	def block_data(self, data=None):				# if no data = last block ([-1])
+		print '<<< API block data call', data
+		return
+
+	def stats(self, data=None):
+		print '<<< API stats call', data
+		return
+
+	def tx(self, data=None):
+		print '<<< API tx/hash call', data
+		return
+
+	def address(self, data=None):
+		print '<<< API address call', data
+		return
+
+
+	def dataReceived(self, data=None):
+		self.parse_cmd(data)
+		self.transport.loseConnection()
+	
+	def connectionMade(self):
+		self.factory.connections += 1
+		print '>>> new API connection'
+
+	def connectionLost(self, reason):
+		print '<<< API disconnected'
+		self.factory.connections -= 1
+
+
 
 
 
@@ -167,6 +233,7 @@ class WalletProtocol(Protocol):
 		else:
 			if self.transport.getPeer().host == '127.0.0.1':
 				print '>>> new local connection', str(self.factory.connections), self.transport.getPeer()
+				# welcome functions to run here..
 			else:
 				self.transport.loseConnection()
 				print 'Unauthorised remote login attempt..'
@@ -667,11 +734,18 @@ class WalletFactory(ServerFactory):
 		self.connections = 0
 		self.last_cmd = 'help'
 
+class ApiFactory(ServerFactory):
+
+	protocol = ApiProtocol
+
+	def __init__(self):
+		self.connections = 0
+		pass
 
 if __name__ == "__main__":
  
 	start_time = time.time()
-	print 'QRL blockchain ledger v 0.00'
+	print 'QRL blockchain ledger v 0.01'
 
 	print 'Reading chain..'
 	chain.m_load_chain()
@@ -689,9 +763,11 @@ if __name__ == "__main__":
 	print '>>>Listening..'
 	
 	f = p2pFactory()
+	api = ApiFactory()
 
 	reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	reactor.listenTCP(9000, f)
+	reactor.listenTCP(80, api)
 
 	print '<<<Connecting to nodes in peer.dat'
 

@@ -118,7 +118,7 @@ def GEN(SEED,i,l=32):                #generates l: 256 bit PRF hexadecimal strin
     z = HMAC_DRBG(SEED)
     for x in range(i):
         y = z.generate(l)
-    return hexlify(y)
+    return y
 
 def GEN_range(SEED, start_i, end_i, l=32):      #returns start -> end iteration of hex PRF (inclusive at both ends)
     if start_i < 1:
@@ -197,10 +197,11 @@ class XMSS():
             signatures = 4986
         self.signatures = signatures        #number of OTS keypairs in tree to generate: n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
         self.remaining = signatures
-        # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
         
+        # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
         self.SEED, self.public_SEED, self.private_SEED = new_keys(SEED)
-
+        self.hexpublic_SEED = hexlify(self.public_SEED)
+        self.hexprivate_SEED = hexlify(self.private_SEED)
         # create the mnemonic..
         self.hexSEED = hexlify(self.SEED) 
         self.mnemonic = seed_to_mnemonic(self.SEED)
@@ -214,7 +215,7 @@ class XMSS():
         self.address_long = 'Q'+sha256(''.join(self.catPK))+sha256(sha256(''.join(self.catPK)))[:4]
 
         # derived from SEED
-        self.PK_short = [self.root,hexlify(self.public_SEED)]
+        self.PK_short = [self.root, hexlify(self.public_SEED)]
         self.catPK_short = self.root+hexlify(self.public_SEED)
         self.address = 'Q'+sha256(self.catPK_short)+sha256(sha256(self.catPK_short))[:4]
 
@@ -269,10 +270,10 @@ class XMSS():
         return i, s, auth_route, i_bms, self.pk(i), self.PK_short
 
     def VERIFY_long(self, msg, SIG):                                     #verify xmss sig
-        return xmss_verify(msg, SIG)
+        return xmss_verify_long(msg, SIG)
 
     def VERIFY(self, msg, SIG):                               #verify an xmss sig with shorter PK
-        return xmss_verify_short(msg, SIG)
+        return xmss_verify(msg, SIG)
 
     def address_add(self, i=None):                           #derive new address from an xmss tree using the same SEED but i base leaves..allows deterministic address creation
         if i==None: 
@@ -467,7 +468,7 @@ def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
 # verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
 # SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
 
-def xmss_verify(msg, SIG):
+def xmss_verify_long(msg, SIG):
 
     if verify_wpkey(SIG[1], msg, SIG[4]) == False:
             return False
@@ -478,8 +479,9 @@ def xmss_verify(msg, SIG):
     return True
 
 # same function but verifies using shorter signature where PK: {root, hex(public_SEED)}
+# main verification function..
 
-def xmss_verify_short(msg, SIG):
+def xmss_verify(msg, SIG):
 
     if verify_wpkey(SIG[1], msg, SIG[4]) == False:
             return False
