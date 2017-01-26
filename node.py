@@ -19,7 +19,7 @@ from merkle import sha256
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
-api_list = ['block_data','stats', 'txhash', 'address', 'empty']
+api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx']
 
 
 def parse(data):
@@ -89,8 +89,12 @@ class ApiProtocol(Protocol):
 
 		return
 
+	def last_tx(self):
+		print '<<< API last_tx call'
+		return chain.last_tx()
+
 	def empty(self, data=None):
-		error = {'status': 'Error','error' : 'no data supplied'}
+		error = {'status': 'Error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx'}
 		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
@@ -109,7 +113,7 @@ class ApiProtocol(Protocol):
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'uptime': str(time.time()-start_time), 'blockheight' : str(chain.m_blockheight()), 'nodes' : str(len(f.peers)) }
+		net_stats = {'uptime': str(time.time()-start_time), 'blockheight' : str(chain.m_blockheight()), 'nodes' : str(len(f.peers)+1) }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -239,7 +243,7 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, json_block, json_search, hrs, hrs_check, mining, getinfo, blockheight or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, mempool, json_block, json_search, hrs, hrs_check, mining, getinfo, blockheight or getnewaddress'+'\r\n')
 
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()

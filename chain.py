@@ -239,7 +239,7 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
 				return json_print_telnet(tx_new)
 	print txhash, 'does not exist in memory pool or local blockchain..'
-	err = {'status' : 'Error', 'txhash' : txhash}
+	err = {'status' : 'Error', 'error' : 'txhash not found', 'method' : 'txhash', 'parameter' : txhash}
 	return json_print_telnet(err)
 	#return False
 
@@ -291,9 +291,28 @@ def search_address(address):
 		addr['state']['transactions'] = str(len(addr['transactions']))
 	
 	if addr == {'transactions': {}}:
-		addr = {'status': 'error', 'error' : 'address not found'}
+		addr = {'status': 'error', 'error' : 'address not found', 'method' : 'address', 'parameter' : address}
 
 	return json_print_telnet(addr)
+
+# find last tx in the blockchain
+
+def last_tx():
+
+	if len(transaction_pool) > 0:
+		last_tx = transaction_pool[-1]
+		last_tx.confirmations = 'unconfirmed'
+		return json_print_telnet(last_tx)
+
+	for x in range(m_blockheight(),0,-1):
+		if m_blockchain[x].blockheader.number_transactions > 0:
+			last_tx = m_blockchain[x].transactions[-1]	
+			last_tx.block = m_blockchain[x].blockheader.blocknumber
+			last_tx.timestamp = m_blockchain[x].blockheader.timestamp
+			last_tx.confirmations = m_blockheight()-m_blockchain[x].blockheader.blocknumber
+			return json_print_telnet(last_tx)
+	error = {'status': 'error', 'error' : 'no tx found', 'method' : 'last_tx'}
+	return json_print_telnet(error)
 
 def search(txcontains, long=1):
 	for tx in transaction_pool:
