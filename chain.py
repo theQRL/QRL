@@ -233,9 +233,9 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 		for tx in block.transactions:
 			if tx.txhash== txhash:
 				tx_new = tx
-				tx_new.block = str(block.blockheader.blocknumber)
+				tx_new.block = block.blockheader.blocknumber
 				tx_new.timestamp = block.blockheader.timestamp
-				tx_new.confirmations = str(m_blockheight()-block.blockheader.blocknumber)
+				tx_new.confirmations = m_blockheight()-block.blockheader.blocknumber
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
 				return json_print_telnet(tx_new)
 	print txhash, 'does not exist in memory pool or local blockchain..'
@@ -255,8 +255,8 @@ def search_address(address):
 		nonce, balance, pubhash_list = state_get_address(address)
 		addr['state'] = {}
 		addr['state']['address'] = address
-		addr['state']['balance'] = str(balance)
-		addr['state']['nonce'] = str(nonce)
+		addr['state']['balance'] = balance
+		addr['state']['nonce'] = nonce
 		#pubhashes used could be put here..
 
 	for tx in transaction_pool:
@@ -278,8 +278,8 @@ def search_address(address):
 			print address, 'found in block ', str(block.blockheader.blocknumber), '..' 
 			addr['transactions'][tx.txhash]= {}
 			addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-			addr['transactions'][tx.txhash]['block'] = str(block.blockheader.blocknumber)
-			addr['transactions'][tx.txhash]['timestamp'] = str(block.blockheader.timestamp)
+			addr['transactions'][tx.txhash]['block'] = block.blockheader.blocknumber
+			addr['transactions'][tx.txhash]['timestamp'] = block.blockheader.timestamp
 			addr['transactions'][tx.txhash]['amount'] = tx.amount
 			addr['transactions'][tx.txhash]['fee'] = tx.fee
 			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
@@ -288,7 +288,7 @@ def search_address(address):
 			addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom	
 
 	if len(addr['transactions']) > 0:
-		addr['state']['transactions'] = str(len(addr['transactions']))
+		addr['state']['transactions'] = len(addr['transactions'])
 	
 	if addr == {'transactions': {}}:
 		addr = {'status': 'error', 'error' : 'address not found', 'method' : 'address', 'parameter' : address}
@@ -337,8 +337,8 @@ def last_tx(n=None):
 				for tx in reversed(block.transactions):
 					addr['transactions'][tx.txhash] = {}
  	 				addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-					addr['transactions'][tx.txhash]['block'] = str(block.blockheader.blocknumber)
-					addr['transactions'][tx.txhash]['timestamp'] = str(block.blockheader.timestamp)
+					addr['transactions'][tx.txhash]['block'] = block.blockheader.blocknumber
+					addr['transactions'][tx.txhash]['timestamp'] = block.blockheader.timestamp
 					addr['transactions'][tx.txhash]['amount'] = tx.amount
 					n-=1
 					if n == 0:

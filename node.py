@@ -117,7 +117,7 @@ class ApiProtocol(Protocol):
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'uptime': str(time.time()-start_time), 'blockheight' : str(chain.m_blockheight()), 'nodes' : str(len(f.peers)+1) }
+		net_stats = {'uptime': time.time()-start_time, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
