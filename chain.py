@@ -295,24 +295,81 @@ def search_address(address):
 
 	return json_print_telnet(addr)
 
-# find last tx in the blockchain
+# return json info on last n tx in the blockchain
 
-def last_tx():
+def last_tx(n=None):
 
-	if len(transaction_pool) > 0:
-		last_tx = transaction_pool[-1]
-		last_tx.confirmations = 'unconfirmed'
-		return json_print_telnet(last_tx)
+	addr = {}
+	addr['transactions'] = {}
 
-	for x in range(m_blockheight(),0,-1):
-		if m_blockchain[x].blockheader.number_transactions > 0:
-			last_tx = m_blockchain[x].transactions[-1]	
-			last_tx.block = m_blockchain[x].blockheader.blocknumber
-			last_tx.timestamp = m_blockchain[x].blockheader.timestamp
-			last_tx.confirmations = m_blockheight()-m_blockchain[x].blockheader.blocknumber
-			return json_print_telnet(last_tx)
-	error = {'status': 'error', 'error' : 'no tx found', 'method' : 'last_tx'}
-	return json_print_telnet(error)
+	error = {'status': 'error', 'error' : 'invalid argument', 'method' : 'last_tx', 'parameter' : n}
+
+	if not n:
+		n = 1
+
+	try: 	n = int(n)
+ 	except: return json_print_telnet(error)
+
+ 	if n <= 0 or n > 20:
+ 		return json_print_telnet(error)
+
+ 	if len(transaction_pool) != 0:
+ 		if n-len(transaction_pool) >=0:		# request bigger than tx in pool
+ 			z = len(transaction_pool)
+ 			n = n-len(transaction_pool)
+ 		elif n-len(transaction_pool) <=0:	# request smaller than tx in pool..
+ 			z = n
+ 			n = 0
+ 	
+ 	 	for tx in reversed(transaction_pool[-z:]):
+ 	 		addr['transactions'][tx.txhash] = {}
+ 	 		addr['transactions'][tx.txhash]['txhash'] = tx.txhash
+			addr['transactions'][tx.txhash]['block'] = str(block.blockheader.blocknumber)
+			addr['transactions'][tx.txhash]['timestamp'] = str(block.blockheader.timestamp)
+			addr['transactions'][tx.txhash]['amount'] = tx.amount
+		
+	for block in reversed(m_blockchain):
+			if len(block.transactions) > 0:
+				for tx in reversed(block.transactions):
+					addr['transactions'][tx.txhash] = {}
+ 	 				addr['transactions'][tx.txhash]['txhash'] = tx.txhash
+					addr['transactions'][tx.txhash]['block'] = str(block.blockheader.blocknumber)
+					addr['transactions'][tx.txhash]['timestamp'] = str(block.blockheader.timestamp)
+					addr['transactions'][tx.txhash]['amount'] = tx.amount
+					n-=1
+					if n == 0:
+						return json_print_telnet(addr)
+
+# return json info on last n blocks
+
+
+def last_block(n=None):
+
+	if not n:
+		n = 1
+
+	error = {'status': 'error', 'error' : 'invalid argument', 'method' : 'last_block', 'parameter' : n}
+
+	try: 	n=int(n)
+	except: return json_print_telnet(error)	
+
+	if n <= 0 or n > 20:
+		return json_print_telnet(error)
+
+	lb = m_blockchain[-n:]
+
+	last_blocks = {}
+	last_blocks['blocks'] = {}
+
+	for block in reversed(lb):
+
+		last_blocks['blocks'][block.blockheader.blocknumber] = {}
+		last_blocks['blocks'][block.blockheader.blocknumber]['blocknumber'] = block.blockheader.blocknumber
+		last_blocks['blocks'][block.blockheader.blocknumber]['blockhash'] = block.blockheader.prev_blockheaderhash
+		last_blocks['blocks'][block.blockheader.blocknumber]['number transactions'] = block.blockheader.number_transactions
+		last_blocks['blocks'][block.blockheader.blocknumber]['timestamp'] = block.blockheader.timestamp
+
+	return json_print_telnet(last_blocks)
 
 def search(txcontains, long=1):
 	for tx in transaction_pool:
