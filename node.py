@@ -19,7 +19,7 @@ from merkle import sha256
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 
-api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx']
+api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block']
 
 
 def parse(data):
@@ -62,7 +62,7 @@ class ApiProtocol(Protocol):
 			data[1] = 'empty'
 
 		if data[1].lower() not in api_list:			#supported {command} in api_list
-			error = {'status': 'Error', 'error': 'supported method not supplied', 'parameter' : data[1] }
+			error = {'status': 'error', 'error': 'supported method not supplied', 'parameter' : data[1] }
 			self.transport.write(chain.json_print_telnet(error))
 			return False
 		
@@ -89,16 +89,20 @@ class ApiProtocol(Protocol):
 
 		return
 
-	def last_tx(self):
+	def last_block(self, data=None):
+		print '<<< API last_block call'
+		return chain.last_block(data)
+
+	def last_tx(self, data=None):
 		print '<<< API last_tx call'
-		return chain.last_tx()
+		return chain.last_tx(data)
 
 	def empty(self, data=None):
-		error = {'status': 'Error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx'}
+		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block'}
 		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
-		error = {'status': 'Error', 'error' : 'block not found', 'method': 'block_data', 'parameter' : data}
+		error = {'status': 'error', 'error' : 'block not found', 'method': 'block_data', 'parameter' : data}
 		print '<<< API block data call', data	
 		if not data:
 			return chain.json_print_telnet(chain.m_get_last_block())
@@ -662,8 +666,8 @@ class p2pProtocol(Protocol):
 						peer.transport.write(self.wrap_message(chain.json_bytestream_tx(tx)))
 		else:
 				chain.remove_tx_from_pool(tx)
-				print '>>>TX',tx.txhash, ' invalid - closing connection to ', self.transport.getPeer().host
-				self.transport.loseConnection()
+				print '>>>TX',tx.txhash, 'invalid state validation failed..' #' invalid - closing connection to ', self.transport.getPeer().host
+				#self.transport.loseConnection()
 		return
 
 

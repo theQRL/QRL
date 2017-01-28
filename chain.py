@@ -324,10 +324,14 @@ def last_tx(n=None):
  	 	for tx in reversed(transaction_pool[-z:]):
  	 		addr['transactions'][tx.txhash] = {}
  	 		addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-			addr['transactions'][tx.txhash]['block'] = str(block.blockheader.blocknumber)
-			addr['transactions'][tx.txhash]['timestamp'] = str(block.blockheader.timestamp)
+			addr['transactions'][tx.txhash]['block'] = 'unconfirmed'
+			addr['transactions'][tx.txhash]['timestamp'] = 'unconfirmed'
 			addr['transactions'][tx.txhash]['amount'] = tx.amount
 		
+		if n == 0:
+			return json_print_telnet(addr)
+
+
 	for block in reversed(m_blockchain):
 			if len(block.transactions) > 0:
 				for tx in reversed(block.transactions):
