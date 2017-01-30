@@ -199,7 +199,7 @@ def seed_to_mnemonic(SEED):
 
 class XMSS():
     def __init__(self, signatures, SEED=None):
-        self.type = 'xmss'
+        self.type = 'XMSS'
         self.index = 0
         if signatures > 4986:               #after this we need to update seed for PRF..
             signatures = 4986
@@ -237,10 +237,14 @@ class XMSS():
     def set_index(self,i):      #set the index
         self.index = i
 
-    def sk(self, i=0):          #return OTS private key at position i
+    def sk(self, i=None):          #return OTS private key at position i
+        if i==None:
+            i = self.index
         return self.privs[i]
 
-    def pk(self, i=0):          #return OTS public key at position i
+    def pk(self, i=None):          #return OTS public key at position i
+        if i==None:
+            i = self.index
         return self.pubs[i]
 
     def auth_route(self, i=0):                                      #calculate auth route for keypair i
@@ -501,7 +505,6 @@ def xmss_verify(msg, SIG):
 
 # l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the randomly generated bm array.
 # where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e 0,8), and are 2 bm's per layer in tree, r + l
-# need to add code to create bm[] from seed.
 
 def l_bm():
     bm = []

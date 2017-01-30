@@ -3,23 +3,21 @@
 # 1)
 # more sophisticated block tracking to enable chain split/fork to be identified and to ensure orphan solo chains do not appear
 # try to abstract the node behaviour away from protocol to the factory whilst keeping the rules simple.
-# 2)
-# correct currency unit handling..need to use big int with checks rather than a float..
-# 3)
-# sort out the POW algo occasional errors..
+
+# 2) introduce simple POS algo based upon memory pool ordering..
 
 __author__ = 'pete'
 
 import time, struct, random
 import chain, wallet
 
-from twisted.internet.protocol import ServerFactory, Protocol #, ClientFactory
+from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
 from merkle import sha256
 
-cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'hrs', 'hrs_check', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
-
-api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block']
+cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+# removed:  'hrs', 'hrs_check'
+api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist']
 
 
 def parse(data):
@@ -34,7 +32,7 @@ class ApiProtocol(Protocol):
 
 		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
 		
-		print data
+		#print data
 
 		if data[0] != 'GET' and data[0] != 'OPTIONS':
 			return False
@@ -89,6 +87,10 @@ class ApiProtocol(Protocol):
 
 		return
 
+	def richlist(self,data=None):
+		print '<<< API richlist call'
+		return chain.richlist(data)
+
 	def last_block(self, data=None):
 		print '<<< API last_block call'
 		return chain.last_block(data)
@@ -98,7 +100,7 @@ class ApiProtocol(Protocol):
 		return chain.last_tx(data)
 
 	def empty(self, data=None):
-		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block'}
+		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block, richlist'}
 		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
@@ -117,7 +119,7 @@ class ApiProtocol(Protocol):
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'uptime': time.time()-start_time, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1 }
+		net_stats = {'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply() }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -247,8 +249,8 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, mempool, json_block, json_search, hrs, hrs_check, mining, getinfo, blockheight or getnewaddress'+'\r\n')
-
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, mempool, json_block, json_search, mining, getinfo, blockheight or getnewaddress'+'\r\n')
+				#removed 'hrs, hrs_check,'
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
 
@@ -319,22 +321,27 @@ class WalletProtocol(Protocol):
 
 	def getnewaddress(self, args):
 		if not args or len(args) > 2:
-			self.transport.write('>>> Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
-			self.transport.write('>>> i.e. getnewaddress 196 WOTS'+'\r\n')
+			self.transport.write('>>> Usage: getnewaddress <n> <type (XMSS, WOTS or LDOTS)>'+'\r\n')
+			self.transport.write('>>> i.e. getnewaddress 4096 XMSS'+'\r\n')
 			self.transport.write('>>> or: getnewaddress 128 LDOTS'+'\r\n')
 			self.transport.write('>>> (new address creation can take a while, please be patient..)'+'\r\n')
 			return 
 		else:
 			try:	int(args[0])
 			except:
-					self.transport.write('>>> Invalid number of signatures. Usage: getnewaddress <n signatures> <type (WOTS or LDOTS)>'+'\r\n')
-					self.transport.write('>>> i.e. getnewaddress 196 WOTS'+'\r\n')
+					self.transport.write('>>> Invalid number of signatures. Usage: getnewaddress <n signatures> <type (XMSS, WOTS or LDOTS)>'+'\r\n')
+					self.transport.write('>>> i.e. getnewaddress 4096 XMSS'+'\r\n')
 					return
 
-		if args[1] != 'WOTS' and args[1] != 'wots' and args[1] != 'LDOTS' and args[1] != 'ldots' and args[1] != 'LD':
-			self.transport.write('>>> Invalid signature address type. Usage: getnewaddress <n> <type (WOTS or LDOTS)>'+'\r\n')
-			self.transport.write('>>> i.e. getnewaddress 128 LDOTS'+'\r\n')
+		#SHORTEN WITH args[1].upper() 
+
+		if args[1] != 'XMSS' and args[1] != 'xmss' and args[1] != 'WOTS' and args[1] != 'wots' and args[1] != 'LDOTS' and args[1] != 'ldots' and args[1] != 'LD':
+			self.transport.write('>>> Invalid signature address type. Usage: getnewaddress <n> <type (XMSS, WOTS or LDOTS)>'+'\r\n')
+			self.transport.write('>>> i.e. getnewaddress 4096 XMSS'+'\r\n')
 			return
+
+		if args[1] == 'xmss':
+			args[1] = 'XMSS'
 
 		if args[1] == 'wots':
 			args[1] = 'WOTS'
@@ -342,16 +349,23 @@ class WalletProtocol(Protocol):
 		if args[1] == 'ldots' or args[1] == 'LD':
 			args[1] = 'LDOTS'
 
-		if int(args[0]) > 256:
+		if int(args[0]) > 256 and args[1] != 'XMSS':
 			self.transport.write('>>> Try a lower number of signatures or you may be waiting a very long time...'+'\r\n')
 			return
 
 		self.transport.write('>>> Creating address..please wait'+'\r\n')
 		addr = wallet.getnewaddress(int(args[0]), args[1])
 
-		self.transport.write('>>> Keypair type: '+''.join(addr[1][0].type+'\r\n'))
-		self.transport.write('>>> Signatures possible with address: '+str(len(addr[1]))+'\r\n')
-		self.transport.write('>>> Address: '+''.join(addr[0])+'\r\n')
+		if type(addr[1]) == list:
+			self.transport.write('>>> Keypair type: '+''.join(addr[1][0].type+'\r\n'))
+			self.transport.write('>>> Signatures possible with address: '+str(len(addr[1]))+'\r\n')
+			self.transport.write('>>> Address: '+''.join(addr[0])+'\r\n')
+
+		else:	#xmss
+			self.transport.write('>>> Keypair type: '+''.join(addr[1].type+'\r\n'))
+			self.transport.write('>>> Signatures possible with address: '+str(addr[1].signatures)+'\r\n')
+			self.transport.write('>>> Address: '+addr[1].address+'\r\n')
+
 		self.transport.write(">>> type 'savenewaddress' to append to wallet file"+'\r\n')
 		self.factory.newaddress = addr
 		return
@@ -395,7 +409,8 @@ class WalletProtocol(Protocol):
 					return	
 			args[1] = int(args[1])
 		
-		balance = chain.state_balance(wallet.f_read_wallet()[int(args[0])][0])
+		#balance = chain.state_balance(wallet.f_read_wallet()[int(args[0])][0])
+		balance = chain.state_balance(chain.my[int(args[0])][0])
 
 		try: int(args[2])
 		except: 
@@ -406,11 +421,11 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
 				return
 
-		(tx, msg) = chain.create_my_tx(int(args[0]), args[1], int(args[2]))
+		(tx, msg) = chain.create_my_tx(txfrom=int(args[0]), txto=args[1], n=int(args[2]))
 		self.transport.write(msg+'\r\n')
 		if tx is False:
 				return
-				
+		
 		#print 'new local tx: ', tx
 		f.send_tx_to_peers(tx)
 		self.transport.write('>>> '+str(tx.txhash))
@@ -503,7 +518,7 @@ class p2pProtocol(Protocol):
 		for ip in data:
 				new_ips.append(ip.encode('latin1'))
 		peers_list = chain.state_get_peers()
-		print self.transport.getPeer().host, 'peers: ', new_ips
+		print self.transport.getPeer().host, 'peers data received: ', new_ips
 		for node in new_ips:
 				if node not in peers_list:
 					if node != self.transport.getHost().host:
@@ -609,12 +624,14 @@ class p2pProtocol(Protocol):
 		self.factory.connections -= 1
 		print self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections) #, reason 
 		self.factory.peers.remove(self)
+		if self.factory.connections == 0:
+			f.connect_peers()
 
 	def recv_block(self, json_block_obj):
 		try: block = chain.json_decode_block(json_block_obj)
 		except:
 				print 'block rejected - unable to decode serialised data - closing connection to -', self.transport.getPeer().host
-				self.transport.loseConnection()
+				#self.transport.loseConnection()
 				return
 
 		for b in chain.m_blockchain[-5:-1]:	#non functional
@@ -645,6 +662,9 @@ class p2pProtocol(Protocol):
 				return
 
 	def recv_tx(self, json_tx_obj):
+		
+		print chain.json_decode_tx(json_tx_obj)
+
 		try: tx = chain.json_decode_tx(json_tx_obj)
 		except: 
 				print 'tx rejected - unable to decode serialised data - closing connection'
@@ -798,6 +818,7 @@ class ApiFactory(ServerFactory):
 
 	def __init__(self):
 		self.connections = 0
+		self.api = 1
 		pass
 
 if __name__ == "__main__":
@@ -825,7 +846,7 @@ if __name__ == "__main__":
 
 	reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	reactor.listenTCP(9000, f)
-	reactor.listenTCP(80, api)
+	reactor.listenTCP(8080, api)
 
 	print '<<<Connecting to nodes in peer.dat'
 

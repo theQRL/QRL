@@ -2,7 +2,7 @@
 __author__ = 'pete'
 
 import leveldb
-import pickle
+import cPickle as pickle
 
 class DB():
 
@@ -12,8 +12,8 @@ class DB():
 
 	def return_all_addresses(self):
 		addresses = []
-		for k,v in self.db.RangeIter('Q'):					#need a way to zero all the balances prior to rerunnning state_read_chain..
-			if k[0] == 'Q': addresses.append(k)
+		for k,v in self.db.RangeIter('Q'):				
+			if k[0] == 'Q': addresses.append([k,pickle.loads(v)[1]])
 		return addresses
 
 	def total_coin_supply(self):
