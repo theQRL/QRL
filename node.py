@@ -8,7 +8,7 @@
 
 __author__ = 'pete'
 
-import time, struct, random
+import time, struct, random, copy
 import chain, wallet
 
 from twisted.internet.protocol import ServerFactory, Protocol 
@@ -107,19 +107,27 @@ class ApiProtocol(Protocol):
 		error = {'status': 'error', 'error' : 'block not found', 'method': 'block_data', 'parameter' : data}
 		print '<<< API block data call', data	
 		if not data:
-			return chain.json_print_telnet(chain.m_get_last_block())
+			#return chain.json_print_telnet(chain.m_get_last_block())
+			data = chain.m_get_last_block()
+			data1 = copy.deepcopy(data)
+			data1.status = 'ok'
+			return chain.json_print_telnet(data1)
 		try: int(data)														# is the data actually a number?
 		except: 
 			return chain.json_print_telnet(error)
-		js_bk = chain.json_print_telnet(chain.m_get_block(int(data)))
-		if js_bk == 'false':
+		#js_bk = chain.json_print_telnet(chain.m_get_block(int(data)))
+		js_bk = chain.m_get_block(int(data))
+		#if js_bk == 'false':
+		if js_bk == False:
 			return chain.json_print_telnet(error)
 		else:
-			return js_bk
+			js_bk1 = copy.deepcopy(js_bk)
+			js_bk1.status = 'ok'
+			return chain.json_print_telnet(js_bk1)
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply() }
+		net_stats = {'status': 'ok', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply() }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):

@@ -6,8 +6,23 @@
 # remove nonce pre-calculation and leave a simple pubhash collision check. nonce can be added at the point of block validation by miner/staker..
 # prior to testnet reset: set pickle to protocol 2. 
 # clean up createsimpletransaction nonce/stateful stuff..
-# move to big int from amount..
 
+# next todo
+
+# move to big int from amount..
+# same as btc.. simply treat each amount as: amount . 10^8  in the node..
+# the wallet simply divides true amount by 10^8 for display in quanta
+# api also exports in quanta..
+
+# add fees calculation into the state add block + state read chain functions..
+
+# remove nonce checks until block validation..? importance of nonce being in the signature?
+
+# add a coinbase reward for an address given to the miner in each block - in preparation for POS.. like the genesis block we can use a 'state' section for this..
+
+# then reset testnet..
+
+# then POS..
 
 __author__ = 'pete'
 
@@ -334,6 +349,7 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 			tx_new = copy.deepcopy(tx)
 			tx_new.block = 'unconfirmed'
 			tx_new.hexsize = len(json_bytestream(tx_new))
+			tx_new.status = 'ok'
 			return json_print_telnet(tx_new)
 	for block in m_blockchain:
 		for tx in block.transactions:
@@ -344,6 +360,7 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 				tx_new.confirmations = m_blockheight()-block.blockheader.blocknumber
 				tx_new.hexsize = len(json_bytestream(tx_new))
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
+				tx_new.status = 'ok'
 				return json_print_telnet(tx_new)
 	print txhash, 'does not exist in memory pool or local blockchain..'
 	err = {'status' : 'Error', 'error' : 'txhash not found', 'method' : 'txhash', 'parameter' : txhash}
@@ -397,8 +414,12 @@ def search_address(address):
 	if len(addr['transactions']) > 0:
 		addr['state']['transactions'] = len(addr['transactions'])
 	
+
 	if addr == {'transactions': {}}:
 		addr = {'status': 'error', 'error' : 'address not found', 'method' : 'address', 'parameter' : address}
+	else:
+		addr['status'] = 'ok'
+
 
 	return json_print_telnet(addr)
 
@@ -437,6 +458,7 @@ def last_tx(n=None):
 			addr['transactions'][tx.txhash]['type'] = tx.type
 
 		if n == 0:
+			addr['status'] = 'ok'
 			return json_print_telnet(addr)
 
 
@@ -451,6 +473,7 @@ def last_tx(n=None):
 					addr['transactions'][tx.txhash]['type'] = tx.type
 					n-=1
 					if n == 0:
+						addr['status'] = 'ok'
 						return json_print_telnet(addr)
 	return json_print_telnet(error)
 
@@ -483,6 +506,8 @@ def richlist(n=None):			#only feasible while chain is small..
 		rl['richlist'][richlist.index(rich)+1]['address'] = rich[0]
 		rl['richlist'][richlist.index(rich)+1]['balance'] = rich[1]
 
+	rl['status'] = 'ok'
+
 	return json_print_telnet(rl)
 # return json info on last n blocks
 
@@ -513,6 +538,8 @@ def last_block(n=None):
 		last_blocks['blocks'][block.blockheader.blocknumber]['number transactions'] = block.blockheader.number_transactions
 		last_blocks['blocks'][block.blockheader.blocknumber]['timestamp'] = block.blockheader.timestamp
 		last_blocks['blocks'][block.blockheader.blocknumber]['block interval'] = block.blockheader.timestamp - m_blockchain[block.blockheader.blocknumber-1].blockheader.timestamp
+
+	last_blocks['status'] = 'ok'
 
 	return json_print_telnet(last_blocks)
 
