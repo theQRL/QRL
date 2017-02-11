@@ -38,6 +38,8 @@ import cPickle as pickle
 
 global transaction_pool, m_blockchain, my, node_list
 
+global mining_address
+
 node_list = ['86.164.190.159']
 m_blockchain = []
 transaction_pool = []
@@ -48,8 +50,8 @@ db = db.DB()
 print 'loading wallet'
 my = wallet.f_read_wallet()
 wallet.f_load_winfo()
-
-
+mining_address = my[0][1].address
+print 'mining address', mining_address
 
 #classes
 
@@ -86,7 +88,7 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 			self.verify = data.VERIFY(self.txhash, S)
 		# strip this out..
 
-		self.hrs = hrs
+		#self.hrs = hrs
 		
 
 
@@ -107,6 +109,11 @@ class BlockHeader():
 		self.number_transactions = number_transactions
 		self.hashedtransactions = hashedtransactions
 		self.headerhash = sha256(str(self.timestamp)+str(self.difficulty)+self.nonce+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+
+#add this in above once functional..
+
+		self.coinbase = mining_address
+		self.block_reward = 10
 
 
 class CreateBlock():
@@ -173,7 +180,7 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 					self.merkle_path.append([''.join(pair).encode('latin1')])
 			self.txfrom = json_obj['txfrom'].encode('latin1')
 			#if json_obj['hrs']:
-			self.hrs = json_obj['hrs'].encode('latin1')
+			#self.hrs = json_obj['hrs'].encode('latin1')
 		
 		else:	#xmss
 
@@ -235,7 +242,7 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 			elif len(PK) == 168:
 					self.PK = ast.literal_eval(PK)
 			#strip out later
-			self.hrs = json_obj['hrs'].encode('latin1')
+			#self.hrs = json_obj['hrs'].encode('latin1')
 
 
 class ReCreateBlock():						#recreate block class from JSON variables for processing
@@ -258,6 +265,9 @@ class ReCreateBlockHeader():
 		self.hashedtransactions = json_blockheader['hashedtransactions'].encode('latin1')
 		self.blocknumber = json_blockheader['blocknumber']
 		self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
+
+		self.coinbase = json_blockheader['coinbase'].encode('latin1')
+		self.block_reward = json_blockheader['block_reward']
 
 # address functions
 
@@ -826,14 +836,14 @@ def state_add_block(block):
 
 	st1 = []	
 	st2 = []
-	st3 = []
+	#st3 = []
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
-		if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#if hrs then get balance from actual txto..
-			st2.append(state_get_address(state_hrs(tx.txto)))
-		else:
-			st2.append(state_get_address(tx.txto))
-		st3.append(state_hrs(tx.hrs))
+		#if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#if hrs then get balance from actual txto..
+		#	st2.append(state_get_address(state_hrs(tx.txto)))
+		#else:
+		st2.append(state_get_address(tx.txto))
+		#st3.append(state_hrs(tx.hrs))
 
 	y = 0
 	
@@ -869,14 +879,14 @@ def state_add_block(block):
 			break
 
 		#hrs checks for tx validity, adds tx.hrs string to statedb if valid..
-		if len(tx.hrs) != 0:
-			if state_hrs(tx.hrs) is not False:
-				print 'Invalid hrs string (already associated with another Q-address'
-				break
-			if tx.hrs[0] == 'Q':
-				print 'Invalid hrs string (begins with Q)', tx.txhash
-				break
-			db.put('hrs'+tx.hrs, tx.txfrom)
+		#if len(tx.hrs) != 0:
+		#	if state_hrs(tx.hrs) is not False:
+		#		print 'Invalid hrs string (already associated with another Q-address'
+		#		break
+		#	if tx.hrs[0] == 'Q':
+		#		print 'Invalid hrs string (begins with Q)', tx.txhash
+		#		break
+		#	db.put('hrs'+tx.hrs, tx.txfrom)
 
 		# commit new changes to statedb for txfrom, txto (which could be a hrs->actual txto)
 
@@ -885,14 +895,16 @@ def state_add_block(block):
 		s1[2].append(pubhash)
 		db.put(tx.txfrom, s1)
 
-		if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#update the actual balance of txto not hrs
-			to = state_hrs(tx.txto)
-		else:
-			to = tx.txto
+		#if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#update the actual balance of txto not hrs
+		#	to = state_hrs(tx.txto)
+		#else:
+		#	to = tx.txto
 	
-		s2 = state_get_address(to)
+		#s2 = state_get_address(to)
+		s2 = state_get_address(tx.txto)
 		s2[1] = s2[1]+tx.amount
-		db.put(to, s2)
+		#db.put(to, s2)
+		db.put(tx.txto, s2)
 
 		y+=1
 
@@ -903,10 +915,10 @@ def state_add_block(block):
 		for x in range(len(block.transactions)):
 			db.put(block.transactions[x].txfrom, st1[x])
 			db.put(block.transactions[x].txto, st2[x])
-			if st3[x] == False:									
-				pass
-			else:
-				db.put('hrs'+block.transactions[x].hrs, st3[x])			#only revert write hrs into state_db if there is an address entry previously..
+			#if st3[x] == False:									
+			#	pass
+			#else:
+			#	db.put('hrs'+block.transactions[x].hrs, st3[x])			#only revert write hrs into state_db if there is an address entry previously..
 		return False
 
 	db.put('blockheight', m_blockheight())
@@ -951,14 +963,14 @@ def state_read_chain():
 				print block.blockheader.headerhash, 'failed state checks'
 				return False
 
-			if len(tx.hrs) != 0:
-				if state_hrs(tx.hrs) is not False:
-					print 'hrs invalid re-use attempt in tx ', tx.txhash
-					return False
-				if tx.hrs[0] == 'Q':
-					print 'hrs invalid, starts with "Q"', tx.txhash
-					return False
-				db.put('hrs'+tx.hrs, tx.txfrom)
+			#if len(tx.hrs) != 0:
+				#if state_hrs(tx.hrs) is not False:
+				#	print 'hrs invalid re-use attempt in tx ', tx.txhash
+				#	return False
+				#if tx.hrs[0] == 'Q':
+				#	print 'hrs invalid, starts with "Q"', tx.txhash
+				#	return False
+				#db.put('hrs'+tx.hrs, tx.txfrom)
 
 			s1[0]+=1
 			s1[1] = s1[1]-tx.amount
@@ -966,13 +978,15 @@ def state_read_chain():
 			db.put(tx.txfrom, s1)							#must be ordered in case tx.txfrom = tx.txto
 
 
-			if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:		#if hrs then need to update state of actual txto..
-				to = state_hrs(tx.txto)
-			else:
-				to = tx.txto
-			s2 = state_get_address(to)
+			#if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:		#if hrs then need to update state of actual txto..
+			#	to = state_hrs(tx.txto)
+			#else:
+			#	to = tx.txto
+			#s2 = state_get_address(to)
+			s2 = state_get_address(tx.txto)
 			s2[1] = s2[1]+tx.amount
-			db.put(to, s2)			
+			#db.put(to, s2)			
+			db.put(tx.txto, s2)
 
 		print block, str(len(block.transactions)), 'tx ', ' passed'
 	db.put('blockheight', m_blockheight())
