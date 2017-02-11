@@ -30,6 +30,7 @@ from merkle import sha256
 #from random import randint
 from time import time
 from operator import itemgetter
+from math import e, log
 
 import os, copy, ast, sys, json, jsonpickle
 import merkle, wallet, db
@@ -290,6 +291,26 @@ def checkaddress(merkle_root, address):
 	if 'Q'+sha256(merkle_root)+sha256(sha256(merkle_root))[:4] == address:
 		return True
 	return False
+
+# block reward calculation
+# decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
+
+def calc_coeff(N_tot, block_tot):
+	# lambda = Ln N_0 - Ln (N(t)) / t
+	return log(N_tot)/block_tot
+
+# calculate remaining emission at block_n: N=total initial coin supply, coeff = decay constant
+
+def remaining_emission(N_tot, block_n):
+	coeff = calc_coeff(21000000, 420480000)
+	# N_t = N_0.e^{-coeff.t} where t = block
+	return N_tot*e**(-coeff*block_n)
+
+# return block reward for the block_n
+
+def block_reward(block_n):
+	return remaining_emission(21000000,block_n-1)-remaining_emission(21000000,block_n)
+
 
 # network serialising functions
 
