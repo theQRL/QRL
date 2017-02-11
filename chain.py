@@ -88,10 +88,7 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 			self.merkle_root = data.root
 			self.verify = data.VERIFY(self.txhash, S)
 		# strip this out..
-
-		#self.hrs = hrs
-		
-
+			#self.hrs  =
 
 def creategenesisblock():
 	return CreateGenesisBlock()
@@ -109,12 +106,15 @@ class BlockHeader():
 		self.prev_blockheaderhash = prev_blockheaderhash
 		self.number_transactions = number_transactions
 		self.hashedtransactions = hashedtransactions
-		self.headerhash = sha256(str(self.timestamp)+str(self.difficulty)+self.nonce+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+		if self.blocknumber == 0:
+			self.coinbase = ''
+			self.block_reward = 0
+		else:	
+			self.coinbase = mining_address
+			self.block_reward = block_reward(self.blocknumber)
+		self.headerhash = sha256(self.coinbase+str(self.block_reward)+str(self.timestamp)+str(self.difficulty)+self.nonce+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
 
-#add this in above once functional..
 
-		self.coinbase = mining_address
-		self.block_reward = 10
 
 
 class CreateBlock():
@@ -294,6 +294,7 @@ def checkaddress(merkle_root, address):
 
 # block reward calculation
 # decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
+# N_tot is less the initial coin supply.
 
 def calc_coeff(N_tot, block_tot):
 	# lambda = Ln N_0 - Ln (N(t)) / t
@@ -1195,12 +1196,13 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 
 	b = block.blockheader
 
+	if b.block_reward != block_reward(b.blocknumber):
+		return False
+
 	if int(sha256(b.prev_blockheaderhash+b.nonce),16) >= 2**b.difficulty:
-		print '0'
 		return False
 	
-	if sha256(str(b.timestamp)+str(b.difficulty)+b.nonce+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
-		print '1'
+	if sha256(b.coinbase+str(b.block_reward)+str(b.timestamp)+str(b.difficulty)+b.nonce+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
 		return False
 
 	if last_block=='default':
@@ -1235,12 +1237,12 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 def wlt():
 	return merkle.numlist(wallet.list_addresses())
 
-def create_my_tx(txfrom, txto, n, hrs=''):
+def create_my_tx(txfrom, txto, n, fee=0):
 	#my = wallet.f_read_wallet()
 	if isinstance(txto, int):
-		(tx, msg) = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], hrs=hrs)
+		(tx, msg) = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], fee=0)
 	elif isinstance(txto, str):
-		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], hrs=hrs)
+		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], fee=0)
 	if tx is not False:
 		transaction_pool.append(tx)
 		wallet.f_save_winfo()	#need to keep state after tx ..use wallet.info to store index..far faster than loading the 5mb wallet..
