@@ -755,13 +755,13 @@ def state_validate_tx(tx):		#checks new tx validity based upon node statedb and 
 			print 'State validation failed for', tx.txhash,  'because: Insufficient'
 			return False
 
-	if state_hrs(tx.hrs) is not False:				#if false - not used before..so pass..
-		if state_hrs(tx.hrs) != tx.txfrom:			#if another address found in state_db than txfrom then invalid..
-			print 'Human readable string already seen in ledger associated with another address, tx therefore invalid: ', tx.txhash
-			return False
-		if tx.hrs[0] == 'Q':
-			print 'Human readable string invalid for ', tx.txhash
-			return False
+	#if state_hrs(tx.hrs) is not False:				#if false - not used before..so pass..
+	#	if state_hrs(tx.hrs) != tx.txfrom:			#if another address found in state_db than txfrom then invalid..
+	#		print 'Human readable string already seen in ledger associated with another address, tx therefore invalid: ', tx.txhash
+	#		return False
+	#	if tx.hrs[0] == 'Q':
+	#		print 'Human readable string invalid for ', tx.txhash
+	#		return False
 	# nonce and public key can be in the mempool (transaction_pool) and so these must be checked also..
 	# if the tx is new to node then simple check would work. but if we are checking a tx in the transaction_pool, then order has to be correct..
 
@@ -1029,15 +1029,15 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):				#NEED
 			print msg
 			return (False, msg)
 	
-	if len(hrs) != 0:
-		if hrs[0] == 'Q':
-			msg = 'cannot start a human readable string with "Q"'
-			print msg
-			return (False, msg)
-		if state_hrs(hrs) is not False:
-			msg = 'human readable string already associated with another address'
-			print msg
-			return (False, msg)
+	#if len(hrs) != 0:
+	#	if hrs[0] == 'Q':
+	#		msg = 'cannot start a human readable string with "Q"'
+	#		print msg
+	#		return (False, msg)
+	#	if state_hrs(hrs) is not False:
+	#		msg = 'human readable string already associated with another address'
+	#		print msg
+	#		return (False, msg)
 	
 	# signatures remaining is important to check - once all the public keys are used then any funds left will be frozen and unspendable..
 
