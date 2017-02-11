@@ -836,6 +836,8 @@ def state_add_block(block):
 
 	st1 = []	
 	st2 = []
+	st3 = state_get_address(block.blockheader.coinbase)
+	#block_reward = block.blockheader.block_reward
 	#st3 = []
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
@@ -847,7 +849,12 @@ def state_add_block(block):
 
 	y = 0
 	
+	# first the coinbase address is updated
+
+	db.put(block.blockheader.coinbase, [st3[0],st3[1]+block.blockheader.block_reward,st3[2]])
+
 	# cycle through every tx in the new block to check state
+		
 
 	for tx in block.transactions:
 
@@ -919,6 +926,9 @@ def state_add_block(block):
 			#	pass
 			#else:
 			#	db.put('hrs'+block.transactions[x].hrs, st3[x])			#only revert write hrs into state_db if there is an address entry previously..
+
+		db.put(block.blockheader.coinbase, st3)		
+
 		return False
 
 	db.put('blockheight', m_blockheight())
@@ -936,6 +946,11 @@ def state_read_chain():
 	c = m_read_chain()[1:]
 
 	for block in c:
+
+		# update coinbase address state
+		coinbase = state_get_address(block.blockheader.coinbase)
+		coinbase[1]+=block.blockheader.block_reward
+		db.put(block.blockheader.coinbase, coinbase)
 
 		for tx in block.transactions:
 			pub = tx.pub
