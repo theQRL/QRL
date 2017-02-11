@@ -312,7 +312,6 @@ def remaining_emission(N_tot, block_n):
 def block_reward(block_n):
 	return remaining_emission(21000000*100000000,block_n-1)-remaining_emission(21000000*100000000,block_n)
 
-
 # network serialising functions
 
 def json_decode_tx(json_tx):										#recreate transaction class object safely 
@@ -391,8 +390,8 @@ def search_txhash(txhash):				#txhash is unique due to nonce.
 				tx_new.timestamp = block.blockheader.timestamp
 				tx_new.confirmations = m_blockheight()-block.blockheader.blocknumber
 				tx_new.hexsize = len(json_bytestream(tx_new))
-				tx_new.amount = tx_new.amount/100000000
-				tx_new.fee = tx_new.fee/100000000
+				tx_new.amount = tx_new.amount/100000000.000000000
+				tx_new.fee = tx_new.fee/100000000.000000000
 				print txhash, 'found in block',str(block.blockheader.blocknumber),'..'
 				tx_new.status = 'ok'
 				return json_print_telnet(tx_new)
@@ -413,7 +412,7 @@ def search_address(address):
 		nonce, balance, pubhash_list = state_get_address(address)
 		addr['state'] = {}
 		addr['state']['address'] = address
-		addr['state']['balance'] = balance/100000000
+		addr['state']['balance'] = balance/100000000.000000000
 		addr['state']['nonce'] = nonce
 		#pubhashes used could be put here..
 
@@ -423,8 +422,8 @@ def search_address(address):
 			addr['transactions'][tx.txhash] = {}
 			addr['transactions'][tx.txhash]['txhash'] = tx.txhash
 			addr['transactions'][tx.txhash]['block'] = 'unconfirmed'
-			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000
-			addr['transactions'][tx.txhash]['fee'] = tx.fee/100000000
+			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000.000000000
+			addr['transactions'][tx.txhash]['fee'] = tx.fee/100000000.000000000
 			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
 			addr['transactions'][tx.txhash]['ots key'] = tx.ots_key
 			addr['transactions'][tx.txhash]['txto'] = tx.txto
@@ -438,8 +437,8 @@ def search_address(address):
 			addr['transactions'][tx.txhash]['txhash'] = tx.txhash
 			addr['transactions'][tx.txhash]['block'] = block.blockheader.blocknumber
 			addr['transactions'][tx.txhash]['timestamp'] = block.blockheader.timestamp
-			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000
-			addr['transactions'][tx.txhash]['fee'] = tx.fee/100000000
+			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000.000000000
+			addr['transactions'][tx.txhash]['fee'] = tx.fee/100000000.000000000
 			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
 			addr['transactions'][tx.txhash]['ots key'] = tx.ots_key
 			addr['transactions'][tx.txhash]['txto'] = tx.txto
@@ -488,7 +487,7 @@ def last_tx(n=None):
  	 		addr['transactions'][tx.txhash]['txhash'] = tx.txhash
 			addr['transactions'][tx.txhash]['block'] = 'unconfirmed'
 			addr['transactions'][tx.txhash]['timestamp'] = 'unconfirmed'
-			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000
+			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000.000000000
 			addr['transactions'][tx.txhash]['type'] = tx.type
 
 		if n == 0:
@@ -503,7 +502,7 @@ def last_tx(n=None):
  	 				addr['transactions'][tx.txhash]['txhash'] = tx.txhash
 					addr['transactions'][tx.txhash]['block'] = block.blockheader.blocknumber
 					addr['transactions'][tx.txhash]['timestamp'] = block.blockheader.timestamp
-					addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000
+					addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000.000000000
 					addr['transactions'][tx.txhash]['type'] = tx.type
 					n-=1
 					if n == 0:
@@ -538,7 +537,7 @@ def richlist(n=None):			#only feasible while chain is small..
 	for rich in richlist[:n]:
 		rl['richlist'][richlist.index(rich)+1] = {}
 		rl['richlist'][richlist.index(rich)+1]['address'] = rich[0]
-		rl['richlist'][richlist.index(rich)+1]['balance'] = rich[1]/100000000
+		rl['richlist'][richlist.index(rich)+1]['balance'] = rich[1]/100000000.000000000
 
 	rl['status'] = 'ok'
 

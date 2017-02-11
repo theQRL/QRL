@@ -121,9 +121,9 @@ def list_addresses():
 		#add state check for 
 		
 		if type(address[1]) == list:	
-			list_addr.append([address[0], 'type:', address[1][0].type, 'balance: '+str(chain.state_balance(address[0])/100000000)+'('+str(chain.state_balance(address[0])/100000000+x/100000000)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1][0].signatures-chain.state_nonce(address[0]))+' ('+str(address[1][0].signatures-chain.state_nonce(address[0])-y)+'/'+str(address[1][0].signatures)+')' ])
+			list_addr.append([address[0], 'type:', address[1][0].type, 'balance: '+str(chain.state_balance(address[0])/100000000.000000000)+'('+str(chain.state_balance(address[0])/100000000.000000000+x/100000000.000000000)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1][0].signatures-chain.state_nonce(address[0]))+' ('+str(address[1][0].signatures-chain.state_nonce(address[0])-y)+'/'+str(address[1][0].signatures)+')' ])
 		else:	#xmss
-			list_addr.append([address[0], 'type:', address[1].type, 'balance: '+str(chain.state_balance(address[0])/100000000)+'('+str(chain.state_balance(address[0])/100000000+x/100000000)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1].remaining)+' ('+str(address[1].remaining)+'/'+str(address[1].signatures)+')'])
+			list_addr.append([address[0], 'type:', address[1].type, 'balance: '+str(chain.state_balance(address[0])/100000000.000000000)+'('+str(chain.state_balance(address[0])/100000000.000000000+x/100000000.000000000)+')', 'nonce:'+str(chain.state_nonce(address[0]))+'('+str(chain.state_nonce(address[0])+y)+')', 'remaining signatures: '+str(address[1].remaining)+' ('+str(address[1].remaining)+'/'+str(address[1].signatures)+')'])
 
 	return list_addr
 

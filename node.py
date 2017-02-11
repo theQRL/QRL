@@ -123,12 +123,12 @@ class ApiProtocol(Protocol):
 		else:
 			js_bk1 = copy.deepcopy(js_bk)
 			js_bk1.status = 'ok'
-			js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward/100000000
+			js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward/100000000.000000000
 			return chain.json_print_telnet(js_bk1)
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'status': 'ok', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000 }
+		net_stats = {'status': 'ok', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -447,7 +447,7 @@ class WalletProtocol(Protocol):
 		#print 'new local tx: ', tx
 		f.send_tx_to_peers(tx)
 		self.transport.write('>>> '+str(tx.txhash))
-		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount/100000000)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
+		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount/100000000.000000000)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
 		return
 
 	def wallet(self):
