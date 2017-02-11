@@ -123,11 +123,12 @@ class ApiProtocol(Protocol):
 		else:
 			js_bk1 = copy.deepcopy(js_bk)
 			js_bk1.status = 'ok'
+			js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward/100000000
 			return chain.json_print_telnet(js_bk1)
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'status': 'ok', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply() }
+		net_stats = {'status': 'ok', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -420,16 +421,25 @@ class WalletProtocol(Protocol):
 		#balance = chain.state_balance(wallet.f_read_wallet()[int(args[0])][0])
 		balance = chain.state_balance(chain.my[int(args[0])][0])
 
-		try: int(args[2])
+		try: float(args[2])
 		except: 
+				self.transport.write('>>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)'+'\r\n')
+				return
+
+		#args[2] = args[2]*100000000
+		to_send = int(float(args[2])*100000000)
+
+		print 'to_send', str(to_send)
+		print 'balance', str(balance)
+
+		#if balance < args[2]:
+		if balance < to_send:
 				self.transport.write('>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
 				return
 
-		if balance < int(args[2]):
-				self.transport.write('>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
-				return
-
-		(tx, msg) = chain.create_my_tx(txfrom=int(args[0]), txto=args[1], n=int(args[2]))
+		#(tx, msg) = chain.create_my_tx(txfrom=int(args[0]), txto=args[1], n=args[2])
+		(tx, msg) = chain.create_my_tx(txfrom=int(args[0]), txto=args[1], n=to_send)
+		
 		self.transport.write(msg+'\r\n')
 		if tx is False:
 				return
@@ -437,7 +447,7 @@ class WalletProtocol(Protocol):
 		#print 'new local tx: ', tx
 		f.send_tx_to_peers(tx)
 		self.transport.write('>>> '+str(tx.txhash))
-		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
+		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount/100000000)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
 		return
 
 	def wallet(self):
