@@ -52,8 +52,8 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 		self.txfrom = txfrom
 		self.nonce = nonce 
 		self.txto = txto
-		self.amount = amount
-		self.fee = fee
+		self.amount = int(amount)
+		self.fee = int(fee)
 		self.ots_key = ots_key
 		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))	
 
@@ -142,10 +142,10 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 		if self.type != 'XMSS':
 
 			self.nonce = json_obj['nonce']
-			self.fee = json_obj['fee']
+			self.fee = int(json_obj['fee'])
 			self.verify = json_obj['verify']
 			self.merkle_root = json_obj['merkle_root'].encode('latin1')
-			self.amount = json_obj['amount']
+			self.amount = int(json_obj['amount'])
 			pub = json_obj['pub']
 			self.pub = []
 			for key in pub:
@@ -176,7 +176,7 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 		else:	#xmss
 
 			self.nonce = json_obj['nonce']
-			self.fee = json_obj['fee']
+			self.fee = int(json_obj['fee'])
 			self.i_bms = []
 			for layer in json_obj['i_bms']:
 				if len(layer) ==2:
@@ -196,7 +196,7 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 
 			self.verify = json_obj['verify']
 			self.merkle_root = json_obj['merkle_root'].encode('latin1')
-			self.amount = json_obj['amount']
+			self.amount = int(json_obj['amount'])
 			
 			self.pub = []
 			pub = json_obj['pub']
@@ -300,7 +300,7 @@ def remaining_emission(N_tot, block_n):
 # return block reward for the block_n
 
 def block_reward(block_n):
-	return remaining_emission(21000000*100000000,block_n-1)-remaining_emission(21000000*100000000,block_n)
+	return int(remaining_emission(21000000*100000000,block_n-1)-remaining_emission(21000000*100000000,block_n))
 
 # network serialising functions
 
@@ -1188,26 +1188,34 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 	b = block.blockheader
 
 	if b.block_reward != block_reward(b.blocknumber):
+		print 'Block reward incorrect for block: failed validation'
 		return False
 
 	if int(sha256(b.prev_blockheaderhash+b.nonce),16) >= 2**b.difficulty:
+		print 'POW calculation incorrect for block: failed validation'
 		return False
 	
 	if sha256(b.coinbase+str(b.block_reward)+str(b.timestamp)+str(b.difficulty)+b.nonce+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+		print 'Headerhash false for block: failed validation'
 		return False
 
 	if last_block=='default':
 		if m_get_last_block().blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			print 'Headerhash not in sequence: failed validation'
 			return False
 		if m_get_last_block().blockheader.blocknumber != block.blockheader.blocknumber-1:
+			print 'Block numbers out of sequence: failed validation'
 			return False
 	else:
 		if m_get_block(last_block).blockheader.headerhash != block.blockheader.prev_blockheaderhash:
+			print 'Headerhash not in sequence: failed validation'
 			return False
 		if m_get_block(last_block).blockheader.blocknumber != block.blockheader.blocknumber-1:
+			print 'Block numbers out of sequence: failed validation'
 			return False
 
 	if validate_tx_in_block(block, new=new) == False:
+		print 'Block validate_tx_in_block error: failed validation'
 		return False
 
 	txhashes = []
@@ -1215,6 +1223,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		txhashes.append(transaction.txhash)
 
 	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+		print 'Block hashedtransactions error: failed validation'
 		return False
 
 	if verbose==1:
