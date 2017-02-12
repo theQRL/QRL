@@ -9,19 +9,8 @@
 
 # next todo
 
-# move to big int from amount..
-# same as btc.. simply treat each amount as: amount . 10^8  in the node..
-# the wallet simply divides true amount by 10^8 for display in quanta
-# api also exports in quanta..
-
 # add fees calculation into the state add block + state read chain functions..
-
 # remove nonce checks until block validation..? importance of nonce being in the signature?
-
-# add a coinbase reward for an address given to the miner in each block - in preparation for POS.. like the genesis block we can use a 'state' section for this..
-
-# then reset testnet..
-
 # then POS..
 
 __author__ = 'pete'
@@ -37,10 +26,11 @@ import merkle, wallet, db
 
 import cPickle as pickle
 
-global transaction_pool, m_blockchain, my, node_list
+global transaction_pool, m_blockchain, my, node_list, ping_list, last_ping
 
 global mining_address
 
+ping_list =[]
 node_list = ['86.164.190.159']
 m_blockchain = []
 transaction_pool = []

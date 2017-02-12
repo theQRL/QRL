@@ -17,7 +17,7 @@ from merkle import sha256
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
-api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist']
+api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping']
 
 
 def parse(data):
@@ -87,6 +87,16 @@ class ApiProtocol(Protocol):
 
 		return
 
+	def ping(self, data=None):
+		print '<<< API network latency ping call'
+		f.ping_peers()									 # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
+		pings = {}
+		pings['status'] = 'ok'
+		pings['peers'] = {}
+		pings['peers'] = chain.ping_list
+		return chain.json_print_telnet(pings)
+
+
 	def richlist(self,data=None):
 		print '<<< API richlist call'
 		return chain.richlist(data)
@@ -100,7 +110,7 @@ class ApiProtocol(Protocol):
 		return chain.last_tx(data)
 
 	def empty(self, data=None):
-		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block, richlist'}
+		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block, richlist, ping'}
 		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
@@ -150,9 +160,6 @@ class ApiProtocol(Protocol):
 	def connectionLost(self, reason):
 		#print '<<< API disconnected'
 		self.factory.connections -= 1
-
-
-
 
 
 class WalletProtocol(Protocol):
@@ -429,9 +436,6 @@ class WalletProtocol(Protocol):
 		#args[2] = args[2]*100000000
 		to_send = int(float(args[2])*100000000)
 
-		print 'to_send', str(to_send)
-		print 'balance', str(balance)
-
 		#if balance < args[2]:
 		if balance < to_send:
 				self.transport.write('>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address'+'\r\n')
@@ -509,6 +513,15 @@ class p2pProtocol(Protocol):
 					print 'BN request without valid block number', suffix, '- closing connection'
 					self.transport.loseConnection()
 					return
+		elif prefix == 'PO':
+			if suffix[0:2] == 'NG':
+				y = 0
+				for entry in chain.ping_list:
+					if entry['node'] == self.transport.getPeer().host:
+						entry['ping (ms)'] = (time.time()-chain.last_ping)*1000
+						y = 1
+				if y == 0:
+					chain.ping_list.append({'node': self.transport.getPeer().host, 'ping (ms)' : (time.time()-chain.last_ping)*1000})
 
 		elif prefix == 'PI':
 			if suffix[0:2] == 'NG':
@@ -526,7 +539,6 @@ class p2pProtocol(Protocol):
 		else:
 			print 'Data from node not understood - closing connection.'
 			self.transport.loseConnection()
-		
 		return
 
 
@@ -791,6 +803,12 @@ class p2pFactory(ServerFactory):
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_tx(tx)))
 		return
+
+	def ping_peers(self):
+		print '<<<Transmitting network PING'
+		chain.last_ping = time.time()
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('PING'))
 
 	def send_block_to_peers(self, block):
 		print '<<<Transmitting block: ', block.blockheader.headerhash
