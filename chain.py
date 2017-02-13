@@ -16,12 +16,12 @@
 __author__ = 'pete'
 
 from merkle import sha256
-#from random import randint
 from time import time
 from operator import itemgetter
-from math import e, log
+from math import log
 
-import os, copy, ast, sys, json, jsonpickle
+
+import os, copy, ast, sys, json, jsonpickle, decimal
 import merkle, wallet, db
 
 import cPickle as pickle
@@ -31,7 +31,7 @@ global transaction_pool, m_blockchain, my, node_list, ping_list, last_ping
 global mining_address
 
 ping_list =[]
-node_list = ['86.164.190.159']
+node_list = ['104.251.219.145']
 m_blockchain = []
 transaction_pool = []
 
@@ -291,16 +291,21 @@ def calc_coeff(N_tot, block_tot):
 	return log(N_tot)/block_tot
 
 # calculate remaining emission at block_n: N=total initial coin supply, coeff = decay constant
+# need to use decimal as floating point not precise enough on different platforms..
+
+#def remaining_emission(N_tot,block_n):
+#	coeff = calc_coeff(21000000, 420480000)
+	# N_t = N_0.e^{-coeff.t} where t = block
+#	return N_tot*e**(-coeff*block_n)
 
 def remaining_emission(N_tot, block_n):
-	coeff = calc_coeff(21000000*100000000, 420480000)
-	# N_t = N_0.e^{-coeff.t} where t = block
-	return N_tot*e**(-coeff*block_n)
+	coeff = calc_coeff(21000000, 420480000)
+	return decimal.Decimal(N_tot*decimal.Decimal(-coeff*block_n).exp()).quantize(decimal.Decimal('1.00000000'), rounding=decimal.ROUND_HALF_UP)
 
-# return block reward for the block_n
+# return block reward for the block_n 
 
 def block_reward(block_n):
-	return int(remaining_emission(21000000*100000000,block_n-1)-remaining_emission(21000000*100000000,block_n))
+	return int((remaining_emission(21000000, block_n-1)-remaining_emission(21000000, block_n))*100000000)
 
 # network serialising functions
 
@@ -1250,30 +1255,6 @@ def create_my_tx(txfrom, txto, n, fee=0):
 	else:
 		return (False, msg)
 
-#def create_hrs_tx(txfrom, hrs):
-
-	#my = wallet.f_read_wallet()
-#	if isinstance(txfrom, int):
-#		(tx, msg) = createsimpletransaction(txto=my[txfrom][0],txfrom=my[txfrom][0],amount=0, data=my[txfrom][1], hrs=hrs)
-#	elif isinstance(txfrom, str):
-#		return (False, 'failed: txfrom is not an int')
-#	if tx is not False:
-#		transaction_pool.append(tx)
-#		return (tx, msg)
-#	else:
-#		return (False, msg)
-
-
-#def test_tx(n):
-#	for x in range(n):
-#		create_my_tx(randint(0,5), randint(0,5),0.06)
-
-# debugging functions
-
-#def create_some_tx(n):				
-#	for x in range(n):
-#		a,b = wallet.getnewaddress(), wallet.getnewaddress()
-#		transaction_pool.append(createsimpletransaction(a[0],b[0],10,a[1]))
 
 
 
