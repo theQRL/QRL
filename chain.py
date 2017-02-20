@@ -702,15 +702,17 @@ def last_block(n=None):
 def stake_commits(data=None):
 
 	sc = {}
+	sc['status'] = 'ok'
 	sc['commits'] = {}
 
 	for c in stake_commit:
 		#[stake_address, block_number, merkle_hash_tx, commit_hash]
-		sc['commits'][c[1]] = {}
-		sc['commits'][c[1]]['stake_address'] = c[0]
-		sc['commits'][c[1]]['block_number'] = c[1]
-		sc['commits'][c[1]]['merkle_hash_tx'] = c[2]
-		sc['commits'][c[1]]['commit_hash'] = c[3]
+		sc['commits'][str(c[1])+'-'+c[3]] = {}
+		sc['commits'][str(c[1])+'-'+c[3]]['stake_address'] = c[0]
+		sc['commits'][str(c[1])+'-'+c[3]]['block_number'] = c[1]
+		sc['commits'][str(c[1])+'-'+c[3]]['merkle_hash_tx'] = c[2]
+		sc['commits'][str(c[1])+'-'+c[3]]['commit_hash'] = c[3]
+
 
 	return json_print_telnet(sc)
 
@@ -718,14 +720,15 @@ def stake_commits(data=None):
 def stake_reveals(data=None):
 
 	sr = {}
+	sr['status'] = 'ok'
 	sr['reveals'] = {}
 	#chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
 	for c in stake_reveal:
-		sr['reveals'][c[1]] = {}
-		sr['reveals'][c[1]]['stake_address'] = c[0]
-		sr['reveals'][c[1]]['block_number'] = c[1]
-		sr['reveals'][c[1]]['merkle_hash_tx'] = c[2]
-		sr['reveals'][c[1]]['reveal'] = c[3]
+		sr['reveals'][str(c[1])+'-'+c[3]] = {}
+		sr['reveals'][str(c[1])+'-'+c[3]]['stake_address'] = c[0]
+		sr['reveals'][str(c[1])+'-'+c[3]]['block_number'] = c[1]
+		sr['reveals'][str(c[1])+'-'+c[3]]['merkle_hash_tx'] = c[2]
+		sr['reveals'][str(c[1])+'-'+c[3]]['reveal'] = c[3]
 
 	return json_print_telnet(sr)
 

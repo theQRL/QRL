@@ -13,7 +13,7 @@ import chain, wallet
 
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
-from merkle import sha256
+from merkle import sha256, numlist
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
@@ -23,11 +23,25 @@ api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last
 def parse(data):
 		return data.replace('\r\n','')
 
+# pos functions. an asynchronous loop.
+
+# stake list derived from blockchain - seed, stake addresses and their respective hashchain ends, plus block number for beginning of epoch (every 5-10000)
+# stake_list should be a class to more easily throw back data..
+
 def pos_1(data):
+
+	# we arrive here 15s after the last block call..
+
+	# 1. are we stake selector? 
+	# Use chain.pos_block_selector(seed, num_stakers) (via stake_list class) to see if we are selector..
+	# yes) reactor.callLater(3, pos_3)
+	# no) continue on as a stake commit
+
 	print data
 	merkle_tx_hash = chain.pos_block_pool()
 	ch = chain.Hashchain()
 	hashchain_hash = ch.hash(chain.m_blockchain[-1].blockheader.blocknumber)
+	chain.stake_commit.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, sha256(''.join(merkle_tx_hash)+hashchain_hash)])
 	f.send_stake_merkle_tx_hash_commit(merkle_tx_hash, hashchain_hash)
 
 	reactor.callLater(1, pos_2, merkle_tx_hash, hashchain_hash)
@@ -35,10 +49,28 @@ def pos_1(data):
 
 def pos_2(merkle_tx_hash, hashchain_hash):
 	print 'POS reveal'
+	chain.stake_reveal.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, hashchain_hash])
+
 	f.send_stake_merkle_tx_hash_reveal(merkle_tx_hash, hashchain_hash)
+	
 	# here is where we add a late call which can be cancelled with callID.cancel() if the next block has not arrived..
 	return
 
+def pos_3():
+	print 'POS selector commit'
+
+	# here 3s later after pos_1 if selector..
+	# 1. rank the merkle_tx_hash from stake_reveal to select winner..
+	# 2. take winner and construct block
+	# 3. publish send_stake_block_commit()
+	# 4. reactor callLater(1, pos_4, block_obj)
+
+def pos_4():
+	print 'POS selector publish block'
+
+	# 1. chain add block..
+	# 2. publish block..
+	# 3. reactor.callLater(15, pos_1)	(restart the loop)
 
 class ApiProtocol(Protocol):
 
@@ -134,7 +166,7 @@ class ApiProtocol(Protocol):
 		return chain.last_tx(data)
 
 	def empty(self, data=None):
-		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block, richlist, ping'}
+		error = {'status': 'error','error' : 'no method supplied', 'methods available' : 'block_data, stats, txhash, address, last_tx, last_block, richlist, ping, stake_commits, stake_reveals'}
 		return chain.json_print_telnet(error)
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
@@ -561,6 +593,9 @@ class p2pProtocol(Protocol):
 				self.get_peers()
 
 		elif prefix == 'S1':
+				#print '>>> received POS commit from', self.transport.getPeer().host
+				#print numlist(chain.stake_commit)
+
 				z = chain.json_decode(suffix)
 
 				block_number = z['blocknumber']
@@ -568,21 +603,22 @@ class p2pProtocol(Protocol):
 				commit_hash = z['commit'].encode('latin1')
 				merkle_hash = z['merkle_tx_hash_list']
 				merkle_hash_tx = []
-				
-				print 'len', len(merkle_hash)
-				print 'val', merkle_hash
-				if len(merkle_hash) == 64:
-					merkle_hash_tx = z['merkle_tx_hash_list'].encode('latin1')
-				else:
-					for h in merkle_hash:
+
+				for h in merkle_hash:
 						merkle_hash_tx.append(h.encode('latin1'))
 
-				if block_number != chain.m_blockchain[-1].blockheader.blocknumber+1:
-					return
-				
 				for entry in chain.stake_commit:	#already received, do not relay.
 					if entry[3] == commit_hash:
+						#print 'already received..do not relay'
+						#print 'DUP'
 						return
+
+				print '>>> recv POS commit from', self.transport.getPeer().host, stake_address, str(block_number), commit_hash
+
+
+				if block_number != chain.m_blockchain[-1].blockheader.blocknumber+1:
+					print 'rejected, block number wrong', stake_address
+					return
 
 				chain.stake_commit.append([stake_address, block_number, merkle_hash_tx, commit_hash])
 
@@ -592,7 +628,8 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'S2':
-			
+				#print '>>> received POS reveal from', self.transport.getPeer().host
+
 				z = chain.json_decode(suffix)
 
 				block_number = z['blocknumber']
@@ -605,12 +642,21 @@ class p2pProtocol(Protocol):
 				for h in merkle_hash:
 						merkle_hash_tx.append(h.encode('latin1'))
 
-				if block_number != chain.m_blockchain[-1].blockheader.blocknumber+1:
-					return
 
 				for entry in chain.stake_reveal:
 					if entry[3] == reveal:
 						return
+
+				if block_number != chain.m_blockchain[-1].blockheader.blocknumber+1:
+					return
+
+				print '>>> recv POS reveal from', self.transport.getPeer().host, stake_address, str(block_number), reveal
+
+				# validate reveal hash..
+
+				# 1. check that the sha256(''.join(merkle_hash_tx)+reveal) == commit_hash
+				# 2. confirm that reveal hash forward hashes to previous hashchain reveal hash..(may be calculated from staker list - stores the hashchain end..)
+
 
 				chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
 
@@ -775,7 +821,10 @@ class p2pProtocol(Protocol):
 				self.get_m_blockheight_from_connection()	
 				
 				if self.factory.sync == 1:
+										print '**POS commit later 15 (recv block)**'
 										reactor.callLater(15, pos_1, 'POS commit (merkle hash tx)')
+				else:
+					print '**POS commit later 15 (recv block)** - not called as not SYNC'
 
 
 				return
@@ -868,6 +917,7 @@ class p2pFactory(ServerFactory):
 										for peer in self.peers:
 											reactor.callFromThread(peer.get_m_blockheight_from_connection)
 										print 'Mining cycle finished. 2', str(time.time())
+										print '**POS commit call later 15 (mining)...**'
 										reactor.callLater(15, pos_1, 'POS commit (merkle hash tx, mining)')
 										return
 
@@ -909,7 +959,7 @@ class p2pFactory(ServerFactory):
 		z['merkle_tx_hash_list'] = merkle_tx_hash_list
 		z['stake_address'] = chain.mining_address
 		
-		print z
+		#print z
 
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('S1'+chain.json_encode(z)))
