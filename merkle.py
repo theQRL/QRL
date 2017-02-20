@@ -77,7 +77,7 @@ class HMAC_DRBG():
         if requested_security_strength > self.security_strength:
             raise RuntimeError ("requested_security_strength exceeds this instance's security_strength (%d)" % self.security_strength)
 
-        if self.reseed_counter >= 10000:
+        if self.reseed_counter >= 10001:
             return None
 
         temp = b""
@@ -136,6 +136,18 @@ def GEN_range(SEED, start_i, end_i, l=32):      #returns start -> end iteration 
     random_arr = []
     for x in range(1,end_i+1):
         y = hexlify(z.generate(l))
+        if x >= start_i:
+            random_arr.append(y)
+    return random_arr
+
+def GEN_range_bin(SEED, start_i, end_i, l=32):      #returns start -> end iteration of hex PRF (inclusive at both ends)
+    if start_i < 1:
+        print 'starting i must be integer greater than 0'
+        return
+    z = HMAC_DRBG(SEED)
+    random_arr = []
+    for x in range(1,end_i+1):
+        y = z.generate(l)
         if x >= start_i:
             random_arr.append(y)
     return random_arr

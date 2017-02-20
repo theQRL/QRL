@@ -18,22 +18,25 @@ __author__ = 'pete'
 from merkle import sha256
 from time import time
 from operator import itemgetter
-from math import log
-
+from math import log, ceil
 
 import os, copy, ast, sys, json, jsonpickle, decimal
 import merkle, wallet, db
 
 import cPickle as pickle
 
-global transaction_pool, m_blockchain, my, node_list, ping_list, last_ping
+global transaction_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
 
-global mining_address
+global mining_address, stake_list, stake_commit, stake_reveal
 
 ping_list =[]
 node_list = ['104.251.219.145']
 m_blockchain = []
 transaction_pool = []
+txhash_timestamp = []
+stake_commit = []
+stake_list = []
+stake_reveal = []
 
 print 'loading db'
 db = db.DB()
@@ -43,6 +46,130 @@ my = wallet.f_read_wallet()
 wallet.f_load_winfo()
 mining_address = my[0][1].address
 print 'mining address', mining_address
+
+# pos
+
+# stakers vote for each block merkle hash list with a commit-reveal reverse chain of hashes, limits first response to be from staker without a 6k/12k sig.
+# downside is that attackable by spamming network with the same hash, (different root hash) with a MITM attack..
+
+# reactor.callLater(3.5, f, "hello, world")
+# after a block is received the above is triggered <block-time> later..tx pool inspected, trimmed, sorted and candidate merkle root hash list generated..
+# to stop an upcoming stake vote: 
+#	callID = reactor.callLater(5, f)
+#	callID.cancel()
+
+class Hashchain():
+	def __init__(self, n=10000):
+		start_chain = merkle.random_key()
+		iter_chain = start_chain
+		hash_chain = []
+		hash_chain.append(start_chain)
+		for x in range(n):
+			iter_chain = sha256(iter_chain)
+			hash_chain.append(iter_chain)
+		self.hash_chain = hash_chain
+		self.n = n
+
+	def hash(self, x):
+		if x > self.n or x < 0:
+			return False
+		return self.hash_chain[self.n-x]
+
+	def seed(self):
+		return self.hash_chain[0]
+
+
+# return a sorted list of txhashes from transaction_pool, sorted by timestamp from block n (actually from start of transaction_pool) to time, then ordered by txhash.
+
+def sorted_tx_pool(timestamp=None):
+	if timestamp == None:
+		timestamp=time()
+	pool = copy.deepcopy(transaction_pool)
+	trimmed_pool = []
+	#start_time = m_blockchain[-1].blockheader.timestamp
+	end_time = timestamp
+	for tx in pool:
+		#if txhash_timestamp[txhash_timestamp.index(tx.txhash)+1] >= start_time and txhash_timestamp[txhash_timestamp.index(tx.txhash)+1] <= end_time:
+		if txhash_timestamp[txhash_timestamp.index(tx.txhash)+1] <= end_time:
+					trimmed_pool.append(tx.txhash)
+
+	trimmed_pool.sort()
+
+	if trimmed_pool == []:
+		return False
+
+	return trimmed_pool
+
+# merkle tree root hash of tx from pool for next POS block
+
+def merkle_tx_hash(hashes):
+	if len(hashes)==64:					# if len = 64 then it is a single hash string rather than a list..
+		return hashes
+	j=int(ceil(log(len(hashes),2)))
+	l_array = []
+	l_array.append(hashes)
+	for x in range(j):
+		next_layer = []
+		i = len(l_array[x])%2 + len(l_array[x])/2
+		z=0
+		for y in range(i):
+			if len(l_array[x])==z+1:
+				next_layer.append(l_array[x][z])
+			else:
+				next_layer.append(sha256(l_array[x][z]+l_array[x][z+1]))
+			z+=2
+		l_array.append(next_layer)
+	#print l_array
+	return ''.join(l_array[-1])
+
+# create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds). 
+# returns: list of merkle root hashes of the tx pool over last 1.5 seconds
+
+def pos_block_pool():
+	timestamp = time()
+	start_time = timestamp-1.5
+
+	x = sorted_tx_pool(start_time)
+	y = sorted_tx_pool(timestamp)
+	if y == False:				# if pool is empty -> return sha256 null
+		return [sha256('')]
+	elif x == y:					# if the pool isnt empty but there is no difference then return the only merkle hash possible..			
+		return [merkle_tx_hash(y)]
+	else:						# there is a difference in contents of pool over last 1.5 seconds..
+		merkle_hashes = []
+		if x == False:				
+			merkle_hashes.append(sha256(''))
+			x = []
+		else:
+			merkle_hashes.append(merkle_tx_hash(x))
+
+		tmp_txhashes = x
+
+		for tx in reversed(transaction_pool):
+			if tx.txhash in y and tx.txhash not in x:
+				tmp_txhashes.append(tx.txhash)
+				tmp_txhashes.sort()
+				merkle_hashes.append(merkle_tx_hash(tmp_txhashes))
+
+		return merkle_hashes		
+
+# create the PRF selector sequence based upon a seed and number of stakers in list (temporary..there are better ways to do this with bigger seed value, but it works)
+
+def pos_block_selector(seed, n):
+	n_bits = int(ceil(log(n,2)))
+	prf = merkle.GEN_range_bin(seed, 1, 10000,1)
+	prf_range = []
+	for z in prf:
+		x = ord(z) >> 8-n_bits
+		if x < n:
+			prf_range.append(x)
+	return prf_range
+
+# return the POS staker list position for given seed at index, i
+
+def pos_block_selector_n(seed, n, i):
+	l = pos_block_selector(seed, n)
+	return l[i]
 
 #classes
 
@@ -77,8 +204,7 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 			#print self.PK
 			self.merkle_root = data.root
 			self.verify = data.VERIFY(self.txhash, S)
-		# strip this out..
-			#self.hrs  =
+	
 
 def creategenesisblock():
 	return CreateGenesisBlock()
@@ -537,8 +663,8 @@ def richlist(n=None):			#only feasible while chain is small..
 	rl['status'] = 'ok'
 
 	return json_print_telnet(rl)
-# return json info on last n blocks
 
+# return json info on last n blocks
 
 def last_block(n=None):
 
@@ -570,6 +696,38 @@ def last_block(n=None):
 	last_blocks['status'] = 'ok'
 
 	return json_print_telnet(last_blocks)
+
+# return json info on stake_commit list
+
+def stake_commits(data=None):
+
+	sc = {}
+	sc['commits'] = {}
+
+	for c in stake_commit:
+		#[stake_address, block_number, merkle_hash_tx, commit_hash]
+		sc['commits'][c[1]] = {}
+		sc['commits'][c[1]]['stake_address'] = c[0]
+		sc['commits'][c[1]]['block_number'] = c[1]
+		sc['commits'][c[1]]['merkle_hash_tx'] = c[2]
+		sc['commits'][c[1]]['commit_hash'] = c[3]
+
+	return json_print_telnet(sc)
+
+
+def stake_reveals(data=None):
+
+	sr = {}
+	sr['reveals'] = {}
+	#chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
+	for c in stake_reveal:
+		sr['reveals'][c[1]] = {}
+		sr['reveals'][c[1]]['stake_address'] = c[0]
+		sr['reveals'][c[1]]['block_number'] = c[1]
+		sr['reveals'][c[1]]['merkle_hash_tx'] = c[2]
+		sr['reveals'][c[1]]['reveal'] = c[3]
+
+	return json_print_telnet(sr)
 
 def search(txcontains, long=1):
 	for tx in transaction_pool:
@@ -1117,6 +1275,8 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):				#NEED
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
+	txhash_timestamp.append(tx_class_obj.txhash)
+	txhash_timestamp.append(time())
 
 def remove_tx_from_pool(tx_class_obj):
 	transaction_pool.remove(tx_class_obj)
@@ -1249,7 +1409,8 @@ def create_my_tx(txfrom, txto, n, fee=0):
 	elif isinstance(txto, str):
 		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], fee=0)
 	if tx is not False:
-		transaction_pool.append(tx)
+		#transaction_pool.append(tx)
+		add_tx_to_pool(tx)
 		wallet.f_save_winfo()	#need to keep state after tx ..use wallet.info to store index..far faster than loading the 5mb wallet..
 		return (tx, msg)
 	else:
