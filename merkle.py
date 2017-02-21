@@ -77,7 +77,8 @@ class HMAC_DRBG():
         if requested_security_strength > self.security_strength:
             raise RuntimeError ("requested_security_strength exceeds this instance's security_strength (%d)" % self.security_strength)
 
-        if self.reseed_counter >= 10001:
+        #if self.reseed_counter >= 10001:
+        if self.reseed_counter >=20001:
             return None
 
         temp = b""

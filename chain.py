@@ -1,17 +1,8 @@
-#QRL main blockchain, state, transaction functions.
+#QRL main blockchain, state, stake, transaction functions.
 
-# todo prior to official testnet launch:
-# begin simplification..
-# strip out unnecessary logic from createsimpletransaction() - function for state..
-# remove nonce pre-calculation and leave a simple pubhash collision check. nonce can be added at the point of block validation by miner/staker..
-# prior to testnet reset: set pickle to protocol 2. 
-# clean up createsimpletransaction nonce/stateful stuff..
-
-# next todo
-
-# add fees calculation into the state add block + state read chain functions..
-# remove nonce checks until block validation..? importance of nonce being in the signature?
-# then POS..
+# after basic working pos
+# establish tx.nonce at the point of block creation - important as we sort the tx pool by txhash, thus nonce could be wrong then..
+# add stake list check to the state check - addresses which are staking cannot make transactions..
 
 __author__ = 'pete'
 
@@ -25,18 +16,22 @@ import merkle, wallet, db
 
 import cPickle as pickle
 
-global transaction_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
+global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
 
-global mining_address, stake_list, stake_commit, stake_reveal
+global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf
 
+
+hash_chain = []
 ping_list =[]
 node_list = ['104.251.219.145']
+#node_list = []
 m_blockchain = []
 transaction_pool = []
 txhash_timestamp = []
 stake_commit = []
-stake_list = []
 stake_reveal = []
+stake_pool = []
+stake_list = []
 
 print 'loading db'
 db = db.DB()
@@ -45,18 +40,47 @@ print 'loading wallet'
 my = wallet.f_read_wallet()
 wallet.f_load_winfo()
 mining_address = my[0][1].address
-print 'mining address', mining_address
+print 'mining/staking address', mining_address
 
 # pos
 
-# stakers vote for each block merkle hash list with a commit-reveal reverse chain of hashes, limits first response to be from staker without a 6k/12k sig.
-# downside is that attackable by spamming network with the same hash, (different root hash) with a MITM attack..
+# stake pool fn
+# logic in node for recv st tx..
+# logic in add block.
+# logic in read chain
 
-# reactor.callLater(3.5, f, "hello, world")
-# after a block is received the above is triggered <block-time> later..tx pool inspected, trimmed, sorted and candidate merkle root hash list generated..
-# to stop an upcoming stake vote: 
-#	callID = reactor.callLater(5, f)
-#	callID.cancel()
+# block 0 logic..
+
+# finish node pos
+
+class Staker_List():
+	def __init__(self, stake_address):
+		self.epoch = m_blockchain[-1].blockheader.blocknumber/10000
+
+		if self.epoch == 0:		#genesis holds the info..
+			self.prf = pos_block_selector(m_blockchain[0].blockheader.stake_seed, 2)
+
+		# we know the epoch. now check the blockchain for the stakers..
+		# if epoch = 0 -> genesis block holds the stake info..else scan intervening blocks for stake flags..
+
+		# generate a list of: (stake addresses, hash chain terminators) = n
+
+		# what is the seed? -> pos_block_selector(seed, n)
+		#self.prf = pos_block_selector(seed, n)
+
+	def update(self):
+		pass
+		# call this first each time.. it checks the block number and epoch with self epoch..if the next epoch has arrived then 
+		# resets the list of stakers, hash terminators and seed
+
+	def stake_address_hash(self, stake_address, block_n):
+		pass
+		# return the expected reveal hash for that block..			#if chain broken by a missing block..need to mitigate this..could use some stake_state in db..
+
+	def stake_selector(self):
+		count = m_blockchain[-1].blockheader.blocknumber+1 - (self.epoch * 10000)
+		return self.stake_list[self.prf[count]][0]
+
 
 class Hashchain():
 	def __init__(self, n=10000):
@@ -157,7 +181,7 @@ def pos_block_pool():
 
 def pos_block_selector(seed, n):
 	n_bits = int(ceil(log(n,2)))
-	prf = merkle.GEN_range_bin(seed, 1, 10000,1)
+	prf = merkle.GEN_range_bin(seed, 1, 20000,1)
 	prf_range = []
 	for z in prf:
 		x = ord(z) >> 8-n_bits
@@ -172,6 +196,71 @@ def pos_block_selector_n(seed, n, i):
 	return l[i]
 
 #classes
+
+class CreateStakeTransaction():
+	def __init__(self, hashchain_terminator):
+		data = my[0][1]
+		self.txfrom = mining_address
+		self.hash = hashchain_terminator
+		self.type = 'XMSS/STAKE'
+		S = data.SIGN(self.hash)				# Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
+		self.i = S[0]
+		self.signature = S[1]
+		self.merkle_path = S[2]
+		self.i_bms = S[3]
+		self.pub = S[4]
+		self.PK = S[5]
+
+class ReCreateStakeTransaction():
+	def __init__(self, json_obj):
+		self.type = json_obj['type'].encode('latin1')
+		self.hash = json_obj['hash'].encode('latin1')
+		self.i_bms = []
+		for layer in json_obj['i_bms']:
+			if len(layer) ==2:
+					self.i_bms.append([layer[0],layer[1]])
+			elif len(layer) ==3:
+					self.i_bms.append([layer[0].encode('latin1'),layer[1],layer[2]])
+			else:
+				if isinstance(layer, dict):
+					y = layer['py/tuple']
+					if len(y)==2:
+						self.i_bms.append([y[0],y[1]])
+					elif len(y)==3:
+						self.i_bms.append([y[0].encode('latin1'),y[1],y[2]])
+					else:
+						print 'something going wrong..'
+						pass
+		self.pub = []
+		pub = json_obj['pub']
+		for p in pub:
+			if isinstance(p, dict):
+				y = p['py/tuple']
+				r = []
+				for x in y[0]:
+					r.append(x.encode('latin1'))
+				self.pub.append([r, y[1].encode('latin1')])
+			elif isinstance(p, unicode):
+				self.pub.append(p.encode('latin1'))
+			else:
+				self.pub.append(p)
+		self.txfrom = json_obj['txfrom'].encode('latin1')
+		signature = json_obj['signature']
+		self.signature = []
+		for sig in signature:								
+			self.signature.append(sig.encode('latin1'))		#encode('latin1') converts unicode back to UTF-8..
+		self.i = json_obj['i']
+		path = json_obj['merkle_path']
+		self.merkle_path = []
+		for auth in path:
+			self.merkle_path.append(auth.encode('latin1'))
+		self.PK = []										#required as jsonpickle is buggy..
+		PK = json_obj['PK']
+		if len(PK) == 2:
+			for p in PK:
+				self.PK.append(p.encode('latin1'))
+		elif len(PK) == 168:
+				self.PK = ast.literal_eval(PK)
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be jsonpickled and sent into the p2p network..
 	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0, hrs=''):
@@ -211,10 +300,9 @@ def creategenesisblock():
 
 
 class BlockHeader():
-	def __init__(self,  blocknumber, difficulty, nonce, prev_blockheaderhash, number_transactions, hashedtransactions ):
+	def __init__(self,  blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions, number_stake, hashedstake):
 		self.blocknumber = blocknumber
-		self.difficulty = 232
-		self.nonce = nonce
+		self.hash = hashchain_link
 		if self.blocknumber == 0:
 			self.timestamp = 0
 		else:
@@ -222,20 +310,24 @@ class BlockHeader():
 		self.prev_blockheaderhash = prev_blockheaderhash
 		self.number_transactions = number_transactions
 		self.hashedtransactions = hashedtransactions
+		self.number_stake = number_stake
+		self.hashedstake = hashedstake
 		if self.blocknumber == 0:
-			self.coinbase = ''
+			self.stake_selector = ''
+			self.stake_nonce = 0
 			self.block_reward = 0
-		else:	
-			self.coinbase = mining_address
+		else:
+			self.stake_nonce = 10000-hash_chain.index(hashchain_link)
+			self.stake_selector = mining_address
 			self.block_reward = block_reward(self.blocknumber)
-		self.headerhash = sha256(self.coinbase+str(self.block_reward)+str(self.timestamp)+str(self.difficulty)+self.nonce+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions)
+		self.headerhash = sha256(self.stake_selector+str(self.stake_nonce)+str(self.block_reward)+str(self.timestamp)+self.hash+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions+str(self.number_stake)+self.hashedstake)
 
 
 
 
 class CreateBlock():
-	def __init__(self, nonce):
-		difficulty = 232
+	def __init__(self, hashchain_link):
+		#difficulty = 232
 		data = m_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
 		prev_blockheaderhash = data.blockheader.headerhash
@@ -249,14 +341,30 @@ class CreateBlock():
 		self.transactions = []
 		for tx in transaction_pool:
 			self.transactions.append(tx)						#copy memory rather than sym link
-		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, difficulty=difficulty, nonce=nonce, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions)
+		
+		if not stake_pool:
+			hashedstake = sha256('')
+		else:
+			sthashes = []
+			for st in stake_pool:
+				sthashes.append(st.hash)
+			hashedstake = sha256(''.join(sthashes))
+		self.stake = []
+		for st in stake_pool:
+			self.stake.append(st)
+
+		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions, number_stake=len(stake_pool), hashedstake=hashedstake)
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
 	def __init__(self):
-		self.blockheader = BlockHeader(blocknumber=0, difficulty=232, nonce='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0,hashedtransactions=sha256('0'))
+		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
-		self.state = [['Q7d42fb9c58a8ca00befb26e0277fc2cb8a5aae3d3ae3b73493af3bc6c8aa2228ee6f', [0, 100000*100000000, []]] , ['Qd3c4d14f8126d8eb2e4055ffda23fd0fe7e61311d230053698d5c057104e7489635d',[0, 10000*100000000,[]]]]
+		self.stake = []
+		self.state = [['Q60e2ade04e249adcf85e95743f2c3b3d46cfce9121fec3f81ed4696789cb28ce235e', [0, 100000*100000000, []]] , ['Q6e7ea4ac974303517b5bbf689e7331001313a15c6547414adca1d61d60aa9c8b078b',[0, 10000*100000000,[]]]]
+		self.stake_list = ['Q60e2ade04e249adcf85e95743f2c3b3d46cfce9121fec3f81ed4696789cb28ce235e', 'Q6e7ea4ac974303517b5bbf689e7331001313a15c6547414adca1d61d60aa9c8b078b']
+		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
+
 
 # JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)
 
@@ -372,18 +480,24 @@ class ReCreateBlock():						#recreate block class from JSON variables for proces
 			self.transactions.append(ReCreateSimpleTransaction(tx))
 #			self.transactions.append(json_decode_tx(json.dumps(tx)))
 
+		stake = json_block['stake']
+		self.stake = []
+		for st in stake:
+			self.stake.append(ReCreateStakeTransaction(st))
+
 class ReCreateBlockHeader():
 	def __init__(self, json_blockheader):
+		self.stake_nonce = json_blockheader['stake_nonce']
 		self.headerhash = json_blockheader['headerhash'].encode('latin1')
 		self.number_transactions = json_blockheader['number_transactions']
-		self.nonce = json_blockheader['nonce'].encode('latin1')
+		self.number_stake = json_blockheader['number_stake']
+		self.hash = json_blockheader['hash'].encode('latin1')
 		self.timestamp = json_blockheader['timestamp']
-		self.difficulty = json_blockheader['difficulty']
 		self.hashedtransactions = json_blockheader['hashedtransactions'].encode('latin1')
+		self.hashedstake = json_blockheader['hashedstake'].encode('latin1')
 		self.blocknumber = json_blockheader['blocknumber']
 		self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
-
-		self.coinbase = json_blockheader['coinbase'].encode('latin1')
+		self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
 		self.block_reward = json_blockheader['block_reward']
 
 # address functions
@@ -434,6 +548,9 @@ def block_reward(block_n):
 	return int((remaining_emission(21000000, block_n-1)-remaining_emission(21000000, block_n))*100000000)
 
 # network serialising functions
+
+def json_decode_st(json_tx):
+	return ReCreateStakeTransaction(json.loads(json_tx))
 
 def json_decode_tx(json_tx):										#recreate transaction class object safely 
 	return ReCreateSimpleTransaction(json.loads(json_tx))
@@ -716,6 +833,11 @@ def stake_commits(data=None):
 
 	return json_print_telnet(sc)
 
+def stakers(data=None):
+
+	stakers = {}
+
+	return json_print_telnet(stakers)
 
 def stake_reveals(data=None):
 
@@ -805,18 +927,14 @@ def m_add_block(block_obj):
 	if not m_blockchain:
 		m_read_chain()
 
-	for block in m_blockchain[-5:-1]:
-		if block.blockheader.headerhash == block_obj.blockheader.headerhash:
-			print block_obj.blockheader.headerhash, str(block_obj.blockheader.blocknumber), ' already validated and appended to chain.'
-			return False
-
 	if validate_block(block_obj, new=1) is True:
 		m_blockchain.append(block_obj)
-		if state_add_block(m_get_last_block()) is True:
+		if state_add_block(m_blockchain[-1]) is True:
 				remove_tx_in_block_from_pool(block_obj)
+				remove_st_in_block_from_pool(block_obj)
 		else: 	
 				m_remove_last_block()
-				print 'last block failed state checks, removed from chain'
+				print 'last block failed state/stake checks, removed from chain'
 				state_validate_tx_pool()
 				return False
 	else:
@@ -882,6 +1000,14 @@ def state_get_peers():
 	
 def state_put_peers(peer_list):
 	try: db.put('node_list', peer_list)
+	except: return False
+
+def stake_list_get():
+	try: return db.get('stake_list')
+	except: return []
+
+def stake_list_put():
+	try: db.put('stake_list')
 	except: return False
 
 def state_uptodate():									#check state db marker to current blockheight.
@@ -1015,26 +1141,36 @@ def state_add_block(block):
 
 	st1 = []	
 	st2 = []
-	st3 = state_get_address(block.blockheader.coinbase)
-	#block_reward = block.blockheader.block_reward
-	#st3 = []
+	st3 = state_get_address(block.blockheader.stake_selector)
+
+	st4 = stake_list_get()
+
+	st5 = stake_list_get()
+
+	st6 = []
+
+	for st in block.state:
+		st6.append(state_get_address(st.txfrom))
+
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
-		#if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#if hrs then get balance from actual txto..
-		#	st2.append(state_get_address(state_hrs(tx.txto)))
-		#else:
 		st2.append(state_get_address(tx.txto))
-		#st3.append(state_hrs(tx.hrs))
+
+
 
 	y = 0
 	
 	# first the coinbase address is updated
 
-	db.put(block.blockheader.coinbase, [st3[0],st3[1]+block.blockheader.block_reward,st3[2]])
+	db.put(block.blockheader.stake_selector, [st3[0],st3[1]+block.blockheader.block_reward,st3[2]])
+
+
+	# second we check the stake transactions. funds cannot move after stake tx so first.
+
+
 
 	# cycle through every tx in the new block to check state
 		
-
 	for tx in block.transactions:
 
 		pub = tx.pub
@@ -1064,32 +1200,14 @@ def state_add_block(block):
 			print 'pubkey reuse detected: invalid tx', tx.txhash
 			break
 
-		#hrs checks for tx validity, adds tx.hrs string to statedb if valid..
-		#if len(tx.hrs) != 0:
-		#	if state_hrs(tx.hrs) is not False:
-		#		print 'Invalid hrs string (already associated with another Q-address'
-		#		break
-		#	if tx.hrs[0] == 'Q':
-		#		print 'Invalid hrs string (begins with Q)', tx.txhash
-		#		break
-		#	db.put('hrs'+tx.hrs, tx.txfrom)
-
-		# commit new changes to statedb for txfrom, txto (which could be a hrs->actual txto)
 
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
 		s1[2].append(pubhash)
 		db.put(tx.txfrom, s1)
 
-		#if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:			#update the actual balance of txto not hrs
-		#	to = state_hrs(tx.txto)
-		#else:
-		#	to = tx.txto
-	
-		#s2 = state_get_address(to)
 		s2 = state_get_address(tx.txto)
 		s2[1] = s2[1]+tx.amount
-		#db.put(to, s2)
 		db.put(tx.txto, s2)
 
 		y+=1
@@ -1101,11 +1219,6 @@ def state_add_block(block):
 		for x in range(len(block.transactions)):
 			db.put(block.transactions[x].txfrom, st1[x])
 			db.put(block.transactions[x].txto, st2[x])
-			#if st3[x] == False:									
-			#	pass
-			#else:
-			#	db.put('hrs'+block.transactions[x].hrs, st3[x])			#only revert write hrs into state_db if there is an address entry previously..
-
 		db.put(block.blockheader.coinbase, st3)		
 
 		return False
@@ -1127,9 +1240,9 @@ def state_read_chain():
 	for block in c:
 
 		# update coinbase address state
-		coinbase = state_get_address(block.blockheader.coinbase)
-		coinbase[1]+=block.blockheader.block_reward
-		db.put(block.blockheader.coinbase, coinbase)
+		stake_selector = state_get_address(block.blockheader.stake_selector)
+		stake_selector[1]+=block.blockheader.block_reward
+		db.put(block.blockheader.stake_selector, stake_selector)
 
 		for tx in block.transactions:
 			pub = tx.pub
@@ -1157,29 +1270,14 @@ def state_read_chain():
 				print block.blockheader.headerhash, 'failed state checks'
 				return False
 
-			#if len(tx.hrs) != 0:
-				#if state_hrs(tx.hrs) is not False:
-				#	print 'hrs invalid re-use attempt in tx ', tx.txhash
-				#	return False
-				#if tx.hrs[0] == 'Q':
-				#	print 'hrs invalid, starts with "Q"', tx.txhash
-				#	return False
-				#db.put('hrs'+tx.hrs, tx.txfrom)
-
 			s1[0]+=1
 			s1[1] = s1[1]-tx.amount
 			s1[2].append(pubhash)
 			db.put(tx.txfrom, s1)							#must be ordered in case tx.txfrom = tx.txto
 
-
-			#if tx.txto[0] != 'Q' and state_hrs(tx.txto) != False:		#if hrs then need to update state of actual txto..
-			#	to = state_hrs(tx.txto)
-			#else:
-			#	to = tx.txto
-			#s2 = state_get_address(to)
 			s2 = state_get_address(tx.txto)
 			s2[1] = s2[1]+tx.amount
-			#db.put(to, s2)			
+			
 			db.put(tx.txto, s2)
 
 		print block, str(len(block.transactions)), 'tx ', ' passed'
@@ -1281,8 +1379,15 @@ def add_tx_to_pool(tx_class_obj):
 	txhash_timestamp.append(tx_class_obj.txhash)
 	txhash_timestamp.append(time())
 
+def add_st_to_pool(st_class_obj):
+	stake_pool.append(st_class_obj)
+
 def remove_tx_from_pool(tx_class_obj):
 	transaction_pool.remove(tx_class_obj)
+
+def remove_st_from_pool(st_class_obj):
+	stake_pool.remove(st_class_obj)
+	
 
 def show_tx_pool():
 	return transaction_pool
@@ -1293,8 +1398,17 @@ def remove_tx_in_block_from_pool(block_obj):
 			if tx.txhash == txn.txhash:
 				remove_tx_from_pool(txn)
 
+def remove_st_in_block_from_pool(block_obj):
+	for st in block_obj.stake:
+		for stn in stake_pool:
+			if st.hash == stn.hash:
+				remove_st_from_pool(stn)
+
 def flush_tx_pool():
 	del transaction_pool[:]
+
+def flush_st_pool():
+	del stake_pool[:]
 
 def validate_tx_in_block(block_obj, new=0):
 	x = 0
@@ -1306,11 +1420,34 @@ def validate_tx_in_block(block_obj, new=0):
 		return False
 	return True
 
+def validate_st_in_block(block_obj):
+	x = 0
+	for st in block_obj.stake:
+		if validate_st(st) is False:
+			print 'invalid st:', st, 'in block'
+			x+=1
+	if x > 0:
+		return False
+	return True
+
 def validate_tx_pool():									#invalid transactions are auto removed from pool..
 	for transaction in transaction_pool:
 		if validate_tx(transaction) is False:
 			remove_tx_from_pool(transaction)
 			print 'invalid tx: ',transaction, 'removed from pool'
+
+	return True
+
+
+def validate_st(tx):
+
+	if tx.type != 'XMSS/STAKE':
+		return False
+
+	if merkle.xmss_verify(tx.hash, [tx.i, tx.signature, tx.merkle_path, tx.i_bms, tx.pub, tx.PK]) is False:
+			return False
+	if xmss_checkaddress(tx.PK, tx.txfrom) is False:
+			return False
 
 	return True
 
@@ -1359,11 +1496,33 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		print 'Block reward incorrect for block: failed validation'
 		return False
 
-	if int(sha256(b.prev_blockheaderhash+b.nonce),16) >= 2**b.difficulty:
-		print 'POW calculation incorrect for block: failed validation'
-		return False
+	if b.blocknumber == 1:
+		x=0
+		for st in block.stake:
+			if st.txfrom == b.stake_selector:
+				x = 1
+				if sha256(b.hash) != st.hash:
+					print 'Hashchain_link does not hash correctly to terminator: failed validation'
+					return False
+		if x != 1:
+			print 'Stake selector not in block.stake: failed validation'
+			return False
+	else:		# we look in stake_list for the hash terminator and hash to it..
+		y=0
+		for st in stake_list:
+			if st[0] == b.stake_selector:
+					y = 1
+					terminator = b.hash
+					for x in range(b.stake_nonce):
+						terminator = sha256(terminator)
+					if terminator != st[1]:
+						print 'Supplied hash does not iterate to terminator: failed validation'
+						return False
+			if y != 1:
+				print 'Stake selector not in stake_list for this epoch..'
+				return False
 	
-	if sha256(b.coinbase+str(b.block_reward)+str(b.timestamp)+str(b.difficulty)+b.nonce+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions) != block.blockheader.headerhash:
+	if sha256(b.stake_selector+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions+str(b.number_stake)+b.hashedstake) != b.headerhash:
 		print 'Headerhash false for block: failed validation'
 		return False
 
@@ -1386,6 +1545,10 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		print 'Block validate_tx_in_block error: failed validation'
 		return False
 
+	if validate_st_in_block(block) == False:
+		print 'Block validate_st_in_block error: failed validation'
+		return False
+
 	txhashes = []
 	for transaction in block.transactions:
 		txhashes.append(transaction.txhash)
@@ -1393,6 +1556,13 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
 		print 'Block hashedtransactions error: failed validation'
 		return False
+
+	sthashes = []
+	for st in block.stake:
+		sthashes.append(st.hash)
+
+	if sha256(''.join(sthashes)) != b.hashedstake:
+		print 'Block hashedstake error: failed validation'
 
 	if verbose==1:
 		print block, 'True'
@@ -1418,7 +1588,6 @@ def create_my_tx(txfrom, txto, n, fee=0):
 		return (tx, msg)
 	else:
 		return (False, msg)
-
 
 
 

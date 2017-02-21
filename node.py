@@ -1,10 +1,5 @@
-# todo prior to public testnet release
-
-# 1)
-# more sophisticated block tracking to enable chain split/fork to be identified and to ensure orphan solo chains do not appear
-# try to abstract the node behaviour away from protocol to the factory whilst keeping the rules simple.
-
-# 2) introduce simple POS algo based upon memory pool ordering..
+# QRL testnet node..
+# -features POS, quantum secure signature scheme..
 
 __author__ = 'pete'
 
@@ -14,10 +9,12 @@ import chain, wallet
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
 from merkle import sha256, numlist
+from operator import itemgetter
+
 
 cmd_list = ['balance', 'mining', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
-api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list']
+api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers']
 
 
 def parse(data):
@@ -25,17 +22,91 @@ def parse(data):
 
 # pos functions. an asynchronous loop.
 
-# stake list derived from blockchain - seed, stake addresses and their respective hashchain ends, plus block number for beginning of epoch (every 5-10000)
-# stake_list should be a class to more easily throw back data..
+def pre_pos_1(data=None):		# triggered for genesis block..
+	print 'pre_pos_1'
+	# are we a staker in the stake list?
 
+	if chain.mining_address in chain.m_blockchain[0].stake_list:
+		print 'mining address in the genesis.stake_list'
+		ch = chain.Hashchain()										# calculate the hash_chain 
+		chain.hash_chain = ch.hash_chain
+		print 'hashchain terminator: ', chain.hash_chain[-1]
+		st = chain.CreateStakeTransaction(chain.hash_chain[-1])
+		wallet.f_save_winfo()
+		chain.add_st_to_pool(st)
+		f.send_st_to_peers(st)			#send the stake tx..
+		print 'await delayed call to build staker list from genesis'
+		reactor.callLater(30, pre_pos_2)
+		return
+
+	print 'not in stake list..no further pre_pos_x calls'
+
+	return
+
+def pre_pos_2(data=None):	# by now we should have the a stakepool full of stakers..
+	print 'pre_pos_2'
+
+	if len(chain.stake_pool) == 0:		# stake pool still empty..reloop..
+		print 'empty stake_pool, retry in 100s'
+		reactor.callLater(30, pre_pos_2)
+		return
+
+	# assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
+
+	print 'stake_pool', chain.stake_pool
+
+	tmp_list = []
+
+	for st in chain.stake_pool:
+		if st.txfrom in chain.m_blockchain[0].stake_list:
+			tmp_list.append([st.txfrom, st.hash, 1])
+	
+	chain.stake_list = sorted(tmp_list, key=itemgetter(1))#, reverse=True)
+
+	numlist(chain.stake_list)
+
+	print 'genesis stakers ready = ', len(chain.stake_list),'/',len(chain.m_blockchain[0].stake_list)
+	print 'node address:', chain.mining_address
+
+	for s in chain.stake_list:
+		if s[0] == chain.mining_address:
+			spos = chain.stake_list.index(s)
+	
+
+	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[-1].stake_seed, len(chain.stake_pool))
+
+	print 'epoch_prf:', chain.epoch_prf[0]
+	print 'spos:', spos
+
+	if spos == chain.epoch_prf[0]:
+		print 'designated to create block 1: building block..'
+
+		# could add reactor.callLater here to repeat the call if list not full..
+		# create the genesis block 2 here..
+
+		b = chain.m_create_block(chain.hash_chain[-2])
+		chain.json_print(b)
+		print chain.validate_block(b)
+		if chain.m_add_block(b) == True:
+			f.send_block_to_peers(b)
+			f.get_m_blockheight_from_peers()
+			print '**POS commit call later 15 (mining)...**'
+			reactor.callLater(15, pos_1, 'POS commit (genesis)')
+										
+
+	else:
+		print 'await block creation by stake validator:', chain.stake_list[spos][0]
+	return
 def pos_1(data):
+
+	# are we a staker? if not abort..is chain.mining_address in stake list?
 
 	# we arrive here 15s after the last block call..
 
 	# 1. are we stake selector? 
 	# Use chain.pos_block_selector(seed, num_stakers) (via stake_list class) to see if we are selector..
 	# yes) reactor.callLater(3, pos_3)
-	# no) continue on as a stake commit
+	# no) continue on as a stake commitor
 
 	print data
 	merkle_tx_hash = chain.pos_block_pool()
@@ -54,6 +125,8 @@ def pos_2(merkle_tx_hash, hashchain_hash):
 	f.send_stake_merkle_tx_hash_reveal(merkle_tx_hash, hashchain_hash)
 	
 	# here is where we add a late call which can be cancelled with callID.cancel() if the next block has not arrived..
+	#	callID = reactor.callLater(x, f)
+	#	callID.cancel()
 	return
 
 def pos_3():
@@ -144,6 +217,10 @@ class ApiProtocol(Protocol):
 		pings['peers'] = {}
 		pings['peers'] = chain.ping_list
 		return chain.json_print_telnet(pings)
+
+	def stakers(self, data=None):
+		print '<<< API stakers call'
+		return chain.stakers(data)
 
 	def stake_commits(self, data=None):
 		print '<<< API stake_commits call'
@@ -532,7 +609,35 @@ class p2pProtocol(Protocol):
 		
 		if prefix == 'TX':				#tx received..
 			self.recv_tx(suffix)
-			
+		
+		if prefix == 'ST':
+
+
+			try: st = chain.json_decode_st(suffix)
+			except: 
+				print 'st rejected - unable to decode serialised data - closing connection'
+				self.transport.loseConnection()
+				return
+
+			for t in chain.stake_pool:			#duplicate tx already received, would mess up nonce..
+				if st.hash == t.hash:
+					return
+
+			if chain.validate_st(st) == True:
+				chain.add_st_to_pool(st)
+
+		#if chain.state_validate_tx(tx) == True:
+				print '>>>ST - ', st.hash, ' from - ', self.transport.getPeer().host, ' relaying..'
+				
+				for peer in self.factory.peers:
+					if peer != self:
+						peer.transport.write(self.wrap_message(chain.json_bytestream_tx(tx)))
+			else:
+				chain.remove_st_from_pool(st)
+				print '>>>ST',st.hash, 'invalid state validation failed..' #' invalid - closing connection to ', self.transport.getPeer().host
+				#self.transport.loseConnection()
+			return
+
 		elif prefix == 'BK':			#block received
 			self.recv_block(suffix)
 
@@ -555,9 +660,31 @@ class p2pProtocol(Protocol):
 					return
 				else:
 					self.factory.sync = 1
-					if self.factory.mining == 0:
-						self.factory.newblock = 0
-						reactor.callInThread(f.mining_fn, chain.m_get_last_block().blockheader)
+
+					# this is where the POS algorithm starts..
+
+					# 1. check the block height is 0.
+
+					if len(chain.m_blockchain) == 1 and self.factory.genesis == 0:
+						self.factory.genesis = 1										# set the flag so that no other Protocol instances trigger the genesis stake functions..
+						print 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'
+						reactor.callLater(60, pre_pos_1)
+
+
+					# a relay stake_pool would be a good idea..
+
+					#else:						
+					
+
+
+					#if self.factory.mining == 0:
+					#	self.factory.newblock = 0
+					#	reactor.callInThread(f.mining_fn, chain.m_get_last_block().blockheader)
+					
+
+
+
+
 					return
 
 		elif prefix == 'BN':			#request for block (n)
@@ -650,12 +777,13 @@ class p2pProtocol(Protocol):
 				if block_number != chain.m_blockchain[-1].blockheader.blocknumber+1:
 					return
 
-				print '>>> recv POS reveal from', self.transport.getPeer().host, stake_address, str(block_number), reveal
 
 				# validate reveal hash..
 
 				# 1. check that the sha256(''.join(merkle_hash_tx)+reveal) == commit_hash
-				# 2. confirm that reveal hash forward hashes to previous hashchain reveal hash..(may be calculated from staker list - stores the hashchain end..)
+				# 2. confirm that reveal hash forward hashes to previous hashchain reveal hash..(need to access Staker_List class construction..)
+
+				print '>>> recv POS reveal from', self.transport.getPeer().host, stake_address, str(block_number), reveal
 
 
 				chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
@@ -763,19 +891,24 @@ class p2pProtocol(Protocol):
 		return
 
 	def connectionMade(self):
-		if self.transport.getPeer().host == self.transport.getHost().host:
-						self.transport.loseConnection()
-						return
 		self.factory.connections += 1
 		self.factory.peers.append(self)
 		peer_list = chain.state_get_peers()
+		if self.transport.getPeer().host == self.transport.getHost().host:
+						if self.transport.getPeer().host in peer_list:
+								print 'Self in peer_list, removing..'
+								peer_list.remove(self.transport.getPeer().host)
+								chain.state_put_peers(peer_list)
+								chain.state_save_peers()
+						self.transport.loseConnection()
+						return
+		
 		if self.transport.getPeer().host not in peer_list:
 			print 'Adding to peer_list'
 			peer_list.append(self.transport.getPeer().host)
 			chain.state_put_peers(peer_list)
 			chain.state_save_peers()
 		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
-		
 
 		self.get_m_blockheight_from_connection()
 		self.get_peers()
@@ -789,7 +922,7 @@ class p2pProtocol(Protocol):
 		print self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections) #, reason 
 		self.factory.peers.remove(self)
 		if self.factory.connections == 0:
-			f.connect_peers()
+			reactor.callLater(120,f.connect_peers)
 
 	def recv_block(self, json_block_obj):
 		try: block = chain.json_decode_block(json_block_obj)
@@ -835,7 +968,7 @@ class p2pProtocol(Protocol):
 
 	def recv_tx(self, json_tx_obj):
 		
-		print chain.json_decode_tx(json_tx_obj)
+		#print chain.json_decode_tx(json_tx_obj)
 
 		try: tx = chain.json_decode_tx(json_tx_obj)
 		except: 
@@ -876,6 +1009,7 @@ class p2pFactory(ServerFactory):
 		self.mining = 0
 		self.newblock = 0
 		self.exit = 0
+		self.genesis = 0
 
 # mining
 
@@ -938,9 +1072,17 @@ class p2pFactory(ServerFactory):
 
 
 # factory network functions
+	def get_m_blockheight_from_peers(self):
+		for peer in self.peers:
+			peer.get_m_blockheight_from_connection()
 
 	def f_wrap_message(self, data):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
+
+	def send_st_to_peers(self, st):
+		print '<<<Transmitting ST:', st.hash
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('ST'+chain.json_bytestream(st)))
 
 	def send_tx_to_peers(self, tx):
 		print '<<<Transmitting TX: ', tx.txhash
