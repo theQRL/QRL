@@ -1,12 +1,14 @@
 #QRL main blockchain, state, stake, transaction functions.
 
 # after basic working pos
+# move hashchain generation from chain to wallet..derive from private SEED gen..store in f_wallet..update based upon epoch...
+# api stakers - from stake_list..
 # establish tx.nonce at the point of block creation - important as we sort the tx pool by txhash, thus nonce could be wrong then..
 # add stake list check to the state check - addresses which are staking cannot make transactions..
 
 __author__ = 'pete'
 
-from merkle import sha256
+from merkle import sha256, numlist
 from time import time
 from operator import itemgetter
 from math import log, ceil
@@ -316,11 +318,13 @@ class BlockHeader():
 			self.stake_selector = ''
 			self.stake_nonce = 0
 			self.block_reward = 0
+			self.epoch = 0
 		else:
-			self.stake_nonce = 10000-hash_chain.index(hashchain_link)
+			self.epoch = m_blockchain[-1].blockheader.blocknumber+1/10000
+			self.stake_nonce = 10000-hash_chain.index(hashchain_link)				#****UPDATE WHEN HASH_CHAIN is moved to wallet..at block1 better to take from stake_list_get ****
 			self.stake_selector = mining_address
 			self.block_reward = block_reward(self.blocknumber)
-		self.headerhash = sha256(self.stake_selector+str(self.stake_nonce)+str(self.block_reward)+str(self.timestamp)+self.hash+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions+str(self.number_stake)+self.hashedstake)
+		self.headerhash = sha256(self.stake_selector+str(self.epoch)+str(self.stake_nonce)+str(self.block_reward)+str(self.timestamp)+self.hash+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions+str(self.number_stake)+self.hashedstake)
 
 
 
@@ -488,6 +492,7 @@ class ReCreateBlock():						#recreate block class from JSON variables for proces
 class ReCreateBlockHeader():
 	def __init__(self, json_blockheader):
 		self.stake_nonce = json_blockheader['stake_nonce']
+		self.epoch = json_blockheader['epoch']
 		self.headerhash = json_blockheader['headerhash'].encode('latin1')
 		self.number_transactions = json_blockheader['number_transactions']
 		self.number_stake = json_blockheader['number_stake']
@@ -1006,8 +1011,16 @@ def stake_list_get():
 	try: return db.get('stake_list')
 	except: return []
 
-def stake_list_put():
-	try: db.put('stake_list')
+def stake_list_put(sl):
+	try: db.put('stake_list', sl)
+	except: return False
+
+def next_stake_list_get():
+	try: return db.get('next_stake_list')
+	except: return []
+
+def next_stake_list_put(next_sl):
+	try: db.put('next_stake_list', next_sl)
 	except: return False
 
 def state_uptodate():									#check state db marker to current blockheight.
@@ -1059,16 +1072,6 @@ def state_validate_tx(tx):		#checks new tx validity based upon node statedb and 
 	if state_balance(tx.txfrom) < tx.amount: 
 			print 'State validation failed for', tx.txhash,  'because: Insufficient'
 			return False
-
-	#if state_hrs(tx.hrs) is not False:				#if false - not used before..so pass..
-	#	if state_hrs(tx.hrs) != tx.txfrom:			#if another address found in state_db than txfrom then invalid..
-	#		print 'Human readable string already seen in ledger associated with another address, tx therefore invalid: ', tx.txhash
-	#		return False
-	#	if tx.hrs[0] == 'Q':
-	#		print 'Human readable string invalid for ', tx.txhash
-	#		return False
-	# nonce and public key can be in the mempool (transaction_pool) and so these must be checked also..
-	# if the tx is new to node then simple check would work. but if we are checking a tx in the transaction_pool, then order has to be correct..
 
 	z = 0
 	x = 0
@@ -1131,7 +1134,7 @@ def state_validate_tx_pool():
 		return False
 	return True
 
-# add some form of header hash check to confirm block correct..
+# validate and update stake+state for newly appended block.
 
 def state_add_block(block):
 
@@ -1143,20 +1146,16 @@ def state_add_block(block):
 	st2 = []
 	st3 = state_get_address(block.blockheader.stake_selector)
 
-	st4 = stake_list_get()
+	st4 = stake_list_get()		# to roll back
 
-	st5 = stake_list_get()
+	st5 = []
 
-	st6 = []
-
-	for st in block.state:
-		st6.append(state_get_address(st.txfrom))
+	for st in block.stake:
+		st5.append(state_get_address(st.txfrom))	# to roll back
 
 	for tx in block.transactions:
 		st1.append(state_get_address(tx.txfrom))
 		st2.append(state_get_address(tx.txto))
-
-
 
 	y = 0
 	
@@ -1164,10 +1163,48 @@ def state_add_block(block):
 
 	db.put(block.blockheader.stake_selector, [st3[0],st3[1]+block.blockheader.block_reward,st3[2]])
 
+	# reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
+	# if block 1: 
 
-	# second we check the stake transactions. funds cannot move after stake tx so first.
+	if block.blockheader.blocknumber == 1:
 
+		stake_list = []
+		sl = []
+		next_sl = []
 
+		for st in block.stake:
+
+			if st.txfrom == block.blockheader.stake_selector:			#update txfrom, hash and stake_nonce against genesis for current or next stake_list
+				if st.txfrom in m_blockchain[0].stake_list:
+					sl.append([st.txfrom, st.hash, 1])
+			else:
+				if st.txfrom in m_blockchain[0].stake_list:
+					sl.append([st.txfrom, st.hash, 0])
+				else:
+					next_sl.append([st.txfrom, st.hash, 0])
+			
+			z = state_get_address(st.txfrom)
+
+			pub = st.pub
+			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+			pubhash = sha256(''.join(pub))
+
+			db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])	#update the statedb for txfrom's
+		
+		stake_list_put(sl)
+		next_stake_list_put(next_sl)
+		stake_list = sl
+		numlist(stake_list)
+
+	else:
+		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:
+			pass
+	# if no change then add to 'next_state_list' for every st.txfrom, increment nonce in state address, add pubhash, amount unchanged..
+
+		else:
+			pass
+	# if epoch transition..del state_list, next_state_list = state_list, and next_state_list = [], then for each st.txfrom update next_state_list (addr, hash, 0), update
+	# state (nonce, pubhash, amount unchanged..)
 
 	# cycle through every tx in the new block to check state
 		
@@ -1200,6 +1237,7 @@ def state_add_block(block):
 			print 'pubkey reuse detected: invalid tx', tx.txhash
 			break
 
+		# add a check to prevent spend from stake address..
 
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
@@ -1522,7 +1560,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 				print 'Stake selector not in stake_list for this epoch..'
 				return False
 	
-	if sha256(b.stake_selector+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions+str(b.number_stake)+b.hashedstake) != b.headerhash:
+	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions+str(b.number_stake)+b.hashedstake) != b.headerhash:
 		print 'Headerhash false for block: failed validation'
 		return False
 

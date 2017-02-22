@@ -59,7 +59,7 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 
 	for st in chain.stake_pool:
 		if st.txfrom in chain.m_blockchain[0].stake_list:
-			tmp_list.append([st.txfrom, st.hash, 1])
+			tmp_list.append([st.txfrom, st.hash, 0])
 	
 	chain.stake_list = sorted(tmp_list, key=itemgetter(1))#, reverse=True)
 
