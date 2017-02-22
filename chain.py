@@ -1099,6 +1099,8 @@ def state_validate_tx_pool():
 	return True
 
 # validate and update stake+state for newly appended block.
+# can be streamlined to reduce repetition in the added components..
+# finish next epoch code..
 
 def state_add_block(block):
 
@@ -1162,6 +1164,11 @@ def state_add_block(block):
 		stake_list_put(stake_list)
 		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 		numlist(stake_list)
+
+		epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(stake_list))		#need to add a stake_seed option in block classes
+		if stake_list[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
+				print 'stake selector wrong..'
+				y=-1000
 
 	else:
 		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
@@ -1268,10 +1275,15 @@ def state_add_block(block):
 		print 'failed to state check entire block'
 		print 'reverting state'
 
+		for q in range(len(block.stake)):
+			db.put(block.stake[q].txfrom, st5[q])
+
 		for x in range(len(block.transactions)):
 			db.put(block.transactions[x].txfrom, st1[x])
 			db.put(block.transactions[x].txto, st2[x])
-		db.put(block.blockheader.coinbase, st3)		
+		
+
+		db.put(block.blockheader.stake_selector, st3)		
 
 		return False
 

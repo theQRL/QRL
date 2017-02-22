@@ -75,10 +75,10 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 
 	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[-1].stake_seed, len(chain.stake_pool))
 
-	print 'epoch_prf:', chain.epoch_prf[0]
+	print 'epoch_prf:', chain.epoch_prf[1]
 	print 'spos:', spos
 
-	if spos == chain.epoch_prf[0]:
+	if spos == chain.epoch_prf[1]:
 		print 'designated to create block 1: building block..'
 
 		# could add reactor.callLater here to repeat the call if list not full..
