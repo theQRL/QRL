@@ -28,15 +28,13 @@ def pre_pos_1(data=None):		# triggered for genesis block..
 
 	if chain.mining_address in chain.m_blockchain[0].stake_list:
 		print 'mining address in the genesis.stake_list'
-		ch = chain.Hashchain()										# calculate the hash_chain 
-		chain.hash_chain = ch.hash_chain
 		print 'hashchain terminator: ', chain.hash_chain[-1]
 		st = chain.CreateStakeTransaction(chain.hash_chain[-1])
 		wallet.f_save_winfo()
 		chain.add_st_to_pool(st)
 		f.send_st_to_peers(st)			#send the stake tx..
 		print 'await delayed call to build staker list from genesis'
-		reactor.callLater(30, pre_pos_2)
+		reactor.callLater(15, pre_pos_2)
 		return
 
 	print 'not in stake list..no further pre_pos_x calls'
@@ -61,7 +59,7 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 		if st.txfrom in chain.m_blockchain[0].stake_list:
 			tmp_list.append([st.txfrom, st.hash, 0])
 	
-	chain.stake_list = sorted(tmp_list, key=itemgetter(1))#, reverse=True)
+	chain.stake_list = sorted(tmp_list, key=itemgetter(1))
 
 	numlist(chain.stake_list)
 
@@ -90,38 +88,48 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 		if chain.m_add_block(b) == True:
 			f.send_block_to_peers(b)
 			f.get_m_blockheight_from_peers()
-			print '**POS commit call later 15 (mining)...**'
+			print '**POS commit call later 15 (genesis)...**'
 			reactor.callLater(15, pos_1, 'POS commit (genesis)')
 										
 
 	else:
 		print 'await block creation by stake validator:', chain.stake_list[spos][0]
 	return
+
 def pos_1(data):
+	print 'pos_1'
+	# are we a staker?
+	for s in chain.stake_list_get():
+		if s[0] == chain.mining_address:
+			y=1
+			spos = chain.stake_list_get().index(s)
+			hash_nonce = s[2]
+	if y==0:
+		print 'pos_1 not in stake list..'
+		return
 
-	# are we a staker? if not abort..is chain.mining_address in stake list?
+	# 1. are we stake selector?
+	epoch = (chain.m_blockchain[-1].blockheader.blocknumber+1)/10000	#+1 = next block
+	print 'epoch', epoch
+	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[epoch*10000].stake_seed, len(chain.stake_list_get())) 
+	if spos == chain.epoch_prf[chain.m_blockchain[-1].blockheader.blocknumber+1]:
+		print 'pos_1: designated stake selector'
+		reactor.callLater(3, pos_3)
+		return	
 
-	# we arrive here 15s after the last block call..
+	# if not then commit instead..
 
-	# 1. are we stake selector? 
-	# Use chain.pos_block_selector(seed, num_stakers) (via stake_list class) to see if we are selector..
-	# yes) reactor.callLater(3, pos_3)
-	# no) continue on as a stake commitor
-
-	print data
 	merkle_tx_hash = chain.pos_block_pool()
-	ch = chain.Hashchain()
-	hashchain_hash = ch.hash(chain.m_blockchain[-1].blockheader.blocknumber)
+	hashchain_hash = chain.hash_chain[-(hash_nonce+2)]	#+1 betting on next block..
+	print hashchain_hash
 	chain.stake_commit.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, sha256(''.join(merkle_tx_hash)+hashchain_hash)])
 	f.send_stake_merkle_tx_hash_commit(merkle_tx_hash, hashchain_hash)
-
 	reactor.callLater(1, pos_2, merkle_tx_hash, hashchain_hash)
 	return
 
 def pos_2(merkle_tx_hash, hashchain_hash):
-	print 'POS reveal'
+	print 'pos_2'
 	chain.stake_reveal.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, hashchain_hash])
-
 	f.send_stake_merkle_tx_hash_reveal(merkle_tx_hash, hashchain_hash)
 	
 	# here is where we add a late call which can be cancelled with callID.cancel() if the next block has not arrived..
@@ -608,7 +616,9 @@ class p2pProtocol(Protocol):
 		suffix = data[2:]
 		
 		if prefix == 'TX':				#tx received..
+			print 'ding'
 			self.recv_tx(suffix)
+			return
 		
 		if prefix == 'ST':
 
@@ -668,7 +678,7 @@ class p2pProtocol(Protocol):
 					if len(chain.m_blockchain) == 1 and self.factory.genesis == 0:
 						self.factory.genesis = 1										# set the flag so that no other Protocol instances trigger the genesis stake functions..
 						print 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'
-						reactor.callLater(60, pre_pos_1)
+						reactor.callLater(30, pre_pos_1)
 
 
 					# a relay stake_pool would be a good idea..
@@ -720,8 +730,6 @@ class p2pProtocol(Protocol):
 				self.get_peers()
 
 		elif prefix == 'S1':
-				#print '>>> received POS commit from', self.transport.getPeer().host
-				#print numlist(chain.stake_commit)
 
 				z = chain.json_decode(suffix)
 
@@ -736,8 +744,6 @@ class p2pProtocol(Protocol):
 
 				for entry in chain.stake_commit:	#already received, do not relay.
 					if entry[3] == commit_hash:
-						#print 'already received..do not relay'
-						#print 'DUP'
 						return
 
 				print '>>> recv POS commit from', self.transport.getPeer().host, stake_address, str(block_number), commit_hash
@@ -777,13 +783,39 @@ class p2pProtocol(Protocol):
 				if block_number != chain.m_blockchain[-1].blockheader.blocknumber+1:
 					return
 
-
 				# validate reveal hash..
 
 				# 1. check that the sha256(''.join(merkle_hash_tx)+reveal) == commit_hash
-				# 2. confirm that reveal hash forward hashes to previous hashchain reveal hash..(need to access Staker_List class construction..)
 
-				print '>>> recv POS reveal from', self.transport.getPeer().host, stake_address, str(block_number), reveal
+				y=0
+				for c in chain.stake_commit:
+					if stake_address == c[0]:
+						commit_hash = c[3]
+						y=1
+
+				if y!=1:
+					print 'stake address', stake_address, 'not in chain.stake_commit'
+					return
+
+				if sha256(''.join(merkle_hash_tx)+reveal) != commit_hash:
+					print 'reveal hash invalid..'
+					return
+
+				tmp = reveal
+				y=0
+				for s in chain.stake_list_get():
+					if s[0] == stake_address:
+						y=1
+						for x in range(s[2]+1):			#nonce plus one..starts at one rather than 0..
+							tmp = sha256(tmp)
+						if tmp != s[1]:
+							print 'reveal doesnt hash to stake terminator', 'reveal', reveal, 'nonce', s[2], 'hash_term', s[1]
+							return
+				if y==0:
+					print 'stake address not in the stake_list'
+					return 
+
+				print '>>> recv valid POS reveal:', self.transport.getPeer().host, stake_address, str(block_number), reveal
 
 
 				chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
@@ -800,6 +832,7 @@ class p2pProtocol(Protocol):
 
 		else:
 			print 'Data from node not understood - closing connection.'
+			#print data
 			self.transport.loseConnection()
 		return
 
@@ -942,10 +975,7 @@ class p2pProtocol(Protocol):
 		print '>>>BLOCK - ', block.blockheader.headerhash, str(block.blockheader.blocknumber), block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
 		
 		if chain.m_add_block(block) is True:
-				self.factory.newblock = 1
-								#new valid block detected..need to inform the mining thread 
-				#print 'sync', str(self.factory.sync), 'mining', str(self.factory.mining), 'newblock', str(self.factory.newblock)
-
+				
 				if self.factory.sync == 1:
 
 					for peer in self.factory.peers:
@@ -955,11 +985,12 @@ class p2pProtocol(Protocol):
 				
 				if self.factory.sync == 1:
 										print '**POS commit later 15 (recv block)**'
+										print 'clearing chain.stake_commit chain.stake_reveal'
+										del chain.stake_commit[:]
+										del chain.stake_reveal[:]
 										reactor.callLater(15, pos_1, 'POS commit (merkle hash tx)')
 				else:
 					print '**POS commit later 15 (recv block)** - not called as not SYNC'
-
-
 				return
 		else:
 				#print 'BAD BLOCK:', block.blockheader.headerhash, block.blockheader.blocknumber, ' invalid and discarded -', self.transport.getPeer().host
@@ -1013,61 +1044,61 @@ class p2pFactory(ServerFactory):
 
 # mining
 
-	def mining_fn(self, block_obj_header):
-		
-		self.mining = 1			#to prevent other protocol instances launching the function..
-		while True:
-				if self.nomining == True:
-					print 'Mining disabled (telnet into localhost:2000 and type "mining" to switch mining to active'
-				else:
-					print 'Mining for next block..'
-				
-				z = 0
+#	def mining_fn(self, block_obj_header):
+#		
+#		self.mining = 1			#to prevent other protocol instances launching the function..
+#		while True:
+#				if self.nomining == True:
+#					print 'Mining disabled (telnet into localhost:2000 and type "mining" to switch mining to active'
+#				else:
+#					print 'Mining for next block..'
+#				
+#				z = 0
+#
+#				for x in range(600):
+#					if self.nomining == True:
+#						time.sleep(1)
+#						pass
+#					else:
+#
+#						h_hash = block_obj_header.headerhash
+#						diff = 2**block_obj_header.difficulty
+#						
+#						y = random.randint(0,2**255)
+#						for x in range(y,y+1000000):
+#							z+=1
+#							if int(sha256(h_hash+str(x)),16) < diff:
+#								print '>>>MINED block in ',str(z), 'attempts, at diff 2**', str(block_obj_header.difficulty)
+#
+#								if self.sync == 1:
+#									b = chain.m_create_block(str(x))
+#									#chain.json_print(b)
+#									print chain.validate_block(b)
+#									print 'time between blocks= '+str(b.blockheader.timestamp-block_obj_header.timestamp)
+#									if chain.m_add_block(b) == True:	
+#										reactor.callFromThread(f.send_block_to_peers, b)
+#										self.mining = 0
+#										self.newblock = 0
+#										for peer in self.peers:
+#											reactor.callFromThread(peer.get_m_blockheight_from_connection)
+#										print 'Mining cycle finished. 2', str(time.time())
+#										print '**POS commit call later 15 (mining)...**'
+#										reactor.callLater(15, pos_1, 'POS commit (merkle hash tx, mining)')
+#										return
+#
+#					if self.newblock == 1:
+#						print 'Mining cycle finished..3'
+#						self.mining = 0
+#						self.newblock = 0
+#						for peer in self.peers:
+#							reactor.callFromThread(peer.get_m_blockheight_from_connection)
+#						return
 
-				for x in range(600):
-					if self.nomining == True:
-						time.sleep(1)
-						pass
-					else:
-
-						h_hash = block_obj_header.headerhash
-						diff = 2**block_obj_header.difficulty
-						
-						y = random.randint(0,2**255)
-						for x in range(y,y+1000000):
-							z+=1
-							if int(sha256(h_hash+str(x)),16) < diff:
-								print '>>>MINED block in ',str(z), 'attempts, at diff 2**', str(block_obj_header.difficulty)
-
-								if self.sync == 1:
-									b = chain.m_create_block(str(x))
-									#chain.json_print(b)
-									print chain.validate_block(b)
-									print 'time between blocks= '+str(b.blockheader.timestamp-block_obj_header.timestamp)
-									if chain.m_add_block(b) == True:	
-										reactor.callFromThread(f.send_block_to_peers, b)
-										self.mining = 0
-										self.newblock = 0
-										for peer in self.peers:
-											reactor.callFromThread(peer.get_m_blockheight_from_connection)
-										print 'Mining cycle finished. 2', str(time.time())
-										print '**POS commit call later 15 (mining)...**'
-										reactor.callLater(15, pos_1, 'POS commit (merkle hash tx, mining)')
-										return
-
-					if self.newblock == 1:
-						print 'Mining cycle finished..3'
-						self.mining = 0
-						self.newblock = 0
-						for peer in self.peers:
-							reactor.callFromThread(peer.get_m_blockheight_from_connection)
-						return
-
-					if not self.peers:
-						self.mining = 0
-						self.newblock = 0
-						print 'Mining cyle finished..without creating block - no connected peers 4'
-						return
+#					if not self.peers:
+#						self.mining = 0
+#						self.newblock = 0
+#						print 'Mining cyle finished..without creating block - no connected peers 4'
+#						return
 
 
 

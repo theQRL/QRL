@@ -25,7 +25,6 @@ global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_li
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf
 
 
-hash_chain = []
 ping_list =[]
 node_list = ['104.251.219.145']
 #node_list = []
@@ -45,29 +44,9 @@ my = wallet.f_read_wallet()
 wallet.f_load_winfo()
 mining_address = my[0][1].address
 print 'mining/staking address', mining_address
+hash_chain = my[0][1].hc
 
 # pos
-
-class Hashchain():
-	def __init__(self, n=10000):
-		start_chain = merkle.random_key()
-		iter_chain = start_chain
-		hash_chain = []
-		hash_chain.append(start_chain)
-		for x in range(n):
-			iter_chain = sha256(iter_chain)
-			hash_chain.append(iter_chain)
-		self.hash_chain = hash_chain
-		self.n = n
-
-	def hash(self, x):
-		if x > self.n or x < 0:
-			return False
-		return self.hash_chain[self.n-x]
-
-	def seed(self):
-		return self.hash_chain[0]
-
 
 # return a sorted list of txhashes from transaction_pool, sorted by timestamp from block n (actually from start of transaction_pool) to time, then ordered by txhash.
 
@@ -284,7 +263,7 @@ class BlockHeader():
 			self.block_reward = 0
 			self.epoch = 0
 		else:
-			self.epoch = m_blockchain[-1].blockheader.blocknumber+1/10000
+			self.epoch = (m_blockchain[-1].blockheader.blocknumber+1)/10000
 			self.stake_nonce = 10000-hash_chain.index(hashchain_link)				#****UPDATE WHEN HASH_CHAIN is moved to wallet..at block1 better to take from stake_list_get ****
 			self.stake_selector = mining_address
 			self.block_reward = block_reward(self.blocknumber)
@@ -329,8 +308,8 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
 		self.stake = []
-		self.state = [['Q60e2ade04e249adcf85e95743f2c3b3d46cfce9121fec3f81ed4696789cb28ce235e', [0, 100000*100000000, []]] , ['Q6e7ea4ac974303517b5bbf689e7331001313a15c6547414adca1d61d60aa9c8b078b',[0, 10000*100000000,[]]]]
-		self.stake_list = ['Q60e2ade04e249adcf85e95743f2c3b3d46cfce9121fec3f81ed4696789cb28ce235e', 'Q6e7ea4ac974303517b5bbf689e7331001313a15c6547414adca1d61d60aa9c8b078b']
+		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]]]
+		self.stake_list = ['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 
@@ -1153,13 +1132,18 @@ def state_add_block(block):
 					next_sl.append([st.txfrom, st.hash, 0])
 
 			z = state_get_address(st.txfrom)
+			#print 'z', z
 
 			pub = st.pub
+			#print 'pub', pub
 			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
 			pubhash = sha256(''.join(pub))
+			#print 'pubhash', pubhash
+			z[0]+=1
+			z[2].append(pubhash)
+			db.put(st.txfrom, z)	#update the statedb for txfrom's
+			print 'state st.txfrom', state_get_address(st.txfrom)
 
-			db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])	#update the statedb for txfrom's
-		
 		stake_list = sorted(sl, key=itemgetter(1))
 		stake_list_put(stake_list)
 		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
@@ -1173,7 +1157,7 @@ def state_add_block(block):
 	else:
 		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
 			stake_list = []
-			prf_epoch = []
+			epoch_prf = []
 			next_sl = next_stake_list_get()
 			sl = stake_list_get()
 			u=0
@@ -1189,6 +1173,7 @@ def state_add_block(block):
 						y=-1000
 					else:
 						stake_list_put(sl)
+						stake_list = sl
 			if u != 1:
 				y=-1000
 				print 'stake selector not in stake_list_get'
@@ -1212,12 +1197,16 @@ def state_add_block(block):
 				for s in next_sl:
 					if st.txfrom == s[0]:		#already in the next stake list, ignore for staker list but update as usual the state_for_address..
 						z = state_get_address(st.txfrom)
-						db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])	#update the statedb for txfrom's
+						z[0]+=1
+						z[2].append(pubhash)
+						db.put(st.txfrom, z)	#update the statedb for txfrom's
 						u=1
 
 				if u==0:
 					z = state_get_address(st.txfrom)
-					db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])
+					z[0]+=1
+					z[2].append(pubhash)
+					db.put(st.txfrom, z)
 					next_sl.append([st.txfrom, st.hash, 0])
 
 			next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
@@ -1428,6 +1417,7 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):				#NEED
 			print msg
 			return (False, msg)
 	else:	#xmss
+		print state_pubhash(txfrom)
 		for pubhash in state_pubhash(txfrom):
 		 	pub = data.pk(ots_key)
 		 	pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]

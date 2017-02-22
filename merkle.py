@@ -244,6 +244,9 @@ class XMSS():
         self.addresses = [(0, self.address, self.signatures)]             # position in wallet denoted by first number and address/tree by signatures
         self.subtrees = [(0, self.signatures, self.tree, self.x_bms, self.PK_short)]      #optimise by only storing length of x_bms..[:x]
 
+        # create hash chain for POS
+        self.hashchain()
+
     def index(self):            #return next OTS key to sign with
         return self.index
 
@@ -351,6 +354,21 @@ class XMSS():
                 print 'ERROR: self.addresses new address does not exist'
                 return False
         return self.addresses[t][1]
+
+    def hashchain(self,n=10000):             #generates a 10,000th hash in iterative sha256 chain..derived from private SEED
+        x = GEN(self.private_SEED,5000,l=32)
+        y = GEN(x, 5000, l=32)
+        z = GEN(y,5000, l=32)
+        hc = []
+        hc.append(z)
+        for x in range(n):
+            z = sha256(z)
+            hc.append(z)
+        self.hc_seed = z
+        self.hc = hc
+        self.hc_terminator = hc[-1]
+        return
+
 
 def xmss_tree(n, private_SEED, public_SEED):
     #no.leaves = 2^h
