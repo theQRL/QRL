@@ -1,10 +1,12 @@
 #QRL main blockchain, state, stake, transaction functions.
 
 # after basic working pos
+# add stake_seed into block classes..
 # move hashchain generation from chain to wallet..derive from private SEED gen..store in f_wallet..update based upon epoch...
 # api stakers - from stake_list..
 # establish tx.nonce at the point of block creation - important as we sort the tx pool by txhash, thus nonce could be wrong then..
 # add stake list check to the state check - addresses which are staking cannot make transactions..
+# perhaps we should add all the stakers with hash terminators and last hash + nonce into block.stake as a list?
 
 __author__ = 'pete'
 
@@ -45,44 +47,6 @@ mining_address = my[0][1].address
 print 'mining/staking address', mining_address
 
 # pos
-
-# stake pool fn
-# logic in node for recv st tx..
-# logic in add block.
-# logic in read chain
-
-# block 0 logic..
-
-# finish node pos
-
-class Staker_List():
-	def __init__(self, stake_address):
-		self.epoch = m_blockchain[-1].blockheader.blocknumber/10000
-
-		if self.epoch == 0:		#genesis holds the info..
-			self.prf = pos_block_selector(m_blockchain[0].blockheader.stake_seed, 2)
-
-		# we know the epoch. now check the blockchain for the stakers..
-		# if epoch = 0 -> genesis block holds the stake info..else scan intervening blocks for stake flags..
-
-		# generate a list of: (stake addresses, hash chain terminators) = n
-
-		# what is the seed? -> pos_block_selector(seed, n)
-		#self.prf = pos_block_selector(seed, n)
-
-	def update(self):
-		pass
-		# call this first each time.. it checks the block number and epoch with self epoch..if the next epoch has arrived then 
-		# resets the list of stakers, hash terminators and seed
-
-	def stake_address_hash(self, stake_address, block_n):
-		pass
-		# return the expected reveal hash for that block..			#if chain broken by a missing block..need to mitigate this..could use some stake_state in db..
-
-	def stake_selector(self):
-		count = m_blockchain[-1].blockheader.blocknumber+1 - (self.epoch * 10000)
-		return self.stake_list[self.prf[count]][0]
-
 
 class Hashchain():
 	def __init__(self, n=10000):
@@ -1144,10 +1108,9 @@ def state_add_block(block):
 
 	st1 = []	
 	st2 = []
-	st3 = state_get_address(block.blockheader.stake_selector)
+	st3 = state_get_address(block.blockheader.stake_selector)	# to roll back
 
 	st4 = stake_list_get()		# to roll back
-
 	st5 = []
 
 	for st in block.stake:
@@ -1164,6 +1127,7 @@ def state_add_block(block):
 	db.put(block.blockheader.stake_selector, [st3[0],st3[1]+block.blockheader.block_reward,st3[2]])
 
 	# reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
+
 	# if block 1: 
 
 	if block.blockheader.blocknumber == 1:
@@ -1177,12 +1141,15 @@ def state_add_block(block):
 			if st.txfrom == block.blockheader.stake_selector:			#update txfrom, hash and stake_nonce against genesis for current or next stake_list
 				if st.txfrom in m_blockchain[0].stake_list:
 					sl.append([st.txfrom, st.hash, 1])
+				else:
+					print 'designated staker not in genesis..'
+					y=-1000												#triggers block fail..
 			else:
 				if st.txfrom in m_blockchain[0].stake_list:
 					sl.append([st.txfrom, st.hash, 0])
 				else:
 					next_sl.append([st.txfrom, st.hash, 0])
-			
+
 			z = state_get_address(st.txfrom)
 
 			pub = st.pub
@@ -1191,15 +1158,62 @@ def state_add_block(block):
 
 			db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])	#update the statedb for txfrom's
 		
-		stake_list_put(sl)
-		next_stake_list_put(next_sl)
-		stake_list = sl
+		stake_list = sorted(sl, key=itemgetter(1))
+		stake_list_put(stake_list)
+		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 		numlist(stake_list)
 
 	else:
-		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:
-			pass
-	# if no change then add to 'next_state_list' for every st.txfrom, increment nonce in state address, add pubhash, amount unchanged..
+		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
+			stake_list = []
+			prf_epoch = []
+			next_sl = next_stake_list_get()
+			sl = stake_list_get()
+			u=0
+			
+			#increase the stake_nonce of state selector..must be in stake list..
+
+			for s in sl:													
+				if block.blockheader.stake_selector == s[0]:
+					u=1
+					s[2]+=1
+					if s[2] != block.blockheader.stake_nonce:
+						print 'stake_nonce wrong..'
+						y=-1000
+					else:
+						stake_list_put(sl)
+			if u != 1:
+				y=-1000
+				print 'stake selector not in stake_list_get'
+
+			#confirm that the state selector is correctly chosen by PRF from seed..
+
+			epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(sl))		#need to add a stake_seed option in block classes
+			if sl[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
+				print 'stake selector wrong..'
+				y=-1000
+
+			# update and re-order the next_stake_list:
+
+			for st in block.stake:
+				pub = st.pub
+				pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+				pubhash = sha256(''.join(pub))
+
+				u=0
+
+				for s in next_sl:
+					if st.txfrom == s[0]:		#already in the next stake list, ignore for staker list but update as usual the state_for_address..
+						z = state_get_address(st.txfrom)
+						db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])	#update the statedb for txfrom's
+						u=1
+
+				if u==0:
+					z = state_get_address(st.txfrom)
+					db.put(st.txfrom, [z[0]+1, z[1], z[2].append(pubhash)])
+					next_sl.append([st.txfrom, st.hash, 0])
+
+			next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 
 		else:
 			pass
@@ -1534,6 +1548,9 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		print 'Block reward incorrect for block: failed validation'
 		return False
 
+	if b.epoch != b.blocknumber/10000:
+		print 'Epoch incorrect for block: failed validation'
+
 	if b.blocknumber == 1:
 		x=0
 		for st in block.stake:
@@ -1560,6 +1577,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 				print 'Stake selector not in stake_list for this epoch..'
 				return False
 	
+
 	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions+str(b.number_stake)+b.hashedstake) != b.headerhash:
 		print 'Headerhash false for block: failed validation'
 		return False
