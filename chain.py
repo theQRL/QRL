@@ -1,12 +1,14 @@
 #QRL main blockchain, state, stake, transaction functions.
 
 # after basic working pos
+# 
+# add merkle tx hash into blockheader..
 # add stake_seed into block classes..
-# move hashchain generation from chain to wallet..derive from private SEED gen..store in f_wallet..update based upon epoch...
+# hashchain generation to be updated based upon epoch..
 # api stakers - from stake_list..
 # establish tx.nonce at the point of block creation - important as we sort the tx pool by txhash, thus nonce could be wrong then..
 # add stake list check to the state check - addresses which are staking cannot make transactions..
-# perhaps we should add all the stakers with hash terminators and last hash + nonce into block.stake as a list?
+# (perhaps we should add all the stakers with hash terminators and last hash + nonce into block.stake as a list?)
 
 __author__ = 'pete'
 
@@ -47,6 +49,35 @@ print 'mining/staking address', mining_address
 hash_chain = my[0][1].hc
 
 # pos
+
+# create a block from a list of supplied tx_hashes
+
+def create_stake_block(tx_hash_list, hashchain_hash):
+
+	# full memory copy of the transaction pool..
+
+	global transaction_pool
+
+	t_pool2 = copy.deepcopy(transaction_pool)
+
+	del transaction_pool[:]
+
+	# recreate the transaction pool as in the tx_hash_list, ordered by txhash..
+
+	for tx in tx_hash_list:
+		for t in t_pool2:
+			if tx == t.txhash:
+				transaction_pool.append(t)
+
+	# creat the block..
+
+	block_obj = m_create_block(hashchain_hash)
+
+	# reset the pool back
+
+	transaction_pool = copy.deepcopy(t_pool2)
+
+	return block_obj
 
 # return a sorted list of txhashes from transaction_pool, sorted by timestamp from block n (actually from start of transaction_pool) to time, then ordered by txhash.
 
@@ -101,17 +132,19 @@ def pos_block_pool():
 	x = sorted_tx_pool(start_time)
 	y = sorted_tx_pool(timestamp)
 	if y == False:				# if pool is empty -> return sha256 null
-		return [sha256('')]
+		return [sha256('')], [[]]
 	elif x == y:					# if the pool isnt empty but there is no difference then return the only merkle hash possible..			
-		return [merkle_tx_hash(y)]
+		return [merkle_tx_hash(y)], [y]
 	else:						# there is a difference in contents of pool over last 1.5 seconds..
 		merkle_hashes = []
+		txhashes = []
 		if x == False:				
 			merkle_hashes.append(sha256(''))
 			x = []
+			txhashes.append(x)
 		else:
 			merkle_hashes.append(merkle_tx_hash(x))
-
+			txhashes.append(x)
 		tmp_txhashes = x
 
 		for tx in reversed(transaction_pool):
@@ -119,8 +152,9 @@ def pos_block_pool():
 				tmp_txhashes.append(tx.txhash)
 				tmp_txhashes.sort()
 				merkle_hashes.append(merkle_tx_hash(tmp_txhashes))
+				txhashes.append(tmp_txhashes)
 
-		return merkle_hashes		
+		return merkle_hashes, txhashes	
 
 # create the PRF selector sequence based upon a seed and number of stakers in list (temporary..there are better ways to do this with bigger seed value, but it works)
 
@@ -308,8 +342,8 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
 		self.stake = []
-		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]]]
-		self.stake_list = ['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302']
+		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577', [0, 10000*100000000,[]]] ]
+		self.stake_list = ['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 
@@ -1185,6 +1219,9 @@ def state_add_block(block):
 				print 'stake selector wrong..'
 				y=-1000
 
+				#if we need to allow for a missed stake selector in a missed block, we have to add logic for a round of commit/reveal missed block votes from the 
+				# stakers then the next in line to be accepted..
+
 			# update and re-order the next_stake_list:
 
 			for st in block.stake:
@@ -1566,7 +1603,9 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 			return False
 	else:		# we look in stake_list for the hash terminator and hash to it..
 		y=0
-		for st in stake_list:
+		#numlist(stake_list_get())
+		#print 'b.stake_selector',  b.stake_selector
+		for st in stake_list_get():
 			if st[0] == b.stake_selector:
 					y = 1
 					terminator = b.hash
@@ -1575,7 +1614,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 					if terminator != st[1]:
 						print 'Supplied hash does not iterate to terminator: failed validation'
 						return False
-			if y != 1:
+		if y != 1:
 				print 'Stake selector not in stake_list for this epoch..'
 				return False
 	
