@@ -1,14 +1,14 @@
 #QRL main blockchain, state, stake, transaction functions.
 
-# after basic working pos
-# 
-# add merkle tx hash into blockheader..
-# add stake_seed into block classes..
+# todo:
+# complete stake_read_chain() to incorporate stake/state additions..
+# pos_block_pool() should return all combinations, not just the order received then sorted by txhash - removes edge cases for block selection failure..
+# edit the blockheader: ?all stakers should be in header who have committed..
+# add stake_seed into block classes..so after block 10000 we can continue..
 # hashchain generation to be updated based upon epoch..
-# api stakers - from stake_list..
-# establish tx.nonce at the point of block creation - important as we sort the tx pool by txhash, thus nonce could be wrong then..
 # add stake list check to the state check - addresses which are staking cannot make transactions..
-# (perhaps we should add all the stakers with hash terminators and last hash + nonce into block.stake as a list?)
+# block-reward calculation to be altered based upon block-time and stake_list_get() balances..proportion of entire coin supply..
+# fees
 
 __author__ = 'pete'
 
@@ -50,7 +50,7 @@ hash_chain = my[0][1].hc
 
 # pos
 
-# create a block from a list of supplied tx_hashes
+# create a block from a list of supplied tx_hashes, check state to ensure validity..
 
 def create_stake_block(tx_hash_list, hashchain_hash):
 
@@ -64,12 +64,16 @@ def create_stake_block(tx_hash_list, hashchain_hash):
 
 	# recreate the transaction pool as in the tx_hash_list, ordered by txhash..
 
+	d = []
+
 	for tx in tx_hash_list:
 		for t in t_pool2:
 			if tx == t.txhash:
+				d.append(t.txfrom)
 				transaction_pool.append(t)
+				t.nonce = state_nonce(t.txfrom)+d.count(t.txfrom)
 
-	# creat the block..
+	# create the block..
 
 	block_obj = m_create_block(hashchain_hash)
 
@@ -86,7 +90,6 @@ def sorted_tx_pool(timestamp=None):
 		timestamp=time()
 	pool = copy.deepcopy(transaction_pool)
 	trimmed_pool = []
-	#start_time = m_blockchain[-1].blockheader.timestamp
 	end_time = timestamp
 	for tx in pool:
 		#if txhash_timestamp[txhash_timestamp.index(tx.txhash)+1] >= start_time and txhash_timestamp[txhash_timestamp.index(tx.txhash)+1] <= end_time:
@@ -125,9 +128,9 @@ def merkle_tx_hash(hashes):
 # create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds). 
 # returns: list of merkle root hashes of the tx pool over last 1.5 seconds
 
-def pos_block_pool():
+def pos_block_pool(n=1.5):
 	timestamp = time()
-	start_time = timestamp-1.5
+	start_time = timestamp-n
 
 	x = sorted_tx_pool(start_time)
 	y = sorted_tx_pool(timestamp)
@@ -242,19 +245,24 @@ class ReCreateStakeTransaction():
 				self.PK = ast.literal_eval(PK)
 
 class CreateSimpleTransaction(): 			#creates a transaction python class object which can be jsonpickled and sent into the p2p network..
-	def __init__(self, txfrom, txto, nonce, amount, data, fee=0, ots_key=0, hrs=''):
+	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0, hrs=''): # nonce removed..
 		
 		self.txfrom = txfrom
-		self.nonce = nonce 
+		self.nonce = 0
 		self.txto = txto
 		self.amount = int(amount)
 		self.fee = int(fee)
 		self.ots_key = ots_key
-		self.txhash = sha256(''.join(self.txfrom+str(self.nonce)+self.txto+str(self.amount)+str(self.fee)))	
 
 		if type(data) == list:
 			self.type = data[ots_key].type
 			self.pub = data[ots_key].pub
+			pub = self.pub
+			if self.type == 'LDOTS':
+				pub = [i for sub in pub for i in sub]
+			self.pubhash = sha256(''.join(pub))
+			#print self.pubhash
+			self.txhash = sha256(''.join(self.txfrom+str(self.pubhash)+self.txto+str(self.amount)+str(self.fee)))	
 			self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
 			self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
 			self.merkle_root = ''.join(data[0].merkle_root)
@@ -262,6 +270,11 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 
 		else:		#xmss
 			self.type = data.type
+			pub = data.pk(data.index)
+			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+			self.pubhash = sha256(''.join(pub))
+			#print self.pubhash
+			self.txhash = sha256(''.join(self.txfrom+str(self.pubhash)+self.txto+str(self.amount)+str(self.fee)))	
 			S = data.SIGN(self.txhash)				# Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
 			self.i = S[0]
 			self.signature = S[1]
@@ -269,10 +282,10 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 			self.i_bms = S[3]
 			self.pub = S[4]
 			self.PK = S[5]
-			#print self.PK
 			self.merkle_root = data.root
 			self.verify = data.VERIFY(self.txhash, S)
 	
+
 
 def creategenesisblock():
 	return CreateGenesisBlock()
@@ -342,20 +355,21 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
 		self.stake = []
-		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577', [0, 10000*100000000,[]]] ]
+		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
 		self.stake_list = ['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 
 # JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)
 
-class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinstantiation of the class..
+class ReCreateSimpleTransaction():			#recreate from JSON avoiding insecure pickle reinstantiation of the class..
 	def __init__(self, json_obj):
 		
 		self.type = json_obj['type'].encode('latin1')
 
 		if self.type != 'XMSS':
 
+			self.pubhash = json_obj['pubhash'].encode('latin1')
 			self.nonce = json_obj['nonce']
 			self.fee = int(json_obj['fee'])
 			self.verify = json_obj['verify']
@@ -389,7 +403,7 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 			#self.hrs = json_obj['hrs'].encode('latin1')
 		
 		else:	#xmss
-
+			self.pubhash = json_obj['pubhash'].encode('latin1')
 			self.nonce = json_obj['nonce']
 			self.fee = int(json_obj['fee'])
 			self.i_bms = []
@@ -447,8 +461,6 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding pickle reinsta
 					self.PK.append(p.encode('latin1'))
 			elif len(PK) == 168:
 					self.PK = ast.literal_eval(PK)
-			#strip out later
-			#self.hrs = json_obj['hrs'].encode('latin1')
 
 
 class ReCreateBlock():						#recreate block class from JSON variables for processing
@@ -459,7 +471,6 @@ class ReCreateBlock():						#recreate block class from JSON variables for proces
 		self.transactions = []
 		for tx in transactions:
 			self.transactions.append(ReCreateSimpleTransaction(tx))
-#			self.transactions.append(json_decode_tx(json.dumps(tx)))
 
 		stake = json_block['stake']
 		self.stake = []
@@ -816,10 +827,33 @@ def stake_commits(data=None):
 	return json_print_telnet(sc)
 
 def stakers(data=None):
-
+	#(stake -> address, hash_term, nonce)
 	stakers = {}
-
+	stakers['status'] = 'ok'
+	stakers['stake_list'] = {}
+	for s in stake_list_get():
+		stakers['stake_list'][s[0]] = {}
+		stakers['stake_list'][s[0]]['address'] = s[0]
+		stakers['stake_list'][s[0]]['balance'] = state_balance(s[0])/100000000.00000000
+		stakers['stake_list'][s[0]]['hash_terminator'] = s[1]
+		stakers['stake_list'][s[0]]['nonce'] = s[2]
+		
 	return json_print_telnet(stakers)
+
+def next_stakers(data=None):
+	#(stake -> address, hash_term, nonce)
+	next_stakers = {}
+	next_stakers['status'] = 'ok'
+	next_stakers['stake_list'] = {}
+	for s in next_stake_list_get():
+		next_stakers['stake_list'][s[0]] = {}
+		next_stakers['stake_list'][s[0]]['address'] = s[0]
+		next_stakers['stake_list'][s[0]]['balance'] = state_balance(s[0])/100000000.00000000
+		next_stakers['stake_list'][s[0]]['hash_terminator'] = s[1]
+		next_stakers['stake_list'][s[0]]['nonce'] = s[2]
+		
+	return json_print_telnet(next_stakers)
+
 
 def stake_reveals(data=None):
 
@@ -1035,8 +1069,20 @@ def state_hrs(hrs):
 	try: return db.get('hrs'+hrs)
 	except: return False
 
+def state_validate_st(st):
+	if st.type != 'XMSS/STAKE':
+		return False
+	pub = st.pub
+	pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+	pubhash = sha256(''.join(pub))
 
-def state_validate_tx(tx):		#checks new tx validity based upon node statedb and node mempool. different to state_add_block validation which is an ordered update of state based upon statedb alone.
+	if pubhash in state_pubhash(st.txfrom):
+			print 'State validation failed for', st.hash, 'because: OTS Public key re-use detected'
+			return False
+	return True
+
+
+def state_validate_tx(tx):		#checks new tx validity based upon node statedb and node mempool. 
 
 	if state_uptodate() is False:
 			print 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'
@@ -1047,23 +1093,9 @@ def state_validate_tx(tx):		#checks new tx validity based upon node statedb and 
 			return False 
 
 	if state_balance(tx.txfrom) < tx.amount: 
-			print 'State validation failed for', tx.txhash,  'because: Insufficient'
+			print 'State validation failed for', tx.txhash,  'because: Insufficient funds'
 			return False
 
-	z = 0
-	x = 0
-	for t in transaction_pool:
-			if t.txfrom == tx.txfrom:
-					x+=1
-					if t.txhash == tx.txhash:		#this is our unique tx..
-						z = x
-
-	if x == 0:
-		z+=1
-
-	if state_nonce(tx.txfrom)+z != tx.nonce:
-			print 'State validation failed for', tx.txhash, 'because: Invalid nonce'
-			return False
 
 	pub = tx.pub
 	if tx.type == 'LDOTS':
@@ -1285,6 +1317,9 @@ def state_add_block(block):
 			break
 
 		# add a check to prevent spend from stake address..
+		# if tx.txfrom in stake_list_get():
+		# print 'attempt to spend from a stake address: invalid tx type'
+		# break
 
 		s1[0]+=1
 		s1[1] = s1[1]-tx.amount
@@ -1376,10 +1411,10 @@ def state_read_chain():
 
 #tx functions and classes
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):				#NEED TO SORT THIS FUNCTION OUT!
+def createsimpletransaction(txfrom, txto, amount, data, fee=0):				#NEED TO SORT THIS FUNCTION OUT!
 
 	#few state checks to ensure tx is valid, including tx already in the transaction_pool
-	#need to avoid errors in nonce and public key re-use which will invalidate the tx at other nodes
+	#need to avoid errors in public key re-use which will invalidate the tx at other nodes
 
 	if state_uptodate() is False:
 			msg = 'state not at latest block in chain'
@@ -1396,54 +1431,13 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):				#NEED
 			print msg
 			return (False, msg)
 	
-	#if len(hrs) != 0:
-	#	if hrs[0] == 'Q':
-	#		msg = 'cannot start a human readable string with "Q"'
-	#		print msg
-	#		return (False, msg)
-	#	if state_hrs(hrs) is not False:
-	#		msg = 'human readable string already associated with another address'
-	#		print msg
-	#		return (False, msg)
-	
-	# signatures remaining is important to check - once all the public keys are used then any funds left will be frozen and unspendable..
-
-	nonce = state_nonce(txfrom)+1
-
+	n=1
 	for t in transaction_pool:
 		if t.txfrom == txfrom:
-				nonce+=1
+			n+=1
 
 	if type(data) == list:
-		s = data[0].signatures-nonce
-	else:	#xmss
-		s = data.remaining
-
-	if s == 0: 
-		if state_balance(txfrom)-amount > 0:
-			msg = '***WARNING***: Only ONE remaining transaction possible from this address without leaving funds inaccessible. If you wish to proceed either create the tx manually or move ALL funds from this address with next transaction attempt. Transaction cancelled.'
-			print msg
-			return (False, msg)
-		else:
-			msg = 'Creating final transaction with address..'
-			print msg
-
-	if s < 0: 
-		msg = 'No valid transactions from this address can be performed as there are no remaining valid signatures available, sorry.'	#not strictly true..
-		print msg
-		return (False, msg)
-	if s == 1:
-			msg = 'Warning: only '+str(s)+'remaining transactions possible from this address - consider moving funds to a new address immediately.'
-			print msg
-	elif s <= 5:
-		msg = 'Warning: only '+ str(s)+'further transactions possible from this address before one-time signatures run out.'
-		print msg
-	else:
-		msg = str(s)+' further transactions can be signed from this address.'	
-	#need to determine which public key in the OTS-MSS to use..
-
-	if type(data) == list:
-		ots_key = nonce-1		#nonce for first tx from an address is 1, first ots signature is 0..
+		ots_key = state_nonce(txfrom)+n		#nonce for first tx from an address is 1, first ots signature is 0..
 	else: #xmss
 		ots_key = data.index
 
@@ -1463,7 +1457,8 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0, hrs=''):				#NEED
 				print msg
 				return (False, msg)
 
-	return (CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, nonce=nonce, data=data, fee=fee, ots_key=ots_key, hrs=hrs), msg)
+	msg = ''
+	return (CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, data=data, fee=fee, ots_key=ots_key), msg)
 
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
@@ -1475,6 +1470,8 @@ def add_st_to_pool(st_class_obj):
 
 def remove_tx_from_pool(tx_class_obj):
 	transaction_pool.remove(tx_class_obj)
+	txhash_timestamp.pop(txhash_timestamp.index(tx_class_obj.txhash)+1)
+	txhash_timestamp.remove(tx_class_obj.txhash)
 
 def remove_st_from_pool(st_class_obj):
 	stake_pool.remove(st_class_obj)
@@ -1550,7 +1547,7 @@ def validate_tx(tx, new=0):
 	if not tx:
 		raise Exception('No transaction to validate.')
 
-	if tx.txhash != sha256(''.join(tx.txfrom+str(tx.nonce))+tx.txto+str(tx.amount)+str(tx.fee)):
+	if tx.txhash != sha256(''.join(tx.txfrom+str(tx.pubhash))+tx.txto+str(tx.amount)+str(tx.fee)):
 		return False
 
 	if tx.type == 'WOTS':
@@ -1681,7 +1678,7 @@ def create_my_tx(txfrom, txto, n, fee=0):
 	if tx is not False:
 		#transaction_pool.append(tx)
 		add_tx_to_pool(tx)
-		wallet.f_save_winfo()	#need to keep state after tx ..use wallet.info to store index..far faster than loading the 5mb wallet..
+		wallet.f_save_winfo()	#need to keep state after tx ..use wallet.info to store index..far faster than loading the 55mb wallet..
 		return (tx, msg)
 	else:
 		return (False, msg)
