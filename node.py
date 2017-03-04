@@ -16,12 +16,12 @@ import chain, wallet
 
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
-from merkle import sha256, numlist, hexseed_to_seed
+from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed
 from operator import itemgetter
 from collections import Counter
 
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords','address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
 api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
@@ -539,16 +539,23 @@ class WalletProtocol(Protocol):
 					self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
 					return
 
-			elif data[0] == 'recoverfromseed':
-				pass
-
-
-
-
-
-				self.transport.write(">>> type 'savenewaddress' to append to wallet file"+'\r\n')
+			elif data[0] == 'recoverfromwords':
+				if not args:
+					self.transport.write('>>> Usage: recoverfromwords <paste in 32 mnemonic words>'+'\r\n')
+					return
+				self.transport.write('>>> trying..this could take up to a minute..'+'\r\n')
+				if len(args) != 32:
+					self.transport.write('>>> Usage: recoverfromwords <paste in 32 mnemonic words>'+'\r\n')
+					return
+				args = ' '.join(args)
+				addr = wallet.getnewaddress(type='XMSS', SEED=mnemonic_to_seed(args))
 				self.factory.newaddress = addr
+				self.transport.write('>>> Recovery address: '+ addr[1].address +'\r\n')
+				self.transport.write('>>> Recovery hexSEED: '+addr[1].hexSEED + '\r\n')
+				self.transport.write('>>> Mnemonic confirm: '+addr[1].mnemonic+'\r\n')
+				self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
 				return
+
 				# add in the code to recover address from either hexseed or mnemonic..
 
 
@@ -564,7 +571,7 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, recoverfromhexseed, mempool, json_block, json_search, seed, hexseed, mining, getinfo, blockheight or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, recoverfromhexseed, recoverfromwords, mempool, json_block, json_search, seed, hexseed, mining, getinfo, blockheight or getnewaddress'+'\r\n')
 				#removed 'hrs, hrs_check,'
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
