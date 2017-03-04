@@ -1,6 +1,9 @@
 # QRL testnet node..
 # -features POS, quantum secure signature scheme..
 
+# change the POS correction to simply callLater a check blockheight call rather than a missed block or pos_1..then from there we can interrogate the last block, send a blockheight request to all
+# connected peers.. 
+
 # todo: final design of POS..stake list is glacial and set for each epoch..but should we be flexible with who is online and reward the block reward based upon presence
 # during the last x blocks? Should the info with stake reveal hashes go in the header?
 # if a staker isnt present then who should make the next block? need to consider best way to keep the PRF static and compensate for this in a way which doesn't allow
@@ -218,10 +221,10 @@ def pos_4(block_obj):
 def pos_missed_block(data=None):
 	print '** Missed block logic ** - testnet halted..'
 
-	try: reactor.callID3.cancel()		#activates if we do not get a block within x seconds, cancelled if we do..
+	try: reactor.callID3.cancel()	
 	except: pass
 
-	get_m_blockheight_from_peers()
+	f.get_m_blockheight_from_peers()
 
 	# series of cascading missed block functions..
 	# we trigger a callLater to try to restart the loop via pos_1() first..
@@ -363,6 +366,12 @@ class ApiProtocol(Protocol):
 	def stats(self, data=None):
 		print '<<< API stats call'
 
+		# calculate staked/emission %
+		b=0
+		for s in chain.stake_list_get():
+			b+=chain.state_balance(s[0])
+		staked = decimal.Decimal((b/100000000.000000000)/(chain.db.total_coin_supply()/100000000.000000000)*100).quantize(decimal.Decimal('1.00')) #/100000000.000000000)
+		staked = float(str(staked))
 		# calculate average blocktime over last 100 blocks..
 
 		z=0
@@ -376,7 +385,7 @@ class ApiProtocol(Protocol):
 
 		#print 'mean', z/len(chain.m_blockchain[-100:]), 'max', max(t), 'min', min(t), 'variance', max(t)-min(t)
 
-		net_stats = {'status': 'ok', 'network' : 'qrl testnet', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block-time' : z/len(chain.m_blockchain[-100:]), 'block-time variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
+		net_stats = {'status': 'ok', 'block_reward' : chain.m_blockchain[-1].blockheader.block_reward/100000000.00000000, 'stake_validators' : len(chain.stake_list_get()), 'epoch' : chain.m_blockchain[-1].blockheader.epoch, 'staked_percentage_emission' : staked , 'network' : 'qrl testnet', 'network_uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block_time' : z/len(chain.m_blockchain[-100:]), 'block_time_variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -807,14 +816,14 @@ class p2pProtocol(Protocol):
 					elif len(chain.m_blockchain) == 1 and self.factory.genesis == 1:
 						return
 
-					# 2. restart the network if it has paused after 600 seconds.
+					# 2. restart the network if it has paused after 110 seconds.
 
-					if chain.m_blockchain[-1].blockheader.timestamp < time.time()-600:
+					if chain.m_blockchain[-1].blockheader.timestamp < time.time()-110:
 						try: reactor.callID4.cancel()
 						except:
 								pass
 
-						print 'last block > 600s ago: restarting pos_1'
+						print 'last block > 110s ago: restarting pos_1'
 						reactor.callID4 = reactor.callLater(10, pos_1)
 						return
 

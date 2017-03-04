@@ -12,7 +12,7 @@
 __author__ = 'pete'
 
 from merkle import sha256, numlist
-from time import time
+from time import time, sleep
 from operator import itemgetter
 from math import log, ceil
 
@@ -365,8 +365,8 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
 		self.stake = []
-		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
-		self.stake_list = ['Q22e0b513ad3e48001ab04ea36eefbccbcdf297af70365ee89c228c6c957ddd4ddc5b', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577']
+		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
+		self.stake_list = ['Q22e0b513ad3e48001ab04ea36eefbccbcdf297af70365ee89c228c6c957ddd4ddc5b', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 
@@ -664,9 +664,11 @@ def search_address(address):
 			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000.000000000
 			addr['transactions'][tx.txhash]['fee'] = tx.fee/100000000.000000000
 			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
-			addr['transactions'][tx.txhash]['ots key'] = tx.ots_key
+			addr['transactions'][tx.txhash]['ots_key'] = tx.ots_key
 			addr['transactions'][tx.txhash]['txto'] = tx.txto
 			addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom
+			addr['transactions'][tx.txhash]['timestamp'] = 'unconfirmed'
+
 
 	for block in m_blockchain:
 		for tx in block.transactions:
@@ -679,7 +681,7 @@ def search_address(address):
 			addr['transactions'][tx.txhash]['amount'] = tx.amount/100000000.000000000
 			addr['transactions'][tx.txhash]['fee'] = tx.fee/100000000.000000000
 			addr['transactions'][tx.txhash]['nonce'] = tx.nonce
-			addr['transactions'][tx.txhash]['ots key'] = tx.ots_key
+			addr['transactions'][tx.txhash]['ots_key'] = tx.ots_key
 			addr['transactions'][tx.txhash]['txto'] = tx.txto
 			addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom	
 
@@ -805,11 +807,12 @@ def last_block(n=None):
 	for block in reversed(lb):
 
 		last_blocks['blocks'][block.blockheader.blocknumber] = {}
+		last_blocks['blocks'][block.blockheader.blocknumber]['block_reward'] = block.blockheader.block_reward/100000000.00000000
 		last_blocks['blocks'][block.blockheader.blocknumber]['blocknumber'] = block.blockheader.blocknumber
 		last_blocks['blocks'][block.blockheader.blocknumber]['blockhash'] = block.blockheader.prev_blockheaderhash
-		last_blocks['blocks'][block.blockheader.blocknumber]['number transactions'] = block.blockheader.number_transactions
+		last_blocks['blocks'][block.blockheader.blocknumber]['number_transactions'] = block.blockheader.number_transactions
 		last_blocks['blocks'][block.blockheader.blocknumber]['timestamp'] = block.blockheader.timestamp
-		last_blocks['blocks'][block.blockheader.blocknumber]['block interval'] = block.blockheader.timestamp - m_blockchain[block.blockheader.blocknumber-1].blockheader.timestamp
+		last_blocks['blocks'][block.blockheader.blocknumber]['block_interval'] = block.blockheader.timestamp - m_blockchain[block.blockheader.blocknumber-1].blockheader.timestamp
 
 	last_blocks['status'] = 'ok'
 
@@ -948,16 +951,18 @@ def m_create_block(nonce):
 	return CreateBlock(nonce)
 
 def m_add_block(block_obj):
-	if not m_blockchain:
+	if len(m_blockchain) == 0:
 		m_read_chain()
 
 	if validate_block(block_obj, new=1) is True:
-		m_blockchain.append(block_obj)
-		if state_add_block(m_blockchain[-1]) is True:
+		#m_blockchain.append(block_obj)
+		#if state_add_block(m_blockchain[-1]) is True:
+		if state_add_block(block_obj) is True:
+				m_blockchain.append(block_obj)
 				remove_tx_in_block_from_pool(block_obj)
 				remove_st_in_block_from_pool(block_obj)
 		else: 	
-				m_remove_last_block()
+				#m_remove_last_block()
 				print 'last block failed state/stake checks, removed from chain'
 				state_validate_tx_pool()
 				return False
@@ -1232,6 +1237,7 @@ def state_add_block(block):
 			u=0
 			
 			#increase the stake_nonce of state selector..must be in stake list..
+			print 'block:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce
 
 			for s in sl:													
 				if block.blockheader.stake_selector == s[0]:
@@ -1350,7 +1356,7 @@ def state_add_block(block):
 
 		return False
 
-	db.put('blockheight', m_blockheight())
+	db.put('blockheight', m_blockheight()+1)	#the block is added immediately after this call..
 	print block.blockheader.headerhash, str(len(block.transactions)),'tx ',' passed verification.'
 	return True
 
@@ -1363,7 +1369,7 @@ def verify_chain():
 	if m_verify_chain() == False:
 		return False
 	print 'True'
-	for x in range(2,len(m_blockchain)-2):
+	for x in range(2,len(m_blockchain)):
 		if state_add_block(m_blockchain[x]) == False:
 			return False
 	return True
