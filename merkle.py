@@ -201,6 +201,13 @@ def seed_to_mnemonic(SEED):
             y+=3
     return ' '.join(words)
 
+# hexSEED to SEED
+
+def hexseed_to_seed(hexSEED):
+    if len(hexSEED) != 96:
+        return False
+    return unhexlify(hexSEED)
+
 # xmss python implementation 
 
 # An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used

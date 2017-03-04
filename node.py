@@ -16,12 +16,12 @@ import chain, wallet
 
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
-from merkle import sha256, numlist
+from merkle import sha256, numlist, hexseed_to_seed
 from operator import itemgetter
 from collections import Counter
 
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
 api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
@@ -191,7 +191,11 @@ def pos_3(merkle_hash_data, hashchain_hash):
 			merkle_hash_data = merkle_tx_hash_data
 		else:
 			print 'ERROR: Winning merkle_root hash not returned by our pos_block_pool(),'	# try to compensate, or missed block protocol activates across the nodes..
-			print 'halting..'
+			print 'last resort ask for tx pool from peers to find missing tx and then retry at the 110s reattempt..'
+			
+			# get the tx pool from connected nodes and try again..
+
+			f.get_tx_pool_from_peers()
 			return
 	
 	block_obj = chain.create_stake_block(merkle_hash_data[1][merkle_hash_data[0].index(winner)], hashchain_hash)
@@ -224,13 +228,10 @@ def pos_missed_block(data=None):
 	try: reactor.callID3.cancel()	
 	except: pass
 
+	f.get_tx_pool_from_peers()
 	f.get_m_blockheight_from_peers()
-
-	# series of cascading missed block functions..
-	# we trigger a callLater to try to restart the loop via pos_1() first..
-
 	print 'attempting repeat of pos loop'
-	reactor.callLater(5, pos_1)
+#	reactor.callLater(5, pos_1)
 	return
 
 
@@ -520,8 +521,34 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'savenewaddress':
 				self.savenewaddress()
 			
+			elif data[0] == 'recoverfromhexseed':
+				self.transport.write('>>> trying.. this could take up to a minute..'+'\r\n')
+				print args[0], len(args[0])
+				if hexseed_to_seed(args[0]) != False:
+					addr = wallet.getnewaddress(type='XMSS', SEED=hexseed_to_seed(args[0]))
+					self.factory.newaddress = addr
+					self.transport.write('>>> Recovery address: '+ addr[1].address +'\r\n')
+					self.transport.write('>>> Recovery seed phrase: '+addr[1].mnemonic + '\r\n')
+					self.transport.write('>>> hexSEED confirm: '+addr[1].hexSEED+'\r\n')
+					self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
+					return
+
+				else:
+					self.transport.write('>>> Usage: recoverfromhexseed <paste in hexseed>'+'\r\n')
+					self.transport.write('>>> Could take up to a minute..'+'\r\n')
+					self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
+					return
+
 			elif data[0] == 'recoverfromseed':
 				pass
+
+
+
+
+
+				self.transport.write(">>> type 'savenewaddress' to append to wallet file"+'\r\n')
+				self.factory.newaddress = addr
+				return
 				# add in the code to recover address from either hexseed or mnemonic..
 
 
@@ -537,7 +564,7 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, mempool, json_block, json_search, seed, hexseed, mining, getinfo, blockheight or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, recoverfromhexseed, mempool, json_block, json_search, seed, hexseed, mining, getinfo, blockheight or getnewaddress'+'\r\n')
 				#removed 'hrs, hrs_check,'
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
@@ -822,7 +849,6 @@ class p2pProtocol(Protocol):
 						try: reactor.callID4.cancel()
 						except:
 								pass
-
 						print 'last block > 110s ago: restarting pos_1'
 						reactor.callID4 = reactor.callLater(10, pos_1)
 						return
@@ -857,6 +883,12 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'PL':			#receiving a list of peers to save into peer list..
 				self.recv_peers(suffix)
+
+		elif prefix == 'RT':
+			'<<< Transaction_pool to peer..'
+			for t in chain.transaction_pool:
+				f.send_tx_to_peers()
+			return
 
 		elif prefix == 'PE':			#get a list of connected peers..need to add some ddos and type checking proteection here..
 				self.get_peers()
@@ -1284,6 +1316,14 @@ class p2pFactory(ServerFactory):
 		print '<<<Transmitting block: ', block.blockheader.headerhash
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
+		return
+
+	# request transaction_pool from peers
+
+	def get_tx_pool_from_peers(self):
+		print '<<<Requesting TX pool from peers..'
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('RT'))
 		return
 
 # connection functions

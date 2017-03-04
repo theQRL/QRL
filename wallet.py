@@ -127,10 +127,10 @@ def list_addresses():
 
 	return list_addr
 
-def getnewaddress(signatures=4096, type='XMSS'):						#new address format is a list of two items [address, data structure from random_mss call]
+def getnewaddress(signatures=4096, type='XMSS', SEED=None):						#new address format is a list of two items [address, data structure from random_mss call]
 	addr = []
 	if type == 'XMSS':
-		new = merkle.XMSS(signatures=signatures, SEED=None)
+		new = merkle.XMSS(signatures=signatures, SEED=SEED)
 		addr.append(new.address)
 		addr.append(new)
 	elif type == 'WOTS':

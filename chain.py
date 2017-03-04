@@ -653,6 +653,11 @@ def search_address(address):
 		addr['state']['address'] = address
 		addr['state']['balance'] = balance/100000000.000000000
 		addr['state']['nonce'] = nonce
+
+	for s in stake_list_get():
+		if address == s[0]:
+			addr['stake'] = {}
+			addr['stake']['selector'] = s[2]
 		#pubhashes used could be put here..
 
 	for tx in transaction_pool:
