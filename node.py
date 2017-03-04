@@ -47,10 +47,6 @@ def pre_pos_1(data=None):		# triggered for genesis block..
 
 	return
 
-def pos_missed_block(data=None):
-	print '** Missed block logic ** - testnet halted..'
-
-	return
 
 def pre_pos_2(data=None):	# by now we should have the a stakepool full of stakers..
 	print 'pre_pos_2'
@@ -169,7 +165,7 @@ def pos_3(merkle_hash_data, hashchain_hash):
 
 	if len(c) < len(chain.stake_list)-1:
 		print 'only ', len(c), '/', len(chain.stake_list), 'so far..waiting..'
-		reactor.callLater(5, pos_3, merkle_hash_data, hashchain_hash)
+		reactor.callID3 = reactor.callLater(5, pos_3, merkle_hash_data, hashchain_hash)
 		return
 
 	count = Counter(c)
@@ -217,6 +213,22 @@ def pos_4(block_obj):
 			except: pass
 			reactor.callLater(30, pos_1)
 			reactor.callID2 = reactor.callLater(120, pos_missed_block)		# restart the network..
+	return
+
+
+def pos_missed_block(data=None):
+	print '** Missed block logic ** - testnet halted..'
+
+	try: reactor.callID3.cancel()		#activates if we do not get a block within x seconds, cancelled if we do..
+	except: pass
+
+	get_m_blockheight_from_peers()
+
+	# series of cascading missed block functions..
+	# we trigger a callLater to try to restart the loop via pos_1() first..
+
+	print 'attempting repeat of pos loop'
+	reactor.callLater(5, pos_1)
 	return
 
 
@@ -351,7 +363,21 @@ class ApiProtocol(Protocol):
 
 	def stats(self, data=None):
 		print '<<< API stats call'
-		net_stats = {'status': 'ok', 'network' : 'qrl testnet', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp, 'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
+
+		# calculate average blocktime over last 100 blocks..
+
+		z=0
+		t = []
+
+		for b in reversed(chain.m_blockchain[-100:]):
+			if b.blockheader.blocknumber > 0:
+				x = b.blockheader.timestamp-chain.m_blockchain[b.blockheader.blocknumber-1].blockheader.timestamp
+				t.append(x)
+				z+=x
+
+		#print 'mean', z/len(chain.m_blockchain[-100:]), 'max', max(t), 'min', min(t), 'variance', max(t)-min(t)
+
+		net_stats = {'status': 'ok', 'network' : 'qrl testnet', 'network uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block-time' : z/len(chain.m_blockchain[-100:]), 'block-time variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -772,10 +798,26 @@ class p2pProtocol(Protocol):
 
 					# 1. check the block height is 0.
 
+
+
 					if len(chain.m_blockchain) == 1 and self.factory.genesis == 0:
 						self.factory.genesis = 1										# set the flag so that no other Protocol instances trigger the genesis stake functions..
 						print 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'
 						reactor.callLater(1, pre_pos_1)
+						return
+					elif len(chain.m_blockchain) == 1 and self.factory.genesis == 1:
+						return
+
+					# 2. restart the network if it has paused after 600 seconds.
+
+					if chain.m_blockchain[-1].blockheader.timestamp < time.time()-600:
+						try: reactor.callID4.cancel()
+						except:
+								pass
+
+						print 'last block > 600s ago: restarting pos_1'
+						reactor.callID4 = reactor.callLater(10, pos_1)
+						return
 
 					return
 
@@ -1285,11 +1327,12 @@ if __name__ == "__main__":
 	print 'Reading chain..'
 	chain.m_load_chain()
 	print str(len(chain.m_blockchain))+' blocks'
-	print 'Verifying chain' 
-	chain.m_verify_chain(verbose=1)
+	print 'Verifying chain'
+	#chain.state_add_block(m_blockchain[1])
+	#chain.m_verify_chain(verbose=1)
 	print 'Building state leveldb'
-	chain.state_read_chain()
-	
+	#chain.state_read_chain()
+	chain.verify_chain()
 	print 'Loading node list..'			# load the peers for connection based upon previous history..
 	chain.state_load_peers()
 	print chain.state_get_peers()

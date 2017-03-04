@@ -24,9 +24,9 @@ import cPickle as pickle
 
 global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
 
-global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf
+global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, tx_per_block
 
-
+tx_per_block = [0, 0]
 ping_list =[]
 node_list = ['104.251.219.145']
 #node_list = []
@@ -37,7 +37,7 @@ stake_commit = []
 stake_reveal = []
 stake_pool = []
 stake_list = []
-
+epoch_prf = []
 print 'loading db'
 db = db.DB()
 
@@ -106,6 +106,7 @@ def sorted_tx_pool(timestamp=None):
 # merkle tree root hash of tx from pool for next POS block
 
 def merkle_tx_hash(hashes):
+	#print 'type', type(hashes), 'len', len(hashes)
 	if len(hashes)==64:					# if len = 64 then it is a single hash string rather than a list..
 		return hashes
 	j=int(ceil(log(len(hashes),2)))
@@ -127,6 +128,9 @@ def merkle_tx_hash(hashes):
 
 # create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds). 
 # returns: list of merkle root hashes of the tx pool over last 1.5 seconds
+
+#import itertools
+# itertools.permutations([1, 2, 3])
 
 def pos_block_pool(n=1.5):
 	timestamp = time()
@@ -270,7 +274,7 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 
 		else:		#xmss
 			self.type = data.type
-			pub = data.pk(data.index)
+			pub = data.pk()
 			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
 			self.pubhash = sha256(''.join(pub))
 			#print self.pubhash
@@ -283,7 +287,7 @@ class CreateSimpleTransaction(): 			#creates a transaction python class object w
 			self.pub = S[4]
 			self.PK = S[5]
 			self.merkle_root = data.root
-			self.verify = data.VERIFY(self.txhash, S)
+			self.verify = data.VERIFY(self.txhash, S)			#not necessary, to save time could be commented out to reduce tx signing speed..
 	
 
 
@@ -301,7 +305,7 @@ class BlockHeader():
 			self.timestamp = time()
 		self.prev_blockheaderhash = prev_blockheaderhash
 		self.number_transactions = number_transactions
-		self.hashedtransactions = hashedtransactions
+		self.merkle_root_tx_hash = hashedtransactions
 		self.number_stake = number_stake
 		self.hashedstake = hashedstake
 		if self.blocknumber == 0:
@@ -314,7 +318,7 @@ class BlockHeader():
 			self.stake_nonce = 10000-hash_chain.index(hashchain_link)				#****UPDATE WHEN HASH_CHAIN is moved to wallet..at block1 better to take from stake_list_get ****
 			self.stake_selector = mining_address
 			self.block_reward = block_reward(self.blocknumber)
-		self.headerhash = sha256(self.stake_selector+str(self.epoch)+str(self.stake_nonce)+str(self.block_reward)+str(self.timestamp)+self.hash+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.hashedtransactions+str(self.number_stake)+self.hashedstake)
+		self.headerhash = sha256(self.stake_selector+str(self.epoch)+str(self.stake_nonce)+str(self.block_reward)+str(self.timestamp)+self.hash+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.merkle_root_tx_hash+str(self.number_stake)+self.hashedstake)
 
 
 
@@ -325,13 +329,13 @@ class CreateBlock():
 		data = m_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
 		prev_blockheaderhash = data.blockheader.headerhash
-		if not transaction_pool:
+		if len(transaction_pool) == 0:
 			hashedtransactions = sha256('')
 		else:
-			txhashes = []
+			hashedtransactions = []
 			for transaction in transaction_pool:
-				txhashes.append(transaction.txhash)
-			hashedtransactions = sha256(''.join(txhashes))
+				hashedtransactions.append(transaction.txhash)
+		hashedtransactions = merkle_tx_hash(hashedtransactions)
 		self.transactions = []
 		for tx in transaction_pool:
 			self.transactions.append(tx)						#copy memory rather than sym link
@@ -356,7 +360,7 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.transactions = []
 		self.stake = []
 		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
-		self.stake_list = ['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577']
+		self.stake_list = ['Q22e0b513ad3e48001ab04ea36eefbccbcdf297af70365ee89c228c6c957ddd4ddc5b', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q5e7589051294df3899d3367c3f28bb606f880b8c7f95cb882987c0a28b8eacc8b577']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 
@@ -486,7 +490,7 @@ class ReCreateBlockHeader():
 		self.number_stake = json_blockheader['number_stake']
 		self.hash = json_blockheader['hash'].encode('latin1')
 		self.timestamp = json_blockheader['timestamp']
-		self.hashedtransactions = json_blockheader['hashedtransactions'].encode('latin1')
+		self.merkle_root_tx_hash = json_blockheader['merkle_root_tx_hash'].encode('latin1')
 		self.hashedstake = json_blockheader['hashedstake'].encode('latin1')
 		self.blocknumber = json_blockheader['blocknumber']
 		self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
@@ -1149,7 +1153,7 @@ def state_validate_tx_pool():
 
 def state_add_block(block):
 
-	assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
+	#assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
 
 	#snapshot of state in case we need to revert to it..
 
@@ -1215,6 +1219,7 @@ def state_add_block(block):
 		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 		numlist(stake_list)
 
+		global epoch_prf
 		epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(stake_list))		#need to add a stake_seed option in block classes
 		if stake_list[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
 				print 'stake selector wrong..'
@@ -1223,7 +1228,7 @@ def state_add_block(block):
 	else:
 		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
 			stake_list = []
-			epoch_prf = []
+			#epoch_prf = []
 			next_sl = next_stake_list_get()
 			sl = stake_list_get()
 			u=0
@@ -1246,7 +1251,8 @@ def state_add_block(block):
 
 			#confirm that the state selector is correctly chosen by PRF from seed..
 
-			epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(sl))		#need to add a stake_seed option in block classes
+			#epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(sl))		#need to add a stake_seed option in block classes
+			
 			if sl[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
 				print 'stake selector wrong..'
 				y=-1000
@@ -1352,6 +1358,27 @@ def state_add_block(block):
 	print block.blockheader.headerhash, str(len(block.transactions)),'tx ',' passed verification.'
 	return True
 
+def verify_chain():
+	state_read_genesis()
+	if len(m_blockchain) > 1:
+		if state_add_block(m_blockchain[1]) == False:
+			print 'State verification of block 1 failed'
+			return False
+	if m_verify_chain() == False:
+		return False
+	print 'True'
+	for x in range(2,len(m_blockchain)-2):
+		if state_add_block(m_blockchain[x]) == False:
+			return False
+	return True
+
+
+def state_read_genesis():
+	db.zero_all_addresses()
+	c = m_get_block(0).state
+	for address in c:
+		db.put(address[0], address[1])
+	return True
 
 def state_read_chain():
 
@@ -1359,9 +1386,8 @@ def state_read_chain():
 	c = m_get_block(0).state
 	for address in c:
 		db.put(address[0], address[1])
-
-	c = m_read_chain()[1:]
-
+	
+	c = m_read_chain()[2:]
 	for block in c:
 
 		# update coinbase address state
@@ -1411,7 +1437,7 @@ def state_read_chain():
 
 #tx functions and classes
 
-def createsimpletransaction(txfrom, txto, amount, data, fee=0):				#NEED TO SORT THIS FUNCTION OUT!
+def createsimpletransaction(txfrom, txto, amount, data, fee=0):				
 
 	#few state checks to ensure tx is valid, including tx already in the transaction_pool
 	#need to avoid errors in public key re-use which will invalidate the tx at other nodes
@@ -1448,7 +1474,7 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):				#NEED TO SORT
 			print msg
 			return (False, msg)
 	else:	#xmss
-		print state_pubhash(txfrom)
+		#print state_pubhash(txfrom)
 		for pubhash in state_pubhash(txfrom):
 		 	pub = data.pk(ots_key)
 		 	pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
@@ -1600,8 +1626,6 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 			return False
 	else:		# we look in stake_list for the hash terminator and hash to it..
 		y=0
-		#numlist(stake_list_get())
-		#print 'b.stake_selector',  b.stake_selector
 		for st in stake_list_get():
 			if st[0] == b.stake_selector:
 					y = 1
@@ -1616,7 +1640,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 				return False
 	
 
-	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.hashedtransactions+str(b.number_stake)+b.hashedstake) != b.headerhash:
+	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.merkle_root_tx_hash+str(b.number_stake)+b.hashedstake) != b.headerhash:
 		print 'Headerhash false for block: failed validation'
 		return False
 
@@ -1643,11 +1667,14 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		print 'Block validate_st_in_block error: failed validation'
 		return False
 
-	txhashes = []
-	for transaction in block.transactions:
-		txhashes.append(transaction.txhash)
-
-	if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+	if len(block.transactions) == 0:
+		txhashes = sha256('')
+	else:
+		txhashes = []
+		for transaction in block.transactions:
+			txhashes.append(transaction.txhash)
+	#if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+	if merkle_tx_hash(txhashes) != block.blockheader.merkle_root_tx_hash:
 		print 'Block hashedtransactions error: failed validation'
 		return False
 
