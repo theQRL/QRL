@@ -28,7 +28,7 @@ def parse(data):
 
 # pos functions. an asynchronous loop.
 
-def pre_pos_1(data=None):		# triggered for genesis block..
+def pre_pos_1(data=None):		# triggered after genesis for block 1..
 	print 'pre_pos_1'
 	# are we a staker in the stake list?
 
@@ -44,9 +44,7 @@ def pre_pos_1(data=None):		# triggered for genesis block..
 		return
 
 	print 'not in stake list..no further pre_pos_x calls'
-
 	return
-
 
 def pre_pos_2(data=None):	# by now we should have the a stakepool full of stakers..
 	print 'pre_pos_2'
@@ -103,7 +101,7 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 		print 'await block creation by stake validator:', chain.stake_list[spos][0]
 	return
 
-def pos_1(data=None):
+def pos_1(data=None):	#from block 2..
 	print 'pos_1'
 	# are we a staker?
 	y=0
@@ -123,11 +121,12 @@ def pos_1(data=None):
 	print 'merkle_tx_hash_data: ', merkle_tx_hash_data
 	merkle_tx_hash = merkle_tx_hash_data[0]
 	print 'merkle_tx_hash', merkle_tx_hash
-	hashchain_hash = chain.hash_chain[-(hash_nonce+2)]	#+1 betting on next block..
-
-
+	
 	# 1. are we stake selector?
 	epoch = (chain.m_blockchain[-1].blockheader.blocknumber+1)/10000	#+1 = next block
+	
+	hashchain_hash = chain.hash_chain[-(len(chain.m_blockchain)+1)-(epoch*10000)]		#may need to add one here to make the next epoch work..
+
 	#print 'epoch', epoch
 	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[epoch*10000].stake_seed, len(chain.stake_list_get())) 
 	if spos == chain.epoch_prf[chain.m_blockchain[-1].blockheader.blocknumber+1]:
@@ -924,13 +923,14 @@ class p2pProtocol(Protocol):
 				if sha256(''.join(merkle_hash_tx)+reveal) != commit_hash:
 					print 'reveal hash invalid..'
 					return
-
+				# reminder hashchain_hash = chain.hash_chain[-(len(chain.m_blockchain)+1)-(epoch*10000)]
 				tmp = reveal
 				y=0
 				for s in chain.stake_list_get():
 					if s[0] == stake_address:
 						y=1
-						for x in range(s[2]+1):			#nonce plus one..starts at one rather than 0..
+					#	for x in range(s[2]+1):			#nonce plus one..starts at one rather than 0..
+						for x in range(block_number-(block_number/10000)):
 							tmp = sha256(tmp)
 						if tmp != s[1]:
 							print 'reveal doesnt hash to stake terminator', 'reveal', reveal, 'nonce', s[2], 'hash_term', s[1]

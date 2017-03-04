@@ -1,7 +1,6 @@
 #QRL main blockchain, state, stake, transaction functions.
 
 # todo:
-# complete stake_read_chain() to incorporate stake/state additions..
 # pos_block_pool() should return all combinations, not just the order received then sorted by txhash - removes edge cases for block selection failure..
 # edit the blockheader: ?all stakers should be in header who have committed..
 # add stake_seed into block classes..so after block 10000 we can continue..
@@ -313,9 +312,16 @@ class BlockHeader():
 			self.stake_nonce = 0
 			self.block_reward = 0
 			self.epoch = 0
+		elif self.blocknumber ==1:
+			self.stake_nonce = 10000-hash_chain.index(hashchain_link)			
+			self.epoch = (m_blockchain[-1].blockheader.blocknumber+1)/10000			#need to add in logic for epoch stake_list recalculation..
+			self.stake_selector = mining_address
+			self.block_reward = block_reward(self.blocknumber)
 		else:
-			self.epoch = (m_blockchain[-1].blockheader.blocknumber+1)/10000
-			self.stake_nonce = 10000-hash_chain.index(hashchain_link)				#****UPDATE WHEN HASH_CHAIN is moved to wallet..at block1 better to take from stake_list_get ****
+			for s in stake_list_get():
+				if s[0] == mining_address:
+					self.stake_nonce = s[2]+1
+			self.epoch = (m_blockchain[-1].blockheader.blocknumber+1)/10000			#need to add in logic for epoch stake_list recalculation..
 			self.stake_selector = mining_address
 			self.block_reward = block_reward(self.blocknumber)
 		self.headerhash = sha256(self.stake_selector+str(self.epoch)+str(self.stake_nonce)+str(self.block_reward)+str(self.timestamp)+self.hash+str(self.blocknumber)+self.prev_blockheaderhash+str(self.number_transactions)+self.merkle_root_tx_hash+str(self.number_stake)+self.hashedstake)
@@ -403,8 +409,6 @@ class ReCreateSimpleTransaction():			#recreate from JSON avoiding insecure pickl
 				elif isinstance(pair, list):
 					self.merkle_path.append([''.join(pair).encode('latin1')])
 			self.txfrom = json_obj['txfrom'].encode('latin1')
-			#if json_obj['hrs']:
-			#self.hrs = json_obj['hrs'].encode('latin1')
 		
 		else:	#xmss
 			self.pubhash = json_obj['pubhash'].encode('latin1')
@@ -1202,14 +1206,9 @@ def state_add_block(block):
 					next_sl.append([st.txfrom, st.hash, 0])
 
 			z = state_get_address(st.txfrom)
-			#print 'z', z
-
 			pub = st.pub
-			#print 'pub', pub
 			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
 			pubhash = sha256(''.join(pub))
-			#print 'pubhash', pubhash
-			z[0]+=1
 			z[2].append(pubhash)
 			db.put(st.txfrom, z)	#update the statedb for txfrom's
 			print 'state st.txfrom', state_get_address(st.txfrom)
@@ -1228,7 +1227,6 @@ def state_add_block(block):
 	else:
 		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
 			stake_list = []
-			#epoch_prf = []
 			next_sl = next_stake_list_get()
 			sl = stake_list_get()
 			u=0
@@ -1272,14 +1270,12 @@ def state_add_block(block):
 				for s in next_sl:
 					if st.txfrom == s[0]:		#already in the next stake list, ignore for staker list but update as usual the state_for_address..
 						z = state_get_address(st.txfrom)
-						z[0]+=1
 						z[2].append(pubhash)
 						db.put(st.txfrom, z)	#update the statedb for txfrom's
 						u=1
 
 				if u==0:
 					z = state_get_address(st.txfrom)
-					z[0]+=1
 					z[2].append(pubhash)
 					db.put(st.txfrom, z)
 					next_sl.append([st.txfrom, st.hash, 0])
@@ -1630,7 +1626,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 			if st[0] == b.stake_selector:
 					y = 1
 					terminator = b.hash
-					for x in range(b.stake_nonce):
+					#for x in range(b.stake_nonce):
+					for x in range(b.blocknumber-(b.epoch*10000)):
 						terminator = sha256(terminator)
 					if terminator != st[1]:
 						print 'Supplied hash does not iterate to terminator: failed validation'
