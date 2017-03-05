@@ -183,10 +183,14 @@ def pos_block_selector_n(seed, n, i):
 #classes
 
 class CreateStakeTransaction():
-	def __init__(self, hashchain_terminator):
+	def __init__(self, hashchain_terminator=None):
 		data = my[0][1]
+		if hashchain_terminator == None:
+			epoch = (m_blockchain[-1].blockheader.blocknumber)/10000	#in this block the epoch is..
+			self.hash = my[0][1].hashchain_reveal(epoch=epoch+1)[-1]
+		else:
+			self.hash = hashchain_terminator
 		self.txfrom = mining_address
-		self.hash = hashchain_terminator
 		self.type = 'XMSS/STAKE'
 		S = data.SIGN(self.hash)				# Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
 		self.i = S[0]
@@ -816,6 +820,7 @@ def last_block(n=None):
 		last_blocks['blocks'][block.blockheader.blocknumber]['blocknumber'] = block.blockheader.blocknumber
 		last_blocks['blocks'][block.blockheader.blocknumber]['blockhash'] = block.blockheader.prev_blockheaderhash
 		last_blocks['blocks'][block.blockheader.blocknumber]['number_transactions'] = block.blockheader.number_transactions
+		last_blocks['blocks'][block.blockheader.blocknumber]['number_stake'] = block.blockheader.number_stake
 		last_blocks['blocks'][block.blockheader.blocknumber]['timestamp'] = block.blockheader.timestamp
 		last_blocks['blocks'][block.blockheader.blocknumber]['block_interval'] = block.blockheader.timestamp - m_blockchain[block.blockheader.blocknumber-1].blockheader.timestamp
 
@@ -1297,6 +1302,7 @@ def state_add_block(block):
 			pass
 	# if epoch transition..del state_list, next_state_list = state_list, and next_state_list = [], then for each st.txfrom update next_state_list (addr, hash, 0), update
 	# state (nonce, pubhash, amount unchanged..)
+	# chain.hash_chain must be updated from the wallet..
 
 	# cycle through every tx in the new block to check state
 		
@@ -1371,7 +1377,7 @@ def verify_chain():
 		if state_add_block(m_blockchain[1]) == False:
 			print 'State verification of block 1 failed'
 			return False
-	if m_verify_chain() == False:
+	if m_verify_chain(verbose=1) == False:
 		return False
 	print 'True'
 	for x in range(2,len(m_blockchain)):

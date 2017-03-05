@@ -362,8 +362,8 @@ class XMSS():
                 return False
         return self.addresses[t][1]
 
-    def hashchain(self,n=10000):             #generates a 10,000th hash in iterative sha256 chain..derived from private SEED
-        x = GEN(self.private_SEED,5000,l=32)
+    def hashchain(self,n=10000, epoch=0):             #generates a 10,000th hash in iterative sha256 chain..derived from private SEED
+        x = GEN(self.private_SEED,5000+epoch,l=32)
         y = GEN(x, 5000, l=32)
         z = GEN(y,5000, l=32)
         hc = []
@@ -375,6 +375,17 @@ class XMSS():
         self.hc = hc
         self.hc_terminator = hc[-1]
         return
+
+    def hashchain_reveal(self, n=10000, epoch=0):
+        x = GEN(self.private_SEED,5000+epoch,l=32)
+        y = GEN(x, 5000, l=32)
+        z = GEN(y,5000, l=32)
+        hc = []
+        hc.append(z)
+        for x in range(n):
+            z = sha256(z)
+            hc.append(z)
+        return hc
 
 
 def xmss_tree(n, private_SEED, public_SEED):

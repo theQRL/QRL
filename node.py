@@ -21,7 +21,7 @@ from operator import itemgetter
 from collections import Counter
 
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords','address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch','address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
 api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
@@ -559,11 +559,11 @@ class WalletProtocol(Protocol):
 				# add in the code to recover address from either hexseed or mnemonic..
 
 
-			elif data[0] == 'mining':
-				self.transport.write('>>> Mining set to: '+str(f.nomining)+'\r\n')
-				f.nomining = not f.nomining
-				print 'No-Mining flag set to: ', str(f.nomining)
-
+			elif data[0] == 'stakenextepoch':
+				self.transport.write('>>> Sending a stake transaction for address: '+chain.mining_address+' to activate next epoch('+str(10000-(chain.m_blockchain[-1].blockheader.blocknumber-(chain.m_blockchain[-1].blockheader.epoch*10000)))+' blocks time)'+'\r\n')
+				print 'STAKE for address:', chain.mining_address
+				f.send_st_to_peers(chain.CreateStakeTransaction())
+				return
 			elif data[0] == 'send':
 				self.send_tx(args)
 
@@ -571,7 +571,7 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, recoverfromhexseed, recoverfromwords, mempool, json_block, json_search, seed, hexseed, mining, getinfo, blockheight or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, recoverfromhexseed, recoverfromwords, stakenextepoch, mempool, json_block, json_search, seed, hexseed, getinfo, blockheight or getnewaddress'+'\r\n')
 				#removed 'hrs, hrs_check,'
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
