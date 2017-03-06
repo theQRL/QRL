@@ -9,6 +9,9 @@
 # if a staker isnt present then who should make the next block? need to consider best way to keep the PRF static and compensate for this in a way which doesn't allow
 # gaming by dropping in and out to manipulate the PRF order..
 
+# add the block commit to -> chain.stake_block then check when recv block..
+# edit the block logic..need to add in the stake hashes, to generate merkle tree.. 
+
 __author__ = 'pete'
 
 import time, struct, random, copy, decimal
@@ -21,7 +24,7 @@ from operator import itemgetter
 from collections import Counter
 
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch','address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
 api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
@@ -49,7 +52,7 @@ def pre_pos_1(data=None):		# triggered after genesis for block 1..
 	print 'not in stake list..no further pre_pos_x calls'
 	return
 
-def pre_pos_2(data=None):	# by now we should have the a stakepool full of stakers..
+def pre_pos_2(data=None):	
 	print 'pre_pos_2'
 
 	# assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
@@ -72,7 +75,6 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 	if len(chain.stake_list) < len(chain.m_blockchain[0].stake_list):		# stake pool still not full..reloop..
 		f.send_st_to_peers(data)
 		print 'waiting for stakers.. retry in 5s'
-		#reactor.callID = reactor.callLater(5, pre_pos_2, data)
 		reactor.callID = reactor.callLater(5, pre_pos_2, data)
 		return
 
@@ -80,8 +82,7 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 		if s[0] == chain.mining_address:
 			spos = chain.stake_list.index(s)
 	
-
-	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[-1].stake_seed, len(chain.stake_pool))
+	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[-1].stake_seed, len(chain.stake_pool))	 #Use PRF to decide first block selector..
 
 	print 'epoch_prf:', chain.epoch_prf[1]
 	print 'spos:', spos
@@ -102,73 +103,79 @@ def pre_pos_2(data=None):	# by now we should have the a stakepool full of staker
 										
 	else:
 		print 'await block creation by stake validator:', chain.stake_list[spos][0]
+		f.send_st_to_peers(data)
 	return
 
 def pos_1(data=None):	#from block 2..
-	print 'pos_1'
-	# are we a staker?
+	print 'pos_1 - commit'
+	
+	#numlist(chain.stake_list_get())
+
 	y=0
 	for s in chain.stake_list_get():
 		if s[0] == chain.mining_address:
 			y=1
 			spos = chain.stake_list_get().index(s)
-			hash_nonce = s[2]
+			#hash_nonce = s[2]
 	if y==0:
 		print 'pos_1 not in stake list..'
 		return
 
-	print 'transaction_pool:' 
-	for tx in chain.transaction_pool: 
-		print tx.txhash
+	#print 'transaction_pool:' 
+	#for tx in chain.transaction_pool: 
+	#	print tx.txhash
 	merkle_tx_hash_data = chain.pos_block_pool()
-	print 'merkle_tx_hash_data: ', merkle_tx_hash_data
+	#print 'merkle_tx_hash_data: ', merkle_tx_hash_data
 	merkle_tx_hash = merkle_tx_hash_data[0]
-	print 'merkle_tx_hash', merkle_tx_hash
-	
-	# 1. are we stake selector?
-	epoch = (chain.m_blockchain[-1].blockheader.blocknumber+1)/10000	#+1 = next block
-	
+	#print 'merkle_tx_hash:', merkle_tx_hash
+	epoch = (chain.m_blockchain[-1].blockheader.blocknumber+1)/10000	#+1 = next block	
 	hashchain_hash = chain.hash_chain[-(len(chain.m_blockchain)+1)-(epoch*10000)]		#may need to add one here to make the next epoch work..
-
-	#print 'epoch', epoch
-	chain.epoch_prf = chain.pos_block_selector(chain.m_blockchain[epoch*10000].stake_seed, len(chain.stake_list_get())) 
-	if spos == chain.epoch_prf[chain.m_blockchain[-1].blockheader.blocknumber+1]:
-		print 'pos_1: designated stake selector'
-		reactor.callLater(5, pos_3, merkle_tx_hash_data, hashchain_hash)
-		return	
-
-	# if not then commit instead..
-
-	#print hashchain_hash
 	chain.stake_commit.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, sha256(''.join(merkle_tx_hash)+hashchain_hash)])
 	f.send_stake_merkle_tx_hash_commit(merkle_tx_hash, hashchain_hash)
-	reactor.callLater(1, pos_2, merkle_tx_hash, hashchain_hash)
+	reactor.callLater(1, pos_2, merkle_tx_hash_data, hashchain_hash)
 	return
 
-def pos_2(merkle_tx_hash, hashchain_hash):
-	print 'pos_2'
-	chain.stake_reveal.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, hashchain_hash])
-	f.send_stake_merkle_tx_hash_reveal(merkle_tx_hash, hashchain_hash)
+def pos_2(merkle_tx_hash_data, hashchain_hash):
+	print 'pos_2 - reveal'
+	chain.stake_reveal.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash_data[0], hashchain_hash])
+	f.send_stake_merkle_tx_hash_reveal(merkle_tx_hash_data[0], hashchain_hash)
+	reactor.callLater(6, pos_3, merkle_tx_hash_data, hashchain_hash)
 	return
 
-def pos_3(merkle_hash_data, hashchain_hash):
-	print 'pos_3 - POS selector commit'
+def pos_3(merkle_tx_hash_data, hashchain_hash):
+	print 'pos_3 - collate reveals and publish block..'
 
-	print 'chain.stake_reveal:'
-	numlist(chain.stake_reveal)
-	#chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
+	
+	r = []
 	c = []
 	for e in chain.stake_reveal:
 		#c.append(''.join(e[2]))
+		r.append(e[3])
 		c.append(e[2])
+	
 	c = [item for sublist in c for item in sublist]
-	print 'merkle hash votes:', c, len(c), '/', len(chain.stake_list)
-	print 'merkle_hash_data:', merkle_hash_data
+	#print 'merkle hash votes:', c, len(c), '/', len(chain.stake_list_get())
+	#print 'reveal hash votes', r, len(r), '/', len(chain.stake_commit), 'stake_commit'
+	#print 'local merkle_tx_hash_data:', merkle_tx_hash_data
 
-	if len(c) < len(chain.stake_list)-1:
-		print 'only ', len(c), '/', len(chain.stake_list), 'so far..waiting..'
-		reactor.callID3 = reactor.callLater(5, pos_3, merkle_hash_data, hashchain_hash)
+
+	if len(r) < int(0.8*len(chain.stake_commit)) or len(r) == 0:
+	#if len(r) < len(chain.stake_list) or len(r) == 0:
+	#	print 'only ', len(r), '/', len(chain.stake_list), 'so far..waiting..'
+		reactor.callID3 = reactor.callLater(5, pos_3, merkle_tx_hash_data, hashchain_hash)
 		return
+
+
+	reveal_winner, root = chain.closest_hash(r)
+	if reveal_winner != hashchain_hash:
+		
+		for s in chain.stake_reveal:
+			if s[3] == reveal_winner:
+				z = s[0]
+		print 'Winning hash:', reveal_winner, 'merkle_root of reveals:', root, 'await block from: ',z
+		return
+
+	print 'BLOCK SELECTOR..'
 
 	count = Counter(c)
 	n = count.values()
@@ -178,12 +185,11 @@ def pos_3(merkle_hash_data, hashchain_hash):
 	print 'ranked vote:'
 	numlist(mc)
 	winner = mc[0][0]
-	if winner in merkle_hash_data[0]:
-		print 'winner: ', winner,' in', merkle_hash_data[0]
-		print 'tx hashes:', merkle_hash_data[1][merkle_hash_data[0].index(winner)]
+	if winner in merkle_tx_hash_data[0]:
+		print 'winner: ', winner,' in', merkle_tx_hash_data[0]
+		print 'tx hashes:', merkle_tx_hash_data[1][merkle_tx_hash_data[0].index(winner)]
 	elif winner == sha256(''):
-				merkle_hash_data = [sha256('')],[[]]
-				#merkle_hash_data[1] = 
+				merkle_tx_hash_data = [sha256('')],[[]]
 	else:
 		merkle_tx_hash_data = chain.pos_block_pool(5)
 		if winner in merkle_tx_hash_data[0]:
@@ -192,17 +198,12 @@ def pos_3(merkle_hash_data, hashchain_hash):
 		else:
 			print 'ERROR: Winning merkle_root hash not returned by our pos_block_pool(),'	# try to compensate, or missed block protocol activates across the nodes..
 			print 'last resort ask for tx pool from peers to find missing tx and then retry at the 110s reattempt..'
-			
-			# get the tx pool from connected nodes and try again..
-
 			f.get_tx_pool_from_peers()
 			return
-	
-	block_obj = chain.create_stake_block(merkle_hash_data[1][merkle_hash_data[0].index(winner)], hashchain_hash)
 
+	block_obj = chain.create_stake_block(merkle_tx_hash_data[1][merkle_tx_hash_data[0].index(winner)], hashchain_hash)
 	f.send_stake_block_commit(winner, block_obj.blockheader.headerhash, hashchain_hash)
-
-	reactor.callLater(1, pos_4, block_obj)
+	reactor.callLater(3, pos_4, block_obj)
 
 def pos_4(block_obj):
 	print 'pos_4 - POS selector publish block'
@@ -214,10 +215,10 @@ def pos_4(block_obj):
 			print 'clearing chain.stake_commit chain.stake_reveal'
 			del chain.stake_commit[:]
 			del chain.stake_reveal[:]
-			print 'POS commit call later 30 (pos_4)...'
+			print 'POS commit call later 60 (pos_4)...'
 			try: reactor.callID2.cancel()		#activates if we do not get a block within x seconds, cancelled if we do..
 			except: pass
-			reactor.callLater(30, pos_1)
+			reactor.callLater(60, pos_1)
 			reactor.callID2 = reactor.callLater(120, pos_missed_block)		# restart the network..
 	return
 
@@ -447,43 +448,6 @@ class WalletProtocol(Protocol):
 							self.transport.write('Recovery seed: '+c[1].mnemonic+'\r\n')
 				return
 
-			elif data[0] == 'hrs':
-				if not args:
-					self.transport.write('>>> Human Readable String allows you to receive transactions to a user chosen text string instead of the Q-address you hold the private key for.'+'\r\n')
-					self.transport.write('>>> Usage: hrs <valid wallet address number>'+'\r\n')
-					self.transport.write('>>> e.g. "hrs 0 david@gmail.com" allows users from other QRL nodes to send transactions directly to david@gmail.com instead of the Q-address at wallet position 0'+'\r\n')
-					return
-				try: int(args[0])
-				except: 
-						self.transport.write('>>> Usage: hrs <wallet address number>'+'\r\n')
-						return 
-				if int(args[0]) > len(wallet.list_addresses())-1:
-					self.transport.write('>>> Wallet number invalid. Usage: hrs <wallet address number to substitute for a human readable string>'+'\r\n')
-					return
-
-				if not args[1]:
-					self.transport.write('>>> no hrs string supplied..'+'\r\n')
-					return
-
-				(tx, msg) = chain.create_hrs_tx(int(args[0]), args[1])
-				if tx is not False:
-					f.send_tx_to_peers(tx)
-					self.transport.write('<<< HRS TX from '+args[0]+' for string: '+args[1]+' sent into network..'+'\r\n')
-				else:
-					self.transport.write('>>> HRS TX Failed: '+msg+'\r\n')
-				return
-
-			elif data[0] == 'hrs_check':
-				if not args:
-					self.transport.write('>>> Usage: hrs <human readable string>'+'\r\n')
-					self.transport.write('>>> Returns the Q-address associated with the string'+'\r\n')
-				hrs = chain.state_hrs(args[0])
-				if hrs is not False:
-					self.transport.write(hrs+'\r\n')
-				else:
-					self.transport.write('>>> Human readable string not found in blockchain.'+'\r\n')
-				return
-
 			elif data[0] == 'search':
 				if not args:
 					self.transport.write('>>> Usage: search <txhash or Q-address>'+'\r\n')
@@ -556,14 +520,18 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
 				return
 
-				# add in the code to recover address from either hexseed or mnemonic..
-
+			elif data[0] == 'stake':
+				self.transport.write('>> Toggling stake from: '+str(f.stake)+' to: '+str(not f.stake)+'\r\n')
+				f.stake = not f.stake
+				print 'STAKING set to: ', f.stake
+				return
 
 			elif data[0] == 'stakenextepoch':
 				self.transport.write('>>> Sending a stake transaction for address: '+chain.mining_address+' to activate next epoch('+str(10000-(chain.m_blockchain[-1].blockheader.blocknumber-(chain.m_blockchain[-1].blockheader.epoch*10000)))+' blocks time)'+'\r\n')
 				print 'STAKE for address:', chain.mining_address
 				f.send_st_to_peers(chain.CreateStakeTransaction())
 				return
+			
 			elif data[0] == 'send':
 				self.send_tx(args)
 
@@ -571,7 +539,7 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, balance, search, recoverfromhexseed, recoverfromwords, stakenextepoch, mempool, json_block, json_search, seed, hexseed, getinfo, blockheight or getnewaddress'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, recoverfromwords, stake, stakenextepoch, mempool, json_block, json_search, seed, hexseed, getinfo, or blockheight'+'\r\n')
 				#removed 'hrs, hrs_check,'
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
@@ -1164,10 +1132,11 @@ class p2pProtocol(Protocol):
 					for peer in self.factory.peers:
 						if peer != self:
 							peer.transport.write(self.wrap_message(chain.json_bytestream_bk(block)))
+				
 				self.get_m_blockheight_from_connection()	
 				
 				if self.factory.sync == 1:
-										print '**POS commit later 30 (recv block)**'
+										print '**POS commit later 60 (recv block)**'
 										print 'clearing chain.stake_commit chain.stake_reveal'
 										del chain.stake_commit[:]
 										del chain.stake_reveal[:]
@@ -1175,10 +1144,21 @@ class p2pProtocol(Protocol):
 										except: pass
 										try: reactor.callID2.cancel()		#activates if we do not get a block within x seconds, cancelled if we do..
 										except: pass
-										reactor.callLater(30, pos_1, 'POS commit (merkle hash tx)')
+										reactor.callLater(60, pos_1, 'POS commit (merkle hash tx)')
 										reactor.callID2 = reactor.callLater(120, pos_missed_block)		# restart the network..
+										
+										if self.factory.stake == True:									# we are staking and synchronised -> are we in the next staker list?
+											x=0
+											for s in chain.next_stake_list_get():
+												if s[0] == chain.mining_address:
+													x=1													#already in the next_stake_list..
+											if x==0:
+												print 'STAKE adding to next_stake_list'
+												f.send_st_to_peers(chain.CreateStakeTransaction())
+											else:
+												print 'STAKE already in next epoch'
 				else:
-					print '**POS commit later 30 (recv block)** - not called as not SYNC'
+					print '**POS commit later 60 (recv block)** - not called as not SYNC'
 				return
 		else:
 				#print 'BAD BLOCK:', block.blockheader.headerhash, block.blockheader.blocknumber, ' invalid and discarded -', self.transport.getPeer().host
@@ -1222,7 +1202,7 @@ class p2pFactory(ServerFactory):
 	protocol = p2pProtocol
 
 	def __init__(self):
-		self.nomining = True			#default to mining off as the wallet functions are not that responsive at present with it enabled..
+		self.stake = False			#default to mining off as the wallet functions are not that responsive at present with it enabled..
 		self.peers = []
 		self.connections = 0
 		self.buffer = ''

@@ -27,7 +27,7 @@ global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch
 
 tx_per_block = [0, 0]
 ping_list =[]
-node_list = ['104.251.219.145']
+node_list = ['104.251.219.40']
 #node_list = []
 m_blockchain = []
 transaction_pool = []
@@ -51,7 +51,7 @@ hash_chain = my[0][1].hc
 
 # create a block from a list of supplied tx_hashes, check state to ensure validity..
 
-def create_stake_block(tx_hash_list, hashchain_hash):
+def create_stake_block(tx_hash_list, hashchain_hash, reveal_list=None):
 
 	# full memory copy of the transaction pool..
 
@@ -74,7 +74,7 @@ def create_stake_block(tx_hash_list, hashchain_hash):
 
 	# create the block..
 
-	block_obj = m_create_block(hashchain_hash)
+	block_obj = m_create_block(hashchain_hash, reveal_list)
 
 	# reset the pool back
 
@@ -124,6 +124,33 @@ def merkle_tx_hash(hashes):
 		l_array.append(next_layer)
 	#print l_array
 	return ''.join(l_array[-1])
+
+# return closest hash in numerical terms to merkle root hash of all the supplied hashes..
+
+def closest_hash(list_hash):
+		
+	if len(list_hash)==1 or len(list_hash)==64:
+		return list_hash
+
+	list_hash.sort()
+
+	root = merkle_tx_hash(list_hash)
+
+	p = []
+	for l in list_hash:
+		p.append(int(l,16))
+
+	closest = cl(int(root,16),p)
+
+	return ''.join(list_hash[p.index(closest)]), root
+
+# return closest number in a list..
+
+def cl(one,many):
+	return min(many, key=lambda x:abs(x-one))
+
+
+
 
 # create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds). 
 # returns: list of merkle root hashes of the tx pool over last 1.5 seconds
@@ -369,10 +396,12 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
 		self.stake = []
-		self.state = [['Q60470c8d6f57968e604753065ff700b506776d97113b00a7afcc347aa11bdbed8471', [0, 100000*100000000, []]] , ['Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302',[0, 10000*100000000,[]]], ['Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
-		self.stake_list = ['Q22e0b513ad3e48001ab04ea36eefbccbcdf297af70365ee89c228c6c957ddd4ddc5b', 'Q86a83286bf41fe7fdec687dac431dd579b0564d2b2541678a75c5814c175a06f8302', 'Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e']
+		self.state = [['Qe1563a15fe6ffae964473d11180aaace207bcb1ed1ac570dfb46684421f7bb4f10eb', [0, 100000*100000000, []]] , ['Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee',[0, 10000*100000000,[]]], ['Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
+		#Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3 twiglet
+		#Q8b855465e0a2b26103b34d05d8ba07bc07ab8f4b458b5fd8cdda5906134ff80b306d bean
+		#Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee flea
+		self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qe1563a15fe6ffae964473d11180aaace207bcb1ed1ac570dfb46684421f7bb4f10eb', 'Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
-
 
 # JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)
 
@@ -1172,6 +1201,10 @@ def state_validate_tx_pool():
 
 def state_add_block(block):
 
+	global epoch_prf
+	global hash_chain
+
+
 	#assert state_blockheight() == m_blockheight()-1, 'state leveldb not @ m_blockheight-1'
 
 	#snapshot of state in case we need to revert to it..
@@ -1198,9 +1231,8 @@ def state_add_block(block):
 
 	# reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
-	# if block 1: 
 
-	if block.blockheader.blocknumber == 1:
+	if block.blockheader.blocknumber == 1: 	# if block 1: 
 
 		stake_list = []
 		sl = []
@@ -1233,76 +1265,76 @@ def state_add_block(block):
 		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 		numlist(stake_list)
 
-		global epoch_prf
 		epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(stake_list))		#need to add a stake_seed option in block classes
 		if stake_list[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
 				print 'stake selector wrong..'
 				y=-1000
 
 	else:
-		if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
-			stake_list = []
-			next_sl = next_stake_list_get()
-			sl = stake_list_get()
+		
+		# how many blocks left in this epoch?
+		blocks_left = 10000-block.blockheader.blocknumber-(block.blockheader.epoch*10000)
+
+		#if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
+		stake_list = []
+		next_sl = next_stake_list_get()
+		sl = stake_list_get()
+		u=0
+			
+		#increase the stake_nonce of state selector..must be in stake list..
+		print 'block:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce, 'epoch: ', block.blockheader.epoch, 'blocks_left: ', blocks_left-1
+
+		for s in sl:													
+			if block.blockheader.stake_selector == s[0]:
+				u=1
+				s[2]+=1
+				if s[2] != block.blockheader.stake_nonce:
+					print 'stake_nonce wrong..'
+					y=-1000
+				else:
+					stake_list_put(sl)
+					stake_list = sl
+		if u != 1:
+			y=-1000
+			print 'stake selector not in stake_list_get'
+
+		# update and re-order the next_stake_list:
+
+		for st in block.stake:
+			pub = st.pub
+			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+			pubhash = sha256(''.join(pub))
 			u=0
-			
-			#increase the stake_nonce of state selector..must be in stake list..
-			print 'block:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce
 
-			for s in sl:													
-				if block.blockheader.stake_selector == s[0]:
-					u=1
-					s[2]+=1
-					if s[2] != block.blockheader.stake_nonce:
-						print 'stake_nonce wrong..'
-						y=-1000
-					else:
-						stake_list_put(sl)
-						stake_list = sl
-			if u != 1:
-				y=-1000
-				print 'stake selector not in stake_list_get'
-
-			#confirm that the state selector is correctly chosen by PRF from seed..
-
-			#epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(sl))		#need to add a stake_seed option in block classes
-			
-			if sl[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
-				print 'stake selector wrong..'
-				y=-1000
-
-				#if we need to allow for a missed stake selector in a missed block, we have to add logic for a round of commit/reveal missed block votes from the 
-				# stakers then the next in line to be accepted..
-
-			# update and re-order the next_stake_list:
-
-			for st in block.stake:
-				pub = st.pub
-				pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
-				pubhash = sha256(''.join(pub))
-
-				u=0
-
-				for s in next_sl:
-					if st.txfrom == s[0]:		#already in the next stake list, ignore for staker list but update as usual the state_for_address..
-						z = state_get_address(st.txfrom)
-						z[2].append(pubhash)
-						db.put(st.txfrom, z)	#update the statedb for txfrom's
-						u=1
-
-				if u==0:
+			for s in next_sl:
+				if st.txfrom == s[0]:		#already in the next stake list, ignore for staker list but update as usual the state_for_address..
 					z = state_get_address(st.txfrom)
 					z[2].append(pubhash)
-					db.put(st.txfrom, z)
-					next_sl.append([st.txfrom, st.hash, 0])
+					db.put(st.txfrom, z)	#update the statedb for txfrom's
+					u=1
 
-			next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
+			if u==0:
+				z = state_get_address(st.txfrom)
+				z[2].append(pubhash)
+				db.put(st.txfrom, z)
+				next_sl.append([st.txfrom, st.hash, 0])
 
-		else:
-			pass
-	# if epoch transition..del state_list, next_state_list = state_list, and next_state_list = [], then for each st.txfrom update next_state_list (addr, hash, 0), update
-	# state (nonce, pubhash, amount unchanged..)
-	# chain.hash_chain must be updated from the wallet..
+		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
+
+		# epoch change imminent!
+
+		if blocks_left == 1:		
+			print 'EPOCH change: resetting stake_list, activating next_stake_list, updating PRF with seed+entropy, updating wallet hashchains..'
+			del next_sl[:] 
+			sl = next_stake_list_get()
+			stake_list_put(sl)
+			next_stake_list_put(next_sl)
+
+			entropy = m_blockchain[-3].blockheader.headerhash+m_blockchain[-2].blockheader.headerhash+m_blockchain[-1].blockheader.headerhash+block.blockheader.headerhash
+			epoch_prf = pos_block_selector(m_blockchain[0].stake_seed+entropy, len(sl))		#need to improve this..
+			my[0][1].hashchain(epoch=block.blockheader.epoch+1)
+			hash_chain = my[0][1].hc
+			wallet.f_save_wallet()
 
 	# cycle through every tx in the new block to check state
 		
@@ -1377,7 +1409,7 @@ def verify_chain():
 		if state_add_block(m_blockchain[1]) == False:
 			print 'State verification of block 1 failed'
 			return False
-	if m_verify_chain(verbose=1) == False:
+	if m_verify_chain(verbose=0) == False:
 		return False
 	print 'True'
 	for x in range(2,len(m_blockchain)):
@@ -1653,6 +1685,11 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 				print 'Stake selector not in stake_list for this epoch..'
 				return False
 	
+
+
+	# for the block to be valid it must contain a list of other reveal hashes, which iteratively hash forwards to the terminator in the stake list..
+	# a merkle tree is created from those hashes and the root hash is compared with each reveal hash and the stake selector to confirm the 
+
 
 	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.merkle_root_tx_hash+str(b.number_stake)+b.hashedstake) != b.headerhash:
 		print 'Headerhash false for block: failed validation'
