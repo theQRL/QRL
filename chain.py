@@ -27,7 +27,7 @@ global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch
 
 tx_per_block = [0, 0]
 ping_list =[]
-node_list = ['104.251.219.40']
+node_list = ['104.251.219.145']
 #node_list = []
 m_blockchain = []
 transaction_pool = []
@@ -128,9 +128,14 @@ def merkle_tx_hash(hashes):
 # return closest hash in numerical terms to merkle root hash of all the supplied hashes..
 
 def closest_hash(list_hash):
-		
-	if len(list_hash)==1 or len(list_hash)==64:
-		return list_hash
+	print 'list_hash', list_hash, len(list_hash)
+
+	if type(list_hash) == list:
+		if len(list_hash)==1:
+			return False, False
+	if type(list_hash)== str:
+		if len(list_hash)==64:
+			return False, False
 
 	list_hash.sort()
 
@@ -326,7 +331,7 @@ def creategenesisblock():
 
 
 class BlockHeader():
-	def __init__(self,  blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions, number_stake, hashedstake):
+	def __init__(self, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions, number_stake, hashedstake, reveal_list=None):
 		self.blocknumber = blocknumber
 		self.hash = hashchain_link
 		if self.blocknumber == 0:
@@ -339,16 +344,19 @@ class BlockHeader():
 		self.number_stake = number_stake
 		self.hashedstake = hashedstake
 		if self.blocknumber == 0:
+			self.reveal_list = []
 			self.stake_selector = ''
 			self.stake_nonce = 0
 			self.block_reward = 0
 			self.epoch = 0
 		elif self.blocknumber ==1:
+			self.reveal_list = []
 			self.stake_nonce = 10000-hash_chain.index(hashchain_link)			
 			self.epoch = (m_blockchain[-1].blockheader.blocknumber+1)/10000			#need to add in logic for epoch stake_list recalculation..
 			self.stake_selector = mining_address
 			self.block_reward = block_reward(self.blocknumber)
 		else:
+			self.reveal_list = reveal_list
 			for s in stake_list_get():
 				if s[0] == mining_address:
 					self.stake_nonce = s[2]+1
@@ -361,7 +369,7 @@ class BlockHeader():
 
 
 class CreateBlock():
-	def __init__(self, hashchain_link):
+	def __init__(self, hashchain_link, reveal_list=None):
 		#difficulty = 232
 		data = m_get_last_block()
 		lastblocknumber = data.blockheader.blocknumber
@@ -388,7 +396,7 @@ class CreateBlock():
 		for st in stake_pool:
 			self.stake.append(st)
 
-		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions, number_stake=len(stake_pool), hashedstake=hashedstake)
+		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, reveal_list=reveal_list, hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions, number_stake=len(stake_pool), hashedstake=hashedstake)
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
@@ -520,6 +528,10 @@ class ReCreateBlock():						#recreate block class from JSON variables for proces
 
 class ReCreateBlockHeader():
 	def __init__(self, json_blockheader):
+		rl = json_blockheader['reveal_list']
+		self.reveal_list = []
+		for r in rl:								
+				self.reveal_list.append(r.encode('latin1'))		
 		self.stake_nonce = json_blockheader['stake_nonce']
 		self.epoch = json_blockheader['epoch']
 		self.headerhash = json_blockheader['headerhash'].encode('latin1')
@@ -986,8 +998,8 @@ def m_get_block(n):
 def m_get_last_block():
 	return m_read_chain()[-1]
 
-def m_create_block(nonce):
-	return CreateBlock(nonce)
+def m_create_block(nonce, reveal_list=None):
+	return CreateBlock(nonce, reveal_list)
 
 def m_add_block(block_obj):
 	if len(m_blockchain) == 0:

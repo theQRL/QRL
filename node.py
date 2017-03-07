@@ -22,6 +22,7 @@ from twisted.internet import reactor
 from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed
 from operator import itemgetter
 from collections import Counter
+from math import ceil
 
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
@@ -98,11 +99,11 @@ def pre_pos_2(data=None):
 		if chain.m_add_block(b) == True:
 			f.send_block_to_peers(b)
 			f.get_m_blockheight_from_peers()
-			print '**POS commit call later 30 (genesis)...**'
-			reactor.callLater(30, pos_1, 'POS commit (genesis)')
+			print '**POS commit call later 60 (genesis)...**'
+			reactor.callLater(60, pos_1, 'POS commit (genesis)')
 										
 	else:
-		print 'await block creation by stake validator:', chain.stake_list[spos][0]
+		print 'await block creation by stake validator:', chain.stake_list[chain.epoch_prf[1]][0]
 		f.send_st_to_peers(data)
 	return
 
@@ -132,7 +133,7 @@ def pos_1(data=None):	#from block 2..
 	hashchain_hash = chain.hash_chain[-(len(chain.m_blockchain)+1)-(epoch*10000)]		#may need to add one here to make the next epoch work..
 	chain.stake_commit.append([chain.mining_address, chain.m_blockchain[-1].blockheader.blocknumber+1, merkle_tx_hash, sha256(''.join(merkle_tx_hash)+hashchain_hash)])
 	f.send_stake_merkle_tx_hash_commit(merkle_tx_hash, hashchain_hash)
-	reactor.callLater(1, pos_2, merkle_tx_hash_data, hashchain_hash)
+	reactor.callLater(3, pos_2, merkle_tx_hash_data, hashchain_hash)
 	return
 
 def pos_2(merkle_tx_hash_data, hashchain_hash):
@@ -145,34 +146,37 @@ def pos_2(merkle_tx_hash_data, hashchain_hash):
 def pos_3(merkle_tx_hash_data, hashchain_hash):
 	print 'pos_3 - collate reveals and publish block..'
 
-	
 	r = []
 	c = []
 	for e in chain.stake_reveal:
-		#c.append(''.join(e[2]))
 		r.append(e[3])
 		c.append(e[2])
 	
 	c = [item for sublist in c for item in sublist]
-	#print 'merkle hash votes:', c, len(c), '/', len(chain.stake_list_get())
-	#print 'reveal hash votes', r, len(r), '/', len(chain.stake_commit), 'stake_commit'
-	#print 'local merkle_tx_hash_data:', merkle_tx_hash_data
 
+	print 'r', r
 
-	if len(r) < int(0.8*len(chain.stake_commit)) or len(r) == 0:
-	#if len(r) < len(chain.stake_list) or len(r) == 0:
-	#	print 'only ', len(r), '/', len(chain.stake_list), 'so far..waiting..'
+	if len(chain.stake_reveal) == 1:
+		print 'chain.stake_reveal len 1'
+		reactor.callID3 = reactor.callLater(2, pos_3, merkle_tx_hash_data, hashchain_hash)
+		return
+	
+	if len(r) < int(ceil(0.51*len(chain.stake_commit))):
+		print 'r < .51 int ceil chain.stake_commit'
 		reactor.callID3 = reactor.callLater(5, pos_3, merkle_tx_hash_data, hashchain_hash)
 		return
 
-
 	reveal_winner, root = chain.closest_hash(r)
+	if reveal_winner == False:
+		print 'r len 1'
+		reactor.callLater(5, pos_3, merkle_tx_hash_data, hashchain_hash)
+		return
+
 	if reveal_winner != hashchain_hash:
-		
 		for s in chain.stake_reveal:
 			if s[3] == reveal_winner:
 				z = s[0]
-		print 'Winning hash:', reveal_winner, 'merkle_root of reveals:', root, 'await block from: ',z
+		print 'Await block:',chain.m_blockchain[-1].blockheader.blocknumber+1, 'from: ', z, 'reveal:', reveal_winner, 'merkle_root of reveals:', root
 		return
 
 	print 'BLOCK SELECTOR..'
@@ -201,7 +205,7 @@ def pos_3(merkle_tx_hash_data, hashchain_hash):
 			f.get_tx_pool_from_peers()
 			return
 
-	block_obj = chain.create_stake_block(merkle_tx_hash_data[1][merkle_tx_hash_data[0].index(winner)], hashchain_hash)
+	block_obj = chain.create_stake_block(merkle_tx_hash_data[1][merkle_tx_hash_data[0].index(winner)], hashchain_hash, r)
 	f.send_stake_block_commit(winner, block_obj.blockheader.headerhash, hashchain_hash)
 	reactor.callLater(3, pos_4, block_obj)
 
@@ -559,7 +563,7 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'getinfo':
 					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
 					self.transport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
-					self.transport.write('>>> Not mining flag set to: '+ str(f.nomining)+'\r\n')
+					self.transport.write('>>> Staking set to: '+ str(f.stake)+'\r\n')
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
@@ -977,7 +981,7 @@ class p2pProtocol(Protocol):
 				stake_address = z['stake_address'].encode('latin1')
 
 
-				print '>>> S3 block commit:', blocknumber, 'headerhash', headerhash, 'merkle_tx_hash', merkle_tx_hash, 'commit hash', commit, 'staker', stake_address
+				#print '>>> S3 block commit:', blocknumber, 'headerhash', headerhash, 'merkle_tx_hash', merkle_tx_hash, 'commit hash', commit, 'staker', stake_address
 
 
 
@@ -1109,6 +1113,8 @@ class p2pProtocol(Protocol):
 			reactor.callLater(120,f.connect_peers)
 
 	def recv_block(self, json_block_obj):
+		
+
 		try: block = chain.json_decode_block(json_block_obj)
 		except:
 				print 'block rejected - unable to decode serialised data - closing connection to -', self.transport.getPeer().host
