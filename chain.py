@@ -2,9 +2,6 @@
 
 # todo:
 # pos_block_pool() should return all combinations, not just the order received then sorted by txhash - removes edge cases for block selection failure..
-# edit the blockheader: ?all stakers should be in header who have committed..
-# add stake_seed into block classes..so after block 10000 we can continue..
-# hashchain generation to be updated based upon epoch..
 # add stake list check to the state check - addresses which are staking cannot make transactions..
 # block-reward calculation to be altered based upon block-time and stake_list_get() balances..proportion of entire coin supply..
 # fees
@@ -128,7 +125,7 @@ def merkle_tx_hash(hashes):
 # return closest hash in numerical terms to merkle root hash of all the supplied hashes..
 
 def closest_hash(list_hash):
-	print 'list_hash', list_hash, len(list_hash)
+	#print 'list_hash', list_hash, len(list_hash)
 
 	if type(list_hash) == list:
 		if len(list_hash)==1:
@@ -1702,8 +1699,24 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		if closest_hash(b.reveal_list)[0] != b.hash:
 			print "Closest hash doesn't hash correctly"
 			return False
-	# for the block to be valid it must contain a list of other reveal hashes, which iteratively hash forwards to the terminator in the stake list..
-	# a merkle tree is created from those hashes and the root hash is compared with each reveal hash and the stake selector to confirm the 
+		
+		if len(b.reveal_list) != len(set(b.reveal_list)):
+			print 'Repetition in reveal_list'
+			return False
+
+		i=0
+		for r in b.reveal_list:
+			for s in stake_list_get():
+				t = r
+				for x in range(b.blocknumber-(b.epoch*10000)):
+					t = sha256(t)
+				if t == s[1]:
+						i+=1
+		if i != len(b.reveal_list):
+			print 'Not all the reveal_hashes are valid..'
+			return False
+
+
 
 
 	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.merkle_root_tx_hash+str(b.number_stake)+b.hashedstake) != b.headerhash:
