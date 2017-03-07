@@ -1699,7 +1699,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 	
 
 	if b.blocknumber > 1:
-		if closest_hash(b.reveal_list)[0] != b.stake_selector:
+		if closest_hash(b.reveal_list)[0] != b.hash:
+			print "Closest hash doesn't hash correctly"
 			return False
 	# for the block to be valid it must contain a list of other reveal hashes, which iteratively hash forwards to the terminator in the stake list..
 	# a merkle tree is created from those hashes and the root hash is compared with each reveal hash and the stake selector to confirm the 
