@@ -24,6 +24,7 @@ from operator import itemgetter
 from collections import Counter
 from math import ceil
 
+version_number = "alpha/0.01"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 # removed:  'hrs', 'hrs_check'
@@ -176,7 +177,7 @@ def pos_3(merkle_tx_hash_data, hashchain_hash):
 		for s in chain.stake_reveal:
 			if s[3] == reveal_winner:
 				z = s[0]
-		print 'Await block:',chain.m_blockchain[-1].blockheader.blocknumber+1, 'from: ', z, 'reveal:', reveal_winner, 'merkle_root of reveals:', root
+		print 'Await block:',chain.m_blockchain[-1].blockheader.blocknumber+1, 'from: ', z, 'reveal:', reveal_winner #, 'merkle_root of reveals:', root
 		return
 
 	print 'BLOCK SELECTOR..'
@@ -391,7 +392,7 @@ class ApiProtocol(Protocol):
 
 		#print 'mean', z/len(chain.m_blockchain[-100:]), 'max', max(t), 'min', min(t), 'variance', max(t)-min(t)
 
-		net_stats = {'status': 'ok', 'block_reward' : chain.m_blockchain[-1].blockheader.block_reward/100000000.00000000, 'stake_validators' : len(chain.stake_list_get()), 'epoch' : chain.m_blockchain[-1].blockheader.epoch, 'staked_percentage_emission' : staked , 'network' : 'qrl testnet', 'network_uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block_time' : z/len(chain.m_blockchain[-100:]), 'block_time_variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
+		net_stats = {'status': 'ok', 'version': version_number, 'block_reward' : chain.m_blockchain[-1].blockheader.block_reward/100000000.00000000, 'stake_validators' : len(chain.stake_list_get()), 'epoch' : chain.m_blockchain[-1].blockheader.epoch, 'staked_percentage_emission' : staked , 'network' : 'qrl testnet', 'network_uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block_time' : z/len(chain.m_blockchain[-100:]), 'block_time_variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -561,6 +562,7 @@ class WalletProtocol(Protocol):
 					self.wallet()
 					
 			elif data[0] == 'getinfo':
+					self.transport.write('>>> Version: '+version_number+'\r\n')
 					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
 					self.transport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
 					self.transport.write('>>> Staking set to: '+ str(f.stake)+'\r\n')
@@ -872,6 +874,14 @@ class p2pProtocol(Protocol):
 		elif prefix == 'PE':			#get a list of connected peers..need to add some ddos and type checking proteection here..
 				self.get_peers()
 
+		elif prefix == 'VE':
+				if not suffix:
+					self.transport.write(self.wrap_message('VE'+version_number))
+				else:
+					print self.transport.getPeer().host, 'version: ', suffix
+					return
+
+
 		elif prefix == 'S1':
 
 				z = chain.json_decode(suffix)
@@ -1017,6 +1027,11 @@ class p2pProtocol(Protocol):
 		self.transport.write(self.wrap_message('MB'))
 		return
 
+	def get_version(self):
+		print '<<<Getting version', self.transport.getPeer().host
+		self.transport.write(self.wrap_message('VE'))
+		return
+
 	def get_peers(self):
 		print '<<<Sending connected peers to', self.transport.getPeer().host
 		peers_list = []
@@ -1100,6 +1115,7 @@ class p2pProtocol(Protocol):
 
 		self.get_m_blockheight_from_connection()
 		self.get_peers()
+		self.get_version()
 
 		# here goes the code for handshake..using functions within the p2pprotocol class
 		# should ask for latest block/block number.
@@ -1208,7 +1224,7 @@ class p2pFactory(ServerFactory):
 	protocol = p2pProtocol
 
 	def __init__(self):
-		self.stake = False			#default to mining off as the wallet functions are not that responsive at present with it enabled..
+		self.stake = True			#default to mining off as the wallet functions are not that responsive at present with it enabled..
 		self.peers = []
 		self.connections = 0
 		self.buffer = ''
