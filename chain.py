@@ -20,7 +20,7 @@ import cPickle as pickle
 
 global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
 
-global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, tx_per_block
+global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two
 
 tx_per_block = [0, 0]
 ping_list =[]
@@ -31,9 +31,12 @@ transaction_pool = []
 txhash_timestamp = []
 stake_commit = []
 stake_reveal = []
+stake_reveal_one = []
+stake_reveal_two = []
 stake_pool = []
 stake_list = []
 epoch_prf = []
+epoch_PRF = []
 print 'loading db'
 db = db.DB()
 
@@ -145,6 +148,18 @@ def closest_hash(list_hash):
 	closest = cl(int(root,16),p)
 
 	return ''.join(list_hash[p.index(closest)]), root
+
+
+# return closest number in a hexlified list
+
+def cl_hex(one, many):
+
+	p = []
+	for l in many:
+		p.append(int(l,16))
+
+	return many[p.index(cl(int(one,16), p))]
+
 
 # return closest number in a list..
 
@@ -913,6 +928,20 @@ def next_stakers(data=None):
 		
 	return json_print_telnet(next_stakers)
 
+def stake_reveal_ones(data=None):
+
+	sr = {}
+	sr['status'] = 'ok'
+	sr['reveals'] = {}
+	# chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one]) #merkle_hash_tx, commit_hash])
+	for c in stake_reveal_one:
+		sr['reveals'][str(c[1])+'-'+str(c[2])] = {}
+		sr['reveals'][str(c[1])+'-'+str(c[2])]['stake_address'] = c[0]
+		sr['reveals'][str(c[1])+'-'+str(c[2])]['block_number'] = c[2]
+		sr['reveals'][str(c[1])+'-'+str(c[2])]['headerhash'] = c[1]
+		sr['reveals'][str(c[1])+'-'+str(c[2])]['reveal'] = c[3]
+
+	return json_print_telnet(sr)
 
 def stake_reveals(data=None):
 
@@ -1210,6 +1239,7 @@ def state_validate_tx_pool():
 
 def state_add_block(block):
 
+	global epoch_PRF
 	global epoch_prf
 	global hash_chain
 
@@ -1274,6 +1304,7 @@ def state_add_block(block):
 		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 		numlist(stake_list)
 
+		epoch_PRF = merkle.GEN_range(m_blockchain[block.blockheader.epoch*10000].stake_seed, 1, 10000, 32)
 		epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(stake_list))		#need to add a stake_seed option in block classes
 		if stake_list[epoch_prf[block.blockheader.blocknumber-block.blockheader.epoch*10000]][0] != block.blockheader.stake_selector:
 				print 'stake selector wrong..'
@@ -1340,7 +1371,8 @@ def state_add_block(block):
 			next_stake_list_put(next_sl)
 
 			entropy = m_blockchain[-3].blockheader.headerhash+m_blockchain[-2].blockheader.headerhash+m_blockchain[-1].blockheader.headerhash+block.blockheader.headerhash
-			epoch_prf = pos_block_selector(m_blockchain[0].stake_seed+entropy, len(sl))		#need to improve this..
+			epoch_PRF = merkle.GEN_range(m_blockchain[0].stake_seed+entropy, 1, 10000, 32)
+			epoch_prf = pos_block_selector(m_blockchain[0].stake_seed+entropy, len(sl))
 			my[0][1].hashchain(epoch=block.blockheader.epoch+1)
 			hash_chain = my[0][1].hc
 			wallet.f_save_wallet()
@@ -1696,8 +1728,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 	
 
 	if b.blocknumber > 1:
-		if closest_hash(b.reveal_list)[0] != b.hash:
-			print "Closest hash doesn't hash correctly"
+		if b.hash != cl_hex(epoch_PRF[b.blocknumber],b.reveal_list):
+			print "Closest hash not block selector.."
 			return False
 		
 		if len(b.reveal_list) != len(set(b.reveal_list)):
@@ -1715,8 +1747,6 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		if i != len(b.reveal_list):
 			print 'Not all the reveal_hashes are valid..'
 			return False
-
-
 
 
 	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.merkle_root_tx_hash+str(b.number_stake)+b.hashedstake) != b.headerhash:
@@ -1752,7 +1782,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		txhashes = []
 		for transaction in block.transactions:
 			txhashes.append(transaction.txhash)
-	#if sha256(''.join(txhashes)) != block.blockheader.hashedtransactions:
+
 	if merkle_tx_hash(txhashes) != block.blockheader.merkle_root_tx_hash:
 		print 'Block hashedtransactions error: failed validation'
 		return False

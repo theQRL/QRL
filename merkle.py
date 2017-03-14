@@ -362,7 +362,7 @@ class XMSS():
                 return False
         return self.addresses[t][1]
 
-    def hashchain(self,n=10000, epoch=0):             #generates a 10,000th hash in iterative sha256 chain..derived from private SEED
+    def hashchain(self,n=10000, epoch=0):             #generates a 20,000th hash in iterative sha256 chain..derived from private SEED
         x = GEN(self.private_SEED,5000+epoch,l=32)
         y = GEN(x, 5000, l=32)
         z = GEN(y,5000, l=32)
