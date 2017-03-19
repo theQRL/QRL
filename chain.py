@@ -5,6 +5,7 @@
 # add stake list check to the state check - addresses which are staking cannot make transactions..
 # block-reward calculation to be altered based upon block-time and stake_list_get() balances..proportion of entire coin supply..
 # fees
+# occasionally the ots index gets behind..find reason..
 
 __author__ = 'pete'
 
@@ -1549,7 +1550,7 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 			n+=1
 
 	if type(data) == list:
-		ots_key = state_nonce(txfrom)+n		#nonce for first tx from an address is 1, first ots signature is 0..
+		ots_key = state_nonce(txfrom)+n		
 	else: #xmss
 		ots_key = data.index
 
@@ -1560,12 +1561,15 @@ def createsimpletransaction(txfrom, txto, amount, data, fee=0):
 			print msg
 			return (False, msg)
 	else:	#xmss
-		#print state_pubhash(txfrom)
+		#print 'state', state_pubhash(txfrom)
 		for pubhash in state_pubhash(txfrom):
 		 	pub = data.pk(ots_key)
 		 	pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+			#print 'pubhash from pub ', sha256(''.join(pub))
 			if pubhash == sha256(''.join(pub)):
-		 		msg = 'Wallet error: pubhash at ots_key has already been used. Compose a transaction manually and move funds to a new address.'
+		 		msg = 'Wallet error: pubhash at ots_key has already been used. Updating to next keypair - try again..'
+				data.set_index(ots_key+1)
+				wallet.f_save_winfo()
 				print msg
 				return (False, msg)
 

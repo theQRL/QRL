@@ -888,6 +888,7 @@ class p2pProtocol(Protocol):
 				if node not in peers_list:
 					if node != self.transport.getHost().host:
 						peers_list.append(node)
+						reactor.connectTCP(node, 9000, f)
 		chain.state_put_peers(peers_list)
 		chain.state_save_peers()
 		return
