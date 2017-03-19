@@ -1450,7 +1450,7 @@ def verify_chain():
 		if state_add_block(m_blockchain[1]) == False:
 			print 'State verification of block 1 failed'
 			return False
-	if m_verify_chain(verbose=0) == False:
+	if m_verify_chain(verbose=1) == False:
 		return False
 	print 'True'
 	for x in range(2,len(m_blockchain)):
@@ -1715,8 +1715,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		for st in stake_list_get():
 			if st[0] == b.stake_selector:
 					y = 1
-					terminator = b.hash
-					#for x in range(b.stake_nonce):
+					terminator = sha256(b.hash)
 					for x in range(b.blocknumber-(b.epoch*10000)):
 						terminator = sha256(terminator)
 					if terminator != st[1]:
@@ -1739,7 +1738,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		i=0
 		for r in b.reveal_list:
 			for s in stake_list_get():
-				t = r
+				t = sha256(r)
 				for x in range(b.blocknumber-(b.epoch*10000)):
 					t = sha256(t)
 				if t == s[1]:

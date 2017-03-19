@@ -141,7 +141,7 @@ def GEN_range(SEED, start_i, end_i, l=32):      #returns start -> end iteration 
             random_arr.append(y)
     return random_arr
 
-def GEN_range_bin(SEED, start_i, end_i, l=32):      #returns start -> end iteration of hex PRF (inclusive at both ends)
+def GEN_range_bin(SEED, start_i, end_i, l=32):      #returns start -> end iteration of bin PRF (inclusive at both ends)
     if start_i < 1:
         print 'starting i must be integer greater than 0'
         return
@@ -366,6 +366,7 @@ class XMSS():
         x = GEN(self.private_SEED,5000+epoch,l=32)
         y = GEN(x, 5000, l=32)
         z = GEN(y,5000, l=32)
+        z = hexlify(z)
         hc = []
         hc.append(z)
         for x in range(n):
@@ -380,6 +381,7 @@ class XMSS():
         x = GEN(self.private_SEED,5000+epoch,l=32)
         y = GEN(x, 5000, l=32)
         z = GEN(y,5000, l=32)
+        z = hexlify(z)
         hc = []
         hc.append(z)
         for x in range(n):

@@ -1,16 +1,6 @@
 # QRL testnet node..
 # -features POS, quantum secure signature scheme..
 
-# change the POS correction to simply callLater a check blockheight call rather than a missed block or pos_1..then from there we can interrogate the last block, send a blockheight request to all
-# connected peers.. 
-
-# todo: final design of POS..stake list is glacial and set for each epoch..but should we be flexible with who is online and reward the block reward based upon presence
-# during the last x blocks? Should the info with stake reveal hashes go in the header?
-# if a staker isnt present then who should make the next block? need to consider best way to keep the PRF static and compensate for this in a way which doesn't allow
-# gaming by dropping in and out to manipulate the PRF order..
-
-# add the block commit to -> chain.stake_block then check when recv block..
-# edit the block logic..need to add in the stake hashes, to generate merkle tree.. 
 
 __author__ = 'pete'
 
@@ -27,7 +17,6 @@ from math import ceil
 version_number = "alpha/0.02"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
-# removed:  'hrs', 'hrs_check'
 api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
 
@@ -827,7 +816,7 @@ class p2pProtocol(Protocol):
 		elif prefix == 'RT':
 			'<<< Transaction_pool to peer..'
 			for t in chain.transaction_pool:
-				f.send_tx_to_peers()
+				f.send_tx_to_peers(t)
 			return
 
 		elif prefix == 'PE':			#get a list of connected peers..need to add some ddos and type checking proteection here..
@@ -854,12 +843,13 @@ class p2pProtocol(Protocol):
 
 				# is reveal_one valid - does it hash to terminator in stake_list? We check that headerhash+block_number match in reveal_two_logic
 
-				tmp = reveal_one
+				tmp = sha256(reveal_one)
 				y=0
 				for s in chain.stake_list_get():
 					if s[0] == stake_address:
 						y=1
-						for x in range(block_number-(block_number/10000)):
+						epoch = block_number/10000			#+1 = next block
+						for x in range(block_number-(epoch*10000)):	
 							tmp = sha256(tmp)
 						if tmp != s[1]:
 							print 'reveal doesnt hash to stake terminator', 'reveal', reveal_one, 'nonce', s[2], 'hash_term', s[1]
@@ -1066,16 +1056,14 @@ class p2pProtocol(Protocol):
 												f.send_st_to_peers(chain.CreateStakeTransaction())
 											else:
 												print 'STAKE already in next epoch'
-
 										
-										for s in chain.stake_list_get():
-											if chain.mining_address == s[0]:
-												print 'STAKE this epoch with, ', chain.mining_address
-												f.send_stake_reveal_one()
-												reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-												return
+											for s in chain.stake_list_get():
+												if chain.mining_address == s[0]:
+													print 'STAKE this epoch with, ', chain.mining_address
+													f.send_stake_reveal_one()
+													reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
+													return
 											
-
 				else:
 					print '**POS commit later 30 (recv block)** - not called as not SYNC'
 					self.get_m_blockheight_from_connection()
@@ -1163,11 +1151,9 @@ class p2pFactory(ServerFactory):
 		z['stake_address'] = chain.mining_address
 		z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				#demonstrate the hash from last block to prevent building upon invalid block..
 		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1		#next block..
-		epoch = (chain.m_blockchain[-1].blockheader.blocknumber+1)/10000			#+1 = next block
-		z['reveal_one'] = chain.hash_chain[-(len(chain.m_blockchain)+1)-(epoch*10000)]				
-		
-		#print z
-
+		epoch = z['block_number']/10000			#+1 = next block
+		z['reveal_one'] = chain.hash_chain[:-1][::-1][z['block_number']-(epoch*10000)]	
+	
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('R1'+chain.json_encode(z)))
 		
