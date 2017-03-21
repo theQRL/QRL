@@ -14,7 +14,7 @@ from operator import itemgetter
 from collections import Counter
 from math import ceil
 
-version_number = "alpha/0.02"
+version_number = "alpha/0.03"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 api_list = ['block_data','stats','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
@@ -766,11 +766,12 @@ class p2pProtocol(Protocol):
 
 				print '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
 				
-				if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
-					print '>>> FORK..headerhash mismatch from ', self.transport.getPeer().host
-					# fork recovery code here..
-					# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
-					return
+				if block_number <= chain.m_blockheight():
+					if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
+						print '>>> FORK..headerhash mismatch from ', self.transport.getPeer().host
+						# fork recovery code here..
+						# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
+						return
 
 				if block_number > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					self.factory.sync = 0
