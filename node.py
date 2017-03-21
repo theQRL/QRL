@@ -17,7 +17,7 @@ from math import ceil
 version_number = "alpha/0.02"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
-api_list = ['block_data','stats', 'txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
+api_list = ['block_data','stats','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
 
 def parse(data):
@@ -100,7 +100,7 @@ def pre_pos_2(data=None):
 		#f.send_st_to_peers(data)
 	return
 
-# we end up here exactly 15 seconds after the last block arrived or was created and sent out..
+# we end up here exactly 30 seconds after the last block arrived or was created and sent out..
 
 def reveal_two_logic(data=None):
 	print 'reveal_two_logic'
@@ -111,27 +111,32 @@ def reveal_two_logic(data=None):
 		if s[1] == chain.m_blockchain[-1].blockheader.headerhash and s[2] == chain.m_blockchain[-1].blockheader.blocknumber+1:
 			reveals.append(s[3])
 
-	#print 'numlist reveals:'
-	#numlist (reveals)
-
 	# what is the PRF output for this block?	
 
 	winner = chain.cl_hex(chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1], reveals)
 
+	playing = False
 	for s in chain.stake_reveal_one:
 		if s[3] == winner:
 			winning_staker = s[0]
 		if s[0] == chain.mining_address:
 			our_reveal = s[3]
-
+			playing = True
+	
 	print 'chain.epoch_PRF: ', chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1]
 	print 'win reveal: ', winner, 'of:', str(len(reveals)), 'stake validator: ', winning_staker, 'b :', chain.m_blockchain[-1].blockheader.blocknumber+1
 	
-	if winner == our_reveal:
-		print 'BLOCK SELECTOR'
-		print 'reveals', reveals
-		reveal_three_logic(winner, reveals)
-		return
+	if len(chain.expected_winner) >= 20:			#prevent this bloating up and leaking memory
+		chain.expected_winner = chain.expected_winner[-20:]
+
+	chain.expected_winner.append([chain.m_blockchain[-1].blockheader.blocknumber+1, winner, winning_staker])
+
+	if playing == True:
+		if winner == our_reveal:
+			print 'BLOCK SELECTOR'
+			print 'reveals', reveals
+			reactor.callLater(3, reveal_three_logic, winner, reveals)
+			return
 
 
 def reveal_three_logic(winner, reveals):
@@ -170,8 +175,8 @@ def reveal_three_logic(winner, reveals):
 			if chain.mining_address == s[0]:	
 				print 'STAKE this epoch with, ', chain.mining_address
 				f.send_stake_reveal_one()
-				reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-				reactor.callID2 = reactor.callLater(60, pos_missed_block)
+	reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
+	reactor.callID2 = reactor.callLater(60, pos_missed_block)
 	return
 
 
@@ -244,8 +249,11 @@ class ApiProtocol(Protocol):
 						   "\r\n") % (str(len(json_txt)))
 
 		self.transport.write(http_header_GET+json_txt)
-
 		return
+
+	def exp_win(self, data=None):
+		print '<<< API expected winner call'
+		return chain.exp_win(data)
 
 	def ping(self, data=None):
 		print '<<< API network latency ping call'
@@ -1023,6 +1031,38 @@ class p2pProtocol(Protocol):
 
 		print '>>>BLOCK - ', block.blockheader.headerhash, str(block.blockheader.blocknumber), block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
 		
+
+		# is the block we are receiving correctly selected according to our stake logic?
+		# a) should be corret stake_selector
+		# b) should have correct hash
+		# c) should be arriving after reveal_two_logic has triggered..
+		# d) block-interval should be >30s - probably should add local node logic to record this..actual network timestamp unreliable..
+
+		#chain.expected_winner.append([chain.m_blockchain[-1].blockheader.blocknumber+1, winner, winning_staker])
+		if self.factory.sync == 1:
+			w=''
+			for b in chain.expected_winner:
+				if block.blockheader.blocknumber == b[0]:
+					w = b[1]
+					s_v = b[2]
+			if len(chain.expected_winner) == 0:		# we have no stake logic, must have just sync'd.
+				pass
+			else:
+				if w == '':		# not in expected_winner..
+					# a) reveal logic hasnt triggered yet
+					# b) attempt to pass an illegal block..
+					print '>>>BLOCK WARNING not triggered reveal_two_logic'
+					if block.blockheader.timestamp-chain.m_blockchain[-1].blockheader.timestamp < 30:
+						print '>>>BLOCK too early to be valid..rejected'
+						return
+				else:	
+				 if block.blockheader.stake_selector != s_v:
+					print '>>>BLOCK not produced by expected stake validator..rejected'
+					return
+				 if block.blockheader.hash != w:
+					print '>>>BLOCK does not contain winning expected reveal hash..rejected'
+					return
+
 		if chain.m_add_block(block) is True:
 				
 				print 'reveals:', block.blockheader.reveal_list
@@ -1062,8 +1102,12 @@ class p2pProtocol(Protocol):
 												if chain.mining_address == s[0]:
 													print 'STAKE this epoch with, ', chain.mining_address
 													f.send_stake_reveal_one()
-													reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-													return
+													#reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
+													#return
+
+										reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
+										return
+
 											
 				else:
 					print '**POS commit later 30 (recv block)** - not called as not SYNC'

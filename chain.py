@@ -21,7 +21,7 @@ import cPickle as pickle
 
 global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
 
-global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two
+global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, expected_winner
 
 tx_per_block = [0, 0]
 ping_list =[]
@@ -38,6 +38,7 @@ stake_pool = []
 stake_list = []
 epoch_prf = []
 epoch_PRF = []
+expected_winner = []
 print 'loading db'
 db = db.DB()
 
@@ -928,6 +929,17 @@ def next_stakers(data=None):
 		next_stakers['stake_list'][s[0]]['nonce'] = s[2]
 		
 	return json_print_telnet(next_stakers)
+
+def exp_win(data=None):
+	# chain.expected_winner.append([chain.m_blockchain[-1].blockheader.blocknumber+1, winner, winning_staker])
+	ew = {}
+	ew['status'] = 'ok'
+	ew['expected_winner'] = {}
+	for e in expected_winner:
+		ew['expected_winner'][e[0]] = {}
+		ew['expected_winner'][e[0]]['hash'] = e[1]
+		ew['expected_winner'][e[0]]['stake_address'] = e[2]
+	return json_print_telnet(ew)
 
 def stake_reveal_ones(data=None):
 
