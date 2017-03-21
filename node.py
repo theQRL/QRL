@@ -748,16 +748,33 @@ class p2pProtocol(Protocol):
 				self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_last_block())))
 				return
 
-		elif prefix == 'MB':		#we send with just prefix as request..with a number as answer..
+		elif prefix == 'MB':		#we send with just prefix as request..with a number and blockhash as answer..
 			if not suffix:
 				print '<<<Sending blockheight to:', self.transport.getPeer().host, str(time.time())
-				self.transport.write(self.wrap_message('CB'+str(chain.m_blockheight())))
+				
+				z = {}
+				z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				#demonstrate the hash from last block to prevent building upon invalid block..
+				z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber 			#next block..
+
+				self.transport.write(self.wrap_message('CB'+chain.json_encode(z)))
+				return
 			
 		elif prefix == 'CB':
-				print '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', suffix, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
-				if int(suffix) > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
+				z = chain.json_decode(suffix)
+				block_number = z['block_number']
+				headerhash = z['headerhash'].encode('latin1')
+
+				print '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
+				
+				if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
+					print '>>> FORK..headerhash mismatch from ', self.transport.getPeer().host
+					# fork recovery code here..
+					# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
+					return
+
+				if block_number > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
 					self.factory.sync = 0
-					print 'local node behind connection by ', str(int(suffix)-chain.m_blockheight()), 'blocks - synchronising..'
+					print 'local node behind connection by ', str(block_number-chain.m_blockheight()), 'blocks - synchronising..'
 					self.get_block_n(chain.m_blockheight()+1)
 					return
 				else:
@@ -771,7 +788,7 @@ class p2pProtocol(Protocol):
 						print 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'
 						reactor.callLater(1, pre_pos_1)
 						return
-					elif len(chain.m_blockchain) == 1 and self.factory.genesis == 1:
+					elif len(chain.m_blockchain) == 1 and self.factory.genesis == 1:	#connected to multiple hosts and already passed through..
 						return
 
 					# 2. restart the network if it has paused
