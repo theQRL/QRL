@@ -155,35 +155,23 @@ def reveal_three_logic(winner, reveals):
 		tx_list.append(t.txhash)
 	block_obj = chain.create_stake_block(tx_list, winner, reveals)
 
-	if chain.m_add_block(block_obj) == True:
-			f.send_block_to_peers(block_obj)
+	if chain.m_add_block(block_obj) is True:				
+		stop_all_loops()
+		f.send_block_to_peers(block_obj)
+		start_all_loops()
 
-	else: 
+	else:
 		print 'reveal_three_logic: bad block'
 		return
+	
+	# if staking
 
-	try: reactor.callIDR15.cancel()		#shouldnt see this really..
-	except:	pass								
-	try: reactor.callID2.cancel()		#cancel the soon to be re-called missed block logic..
-	except: pass
-
-	if f.stake == True:									# we are staking and synchronised -> are we in the next staker list?
-		x=0
-		for s in chain.next_stake_list_get():
-			if s[0] == chain.mining_address:
-				x=1													#already in the next_stake_list..
-		if x==0:
-			print 'STAKE adding to next_stake_list'
-			f.send_st_to_peers(chain.CreateStakeTransaction())
-		else:
-			print 'STAKE already in next epoch'
-
-		for s in chain.stake_list_get():								
-			if chain.mining_address == s[0]:	
-				print 'STAKE this epoch with, ', chain.mining_address
+	if f.stake == True:
+		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
 				f.send_stake_reveal_one()
-	reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-	reactor.callID2 = reactor.callLater(60, pos_missed_block)
+		if chain.mining_address not in [s[0] for s in chain.next_stake_list_get()]:
+				f.send_st_to_peers(chain.CreateStakeTransaction())
+
 	return
 
 
@@ -949,8 +937,10 @@ class p2pProtocol(Protocol):
 					if block_number == chain.m_blockheight():
 						if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
 							print '>>> WARNING: headerhash mismatch from ', self.transport.getPeer().host
+						
 						# fork recovery code here..
 						# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
+						
 							return
 
 					# this is where the POS algorithm starts..
@@ -970,7 +960,8 @@ class p2pProtocol(Protocol):
 					if chain.m_blockchain[-1].blockheader.timestamp < time.time()-110:
 						print 'last block was over 110s ago..'
 						stop_all_loops()
-						del chain.stake_reveal_one[:]						
+						del chain.stake_reveal_one[:]
+						del chain.expected_winner[:]				
 						start_all_loops()
 						
 						if f.stake == True:
