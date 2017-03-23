@@ -305,16 +305,18 @@ def block_meets_consensus(blockheader_obj):			#else not pythonic but works..
 
 def get_synchronising_blocks(block_number):
 	f.sync = 0
+	f.requested[1] += 1
 	stop_all_loops()
 	
 	behind = block_number-chain.m_blockheight()
 	peers = len(f.peers)
 
-	if f.requested == chain.m_blockheight()+1:
-		return
+	if f.requested[0] == chain.m_blockheight()+1:
+		if f.requested[1] <= len(f.peers):
+			return
 
 	print 'local node behind connection by ', behind, 'blocks - synchronising..'
-	f.requested = chain.m_blockheight()+1
+	f.requested = [chain.m_blockheight()+1, 0]
 	f.get_block_n_random_peer(chain.m_blockheight()+1)
 	
 	#if behind < peers:
@@ -1249,7 +1251,7 @@ class p2pFactory(ServerFactory):
 		self.exit = 0
 		self.genesis = 0
 		self.missed_block = 0
-		self.requested = 0
+		self.requested = [0,0]
 
 # factory network functions
 	
