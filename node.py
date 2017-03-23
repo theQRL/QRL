@@ -113,7 +113,7 @@ def reveal_two_logic(data=None):
 
 	# are we forked and creating only our own blocks?
 
-	if len(reveals) == 1:
+	if len(reveals) <= 1:
 			print 'only received one reveal for this block..quitting reveal_two_logic'
 			f.get_m_blockheight_from_peers()
 			return
@@ -225,7 +225,6 @@ def start_all_loops(data=None):
 def received_block_logic(block_obj):
 
 	if f.sync == 0:
-		#recent blocks then call sync..
 		chain.recent_blocks.append(block_obj)
 		synchronising_update_chain()
 		return
@@ -306,14 +305,47 @@ def block_meets_consensus(blockheader_obj):			#else not pythonic but works..
 
 def get_synchronising_blocks(block_number):
 	f.sync = 0
-	print 'local node behind connection by ', str(block_number-chain.m_blockheight()), 'blocks - synchronising..'
-	f.get_block_n(chain.m_blockheight()+1)
+	stop_all_loops()
+	
+	behind = block_number-chain.m_blockheight()
+	peers = len(f.peers)
+
+	if f.requested == chain.m_blockheight()+1:
+		return
+
+	print 'local node behind connection by ', behind, 'blocks - synchronising..'
+	f.requested = chain.m_blockheight()+1
+	f.get_block_n_random_peer(chain.m_blockheight()+1)
+	
+	#if behind < peers:
+	#	f.get_block_a_to_b(chain.m_blockheight()+1, chain.m_blockheight()+behind+1)
+	#	return
+
+	#if behind >= peers:
+	#	f.get_block_a_to_b(chain.m_blockheight()+1, chain.m_blockheight()+peers+1)
+	
 	return
 
+
+
 def synchronising_update_chain(data=None):
-	chain.m_add_block(chain.recent_blocks[-1])
+	print 'sync update chain'
+	
+	chain.recent_blocks.sort(key=lambda x: x.blockheader.blocknumber)			# sort the contents of the recent_blocks pool in ascending block number order..
+
+	for b in chain.recent_blocks:
+		if b.blockheader.blocknumber <= chain.m_blockheight():
+			chain.recent_blocks.remove(b)
+		if b.blockheader.blocknumber != chain.m_blockheight()+1:
+			pass
+		else:
+			if b.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
+				chain.recent_blocks.remove(b)	#forked blocks?
+			else:
+				chain.m_add_block(b)
+
 	del chain.recent_blocks[:]
-	f.get_m_blockheight_from_peers()
+	f.get_m_blockheight_from_random_peer()
 	return
 
 
@@ -1091,7 +1123,7 @@ class p2pProtocol(Protocol):
 		#struct.pack('>L', len(data))
 
 	def parse_buffer(self):
-		if not self.buffer:
+		if len(self.buffer)==0:
 			return False
 
 		d = self.buffer.find(chr(255)+chr(0)+chr(0))
@@ -1122,15 +1154,14 @@ class p2pProtocol(Protocol):
 
 		self.buffer += data
 
-		self.parse_buffer()				# need a way of iterating through the parse_buffer better..functional..
-		self.parse_buffer()
-		self.parse_buffer()
-		
-		for msg in self.messages:
-				self.parse_msg(msg)
-
-		del self.messages[:]
-
+		for x in range(50):
+			if self.parse_buffer()==False:
+				break
+			else:
+				for msg in self.messages:
+					#print msg
+					self.parse_msg(msg)
+				del self.messages[:]
 		return
 
 	def connectionMade(self):
@@ -1218,16 +1249,33 @@ class p2pFactory(ServerFactory):
 		self.exit = 0
 		self.genesis = 0
 		self.missed_block = 0
-
+		self.requested = 0
 
 # factory network functions
 	
+	def get_block_a_to_b(self, a, b):
+		print '<<<Requested blocks:', a, 'to ', b, ' from peers..'
+		l = range(a,b)
+		for peer in self.peers:
+			if len(l) > 0:
+				peer.transport.write(self.f_wrap_message('BN'+str(l.pop(0))))
+			else:
+				return				
+
+	def get_block_n_random_peer(self,n):
+		random.choice(self.peers).get_block_n(n)
+		return
+
+
 	def get_block_n(self, n):
 		print '<<<Requested block: ', str(n), 'from peers.'
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('BN'+str(n)))
 		return
 
+	def get_m_blockheight_from_random_peer(self):
+		random.choice(self.peers).get_m_blockheight_from_connection()
+		return
 
 	def get_m_blockheight_from_peers(self):
 		for peer in self.peers:
