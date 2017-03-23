@@ -19,14 +19,13 @@ import merkle, wallet, db
 
 import cPickle as pickle
 
-global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping
+global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping, recent_blocks, pos_d
 
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, expected_winner
 
 tx_per_block = [0, 0]
 ping_list =[]
-node_list = ['104.251.219.145']
-#node_list = []
+node_list = ['104.251.219.40']
 m_blockchain = []
 transaction_pool = []
 txhash_timestamp = []
@@ -39,6 +38,10 @@ stake_list = []
 epoch_prf = []
 epoch_PRF = []
 expected_winner = []
+recent_blocks = []
+pos_d = []
+
+
 print 'loading db'
 db = db.DB()
 
@@ -419,10 +422,12 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.transactions = []
 		self.stake = []
 		self.state = [['Qe1563a15fe6ffae964473d11180aaace207bcb1ed1ac570dfb46684421f7bb4f10eb', [0, 100000*100000000, []]] , ['Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee',[0, 10000*100000000,[]]], ['Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
+		#Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28 petal
+		#Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57 tiddler
 		#Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3 twiglet
-		#Q8b855465e0a2b26103b34d05d8ba07bc07ab8f4b458b5fd8cdda5906134ff80b306d bean
+		#Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167 bean
 		#Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee flea
-		self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qe1563a15fe6ffae964473d11180aaace207bcb1ed1ac570dfb46684421f7bb4f10eb', 'Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
+		self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 # JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)

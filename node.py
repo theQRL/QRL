@@ -14,7 +14,7 @@ from operator import itemgetter
 from collections import Counter
 from math import ceil
 
-version_number = "alpha/0.03"
+version_number = "alpha/0.04"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 api_list = ['block_data','stats','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
@@ -111,6 +111,13 @@ def reveal_two_logic(data=None):
 		if s[1] == chain.m_blockchain[-1].blockheader.headerhash and s[2] == chain.m_blockchain[-1].blockheader.blocknumber+1:
 			reveals.append(s[3])
 
+	# are we forked and creating only our own blocks?
+
+	if len(reveals) == 1:
+			print 'only received one reveal for this block..quitting reveal_two_logic'
+			f.get_m_blockheight_from_peers()
+			return
+
 	# what is the PRF output for this block?	
 
 	winner = chain.cl_hex(chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1], reveals)
@@ -182,11 +189,137 @@ def reveal_three_logic(winner, reveals):
 
 def pos_missed_block(data=None):
 	print '** Missed block logic ** - trigger m_blockheight recheck..'
-	f.missed_block=1
+	f.get_m_blockheight_from_peers()
+	return
+
+def stop_all_loops(data=None):
+	print '** stopping timing loops **'
+	try:	reactor.callIDR15.cancel()	#reveal loop
+	except:	pass
+	try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
+	except: pass
+	try: 	reactor.callID2.cancel()		#cancel the soon to be re-called missed block logic..
+	except: pass
+	return
+
+def stop_pos_loops(data=None):
+	print '** stopping pos loops and resetting flags **'
+	try:	reactor.callIDR15.cancel()	#reveal loop
+	except:	pass
+	try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
+	except: pass
+
+	# flags
+
+	return
+
+def start_all_loops(data=None):
+	print '** starting loops **'
+	reactor.callID2 = reactor.callLater(120, pos_missed_block)
+	reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
+	return
+
+
+# supra factory block logic 
+
+def received_block_logic(block_obj):
+
+	if f.sync == 0:
+		#recent blocks then call sync..
+		chain.recent_blocks.append(block_obj)
+		synchronising_update_chain()
+		return
+
+	# rapid logic
+
+	if block_obj.blockheader.headerhash == chain.m_blockchain[-1].blockheader.headerhash:
+			return
+
+	if block_obj.blockheader.blocknumber != chain.m_blockheight()+1:
+			print '>>>BLOCK - out of order - need', str(chain.m_blockheight()+1), ' received ', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash#, ' from ', self.transport.getPeer().host
+			return
+	
+	if block_obj.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
+			print '>>>WARNING: FORK..'
+			return
+
+	print '>>>BLOCK - ', block_obj.blockheader.headerhash, str(block_obj.blockheader.blocknumber), block_obj.blockheader.timestamp#, ' - ', self.transport.getPeer().host
+
+	# pos checks
+
+	if block_meets_consensus(block_obj.blockheader) != True:
+		return
+
+	# validation and state checks, then housekeeping
+
+	if chain.m_add_block(block_obj) is True:				
+		stop_all_loops()
+		f.send_block_to_peers(block_obj)
+		start_all_loops()
+
+	# if staking
+
+	if f.stake == True:
+		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
+				f.send_stake_reveal_one()
+		if chain.mining_address not in [s[0] for s in chain.next_stake_list_get()]:
+				f.send_st_to_peers(chain.CreateStakeTransaction())
+
+	return
+
+
+
+def block_meets_consensus(blockheader_obj):			#else not pythonic but works..
+
+	if len(chain.expected_winner) == 0:				# we have no stake logic, must have just sync'd or been called somehow during sync..
+			pass
+	
+	else:
+		# correct part of POS? Correct winning hash, block selector? if we have an entry for this block then it has been through POS loops..
+
+		w=''
+		for b in chain.expected_winner:
+					if blockheader_obj.blocknumber == b[0]:			# if we are synchronised have we taken part in the stake process?
+						w = b[1]
+						s_v = b[2]
+			
+		if w == '':
+					print '>>>BLOCK does not meet consensus..rejected'
+					return False
+				
+		else:	
+				 
+				 if blockheader_obj.stake_selector != s_v:
+					print '>>>BLOCK not produced by expected stake validator..rejected'
+					return False
+				 
+				 if blockheader_obj.hash != w:
+					print '>>>BLOCK does not contain winning expected reveal hash..rejected'
+					return False
+
+	return True
+
+
+
+# synchronisation functions..
+
+
+def get_synchronising_blocks(block_number):
+	f.sync = 0
+	print 'local node behind connection by ', str(block_number-chain.m_blockheight()), 'blocks - synchronising..'
+	f.get_block_n(chain.m_blockheight()+1)
+	return
+
+def synchronising_update_chain(data=None):
+	chain.m_add_block(chain.recent_blocks[-1])
+	del chain.recent_blocks[:]
 	f.get_m_blockheight_from_peers()
 	return
 
 
+
+
+# factories and protocols..
 
 class ApiProtocol(Protocol):
 
@@ -741,20 +874,25 @@ class p2pProtocol(Protocol):
 			return
 
 		elif prefix == 'BK':			#block received
-			self.recv_block(suffix)
+				try: 	block = chain.json_decode_block(suffix)
+				except:
+						print 'block rejected - unable to decode serialised data', self.transport.getPeer().host
+						return
+				received_block_logic(block)
 
 		elif prefix == 'LB':			#request for last block to be sent
 				print '<<<Sending last block', str(chain.m_blockheight()), str(len(chain.json_bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
 				self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_last_block())))
 				return
 
-		elif prefix == 'MB':		#we send with just prefix as request..with a number and blockhash as answer..
+		elif prefix == 'MB':		#we send with just prefix as request..with CB number and blockhash as answer..
 			if not suffix:
 				print '<<<Sending blockheight to:', self.transport.getPeer().host, str(time.time())
 				
 				z = {}
 				z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				#demonstrate the hash from last block to prevent building upon invalid block..
 				z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber 			#next block..
+				#z['prev_headerhash'] = chain.m_blockchain[-2].blockheader.headerhash
 
 				self.transport.write(self.wrap_message('CB'+chain.json_encode(z)))
 				return
@@ -763,23 +901,24 @@ class p2pProtocol(Protocol):
 				z = chain.json_decode(suffix)
 				block_number = z['block_number']
 				headerhash = z['headerhash'].encode('latin1')
+				#prev_headerhash = z['prev_headerhash'].encode('latin1')
 
 				print '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
-				
-				if block_number <= chain.m_blockheight():
-					if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
-						print '>>> FORK..headerhash mismatch from ', self.transport.getPeer().host
-						# fork recovery code here..
-						# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
-						return
-
+									
 				if block_number > chain.m_blockheight():		#if blockheight of other node greater then we are not the longest chain..how many blocks behind are we?
-					self.factory.sync = 0
-					print 'local node behind connection by ', str(block_number-chain.m_blockheight()), 'blocks - synchronising..'
-					self.get_block_n(chain.m_blockheight()+1)
+					get_synchronising_blocks(block_number)					
 					return
+
 				else:
 					self.factory.sync = 1
+					
+					if block_number == chain.m_blockheight():
+						if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
+							print '>>> WARNING: headerhash mismatch from ', self.transport.getPeer().host
+						# fork recovery code here..
+						# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
+							return
+
 					# this is where the POS algorithm starts..
 
 					# 1. check the block height is 0.
@@ -795,18 +934,17 @@ class p2pProtocol(Protocol):
 					# 2. restart the network if it has paused
 
 					if chain.m_blockchain[-1].blockheader.timestamp < time.time()-110:
-						if self.factory.missed_block == 0:
-							reactor.callID2 = reactor.callLater(60, pos_missed_block)		# block should be here by now..begin redundancy logic
-							return
-						else:
-						 del chain.stake_reveal_one[:]						
-						 for s in chain.stake_list_get():
-							if chain.mining_address == s[0]:
-								print 'Restart network and STAKE this epoch with, ', chain.mining_address
+						print 'last block was over 110s ago..'
+						stop_all_loops()
+						del chain.stake_reveal_one[:]						
+						start_all_loops()
+						
+						if f.stake == True:
+							if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
+								print 'Missed block restart..'
 								f.send_stake_reveal_one()
-								reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-								self.factory.missed_block=0
-								return
+					
+								
 
 					return
 
@@ -1028,113 +1166,10 @@ class p2pProtocol(Protocol):
 		print self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections) #, reason 
 		self.factory.peers.remove(self)
 		if self.factory.connections == 0:
-			reactor.callLater(120,f.connect_peers)
+			stop_all_loops()
+			reactor.callLater(60,f.connect_peers)
 
-	def recv_block(self, json_block_obj):
-		
-
-		try: block = chain.json_decode_block(json_block_obj)
-		except:
-				print 'block rejected - unable to decode serialised data - closing connection to -', self.transport.getPeer().host
-				#self.transport.loseConnection()
-				return
-
-		if block.blockheader.headerhash == chain.m_blockchain[-1].blockheader.headerhash:
-				#print '>>>BLOCK - already received - ', str(block.blockheader.blocknumber), block.blockheader.headerhash
-				return
-
-		if block.blockheader.blocknumber != chain.m_blockheight()+1:
-			print '>>>BLOCK - out of order - need', str(chain.m_blockheight()+1), ' received ', str(block.blockheader.blocknumber), block.blockheader.headerhash, ' from ', self.transport.getPeer().host
-			return
-
-		print '>>>BLOCK - ', block.blockheader.headerhash, str(block.blockheader.blocknumber), block.blockheader.timestamp, str(len(json_block_obj)), 'bytes - ', self.transport.getPeer().host
-		
-
-		# is the block we are receiving correctly selected according to our stake logic?
-		# a) should be corret stake_selector
-		# b) should have correct hash
-		# c) should be arriving after reveal_two_logic has triggered..
-		# d) block-interval should be >30s - probably should add local node logic to record this..actual network timestamp unreliable..
-
-		#chain.expected_winner.append([chain.m_blockchain[-1].blockheader.blocknumber+1, winner, winning_staker])
-		if self.factory.sync == 1:
-			w=''
-			for b in chain.expected_winner:
-				if block.blockheader.blocknumber == b[0]:
-					w = b[1]
-					s_v = b[2]
-			if len(chain.expected_winner) == 0:		# we have no stake logic, must have just sync'd.
-				pass
-			else:
-				if w == '':		# not in expected_winner..
-					# a) reveal logic hasnt triggered yet
-					# b) attempt to pass an illegal block..
-					print '>>>BLOCK WARNING not triggered reveal_two_logic'
-					if block.blockheader.timestamp-chain.m_blockchain[-1].blockheader.timestamp < 30:
-						print '>>>BLOCK too early to be valid..rejected'
-						return
-				else:	
-				 if block.blockheader.stake_selector != s_v:
-					print '>>>BLOCK not produced by expected stake validator..rejected'
-					return
-				 if block.blockheader.hash != w:
-					print '>>>BLOCK does not contain winning expected reveal hash..rejected'
-					return
-
-		if chain.m_add_block(block) is True:
-				
-				print 'reveals:', block.blockheader.reveal_list
-
-				if self.factory.sync == 1:
-
-					for peer in self.factory.peers:
-						if peer != self:
-							peer.transport.write(self.wrap_message(chain.json_bytestream_bk(block)))
-				
-				#self.get_m_blockheight_from_connection()	
-				
-				if self.factory.sync == 1:
-
-										try:	reactor.callIDR15.cancel()	#shouldnt see this really..
-										except:	pass
-										
-										try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
-										except: pass
-										try: 	reactor.callID2.cancel()		#cancel the soon to be re-called missed block logic..
-										except: pass
-
-										reactor.callID2 = reactor.callLater(120, pos_missed_block)		# block should be here by now..begin redundancy logic
-										
-										if self.factory.stake == True:									# we are staking and synchronised -> are we in the next staker list?
-											x=0
-											for s in chain.next_stake_list_get():
-												if s[0] == chain.mining_address:
-													x=1													#already in the next_stake_list..
-											if x==0:
-												print 'STAKE adding to next_stake_list'
-												f.send_st_to_peers(chain.CreateStakeTransaction())
-											else:
-												print 'STAKE already in next epoch'
-										
-											for s in chain.stake_list_get():
-												if chain.mining_address == s[0]:
-													print 'STAKE this epoch with, ', chain.mining_address
-													f.send_stake_reveal_one()
-													#reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-													#return
-
-										reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
-										return
-
-											
-				else:
-					print '**POS commit later 30 (recv block)** - not called as not SYNC'
-					self.get_m_blockheight_from_connection()
-				return
-		else:
-				#print 'BAD BLOCK:', block.blockheader.headerhash, block.blockheader.blocknumber, ' invalid and discarded -', self.transport.getPeer().host
-				self.get_m_blockheight_from_connection()
-				return
+	
 
 	def recv_tx(self, json_tx_obj):
 		
@@ -1186,6 +1221,14 @@ class p2pFactory(ServerFactory):
 
 
 # factory network functions
+	
+	def get_block_n(self, n):
+		print '<<<Requested block: ', str(n), 'from peers.'
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('BN'+str(n)))
+		return
+
+
 	def get_m_blockheight_from_peers(self):
 		for peer in self.peers:
 			peer.get_m_blockheight_from_connection()
