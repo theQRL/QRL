@@ -427,8 +427,8 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		#Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3 twiglet
 		#Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167 bean
 		#Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee flea
-		self.stake_list = ['Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
-		#self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
+		#self.stake_list = ['Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
+		self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 # JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)

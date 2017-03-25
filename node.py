@@ -134,11 +134,12 @@ def reveal_two_logic(data=None):
 	if chain.mining_address in [s[0] for s in chain.stake_reveal_one]:
 		for t in chain.stake_reveal_one:
 			if t[0]==chain.mining_address:
-				our_reveal = t[3]
-				reactor.callLater(15, reveal_three_logic, winner=winner, reveals=reveals, our_reveal=our_reveal)
-				return
+				if t[2]==chain.m_blockchain[-1].blockheader.blocknumber+1:
+					our_reveal = t[3]
+					reactor.callIDR2 = reactor.callLater(15, reveal_three_logic, winner=winner, reveals=reveals, our_reveal=our_reveal)
+					return
 	
-	reactor.callLater(15, reveal_three_logic, winner=winner, reveals=reveals)
+	reactor.callIDR2 = reactor.callLater(15, reveal_three_logic, winner=winner, reveals=reveals)
 	return
 
 
@@ -146,14 +147,17 @@ def reveal_two_logic(data=None):
 # collate the R2 messages to see if we are creating the block by network consensus..
 
 def reveal_three_logic(winner, reveals, our_reveal=None):
-
+	print 'reveal_three_logic'
 	#chain.pos_d = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
 
 	if pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash) is False:
+		print 'pos_d problem..with reveal_one or reveal_two..'
 		reset_everything()
 		return
 
-	print 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6], ' for: ', chain.pos_d[0] 
+#staked = decimal.Decimal((b/100000000.000000000)/(chain.db.total_coin_supply()/100000000.000000000)*100).quantize(decimal.Decimal('1.00'))
+
+	print 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4], '/', chain.pos_d[5]  ,'for: ', chain.pos_d[0] 
 
 	# does network agree? are we in agreement?
 
@@ -169,6 +173,7 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	# if we aren't staking this round and haven't produced a reveal hash
 
 	if our_reveal==None:
+		print 'our_reveal=None'
 		return
 
 	# are we the winner? let's create the block then..
@@ -176,12 +181,14 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	if chain.pos_d[7]==chain.mining_address and chain.pos_d[0]==our_reveal:
 		print 'CHOSEN BLOCK SELECTOR'
 		reactor.callLater(10, create_new_block, our_reveal, reveals)
+	else:
+		print 'CONSENSUS winner: ', chain.pos_d[7], 'hash ', chain.pos_d[0]
+		print 'our_reveal', our_reveal
 	return
 	
 
 def create_new_block(winner, reveals):
-
-		del chain.pos_flag[:] 
+		print 'create_new_block'
 		tx_list = []
 		for t in chain.transaction_pool:
 			tx_list.append(t.txhash)
@@ -189,6 +196,9 @@ def create_new_block(winner, reveals):
 
 		if chain.m_add_block(block_obj) is True:				
 			stop_all_loops()
+			del chain.stake_reveal_one[:]
+			del chain.stake_reveal_two[:]
+			del chain.pos_flag[:] 
 			f.send_block_to_peers(block_obj)
 			start_all_loops()
 
@@ -228,6 +238,8 @@ def stop_all_loops(data=None):
 	except:	pass
 	try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
 	except: pass
+	try: 	reactor.callIDR2.cancel()
+	except: pass
 	try: 	reactor.callID2.cancel()		#cancel the soon to be re-called missed block logic..
 	except: pass
 	return
@@ -236,6 +248,8 @@ def stop_pos_loops(data=None):
 	print '** stopping pos loops and resetting flags **'
 	try:	reactor.callIDR15.cancel()	#reveal loop
 	except:	pass
+	try: 	reactor.callIDR2.cancel()
+	except: pass
 	try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
 	except: pass
 
@@ -301,8 +315,6 @@ def received_block_logic(block_obj):
 # to be updated..
 
 def block_meets_consensus(blockheader_obj):
-
-	print 'block_meets_consensus'
 
 	if len(chain.pos_flag)==0:
 		print 'POS reveal_three_logic not activated..'
@@ -1068,10 +1080,8 @@ class p2pProtocol(Protocol):
 					# 2. restart the network if it has paused
 
 					if chain.m_blockchain[-1].blockheader.timestamp < time.time()-110:
-						print 'last block was over 110s ago..'
-						stop_all_loops()
-						del chain.stake_reveal_one[:]
-						del chain.expected_winner[:]				
+						print 'last block was over 110s ago..resetting'
+						reset_everything()
 						start_all_loops()
 						
 						if f.stake == True:
@@ -1080,7 +1090,6 @@ class p2pProtocol(Protocol):
 								f.send_stake_reveal_one()
 					
 								
-
 					return
 
 		elif prefix == 'BN':			#request for block (n)
