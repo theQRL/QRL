@@ -9,12 +9,12 @@ import chain, wallet
 
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
-from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed, GEN_range
+from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed, GEN_range, random_key
 from operator import itemgetter
 from collections import Counter
 from math import ceil
 
-version_number = "alpha/0.04"
+version_number = "alpha/0.04a"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 api_list = ['block_data','stats','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
@@ -93,17 +93,22 @@ def pre_pos_2(data=None):
 			f.get_m_blockheight_from_peers()
 			print '**POS commit call later 30 (genesis)...**'
 			f.send_stake_reveal_one()
-			reactor.callLater(30, reveal_two_logic)
+			reactor.callLater(15, reveal_two_logic)
 									
 	else:
 		print 'await block creation by stake validator:', chain.stake_list[chain.epoch_prf[1]][0]
 		#f.send_st_to_peers(data)
 	return
 
+
+
 # we end up here exactly 30 seconds after the last block arrived or was created and sent out..
+# collate the reveal_ones messages to decide the winning hash..send out reveal_two's with our vote..
+
 
 def reveal_two_logic(data=None):
 	print 'reveal_two_logic'
+	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
 	reveals = []
 
@@ -118,67 +123,104 @@ def reveal_two_logic(data=None):
 			f.get_m_blockheight_from_peers()
 			return
 
-	# what is the PRF output for this block?	
+	# what is the PRF output and expected winner for this block?	
 
 	winner = chain.cl_hex(chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1], reveals)
 
-	playing = False
-	for s in chain.stake_reveal_one:
-		if s[3] == winner:
-			winning_staker = s[0]
-		if s[0] == chain.mining_address:
-			our_reveal = s[3]
-			playing = True
+	if f.stake == True:
+		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
+				f.send_stake_reveal_two(winner)
+
+	if chain.mining_address in [s[0] for s in chain.stake_reveal_one]:
+		for t in chain.stake_reveal_one:
+			if t[0]==chain.mining_address:
+				our_reveal = t[3]
+				reactor.callLater(15, reveal_three_logic, winner=winner, reveals=reveals, our_reveal=our_reveal)
+				return
 	
-	print 'chain.epoch_PRF: ', chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1]
-	print 'win reveal: ', winner, 'of:', str(len(reveals)), 'stake validator: ', winning_staker, 'b :', chain.m_blockchain[-1].blockheader.blocknumber+1
-	
-	if len(chain.expected_winner) >= 20:			#prevent this bloating up and leaking memory
-		chain.expected_winner = chain.expected_winner[-20:]
-
-	chain.expected_winner.append([chain.m_blockchain[-1].blockheader.blocknumber+1, winner, winning_staker])
-
-	if playing == True:
-		if winner == our_reveal:
-			print 'BLOCK SELECTOR'
-			print 'reveals', reveals
-			reactor.callLater(3, reveal_three_logic, winner, reveals)
-			return
+	reactor.callLater(15, reveal_three_logic, winner=winner, reveals=reveals)
+	return
 
 
-def reveal_three_logic(winner, reveals):
+# here ~30s after last block..
+# collate the R2 messages to see if we are creating the block by network consensus..
 
-	# code to create the block..
+def reveal_three_logic(winner, reveals, our_reveal=None):
 
-	tx_list = []
-	for t in chain.transaction_pool:
-		tx_list.append(t.txhash)
-	block_obj = chain.create_stake_block(tx_list, winner, reveals)
+	#chain.pos_d = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
 
-	if chain.m_add_block(block_obj) is True:				
-		stop_all_loops()
-		f.send_block_to_peers(block_obj)
-		start_all_loops()
-
-	else:
-		print 'reveal_three_logic: bad block'
+	if pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash) is False:
+		reset_everything()
 		return
+
+	print 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6], ' for: ', chain.pos_d[0] 
+
+	# does network agree? are we in agreement?
+
+	if winner not in chain.pos_d or consensus_rules_met() is False:								#network disagrees with us..time to bug out..
+		print 'winner not in pos_d - resetting all loops'
+		reset_everything()
+		return
+
+	# we have got far enough to activate the pos_flag
+
+	chain.pos_flag = [chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash]
+	
+	# if we aren't staking this round and haven't produced a reveal hash
+
+	if our_reveal==None:
+		return
+
+	# are we the winner? let's create the block then..
+
+	if chain.pos_d[7]==chain.mining_address and chain.pos_d[0]==our_reveal:
+		print 'CHOSEN BLOCK SELECTOR'
+		reactor.callLater(10, create_new_block, our_reveal, reveals)
+	return
+	
+
+def create_new_block(winner, reveals):
+
+		del chain.pos_flag[:] 
+		tx_list = []
+		for t in chain.transaction_pool:
+			tx_list.append(t.txhash)
+		block_obj = chain.create_stake_block(tx_list, winner, reveals)
+
+		if chain.m_add_block(block_obj) is True:				
+			stop_all_loops()
+			f.send_block_to_peers(block_obj)
+			start_all_loops()
+
+		else:
+			print 'bad block'
+			return
 	
 	# if staking
 
-	if f.stake == True:
-		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
+		if f.stake == True:
+			if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
 				f.send_stake_reveal_one()
-		if chain.mining_address not in [s[0] for s in chain.next_stake_list_get()]:
+			if chain.mining_address not in [s[0] for s in chain.next_stake_list_get()]:
 				f.send_st_to_peers(chain.CreateStakeTransaction())
-
-	return
+		return
 
 
 def pos_missed_block(data=None):
 	print '** Missed block logic ** - trigger m_blockheight recheck..'
 	f.get_m_blockheight_from_peers()
 	return
+
+def reset_everything(data=None):
+	print '** resetting loops and emptying chain.stake_reveal_one, reveal_two, chain.pos_d and chain.expected_winner '
+	stop_all_loops()
+	del chain.stake_reveal_one[:]
+	del chain.stake_reveal_two[:]
+	del chain.expected_winner[:]
+	del chain.pos_d[:]
+	del chain.pos_flag[:]
+	return
+
 
 def stop_all_loops(data=None):
 	print '** stopping timing loops **'
@@ -198,13 +240,14 @@ def stop_pos_loops(data=None):
 	except: pass
 
 	# flags
-
+	del chain.pos_flag[:]
+	del chain.pos_d[:]
 	return
 
 def start_all_loops(data=None):
 	print '** starting loops **'
 	reactor.callID2 = reactor.callLater(120, pos_missed_block)
-	reactor.callIDR15 = reactor.callLater(30, reveal_two_logic)
+	reactor.callIDR15 = reactor.callLater(15, reveal_two_logic)
 	return
 
 
@@ -224,18 +267,17 @@ def received_block_logic(block_obj):
 
 	if block_obj.blockheader.blocknumber != chain.m_blockheight()+1:
 			print '>>>BLOCK - out of order - need', str(chain.m_blockheight()+1), ' received ', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash#, ' from ', self.transport.getPeer().host
+			f.get_m_blockheight_from_peers()
 			return
 	
 	if block_obj.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
 			print '>>>WARNING: FORK..'
 			return
 
-	print '>>>BLOCK - ', block_obj.blockheader.headerhash, str(block_obj.blockheader.blocknumber), block_obj.blockheader.timestamp#, ' - ', self.transport.getPeer().host
-
 	# pos checks
-
-	if block_meets_consensus(block_obj.blockheader) != True:
-		return
+	if block_obj.blockheader.blocknumber > 1:
+		if block_meets_consensus(block_obj.blockheader) != True:
+			return
 
 	# validation and state checks, then housekeeping
 
@@ -243,7 +285,7 @@ def received_block_logic(block_obj):
 		stop_all_loops()
 		f.send_block_to_peers(block_obj)
 		start_all_loops()
-
+		del chain.pos_flag[:]
 	# if staking
 
 	if f.stake == True:
@@ -255,37 +297,50 @@ def received_block_logic(block_obj):
 	return
 
 
+# network consensus rules set here for acceptable stake validator counts and weight based upon address balance..
+# to be updated..
 
-def block_meets_consensus(blockheader_obj):			#else not pythonic but works..
+def block_meets_consensus(blockheader_obj):
 
-	if len(chain.expected_winner) == 0:				# we have no stake logic, must have just sync'd or been called somehow during sync..
-			pass
+	print 'block_meets_consensus'
+
+	if len(chain.pos_flag)==0:
+		print 'POS reveal_three_logic not activated..'
+		return False
+
+	if chain.pos_flag[0]!=blockheader_obj.blocknumber or chain.pos_flag[1]!=blockheader_obj.prev_blockheaderhash:
+		print 'POS reveal_three_logic not activated for this block..'
+		return False
+
+	#print 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6], ' for: ', chain.pos_d[0] 
+
+	# check consensus rules..stake validators have to be in 75% agreement or if less then 75% of funds have to be agreement..
+
+	if consensus_rules_met() is False:
+		return False
 	
-	else:
-		# correct part of POS? Correct winning hash, block selector? if we have an entry for this block then it has been through POS loops..
+	# is it the correct winner?
 
-		w=''
-		for b in chain.expected_winner:
-					if blockheader_obj.blocknumber == b[0]:			# if we are synchronised have we taken part in the stake process?
-						w = b[1]
-						s_v = b[2]
-			
-		if w == '':
-					print '>>>BLOCK does not meet consensus..rejected'
-					return False
-				
-		else:	
-				 
-				 if blockheader_obj.stake_selector != s_v:
-					print '>>>BLOCK not produced by expected stake validator..rejected'
-					return False
-				 
-				 if blockheader_obj.hash != w:
-					print '>>>BLOCK does not contain winning expected reveal hash..rejected'
-					return False
+	if blockheader_obj.hash != chain.pos_d[0]:
+		print 'Winning hash does not match consensus..rejected'
+		return False
+
+	if blockheader_obj.stake_selector != chain.pos_d[7]:
+		print 'Stake selector does not match consensus..rejected'
+		return False
 
 	return True
 
+
+# consensus rules..
+
+def consensus_rules_met():
+
+	if chain.pos_d[3] < 75:
+		if chain.pos_d[6] < 75:
+			print 'Network consensus inadequate..rejected'
+			return False
+	return True
 
 
 # synchronisation functions..
@@ -339,6 +394,61 @@ def synchronising_update_chain(data=None):
 	return
 
 
+# rank the winning hashes for the current block number, by number, by address balance and both..after receipt of each valid R2 msg
+
+def pos_d(block_number, headerhash):
+
+	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
+	#chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash]) 
+
+	p = []
+	for s in chain.stake_reveal_one:
+		if s[1]==headerhash and s[2]==block_number:
+			p.append(chain.state_balance(s[0]))
+
+	if len(p) <= 1:
+		return False
+
+	total_stakers = len(p)
+	total_staked = sum(p)
+
+
+	l = []
+	for s in chain.stake_reveal_two:
+		if s[1]==headerhash and s[2]==block_number:
+			l.append([chain.state_balance(s[0]),s[5]])
+
+	if len(l) <=1: 
+		return False
+
+	total_voters = len(l)
+	
+	c = Counter([s[1] for s in l]).most_common(2)		#list containing tuple count of (winning hash, count) - first two..
+	
+	# all votes same..should be this every time
+	if len(c) != 1 :
+		print 'warning, more than one winning hash is being circulated by incoming R2 messages..'
+
+	for s in chain.stake_reveal_one:
+		if s[3]==c[0][0]:
+			stake_address = s[0]
+
+	percentage_a = decimal.Decimal(c[0][1])/decimal.Decimal(total_voters)*100			#percentage of voters choosing winning hash
+	percentage_b = decimal.Decimal(c[0][1])/decimal.Decimal(total_stakers)*100			#percentage of voters choosing winning hash/total stakers
+	percentage_c = decimal.Decimal(total_voters)/decimal.Decimal(total_stakers)*100		#percentage of overall voters to overall stakers..
+
+	total_voted=0
+	for s in l:
+		if s[1]==c[0][0]:
+			total_voted+=s[0]
+
+	percentage_d = decimal.Decimal(total_voted)/decimal.Decimal(total_staked)*100	
+
+
+	# as messages arrive we store the results in chain.pos_d
+	chain.pos_d = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
+
+	return True
 
 
 # factories and protocols..
@@ -657,8 +767,8 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
 
-			elif data[0] == 'balance':
-				self.getbalance(args)
+			#elif data[0] == 'balance':
+			#	self.state_balance(args)
 
 			elif data[0] == 'listaddresses':
 					addresses, num_sigs, types = wallet.inspect_wallet()
@@ -1025,6 +1135,7 @@ class p2pProtocol(Protocol):
 				headerhash = z['headerhash'].encode('latin1')
 				stake_address = z['stake_address'].encode('latin1')
 				reveal_one = z['reveal_one'].encode('latin1')
+				reveal_two = z['reveal_two'].encode('latin1')
 
 				for entry in chain.stake_reveal_one:	#already received, do not relay.
 					if entry[3] == reveal_one:
@@ -1050,13 +1161,46 @@ class p2pProtocol(Protocol):
 
 				print '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one
 
-				chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one]) #merkle_hash_tx, commit_hash])
+				chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
 				for peer in self.factory.peers:
 					if peer != self:
 						peer.transport.write(self.wrap_message('R1'+chain.json_encode(z)))	#relay
 				return
 
+		elif prefix == 'R2':
+
+				z = chain.json_decode(suffix)
+
+				block_number = z['block_number']
+				headerhash = z['headerhash'].encode('latin1')
+				stake_address = z['stake_address'].encode('latin1')
+				reveal_one = z['reveal_one'].encode('latin1')
+				nonce = z['nonce'].encode('latin1')
+				winning_hash = z['winning_hash'].encode('latin1')
+
+				for entry in chain.stake_reveal_two:	#already received, do not relay.
+					if entry[4] == nonce:
+						return
+
+				# add code to accept only R2's which are at R1 level..
+
+				# is reveal_two valid, is there an equivalent reveal_one entry for this block?
+
+				if sha256(reveal_one+nonce) not in [s[4] for s in chain.stake_reveal_one]:
+					print 'reveal_two not sha256(reveal_one+nonce) in chain.stake_reveal_one'
+					return
+
+				print '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one
+
+				#chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce']], z['winning_hash'])		#don't forget to store our reveal in stake_reveal_one
+
+				chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash]) 
+
+				for peer in self.factory.peers:
+					if peer != self:
+						peer.transport.write(self.wrap_message('R2'+chain.json_encode(z)))	#relay
+				return
 
 		
 		else:
@@ -1300,12 +1444,41 @@ class p2pFactory(ServerFactory):
 		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1		#next block..
 		epoch = z['block_number']/10000			#+1 = next block
 		z['reveal_one'] = chain.hash_chain[:-1][::-1][z['block_number']-(epoch*10000)]	
-	
+		rkey = random_key()
+		z['reveal_two'] = sha256(z['reveal_one']+rkey)
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('R1'+chain.json_encode(z)))
 		
-		chain.stake_reveal_one.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one']])		#don't forget to store our reveal in stake_reveal_one
+		chain.stake_reveal_one.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['reveal_two'], rkey])		#don't forget to store our reveal in stake_reveal_one
 		return
+
+
+	# transmit reveal_two hash..
+
+	def send_stake_reveal_two(self, winning_hash):
+		
+		print '<<<Transmitting POS reveal_two'
+		z = {}
+		z['stake_address'] = chain.mining_address
+		z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				#demonstrate the hash from last block to prevent building upon invalid block..
+		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1		#next block..
+		epoch = z['block_number']/10000			#+1 = next block
+		z['reveal_one'] = chain.hash_chain[:-1][::-1][z['block_number']-(epoch*10000)]	
+		for s in chain.stake_reveal_one:
+			if len(s)==6:
+				if s[3]==z['reveal_one']:			#consider adding checks here..
+					rkey = s[5]
+		z['nonce'] = rkey
+		z['winning_hash'] = winning_hash
+
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('R2'+chain.json_encode(z)))
+		
+		chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce'], z['winning_hash']])		#don't forget to store our reveal in stake_reveal_one
+		return
+
+
+
 
 
 	def ping_peers(self):

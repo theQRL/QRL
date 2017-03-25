@@ -19,7 +19,7 @@ import merkle, wallet, db
 
 import cPickle as pickle
 
-global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping, recent_blocks, pos_d
+global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping, recent_blocks, pos_d, pos_flag
 
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, expected_winner
 
@@ -40,7 +40,7 @@ epoch_PRF = []
 expected_winner = []
 recent_blocks = []
 pos_d = []
-
+pos_flag = []
 
 print 'loading db'
 db = db.DB()
@@ -427,7 +427,8 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		#Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3 twiglet
 		#Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167 bean
 		#Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee flea
-		self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
+		self.stake_list = ['Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
+		#self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
 # JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)
@@ -1315,12 +1316,13 @@ def state_add_block(block):
 			pubhash = sha256(''.join(pub))
 			z[2].append(pubhash)
 			db.put(st.txfrom, z)	#update the statedb for txfrom's
+			
 			print 'state st.txfrom', state_get_address(st.txfrom)
 
 		stake_list = sorted(sl, key=itemgetter(1))
 		stake_list_put(stake_list)
 		next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
-		numlist(stake_list)
+		#numlist(stake_list)
 
 		epoch_PRF = merkle.GEN_range(m_blockchain[block.blockheader.epoch*10000].stake_seed, 1, 10000, 32)
 		epoch_prf = pos_block_selector(m_blockchain[block.blockheader.epoch*10000].stake_seed, len(stake_list))		#need to add a stake_seed option in block classes
@@ -1340,7 +1342,7 @@ def state_add_block(block):
 		u=0
 			
 		#increase the stake_nonce of state selector..must be in stake list..
-		print 'block:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce, 'epoch: ', block.blockheader.epoch, 'blocks_left: ', blocks_left-1
+		print 'BLOCK:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce, 'epoch: ', block.blockheader.epoch, 'blocks_left: ', blocks_left-1
 
 		for s in sl:													
 			if block.blockheader.stake_selector == s[0]:
@@ -1478,6 +1480,7 @@ def verify_chain():
 
 
 def state_read_genesis():
+	print 'genesis:'
 	db.zero_all_addresses()
 	c = m_get_block(0).state
 	for address in c:
@@ -1815,7 +1818,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		print 'Block hashedstake error: failed validation'
 
 	if verbose==1:
-		print block, 'True'
+		pass
+		#print block.blockheader, 'True'
 
 	return True
 
