@@ -19,7 +19,7 @@ import merkle, wallet, db
 
 import cPickle as pickle
 
-global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping, recent_blocks, pos_d, pos_flag
+global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_list, ping_list, last_ping, recent_blocks, pos_d, pos_flag, ip_list, blockheight_map
 
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, expected_winner
 
@@ -41,7 +41,10 @@ expected_winner = []
 recent_blocks = []
 pos_d = []
 pos_flag = []
+ip_list = []
+blockheight_map = []
 
+print 'QRL blockchain ledger v 0.04a'
 print 'loading db'
 db = db.DB()
 
@@ -961,6 +964,20 @@ def stake_reveal_ones(data=None):
 		sr['reveals'][str(c[1])+'-'+str(c[2])]['reveal'] = c[3]
 
 	return json_print_telnet(sr)
+
+def ip_geotag(data=None):
+	
+	ip = {}
+	ip['status'] = 'ok'
+	ip['ip_geotag'] = {}
+	ip['ip_geotag'] = ip_list
+
+	x=0
+	for i in ip_list:
+		ip['ip_geotag'][x] = i
+		x+=1
+
+	return json_print_telnet(ip)
 
 def stake_reveals(data=None):
 
