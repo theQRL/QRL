@@ -213,6 +213,7 @@ def create_new_block(winner, reveals):
 def pos_missed_block(data=None):
 	print '** Missed block logic ** - trigger m_blockheight recheck..'
 	f.get_m_blockheight_from_peers()
+	f.send_m_blockheight_to_peers()
 	return
 
 def reset_everything(data=None):
@@ -326,7 +327,6 @@ def received_block_logic(block_obj):
 	# validation and state checks, then housekeeping
 
 	if chain.m_add_block(block_obj) is True:				
-		stop_all_loops()
 		f.send_block_to_peers(block_obj)
 		
 		post_block_logic()
@@ -337,7 +337,7 @@ def received_block_logic(block_obj):
 
 def post_block_logic():
 
-
+	stop_all_loops()
 	start_all_loops()
 
 	filter_reveal_one_two()
@@ -1132,13 +1132,7 @@ class p2pProtocol(Protocol):
 		elif prefix == 'MB':		#we send with just prefix as request..with CB number and blockhash as answer..
 			if not suffix:
 				print '<<<Sending blockheight to:', self.transport.getPeer().host, str(time.time())
-				
-				z = {}
-				z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				#demonstrate the hash from last block to prevent building upon invalid block..
-				z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber 			#next block..
-				#z['prev_headerhash'] = chain.m_blockchain[-2].blockheader.headerhash
-
-				self.transport.write(self.wrap_message('CB'+chain.json_encode(z)))
+				self.send_m_blockheight_to_peer()
 				return
 			
 		elif prefix == 'CB':
@@ -1181,10 +1175,27 @@ class p2pProtocol(Protocol):
 						print 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'
 						reactor.callLater(1, pre_pos_1)
 						return
+				
 				elif len(chain.m_blockchain) == 1 and self.factory.genesis == 1:	#connected to multiple hosts and already passed through..
 						return
 
-				# if we are past 1 and have matching blockheights with a random node then are we synchronised already?
+
+				# 2. restart the network if it has paused for any reason..4 minutes restart..
+
+
+				if chain.m_blockchain[-1].blockheader.timestamp < time.time()-240:
+					if time.time()-f.long_gap_block < 10:
+						print '240s activated already..'
+						return
+
+					f.long_gap_block = time.time()
+					print 'last block was over 240s ago..resetting'
+					f.send_m_blockheight_to_peers()
+					reactor.callLater(5, post_block_logic)
+					return
+
+
+				# if we are past 1 and have matching blockheights with a random node then are we synchronised already if blocks are ?
 
 				if block_number == chain.m_blockheight():
 
@@ -1197,14 +1208,7 @@ class p2pProtocol(Protocol):
 						f.get_blockheight_map_from_peers()
 						post_block_logic()
 						return
-
-
-					# 2. restart the network if it has paused for any reason..
-
-				if chain.m_blockchain[-1].blockheader.timestamp < time.time()-110:
-						print 'last block was over 110s ago..resetting'
-						post_block_logic()
-						return
+				
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
@@ -1378,6 +1382,13 @@ class p2pProtocol(Protocol):
 		self.transport.write(self.wrap_message('MB'))
 		return
 
+	def send_m_blockheight_to_peer(self):
+		z = {}
+		z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				
+		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber 			
+		self.transport.write(self.wrap_message('CB'+chain.json_encode(z)))
+		return
+
 	def get_version(self):
 		print '<<<Getting version', self.transport.getPeer().host
 		self.transport.write(self.wrap_message('VE'))
@@ -1524,6 +1535,7 @@ class p2pFactory(ServerFactory):
 		self.buffer = ''
 		self.sync = 0
 		self.partial_sync = [0, 0]
+		self.long_gap_block = 0
 		self.mining = 0
 		self.newblock = 0
 		self.exit = 0
@@ -1556,6 +1568,7 @@ class p2pFactory(ServerFactory):
 		return
 
 	def get_m_blockheight_from_random_peer(self):
+		print '<<<Requested blockheight from random peer.'
 		random.choice(self.peers).get_m_blockheight_from_connection()
 		return
 
@@ -1568,6 +1581,12 @@ class p2pFactory(ServerFactory):
 	def get_m_blockheight_from_peers(self):
 		for peer in self.peers:
 			peer.get_m_blockheight_from_connection()
+		return
+
+	def send_m_blockheight_to_peers(self):
+		print '<<<Sending blockheight to peers.'
+		for peer in self.peers:
+			peer.send_m_blockheight_to_peer()
 		return
 
 	def f_wrap_message(self, data):

@@ -6,6 +6,7 @@
 # block-reward calculation to be altered based upon block-time and stake_list_get() balances..proportion of entire coin supply..
 # fees
 # occasionally the ots index gets behind..find reason..
+# add salt/key xor to hash chains..
 
 __author__ = 'pete'
 
