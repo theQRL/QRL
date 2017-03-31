@@ -550,6 +550,8 @@ class ApiProtocol(Protocol):
 		
 		#print data
 
+		if len(data) == 0: return
+		
 		if data[0] != 'GET' and data[0] != 'OPTIONS':
 			return False
 
