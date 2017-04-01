@@ -1743,7 +1743,9 @@ if __name__ == "__main__":
 	#chain.m_verify_chain(verbose=1)
 	print 'Building state leveldb'
 	#chain.state_read_chain()
-	chain.verify_chain()
+	if chain.verify_chain() is False:
+		print 'verify_chain() failed..'
+		exit()
 	print 'Loading node list..'			# load the peers for connection based upon previous history..
 	chain.state_load_peers()
 	print chain.state_get_peers()

@@ -54,7 +54,7 @@ my = wallet.f_read_wallet()
 wallet.f_load_winfo()
 mining_address = my[0][1].address
 print 'mining/staking address', mining_address
-hash_chain = my[0][1].hc
+#hash_chain = my[0][1].hc
 
 # pos
 
@@ -1118,6 +1118,26 @@ def m_verify_chain(verbose=0):
 			sys.stdout.flush()
 	return True
 
+
+def m_verify_chain_250(verbose=0):		#validate the last 250 blocks or len(m_blockchain)-1..
+	n = 0
+	if len(m_blockchain) > 250:
+		x = 250
+	else:
+		if len(m_blockchain)==1:
+			return True
+		x = len(m_blockchain) -1
+
+	for block in m_read_chain()[-x:]:
+		if validate_block(block,last_block=block.blockheader.blocknumber-1, verbose=verbose) is False:
+				print 'block failed:', block.blockheader.blocknumber
+				return False
+		n+=1
+		if verbose is 1:
+			sys.stdout.write('.')
+			sys.stdout.flush()
+	return True
+
 #state functions
 #first iteration - state data stored in leveldb file
 #state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
@@ -1348,6 +1368,10 @@ def state_add_block(block):
 				print 'stake selector wrong..'
 				y=-1000
 
+		my[0][1].hashchain(epoch=0)
+		hash_chain = my[0][1].hc
+		wallet.f_save_wallet()
+
 	else:
 		
 		# how many blocks left in this epoch?
@@ -1488,12 +1512,14 @@ def verify_chain():
 		if state_add_block(m_blockchain[1]) == False:
 			print 'State verification of block 1 failed'
 			return False
-	#if m_verify_chain(verbose=1) == False:
-	#	return False
-	print 'True'
 	for x in range(2,len(m_blockchain)):
+		if x > len(m_blockchain)-250:
+			if validate_block(m_blockchain[x],last_block=m_blockchain[x].blockheader.blocknumber-1, verbose=1) is False:
+				print 'block failed:', m_blockchain[x].blockheader.blocknumber
+				return False
 		if state_add_block(m_blockchain[x]) == False:
 			return False
+	
 	return True
 
 
@@ -1836,8 +1862,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		print 'Block hashedstake error: failed validation'
 
 	if verbose==1:
-		pass
-		#print block.blockheader, 'True'
+		#pass
+		print b.blocknumber, 'True'
 
 	return True
 
