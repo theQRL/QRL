@@ -123,7 +123,8 @@ def reveal_two_logic(data=None):
 
 	# what is the PRF output and expected winner for this block?	
 
-	winner = chain.cl_hex(chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1], reveals)
+	epoch = chain.m_blockchain[-1].blockheader.blocknumber+1/10000			#+1 = next block
+	winner = chain.cl_hex(chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1-(epoch*10000)], reveals)
 
 	if f.stake == True:
 		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
@@ -282,8 +283,7 @@ def filter_reveal_one_two():
 # pre block logic..
 
 def pre_block_logic(block_obj):
-	print 'pre_block_logic'
-
+	
 	# is the node in transition between f.sync 0 and 1 or in error recovery mode?
 
 
@@ -433,6 +433,7 @@ def synchronising_update_chain(data=None):
 			pass
 		else:
 			if b.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
+				print 'potential fork..block hashes do not fit, discarded'
 				chain.recent_blocks.remove(b)	#forked blocks?
 			else:
 				chain.m_add_block(b)
@@ -550,8 +551,6 @@ class ApiProtocol(Protocol):
 		
 		#print data
 
-		if len(data) == 0: return
-		
 		if data[0] != 'GET' and data[0] != 'OPTIONS':
 			return False
 
