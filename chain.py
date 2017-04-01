@@ -1410,7 +1410,7 @@ def state_add_block(block):
 
 			entropy = m_blockchain[-3].blockheader.headerhash+m_blockchain[-2].blockheader.headerhash+m_blockchain[-1].blockheader.headerhash+block.blockheader.headerhash
 			epoch_PRF = merkle.GEN_range(m_blockchain[0].stake_seed+entropy, 1, 10000, 32)
-			epoch_prf = pos_block_selector(m_blockchain[0].stake_seed+entropy, len(sl))
+			#epoch_prf = pos_block_selector(m_blockchain[0].stake_seed+entropy, len(sl))
 			my[0][1].hashchain(epoch=block.blockheader.epoch+1)
 			hash_chain = my[0][1].hc
 			wallet.f_save_wallet()
@@ -1488,8 +1488,8 @@ def verify_chain():
 		if state_add_block(m_blockchain[1]) == False:
 			print 'State verification of block 1 failed'
 			return False
-	if m_verify_chain(verbose=1) == False:
-		return False
+	#if m_verify_chain(verbose=1) == False:
+	#	return False
 	print 'True'
 	for x in range(2,len(m_blockchain)):
 		if state_add_block(m_blockchain[x]) == False:
@@ -1769,7 +1769,7 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 	
 
 	if b.blocknumber > 1:
-		if b.hash != cl_hex(epoch_PRF[b.blocknumber],b.reveal_list):
+		if b.hash != cl_hex(epoch_PRF[b.blocknumber-(b.epoch*10000)],b.reveal_list):
 			print "Closest hash not block selector.."
 			return False
 		

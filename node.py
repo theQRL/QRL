@@ -123,8 +123,9 @@ def reveal_two_logic(data=None):
 
 	# what is the PRF output and expected winner for this block?	
 
-	epoch = chain.m_blockchain[-1].blockheader.blocknumber+1/10000			#+1 = next block
-	winner = chain.cl_hex(chain.epoch_PRF[chain.m_blockchain[-1].blockheader.blocknumber+1-(epoch*10000)], reveals)
+
+	epoch = (chain.m_blockchain[-1].blockheader.blocknumber+1)/10000			#+1 = next block
+	winner = chain.cl_hex(chain.epoch_PRF[(chain.m_blockchain[-1].blockheader.blocknumber+1)-(epoch*10000)], reveals)
 
 	if f.stake == True:
 		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
