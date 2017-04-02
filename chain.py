@@ -1375,7 +1375,10 @@ def state_add_block(block):
 	else:
 		
 		# how many blocks left in this epoch?
-		blocks_left = 10000-(block.blockheader.blocknumber)-(block.blockheader.epoch*10000)
+
+		blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch*10000)
+		blocks_left = 10000-blocks_left
+		#blocks_left = 10000-block.blockheader.blocknumber-(block.blockheader.epoch*10000)
 
 		#if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
 		stake_list = []
