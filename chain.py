@@ -1375,7 +1375,7 @@ def state_add_block(block):
 	else:
 		
 		# how many blocks left in this epoch?
-		blocks_left = 10000-block.blockheader.blocknumber-(block.blockheader.epoch*10000)
+		blocks_left = 10000-(block.blockheader.blocknumber)-(block.blockheader.epoch*10000)
 
 		#if block.blockheader.epoch == m_blockchain[-1].blockheader.epoch:	#same epoch..
 		stake_list = []
@@ -1432,9 +1432,8 @@ def state_add_block(block):
 			stake_list_put(sl)
 			next_stake_list_put(next_sl)
 
-			entropy = m_blockchain[-3].blockheader.headerhash+m_blockchain[-2].blockheader.headerhash+m_blockchain[-1].blockheader.headerhash+block.blockheader.headerhash
+			entropy = m_blockchain[block.blockheader.blocknumber-3].blockheader.headerhash+m_blockchain[block.blockheader.blocknumber-2].blockheader.headerhash+m_blockchain[block.blockheader.blocknumber-1].blockheader.headerhash+block.blockheader.headerhash
 			epoch_PRF = merkle.GEN_range(m_blockchain[0].stake_seed+entropy, 1, 10000, 32)
-			#epoch_prf = pos_block_selector(m_blockchain[0].stake_seed+entropy, len(sl))
 			my[0][1].hashchain(epoch=block.blockheader.epoch+1)
 			hash_chain = my[0][1].hc
 			wallet.f_save_wallet()
