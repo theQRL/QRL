@@ -1627,10 +1627,11 @@ class p2pFactory(ServerFactory):
 				if r[1] == z['headerhash']:
 					if r[2] == z['block_number']:
 						if y==True:
-							chain.stake_reveal_one.remove(s)						#if repetition then remove..
-						z['reveal_one'] = r[3]
-						z['reveal_two'] = r[4]
-						y=True
+							chain.stake_reveal_one.remove(r)						#if repetition then remove..
+						else:
+							z['reveal_one'] = r[3]
+							z['reveal_two'] = r[4]
+							y=True
 		
 		print '<<<Transmitting POS reveal_one'
 
