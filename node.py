@@ -551,8 +551,6 @@ class ApiProtocol(Protocol):
 		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
 		
 		#print data
-		
-		if len(data) == 0: return
 
 		if data[0] != 'GET' and data[0] != 'OPTIONS':
 			return False

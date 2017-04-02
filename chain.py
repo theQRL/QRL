@@ -1042,6 +1042,13 @@ def f_write_chain(block_data):
         			pickle.dump(data, myfile)
 		return
 
+
+def f_write_m_blockchain():
+	print 'Appending data to chain'
+	with open("./chain.dat", "w+") as myfile:
+			pickle.dump(m_blockchain, myfile)
+	return
+
 def m_load_chain():
 	del m_blockchain[:]
 	for block in f_read_chain():
@@ -1105,8 +1112,11 @@ def m_info_block(n):
 	print 'Validates: ', validate_block(b, last_block = n-1)
 
 def m_f_sync_chain():
-	f_write_chain(m_read_chain()[f_get_last_block().blockheader.blocknumber+1:])
-	
+
+	if m_blockchain[-1].blockheader.blocknumber % 10 == 0:
+		f_write_m_blockchain()
+	return
+
 def m_verify_chain(verbose=0):
 	n = 0
 	for block in m_read_chain()[1:]:
