@@ -11,12 +11,15 @@ from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed, GEN_range
 from operator import itemgetter
 from collections import Counter
 from math import ceil
+from colorama import init
 from blessings import Terminal
 
 version_number = "alpha/0.04a"
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
+
+init()
 
 term = Terminal();
 print term.enter_fullscreen

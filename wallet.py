@@ -8,7 +8,10 @@ import chain
 import cPickle as pickle
 import node 
 import os
+from colorama import init
 from blessings import Terminal
+
+init()
 
 def log(string_data):
     with open("./log/log.txt", "a") as myfile:
