@@ -1440,12 +1440,13 @@ class p2pProtocol(Protocol):
 
 		if d != -1 and d < e:						#found start position must be less than end position
 			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
+			self.buffer = self.buffer[d:]				#move buffer to initiator
 		else:
-			self.clean_buffer('Data received buffer full of garbage and deleted.', e)
+			self.clean_buffer('Data received buffer full of garbage and deleted.', e+3)
 			return False
 
 		if len(self.buffer) < 8+m+3:			#we already have more than the message length with no terminator, cant trust data
-			self.clean_buffer('Data received in buffer invalid and deleted.', e)
+			self.clean_buffer('Data received in buffer invalid and deleted.', e+3)
 			return False
 
 		self.messages.append(self.buffer[8:8+m])
