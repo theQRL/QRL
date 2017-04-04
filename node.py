@@ -1437,7 +1437,6 @@ class p2pProtocol(Protocol):
 
 		if d != -1 and d < e:						#found start position must be less than end position
 			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
-			self.buffer = self.buffer[d:]					#delete up to the start of message
 		else:
 			self.clean_buffer('Data received buffer full of garbage and deleted.')
 			return False
