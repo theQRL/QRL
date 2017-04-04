@@ -1420,10 +1420,13 @@ class p2pProtocol(Protocol):
 
 		#struct.pack('>L', len(data))
 
-	def clean_buffer(self, reason=""):
+	def clean_buffer(self, reason='', upto=-1):
 		if reason:
 			print reason
-		self.buffer = ''
+		if upto==-1:
+			self.buffer = ''					#Clean buffer completely
+		else:
+			self.buffer = self.buffer[upto+1:] 			#Clean buffer till the value provided in upto
 
 	def parse_buffer(self):
 		if len(self.buffer)==0:
@@ -1438,11 +1441,11 @@ class p2pProtocol(Protocol):
 		if d != -1 and d < e:						#found start position must be less than end position
 			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
 		else:
-			self.clean_buffer('Data received buffer full of garbage and deleted.')
+			self.clean_buffer('Data received buffer full of garbage and deleted.', e)
 			return False
 
-		if len(self.buffer) > 8+m+3:			#we already have more than the message length with no terminator, cant trust data
-			self.clean_buffer('Data received in buffer invalid and deleted.')
+		if len(self.buffer) < 8+m+3:			#we already have more than the message length with no terminator, cant trust data
+			self.clean_buffer('Data received in buffer invalid and deleted.', e)
 			return False
 
 		self.messages.append(self.buffer[8:8+m])
