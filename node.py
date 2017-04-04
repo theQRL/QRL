@@ -1420,28 +1420,35 @@ class p2pProtocol(Protocol):
 
 		#struct.pack('>L', len(data))
 
+	def clean_buffer(self, reason='', upto=-1):
+		if reason:
+			print reason
+		if upto==-1:
+			self.buffer = ''					#Clean buffer completely
+		else:
+			self.buffer = self.buffer[upto:] 			#Clean buffer till the value provided in upto
+
 	def parse_buffer(self):
 		if len(self.buffer)==0:
 			return False
 
 		d = self.buffer.find(chr(255)+chr(0)+chr(0))
-
-		if d != -1:
-			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
-			self.buffer = self.buffer[d:]					#delete up to the start of message
-		else:
-			print 'Data received buffer full of garbage and deleted.'
-			self.buffer = ''
-			return False
-
 		e = self.buffer.find(chr(0)+chr(0)+chr(255))
 
-		if e == -1 and len(self.buffer) >= 8+m+3:			#we already have more than the message length with no terminator, cant trust data
-			print 'Data received in buffer invalid and deleted.'
-			self.buffer = ''
+		if e==-1:							#End not found, pass for next iteration
+			if d==-1:
+				self.clean_buffer('Message without initiator and terminator')
 			return False
 
-		if e == -1:											#no end to message in the buffer yet..
+		if d != -1 and d < e:						#found start position must be less than end position
+			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
+			self.buffer = self.buffer[d:]				#move buffer to initiator
+		else:
+			self.clean_buffer('Data received buffer full of garbage and deleted.', e+3)
+			return False
+
+		if len(self.buffer) < 8+m+3:			#we already have more than the message length with no terminator, cant trust data
+			self.clean_buffer('Data received in buffer invalid and deleted.', e+3)
 			return False
 
 		self.messages.append(self.buffer[8:8+m])
