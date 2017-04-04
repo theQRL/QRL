@@ -1426,7 +1426,7 @@ class p2pProtocol(Protocol):
 		if upto==-1:
 			self.buffer = ''					#Clean buffer completely
 		else:
-			self.buffer = self.buffer[upto+1:] 			#Clean buffer till the value provided in upto
+			self.buffer = self.buffer[upto:] 			#Clean buffer till the value provided in upto
 
 	def parse_buffer(self):
 		if len(self.buffer)==0:
