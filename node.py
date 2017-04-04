@@ -1436,6 +1436,8 @@ class p2pProtocol(Protocol):
 		e = self.buffer.find(chr(0)+chr(0)+chr(255))
 
 		if e==-1:							#End not found, pass for next iteration
+			if d==-1:
+				self.clean_buffer('Message without initiator and terminator')
 			return False
 
 		if d != -1 and d < e:						#found start position must be less than end position
