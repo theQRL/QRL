@@ -1436,7 +1436,7 @@ class p2pProtocol(Protocol):
 
 		e = self.buffer.find(chr(0)+chr(0)+chr(255))
 
-		if e == -1 and len(self.buffer) >= 8+m+3:			#we already have more than the message length with no terminator, cant trust data
+		if e == -1 and len(self.buffer) > 8+m+3:			#we already have more than the message length with no terminator, cant trust data
 			print 'Data received in buffer invalid and deleted.'
 			self.buffer = ''
 			return False
