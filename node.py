@@ -1420,13 +1420,13 @@ class p2pProtocol(Protocol):
 
 		#struct.pack('>L', len(data))
 
-	def clean_buffer(self, reason='', upto=-1):
+	def clean_buffer(self, reason=None, upto=None):
 		if reason:
 			print reason
-		if upto==-1:
-			self.buffer = ''					#Clean buffer completely
-		else:
+		if upto:
 			self.buffer = self.buffer[upto:] 			#Clean buffer till the value provided in upto
+		else:
+			self.buffer = ''					#Clean buffer completely
 
 	def parse_buffer(self):
 		if len(self.buffer)==0:
