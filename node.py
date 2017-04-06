@@ -3,8 +3,9 @@
 
 __author__ = 'pete'
 import time, struct, random, copy, decimal
-import chain, wallet
+import chain, wallet, merkle
 
+import logger
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor
 from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed, GEN_range, random_key
@@ -15,11 +16,20 @@ from blessings import Terminal
 
 version_number = "alpha/0.04a"
 
+log = logger.getLogger(__name__)
+
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
 api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
 
 term = Terminal();
 print term.enter_fullscreen
+
+
+#Initializing function to log console output
+printL = logger.PrintHelper(log).printL
+chain.printL = printL
+wallet.printL = printL
+merkle.printL = printL
 
 
 def parse(data):
@@ -30,25 +40,25 @@ def parse(data):
 # first block 1 is created with the stake list for epoch 0 decided from circulated st transactions
 
 def pre_pos_1(data=None):		# triggered after genesis for block 1..
-	print 'pre_pos_1'
+	printL(( 'pre_pos_1'))
 	# are we a staker in the stake list?
 
 	if chain.mining_address in chain.m_blockchain[0].stake_list:
-		print 'mining address:', chain.mining_address,' in the genesis.stake_list'
-		print 'hashchain terminator: ', chain.hash_chain[-1]
+		printL(('mining address:', chain.mining_address,' in the genesis.stake_list'))
+		printL(('hashchain terminator: ', chain.hash_chain[-1]))
 		st = chain.CreateStakeTransaction(chain.hash_chain[-1])
 		wallet.f_save_winfo()
 		chain.add_st_to_pool(st)
 		f.send_st_to_peers(st)			#send the stake tx to generate hashchain terminators for the staker addresses..
-		print 'await delayed call to build staker list from genesis'
+		printL(( 'await delayed call to build staker list from genesis'))
 		reactor.callLater(5, pre_pos_2, st)
 		return
 
-	print 'not in stake list..no further pre_pos_x calls'
+	printL(( 'not in stake list..no further pre_pos_x calls'))
 	return
 
 def pre_pos_2(data=None):	
-	print 'pre_pos_2'
+	printL(( 'pre_pos_2'))
 
 	# assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
 
@@ -62,12 +72,12 @@ def pre_pos_2(data=None):
 
 	numlist(chain.stake_list)
 
-	print 'genesis stakers ready = ', len(chain.stake_list),'/',len(chain.m_blockchain[0].stake_list)
-	print 'node address:', chain.mining_address
+	printL(( 'genesis stakers ready = ', len(chain.stake_list),'/',len(chain.m_blockchain[0].stake_list)))
+	printL(( 'node address:', chain.mining_address))
 
 	if len(chain.stake_list) < len(chain.m_blockchain[0].stake_list):		# stake pool still not full..reloop..
 		f.send_st_to_peers(data)
-		print 'waiting for stakers.. retry in 5s'
+		printL(( 'waiting for stakers.. retry in 5s'))
 		reactor.callID = reactor.callLater(5, pre_pos_2, data)
 		return
 
@@ -79,26 +89,26 @@ def pre_pos_2(data=None):
 	#def GEN_range(SEED, start_i, end_i, l=32): 
 	chain.epoch_PRF = GEN_range(chain.m_blockchain[-1].stake_seed, 1, 10000, 32)
 
-	print 'epoch_prf:', chain.epoch_prf[1]
-	print 'spos:', spos
+	printL(( 'epoch_prf:', chain.epoch_prf[1]))
+	printL(( 'spos:', spos))
 
 	if spos == chain.epoch_prf[1]:
-		print 'designated to create block 1: building block..'
+		printL(( 'designated to create block 1: building block..'))
 
 		# create the genesis block 2 here..
 
 		b = chain.m_create_block(chain.hash_chain[-2])
-		#chain.json_print(b)
-		print chain.validate_block(b)
+		#chain.json_printL(((b)
+		printL(( chain.validate_block(b)))
 		if chain.m_add_block(b) == True:
 			f.send_block_to_peers(b)
 			f.get_m_blockheight_from_peers()
-			print '**POS commit call later 30 (genesis)...**'
+			printL(( '**POS commit call later 30 (genesis)...**'))
 			f.send_stake_reveal_one()
 			reactor.callLater(15, reveal_two_logic)
 									
 	else:
-		print 'await block creation by stake validator:', chain.stake_list[chain.epoch_prf[1]][0]
+		printL(( 'await block creation by stake validator:', chain.stake_list[chain.epoch_prf[1]][0]))
 		#f.send_st_to_peers(data)
 	return
 
@@ -109,7 +119,7 @@ def pre_pos_2(data=None):
 
 
 def reveal_two_logic(data=None):
-	print 'reveal_two_logic'
+	printL(( 'reveal_two_logic'))
 	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
 	reveals = []
@@ -121,7 +131,7 @@ def reveal_two_logic(data=None):
 	# are we forked and creating only our own blocks?
 
 	if len(reveals) <= 1:
-			print 'only received one reveal for this block..quitting reveal_two_logic'
+			printL(( 'only received one reveal for this block..quitting reveal_two_logic'))
 			f.get_m_blockheight_from_peers()
 			return
 
@@ -151,22 +161,22 @@ def reveal_two_logic(data=None):
 # collate the R2 messages to see if we are creating the block by network consensus..
 
 def reveal_three_logic(winner, reveals, our_reveal=None):
-	print 'reveal_three_logic'
+	printL(( 'reveal_three_logic'))
 	#chain.pos_d = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
 
 	if pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash) is False:
-		print 'pos_d problem..with reveal_one or reveal_two..'
+		printL(( 'pos_d problem..with reveal_one or reveal_two..'))
 		reset_everything()
 		return
 
 #staked = decimal.Decimal((b/100000000.000000000)/(chain.db.total_coin_supply()/100000000.000000000)*100).quantize(decimal.Decimal('1.00'))
 
-	print 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] 
+	printL(( 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] ))
 
 	# does network agree? are we in agreement?
 
 	if winner not in chain.pos_d or consensus_rules_met() is False:								#network disagrees with us..time to bug out..
-		print 'winner not in pos_d - resetting all loops'
+		printL(( 'winner not in pos_d - resetting all loops'))
 		reset_everything()
 		return
 
@@ -178,24 +188,24 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 
 	#if our_reveal!=None:
 	#	f.sync 
-	#	print 'our_reveal=None'
+	#	printL(( 'our_reveal=None'
 	#	return
 
 	# are we the winner? let's create the block then..
 
 	if chain.pos_d[7]==chain.mining_address and chain.pos_d[0]==our_reveal:
-		print 'CHOSEN BLOCK SELECTOR'
+		printL(( 'CHOSEN BLOCK SELECTOR'))
 		f.sync = 1
 		f.partial_sync = [0, 0]
 		reactor.callLater(10, create_new_block, our_reveal, reveals)
 	else:
-		print 'CONSENSUS winner: ', chain.pos_d[7], 'hash ', chain.pos_d[0]
-		print 'our_reveal', our_reveal
+		printL(( 'CONSENSUS winner: ', chain.pos_d[7], 'hash ', chain.pos_d[0]))
+		printL(( 'our_reveal', our_reveal))
 	return
 	
 
 def create_new_block(winner, reveals):
-		print 'create_new_block'
+		printL(( 'create_new_block'))
 		tx_list = []
 		for t in chain.transaction_pool:
 			tx_list.append(t.txhash)
@@ -208,7 +218,7 @@ def create_new_block(winner, reveals):
 			f.send_block_to_peers(block_obj)				# relay the block
 
 		else:
-			print 'bad block'
+			printL(( 'bad block'))
 			return
 	
 	# if staking
@@ -217,13 +227,13 @@ def create_new_block(winner, reveals):
 
 
 def pos_missed_block(data=None):
-	print '** Missed block logic ** - trigger m_blockheight recheck..'
+	printL(( '** Missed block logic ** - trigger m_blockheight recheck..'))
 	f.get_m_blockheight_from_peers()
 	f.send_m_blockheight_to_peers()
 	return
 
 def reset_everything(data=None):
-	print '** resetting loops and emptying chain.stake_reveal_one, reveal_two, chain.pos_d and chain.expected_winner '
+	printL(( '** resetting loops and emptying chain.stake_reveal_one, reveal_two, chain.pos_d and chain.expected_winner '))
 	stop_all_loops()
 	del chain.stake_reveal_one[:]
 	del chain.stake_reveal_two[:]
@@ -234,7 +244,7 @@ def reset_everything(data=None):
 
 
 def stop_all_loops(data=None):
-	print '** stopping timing loops **'
+	printL(( '** stopping timing loops **'))
 	try:	reactor.callIDR15.cancel()	#reveal loop
 	except:	pass
 	try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
@@ -246,7 +256,7 @@ def stop_all_loops(data=None):
 	return
 
 def stop_pos_loops(data=None):
-	print '** stopping pos loops and resetting flags **'
+	printL(( '** stopping pos loops and resetting flags **'))
 	try:	reactor.callIDR15.cancel()	#reveal loop
 	except:	pass
 	try: 	reactor.callIDR2.cancel()
@@ -260,7 +270,7 @@ def stop_pos_loops(data=None):
 	return
 
 def start_all_loops(data=None):
-	print '** starting loops **'
+	printL(( '** starting loops **'))
 	reactor.callID2 = reactor.callLater(120, pos_missed_block)
 	reactor.callIDR15 = reactor.callLater(15, reveal_two_logic)
 	return
@@ -294,7 +304,7 @@ def pre_block_logic(block_obj):
 
 	if f.sync == 0:
 		if f.partial_sync[0]==1:
-			print 'partial_sync'
+			printL(( 'partial_sync'))
 			if f.partial_sync[1]==chain.m_blockheight():
 				if blockheight_map() == True:
 					f.sync=1			# partial sync has happened but we may not be synchronised..
@@ -316,12 +326,12 @@ def received_block_logic(block_obj):
 			return
 
 	if block_obj.blockheader.blocknumber != chain.m_blockheight()+1:
-			print '>>>BLOCK - out of order - need', str(chain.m_blockheight()+1), ' received ', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash#, ' from ', self.transport.getPeer().host
+			printL(( '>>>BLOCK - out of order - need', str(chain.m_blockheight()+1), ' received ', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash))#, ' from ', self.transport.getPeer().host
 			f.get_m_blockheight_from_peers()
 			return
 	
 	if block_obj.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
-			print '>>>WARNING: FORK..'
+			printL(( '>>>WARNING: FORK..'))
 			return
 
 	# pos checks
@@ -366,14 +376,14 @@ def post_block_logic():
 def block_meets_consensus(blockheader_obj):
 
 	if len(chain.pos_flag)==0:
-		print 'POS reveal_three_logic not activated..'
+		printL(( 'POS reveal_three_logic not activated..'))
 		return False
 
 	if chain.pos_flag[0]!=blockheader_obj.blocknumber or chain.pos_flag[1]!=blockheader_obj.prev_blockheaderhash:
-		print 'POS reveal_three_logic not activated for this block..'
+		printL(( 'POS reveal_three_logic not activated for this block..'))
 		return False
 
-	#print 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6], ' for: ', chain.pos_d[0] 
+	#printL(( 'CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6], ' for: ', chain.pos_d[0] 
 
 	# check consensus rules..stake validators have to be in 75% agreement or if less then 75% of funds have to be agreement..
 
@@ -383,11 +393,11 @@ def block_meets_consensus(blockheader_obj):
 	# is it the correct winner?
 
 	if blockheader_obj.hash != chain.pos_d[0]:
-		print 'Winning hash does not match consensus..rejected'
+		printL(( 'Winning hash does not match consensus..rejected'))
 		return False
 
 	if blockheader_obj.stake_selector != chain.pos_d[7]:
-		print 'Stake selector does not match consensus..rejected'
+		printL(( 'Stake selector does not match consensus..rejected'))
 		return False
 
 	return True
@@ -399,7 +409,7 @@ def consensus_rules_met():
 
 	if chain.pos_d[3] < 75:
 		if chain.pos_d[6] < 75:
-			print 'Network consensus inadequate..rejected'
+			printL(( 'Network consensus inadequate..rejected'))
 			return False
 	return True
 
@@ -419,7 +429,7 @@ def get_synchronising_blocks(block_number):
 		if f.requested[1] <= len(f.peers):
 			return
 
-	print 'local node behind connection by ', behind, 'blocks - synchronising..'
+	printL(( 'local node behind connection by ', behind, 'blocks - synchronising..'))
 	f.requested = [chain.m_blockheight()+1, 0]
 	f.get_block_n_random_peer(chain.m_blockheight()+1)
 	return
@@ -427,7 +437,7 @@ def get_synchronising_blocks(block_number):
 
 
 def synchronising_update_chain(data=None):
-	print 'sync update chain'
+	printL(( 'sync update chain'))
 	
 	chain.recent_blocks.sort(key=lambda x: x.blockheader.blocknumber)			# sort the contents of the recent_blocks pool in ascending block number order..
 
@@ -438,7 +448,7 @@ def synchronising_update_chain(data=None):
 			pass
 		else:
 			if b.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
-				print 'potential fork..block hashes do not fit, discarded'
+				printL(( 'potential fork..block hashes do not fit, discarded'))
 				chain.recent_blocks.remove(b)	#forked blocks?
 			else:
 				chain.m_add_block(b)
@@ -456,8 +466,8 @@ def blockheight_map():
 
 	#i = [block_number, headerhash, self.transport.getPeer().host]
 
-	print 'blockheight_map:'
-	print chain.blockheight_map
+	printL(( 'blockheight_map:'))
+	printL(( chain.blockheight_map))
 
 	# first strip out any laggards..
 
@@ -471,9 +481,9 @@ def blockheight_map():
 
 	for s in chain.blockheight_map:
 		if s[0]==chain.m_blockheight() and s[1]==chain.m_blockchain[-1].blockheader.headerhash:
-			print 'node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'
+			printL(( 'node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
 		elif s[0] > chain.m_blockheight():
-			print 'warning..', s[2], 'at blockheight', s[0]
+			printL(( 'warning..', s[2], 'at blockheight', s[0]))
 			bmap_fail = 1
 
 	# wipe it..
@@ -519,7 +529,7 @@ def pos_d(block_number, headerhash):
 	
 	# all votes same..should be this every time
 	if len(c) != 1 :
-		print 'warning, more than one winning hash is being circulated by incoming R2 messages..'
+		printL(( 'warning, more than one winning hash is being circulated by incoming R2 messages..'))
 
 	for s in chain.stake_reveal_one:
 		if s[3]==c[0][0]:
@@ -554,7 +564,7 @@ class ApiProtocol(Protocol):
 
 		data = data.split()			#typical request will be: "GET /api/{command}/{parameter} HTTP/1.1"
 		
-		#print data
+		#printL(( data
 		
 		if len(data) == 0: return
 
@@ -611,11 +621,11 @@ class ApiProtocol(Protocol):
 		return
 
 	def exp_win(self, data=None):
-		print '<<< API expected winner call'
+		printL(( '<<< API expected winner call'))
 		return chain.exp_win(data)
 
 	def ping(self, data=None):
-		print '<<< API network latency ping call'
+		printL(( '<<< API network latency ping call'))
 		f.ping_peers()									 # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
 		pings = {}
 		pings['status'] = 'ok'
@@ -624,39 +634,39 @@ class ApiProtocol(Protocol):
 		return chain.json_print_telnet(pings)
 
 	def stakers(self, data=None):
-		print '<<< API stakers call'
+		printL(( '<<< API stakers call'))
 		return chain.stakers(data)
 
 	def next_stakers(self, data=None):
-		print '<<< API next_stakers call'
+		printL(( '<<< API next_stakers call'))
 		return chain.next_stakers(data)
 
 	def stake_commits(self, data=None):
-		print '<<< API stake_commits call'
+		printL(( '<<< API stake_commits call'))
 		return chain.stake_commits(data)
 
 	def stake_reveals(self, data=None):
-		print '<<< API stake_reveals call'
+		printL(( '<<< API stake_reveals call'))
 		return chain.stake_reveals(data)
 
 	def stake_reveal_ones(self, data=None):
-		print '<<< API stake_reveal_ones'
+		printL(( '<<< API stake_reveal_ones'))
 		return chain.stake_reveal_ones(data)
 
 	def richlist(self,data=None):
-		print '<<< API richlist call'
+		printL(( '<<< API richlist call'))
 		return chain.richlist(data)
 
 	def last_block(self, data=None):
-		print '<<< API last_block call'
+		printL(( '<<< API last_block call'))
 		return chain.last_block(data)
 
 	def last_tx(self, data=None):
-		print '<<< API last_tx call'
+		printL(( '<<< API last_tx call'))
 		return chain.last_tx(data)
 
 	def ip_geotag(self, data=None):
-		print '<<< API ip_geotag call'
+		printL(( '<<< API ip_geotag call'))
 		f.ip_geotag_peers()
 		return chain.ip_geotag(data)
 
@@ -666,9 +676,9 @@ class ApiProtocol(Protocol):
 
 	def block_data(self, data=None):				# if no data = last block ([-1])			#change this to add error.. 
 		error = {'status': 'error', 'error' : 'block not found', 'method': 'block_data', 'parameter' : data}
-		print '<<< API block data call', data	
+		printL(( '<<< API block data call', data	))
 		if not data:
-			#return chain.json_print_telnet(chain.m_get_last_block())
+			#return chain.json_printL((_telnet(chain.m_get_last_block())
 			data = chain.m_get_last_block()
 			data1 = copy.deepcopy(data)
 			data1.status = 'ok'
@@ -676,7 +686,7 @@ class ApiProtocol(Protocol):
 		try: int(data)														# is the data actually a number?
 		except: 
 			return chain.json_print_telnet(error)
-		#js_bk = chain.json_print_telnet(chain.m_get_block(int(data)))
+		#js_bk = chain.json_printL((_telnet(chain.m_get_block(int(data)))
 		js_bk = chain.m_get_block(int(data))
 		#if js_bk == 'false':
 		if js_bk == False:
@@ -688,7 +698,7 @@ class ApiProtocol(Protocol):
 			return chain.json_print_telnet(js_bk1)
 
 	def stats(self, data=None):
-		print '<<< API stats call'
+		printL(( '<<< API stats call'))
 
 		# calculate staked/emission %
 		b=0
@@ -707,17 +717,17 @@ class ApiProtocol(Protocol):
 				t.append(x)
 				z+=x
 
-		#print 'mean', z/len(chain.m_blockchain[-100:]), 'max', max(t), 'min', min(t), 'variance', max(t)-min(t)
+		#printL(( 'mean', z/len(chain.m_blockchain[-100:]), 'max', max(t), 'min', min(t), 'variance', max(t)-min(t)
 
 		net_stats = {'status': 'ok', 'version': version_number, 'block_reward' : chain.m_blockchain[-1].blockheader.block_reward/100000000.00000000, 'stake_validators' : len(chain.m_blockchain[-1].blockheader.reveal_list), 'epoch' : chain.m_blockchain[-1].blockheader.epoch, 'staked_percentage_emission' : staked , 'network' : 'qrl testnet', 'network_uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block_time' : z/len(chain.m_blockchain[-100:]), 'block_time_variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
-		print '<<< API tx/hash call', data
+		printL(( '<<< API tx/hash call', data))
 		return chain.search_txhash(data)
 
 	def address(self, data=None):
-		print '<<< API address call', data
+		printL(( '<<< API address call', data))
 		return chain.search_address(data)
 
 	def dataReceived(self, data=None):
@@ -726,10 +736,10 @@ class ApiProtocol(Protocol):
 	
 	def connectionMade(self):
 		self.factory.connections += 1
-		#print '>>> new API connection'
+		#printL(( '>>> new API connection'
 
 	def connectionLost(self, reason):
-		#print '<<< API disconnected'
+		#printL(( '<<< API disconnected'
 		self.factory.connections -= 1
 
 
@@ -789,7 +799,7 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'json_block':
 				
 				if not args:
-					#chain.json_print(chain.m_get_last_block())
+					#chain.json_printL(((chain.m_get_last_block())
 					self.transport.write(chain.json_print_telnet(chain.m_get_last_block())+'\r\n')
 					return
 				try: int(args[0])
@@ -809,7 +819,7 @@ class WalletProtocol(Protocol):
 			
 			elif data[0] == 'recoverfromhexseed':
 				self.transport.write('>>> trying.. this could take up to a minute..'+'\r\n')
-				print args[0], len(args[0])
+				printL(( args[0], len(args[0])))
 				if hexseed_to_seed(args[0]) != False:
 					addr = wallet.getnewaddress(type='XMSS', SEED=hexseed_to_seed(args[0]))
 					self.factory.newaddress = addr
@@ -845,12 +855,12 @@ class WalletProtocol(Protocol):
 			elif data[0] == 'stake':
 				self.transport.write('>> Toggling stake from: '+str(f.stake)+' to: '+str(not f.stake)+'\r\n')
 				f.stake = not f.stake
-				print 'STAKING set to: ', f.stake
+				printL(( 'STAKING set to: ', f.stake))
 				return
 
 			elif data[0] == 'stakenextepoch':
 				self.transport.write('>>> Sending a stake transaction for address: '+chain.mining_address+' to activate next epoch('+str(10000-(chain.m_blockchain[-1].blockheader.blocknumber-(chain.m_blockchain[-1].blockheader.epoch*10000)))+' blocks time)'+'\r\n')
-				print 'STAKE for address:', chain.mining_address
+				printL(( 'STAKE for address:', chain.mining_address))
 				f.send_st_to_peers(chain.CreateStakeTransaction())
 				return
 			
@@ -900,16 +910,16 @@ class WalletProtocol(Protocol):
 		self.transport.write(self.factory.stuff)
 		self.factory.connections += 1
 		if self.factory.connections > 1:
-			print 'only one local connection allowed'
+			printL(( 'only one local connection allowed'))
 			self.transport.write('only one local connection allowed, sorry')
 			self.transport.loseConnection()
 		else:
 			if self.transport.getPeer().host == '127.0.0.1':
-				print '>>> new local connection', str(self.factory.connections), self.transport.getPeer()
+				printL(( '>>> new local connection', str(self.factory.connections), self.transport.getPeer()))
 				# welcome functions to run here..
 			else:
 				self.transport.loseConnection()
-				print 'Unauthorised remote login attempt..'
+				printL(( 'Unauthorised remote login attempt..'))
 
 	def connectionLost(self, reason):
 		self.factory.connections -= 1
@@ -1045,7 +1055,7 @@ class WalletProtocol(Protocol):
 		if tx is False:
 				return
 		
-		#print 'new local tx: ', tx
+		#printL(( 'new local tx: ', tx
 		f.send_tx_to_peers(tx)
 		self.transport.write('>>> '+str(tx.txhash))
 		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount/100000000.000000000)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
@@ -1072,7 +1082,7 @@ class p2pProtocol(Protocol):
 		suffix = data[2:]
 		
 		if prefix == 'TX':				#tx received..
-			#print 'ding'
+			#printL(( 'ding'
 			self.recv_tx(suffix)
 			return
 		
@@ -1080,7 +1090,7 @@ class p2pProtocol(Protocol):
 
 			try: st = chain.json_decode_st(suffix)
 			except: 
-				print 'st rejected - unable to decode serialised data - closing connection'
+				printL(( 'st rejected - unable to decode serialised data - closing connection'))
 				self.transport.loseConnection()
 				return
 
@@ -1092,11 +1102,11 @@ class p2pProtocol(Protocol):
 				if chain.state_validate_st(st)==True:
 					chain.add_st_to_pool(st)
 				else:
-					print '>>>ST',st.hash, 'invalid state validation failed..' #' invalid - closing connection to ', self.transport.getPeer().host
+					printL(( '>>>ST',st.hash, 'invalid state validation failed..')) #' invalid - closing connection to ', self.transport.getPeer().host
 					return
 
 		#if chain.state_validate_tx(tx) == True:
-				print '>>>ST - ', st.hash, ' from - ', self.transport.getPeer().host, ' relaying..'
+				printL(( '>>>ST - ', st.hash, ' from - ', self.transport.getPeer().host, ' relaying..'))
 				
 				for peer in self.factory.peers:
 					if peer != self:
@@ -1106,20 +1116,20 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'BM':	# blockheight map for synchronisation and error correction prior to POS cycle resync..
 				if not suffix:
-					print '<<<Sending block_map', self.transport.getPeer().host
+					printL(( '<<<Sending block_map', self.transport.getPeer().host))
 					z = {}
 					z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber
 					z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash
 					self.transport.write(self.wrap_message('BM'+chain.json_encode(z)))
 					return
 				else:
-					print '>>>Receiving block_map'
+					printL(( '>>>Receiving block_map'))
 					z = chain.json_decode(suffix)
 					block_number = z['block_number']
 					headerhash = z['headerhash'].encode('latin1')
 
 					i = [block_number, headerhash, self.transport.getPeer().host]
-					print i
+					printL(( i))
 					if i not in chain.blockheight_map:
 						chain.blockheight_map.append(i)
 					return	
@@ -1127,19 +1137,19 @@ class p2pProtocol(Protocol):
 		elif prefix == 'BK':			#block received
 				try: 	block = chain.json_decode_block(suffix)
 				except:
-						print 'block rejected - unable to decode serialised data', self.transport.getPeer().host
+						printL(( 'block rejected - unable to decode serialised data', self.transport.getPeer().host))
 						return
 				pre_block_logic(block)
 				return
 
 		elif prefix == 'LB':			#request for last block to be sent
-				print '<<<Sending last block', str(chain.m_blockheight()), str(len(chain.json_bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host
+				printL(( '<<<Sending last block', str(chain.m_blockheight()), str(len(chain.json_bytestream(chain.m_get_last_block()))),' bytes', 'to node: ', self.transport.getPeer().host))
 				self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_last_block())))
 				return
 
 		elif prefix == 'MB':		#we send with just prefix as request..with CB number and blockhash as answer..
 			if not suffix:
-				print '<<<Sending blockheight to:', self.transport.getPeer().host, str(time.time())
+				printL(( '<<<Sending blockheight to:', self.transport.getPeer().host, str(time.time())))
 				self.send_m_blockheight_to_peer()
 				return
 			
@@ -1149,7 +1159,7 @@ class p2pProtocol(Protocol):
 				headerhash = z['headerhash'].encode('latin1')
 				#prev_headerhash = z['prev_headerhash'].encode('latin1')
 
-				print '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())
+				printL(( '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())))
 									
 				if block_number > chain.m_blockheight():		
 					get_synchronising_blocks(block_number)					
@@ -1165,7 +1175,7 @@ class p2pProtocol(Protocol):
 
 				if block_number == chain.m_blockheight():
 						if chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
-							print '>>> WARNING: headerhash mismatch from ', self.transport.getPeer().host
+							printL(( '>>> WARNING: headerhash mismatch from ', self.transport.getPeer().host))
 						
 						# initiate fork recovery and protection code here..
 						# call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
@@ -1180,7 +1190,7 @@ class p2pProtocol(Protocol):
 
 				if len(chain.m_blockchain) == 1 and self.factory.genesis == 0:
 						self.factory.genesis = 1										# set the flag so that no other Protocol instances trigger the genesis stake functions..
-						print 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'
+						printL(( 'genesis pos countdown to block 1 begun, 60s until stake tx circulated..'))
 						reactor.callLater(1, pre_pos_1)
 						return
 				
@@ -1193,11 +1203,11 @@ class p2pProtocol(Protocol):
 
 				if chain.m_blockchain[-1].blockheader.timestamp < time.time()-240:
 					if time.time()-f.long_gap_block < 10:
-						print '240s activated already..'
+						printL(( '240s activated already..'))
 						return
 
 					f.long_gap_block = time.time()
-					print 'last block was over 240s ago..resetting'
+					printL(( 'last block was over 240s ago..resetting'))
 					f.send_m_blockheight_to_peers()
 					reactor.callLater(5, post_block_logic)
 					return
@@ -1220,15 +1230,15 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
-						print '<<<Sending block number', str(int(suffix)), str(len(chain.json_bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host
+						printL(( '<<<Sending block number', str(int(suffix)), str(len(chain.json_bytestream(chain.m_get_block(int(suffix))))),' bytes', 'to node: ', self.transport.getPeer().host))
 						self.transport.write(self.wrap_message(chain.json_bytestream_bk(chain.m_get_block(int(suffix)))))
 						return
 				else:
 					if int(suffix) >= chain.m_blockheight():
-						print 'BN for a blockheight greater than local chain length..'
+						printL(( 'BN for a blockheight greater than local chain length..'))
 						return
 					else:
-						print 'BN request without valid block number', suffix, '- closing connection'
+						printL(( 'BN request without valid block number', suffix, '- closing connection'))
 						self.transport.loseConnection()
 						return
 		
@@ -1265,7 +1275,7 @@ class p2pProtocol(Protocol):
 				if not suffix:
 					self.transport.write(self.wrap_message('VE'+version_number))
 				else:
-					print self.transport.getPeer().host, 'version: ', suffix
+					printL(( self.transport.getPeer().host, 'version: ', suffix))
 					return
 
 		elif prefix == 'R1':							#receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
@@ -1292,14 +1302,14 @@ class p2pProtocol(Protocol):
 						for x in range(block_number-(epoch*10000)):	
 							tmp = sha256(tmp)
 						if tmp != s[1]:
-							print 'reveal doesnt hash to stake terminator', 'reveal', reveal_one, 'nonce', s[2], 'hash_term', s[1]
+							printL(( 'reveal doesnt hash to stake terminator', 'reveal', reveal_one, 'nonce', s[2], 'hash_term', s[1]))
 							return
 				if y==0:
-					print 'stake address not in the stake_list'
+					printL(( 'stake address not in the stake_list'))
 					return 
 
 
-				print '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one
+				printL(( '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 
 				chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
@@ -1328,10 +1338,10 @@ class p2pProtocol(Protocol):
 				# is reveal_two valid, is there an equivalent reveal_one entry for this block?
 
 				if sha256(reveal_one+nonce) not in [s[4] for s in chain.stake_reveal_one]:
-					print 'reveal_two not sha256(reveal_one+nonce) in chain.stake_reveal_one'
+					printL(( 'reveal_two not sha256(reveal_one+nonce) in chain.stake_reveal_one'))
 					return
 
-				print '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one
+				printL(( '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 
 				#chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce']], z['winning_hash'])		#don't forget to store our reveal in stake_reveal_one
 
@@ -1359,7 +1369,7 @@ class p2pProtocol(Protocol):
 
 		else:
 			pass
-			#print 'Data from node not understood - closing connection.'
+			#printL(( 'Data from node not understood - closing connection.'
 			#self.transport.loseConnection()
 		return
 
@@ -1370,7 +1380,7 @@ class p2pProtocol(Protocol):
 		for ip in data:
 				new_ips.append(ip.encode('latin1'))
 		peers_list = chain.state_get_peers()
-		print self.transport.getPeer().host, 'peers data received: ', new_ips
+		printL(( self.transport.getPeer().host, 'peers data received: ', new_ips))
 		for node in new_ips:
 				if node not in peers_list:
 					if node != self.transport.getHost().host:
@@ -1381,12 +1391,12 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_latest_block_from_connection(self):
-		print '<<<Requested last block from', self.transport.getPeer().host
+		printL(( '<<<Requested last block from', self.transport.getPeer().host))
 		self.transport.write(self.wrap_message('LB'))
 		return
 
 	def get_m_blockheight_from_connection(self):
-		print '<<<Requesting blockheight from', self.transport.getPeer().host
+		printL(( '<<<Requesting blockheight from', self.transport.getPeer().host))
 		self.transport.write(self.wrap_message('MB'))
 		return
 
@@ -1398,12 +1408,12 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_version(self):
-		print '<<<Getting version', self.transport.getPeer().host
+		printL(( '<<<Getting version', self.transport.getPeer().host))
 		self.transport.write(self.wrap_message('VE'))
 		return
 
 	def get_peers(self):
-		print '<<<Sending connected peers to', self.transport.getPeer().host
+		printL(( '<<<Sending connected peers to', self.transport.getPeer().host))
 		peers_list = []
 		for peer in self.factory.peers:
 			peers_list.append(peer.transport.getPeer().host)
@@ -1411,7 +1421,7 @@ class p2pProtocol(Protocol):
 		return
 
 	def get_block_n(self, n):
-		print '<<<Requested block: ', str(n), 'from ', self.transport.getPeer().host
+		printL(( '<<<Requested block: ', str(n), 'from ', self.transport.getPeer().host))
 		self.transport.write(self.wrap_message('BN'+str(n)))
 		return
 
@@ -1422,7 +1432,7 @@ class p2pProtocol(Protocol):
 
 	def clean_buffer(self, reason=None, upto=None):
 		if reason:
-			print reason
+			printL(( reason))
 		if upto:
 			self.buffer = self.buffer[upto:] 			#Clean buffer till the value provided in upto
 		else:
@@ -1464,7 +1474,7 @@ class p2pProtocol(Protocol):
 				break
 			else:
 				for msg in self.messages:
-					#print msg
+					#printL(( msg
 					self.parse_msg(msg)
 				del self.messages[:]
 		return
@@ -1475,7 +1485,7 @@ class p2pProtocol(Protocol):
 		peer_list = chain.state_get_peers()
 		if self.transport.getPeer().host == self.transport.getHost().host:
 						if self.transport.getPeer().host in peer_list:
-								print 'Self in peer_list, removing..'
+								printL(( 'Self in peer_list, removing..'))
 								peer_list.remove(self.transport.getPeer().host)
 								chain.state_put_peers(peer_list)
 								chain.state_save_peers()
@@ -1483,11 +1493,11 @@ class p2pProtocol(Protocol):
 						return
 		
 		if self.transport.getPeer().host not in peer_list:
-			print 'Adding to peer_list'
+			printL(( 'Adding to peer_list'))
 			peer_list.append(self.transport.getPeer().host)
 			chain.state_put_peers(peer_list)
 			chain.state_save_peers()
-		print '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)
+		printL(( '>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)))
 
 		self.get_m_blockheight_from_connection()
 		self.get_peers()
@@ -1499,7 +1509,7 @@ class p2pProtocol(Protocol):
 
 	def connectionLost(self, reason):
 		self.factory.connections -= 1
-		print self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections) #, reason 
+		printL(( self.transport.getPeer().host,  ' disconnnected. ', 'remainder connected: ', str(self.factory.connections))) #, reason 
 		self.factory.peers.remove(self)
 		if self.factory.connections == 0:
 			stop_all_loops()
@@ -1509,11 +1519,11 @@ class p2pProtocol(Protocol):
 
 	def recv_tx(self, json_tx_obj):
 		
-		#print chain.json_decode_tx(json_tx_obj)
+		#printL(( chain.json_decode_tx(json_tx_obj)
 
 		try: tx = chain.json_decode_tx(json_tx_obj)
 		except: 
-				print 'tx rejected - unable to decode serialised data - closing connection'
+				printL(( 'tx rejected - unable to decode serialised data - closing connection'))
 				self.transport.loseConnection()
 				return
 
@@ -1522,14 +1532,14 @@ class p2pProtocol(Protocol):
 				return
 
 		if chain.validate_tx(tx) != True:
-				print '>>>TX ', tx.txhash, 'failed validate_tx'
+				printL(( '>>>TX ', tx.txhash, 'failed validate_tx'))
 				return
 
 		if chain.state_validate_tx(tx) != True:
-				print '>>>TX', tx.txhash, 'failed state_validate'
+				printL(( '>>>TX', tx.txhash, 'failed state_validate'))
 				return
 
-		print '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'
+		printL(( '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'))
 		chain.add_tx_to_pool(tx)
 
 		for peer in self.factory.peers:
@@ -1562,7 +1572,7 @@ class p2pFactory(ServerFactory):
 # factory network functions
 	
 	def get_block_a_to_b(self, a, b):
-		print '<<<Requested blocks:', a, 'to ', b, ' from peers..'
+		printL(( '<<<Requested blocks:', a, 'to ', b, ' from peers..'))
 		l = range(a,b)
 		for peer in self.peers:
 			if len(l) > 0:
@@ -1571,24 +1581,24 @@ class p2pFactory(ServerFactory):
 				return				
 
 	def get_block_n_random_peer(self,n):
-		print '<<<Requested block: ', n, 'from random peer.'
+		printL(( '<<<Requested block: ', n, 'from random peer.'))
 		random.choice(self.peers).get_block_n(n)
 		return
 
 
 	def get_block_n(self, n):
-		print '<<<Requested block: ', n, 'from peers.'
+		printL(( '<<<Requested block: ', n, 'from peers.'))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('BN'+str(n)))
 		return
 
 	def get_m_blockheight_from_random_peer(self):
-		print '<<<Requested blockheight from random peer.'
+		printL(( '<<<Requested blockheight from random peer.'))
 		random.choice(self.peers).get_m_blockheight_from_connection()
 		return
 
 	def get_blockheight_map_from_peers(self):
-		print '<<<Requested blockheight_map from peers.'
+		printL(( '<<<Requested blockheight_map from peers.'))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('BM'))
 		return
@@ -1599,7 +1609,7 @@ class p2pFactory(ServerFactory):
 		return
 
 	def send_m_blockheight_to_peers(self):
-		print '<<<Sending blockheight to peers.'
+		printL(( '<<<Sending blockheight to peers.'))
 		for peer in self.peers:
 			peer.send_m_blockheight_to_peer()
 		return
@@ -1608,13 +1618,13 @@ class p2pFactory(ServerFactory):
 		return chr(255)+chr(0)+chr(0)+struct.pack('>L', len(data))+chr(0)+data+chr(0)+chr(0)+chr(255)
 
 	def send_st_to_peers(self, st):
-		print '<<<Transmitting ST:', st.hash
+		printL(( '<<<Transmitting ST:', st.hash))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('ST'+chain.json_bytestream(st)))
 		return
 
 	def send_tx_to_peers(self, tx):
-		print '<<<Transmitting TX: ', tx.txhash
+		printL(( '<<<Transmitting TX: ', tx.txhash))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_tx(tx)))
 		return
@@ -1646,7 +1656,7 @@ class p2pFactory(ServerFactory):
 							z['reveal_two'] = r[4]
 							y=True
 		
-		print '<<<Transmitting POS reveal_one'
+		printL(( '<<<Transmitting POS reveal_one'))
 
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('R1'+chain.json_encode(z)))
@@ -1660,7 +1670,7 @@ class p2pFactory(ServerFactory):
 
 	def send_stake_reveal_two(self, winning_hash):
 		
-		print '<<<Transmitting POS reveal_two'
+		printL(( '<<<Transmitting POS reveal_two'))
 		z = {}
 		z['stake_address'] = chain.mining_address
 		z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash				#demonstrate the hash from last block to prevent building upon invalid block..
@@ -1682,14 +1692,14 @@ class p2pFactory(ServerFactory):
 
 
 	def ip_geotag_peers(self):
-		print '<<<IP geotag broadcast'
+		printL(( '<<<IP geotag broadcast'))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('IP'))
 		return
 
 
 	def ping_peers(self):
-		print '<<<Transmitting network PING'
+		printL(( '<<<Transmitting network PING'))
 		chain.last_ping = time.time()
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('PING'))
@@ -1698,7 +1708,7 @@ class p2pFactory(ServerFactory):
 	# send POS block to peers..
 
 	def send_stake_block(self, block_obj):
-		print '<<<Transmitting POS created block', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash
+		printL(( '<<<Transmitting POS created block', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('S4'+chain.json_byestream(block_obj)))
 		return
@@ -1706,7 +1716,7 @@ class p2pFactory(ServerFactory):
 	# send/relay block to peers
 
 	def send_block_to_peers(self, block):
-		print '<<<Transmitting block: ', block.blockheader.headerhash
+		printL(( '<<<Transmitting block: ', block.blockheader.headerhash))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
 		return
@@ -1714,7 +1724,7 @@ class p2pFactory(ServerFactory):
 	# request transaction_pool from peers
 
 	def get_tx_pool_from_peers(self):
-		print '<<<Requesting TX pool from peers..'
+		printL(( '<<<Requesting TX pool from peers..'))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('RT'))
 		return
@@ -1722,21 +1732,21 @@ class p2pFactory(ServerFactory):
 # connection functions
 
 	def connect_peers(self):
-		print '<<<Reconnecting to peer list:'
+		printL(( '<<<Reconnecting to peer list:'))
 		for peer in chain.state_get_peers():
 			reactor.connectTCP(peer, 9000, f)
 
 	def clientConnectionLost(self, connector, reason):		#try and reconnect
-		#print 'connection lost: ', reason, 'trying reconnect'
+		#printL(( 'connection lost: ', reason, 'trying reconnect'
 		#connector.connect()
 		return
 
 	def clientConnectionFailed(self, connector, reason):
-		#print 'connection failed: ', reason
+		#printL(( 'connection failed: ', reason
 		return
 
 	def startedConnecting(self, connector):
-		#print 'Started to connect.', connector
+		#printL(( 'Started to connect.', connector
 		return
 
 
@@ -1764,23 +1774,23 @@ class ApiFactory(ServerFactory):
 if __name__ == "__main__":
  
 	start_time = time.time()
-	print 'Reading chain..'
+	printL(( 'Reading chain..'))
 	chain.m_load_chain()
-	print str(len(chain.m_blockchain))+' blocks'
-	print 'Verifying chain'
+	printL(( str(len(chain.m_blockchain))+' blocks'))
+	printL(( 'Verifying chain'))
 	#chain.state_add_block(m_blockchain[1])
 	#chain.m_verify_chain(verbose=1)
-	print 'Building state leveldb'
+	printL(( 'Building state leveldb'))
 	#chain.state_read_chain()
 	if chain.verify_chain() is False:
-		print 'verify_chain() failed..'
+		printL(( 'verify_chain() failed..'))
 		exit()
-	print 'Loading node list..'			# load the peers for connection based upon previous history..
+	printL(( 'Loading node list..'))			# load the peers for connection based upon previous history..
 	chain.state_load_peers()
-	print chain.state_get_peers()
+	printL(( chain.state_get_peers()))
 
 	stuff = 'QRL node connection established. Try starting with "help"'+'\r\n'
-	print '>>>Listening..'
+	printL(( '>>>Listening..'))
 	
 	f = p2pFactory()
 	api = ApiFactory()
@@ -1790,8 +1800,8 @@ if __name__ == "__main__":
 	reactor.listenTCP(8080, api)
 
 
-	print 'Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"'
-	print '<<<Connecting to nodes in peer.dat'
+	printL(( 'Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"'))
+	printL(( '<<<Connecting to nodes in peer.dat'))
 
 	f.connect_peers()
 	reactor.run()
