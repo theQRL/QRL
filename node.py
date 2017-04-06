@@ -1442,48 +1442,51 @@ class p2pProtocol(Protocol):
 		if len(self.buffer)==0:
 			return False
 
-		d = self.buffer.find(chr(255)+chr(0)+chr(0))
-		num_d = self.buffer.count(chr(255)+chr(0)+chr(0))
+		d = self.buffer.find(chr(255)+chr(0)+chr(0))					#find the initiator sequence
+		num_d = self.buffer.count(chr(255)+chr(0)+chr(0))				#count the initiator sequences
 
-		if d == -1:
-			self.clean_buffer('Message data without initiator')
+		if d == -1:														#if no initiator sequences found then wipe buffer..
+			self.clean_buffer(reason='Message data without initiator')
 			return False
 
-		self.buffer = self.buffer[d:]
+		self.buffer = self.buffer[d:]									#delete data up to initiator
 
-		try: m = struct.unpack('>L', self.buffer[3:7])[0]
+		try: m = struct.unpack('>L', self.buffer[3:7])[0]			#is m length encoded correctly?
 		except:
-				if num_d > 1:
+				if num_d > 1:										#if not, is this the only initiator in the buffer?
 					self.buffer = self.buffer[3:]
 					d = self.buffer.find(chr(255)+chr(0)+chr(0))
-					self.clean_buffer('Struct.unpack error attempting to decipher msg length, next msg preserved', d)
+					self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved', upto=d)		#no
+					return True
 				else:
-					self.clean_buffer('Struct.unpack error attempting to decipher msg length..')
+					self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')		#yes
 				return False
 
-		e = self.buffer.find(chr(0)+chr(0)+chr(255))
+		e = self.buffer.find(chr(0)+chr(0)+chr(255))				#find the terminator sequence
 
-		if e==-1:							#End not found, pass for next iteration unless msg is long enough..
+		if e==-1:							#no terminator sequence found
 			if len(self.buffer) > 8+m+3:
-				if num_d >1:
+				if num_d >1:										#if not is this the only initiator sequence?
 					self.buffer = self.buffer[3:]
 					d = self.buffer.find(chr(255)+chr(0)+chr(0))
-					self.clean_buffer('Message without appropriate terminator, next msg preserved', d)
+					self.clean_buffer(reason='Message without appropriate terminator, next msg preserved', upto=d)						#no
+					return True
 				else:
-					self.clean_buffer('Message without initiator and terminator')
+					self.clean_buffer(reason='Message without initiator and terminator')					#yes
 			return False
 
-		if e != len(self.buffer[:3+5+m]):
-			if num_d >1:
+		if e != len(self.buffer[:3+5+m]):							#is terminator sequence located correctly?
+			if num_d >1:											#if not is this the only initiator sequence?
 				self.buffer = self.buffer[3:]
 				d = self.buffer.find(chr(255)+chr(0)+chr(0))
-				self.clean_buffer('Message terminator incorrectly positioned, next msg preserved', d)
+				self.clean_buffer(reason='Message terminator incorrectly positioned, next msg preserved', upto=d)						#no
+				return True
 			else:
-				self.clean_buffer('Message terminator incorrectly positioned')
+				self.clean_buffer(reason='Message terminator incorrectly positioned')						#yes
 			return False
 
-		self.messages.append(self.buffer[8:8+m])
-		self.buffer = self.buffer[8+m+3:]
+		self.messages.append(self.buffer[8:8+m])					#if survived the above then save the msg into the self.messages
+		self.buffer = self.buffer[8+m+3:]							#reset the buffer to after the msg
 		return True
 
 	def dataReceived(self, data):		# adds data received to buffer. then tries to parse the buffer twice..
@@ -1495,7 +1498,6 @@ class p2pProtocol(Protocol):
 				break
 			else:
 				for msg in self.messages:
-					#printL(( msg
 					self.parse_msg(msg)
 				del self.messages[:]
 		return
@@ -1710,6 +1712,10 @@ class p2pFactory(ServerFactory):
 		
 		chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce'], z['winning_hash']])		#don't forget to store our reveal in stake_reveal_one
 		return
+
+
+	def send_stake_reveal_three(self, consensus_hash):
+		printL(('<<<Transmitting POS reveal_three'))
 
 
 	def ip_geotag_peers(self):
