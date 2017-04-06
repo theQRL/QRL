@@ -1480,6 +1480,7 @@ class p2pProtocol(Protocol):
 				self.clean_buffer('Message terminator incorrectly positioned, next msg preserved', d)
 			else:
 				self.clean_buffer('Message terminator incorrectly positioned')
+			return False
 
 		self.messages.append(self.buffer[8:8+m])
 		self.buffer = self.buffer[8+m+3:]
