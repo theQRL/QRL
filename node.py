@@ -1443,23 +1443,43 @@ class p2pProtocol(Protocol):
 			return False
 
 		d = self.buffer.find(chr(255)+chr(0)+chr(0))
+		num_d = self.buffer.count(chr(255)+chr(0)+chr(0))
+
+		if d == -1:
+			self.clean_buffer('Message data without initiator')
+			return False
+
+		self.buffer = self.buffer[d:]
+
+		try: m = struct.unpack('>L', self.buffer[3:7])[0]
+		except:
+				if num_d > 1:
+					self.buffer = self.buffer[3:]
+					d = self.buffer.find(chr(255)+chr(0)+chr(0))
+					self.clean_buffer('Struct.unpack error attempting to decipher msg length, next msg preserved', d)
+				else:
+					self.clean_buffer('Struct.unpack error attempting to decipher msg length..')
+				return False
+
 		e = self.buffer.find(chr(0)+chr(0)+chr(255))
 
-		if e==-1:							#End not found, pass for next iteration
-			if d==-1:
-				self.clean_buffer('Message without initiator and terminator')
+		if e==-1:							#End not found, pass for next iteration unless msg is long enough..
+			if len(self.buffer) > 8+m+3:
+				if num_d >1:
+					self.buffer = self.buffer[3:]
+					d = self.buffer.find(chr(255)+chr(0)+chr(0))
+					self.clean_buffer('Message without appropriate terminator, next msg preserved', d)
+				else:
+					self.clean_buffer('Message without initiator and terminator')
 			return False
 
-		if d != -1 and d < e:						#found start position must be less than end position
-			m = struct.unpack('>L', self.buffer[d+3:d+7])[0]	#get length of message
-			self.buffer = self.buffer[d:]				#move buffer to initiator
-		else:
-			self.clean_buffer('Data received buffer full of garbage and deleted.', e+3)
-			return False
-
-		if len(self.buffer) < 8+m+3:			#we already have more than the message length with no terminator, cant trust data
-			self.clean_buffer('Data received in buffer invalid and deleted.', e+3)
-			return False
+		if e != len(self.buffer[:3+5+m]):
+			if num_d >1:
+				self.buffer = self.buffer[3:]
+				d = self.buffer.find(chr(255)+chr(0)+chr(0))
+				self.clean_buffer('Message terminator incorrectly positioned, next msg preserved', d)
+			else:
+				self.clean_buffer('Message terminator incorrectly positioned')
 
 		self.messages.append(self.buffer[8:8+m])
 		self.buffer = self.buffer[8+m+3:]
