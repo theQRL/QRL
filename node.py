@@ -1750,7 +1750,7 @@ class p2pFactory(ServerFactory):
 	def send_stake_block(self, block_obj):
 		printL(( '<<<Transmitting POS created block', str(block_obj.blockheader.blocknumber), block_obj.blockheader.headerhash))
 		for peer in self.peers:
-			peer.transport.write(self.f_wrap_message('S4'+chain.json_byestream(block_obj)))
+			peer.transport.write(self.f_wrap_message('S4'+chain.json_bytestream(block_obj)))
 		return
 
 	# send/relay block to peers
