@@ -1451,16 +1451,29 @@ class p2pProtocol(Protocol):
 
 		self.buffer = self.buffer[d:]									#delete data up to initiator
 
+		if len(self.buffer)<8:							#Buffer is still incomplete as it doesn't have message size
+			return False
+
 		try: m = struct.unpack('>L', self.buffer[3:7])[0]			#is m length encoded correctly?
 		except:
-				if num_d > 1:										#if not, is this the only initiator in the buffer?
-					self.buffer = self.buffer[3:]
-					d = self.buffer.find(chr(255)+chr(0)+chr(0))
-					self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved', upto=d)		#no
-					return True
-				else:
-					self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')		#yes
-				return False
+			if num_d > 1:										#if not, is this the only initiator in the buffer?
+				self.buffer = self.buffer[3:]
+				d = self.buffer.find(chr(255)+chr(0)+chr(0))
+				self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved', upto=d)		#no
+				return True
+			else:
+				self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')		#yes
+			return False
+
+		if m > 500*1024:							#check if size is more than 500 KB
+			if num_d > 1:
+				self.buffer = self.buffer[3:]
+				d = self.buffer.find(chr(255)+chr(0)+chr(0))
+				self.clean_buffer(reason='Size is more than 500 KB, next msg preserved', upto=d)
+				return True
+			else:
+				self.clean_buffer(reason='Size is more than 500 KB')
+			return False
 
 		e = self.buffer.find(chr(0)+chr(0)+chr(255))				#find the terminator sequence
 
@@ -1475,7 +1488,7 @@ class p2pProtocol(Protocol):
 					self.clean_buffer(reason='Message without initiator and terminator')					#yes
 			return False
 
-		if e != len(self.buffer[:3+5+m]):							#is terminator sequence located correctly?
+		if e != 3+5+m:												#is terminator sequence located correctly?
 			if num_d >1:											#if not is this the only initiator sequence?
 				self.buffer = self.buffer[3:]
 				d = self.buffer.find(chr(255)+chr(0)+chr(0))
