@@ -21,7 +21,7 @@ class PrintHelper:
 		self.logger = logger
 
 	def printL(self, data, enableLogging=True):
-		if type(data) != str:
+		if hasattr(data,'__iter__'):
 			data = map(str, data)
 			data = " ".join(data)
 		if enableLogging:
