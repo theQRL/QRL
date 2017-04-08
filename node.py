@@ -41,8 +41,11 @@ def parse(data):
 
 def pre_pos_1(data=None):		# triggered after genesis for block 1..
 	printL(( 'pre_pos_1'))
-	# are we a staker in the stake list?
 
+	chain.my[0][1].hashchain(epoch=0)
+	chain.hash_chain = chain.my[0][1].hc
+
+	# are we a staker in the stake list?
 	if chain.mining_address in chain.m_blockchain[0].stake_list:
 		printL(('mining address:', chain.mining_address,' in the genesis.stake_list'))
 		printL(('hashchain terminator: ', chain.hash_chain[-1]))
