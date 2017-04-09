@@ -172,7 +172,11 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash)
 	
 	printL(( 'R2 CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] ))
-	f.send_stake_reveal_three(chain.pos_d[0])
+
+	if f.stake == True:	
+		if chain.mining_address in [s[0] for s in chain.stake_list_get()]:
+			f.send_stake_reveal_three(chain.pos_d[0])
+
 	reactor.callIDR3 = reactor.callLater(15, reveal_four_logic, reveals, our_reveal)
 
 	return
