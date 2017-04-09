@@ -309,17 +309,11 @@ def start_all_loops(data=None):
 
 def filter_reveal_one_two():
 
-	for s in chain.stake_reveal_one:
-		if s[2] <= chain.m_blockchain[-1].blockheader.blocknumber:
-			chain.stake_reveal_one.remove(s)
+	chain.stake_reveal_one = filter(lambda s: s[2] > chain.m_blockchain[-1].blockheader.blocknumber, chain.stake_reveal_one)
+	
+	chain.stake_reveal_two = filter(lambda s: s[2] > chain.m_blockchain[-1].blockheader.blocknumber, chain.stake_reveal_two)
 
-	for s in chain.stake_reveal_two:
-		if s[2] <= chain.m_blockchain[-1].blockheader.blocknumber:
-			chain.stake_reveal_two.remove(s)
-
-	for s in chain.stake_reveal_three:
-		if s[2] <= chain.m_blockchain[-1].blockheader.blocknumber:
-			chain.stake_reveal_three.remove(s)
+	chain.stake_reveal_three = filter(lambda s: s[2] > chain.m_blockchain[-1].blockheader.blocknumber, chain.stake_reveal_three)
 
 	return
 
@@ -460,19 +454,21 @@ def synchronising_update_chain(data=None):
 	printL(( 'sync update chain'))
 	
 	chain.recent_blocks.sort(key=lambda x: x.blockheader.blocknumber)			# sort the contents of the recent_blocks pool in ascending block number order..
-
+	tmp_recent_blocks = []
 	for b in chain.recent_blocks:
-		if b.blockheader.blocknumber <= chain.m_blockheight():
-			chain.recent_blocks.remove(b)
 		if b.blockheader.blocknumber != chain.m_blockheight()+1:
 			pass
 		else:
 			if b.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
 				printL(( 'potential fork..block hashes do not fit, discarded'))
-				chain.recent_blocks.remove(b)	#forked blocks?
+				continue	#forked blocks?
 			else:
 				chain.m_add_block(b)
-
+		if b.blockheader.blocknumber <= chain.m_blockheight():
+			continue
+		tmp_recent_blocks.append(b)
+	
+	chain.recent_blocks = tmp_recent_blocks
 	del chain.recent_blocks[:]
 	f.get_m_blockheight_from_random_peer()
 	return
@@ -490,10 +486,7 @@ def blockheight_map():
 	printL(( chain.blockheight_map))
 
 	# first strip out any laggards..
-
-	for s in chain.blockheight_map:
-		if s[0]<chain.m_blockheight():
-			chain.blockheight_map.remove(s)
+	chain.blockheight_map = filter(lambda s: s[0]>=chain.m_blockheight(), chain.blockheight_map)
 
 	bmap_fail = 0
 
@@ -1791,18 +1784,20 @@ class p2pFactory(ServerFactory):
 		z['reveal_two'] = sha256(z['reveal_one']+rkey)
 		
 		y=False
-		
+		tmp_stake_reveal_one = []
 		for r in chain.stake_reveal_one:											#need to check the reveal list for existence already, if so..reuse..
 			if r[0] == chain.mining_address:
 				if r[1] == z['headerhash']:
 					if r[2] == z['block_number']:
 						if y==True:
-							chain.stake_reveal_one.remove(r)						#if repetition then remove..
+							continue						#if repetition then remove..
 						else:
 							z['reveal_one'] = r[3]
 							z['reveal_two'] = r[4]
 							y=True
+			tmp_stake_reveal_one.append(r)
 		
+		chain.stake_reveal_one = tmp_stake_reveal_one
 		printL(( '<<<Transmitting POS reveal_one'))
 
 		for peer in self.peers:
