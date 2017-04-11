@@ -13,6 +13,8 @@ from operator import itemgetter
 from collections import Counter, defaultdict
 from math import ceil
 from blessings import Terminal
+import statistics
+
 import json
 
 version_number = "alpha/0.04a"
@@ -823,8 +825,31 @@ class ApiProtocol(Protocol):
 		#printL(( '<<< API disconnected'
 		self.factory.connections -= 1
 
-	def latency(self):
-		return json.dumps(chain.stake_validator_latency)
+	def latency(self, type=None):
+		output = {}
+		if type.lower() in ['mean', 'median', 'last']:
+			for block_num in chain.stake_validator_latency.keys():
+				output[block_num] = {}
+				for stake in chain.stake_validator_latency[block_num].keys():
+					time_list = chain.stake_validator_latency[block_num][stake]
+					print time_list
+					output[block_num][stake] = {}
+					if type.lower()=='mean':
+						output[block_num][stake]['r1_time_diff'] =  statistics.mean(time_list['r1_time_diff'])
+						if 'r2_time_diff' in time_list:
+							output[block_num][stake]['r2_time_diff'] =  statistics.mean(time_list['r2_time_diff'])
+					elif type.lower()=='last':
+						output[block_num][stake]['r1_time_diff'] = time_list['r1_time_diff'][-1]
+						if 'r2_time_diff' in time_list:
+							output[block_num][stake]['r2_time_diff'] = time_list['r2_time_diff'][-1]
+					elif type.lower()=='median':
+						output[block_num][stake]['r1_time_diff'] = statistics.median(time_list['r1_time_diff'])
+						if 'r2_time_diff' in time_list:
+							output[block_num][stake]['r2_time_diff'] = statistics.median(time_list['r2_time_diff'])
+		else:
+			output = chain.stake_validator_latency
+		output = json.dumps(output)
+		return output
 
 class WalletProtocol(Protocol):
 
@@ -1373,8 +1398,7 @@ class p2pProtocol(Protocol):
 				for entry in chain.stake_reveal_one:	#already received, do not relay.
 					if entry[3] == reveal_one:
 						return
-				if len(chain.stake_validator_latency) > 2:
-					print "Deleting"
+				if len(chain.stake_validator_latency) > 100:
 					del chain.stake_validator_latency[min(chain.stake_validator_latency.keys())]
 				# is reveal_one valid - does it hash to terminator in stake_list? We check that headerhash+block_number match in reveal_two_logic
 
@@ -1392,6 +1416,8 @@ class p2pProtocol(Protocol):
 				if y==0:
 					printL(( 'stake address not in the stake_list'))
 					return 
+				if len(r1_time_diff)>2:
+					del r1_time_diff[min(r1_time_diff.keys())]				
 
 				r1_time_diff[block_number].append(int(time.time()*1000))
 
@@ -1429,6 +1455,10 @@ class p2pProtocol(Protocol):
 					return
 
 				r2_time_diff[block_number].append(int(time.time()*1000))
+
+				if len(r2_time_diff)>2:
+					del r2_time_diff[min(r2_time_diff.keys())]				
+
 
 				if stake_address not in chain.stake_validator_latency[block_number]:
 					chain.stake_validator_latency[block_number][stake_address] = {}
