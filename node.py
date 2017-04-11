@@ -10,7 +10,7 @@ from twisted.internet.protocol import ServerFactory, Protocol
 from twisted.internet import reactor
 from merkle import sha256, numlist, hexseed_to_seed, mnemonic_to_seed, GEN_range, random_key
 from operator import itemgetter
-from collections import Counter
+from collections import Counter, defaultdict
 from math import ceil
 from blessings import Terminal
 
@@ -31,6 +31,9 @@ chain.printL = printL
 wallet.printL = printL
 merkle.printL = printL
 
+
+r1_time_diff = defaultdict(dict) #r1_time_diff[block_number] = { 'stake_address':{ 'r1_time_diff': value_in_ms }}
+r2_time_diff = defaultdict(dict) #r2_time_diff[block_number] = { 'stake_address':{ 'r2_time_diff': value_in_ms }}
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -127,8 +130,10 @@ def reveal_two_logic(data=None):
 	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
 	reveals = []
-
+	curr_time = int(time.time()*1000)
 	for s in chain.stake_reveal_one:
+		if s[0] in r1_time_diff[s[2]]:
+			r1_time_diff[s[2]][s[0]]['r1_time_diff'] = curr_time - r1_time_diff[s[2]][s[0]]['r1_time_diff']
 		if s[1] == chain.m_blockchain[-1].blockheader.headerhash and s[2] == chain.m_blockchain[-1].blockheader.blocknumber+1:
 			reveals.append(s[3])
 
@@ -521,8 +526,11 @@ def pos_d(block_number, headerhash):
 	#chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three] rkey2		
 
 	p = []
+	curr_time = int(time.time()*1000)
 	for s in chain.stake_reveal_one:
-		if s[1]==headerhash and s[2]==block_number:
+		if s[0] in r2_time_diff[s[2]]:
+			r2_time_diff[s[2]][s[0]]['r2_time_diff'] = curr_time - r2_time_diff[s[2]][s[0]]['r2_time_diff']
+ 		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
 
 	if len(p) <= 1:
@@ -1360,7 +1368,9 @@ class p2pProtocol(Protocol):
 				for entry in chain.stake_reveal_one:	#already received, do not relay.
 					if entry[3] == reveal_one:
 						return
-
+				if len(chain.stake_validator_latency) > 2:
+					print "Deleting"
+					del chain.stake_validator_latency[min(chain.stake_validator_latency.keys())]
 				# is reveal_one valid - does it hash to terminator in stake_list? We check that headerhash+block_number match in reveal_two_logic
 
 				tmp = sha256(reveal_one)
@@ -1378,6 +1388,7 @@ class p2pProtocol(Protocol):
 					printL(( 'stake address not in the stake_list'))
 					return 
 
+				r1_time_diff[block_number][stake_address] = {'r1_time_diff':int(time.time()*1000)}
 
 				printL(( '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 
@@ -1412,8 +1423,15 @@ class p2pProtocol(Protocol):
 					printL(( 'reveal_two not sha256(reveal_one+nonce) in chain.stake_reveal_one'))
 					return
 
+				r2_time_diff[block_number][stake_address] = {'r2_time_diff':int(time.time()*1000)}
+
+				if stake_address not in chain.stake_validator_latency[block_number]:
+					chain.stake_validator_latency[block_number][stake_address] = {'r1_time_diff' : z['r1_time_diff']}
+				else:
+					chain.stake_validator_latency[block_number][stake_address]['r1_time_diff'] = z['r1_time_diff']
+
 				printL(( '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
-		
+
 				#chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce']], z['winning_hash'], z['reveal_three']])		#don't forget to store our reveal in stake_reveal_one
 
 				chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three]) 
@@ -1449,6 +1467,11 @@ class p2pProtocol(Protocol):
 				if y != 1:
 					printL(('reveal_three does not match sha256(nonce+nonce2'))
 					return
+
+				if stake_address not in chain.stake_validator_latency[block_number]:
+					chain.stake_validator_latency[block_number][stake_address] = {'r2_time_diff' : z['r2_time_diff']}
+				else:
+					chain.stake_validator_latency[block_number][stake_address]['r2_time_diff'] = z['r2_time_diff']
 
 				printL(('>>> POS reveal_three', self.transport.getPeer().host, stake_address, str(block_number), consensus_hash))
 
@@ -1786,7 +1809,7 @@ class p2pFactory(ServerFactory):
 		z['reveal_one'] = chain.hash_chain[:-1][::-1][z['block_number']-(epoch*10000)]	
 		rkey = random_key()
 		z['reveal_two'] = sha256(z['reveal_one']+rkey)
-		
+
 		y=False
 		tmp_stake_reveal_one = []
 		for r in chain.stake_reveal_one:											#need to check the reveal list for existence already, if so..reuse..
@@ -1823,6 +1846,8 @@ class p2pFactory(ServerFactory):
 		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1		#next block..
 		epoch = z['block_number']/10000			#+1 = next block
 		z['reveal_one'] = chain.hash_chain[:-1][::-1][z['block_number']-(epoch*10000)]	
+		z['r1_time_diff'] = r1_time_diff[z['block_number']]
+
 		for s in chain.stake_reveal_one:
 			if len(s)==6:
 				if s[3]==z['reveal_one']:			#consider adding checks here..
@@ -1849,7 +1874,7 @@ class p2pFactory(ServerFactory):
 		z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash
 		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1
 		z['consensus_hash'] = consensus_hash
-
+		z['r2_time_diff'] = r2_time_diff[z['block_number']]
 		for s in chain.stake_reveal_two:
 			if len(s)==8:
 				if sha256(s[4]+s[7]) == s[6]:
