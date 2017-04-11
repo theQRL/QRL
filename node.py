@@ -33,8 +33,8 @@ wallet.printL = printL
 merkle.printL = printL
 
 
-r1_time_diff = defaultdict(dict) #r1_time_diff[block_number] = { 'stake_address':{ 'r1_time_diff': value_in_ms }}
-r2_time_diff = defaultdict(dict) #r2_time_diff[block_number] = { 'stake_address':{ 'r2_time_diff': value_in_ms }}
+r1_time_diff = defaultdict(list) #r1_time_diff[block_number] = { 'stake_address':{ 'r1_time_diff': value_in_ms }}
+r2_time_diff = defaultdict(list) #r2_time_diff[block_number] = { 'stake_address':{ 'r2_time_diff': value_in_ms }}
 
 def parse(data):
 		return data.replace('\r\n','')
@@ -132,9 +132,10 @@ def reveal_two_logic(data=None):
 
 	reveals = []
 	curr_time = int(time.time()*1000)
+	global r1_time_diff
+	r1_time_diff[chain.m_blockchain[-1].blockheader.blocknumber+1] = map(lambda t1: curr_time - t1,r1_time_diff[chain.m_blockchain[-1].blockheader.blocknumber+1])
+		
 	for s in chain.stake_reveal_one:
-		if s[0] in r1_time_diff[s[2]]:
-			r1_time_diff[s[2]][s[0]]['r1_time_diff'] = curr_time - r1_time_diff[s[2]][s[0]]['r1_time_diff']
 		if s[1] == chain.m_blockchain[-1].blockheader.headerhash and s[2] == chain.m_blockchain[-1].blockheader.blocknumber+1:
 			reveals.append(s[3])
 
@@ -528,9 +529,10 @@ def pos_d(block_number, headerhash):
 
 	p = []
 	curr_time = int(time.time()*1000)
+	global r2_time_diff
+	r2_time_diff[chain.m_blockchain[-1].blockheader.blocknumber+1] = map(lambda t2: curr_time - t2, r2_time_diff[chain.m_blockchain[-1].blockheader.blocknumber+1])
+
 	for s in chain.stake_reveal_one:
-		if s[0] in r2_time_diff[s[2]]:
-			r2_time_diff[s[2]][s[0]]['r2_time_diff'] = curr_time - r2_time_diff[s[2]][s[0]]['r2_time_diff']
  		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
 
@@ -1391,7 +1393,7 @@ class p2pProtocol(Protocol):
 					printL(( 'stake address not in the stake_list'))
 					return 
 
-				r1_time_diff[block_number][stake_address] = {'r1_time_diff':int(time.time()*1000)}
+				r1_time_diff[block_number].append(int(time.time()*1000))
 
 				printL(( '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 
@@ -1426,12 +1428,12 @@ class p2pProtocol(Protocol):
 					printL(( 'reveal_two not sha256(reveal_one+nonce) in chain.stake_reveal_one'))
 					return
 
-				r2_time_diff[block_number][stake_address] = {'r2_time_diff':int(time.time()*1000)}
+				r2_time_diff[block_number].append(int(time.time()*1000))
 
 				if stake_address not in chain.stake_validator_latency[block_number]:
-					chain.stake_validator_latency[block_number][stake_address] = {'r1_time_diff' : z['r1_time_diff']}
-				else:
-					chain.stake_validator_latency[block_number][stake_address]['r1_time_diff'] = z['r1_time_diff']
+					chain.stake_validator_latency[block_number][stake_address] = {}
+
+				chain.stake_validator_latency[block_number][stake_address]['r1_time_diff'] = z['r1_time_diff']
 
 				printL(( '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 
@@ -1472,9 +1474,8 @@ class p2pProtocol(Protocol):
 					return
 
 				if stake_address not in chain.stake_validator_latency[block_number]:
-					chain.stake_validator_latency[block_number][stake_address] = {'r2_time_diff' : z['r2_time_diff']}
-				else:
-					chain.stake_validator_latency[block_number][stake_address]['r2_time_diff'] = z['r2_time_diff']
+					chain.stake_validator_latency[block_number][stake_address] = {}
+				chain.stake_validator_latency[block_number][stake_address]['r2_time_diff'] = z['r2_time_diff']
 
 				printL(('>>> POS reveal_three', self.transport.getPeer().host, stake_address, str(block_number), consensus_hash))
 
@@ -1849,6 +1850,7 @@ class p2pFactory(ServerFactory):
 		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1		#next block..
 		epoch = z['block_number']/10000			#+1 = next block
 		z['reveal_one'] = chain.hash_chain[:-1][::-1][z['block_number']-(epoch*10000)]	
+		global r1_time_diff
 		z['r1_time_diff'] = r1_time_diff[z['block_number']]
 
 		for s in chain.stake_reveal_one:
@@ -1877,6 +1879,7 @@ class p2pFactory(ServerFactory):
 		z['headerhash'] = chain.m_blockchain[-1].blockheader.headerhash
 		z['block_number'] = chain.m_blockchain[-1].blockheader.blocknumber+1
 		z['consensus_hash'] = consensus_hash
+		global r2_time_diff
 		z['r2_time_diff'] = r2_time_diff[z['block_number']]
 		for s in chain.stake_reveal_two:
 			if len(s)==8:
