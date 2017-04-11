@@ -16,6 +16,7 @@ from operator import itemgetter
 from math import log, ceil
 
 import os, copy, ast, sys, json, jsonpickle, decimal
+from collections import defaultdict
 import merkle, wallet, db
 
 import cPickle as pickle
@@ -47,6 +48,7 @@ pos_consensus = []
 pos_flag = []
 ip_list = []
 blockheight_map = []
+stake_validator_latency = defaultdict(dict)
 
 printL(( 'QRL blockchain ledger v 0.04a'))
 printL(( 'loading db'))
