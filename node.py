@@ -13,13 +13,14 @@ from operator import itemgetter
 from collections import Counter, defaultdict
 from math import ceil
 from blessings import Terminal
+import json
 
 version_number = "alpha/0.04a"
 
 log = logger.getLogger(__name__)
 
 cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
-api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers']
+api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers', 'latency']
 
 term = Terminal();
 print term.enter_fullscreen
@@ -820,6 +821,8 @@ class ApiProtocol(Protocol):
 		#printL(( '<<< API disconnected'
 		self.factory.connections -= 1
 
+	def latency(self):
+		return json.dumps(chain.stake_validator_latency)
 
 class WalletProtocol(Protocol):
 
