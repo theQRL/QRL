@@ -827,7 +827,7 @@ class ApiProtocol(Protocol):
 
 	def latency(self, type=None):
 		output = {}
-		if type.lower() in ['mean', 'median', 'last']:
+		if type and type.lower() in ['mean', 'median', 'last']:
 			for block_num in chain.stake_validator_latency.keys():
 				output[block_num] = {}
 				for stake in chain.stake_validator_latency[block_num].keys():
