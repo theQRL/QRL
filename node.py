@@ -39,6 +39,7 @@ r1_time_diff = defaultdict(list) #r1_time_diff[block_number] = { 'stake_address'
 r2_time_diff = defaultdict(list) #r2_time_diff[block_number] = { 'stake_address':{ 'r2_time_diff': value_in_ms }}
 
 pending_blocks = {}	#Used only for synchronization of blocks
+isDownloading = False
 last_pos_execution = 0
 
 def parse(data):
@@ -203,7 +204,10 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	return
 	
 def reveal_four_logic(reveals, our_reveal):
-	global last_pos_execution
+	global last_pos_execution, isDownloading
+
+	if isDownloading: return
+
 	last_pos_execution = time.time()
 	#chain.pos_consensus = [consensus_hash, count, total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
 
@@ -231,6 +235,7 @@ def reveal_four_logic(reveals, our_reveal):
 		if len(target_block_headerhash)>1 and target_block_headerhash[0][1] == target_block_headerhash[1][1]: 	# two different winning header hash having same count
 			return												# skip
 		printL (('Preparing for Synchronization from ', chain.m_blockheight()+1, ' to ', target_block_height[0][0], '(', target_block_headerhash[0][0], ')'))
+		isDownloading = True
 		download_blocks(target_block_height[0][0], target_block_headerhash[0][0])
 
 	if pos_consensus(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash) == False:
@@ -1241,9 +1246,9 @@ class p2pProtocol(Protocol):
 	def parse_msg(self, data):
 		prefix = data[0:2]
 		suffix = data[2:]
+		global isDownloading
 
 		if prefix == 'TX':				#tx received..
-			#printL(( 'ding'
 			self.recv_tx(suffix)
 			return
 		
@@ -1311,9 +1316,9 @@ class p2pProtocol(Protocol):
 					printL (( '>>>Received Block #', block.blockheader.blocknumber))
 					if block.blockheader.blocknumber in pending_blocks:
 						printL (( 'Found in Pending List' ))
-						#if pending_blocks[block.blockheader.blocknumber][2]!=block.blockheader.headerhash:
-						#	printL ((pending_blocks[block.blockheader.blocknumber][2], block.blockheader))
-						#	return
+						if pending_blocks[block.blockheader.blocknumber][2]!=block.blockheader.prev_blockheaderhash and  pending_blocks[block.blockheader.blocknumber][2]!=block.blockheader.headerhash:
+							return
+
 						if pending_blocks[block.blockheader.blocknumber][0] == thisPeerHost.host+":"+str(thisPeerHost.port):
 							printL (( 'Matched with ', block.blockheader.blocknumber ))
 							pending_blocks[block.blockheader.blocknumber][3].cancel()
@@ -1322,13 +1327,20 @@ class p2pProtocol(Protocol):
 								download_blocks(block.blockheader.blocknumber-1, block.blockheader.prev_blockheaderhash)
 							else:
 								for i in range(chain.m_blockheight()+1, chain.m_blockheight()+1+len(pending_blocks)):
-									chain.m_add_block(pending_blocks[i][1])
+									if not chain.m_add_block(pending_blocks[i][1]):
+										printL (( "Failed to add block by m_add_block, re-requesting the block #",i ))
+										download_blocks(i, pending_blocks[i][2])
+										return
+									
+									del pending_blocks[i]
 								pending_blocks = {}
 								f.sync = 0
-								#reset_everything()
+								isDownloading = False
 								chain.stake_reveal_three = []
 								chain.stake_reveal_two = []
 								chain.stake_reveal_one = []
+						else:
+							printL (( 'Didnt match', pending_blcoks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
 
 				except:
 					printL(( 'block rejected - unable to decode serialised data', self.transport.getPeer().host))
@@ -1346,6 +1358,7 @@ class p2pProtocol(Protocol):
 				return
 			
 		elif prefix == 'CB':
+				if isDownloading: return
 				z = chain.json_decode(suffix)
 				block_number = z['block_number']
 				headerhash = z['headerhash'].encode('latin1')
@@ -1456,7 +1469,6 @@ class p2pProtocol(Protocol):
 		
 		elif prefix == 'FB':		#Fetch Request for block
 				suffix = int(suffix)
-				printL (( '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^FB CALLED ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^' ))
 				if suffix>0 and suffix <= chain.m_blockheight():
 						printL(( '<<<Pushing block number', str(suffix), str(len(chain.json_bytestream(chain.m_get_block(suffix)))),' bytes', 'to node: ', self.transport.getPeer().host ))
 						self.transport.write(self.wrap_message(chain.json_bytestream_pb(chain.m_get_block(suffix))))
@@ -1502,7 +1514,7 @@ class p2pProtocol(Protocol):
 					return
 
 		elif prefix == 'R1':							#receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
-
+				if isDownloading: return
 				z = chain.json_decode(suffix)
 				block_number = z['block_number']
 				headerhash = z['headerhash'].encode('latin1')
@@ -1515,7 +1527,7 @@ class p2pProtocol(Protocol):
 				for entry in chain.stake_reveal_one:	#already received, do not relay.
 					if entry[3] == reveal_one:
 						return
-				if len(chain.stake_validator_latency) > 100:
+				if len(chain.stake_validator_latency) > 20:
 					del chain.stake_validator_latency[min(chain.stake_validator_latency.keys())]
 				# is reveal_one valid - does it hash to terminator in stake_list? We check that headerhash+block_number match in reveal_two_logic
 
@@ -1552,7 +1564,7 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'R2':
-
+				if isDownloading: return
 				z = chain.json_decode(suffix)
 
 				block_number = z['block_number']
@@ -1580,7 +1592,7 @@ class p2pProtocol(Protocol):
 
 				r2_time_diff[block_number].append(int(time.time()*1000))
 
-				if len(r2_time_diff)>2:
+				if len(r2_time_diff)>20:
 					del r2_time_diff[min(r2_time_diff.keys())]				
 
 
@@ -1601,7 +1613,7 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'R3':
-
+				if isDownloading: return
 				z = chain.json_decode(suffix)
 
 				#chain.stake_reveal_three.append([z['stake_address'],z['headerhash'], z['block_number'], z['consensus_hash'], z['nonce2']])
@@ -1620,7 +1632,6 @@ class p2pProtocol(Protocol):
 				y=0
 				for s in chain.stake_reveal_two:
 					if s[0] == stake_address and s[1] == headerhash and s[2] == block_number:
-						#print 'ding'
 						if s[6] == sha256(s[4]+nonce2):
 							y=1
 				isSynced = True
