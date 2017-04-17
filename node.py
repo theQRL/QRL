@@ -1620,7 +1620,7 @@ class p2pProtocol(Protocol):
 				y=0
 				for s in chain.stake_reveal_two:
 					if s[0] == stake_address and s[1] == headerhash and s[2] == block_number:
-						print 'ding'
+						#print 'ding'
 						if s[6] == sha256(s[4]+nonce2):
 							y=1
 				isSynced = True
