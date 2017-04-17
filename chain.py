@@ -646,6 +646,9 @@ def json_bytestream(obj):
 def json_bytestream_tx(tx_obj):											#JSON serialise tx object
 	return 'TX'+json_bytestream(tx_obj)
 
+def json_bytestream_pb(block_obj):
+        return 'PB'+json_bytestream(block_obj)
+
 def json_bytestream_bk(block_obj):										# "" block object
 	return 'BK'+json_bytestream(block_obj)
 
