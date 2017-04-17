@@ -1340,7 +1340,7 @@ class p2pProtocol(Protocol):
 								chain.stake_reveal_two = []
 								chain.stake_reveal_one = []
 						else:
-							printL (( 'Didnt match', pending_blcoks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
+							printL (( 'Didnt match', pending_blocks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
 
 				except:
 					printL(( 'block rejected - unable to decode serialised data', self.transport.getPeer().host))
