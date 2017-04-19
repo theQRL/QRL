@@ -1084,7 +1084,7 @@ def m_add_block(block_obj, new=1):
 	if len(m_blockchain) == 0:
 		m_read_chain()
 
-	if validate_block(block_obj, new=1) is True:
+	if validate_block(block_obj, new) is True:
 		if state_add_block(block_obj) is True:
 				m_blockchain.append(block_obj)
 				remove_tx_in_block_from_pool(block_obj)
