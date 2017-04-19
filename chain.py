@@ -1080,19 +1080,16 @@ def m_get_last_block():
 def m_create_block(nonce, reveal_list=None):
 	return CreateBlock(nonce, reveal_list)
 
-def m_add_block(block_obj):
+def m_add_block(block_obj, new=1):
 	if len(m_blockchain) == 0:
 		m_read_chain()
 
 	if validate_block(block_obj, new=1) is True:
-		#m_blockchain.append(block_obj)
-		#if state_add_block(m_blockchain[-1]) is True:
 		if state_add_block(block_obj) is True:
 				m_blockchain.append(block_obj)
 				remove_tx_in_block_from_pool(block_obj)
 				remove_st_in_block_from_pool(block_obj)
 		else: 	
-				#m_remove_last_block()
 				printL(( 'last block failed state/stake checks, removed from chain'))
 				state_validate_tx_pool()
 				return False
@@ -1823,6 +1820,8 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 		if len(b.reveal_list) != len(set(b.reveal_list)):
 			printL(( 'Repetition in reveal_list'))
 			return False
+
+	 if new == 1:
 
 		i=0
 		for r in b.reveal_list:

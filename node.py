@@ -540,7 +540,7 @@ def synchronising_update_chain(data=None):
 				printL(( 'potential fork..block hashes do not fit, discarded'))
 				continue	#forked blocks?
 			else:
-				chain.m_add_block(b)
+				chain.m_add_block(b, new=0)
 		if b.blockheader.blocknumber <= chain.m_blockheight():
 			continue
 		tmp_recent_blocks.append(b)
