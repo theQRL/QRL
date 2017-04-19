@@ -1532,7 +1532,7 @@ def verify_chain():
 			return False
 	for x in range(2,len(m_blockchain)):
 		if x > len(m_blockchain)-250:
-			if validate_block(m_blockchain[x],last_block=m_blockchain[x].blockheader.blocknumber-1, verbose=1) is False:
+			if validate_block(m_blockchain[x],last_block=m_blockchain[x].blockheader.blocknumber-1, new=0, verbose=1) is False:
 				printL(( 'block failed:', m_blockchain[x].blockheader.blocknumber))
 				return False
 		if state_add_block(m_blockchain[x]) == False:
@@ -1821,19 +1821,20 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 			printL(( 'Repetition in reveal_list'))
 			return False
 
-	 if new == 1:
+	 	if new == 1:
 
-		i=0
-		for r in b.reveal_list:
-			for s in stake_list_get():
-				t = sha256(r)
-				for x in range(b.blocknumber-(b.epoch*10000)):
-					t = sha256(t)
-				if t == s[1]:
-						i+=1
-		if i != len(b.reveal_list):
-			printL(( 'Not all the reveal_hashes are valid..'))
-			return False
+			i=0
+			for r in b.reveal_list:
+				for s in stake_list_get():
+					t = sha256(r)
+					for x in range(b.blocknumber-(b.epoch*10000)):
+						t = sha256(t)
+					if t == s[1]:
+							i+=1
+		
+			if i != len(b.reveal_list):
+				printL(( 'Not all the reveal_hashes are valid..'))
+				return False
 
 
 	if sha256(b.stake_selector+str(b.epoch)+str(b.stake_nonce)+str(b.block_reward)+str(b.timestamp)+b.hash+str(b.blocknumber)+b.prev_blockheaderhash+str(b.number_transactions)+b.merkle_root_tx_hash+str(b.number_stake)+b.hashedstake) != b.headerhash:
