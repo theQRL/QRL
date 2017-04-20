@@ -1401,9 +1401,9 @@ class p2pProtocol(Protocol):
                                 #        return
 
 									
-				if block_number > chain.m_blockheight():		
-					#get_synchronising_blocks(block_number)					
-					return
+				#if block_number > chain.m_blockheight():		
+				#	get_synchronising_blocks(block_number)					
+				#	return
 
 					# ^^ need to build this out and make it more secure..if we are successfully staking with multiple stake validators and normal block-intervals then
 					# the node should be dubious of simply accepting blocks from another node..
