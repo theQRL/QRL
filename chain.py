@@ -184,7 +184,7 @@ def cl(one,many):
 
 def is_stake_banned(stake_address):
 	if stake_address in stake_ban_list:
-		epoch_diff = int(m_blockheight()/10000) - int(stake_ban_block[stake_address]/10000)
+		epoch_diff = (m_blockheight()/10000) - (stake_ban_block[stake_address]/10000)
 		if m_blockheight() - stake_ban_block[stake_address] > 100 or epoch_diff > 0:
 			printL (( 'Stake removed from ban list' ))
 			del stake_ban_block[stake_address]
