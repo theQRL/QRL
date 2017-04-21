@@ -28,7 +28,6 @@ global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch
 tx_per_block = [0, 0]
 ping_list =[]
 node_list = ['104.251.219.40']
-#node_list = ['142.54.189.162']
 m_blockchain = []
 transaction_pool = []
 txhash_timestamp = []
@@ -37,6 +36,8 @@ stake_reveal = []
 stake_reveal_one = []
 stake_reveal_two = []
 stake_reveal_three = []
+stake_ban_list = []
+stake_ban_block = {}
 stake_pool = []
 stake_list = []
 epoch_prf = []
@@ -181,6 +182,21 @@ def cl(one,many):
 	return min(many, key=lambda x:abs(x-one))
 
 
+def is_stake_banned(stake_address):
+	if stake_address in stake_ban_list:
+		if m_blockheight() - stake_ban_block[stake_address] > 100:
+			printL (( 'Stake removed from ban list' ))
+			del stake_ban_block[stake_address]
+			stake_ban_list.remove(stake_address)
+			return False
+		return True
+		
+	return False
+			
+def ban_stake(stake_address):
+	printL (('stake address ', stake_address, ' added to block list' ))
+	stake_ban_list.append(stake_address)
+	stake_ban_block[stake_address] = m_blockheight()+1
 
 
 # create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds). 
