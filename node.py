@@ -1358,7 +1358,6 @@ class p2pProtocol(Protocol):
 									del pending_blocks[i]
 								pending_blocks = {}
 								f.sync = 0
-								last_pos_execution = 0
 								isDownloading = False
 								del chain.stake_reveal_three[:]
 								del chain.stake_reveal_two[:]
@@ -2205,6 +2204,7 @@ if __name__ == "__main__":
 	
 	f = p2pFactory()
 	api = ApiFactory()
+
 	reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	reactor.listenTCP(9000, f)
 	reactor.listenTCP(8080, api)
