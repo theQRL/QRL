@@ -226,9 +226,9 @@ def reveal_four_logic(reveals, our_reveal):
 		target_block_height = [(max_height, target_block_height[0][1])]
 	if len(target_block_height)>0 and chain.m_blockheight()+1<target_block_height[0][0]:
 		if len(target_block_height)>1 and target_block_height[0][1]==target_block_height[1][1]: # two different winning block height having same count
-			chain.stake_reveal_three = []
-			chain.stake_reveal_two = []
-			chain.stake_reveal_one = []
+			del chain.stake_reveal_three[:]
+			del chain.stake_reveal_two[:]
+			del chain.stake_reveal_one[:]
 			last_pos_execution = 0
 			return 										# skip
 		block_headerhash_counter = Counter()
@@ -237,9 +237,9 @@ def reveal_four_logic(reveals, our_reveal):
 				block_headerhash_counter[s[1]] += 1
 		target_block_headerhash = block_headerhash_counter.most_common(2)
 		if len(target_block_headerhash)>1 and target_block_headerhash[0][1] == target_block_headerhash[1][1]: 	# two different winning header hash having same count
-			chain.stake_reveal_three = []
-			chain.stake_reveal_two = []
-			chain.stake_reveal_one = []
+			del chain.stake_reveal_three[:]
+			del chain.stake_reveal_two[:]
+			del chain.stake_reveal_one[:]
 			last_pos_execution = 0
 			return												# skip
 		printL (('Preparing for Synchronization from ', chain.m_blockheight()+1, ' to ', target_block_height[0][0], '(', target_block_headerhash[0][0], ')'))
@@ -1360,9 +1360,9 @@ class p2pProtocol(Protocol):
 								f.sync = 0
 								last_pos_execution = 0
 								isDownloading = False
-								chain.stake_reveal_three = []
-								chain.stake_reveal_two = []
-								chain.stake_reveal_one = []
+								del chain.stake_reveal_three[:]
+								del chain.stake_reveal_two[:]
+								del chain.stake_reveal_one[:]
 						else:
 							printL (( 'Didnt match', pending_blocks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
 
