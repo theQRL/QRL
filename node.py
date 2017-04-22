@@ -229,6 +229,7 @@ def reveal_four_logic(reveals, our_reveal):
 			chain.stake_reveal_three = []
 			chain.stake_reveal_two = []
 			chain.stake_reveal_one = []
+			last_pos_execution = 0
 			return 										# skip
 		block_headerhash_counter = Counter()
 		for s in chain.stake_reveal_three:
@@ -239,6 +240,7 @@ def reveal_four_logic(reveals, our_reveal):
 			chain.stake_reveal_three = []
 			chain.stake_reveal_two = []
 			chain.stake_reveal_one = []
+			last_pos_execution = 0
 			return												# skip
 		printL (('Preparing for Synchronization from ', chain.m_blockheight()+1, ' to ', target_block_height[0][0], '(', target_block_headerhash[0][0], ')'))
 		isDownloading = True
@@ -267,7 +269,18 @@ def reveal_four_logic(reveals, our_reveal):
 
 	printL(( 'CONSENSUS winner: ', chain.pos_consensus[7], 'hash ', chain.pos_consensus[0]))
 	printL(( 'our_reveal', our_reveal))
-	
+
+	reactor.ban_staker = reactor.callLater(25, ban_staker, chain.pos_consensus[7])
+
+	return
+
+
+def ban_staker(stake_address):
+	del chain.stake_reveal_one[:]					# as we have just created this there can be other messages yet for next block, safe to erase
+	del chain.stake_reveal_two[:]
+	del chain.stake_reveal_three[:]
+	chain.ban_stake(stake_address)
+	reactor.callLater(5, post_block_logic)
 	return
 
 
@@ -295,8 +308,8 @@ def create_new_block(winner, reveals):
 			stop_all_loops()
 			del chain.stake_reveal_one[:]					# as we have just created this there can be other messages yet for next block, safe to erase
 			del chain.stake_reveal_two[:]
+			del chain.stake_reveal_three[:]
 			f.send_block_to_peers(block_obj)				# relay the block
-
 		else:
 			printL(( 'bad block'))
 			return
@@ -327,6 +340,8 @@ def reset_everything(data=None):
 
 def stop_all_loops(data=None):
 	printL(( '** stopping timing loops **'))
+	try:	reactor.ban_staker.cancel()
+	except: pass
 	try:	reactor.callIDR15.cancel()	#reveal loop
 	except:	pass
 	try:	reactor.callID.cancel()		#cancel the ST genesis loop if still running..
@@ -1253,6 +1268,8 @@ class p2pProtocol(Protocol):
 		prefix = data[0:2]
 		suffix = data[2:]
 		global isDownloading
+		global last_pos_execution
+
 
 		if prefix == 'TX':				#tx received..
 			self.recv_tx(suffix)
@@ -1307,7 +1324,7 @@ class p2pProtocol(Protocol):
 					return	
 
 		elif prefix == 'BK':			#block received
-				try: 	block = chain.json_decode_block(suffix)
+				try:		block = chain.json_decode_block(suffix)
 				except:
 						printL(( 'block rejected - unable to decode serialised data', self.transport.getPeer().host))
 						return
@@ -1341,6 +1358,7 @@ class p2pProtocol(Protocol):
 									del pending_blocks[i]
 								pending_blocks = {}
 								f.sync = 0
+								last_pos_execution = 0
 								isDownloading = False
 								chain.stake_reveal_three = []
 								chain.stake_reveal_two = []
@@ -1381,7 +1399,7 @@ class p2pProtocol(Protocol):
 						# again need to think this one through in detail..
 						
 							return
-				global last_pos_execution
+
 				if last_pos_execution+240<time.time():
 					printL (( "Last POS cycle 240 seconds ago" ))
 					printL (( "Reactivating POS cycle" ))
@@ -1527,6 +1545,10 @@ class p2pProtocol(Protocol):
 				stake_address = z['stake_address'].encode('latin1')
 				reveal_one = z['reveal_one'].encode('latin1')
 				reveal_two = z['reveal_two'].encode('latin1')
+
+				if chain.is_stake_banned(stake_address):
+					return
+
 				if block_number<=chain.m_blockheight():
 					return
 
@@ -1580,6 +1602,10 @@ class p2pProtocol(Protocol):
 				nonce = z['nonce'].encode('latin1')
 				winning_hash = z['winning_hash'].encode('latin1')
 				reveal_three = z['reveal_three'].encode('latin1')
+
+				if chain.is_stake_banned(stake_address):
+					return
+
 				if block_number<=chain.m_blockheight():
 					return
 
@@ -1629,8 +1655,13 @@ class p2pProtocol(Protocol):
 				block_number = z['block_number']
 				consensus_hash = z['consensus_hash'].encode('latin1')
 				nonce2 = z['nonce2'].encode('latin1')
+
+				if chain.is_stake_banned(stake_address):
+					return
+
 				if block_number<=chain.m_blockheight():
 					return
+
 				for entry in chain.stake_reveal_three:		# we have already seen the message..
 					if entry[4] == nonce2:
 						return
@@ -2174,7 +2205,6 @@ if __name__ == "__main__":
 	
 	f = p2pFactory()
 	api = ApiFactory()
-
 	reactor.listenTCP(2000, WalletFactory(stuff), interface='127.0.0.1')
 	reactor.listenTCP(9000, f)
 	reactor.listenTCP(8080, api)
