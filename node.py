@@ -186,7 +186,7 @@ def reveal_two_logic(data=None):
 # collate the R2 messages to see if we are creating the block by network consensus..
 
 def reveal_three_logic(winner, reveals, our_reveal=None):
-	global last_pos_execution, next_block_number, netxt_header_hash
+	global last_pos_execution, next_block_number, next_header_hash
 	last_pos_execution = time.time()
 	printL(( 'reveal_three_logic:'))
 	if winner==None:
