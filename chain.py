@@ -36,6 +36,9 @@ stake_reveal = []
 stake_reveal_one = []
 stake_reveal_two = []
 stake_reveal_three = []
+last_stake_reveal_one = []
+last_stake_reveal_two = []
+last_stake_reveal_three = []
 stake_ban_list = []
 stake_ban_block = {}
 stake_pool = []
@@ -1924,6 +1927,5 @@ def create_my_tx(txfrom, txto, n, fee=0):
 		return (tx, msg)
 	else:
 		return (False, msg)
-
 
 

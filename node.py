@@ -15,6 +15,7 @@ from math import ceil
 from blessings import Terminal
 import statistics
 
+import copy
 import json
 
 version_number = "alpha/0.04a"
@@ -213,6 +214,9 @@ def reveal_four_logic(reveals, our_reveal):
 	if isDownloading: return
 
 	last_pos_execution = time.time()
+
+	chain.last_stake_reveal_one = copy.deepcopy(chain.stake_reveal_one)
+	chain.last_stake_reveal_three = copy.deepcopy(chain.stake_reveal_three)
 	#chain.pos_consensus = [consensus_hash, count, total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
 
 	printL(('reveal_four_logic: '))
@@ -708,7 +712,7 @@ def pos_consensus(block_number, headerhash):
 	#chain.stake_reveal_three.append([stake_address,headerhash, block_number, consensus_hash, nonce2])
 
 	p = []
-	for s in chain.stake_reveal_one:
+	for s in chain.last_stake_reveal_one:
 		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
 
@@ -720,7 +724,7 @@ def pos_consensus(block_number, headerhash):
 
 
 	l = []
-	for s in chain.stake_reveal_three:
+	for s in chain.last_stake_reveal_three:
 		if s[1]==headerhash and s[2]==block_number:
 			l.append([chain.state_balance(s[0]),s[3]])
 
@@ -736,7 +740,7 @@ def pos_consensus(block_number, headerhash):
 	if len(c) != 1 :
 		printL(( 'warning, more than one consensus_hash is being circulated by incoming R2 messages..'))
 
-	for s in chain.stake_reveal_one:
+	for s in chain.last_stake_reveal_one:
 		if s[3]==c[0][0]:
 			stake_address = s[0]
 
@@ -1623,16 +1627,15 @@ class p2pProtocol(Protocol):
 				printL(( '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 				
 				found = False
-				if not allow_reveal_duplicates:
-					for item in chain.stake_reveal_one:
-						if item[0] == stake_address:
-							found = True
-							item[1] = headerhash
-							item[2] = block_number
-							item[3] = reveal_one
-							item[4] = reveal_two
-							found = True
-				#		break
+				for item in chain.stake_reveal_one:
+					if item[0] == stake_address:
+						found = True
+						item[1] = headerhash
+						item[2] = block_number
+						item[3] = reveal_one
+						item[4] = reveal_two
+						found = True
+						break
 				if not found:
 					chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
@@ -1690,17 +1693,16 @@ class p2pProtocol(Protocol):
 				#chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce']], z['winning_hash'], z['reveal_three']])		#don't forget to store our reveal in stake_reveal_one
 
 				found = False
-				if not allow_reveal_duplicates:
-					for item in chain.stake_reveal_two:
-						if item[0] == stake_address:
-							item[1] = headerhash
-							item[2] = block_number
-							item[3] = reveal_one
-							item[4] = nonce
-							item[5] = winning_hash
-							item[6] = reveal_three
-							found = True
-							break
+				for item in chain.stake_reveal_two:
+					if item[0] == stake_address:
+						item[1] = headerhash
+						item[2] = block_number
+						item[3] = reveal_one
+						item[4] = nonce
+						item[5] = winning_hash
+						item[6] = reveal_three
+						found = True
+						break
 				if not found:
 					chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three]) 
 				if isSynced:
@@ -1748,15 +1750,14 @@ class p2pProtocol(Protocol):
 
 				printL(('>>> POS reveal_three', self.transport.getPeer().host, stake_address, str(block_number), consensus_hash))
 				found = False
-				if not allow_reveal_duplicates:
-					for item in chain.stake_reveal_three:
-						if item[0]==stake_address:
-							item[1] = headerhash
-							item[2] = block_number
-							item[3] = consensus_hash
-							item[4] = nonce2
-							found = True
-							break
+				for item in chain.stake_reveal_three:
+					if item[0]==stake_address:
+						item[1] = headerhash
+						item[2] = block_number
+						item[3] = consensus_hash
+						item[4] = nonce2
+						found = True
+						break
 				if not found:
 					chain.stake_reveal_three.append([stake_address, headerhash, block_number, consensus_hash, nonce2])
 
