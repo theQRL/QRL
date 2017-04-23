@@ -428,8 +428,8 @@ def pre_block_logic(block_obj):
 	f.partial_sync = [0,0]
 	global sameEpochSync, isDownloading, next_header_hash, next_block_number, allow_reveal_duplicates
 	if sameEpochSync and not isDownloading:
-		pos_consensus(next_block_number, next_header_hash)
 		try:
+			pos_consensus(next_block_number, next_header_hash)
 			if chain.pos_consensus[3]>=75:
 				sameEpochSync = False
 				isDownloading = True
@@ -589,7 +589,7 @@ def synchronising_update_chain(data=None):
 	tmp_recent_blocks = []
 	for b in chain.recent_blocks:
 		if b.blockheader.blocknumber != chain.m_blockheight()+1:
-			printL(( '!!!!! Block Number mismatch', b.blockheader.blocknumber , ' expected block number ', chain.m_blockheight()+1 ))
+			printL(( 'Received Block ', b.blockheader.blocknumber , ' expected block number ', chain.m_blockheight()+1 ))
 			pass
 		else:
 			if b.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
