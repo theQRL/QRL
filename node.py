@@ -14,8 +14,6 @@ from collections import Counter, defaultdict
 from math import ceil
 from blessings import Terminal
 import statistics
-
-import copy
 import json
 
 version_number = "alpha/0.04a"
@@ -42,13 +40,25 @@ r2_time_diff = defaultdict(list) #r2_time_diff[block_number] = { 'stake_address'
 pending_blocks = {}	#Used only for synchronization of blocks
 isDownloading = False
 sameEpochSync = False
-last_pos_execution = 0
+last_pos_cycle = 0
+last_selected_height = 0
+reveal_cleaned = True
+sync_time = 0
+last_bk_time = 0
 next_header_hash = None
 next_block_number = None
 allow_reveal_duplicates = False
 
 def parse(data):
 		return data.replace('\r\n','')
+
+def monitor_bk():
+	global last_pos_cycle, last_bk_time
+	if time.time() - last_pos_cycle > 240:
+		if time.time() - last_bk_time > 120:
+			printL (( ' Pos cycle activated by monitor_bk() ' ))
+			restart_pos_cycle()
+	reactor.callLater(120, monitor_bk)
 
 # pos functions. an asynchronous loop. 
 
@@ -138,8 +148,6 @@ def pre_pos_2(data=None):
 
 
 def reveal_two_logic(data=None):
-	global last_pos_execution
-	last_pos_execution = time.time()
 	printL(( 'reveal_two_logic'))
 	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
@@ -187,8 +195,8 @@ def reveal_two_logic(data=None):
 # collate the R2 messages to see if we are creating the block by network consensus..
 
 def reveal_three_logic(winner, reveals, our_reveal=None):
-	global last_pos_execution, next_block_number, next_header_hash
-	last_pos_execution = time.time()
+	global next_block_number, next_header_hash
+	
 	printL(( 'reveal_three_logic:'))
 	if winner==None:
 		printL (('Calling for reveal_four_logic' ))
@@ -209,66 +217,16 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	return
 	
 def reveal_four_logic(reveals, our_reveal):
-	global last_pos_execution, isDownloading, sameEpochSync, next_header_hash, next_block_number
+	global isDownloading
 
 	if isDownloading: return
 
-	last_pos_execution = time.time()
-
-	chain.last_stake_reveal_one = copy.deepcopy(chain.stake_reveal_one)
-	chain.last_stake_reveal_three = copy.deepcopy(chain.stake_reveal_three)
-	#chain.pos_consensus = [consensus_hash, count, total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
-
 	printL(('reveal_four_logic: '))
-
-	#Check if block downloading is required
-	block_height_counter = Counter()
-        for s in chain.stake_reveal_three:
-		block_height_counter[s[2]] += 1
-	target_block_height = block_height_counter.most_common(2)
-	if len(target_block_height)>0:
-		max_height = 0
-		for item in target_block_height:
-			if item[0] > max_height and item[1]==target_block_height[0][1]:
-				max_height = item[0]
-		target_block_height = [(max_height, target_block_height[0][1])]
-	if len(target_block_height)>0 and chain.m_blockheight()+1<target_block_height[0][0]:
-		if len(target_block_height)>1 and target_block_height[0][1]==target_block_height[1][1]: # two different winning block height having same count
-			del chain.stake_reveal_three[:]
-			del chain.stake_reveal_two[:]
-			del chain.stake_reveal_one[:]
-			last_pos_execution = 0
-			return 										# skip
-		block_headerhash_counter = Counter()
-		for s in chain.stake_reveal_three:
-			if s[2] == target_block_height[0][0]:
-				block_headerhash_counter[s[1]] += 1
-		target_block_headerhash = block_headerhash_counter.most_common(2)
-		if len(target_block_headerhash)>1 and target_block_headerhash[0][1] == target_block_headerhash[1][1]: 	# two different winning header hash having same count
-			del chain.stake_reveal_three[:]
-			del chain.stake_reveal_two[:]
-			del chain.stake_reveal_one[:]
-			last_pos_execution = 0
-			return												# skip
-		printL (('Preparing for Synchronization from ', chain.m_blockheight()+1, ' to ', target_block_height[0][0], '(', target_block_headerhash[0][0], ')'))
-		epoch_diff = (target_block_height[0][0]/10000) - (chain.m_blockheight()/10000)
-		if epoch_diff>0:					# check if we need block till different epoch
-			isDownloading = True
-			download_blocks(target_block_height[0][0], target_block_headerhash[0][0])
-			return
-		else:
-			sameEpochSync = True
-			next_block_number = target_block_height[0][0]
-			next_header_hash = target_block_headerhash[0][0]
-			restart_post_block_logic()
-			return 
 
 	if pos_consensus(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash) == False:
 		#failure recovery entry here..
 		printL(('pos_consensus() is false: failure recovery mode..'))
 		reset_everything()
-		last_pos_execution = time.time() + 5
-		restart_post_block_logic(5)
 		return
 
 	printL(( 'R3 CONSENSUS:', chain.pos_consensus[1],'/', chain.pos_consensus[2],'(', chain.pos_consensus[3],'%)', 'voted/staked emission %:', chain.pos_consensus[6],'v/s ', chain.pos_consensus[4]/100000000.0, '/', chain.pos_consensus[5]/100000000.0  ,'for: ', chain.pos_consensus[0] ))
@@ -299,7 +257,6 @@ def ban_staker(stake_address):
 	del chain.stake_reveal_two[:]
 	del chain.stake_reveal_three[:]
 	chain.ban_stake(stake_address)
-	restart_post_block_logic(5)
 	return
 
 
@@ -402,65 +359,104 @@ def start_all_loops(data=None):
 	#chain.stake_reveal_one.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['reveal_two'], rkey])
 	#chain.stake_reveal_three.append([z['stake_address'],z['headerhash'], z['block_number'], z['consensus_hash'], z['nonce2']])
 
-def filter_reveal_one_two():
+def filter_reveal_one_two(blocknumber = None):
+	if not blocknumber:
+		blocknumber = chain.m_blockchain[-1].blockheader.blocknumber
 
-	chain.stake_reveal_one = filter(lambda s: s[2] > chain.m_blockchain[-1].blockheader.blocknumber, chain.stake_reveal_one)
+	chain.stake_reveal_one = filter(lambda s: s[2] > blocknumber, chain.stake_reveal_one)
 	
-	chain.stake_reveal_two = filter(lambda s: s[2] > chain.m_blockchain[-1].blockheader.blocknumber, chain.stake_reveal_two)
+	chain.stake_reveal_two = filter(lambda s: s[2] > blocknumber, chain.stake_reveal_two)
 
-	chain.stake_reveal_three = filter(lambda s: s[2] > chain.m_blockchain[-1].blockheader.blocknumber, chain.stake_reveal_three)
+	chain.stake_reveal_three = filter(lambda s: s[2] > blocknumber, chain.stake_reveal_three)
 
 	return
 
+def select_blockheight_by_consensus():
+	global last_selected_height
+	block_height_counter = Counter()
+	for s in chain.stake_reveal_three:
+		block_height_counter[s[2]] += 1
+	target_block_height = block_height_counter.most_common(1)
+
+	if len(target_block_height) == 0:
+		return None
+
+	if last_selected_height == target_block_height[0][0]:
+		filter_reveal_one_two(last_selected_height)
+		last_selected_height = select_blockheight_by_consensus()
+		return last_selected_height
+
+	last_selected_height = target_block_height[0][0]
+	return last_selected_height
 
 # supra factory block logic 
 
 # pre block logic..
 
 def pre_block_logic(block_obj):
-	
-	# is the node in transition between f.sync 0 and 1 or in error recovery mode?
+	global isDownloading, next_header_hash, next_block_number, last_pos_cycle, reveal_cleaned, sync_tme, last_bk_time
+	last_bk_time = time.time()
+	blocknumber = block_obj.blockheader.blocknumber
+	headerhash = block_obj.blockheader.headerhash
+	time_diff = time.time() - last_pos_cycle
+	try:
+		if time_diff > 240 and chain.m_blockheight() + 1 < blocknumber:
+			if not reveal_cleaned:
+				del chain.stake_reveal_one[:]
+				del chain.stake_reveal_two[:]
+				del chain.stake_reveal_three[:]
+				reveal_cleaned = True
+				printL (('Reveal Cleared | Skipping Block number - ',blocknumber))
 
+			blocknumber = select_blockheight_by_consensus()			# Decide blockheight on the basis of number of reveal message
+			if blocknumber != block_obj.blockheader.blocknumber:
+				printL (( 'Block number mismatch with consensus | Rejected -  ', blocknumber ))
+				return
+			target_block_number = next_block_number
+			target_header_hash = next_header_hash
+			next_block_number = blocknumber + 1
+			next_header_hash = headerhash
+			if not (pos_consensus(target_block_number, target_header_hash)):
+				printL (( 'Not matched with reveal, skipping block number ', blocknumber ))
+				return
 
-	if f.sync == 0:
-		if f.partial_sync[0]==1:
-			printL(( 'partial_sync'))
-			if f.partial_sync[1]==chain.m_blockheight():
-				if blockheight_map() == True:
-					f.sync=1			# partial sync has happened but we may not be synchronised..
-	
-	f.partial_sync = [0,0]
-	global sameEpochSync, isDownloading, next_header_hash, next_block_number, allow_reveal_duplicates
-	if sameEpochSync and not isDownloading:
-		try:
-			pos_consensus(next_block_number, next_header_hash)
-			if chain.pos_consensus[3]>=75:
-				sameEpochSync = False
+			if chain.pos_consensus[3]<75:
+				printL (( 'Consensus ', chain.pos_consensus[3] ,'% below 75% for block number ', blocknumber))
+				return
+
+			if not isDownloading:
+				pending_blocks[blocknumber] = [None, block_obj, headerhash, None]
+				printL (( 'Calling Downloader from preblocklogic due to block number ', blocknumber ))
+				printL (( 'Download block from  ', chain.m_blockheight()+1 , ' to ', blocknumber-1 ))
 				isDownloading = True
-				allow_reveal_duplicates = False
-				pending_blocks[next_block_number] = [None, block_obj, next_header_hash, None]
-				printL (( 'Calling Downloader from preblocklogic ' ))
-				download_blocks(next_block_number-1, block_obj.blockheader.prev_blockheaderhash)
+				download_blocks(blocknumber - 1, block_obj.blockheader.prev_blockheaderhash)
+			return
+		elif chain.m_blockheight() + 1 == blocknumber:
+			if time_diff > 240:
+				pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash)
+				pos_consensus(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash)
+			if chain.m_blockchain[-1].blockheader.headerhash == block_obj.blockheader.prev_blockheaderhash and chain.m_blockchain[-1].blockheader.blocknumber+1 == blocknumber:
+				received_block_logic(block_obj, time_diff)
 			else:
-				printL (( 'sameEpochSync cancelled, consensus not made' ))
-				allow_reveal_duplicates = True
-				restart_post_block_logic()
-		except Exception:
-			printL (( 'sameEpochSync cancelled, not enough reveal messages ' ))
-			allow_reveal_duplicates = True
-			restart_post_block_logic()
+				printL (( 'next_header_hash and next_block_number didnt match for ', blocknumber ))
+				printL (( 'Expected next_header_hash ', chain.m_blockchain[-1].blockheader.headerhash, ' received ',  block_obj.blockheader.prev_blockheaderhash ))
+				printL (( 'Expected next_block_number ', chain.m_blockchain[-1].blockheader.blocknumber+1, ' received ', blocknumber ))
 
+	except Exception as Ex:
+		printL (( ' Exception by pos_consensus for block number ', blocknumber ))
+		printL (( Ex ))
 
-	received_block_logic(block_obj)
 	return
 
-def received_block_logic(block_obj):
-
-	if f.sync == 0:
+def received_block_logic(block_obj, time_diff):
+	global sync_time
+	if time_diff > 240 and (sync_time == 0 or time.time() - sync_time < 7):
+		sync_time = time.time()
 		chain.recent_blocks.append(block_obj)
 		synchronising_update_chain()
+		#restart_post_block_logic()
 		return
-
+	sync_time = 0
 	# rapid logic
 
 	if block_obj.blockheader.headerhash == chain.m_blockchain[-1].blockheader.headerhash:
@@ -497,7 +493,9 @@ def restart_post_block_logic(delay = 0):
 # post block logic we initiate the next POS cycle, send R1, send ST, reset POS flags and remove unnecessary messages in chain.stake_reveal_one and _two..
 
 def post_block_logic():
-
+	global last_pos_cycle, reveal_cleaned
+	last_pos_cycle = time.time()
+	reveal_cleaned = False
 	stop_all_loops()
 	start_all_loops()
 
@@ -521,11 +519,12 @@ def post_block_logic():
 
 def block_meets_consensus(blockheader_obj):
 
-	if len(chain.pos_flag)==0:
-		printL(( 'POS reveal_three_logic not activated..'))
-		return False
+	#if len(chain.pos_flag)==0:
+	#	printL(( 'POS reveal_three_logic not activated..'))
+	#	return False
 
-	if chain.pos_flag[0]!=blockheader_obj.blocknumber or chain.pos_flag[1]!=blockheader_obj.prev_blockheaderhash:
+	#if chain.pos_flag[0]!=blockheader_obj.blocknumber or chain.pos_flag[1]!=blockheader_obj.prev_blockheaderhash:
+	if chain.m_blockchain[-1].blockheader.blocknumber+1!=blockheader_obj.blocknumber or chain.m_blockchain[-1].blockheader.headerhash!=blockheader_obj.prev_blockheaderhash:
 		printL(( 'POS reveal_three_logic not activated for this block..'))
 		return False
 
@@ -712,7 +711,7 @@ def pos_consensus(block_number, headerhash):
 	#chain.stake_reveal_three.append([stake_address,headerhash, block_number, consensus_hash, nonce2])
 
 	p = []
-	for s in chain.last_stake_reveal_one:
+	for s in chain.stake_reveal_one:
 		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
 
@@ -724,7 +723,7 @@ def pos_consensus(block_number, headerhash):
 
 
 	l = []
-	for s in chain.last_stake_reveal_three:
+	for s in chain.stake_reveal_three:
 		if s[1]==headerhash and s[2]==block_number:
 			l.append([chain.state_balance(s[0]),s[3]])
 
@@ -734,13 +733,13 @@ def pos_consensus(block_number, headerhash):
 	total_voters = len(l)
 	
 	c = Counter([s[1] for s in l]).most_common(2)		#list containing tuple count of (winning hash, count) - first two..
-	
+
 	# all votes same..should be this every time
 
 	if len(c) != 1 :
 		printL(( 'warning, more than one consensus_hash is being circulated by incoming R2 messages..'))
 
-	for s in chain.last_stake_reveal_one:
+	for s in chain.stake_reveal_one:
 		if s[3]==c[0][0]:
 			stake_address = s[0]
 
@@ -757,7 +756,7 @@ def pos_consensus(block_number, headerhash):
 
 	chain.pos_consensus = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
 
-	return
+	return True
 
 
 # factories and protocols..
@@ -1313,9 +1312,7 @@ class p2pProtocol(Protocol):
 		prefix = data[0:2]
 		suffix = data[2:]
 		global isDownloading
-		global last_pos_execution
 		global allow_reveal_duplicates
-
 
 		if prefix == 'TX':				#tx received..
 			self.recv_tx(suffix)
@@ -1378,7 +1375,7 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'PB':
-				global pending_blocks
+				global pending_blocks, last_bk_time
 				thisPeerHost = self.transport.getHost()
 				try:
 					block = chain.json_decode_block(suffix)
@@ -1405,7 +1402,8 @@ class p2pProtocol(Protocol):
 								pending_blocks = {}
 								f.sync = 0
 								isDownloading = False
-								restart_post_block_logic()
+								last_bk_time = time.time()
+								#restart_post_block_logic()
 						else:
 							printL (( 'Didnt match', pending_blocks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
 
@@ -1429,7 +1427,6 @@ class p2pProtocol(Protocol):
 				z = chain.json_decode(suffix)
 				block_number = z['block_number']
 				headerhash = z['headerhash'].encode('latin1')
-				#prev_headerhash = z['prev_headerhash'].encode('latin1')
 
 				printL(( '>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number, 'local blockheight: ', str(chain.m_blockheight()), str(time.time())))
 
@@ -1443,42 +1440,8 @@ class p2pProtocol(Protocol):
 						
 							return
 
-				if last_pos_execution+240<time.time():
-					printL (( "Last POS cycle 240 seconds ago" ))
-					printL (( "Reactivating POS cycle" ))
-					last_pos_execution = time.time()+5
-					restart_post_block_logic(5)
-
-                                #if  (chain.m_blockchain[-1].blockheader.timestamp==0 and f.long_gap_block<time.time()-240) or (chain.m_blockchain[-1].blockheader.timestamp>0 and chain.m_blockchain[-1].blockheader.timestamp < time.time()-240):
-				#	printL (( '#########', f.long_gap_block, time.time()-240 ))
-                                #        if time.time()-f.long_gap_block < 10:
-                                #                printL(( '240s activated already..'))
-                                #                return
-
-                                #        f.long_gap_block = time.time()
-                                #        printL(( 'last block was over 240s ago..resetting'))
-                                #        f.send_m_blockheight_to_peers()
-                                #        reactor.callLater(5, post_block_logic)
-                                #        return
-
-									
 				if block_number > chain.m_blockheight():		
-					#get_synchronising_blocks(block_number)					
 					return
-
-					# ^^ need to build this out and make it more secure..if we are successfully staking with multiple stake validators and normal block-intervals then
-					# the node should be dubious of simply accepting blocks from another node..
-					# something to consider is perhaps a test at the accepting block stage to compare the stake backing the new chain compared with the current chain..
-					# not straightforward..
-
-
-				
-
-
-
-					# This is where the POS algorithm starts..
-
-					# 1. check the block height is 0.
 
 				if len(chain.m_blockchain) == 1 and self.factory.genesis == 0:
 						self.factory.genesis = 1										# set the flag so that no other Protocol instances trigger the genesis stake functions..
@@ -1488,37 +1451,6 @@ class p2pProtocol(Protocol):
 				
 				elif len(chain.m_blockchain) == 1 and self.factory.genesis == 1:	#connected to multiple hosts and already passed through..
 						return
-
-
-				# 2. restart the network if it has paused for any reason..4 minutes restart..
-
-				'''
-				if chain.m_blockchain[-1].blockheader.timestamp < time.time()-240:
-					if time.time()-f.long_gap_block < 10:
-						printL(( '240s activated already..'))
-						return
-
-					f.long_gap_block = time.time()
-					printL(( 'last block was over 240s ago..resetting'))
-					f.send_m_blockheight_to_peers()
-					reactor.callLater(5, post_block_logic)
-					return
-				'''
-
-				# if we are past 1 and have matching blockheights with a random node then are we synchronised already if blocks are ?
-
-				if block_number == chain.m_blockheight():
-
-					if f.sync != 1:
-						if f.partial_sync[0] == 1:			# if we are partially sync'd then we already came through..
-								return
-						
-
-						f.partial_sync = [1, chain.m_blockheight()]		# else we activate the blockheight map and partial sync flag..
-						f.get_blockheight_map_from_peers()
-						restart_post_block_logic(5)
-						return
-				
 
 		elif prefix == 'BN':			#request for block (n)
 				if int(suffix) <= chain.m_blockheight():
@@ -1582,6 +1514,7 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'R1':							#receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
 				#if isDownloading: return
+				
 				z = chain.json_decode(suffix)
 				block_number = z['block_number']
 				headerhash = z['headerhash'].encode('latin1')
@@ -1626,18 +1559,7 @@ class p2pProtocol(Protocol):
 
 				printL(( '>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
 				
-				found = False
-				for item in chain.stake_reveal_one:
-					if item[0] == stake_address:
-						found = True
-						item[1] = headerhash
-						item[2] = block_number
-						item[3] = reveal_one
-						item[4] = reveal_two
-						found = True
-						break
-				if not found:
-					chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
+				chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
 
 				if isSynced:
 					for peer in self.factory.peers:
@@ -1692,19 +1614,7 @@ class p2pProtocol(Protocol):
 
 				#chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce']], z['winning_hash'], z['reveal_three']])		#don't forget to store our reveal in stake_reveal_one
 
-				found = False
-				for item in chain.stake_reveal_two:
-					if item[0] == stake_address:
-						item[1] = headerhash
-						item[2] = block_number
-						item[3] = reveal_one
-						item[4] = nonce
-						item[5] = winning_hash
-						item[6] = reveal_three
-						found = True
-						break
-				if not found:
-					chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three]) 
+				chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three]) 
 				if isSynced:
 					for peer in self.factory.peers:
 						if peer != self:
@@ -1749,17 +1659,8 @@ class p2pProtocol(Protocol):
 				chain.stake_validator_latency[block_number][stake_address]['r2_time_diff'] = z['r2_time_diff']
 
 				printL(('>>> POS reveal_three', self.transport.getPeer().host, stake_address, str(block_number), consensus_hash))
-				found = False
-				for item in chain.stake_reveal_three:
-					if item[0]==stake_address:
-						item[1] = headerhash
-						item[2] = block_number
-						item[3] = consensus_hash
-						item[4] = nonce2
-						found = True
-						break
-				if not found:
-					chain.stake_reveal_three.append([stake_address, headerhash, block_number, consensus_hash, nonce2])
+
+				chain.stake_reveal_three.append([stake_address, headerhash, block_number, consensus_hash, nonce2])
 
 				if isSynced:
 					for peer in self.factory.peers:
@@ -2287,9 +2188,10 @@ if __name__ == "__main__":
 	reactor.listenTCP(9000, f)
 	reactor.listenTCP(8080, api)
 
+	reactor.callLater(120, monitor_bk)
+
 	printL(( 'Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"'))
 	printL(( '<<<Connecting to nodes in peer.dat'))
 
 	f.connect_peers()
 	reactor.run()
-	    
