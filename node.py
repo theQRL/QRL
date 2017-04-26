@@ -510,6 +510,8 @@ def post_block_logic():
 				f.send_stake_reveal_one()
 		if chain.mining_address not in [s[0] for s in chain.next_stake_list_get()]:
 				f.send_st_to_peers(chain.CreateStakeTransaction())
+				wallet.f_save_winfo()
+
 
 	return
 
