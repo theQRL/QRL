@@ -57,7 +57,7 @@ def monitor_bk():
 	if time.time() - last_pos_cycle > 240:
 		if time.time() - last_bk_time > 120:
 			printL (( ' POS cycle activated by monitor_bk() ' ))
-			restart_pos_cycle()
+			restart_post_block_logic()
 	reactor.callLater(120, monitor_bk)
 
 # pos functions. an asynchronous loop. 
@@ -643,33 +643,21 @@ def blockheight_map():
 
 def pos_d(block_number, headerhash):
 
-	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
-	#chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three] rkey2		
-
 	p = []
+	l = []
 	curr_time = int(time.time()*1000)
 	global r2_time_diff
 	r2_time_diff[chain.m_blockchain[-1].blockheader.blocknumber+1] = map(lambda t2: curr_time - t2, r2_time_diff[chain.m_blockchain[-1].blockheader.blocknumber+1])
 
-	for s in chain.stake_reveal_one:
+	for s in chain.stake_reveal_two:
 		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
+			l.append([chain.state_balance(s[0]),s[5]])
 
 	if len(p) <= 1:
 		return False
 
-	total_stakers = len(p)
 	total_staked = sum(p)
-
-
-	l = []
-	for s in chain.stake_reveal_two:
-		if s[1]==headerhash and s[2]==block_number:
-			l.append([chain.state_balance(s[0]),s[5]])
-
-	if len(l) <=1: 
-		return False
-
 	total_voters = len(l)
 	
 	c = Counter([s[1] for s in l]).most_common(2)		#list containing tuple count of (winning hash, count) - first two..
@@ -678,13 +666,15 @@ def pos_d(block_number, headerhash):
 	if len(c) != 1 :
 		printL(( 'warning, more than one winning hash is being circulated by incoming R2 messages..'))
 
+	stake_address  = None
 	for s in chain.stake_reveal_one:
 		if s[3]==c[0][0]:
 			stake_address = s[0]
 
+	if not stake_address:
+		return False
+
 	percentage_a = decimal.Decimal(c[0][1])/decimal.Decimal(total_voters)*100			#percentage of voters choosing winning hash
-	percentage_b = decimal.Decimal(c[0][1])/decimal.Decimal(total_stakers)*100			#percentage of voters choosing winning hash/total stakers
-	percentage_c = decimal.Decimal(total_voters)/decimal.Decimal(total_stakers)*100		#percentage of overall voters to overall stakers..
 
 	total_voted=0
 	for s in l:
@@ -693,7 +683,7 @@ def pos_d(block_number, headerhash):
 
 	percentage_d = decimal.Decimal(total_voted)/decimal.Decimal(total_staked)*100	
 
-	chain.pos_d = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
+	chain.pos_d = [c[0][0], c[0][1], total_voters, percentage_a, total_voted, total_staked, percentage_d, stake_address]
 
 	return True
 
@@ -705,25 +695,16 @@ def pos_consensus(block_number, headerhash):
 	#chain.stake_reveal_three.append([stake_address,headerhash, block_number, consensus_hash, nonce2])
 
 	p = []
-	for s in chain.stake_reveal_one:
+	l = []
+	for s in chain.stake_reveal_three:
 		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
+			l.append([chain.state_balance(s[0]),s[3]])
 
 	if len(p) <= 1:
 		return False
 
-	total_stakers = len(p)
 	total_staked = sum(p)
-
-
-	l = []
-	for s in chain.stake_reveal_three:
-		if s[1]==headerhash and s[2]==block_number:
-			l.append([chain.state_balance(s[0]),s[3]])
-
-	if len(l) <=1: 
-		return False
-
 	total_voters = len(l)
 	
 	c = Counter([s[1] for s in l]).most_common(2)		#list containing tuple count of (winning hash, count) - first two..
@@ -733,13 +714,16 @@ def pos_consensus(block_number, headerhash):
 	if len(c) != 1 :
 		printL(( 'warning, more than one consensus_hash is being circulated by incoming R2 messages..'))
 
+	stake_address = None
+
 	for s in chain.stake_reveal_one:
 		if s[3]==c[0][0]:
 			stake_address = s[0]
 
+	if not stake_address:
+		return False
+
 	percentage_a = decimal.Decimal(c[0][1])/decimal.Decimal(total_voters)*100			#percentage of voters choosing winning hash
-	percentage_b = decimal.Decimal(c[0][1])/decimal.Decimal(total_stakers)*100			#percentage of voters choosing winning hash/total stakers
-	percentage_c = decimal.Decimal(total_voters)/decimal.Decimal(total_stakers)*100		#percentage of overall voters to overall stakers..
 
 	total_voted=0
 	for s in l:
@@ -748,7 +732,7 @@ def pos_consensus(block_number, headerhash):
 
 	percentage_d = decimal.Decimal(total_voted)/decimal.Decimal(total_staked)*100	
 
-	chain.pos_consensus = [c[0][0], c[0][1], total_stakers, percentage_b, total_voted, total_staked, percentage_d, stake_address]
+	chain.pos_consensus = [c[0][0], c[0][1], total_voters, percentage_a, total_voted, total_staked, percentage_d, stake_address]
 
 	return True
 
