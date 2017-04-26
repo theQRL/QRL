@@ -258,11 +258,12 @@ def ban_staker(stake_address):
 
 def consensus_rules_met():
 
-	if chain.pos_consensus[3] < 75:
-		if chain.pos_consensus[6] < 75:
-			printL(( 'Network consensus inadequate..rejected'))
-			return False
-	return True
+	if chain.pos_consensus[3] >= 75:
+		if chain.pos_consensus[6] >= 75:
+			return True
+
+	printL(( 'Network consensus inadequate..rejected'))
+	return False
 
 
 # create new block..
