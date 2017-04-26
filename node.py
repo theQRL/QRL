@@ -57,7 +57,7 @@ def monitor_bk():
 	if time.time() - last_pos_cycle > 240:
 		if time.time() - last_bk_time > 120:
 			printL (( ' POS cycle activated by monitor_bk() ' ))
-			restart_pos_cycle()
+			restart_post_block_logic()
 	reactor.callLater(120, monitor_bk)
 
 # pos functions. an asynchronous loop. 
