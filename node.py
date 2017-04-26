@@ -53,8 +53,9 @@ def parse(data):
 		return data.replace('\r\n','')
 
 def monitor_bk():
-	global last_pos_cycle, last_bk_time
-	if time.time() - last_pos_cycle > 240:
+	global last_pos_cycle, last_bk_time, isDownloading
+		
+	if not isDownloading and time.time() - last_pos_cycle > 240:
 		if time.time() - last_bk_time > 120:
 			printL (( ' POS cycle activated by monitor_bk() ' ))
 			restart_post_block_logic()
@@ -165,7 +166,8 @@ def reveal_two_logic(data=None):
 	if len(reveals) <= 1:
 			printL(( 'only received one reveal for this block..quitting reveal_two_logic'))
 			f.get_m_blockheight_from_peers()
-			reactor.callIDR2 = reactor.callLater(15, reveal_three_logic, winner=None, reveals=reveals)
+			reset_everything()
+			restart_post_block_logic()
 			return
 
 	# what is the PRF output and expected winner for this block?	
@@ -196,13 +198,12 @@ def reveal_two_logic(data=None):
 
 def reveal_three_logic(winner, reveals, our_reveal=None):
 	printL(( 'reveal_three_logic:'))
-	if winner==None:
-		printL (('Calling for reveal_four_logic' ))
-		reactor.callIDR3 = reactor.callLater(15, reveal_four_logic, reveals, our_reveal)
-		return
 		
 	# rank the received votes for winning reveal_one hashes
-	pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash)
+	if not pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash):
+		printL (( "POS_d failed to make consensus at R2 " ))
+		reset_everything()
+		restart_post_block_logic()
 
 	printL(( 'R2 CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] ))
 
@@ -221,12 +222,14 @@ def reveal_four_logic(reveals, our_reveal):
 		#failure recovery entry here..
 		printL(('pos_consensus() is false: failure recovery mode..'))
 		reset_everything()
+		restart_post_block_logic()
 		return
 
 	printL(( 'R3 CONSENSUS:', chain.pos_consensus[1],'/', chain.pos_consensus[2],'(', chain.pos_consensus[3],'%)', 'voted/staked emission %:', chain.pos_consensus[6],'v/s ', chain.pos_consensus[4]/100000000.0, '/', chain.pos_consensus[5]/100000000.0  ,'for: ', chain.pos_consensus[0] ))
 
 	if consensus_rules_met() == False:
 		reset_everything()
+		restart_post_block_logic()
 		return
 
 	chain.pos_flag = [chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash]		#set POS flag for block logic sync..
@@ -242,6 +245,8 @@ def reveal_four_logic(reveals, our_reveal):
 	printL(( 'our_reveal', our_reveal))
 
 	reactor.ban_staker = reactor.callLater(25, ban_staker, chain.pos_consensus[7])
+	global last_pos_cycle
+	last_pos_cycle = time.time()
 
 	return
 
@@ -251,6 +256,7 @@ def ban_staker(stake_address):
 	del chain.stake_reveal_two[:]
 	del chain.stake_reveal_three[:]
 	chain.ban_stake(stake_address)
+	restart_post_block_logic()
 	return
 
 
@@ -488,8 +494,7 @@ def restart_post_block_logic(delay = 0):
 # post block logic we initiate the next POS cycle, send R1, send ST, reset POS flags and remove unnecessary messages in chain.stake_reveal_one and _two..
 
 def post_block_logic():
-	global last_pos_cycle, reveal_cleaned
-	last_pos_cycle = time.time()
+	global reveal_cleaned
 	reveal_cleaned = False
 	stop_all_loops()
 	start_all_loops()
@@ -644,6 +649,9 @@ def blockheight_map():
 
 def pos_d(block_number, headerhash):
 
+	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
+	#chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three] rkey2		
+
 	p = []
 	l = []
 	curr_time = int(time.time()*1000)
@@ -667,7 +675,8 @@ def pos_d(block_number, headerhash):
 	if len(c) != 1 :
 		printL(( 'warning, more than one winning hash is being circulated by incoming R2 messages..'))
 
-	stake_address  = None
+	stake_address = None
+
 	for s in chain.stake_reveal_one:
 		if s[3]==c[0][0]:
 			stake_address = s[0]
@@ -697,6 +706,7 @@ def pos_consensus(block_number, headerhash):
 
 	p = []
 	l = []
+
 	for s in chain.stake_reveal_three:
 		if s[1]==headerhash and s[2]==block_number:
 			p.append(chain.state_balance(s[0]))
