@@ -1139,7 +1139,7 @@ def m_info_block(n):
 
 def m_f_sync_chain():
 
-	if m_blockchain[-1].blockheader.blocknumber % 10 == 0:
+	if m_blockchain[-1].blockheader.blocknumber % 100 == 0:
 		f_write_m_blockchain()
 	return
 
