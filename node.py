@@ -242,7 +242,7 @@ def reveal_four_logic(reveals, our_reveal):
 	printL(( 'CONSENSUS winner: ', chain.pos_consensus[7], 'hash ', chain.pos_consensus[0]))
 	printL(( 'our_reveal', our_reveal))
 
-	reactor.ban_staker = reactor.callLater(25, ban_staker, chain.pos_consensus[7])
+	#reactor.ban_staker = reactor.callLater(25, ban_staker, chain.pos_consensus[7])
 	global last_pos_cycle
 	last_pos_cycle = time.time()
 
