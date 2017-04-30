@@ -474,7 +474,7 @@ def pre_block_logic(block_obj):
 
 
 		elif chain.state.current == 'syncing':
-			if blocknumber == next_block_number and block_obj.blockheader.prev_bockheaderhash == next_header_hash:
+			if blocknumber == next_block_number and block_obj.blockheader.prev_blockheaderhash == next_header_hash:
 				if not (pos_consensus(next_block_number, next_header_hash)):
 					printL (( 'Not matched with reveal, skipping block number ', blocknumber ))
 					return
@@ -1763,7 +1763,7 @@ class p2pProtocol(Protocol):
 		return
 
 	def fetch_block_n(self, n):
-		printL(( '<<<Fetching block: ', n, 'from ', self.transport.getPeer().host, ':', str(self.transport.getPeer().port) ))
+		printL(( '<<<Fetching block: ', n, 'from ', self.transport.getPeer().host, ':', self.transport.getPeer().port ))
 		self.transport.write(self.wrap_message('FB'+str(n)))
 		return
 
