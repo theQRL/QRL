@@ -88,7 +88,7 @@ def monitor_bk():
 			chain.state.update('unsynced')
 			chain.state.update_epoch_diff(-1)
 
-	reactor.callLater(120, monitor_bk)
+	reactor.monitor_bk = reactor.callLater(120, monitor_bk)
 
 # pos functions. an asynchronous loop. 
 
@@ -423,6 +423,7 @@ def pre_block_logic(block_obj):
 		return
 
 	global next_header_hash, next_block_number, last_pos_cycle, sync_tme, last_bk_time, last_selected_height
+	bk_time_diff = time.time() - last_bk_time
 	last_bk_time = time.time()
 	blocknumber = block_obj.blockheader.blocknumber
 	headerhash = block_obj.blockheader.headerhash
@@ -460,6 +461,8 @@ def pre_block_logic(block_obj):
 				printL (( 'Calling downloader from preblocklogic due to block number ', blocknumber ))
 				printL (( 'Download block from ', chain.m_blockheight()+1 ,' to ', blocknumber-1 ))
 				chain.state.update('syncing')
+				try: reactor.monitor_bk.cancel()
+				except Exception: pass
 				download_blocks(blocknumber - 1, block_obj.blockheader.prev_blockheaderhash)
 
 			elif blocknumber == chain.m_blockheight() + 1:
@@ -469,8 +472,9 @@ def pre_block_logic(block_obj):
 				
 				chain.recent_blocks.append(block_obj)
 				synchronising_update_chain()
-				chain.state.update('synced')
-				restart_post_block_logic()
+				if bk_time_diff > 20:
+					chain.state.update('synced')
+					restart_post_block_logic()
 
 
 		elif chain.state.current == 'syncing':
@@ -489,6 +493,10 @@ def pre_block_logic(block_obj):
 				next_header_hash = headerhash
 
 		elif chain.state.current == 'synced':
+			if  time.time() - last_pos_cycle > 120 and (not pos_consensus(next_block_number, next_header_hash)):
+				printL (( 'Not matched with reveal, skipping block number ', blocknumber ))
+				return
+
 			if not received_block_logic(block_obj):
 				printL (( 'next_header_hash and next_block_number didnt match for ', blocknumber ))
 				printL (( 'Expected next_header_hash ', chain.m_blockchain[-1].blockheader.headerhash, ' received ', block_obj.blockheader.prev_blockheaderhash ))
@@ -1401,7 +1409,7 @@ class p2pProtocol(Protocol):
 				return
 
 		elif prefix == 'PB':
-				global pending_blocks
+				global pending_blocks, last_bk_time
 				thisPeerHost = self.transport.getHost()
 				try:
 					block = chain.json_decode_block(suffix)
@@ -1427,8 +1435,9 @@ class p2pProtocol(Protocol):
 									del pending_blocks[i]
 								pending_blocks = {}
 								f.sync = 0
-								chain.state.update('unsynced')
 								last_bk_time = time.time()
+								chain.state.update('unsynced')
+								reactor.monitor_bk = reactor.callLater(120, monitor_bk)
 								#restart_post_block_logic()
 						else:
 							printL (( 'Didnt match', pending_blocks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
@@ -2209,7 +2218,7 @@ if __name__ == "__main__":
 	reactor.listenTCP(9000, f)
 	reactor.listenTCP(8080, api)
 
-	reactor.callLater(120, monitor_bk)
+	reactor.monitor_bk = reactor.callLater(120, monitor_bk)
 
 	printL(( 'Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"'))
 	printL(( '<<<Connecting to nodes in peer.dat'))
