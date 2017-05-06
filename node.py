@@ -472,7 +472,6 @@ def pre_block_logic(block_obj):
 				#try: reactor.monitor_bk.cancel()
 				#except Exception: pass
 				chain.state.update('syncing')
-				#download_blocks(blocknumber - 1, block_obj.blockheader.prev_blockheaderhash)
 				randomize_block_fetch(chain.m_blockheight() + 1)
 
 			elif blocknumber == chain.m_blockheight() + 1:
@@ -625,14 +624,6 @@ def get_synchronising_blocks(block_number):
 	f.get_block_n_random_peer(chain.m_blockheight()+1)
 	return
 
-def download_blocks(block_number):
-	global pending_blocks
-	random_peer = random.choice(f.peers)
-	random_host = random_peer.transport.getHost()
-	block_monitor = reactor.callLater(15, randomize_block_call, block_number)
-	pending_blocks[block_number] = [random_host.host+":"+str(random_host.port), None, None, block_monitor]
-	random_peer.fetch_block_n(block_number)
-	
 def update_target_peers(block_number):
 	f.target_peers = {}
 	printL (( str(f.peers) ))
@@ -1468,7 +1459,6 @@ class p2pProtocol(Protocol):
 						except Exception: pass
 						if not chain.m_add_block(block):
 							printL (( "Failed to add block by m_add_block, re-requesting the block #",blocknumber ))
-							#download_blocks(block.blockheader.blocknumber+1)
 							randomize_block_fetch(blocknumber)
 							return
 						del pending_blocks[blocknumber]
