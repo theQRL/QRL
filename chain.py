@@ -188,7 +188,7 @@ def cl(one,many):
 def is_stake_banned(stake_address):
 	if stake_address in stake_ban_list:
 		epoch_diff = (m_blockheight()/10000) - (stake_ban_block[stake_address]/10000)
-		if m_blockheight() - stake_ban_block[stake_address] > 100 or epoch_diff > 0:
+		if m_blockheight() - stake_ban_block[stake_address] > 10 or epoch_diff > 0:
 			printL (( 'Stake removed from ban list' ))
 			del stake_ban_block[stake_address]
 			stake_ban_list.remove(stake_address)
@@ -1818,15 +1818,16 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 			return False
 	else:		# we look in stake_list for the hash terminator and hash to it..
 		y=0
+		terminator = sha256(b.hash)
+		for x in range(b.blocknumber-(b.epoch*10000)):
+			terminator = sha256(terminator)
+
 		for st in stake_list_get():
 			if st[0] == b.stake_selector:
-					y = 1
-					terminator = sha256(b.hash)
-					for x in range(b.blocknumber-(b.epoch*10000)):
-						terminator = sha256(terminator)
-					if terminator != st[1]:
-						printL(( 'Supplied hash does not iterate to terminator: failed validation'))
-						return False
+				y = 1
+				if terminator != st[1]:
+					printL(( 'Supplied hash does not iterate to terminator: failed validation'))
+					return False
 		if y != 1:
 				printL(( 'Stake selector not in stake_list for this epoch..'))
 				return False
@@ -1845,12 +1846,12 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 
 			i=0
 			for r in b.reveal_list:
+				t = sha256(r)
+				for x in range(b.blocknumber-(b.epoch*10000)):
+					t = sha256(t)
 				for s in stake_list_get():
-					t = sha256(r)
-					for x in range(b.blocknumber-(b.epoch*10000)):
-						t = sha256(t)
 					if t == s[1]:
-							i+=1
+						i+=1
 		
 			if i != len(b.reveal_list):
 				printL(( 'Not all the reveal_hashes are valid..'))
