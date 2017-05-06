@@ -1197,6 +1197,7 @@ class WalletProtocol(Protocol):
 					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
 					self.transport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
 					self.transport.write('>>> Staking set to: '+ str(f.stake)+'\r\n')
+					self.transport.write('>>> Sync status: '+chain.state.current+'\r\n')
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
