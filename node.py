@@ -37,6 +37,8 @@ class state:
 		self.current = state
 		if self.current == 'synced':
 			self.epoch_diff = 0
+			global last_pos_cycle
+			last_pos_cycle = time.time()
 
 	def update_epoch_diff(self, value):
 		self.epoch_diff = value
