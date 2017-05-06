@@ -652,7 +652,7 @@ def randomize_block_fetch(block_number):
 			try:
 				if block_number % 10000 == 0 or len(f.target_peers) == 0:
 					f.get_m_blockheight_from_peers()
-					update_target_peers(block_number)
+					update_target_peers(min(block_number+10000,pending_blocks['target']))
 				if len(f.target_peers) > 0:
 					random_peer = f.target_peers[random.choice(f.target_peers.keys())]
 					random_host = random_peer.transport.getPeer()
