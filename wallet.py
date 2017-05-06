@@ -8,7 +8,7 @@ import chain
 import cPickle as pickle
 import node 
 import os
-
+from blessings import Terminal
 
 def log(string_data):
     with open("./log/log.txt", "a") as myfile:
@@ -19,8 +19,10 @@ def f_read_wallet():
 
 	addr_list = []
 
+	term = Terminal()
+
 	if os.path.isfile('./wallet.dat') is False:
-		print 'Creating new wallet file..this could take up to a minute'
+		printL(( term.green + '[info] ' + term.normal + 'Creating new wallet file..this could take up to a minute'))
 		addr_list.append(getnewaddress(4096, 'XMSS'))
 		with open("./wallet.dat", "a") as myfile:				#add in a new call to create random_otsmss
         		pickle.dump(addr_list, myfile)
@@ -29,11 +31,11 @@ def f_read_wallet():
 			with open('./wallet.dat', 'r') as myfile:
 				return pickle.load(myfile)
 	except:
-			print 'IO error'
+			printL(( 'IO error'))
 			return False
 
 def f_save_wallet():
-			print 'Syncing wallet file'
+			printL(( 'Syncing wallet file'))
 			with open("./wallet.dat", "w+") as myfile:				#overwrites wallet..should add some form of backup to this..seed
         			pickle.dump(chain.my, myfile)
         			return
@@ -46,7 +48,7 @@ def f_save_winfo():
 				else:
 					if tree[1].type == 'XMSS':
 						data.append([tree[1].mnemonic, tree[1].hexSEED, tree[1].signatures, tree[1].index, tree[1].remaining])
-			print 'Fast saving wallet recovery details to wallet.info..'
+			printL(( 'Fast saving wallet recovery details to wallet.info..'))
 			with open("./wallet.info", "w+") as myfile:				#stores the recovery phrase, signatures and the index for each tree in the wallet..
         			pickle.dump(data, myfile)
         			return
@@ -58,7 +60,7 @@ def f_load_winfo():
 			with open('./wallet.info', 'r') as myfile:
 				data = pickle.load(myfile)
 		except:
-				print 'Error: likely no wallet.info found, creating..'
+				printL(( 'Error: likely no wallet.info found, creating..'))
 				f_save_winfo()
 				return False
 		x = 0
@@ -81,7 +83,7 @@ def f_append_wallet(data):
 			chain.my = f_read_wallet()
 		if data is not False:
 			chain.my.append(data)
-			print 'Appending wallet file..'
+			printL(( 'Appending wallet file..'))
 			with open("./wallet.dat", "w+") as myfile:				#overwrites wallet..
         			pickle.dump(chain.my, myfile)
 		f_save_winfo()
