@@ -37,6 +37,8 @@ class state:
 		self.current = state
 		if self.current == 'synced':
 			self.epoch_diff = 0
+			global last_pos_cycle
+			last_pos_cycle = time.time()
 
 	def update_epoch_diff(self, value):
 		self.epoch_diff = value
@@ -79,15 +81,16 @@ def monitor_bk():
 	global last_pos_cycle, last_bk_time, last_pb_time
 	
 	if chain.state.current != 'syncing' and time.time() - last_pos_cycle > 240:
-		if time.time() - last_bk_time > 120:
-			printL (( ' POS cycle activated by monitor_bk() ' ))
-			restart_post_block_logic()
-		elif chain.state.current == 'synced':
+		if chain.state.current == 'synced':
 			try: reactor.post_block_logic.cancel()
 			except Exception: pass
 			reset_everything()
 			chain.state.update('unsynced')
 			chain.state.update_epoch_diff(-1)
+		elif time.time() - last_bk_time > 120:
+			printL (( ' POS cycle activated by monitor_bk() ' ))
+			restart_post_block_logic()
+
 	if chain.state.current == 'syncing' and time.time() - last_pb_time > 120:
 		try: reactor.post_block_logic.cancel()
 		except Exception: pass
