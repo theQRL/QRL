@@ -88,8 +88,12 @@ def monitor_bk():
 			chain.state.update('unsynced')
 			chain.state.update_epoch_diff(-1)
 		elif time.time() - last_bk_time > 120:
+			last_pos_cycle = time.time()
 			printL (( ' POS cycle activated by monitor_bk() ' ))
 			restart_post_block_logic()
+			chain.state.update('synced')
+			chain.state.update_epoch_diff(0)
+
 
 	if chain.state.current == 'syncing' and time.time() - last_pb_time > 120:
 		try: reactor.post_block_logic.cancel()
@@ -1978,16 +1982,23 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
+		if tx.txhash in chain.rejection_txpool:
+			return
+
 		for t in chain.transaction_pool:			#duplicate tx already received, would mess up nonce..
 			if tx.txhash == t.txhash:
 				return
 
 		if chain.validate_tx(tx) != True:
 				printL(( '>>>TX ', tx.txhash, 'failed validate_tx'))
+				del chain.rejection_txpool[0]
+				chain.rejection_txpool.append(tx.txhash)
 				return
 
 		if chain.state_validate_tx(tx) != True:
 				printL(( '>>>TX', tx.txhash, 'failed state_validate'))
+				del chain.rejection_txpool[0]
+				chain.rejection_txpool.append(tx.txhash)
 				return
 
 		printL(( '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'))
