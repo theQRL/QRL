@@ -240,6 +240,7 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	if not pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash):
 		printL (( "POS_d failed to make consensus at R2 " ))
 		restart_post_block_logic()
+		return
 
 	printL(( 'R2 CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] ))
 
@@ -337,6 +338,7 @@ def pos_missed_block(data=None):
 	reset_everything()
 	f.get_m_blockheight_from_peers()
 	f.send_m_blockheight_to_peers()
+	restart_post_block_logic()
 	return
 
 def reset_everything(data=None):
@@ -453,27 +455,31 @@ def pre_block_logic(block_obj):
 				if target_block_number == None:
 					printL (( 'Got 1 block, need 1 more  ', blocknumber ))
 					return
-
-				if not (pos_consensus(target_block_number, target_header_hash)):
-					printL (( 'Not matched with reveal, skipping block number ', blocknumber ))
-					return
-
-				if not consensus_rules_met():
-					printL (( ' Consensus ', chain.pos_consensus[3] ,'% below 75% for block number ', blocknumber ))
-					return
-
 				chain.state.update_epoch_diff((blocknumber/10000) - (chain.m_blockheight()/10000))
 				if chain.state.epoch_diff == 0:
+					if not (pos_consensus(target_block_number, target_header_hash)):
+						printL (( 'Not matched with reveal, skipping block number ', blocknumber ))
+						return
+
+					if not consensus_rules_met():
+						printL (( ' Consensus ', chain.pos_consensus[3] ,'% below 75% for block number ', blocknumber ))
+						return
+
 					printL (( 'Unsynced on Same Epoch' ))
 				else:
+					if not(blocknumber == target_block_number+1 and block_obj.blockheader.prev_blockheaderhash == target_header_hash):
+						printL (( 'Mismatch pre_block_logic' ))
+						printL (( 'Found Blocknumber ', blocknumber, ' Expected blocknumber ', target_block_number+1))
+						printL (( 'Found prev_headerhash ', target_header_hash, ' Expected prev_headerhash ', block_obj.blockheader.prev_blockheaderhash))
+						next_block_number = None
+						next_header_hash = None
+						return
 					printL (( 'Unsynced on Different Epoch' ))
 				pending_blocks[blocknumber] = [None, block_obj]
 				pending_blocks['target'] = blocknumber
 				printL (( 'Calling downloader from pre_block_logic due to block number ', blocknumber ))
 				printL (( 'Download block from ', chain.m_blockheight()+1 ,' to ', blocknumber-1 ))
 				last_pb_time = time.time()
-				#try: reactor.monitor_bk.cancel()
-				#except Exception: pass
 				chain.state.update('syncing')
 				randomize_block_fetch(chain.m_blockheight() + 1)
 
@@ -751,6 +757,9 @@ def pos_d(block_number, headerhash):
 			l.append([chain.state_balance(s[0]),s[5]])
 
 	if len(p) <= 1:
+		printL (( 'POS_D failed headerhash or block_number didnt match' ))
+		printL (( 'Expected headerhash : ',headerhash ))
+		printL (( 'Expected block_number : ',block_number ))
 		return False
 
 	total_staked = sum(p)
@@ -769,6 +778,7 @@ def pos_d(block_number, headerhash):
 			stake_address = s[0]
 
 	if not stake_address:
+		printL(( 'POS_D failed as no reveal_one message was in stake_address' ))
 		return False
 
 	percentage_a = decimal.Decimal(c[0][1])/decimal.Decimal(total_voters)*100			#percentage of voters choosing winning hash
@@ -1605,6 +1615,7 @@ class p2pProtocol(Protocol):
 				reveal_two = z['reveal_two'].encode('latin1')
 
 				if chain.is_stake_banned(stake_address):
+					printL (( 'Rejecting R1 as peer is in banned list ',stake_address ))
 					return
 
 				if block_number<=chain.m_blockheight():
@@ -1662,6 +1673,7 @@ class p2pProtocol(Protocol):
 				reveal_three = z['reveal_three'].encode('latin1')
 
 				if chain.is_stake_banned(stake_address):
+					printL (( 'Rejecting R2 as peer is in banned list ', stake_address ))
 					return
 
 				if block_number<=chain.m_blockheight():
@@ -1691,7 +1703,7 @@ class p2pProtocol(Protocol):
 
 				chain.stake_validator_latency[block_number][stake_address]['r1_time_diff'] = z['r1_time_diff']
 
-				printL(( '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
+				printL(( '>>> POS reveal_two', self.transport.getPeer().host, stake_address, str(block_number), reveal_one, winning_hash))
 
 				#chain.stake_reveal_two.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['nonce']], z['winning_hash'], z['reveal_three']])		#don't forget to store our reveal in stake_reveal_one
 
@@ -1715,6 +1727,7 @@ class p2pProtocol(Protocol):
 				nonce2 = z['nonce2'].encode('latin1')
 
 				if chain.is_stake_banned(stake_address):
+					printL (( 'Rejecting R3 as peer is in banned list ', stake_address ))
 					return
 
 				if block_number<=chain.m_blockheight():
