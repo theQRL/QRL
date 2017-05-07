@@ -47,6 +47,12 @@ sudo pip install leveldb
 4. 
 sudo pip install Twisted==16.0.0 (you need version 16.0.0 or it won't work)
 
+5.
+sudo pip install blessings
+
+6.
+sudo pip install statistics
+
 
 
 
