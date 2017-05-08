@@ -208,7 +208,8 @@ def reveal_two_logic(data=None):
 	if len(reveals) <= 1:
 			printL(( 'only received one reveal for this block..quitting reveal_two_logic'))
 			f.get_m_blockheight_from_peers()
-			restart_post_block_logic()
+			reactor.callIDR15 = reactor.callLater(5, reveal_two_logic)
+			#restart_post_block_logic()
 			return
 
 	# what is the PRF output and expected winner for this block?	
@@ -243,7 +244,8 @@ def reveal_three_logic(winner, reveals, our_reveal=None):
 	# rank the received votes for winning reveal_one hashes
 	if not pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash):
 		printL (( "POS_d failed to make consensus at R2 " ))
-		restart_post_block_logic()
+		reactor.callIDR2 = reactor.callLater(5, reveal_three_logic, winner=winner, reveals=reveals, our_reveal=our_reveal)
+		#restart_post_block_logic()
 		return
 
 	printL(( 'R2 CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] ))
@@ -342,7 +344,7 @@ def pos_missed_block(data=None):
 	reset_everything()
 	f.get_m_blockheight_from_peers()
 	f.send_m_blockheight_to_peers()
-	restart_post_block_logic()
+	#restart_post_block_logic()
 	return
 
 def reset_everything(data=None):
@@ -1485,12 +1487,12 @@ class p2pProtocol(Protocol):
 						else:
 							for i in range(chain.m_blockheight()+1, chain.m_blockheight()+1+len(pending_blocks)-1): # -1 as 'target' key is stored into pending_blocks
 								block = pending_blocks[i][1]
+								del pending_blocks[i]
 								if not chain.m_add_block(block):
 									printL (( "Failed to add block by m_add_block, re-requesting the block #",i ))
 									randomize_block_fetch(i)
 									pending_blocks['target'] = i+1
 									return
-								del pending_blocks[i]
 
 									
 							f.sync = 0
@@ -1619,7 +1621,7 @@ class p2pProtocol(Protocol):
 				reveal_two = z['reveal_two'].encode('latin1')
 
 				if chain.is_stake_banned(stake_address):
-					printL (( 'Rejecting R1 as peer is in banned list ',stake_address ))
+					printL (( 'Rejecting R1 as peer is in banned list ',stake_address, ' ',self.transport.getPeer().host, ':', self.transport.getPeer().port ))
 					return
 
 				if block_number<=chain.m_blockheight():
@@ -2215,6 +2217,8 @@ class p2pFactory(ServerFactory):
 	def send_block_to_peers(self, block):
 		printL(( '<<<Transmitting block: ', block.blockheader.headerhash))
 		for peer in self.peers:
+			peer_info = peer.transport.getPeer()
+			printL (('<<<Block Transmitted to ', peer_info.host, ':', peer_info.port ))
 			peer.transport.write(self.f_wrap_message(chain.json_bytestream_bk(block)))
 		return
 
