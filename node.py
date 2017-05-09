@@ -208,6 +208,7 @@ def reveal_two_logic(data=None):
 	if len(reveals) <= 1:
 			printL(( 'only received one reveal for this block..quitting reveal_two_logic'))
 			f.get_m_blockheight_from_peers()
+			f.send_last_stake_reveal_one()
 			reactor.callIDR15 = reactor.callLater(5, reveal_two_logic)
 			#restart_post_block_logic()
 			return
@@ -240,12 +241,15 @@ def reveal_two_logic(data=None):
 
 def reveal_three_logic(winner, reveals, our_reveal=None):
 	printL(( 'reveal_three_logic:'))
+
+	if (len(chain.stake_reveal_two)<=1):
+		f.send_last_stake_reveal_two()
+		reactor.callIDR2 = reactor.callLater(5, reveal_three_logic, winner=winner, reveals=reveals, our_reveal=our_reveal)
 		
 	# rank the received votes for winning reveal_one hashes
 	if not pos_d(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash):
 		printL (( "POS_d failed to make consensus at R2 " ))
-		reactor.callIDR2 = reactor.callLater(5, reveal_three_logic, winner=winner, reveals=reveals, our_reveal=our_reveal)
-		#restart_post_block_logic()
+		restart_post_block_logic()
 		return
 
 	printL(( 'R2 CONSENSUS:', chain.pos_d[1],'/', chain.pos_d[2],'(', chain.pos_d[3],'%)', 'voted/staked emission %:', chain.pos_d[6],'v/s ', chain.pos_d[4]/100000000.0, '/', chain.pos_d[5]/100000000.0  ,'for: ', chain.pos_d[0] ))
@@ -290,7 +294,7 @@ def reveal_four_logic(reveals, our_reveal):
 	printL(( 'CONSENSUS winner: ', chain.pos_consensus[7], 'hash ', chain.pos_consensus[0]))
 	printL(( 'our_reveal', our_reveal))
 
-	reactor.ban_staker = reactor.callLater(25, ban_staker, chain.pos_consensus[7])
+	#reactor.ban_staker = reactor.callLater(25, ban_staker, chain.pos_consensus[7])
 
 	return
 
@@ -344,7 +348,7 @@ def pos_missed_block(data=None):
 	reset_everything()
 	f.get_m_blockheight_from_peers()
 	f.send_m_blockheight_to_peers()
-	#restart_post_block_logic()
+	restart_post_block_logic()
 	return
 
 def reset_everything(data=None):
@@ -395,7 +399,7 @@ def stop_pos_loops(data=None):
 
 def start_all_loops(data=None):
 	printL(( '** starting loops **'))
-	reactor.callID2 = reactor.callLater(120, pos_missed_block)
+	#reactor.callID2 = reactor.callLater(120, pos_missed_block)
 	reactor.callIDR15 = reactor.callLater(15, reveal_two_logic)
 	return
 
@@ -473,9 +477,9 @@ def pre_block_logic(block_obj):
 
 					printL (( 'Unsynced on Same Epoch' ))
 				else:
-					if not(blocknumber == target_block_number+1 and block_obj.blockheader.prev_blockheaderhash == target_header_hash):
+					if not(blocknumber == target_block_number and block_obj.blockheader.prev_blockheaderhash == target_header_hash):
 						printL (( 'Mismatch pre_block_logic' ))
-						printL (( 'Found Blocknumber ', blocknumber, ' Expected blocknumber ', target_block_number+1))
+						printL (( 'Found Blocknumber ', blocknumber, ' Expected blocknumber ', target_block_number))
 						printL (( 'Found prev_headerhash ', target_header_hash, ' Expected prev_headerhash ', block_obj.blockheader.prev_blockheaderhash))
 						next_block_number = None
 						next_header_hash = None
@@ -2035,6 +2039,9 @@ class p2pFactory(ServerFactory):
 		self.missed_block = 0
 		self.requested = [0, 0]
 		self.ip_geotag = 1			# to be disabled in main release as reveals IP..
+		self.last_reveal_one = None
+		self.last_reveal_two = None
+		self.last_reveal_three = None
 
 # factory network functions
 	
@@ -2127,6 +2134,7 @@ class p2pFactory(ServerFactory):
 		chain.stake_reveal_one = tmp_stake_reveal_one
 		printL(( '<<<Transmitting POS reveal_one'))
 
+		self.last_reveal_one = z
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('R1'+chain.json_encode(z)))
 		
@@ -2134,6 +2142,10 @@ class p2pFactory(ServerFactory):
 			chain.stake_reveal_one.append([z['stake_address'],z['headerhash'], z['block_number'], z['reveal_one'], z['reveal_two'], rkey])		#don't forget to store our reveal in stake_reveal_one
 		return
 
+
+	def send_last_stake_reveal_one(self):
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('R1'+chain.json_encode(self.last_reveal_one)))
 
 	# transmit reveal_two hash.. (node cast network winning vote)
 
@@ -2159,11 +2171,17 @@ class p2pFactory(ServerFactory):
 		rkey2 = random_key()
 		z['reveal_three'] = sha256(z['nonce']+rkey2)
 
+		self.last_reveal_two = z
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('R2'+chain.json_encode(z)))
 		
 		chain.stake_reveal_two.append([z['stake_address'], z['headerhash'], z['block_number'], z['reveal_one'], z['nonce'], z['winning_hash'], z['reveal_three'], rkey2])		#don't forget to store our reveal in stake_reveal_one
 		return
+
+	def send_last_stake_reveal_two(self):
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('R2'+chain.json_encode(self.last_reveal_two)))
+
 
 	# transmit reveal_three hash..	(node cast network consensus vote)		(cryptographically linked to reveal_two by R2: hash(nonce+nonce2) -> reveal_three)
 
@@ -2184,11 +2202,16 @@ class p2pFactory(ServerFactory):
 		
 		z['nonce2'] = rkey2
 
+		self.last_reveal_three = z
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('R3'+chain.json_encode(z)))
 
 		chain.stake_reveal_three.append([z['stake_address'],z['headerhash'], z['block_number'], z['consensus_hash'], z['nonce2']])
 		return
+
+	def send_last_stake_reveal_three(self):
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('R3'+chain.json_encode(self.last_reveal_three)))
 
 	def ip_geotag_peers(self):
 		printL(( '<<<IP geotag broadcast'))
