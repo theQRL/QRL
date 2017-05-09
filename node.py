@@ -1988,8 +1988,11 @@ class p2pProtocol(Protocol):
 				self.transport.loseConnection()
 				return
 
-		if tx.txhash in chain.rejection_txpool:
+		if tx.txhash in chain.prev_txpool:
 			return
+
+		del chain.prev_txpool[0]
+		chain.prev_txpool.append(tx.txhash)
 
 		for t in chain.transaction_pool:			#duplicate tx already received, would mess up nonce..
 			if tx.txhash == t.txhash:
@@ -1997,14 +2000,10 @@ class p2pProtocol(Protocol):
 
 		if chain.validate_tx(tx) != True:
 				printL(( '>>>TX ', tx.txhash, 'failed validate_tx'))
-				del chain.rejection_txpool[0]
-				chain.rejection_txpool.append(tx.txhash)
 				return
 
 		if chain.state_validate_tx(tx) != True:
 				printL(( '>>>TX', tx.txhash, 'failed state_validate'))
-				del chain.rejection_txpool[0]
-				chain.rejection_txpool.append(tx.txhash)
 				return
 
 		printL(( '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'))

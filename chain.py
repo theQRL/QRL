@@ -52,7 +52,7 @@ pos_consensus = []
 pos_flag = []
 ip_list = []
 blockheight_map = []
-rejection_txpool = [None]*100
+prev_txpool = [None]*1000
 stake_validator_latency = defaultdict(dict)
 
 printL(( 'QRL blockchain ledger v 0.04a'))
