@@ -53,8 +53,8 @@ sudo pip install blessings
 6.
 sudo pip install statistics
 
-
-
+7.
+sudo pip install service_identity
 
 <<< Cloning the Quantum Resistant Ledger source code from github >>>
 
