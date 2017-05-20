@@ -208,7 +208,7 @@ def pre_pos_2(data=None):
 	printL(( 'genesis stakers ready = ', len(chain.stake_list),'/',len(chain.m_blockchain[0].stake_list)))
 	printL(( 'node address:', chain.mining_address))
 
-	if len(chain.stake_list) < len(chain.m_blockchain[0].stake_list):		# stake pool still not full..reloop..
+	if len(chain.stake_list) < chain.minimum_required_stakers:		# stake pool still not full..reloop..
 		f.send_st_to_peers(data)
 		printL(( 'waiting for stakers.. retry in 5s'))
 		reactor.callID = reactor.callLater(5, pre_pos_2, data)
@@ -631,7 +631,7 @@ def pre_block_logic(block_obj):
 				printL (( 'next_header_hash and next_block_number didnt match for ', blocknumber ))
 				printL (( 'Expected next_header_hash ', chain.m_blockchain[-1].blockheader.headerhash, ' received ', block_obj.blockheader.prev_blockheaderhash ))
 				printL (( 'Expected next_block_number ', chain.m_blockchain[-1].blockheader.blocknumber+1, ' received ', blocknumber ))
-	except:
+	except Exception as Ex:
 		printL (( ' Exception in received_block_logic for block number ', blocknumber ))
 		printL (( str(Ex) ))
 
