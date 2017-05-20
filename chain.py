@@ -30,6 +30,9 @@ ping_list =[]
 node_list = ['104.251.219.40']
 m_blockchain = []
 transaction_pool = []
+prev_txpool = [None]*1000
+pending_tx_pool = []
+pending_tx_pool_hash = []
 txhash_timestamp = []
 stake_commit = []
 stake_reveal = []
@@ -52,7 +55,6 @@ pos_consensus = []
 pos_flag = []
 ip_list = []
 blockheight_map = []
-rejection_txpool = [None]*100
 stake_validator_latency = defaultdict(dict)
 
 printL(( 'QRL blockchain ledger v 0.04a'))
@@ -68,6 +70,13 @@ printL(( 'mining/staking address', mining_address))
 
 # pos
 
+def update_pending_tx_pool(tx, peer):
+	if len(pending_tx_pool)>=10000:
+		del pending_tx_pool[0]
+		del pending_tx_pool_hash[0]
+	pending_tx_pool.append([tx, peer])
+	pending_tx_pool_hash.append(tx.txhash)
+	
 # create a block from a list of supplied tx_hashes, check state to ensure validity..
 
 def create_stake_block(tx_hash_list, hashchain_hash, reveal_list=None):
@@ -259,123 +268,162 @@ def pos_block_selector_n(seed, n, i):
 	l = pos_block_selector(seed, n)
 	return l[i]
 
-#classes
+#A base class to be inherited by all other transaction
+class Transaction():
+	def __init__(self):
+		pass
 
-class CreateStakeTransaction():
-	def __init__(self, hashchain_terminator=None):
+	def process_XMSS(self, type, txfrom, txhash):
+		self.txfrom = txfrom
+		self.txhash = txhash
 		data = my[0][1]
-		if hashchain_terminator == None:
-			epoch = (m_blockchain[-1].blockheader.blocknumber)/10000	#in this block the epoch is..
-			self.hash = my[0][1].hashchain_reveal(epoch=epoch+1)[-1]
-		else:
-			self.hash = hashchain_terminator
-		self.txfrom = mining_address
-		self.type = 'XMSS/STAKE'
-		S = data.SIGN(self.hash)				# Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
+		S = data.SIGN(self.txhash)				# Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
 		self.i = S[0]
 		self.signature = S[1]
 		self.merkle_path = S[2]
 		self.i_bms = S[3]
 		self.pub = S[4]
 		self.PK = S[5]
+		self.type = type
+	
+	def json_to_transaction(self, json_str_tx):
+		self.dict_to_transaction(json.loads(json_str_tx))
+		return self
 
-class ReCreateStakeTransaction():
-	def __init__(self, json_obj):
-		self.type = json_obj['type'].encode('latin1')
-		self.hash = json_obj['hash'].encode('latin1')
-		self.i_bms = []
-		for layer in json_obj['i_bms']:
-			if len(layer) ==2:
-					self.i_bms.append([layer[0],layer[1]])
-			elif len(layer) ==3:
-					self.i_bms.append([layer[0].encode('latin1'),layer[1],layer[2]])
-			else:
-				if isinstance(layer, dict):
-					y = layer['py/tuple']
-					if len(y)==2:
-						self.i_bms.append([y[0],y[1]])
-					elif len(y)==3:
-						self.i_bms.append([y[0].encode('latin1'),y[1],y[2]])
-					else:
-						printL(( 'something going wrong..'))
-						pass
-		self.pub = []
-		pub = json_obj['pub']
-		for p in pub:
-			if isinstance(p, dict):
-				y = p['py/tuple']
-				r = []
-				for x in y[0]:
-					r.append(x.encode('latin1'))
-				self.pub.append([r, y[1].encode('latin1')])
-			elif isinstance(p, unicode):
-				self.pub.append(p.encode('latin1'))
-			else:
-				self.pub.append(p)
-		self.txfrom = json_obj['txfrom'].encode('latin1')
-		signature = json_obj['signature']
-		self.signature = []
-		for sig in signature:								
-			self.signature.append(sig.encode('latin1'))		#encode('latin1') converts unicode back to UTF-8..
-		self.i = json_obj['i']
-		path = json_obj['merkle_path']
-		self.merkle_path = []
-		for auth in path:
-			self.merkle_path.append(auth.encode('latin1'))
-		self.PK = []										#required as jsonpickle is buggy..
-		PK = json_obj['PK']
-		if len(PK) == 2:
-			for p in PK:
-				self.PK.append(p.encode('latin1'))
-		elif len(PK) == 168:
-				self.PK = ast.literal_eval(PK)
+	def dict_to_transaction(self, dict_tx):
+		self.__dict__ = dict_tx
+		return self
 
-class CreateSimpleTransaction(): 			#creates a transaction python class object which can be jsonpickled and sent into the p2p network..
-	def __init__(self, txfrom, txto, amount, data, fee=0, ots_key=0, hrs=''): # nonce removed..
+	def transaction_to_json(self):
+		return json.dumps(self.__dict__)
+
+#classes
+class StakeTransaction(Transaction):
+	def __init__(self):
+		Transaction.__init__(self)
+
+	def create_stake_transaction(self, hashchain_terminator=None):
+		self.epoch = (m_blockchain[-1].blockheader.blocknumber)/10000	#in this block the epoch is..
+		if hashchain_terminator == None:
+			self.hash = my[0][1].hashchain_reveal(epoch=self.epoch+1)[-1]
+		else:
+			self.hash = hashchain_terminator
+		self.process_XMSS('ST', mining_address, self.hash) #self.hash to be replaced with self.txhash
+		return self
+
+	def validate_tx(self):
+		if self.type != 'ST':
+			return False
+
+		if merkle.xmss_verify(self.hash, [self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]) is False:
+				return False
+		if xmss_checkaddress(self.PK, self.txfrom) is False:
+				return False
+
+		return True
+
+	def state_validate_tx(self):
+		if self.type != 'ST':
+			return False
+		pub = self.pub
+		pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+		pubhash = sha256(''.join(pub))
+
+		if pubhash in state_pubhash(self.txfrom):
+			printL(( 'State validation failed for', self.hash, 'because: OTS Public key re-use detected'))
+			return False
+
+		return True
+
+class SimpleTransaction(Transaction): 			#creates a transaction python class object which can be jsonpickled and sent into the p2p network..
+	def __init__(self): # nonce removed..
+		Transaction.__init__(self)
+	
+	def pre_condition(self):
+		if state_uptodate() is False:
+			printL(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
+			#return False
+
+		if state_balance(self.txfrom) is 0:
+			printL(( 'State validation failed for', self.txhash, 'because: Empty address'))
+			return False 
+
+		if state_balance(self.txfrom) < self.amount: 
+			printL(( 'State validation failed for', self.txhash,  'because: Insufficient funds'))
+			return False
+		return True
 		
+	def create_simple_transaction(self, txfrom, txto, amount, data, fee=0, hrs=''):
 		self.txfrom = txfrom
 		self.nonce = 0
 		self.txto = txto
 		self.amount = int(amount)
 		self.fee = int(fee)
-		self.ots_key = ots_key
+		self.ots_key = data.index
 
-		if type(data) == list:
-			self.type = data[ots_key].type
-			self.pub = data[ots_key].pub
-			pub = self.pub
-			if self.type == 'LDOTS':
-				pub = [i for sub in pub for i in sub]
-			self.pubhash = sha256(''.join(pub))
-			#printL(( self.pubhash
-			self.txhash = sha256(''.join(self.txfrom+str(self.pubhash)+self.txto+str(self.amount)+str(self.fee)))	
-			self.signature = merkle.sign_mss(data, self.txhash, self.ots_key)
-			self.verify = merkle.verify_mss(self.signature, data, self.txhash, self.ots_key)
-			self.merkle_root = ''.join(data[0].merkle_root)
-			self.merkle_path = data[ots_key].merkle_path
+		pub = data.pk()
+		pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+		self.pubhash = sha256(''.join(pub))
+		self.txhash = sha256(''.join(self.txfrom+str(self.pubhash)+self.txto+str(self.amount)+str(self.fee)))	
+		self.merkle_root = data.root
+		if not self.pre_condition():
+			return False
+		#self.verify = data.VERIFY(self.txhash, S)			#not necessary, to save time could be commented out to reduce tx signing speed..
+		self.process_XMSS('TX', txfrom, self.txhash)
+		
+		return self
 
-		else:		#xmss
-			self.type = data.type
-			pub = data.pk()
+	def validate_tx(self, new=0):
+		#cryptographic checks
+		if self.txhash != sha256(''.join(self.txfrom+str(self.pubhash))+self.txto+str(self.amount)+str(self.fee)):
+			return False
+
+		# SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
+		if self.type != 'TX':
+			return False
+		
+		if merkle.xmss_verify(self.txhash, [self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]) is False:
+			return False
+		if xmss_checkaddress(self.PK, self.txfrom) is False:
+			return False
+		
+		return True		
+
+	def state_validate_tx(self):		#checks new tx validity based upon node statedb and node mempool. 
+
+		if not self.pre_condition():
+			return False
+
+		pub = self.pub
+		if self.type != 'TX':
+			return False
+
+		pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
+		
+		pubhash = sha256(''.join(pub))
+
+		for txn in transaction_pool:
+			if txn.txhash == self.txhash:
+				continue
+			pub = txn.pub
+			if txn.type != 'TX':
+				return False
 			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
-			self.pubhash = sha256(''.join(pub))
-			#printL(( self.pubhash
-			self.txhash = sha256(''.join(self.txfrom+str(self.pubhash)+self.txto+str(self.amount)+str(self.fee)))	
-			S = data.SIGN(self.txhash)				# Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
-			self.i = S[0]
-			self.signature = S[1]
-			self.merkle_path = S[2]
-			self.i_bms = S[3]
-			self.pub = S[4]
-			self.PK = S[5]
-			self.merkle_root = data.root
-			self.verify = data.VERIFY(self.txhash, S)			#not necessary, to save time could be commented out to reduce tx signing speed..
-	
 
+			pubhashn = sha256(''.join(pub))
 
+			if pubhashn == pubhash:
+				printL(( 'State validation failed for', self.txhash, 'because: OTS Public key re-use detected'))
+				return False
+
+		if pubhash in state_pubhash(self.txfrom):
+			printL(( 'State validation failed for', self.txhash, 'because: OTS Public key re-use detected'))
+			return False
+
+		return True
+		
 def creategenesisblock():
 	return CreateGenesisBlock()
-
 
 class BlockHeader():
 	def __init__(self, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions, number_stake, hashedstake, reveal_list=None):
@@ -431,16 +479,22 @@ class CreateBlock():
 		self.transactions = []
 		for tx in transaction_pool:
 			self.transactions.append(tx)						#copy memory rather than sym link
-		
+		curr_epoch = (m_blockchain[-1].blockheader.blocknumber)/10000
 		if not stake_pool:
 			hashedstake = sha256('')
 		else:
 			sthashes = []
 			for st in stake_pool:
+				if st.epoch != curr_epoch:
+					printL (( 'Skipping st as epoch mismatch, CreateBlock()' ))
+					continue
 				sthashes.append(st.hash)
 			hashedstake = sha256(''.join(sthashes))
 		self.stake = []
 		for st in stake_pool:
+			if st.epoch != curr_epoch:
+				printL (( 'Skipping st as epoch mismatch, CreateBlock()' ))
+				continue
 			self.stake.append(st)
 
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, reveal_list=reveal_list, hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions, number_stake=len(stake_pool), hashedstake=hashedstake)
@@ -451,116 +505,16 @@ class CreateGenesisBlock():			#first block has no previous header to reference..
 		self.blockheader = BlockHeader(blocknumber=0, hashchain_link='genesis', prev_blockheaderhash=sha256('quantum resistant ledger'),number_transactions=0, hashedtransactions=sha256('0'), number_stake=0, hashedstake=sha256('0'))
 		self.transactions = []
 		self.stake = []
-		self.state = [['Qe1563a15fe6ffae964473d11180aaace207bcb1ed1ac570dfb46684421f7bb4f10eb', [0, 100000*100000000, []]] , ['Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee',[0, 10000*100000000,[]]], ['Q87f8f17e095baecfe7627558f15408d184d5d2884d8c3cc5ded2d2f316ce5d55b43e', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]] ]
-		#Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28 petal
+		self.state = [['Q8eb5a51d4b8a4b53c5b8b9ded93d7fd7717796c3690bee0767b1dcaadd3520c1e242', [0, 100000*100000000, []]] , ['Q44328abd64300ce05c7b297f13ff9f02de4c0e40c5956a2168dd8c0a7c476bf613ce',[0, 10000*100000000,[]]], ['Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57', [0, 10000*100000000,[]]], ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]], ['Qfc6a9b751915048a7888b65e77f9a248379d8b47c94081b3baced7c1234dc7f4b419', [0, 10000*100000000,[]]] ]
+		#Qfc6a9b751915048a7888b65e77f9a248379d8b47c94081b3baced7c1234dc7f4b419 petal
 		#Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57 tiddler
-		#Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3 twiglet
-		#Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167 bean
-		#Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee flea
+		#Q8eb5a51d4b8a4b53c5b8b9ded93d7fd7717796c3690bee0767b1dcaadd3520c1e242 twiglet
+		#Q44328abd64300ce05c7b297f13ff9f02de4c0e40c5956a2168dd8c0a7c476bf613ce bean
+		#Qa1f6f52ecb490cc3209a5e3580aa9539edfff0cb5a3ce06adc8f0c1e46bf38bfe0a0 flea
 		#self.stake_list = ['Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
-		self.stake_list = ['Q287814bf7fc151fbbda6e4e613cca6da0f04f80c4ebd4ab59352d44d5e5fc2fe95f3', 'Qf4943a8a76c298a48c936bda30707cafe2bff304a815a7fd9a69cbf83e9c510fac28','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q0815e965f3f51740fe3ea03ed5ffcefc90be932f68f8e29d8b792b10ddfb95113167','Qcdfe2d4eb5dd71d49b24bf73301de767936af38fbf640385c347aa398a5a1f777aee']
+		self.stake_list = ['Q8eb5a51d4b8a4b53c5b8b9ded93d7fd7717796c3690bee0767b1dcaadd3520c1e242', 'Qfc6a9b751915048a7888b65e77f9a248379d8b47c94081b3baced7c1234dc7f4b419','Q4acc55bb7126f532cc1566242809153bb3cc8d360256aa94b7180ca4f7ffa555de57','Q44328abd64300ce05c7b297f13ff9f02de4c0e40c5956a2168dd8c0a7c476bf613ce','Qa1f6f52ecb490cc3209a5e3580aa9539edfff0cb5a3ce06adc8f0c1e46bf38bfe0a0']
 		#self.stake_list = ['Q775a5868cda4488f97436d1c7f45ddae68e896218dfe42f6233f46a72eebdb038066', 'Qe1563a15fe6ffae964473d11180aaace207bcb1ed1ac570dfb46684421f7bb4f10eb']
 		self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
-
-# JSON -> python class obj ; we can improve this with looping type check and encode if str and nest deeper if list > 1 (=1 ''join then encode)
-
-class ReCreateSimpleTransaction():			#recreate from JSON avoiding insecure pickle reinstantiation of the class..
-	def __init__(self, json_obj):
-		
-		self.type = json_obj['type'].encode('latin1')
-
-		if self.type != 'XMSS':
-
-			self.pubhash = json_obj['pubhash'].encode('latin1')
-			self.nonce = json_obj['nonce']
-			self.fee = int(json_obj['fee'])
-			self.verify = json_obj['verify']
-			self.merkle_root = json_obj['merkle_root'].encode('latin1')
-			self.amount = int(json_obj['amount'])
-			pub = json_obj['pub']
-			self.pub = []
-			for key in pub:
-				if self.type == 'LDOTS':
-					x = key['py/tuple']
-					self.pub.append((x[0].encode('latin1'), x[1].encode('latin1')))
-				else:
-					self.pub.append(key.encode('latin1'))
-			self.ots_key = json_obj['ots_key']
-			self.txhash = json_obj['txhash'].encode('latin1')
-			self.txto = json_obj['txto'].encode('latin1')
-			signature = json_obj['signature']
-			self.signature = []
-			for sig in signature:								
-				self.signature.append(sig.encode('latin1'))		#encode('latin1') converts unicode back..
-		
-			self.merkle_path = []
-			for pair in json_obj['merkle_path']:
-				if isinstance(pair, dict):
-					y = pair['py/tuple']
-					self.merkle_path.append((y[0].encode('latin1'),y[1].encode('latin1')))
-				elif isinstance(pair, list):
-					self.merkle_path.append([''.join(pair).encode('latin1')])
-			self.txfrom = json_obj['txfrom'].encode('latin1')
-		
-		else:	#xmss
-			self.pubhash = json_obj['pubhash'].encode('latin1')
-			self.nonce = json_obj['nonce']
-			self.fee = int(json_obj['fee'])
-			self.i_bms = []
-			for layer in json_obj['i_bms']:
-				if len(layer) ==2:
-					self.i_bms.append([layer[0],layer[1]])
-				elif len(layer) ==3:
-					self.i_bms.append([layer[0].encode('latin1'),layer[1],layer[2]])
-				else:
-					if isinstance(layer, dict):
-						y = layer['py/tuple']
-						if len(y)==2:
-							self.i_bms.append([y[0],y[1]])
-						elif len(y)==3:
-							self.i_bms.append([y[0].encode('latin1'),y[1],y[2]])
-						else:
-							printL(( 'something going wrong..'))
-							pass
-
-			self.verify = json_obj['verify']
-			self.merkle_root = json_obj['merkle_root'].encode('latin1')
-			self.amount = int(json_obj['amount'])
-			
-			self.pub = []
-			pub = json_obj['pub']
-			for p in pub:
-				if isinstance(p, dict):
-					y = p['py/tuple']
-					r = []
-					for x in y[0]:
-						r.append(x.encode('latin1'))
-					self.pub.append([r, y[1].encode('latin1')])
-				elif isinstance(p, unicode):
-					self.pub.append(p.encode('latin1'))
-				else:
-					self.pub.append(p)
-			
-			self.ots_key = json_obj['ots_key']
-			self.txhash = json_obj['txhash'].encode('latin1')
-			self.txto = json_obj['txto'].encode('latin1')
-			self.txfrom = json_obj['txfrom'].encode('latin1')
-			signature = json_obj['signature']
-			self.signature = []
-			for sig in signature:								
-				self.signature.append(sig.encode('latin1'))		#encode('latin1') converts unicode back to UTF-8..
-			self.i = json_obj['i']
-			path = json_obj['merkle_path']
-			self.merkle_path = []
-			for auth in path:
-				self.merkle_path.append(auth.encode('latin1'))
-			self.PK = []										#required as jsonpickle is buggy..
-			PK = json_obj['PK']
-			if len(PK) == 2:
-				for p in PK:
-					self.PK.append(p.encode('latin1'))
-			elif len(PK) == 168:
-					self.PK = ast.literal_eval(PK)
 
 
 class ReCreateBlock():						#recreate block class from JSON variables for processing
@@ -570,12 +524,16 @@ class ReCreateBlock():						#recreate block class from JSON variables for proces
 		transactions = json_block['transactions']
 		self.transactions = []
 		for tx in transactions:
-			self.transactions.append(ReCreateSimpleTransaction(tx))
+			self.transactions.append(SimpleTransaction().dict_to_transaction(tx))
 
 		stake = json_block['stake']
 		self.stake = []
+		
 		for st in stake:
-			self.stake.append(ReCreateStakeTransaction(st))
+			st_obj = StakeTransaction().dict_to_transaction(st)
+			if st_obj.epoch != self.blockheader.epoch:
+				continue
+			self.stake.append(st_obj)
 
 class ReCreateBlockHeader():
 	def __init__(self, json_blockheader):
@@ -661,14 +619,21 @@ def json_encode(obj):
 def json_decode(js_obj):
 	return json.loads(js_obj)
 
+class ComplexEncoder(json.JSONEncoder):
+	def default(self, obj):
+		return obj.__dict__
+	
 def json_bytestream(obj):	
-	return jsonpickle.encode(obj, make_refs=False)						#annoying bug!!!
+	return json.dumps(obj.__dict__, cls=ComplexEncoder)
 
 def json_bytestream_tx(tx_obj):											#JSON serialise tx object
 	return 'TX'+json_bytestream(tx_obj)
 
 def json_bytestream_pb(block_obj):
-        return 'PB'+json_bytestream(block_obj)
+	return 'PB'+json_bytestream(block_obj)
+
+def json_bytestream_ph(mini_block):
+	return 'PH'+json_encode(mini_block)
 
 def json_bytestream_bk(block_obj):										# "" block object
 	return 'BK'+json_bytestream(block_obj)
@@ -1128,6 +1093,9 @@ def m_remove_last_block():
 def m_blockheight():
 	return len(m_read_chain())-1
 
+def height():
+	return len(m_blockchain)-1
+
 def m_info_block(n):
 	if n > m_blockheight():
 		printL(( 'No such block exists yet..'))
@@ -1252,69 +1220,6 @@ def state_pubhash(addr):
 def state_hrs(hrs):
 	try: return db.get('hrs'+hrs)
 	except: return False
-
-def state_validate_st(st):
-	if st.type != 'XMSS/STAKE':
-		return False
-	pub = st.pub
-	pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
-	pubhash = sha256(''.join(pub))
-
-	if pubhash in state_pubhash(st.txfrom):
-			printL(( 'State validation failed for', st.hash, 'because: OTS Public key re-use detected'))
-			return False
-	return True
-
-
-def state_validate_tx(tx):		#checks new tx validity based upon node statedb and node mempool. 
-
-	if state_uptodate() is False:
-			printL(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
-			#return False
-
-	if state_balance(tx.txfrom) is 0:
-			printL(( 'State validation failed for', tx.txhash, 'because: Empty address'))
-			return False 
-
-	if state_balance(tx.txfrom) < tx.amount: 
-			printL(( 'State validation failed for', tx.txhash,  'because: Insufficient funds'))
-			return False
-
-
-	pub = tx.pub
-	if tx.type == 'LDOTS':
-		pub = [i for sub in pub for i in sub]
-	elif tx.type == 'WOTS':
-				pass
-	elif tx.type == 'XMSS':
-		 pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
-	
-	pubhash = sha256(''.join(pub))
-
-	for txn in transaction_pool:
-	  if txn.txhash == tx.txhash:
-	  	pass
-	  else:
-		pub = txn.pub
-		if txn.type == 'LDOTS':
-			pub = [i for sub in pub for i in sub]
-		elif txn.type == 'WOTS':
-				pass
-		elif txn.type == 'XMSS':
-			pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
-
-		pubhashn = sha256(''.join(pub))
-
-		if pubhashn == pubhash:
-			printL(( 'State validation failed for', tx.txhash, 'because: OTS Public key re-use detected'))
-			return False
-
-
-	if pubhash in state_pubhash(tx.txfrom):
-			printL(( 'State validation failed for', tx.txhash, 'because: OTS Public key re-use detected'))
-			return False
-
-	return True
 
 def state_validate_tx_pool():
 	x=0
@@ -1483,9 +1388,7 @@ def state_add_block(block):
 	for tx in block.transactions:
 
 		pub = tx.pub
-		if tx.type == 'LDOTS':
-				pub = [i for sub in pub for i in sub]
-		elif tx.type == 'XMSS':
+		if tx.type == 'TX':
 				pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
 
 		pubhash = sha256(''.join(pub))
@@ -1587,9 +1490,7 @@ def state_read_chain():
 
 		for tx in block.transactions:
 			pub = tx.pub
-			if tx.type == 'LDOTS':
-				  	pub = [i for sub in pub for i in sub]
-			elif tx.type == 'XMSS':
+			if tx.type == 'TX':
 					pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
 
 			pubhash = sha256(''.join(pub))
@@ -1625,60 +1526,6 @@ def state_read_chain():
 	db.put('blockheight', m_blockheight())
 	return True
 
-#tx functions and classes
-
-def createsimpletransaction(txfrom, txto, amount, data, fee=0):				
-
-	#few state checks to ensure tx is valid, including tx already in the transaction_pool
-	#need to avoid errors in public key re-use which will invalidate the tx at other nodes
-
-	if state_uptodate() is False:
-			msg = 'state not at latest block in chain'
-			printL(( msg))
-			return (False, msg)
-
-	if state_balance(txfrom) is 0:	#not necessary
-			msg = 'empty address'
-			printL(( msg))
-			return (False, msg) 
-
-	if state_balance(txfrom) < amount: 
-			msg = 'insufficient funds for valid tx'
-			printL(( msg))
-			return (False, msg)
-	
-	n=1
-	for t in transaction_pool:
-		if t.txfrom == txfrom:
-			n+=1
-
-	if type(data) == list:
-		ots_key = state_nonce(txfrom)+n		
-	else: #xmss
-		ots_key = data.index
-
-	if type(data) == list:
-		for pubhash in state_pubhash(txfrom):
-		 if pubhash == data[ots_key].pubhash:
-			msg = 'Wallet error: pubhash at ots_key has already been used. Compose a transaction manually and move funds to a new address.'
-			printL(( msg))
-			return (False, msg)
-	else:	#xmss
-		#printL(( 'state', state_pubhash(txfrom)
-		for pubhash in state_pubhash(txfrom):
-		 	pub = data.pk(ots_key)
-		 	pub = [''.join(pub[0][0]),pub[0][1],''.join(pub[2:])]
-			#printL(( 'pubhash from pub ', sha256(''.join(pub))
-			if pubhash == sha256(''.join(pub)):
-		 		msg = 'Wallet error: pubhash at ots_key has already been used. Updating to next keypair - try again..'
-				data.set_index(ots_key+1)
-				wallet.f_save_winfo()
-				printL(( msg))
-				return (False, msg)
-
-	msg = ''
-	return (CreateSimpleTransaction(txfrom=txfrom, txto=txto, amount=amount, data=data, fee=fee, ots_key=ots_key), msg)
-
 def add_tx_to_pool(tx_class_obj):
 	transaction_pool.append(tx_class_obj)
 	txhash_timestamp.append(tx_class_obj.txhash)
@@ -1695,7 +1542,6 @@ def remove_tx_from_pool(tx_class_obj):
 def remove_st_from_pool(st_class_obj):
 	stake_pool.remove(st_class_obj)
 	
-
 def show_tx_pool():
 	return transaction_pool
 
@@ -1720,7 +1566,7 @@ def flush_st_pool():
 def validate_tx_in_block(block_obj, new=0):
 	x = 0
 	for transaction in block_obj.transactions:
-		if validate_tx(transaction, new=new) is False:
+		if transaction.validate_tx(new=new) is False:
 			printL(( 'invalid tx: ',transaction, 'in block'))
 			x+=1
 	if x > 0:
@@ -1730,7 +1576,7 @@ def validate_tx_in_block(block_obj, new=0):
 def validate_st_in_block(block_obj):
 	x = 0
 	for st in block_obj.stake:
-		if validate_st(st) is False:
+		if st.validate_tx() is False:
 			printL(( 'invalid st:', st, 'in block'))
 			x+=1
 	if x > 0:
@@ -1739,59 +1585,12 @@ def validate_st_in_block(block_obj):
 
 def validate_tx_pool():									#invalid transactions are auto removed from pool..
 	for transaction in transaction_pool:
-		if validate_tx(transaction) is False:
+		if transaction.validate_tx() is False:
 			remove_tx_from_pool(transaction)
 			printL(( 'invalid tx: ',transaction, 'removed from pool'))
 
 	return True
 
-
-def validate_st(tx):
-
-	if tx.type != 'XMSS/STAKE':
-		return False
-
-	if merkle.xmss_verify(tx.hash, [tx.i, tx.signature, tx.merkle_path, tx.i_bms, tx.pub, tx.PK]) is False:
-			return False
-	if xmss_checkaddress(tx.PK, tx.txfrom) is False:
-			return False
-
-	return True
-
-def validate_tx(tx, new=0):
-
-
-		#cryptographic checks
-
-	if not tx:
-		raise Exception('No transaction to validate.')
-
-	if tx.txhash != sha256(''.join(tx.txfrom+str(tx.pubhash))+tx.txto+str(tx.amount)+str(tx.fee)):
-		return False
-
-	if tx.type == 'WOTS':
-		if merkle.verify_wkey(tx.signature, tx.txhash, tx.pub) is False:
-				return False
-	elif tx.type == 'LDOTS':
-		if merkle.verify_lkey(tx.signature, tx.txhash, tx.pub) is False:
-				return False
-	# SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
-	elif tx.type == 'XMSS':
-
-		if merkle.xmss_verify(tx.txhash, [tx.i, tx.signature, tx.merkle_path, tx.i_bms, tx.pub, tx.PK]) is False:
-			return False
-		if xmss_checkaddress(tx.PK, tx.txfrom) is False:
-			return False
-	else: 
-		return False
-
-	if tx.type != 'XMSS':
-		if checkaddress(tx.merkle_root, tx.txfrom) is False:
-			return False
-		if merkle.verify_root(tx.pub, tx.merkle_root, tx.merkle_path) is False:
-			return False
-			
-	return True
 
 # block validation
 
@@ -1916,18 +1715,17 @@ def validate_block(block, last_block='default', verbose=0, new=0):		#check valid
 def wlt():
 	return merkle.numlist(wallet.list_addresses())
 
-def create_my_tx(txfrom, txto, n, fee=0):
-	#my = wallet.f_read_wallet()
+def create_my_tx(txfrom, txto, amount, fee=0):
 	if isinstance(txto, int):
-		(tx, msg) = createsimpletransaction(txto=my[txto][0],txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], fee=0)
-	elif isinstance(txto, str):
-		(tx, msg) = createsimpletransaction(txto=txto,txfrom=my[txfrom][0],amount=n, data=my[txfrom][1], fee=0)
-	if tx is not False:
-		#transaction_pool.append(tx)
+		txto = my[txto][0]
+
+	tx = SimpleTransaction().create_simple_transaction(txfrom=my[txfrom][0], txto=txto, amount=amount, data=my[txfrom][1], fee=fee)
+
+	if tx and tx.state_validate_tx():
 		add_tx_to_pool(tx)
 		wallet.f_save_winfo()	#need to keep state after tx ..use wallet.info to store index..far faster than loading the 55mb wallet..
-		return (tx, msg)
-	else:
-		return (False, msg)
+		return tx
+	
+	return False
 
 
