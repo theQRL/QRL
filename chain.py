@@ -25,6 +25,7 @@ global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_li
 
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, stake_reveal_three, expected_winner
 
+minimum_required_stakers = 5
 tx_per_block = [0, 0]
 ping_list =[]
 node_list = ['104.251.219.40']
