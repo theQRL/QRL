@@ -76,8 +76,8 @@ next_block_number = None
 
 def log_traceback(exctype, value, tb):				#Function to log error's traceback
 	printL (( '*** Error ***' ))
-	printL (( exctype ))
-	printL (( value ))
+	printL (( str(exctype) ))
+	printL (( str(value) ))
 	#printL (( tb ))
 
 sys.excepthook = log_traceback
@@ -133,6 +133,8 @@ def check_fork_status():
 	return 
 		
 def peers_blockheight():
+	if chain.state.current=='syncing':
+		return
 	if check_fork_status():
 		return
 	
@@ -1266,7 +1268,6 @@ class WalletProtocol(Protocol):
 			
 			elif data[0] == 'recoverfromhexseed':
 				self.transport.write('>>> trying.. this could take up to a minute..'+'\r\n')
-				printL(( args[0], len(args[0])))
 				if hexseed_to_seed(args[0]) != False:
 					addr = wallet.getnewaddress(type='XMSS', SEED=hexseed_to_seed(args[0]))
 					self.factory.newaddress = addr
