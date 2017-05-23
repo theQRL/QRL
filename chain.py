@@ -1225,7 +1225,7 @@ def state_hrs(hrs):
 def state_validate_tx_pool():
 	x=0
 	for tx in transaction_pool:
-		if state_validate_tx(tx) is False:
+		if tx.state_validate_tx() is False:
 			x+=1
 			printL(( 'tx', tx.txhash, 'failed..'))
 			remove_tx_from_pool(tx)

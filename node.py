@@ -762,6 +762,10 @@ def update_target_peers(block_number):
 				f.target_retry[peer.identity] = 0
 
 def randomize_block_fetch(block_number):
+	if block_number<=chain.height():
+		printL (( 'Already in blockchain... skipping' ))
+		return
+
 	global pending_blocks
 	if block_number in pending_blocks:
 		host_port = pending_blocks[block_number][0]
