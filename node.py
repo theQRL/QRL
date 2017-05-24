@@ -18,7 +18,6 @@ import statistics
 import json
 import fork
 
-version_number = "alpha/0.06a"
 
 log, consensus = logger.getLogger(__name__)
 
@@ -1147,7 +1146,7 @@ class ApiProtocol(Protocol):
 
 		#printL(( 'mean', z/len(chain.m_blockchain[-100:]), 'max', max(t), 'min', min(t), 'variance', max(t)-min(t)
 
-		net_stats = {'status': 'ok', 'version': version_number, 'block_reward' : chain.m_blockchain[-1].blockheader.block_reward/100000000.00000000, 'stake_validators' : len(chain.m_blockchain[-1].blockheader.reveal_list), 'epoch' : chain.m_blockchain[-1].blockheader.epoch, 'staked_percentage_emission' : staked , 'network' : 'qrl testnet', 'network_uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block_time' : z/len(chain.m_blockchain[-100:]), 'block_time_variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
+		net_stats = {'status': 'ok', 'version': chain.version_number, 'block_reward' : chain.m_blockchain[-1].blockheader.block_reward/100000000.00000000, 'stake_validators' : len(chain.m_blockchain[-1].blockheader.reveal_list), 'epoch' : chain.m_blockchain[-1].blockheader.epoch, 'staked_percentage_emission' : staked , 'network' : 'qrl testnet', 'network_uptime': time.time()-chain.m_blockchain[1].blockheader.timestamp,'block_time' : z/len(chain.m_blockchain[-100:]), 'block_time_variance' : max(t)-min(t) ,'blockheight' : chain.m_blockheight(), 'nodes' : len(f.peers)+1, 'emission': chain.db.total_coin_supply()/100000000.000000000, 'unmined' : 21000000-chain.db.total_coin_supply()/100000000.000000000 }
 		return chain.json_print_telnet(net_stats)
 
 	def txhash(self, data=None):
@@ -1341,7 +1340,7 @@ class WalletProtocol(Protocol):
 					self.wallet()
 					
 			elif data[0] == 'getinfo':
-					self.transport.write('>>> Version: '+version_number+'\r\n')
+					self.transport.write('>>> Version: '+chain.version_number+'\r\n')
 					self.transport.write('>>> Uptime: '+str(time.time()-start_time)+'\r\n')
 					self.transport.write('>>> Nodes connected: '+str(len(f.peers))+'\r\n')
 					self.transport.write('>>> Staking set to: '+ str(f.stake)+'\r\n')
@@ -1758,7 +1757,7 @@ class p2pProtocol(Protocol):
 
 		elif prefix == 'VE':
 				if not suffix:
-					self.transport.write(self.wrap_message('VE'+version_number))
+					self.transport.write(self.wrap_message('VE'+chain.version_number))
 				else:
 					printL(( self.transport.getPeer().host, 'version: ', suffix))
 					return

@@ -25,6 +25,7 @@ global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_li
 
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, stake_reveal_three, expected_winner
 
+version_number = "alpha/0.06a"
 minimum_required_stakers = 5
 tx_per_block = [0, 0]
 ping_list =[]
@@ -58,7 +59,7 @@ ip_list = []
 blockheight_map = []
 stake_validator_latency = defaultdict(dict)
 
-printL(( 'QRL blockchain ledger v 0.04a'))
+printL(( 'QRL blockchain ledger v', version_number))
 printL(( 'loading db'))
 db = db.DB()
 
