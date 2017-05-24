@@ -1271,8 +1271,7 @@ class WalletProtocol(Protocol):
 			
 			elif data[0] == 'recoverfromhexseed':
 
-				try: hexseed_to_seed(args[0])
-				except IndexError:
+				if  len(args) == 0 or hexseed_to_seed(args[0]) == False:
 					self.transport.write('>>> Usage: recoverfromhexseed <paste in hexseed>'+'\r\n')
 					self.transport.write('>>> Could take up to a minute..'+'\r\n')
 					self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
