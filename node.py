@@ -1270,21 +1270,21 @@ class WalletProtocol(Protocol):
 				self.savenewaddress()
 			
 			elif data[0] == 'recoverfromhexseed':
-				self.transport.write('>>> trying.. this could take up to a minute..'+'\r\n')
-				if hexseed_to_seed(args[0]) != False:
-					addr = wallet.getnewaddress(type='XMSS', SEED=hexseed_to_seed(args[0]))
-					self.factory.newaddress = addr
-					self.transport.write('>>> Recovery address: '+ addr[1].address +'\r\n')
-					self.transport.write('>>> Recovery seed phrase: '+addr[1].mnemonic + '\r\n')
-					self.transport.write('>>> hexSEED confirm: '+addr[1].hexSEED+'\r\n')
-					self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
-					return
 
-				else:
+				if  len(args) == 0 or hexseed_to_seed(args[0]) == False:
 					self.transport.write('>>> Usage: recoverfromhexseed <paste in hexseed>'+'\r\n')
 					self.transport.write('>>> Could take up to a minute..'+'\r\n')
 					self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
 					return
+
+				self.transport.write('>>> trying.. this could take up to a minute..'+'\r\n')
+				addr = wallet.getnewaddress(type='XMSS', SEED=hexseed_to_seed(args[0]))
+				self.factory.newaddress = addr
+				self.transport.write('>>> Recovery address: '+ addr[1].address +'\r\n')
+				self.transport.write('>>> Recovery seed phrase: '+addr[1].mnemonic + '\r\n')
+				self.transport.write('>>> hexSEED confirm: '+addr[1].hexSEED+'\r\n')
+				self.transport.write('>>> savenewaddress if Qaddress matches expectations..'+'\r\n')
+				return
 
 			elif data[0] == 'recoverfromwords':
 				if not args:
