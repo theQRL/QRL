@@ -25,7 +25,7 @@ global transaction_pool, stake_pool, txhash_timestamp, m_blockchain, my, node_li
 
 global mining_address, stake_list, stake_commit, stake_reveal, hash_chain, epoch_prf, epoch_PRF, tx_per_block, stake_reveal_one, stake_reveal_two, stake_reveal_three, expected_winner
 
-version_number = "alpha/0.06a"
+version_number = "alpha/0.07a"
 minimum_required_stakers = 5
 tx_per_block = [0, 0]
 ping_list =[]
@@ -629,16 +629,16 @@ def json_bytestream(obj):
 	return json.dumps(obj.__dict__, cls=ComplexEncoder)
 
 def json_bytestream_tx(tx_obj):											#JSON serialise tx object
-	return 'TX'+json_bytestream(tx_obj)
+	return json_bytestream(tx_obj)
 
 def json_bytestream_pb(block_obj):
-	return 'PB'+json_bytestream(block_obj)
+	return json_bytestream(block_obj)
 
 def json_bytestream_ph(mini_block):
-	return 'PH'+json_encode(mini_block)
+	return json_encode(mini_block)
 
 def json_bytestream_bk(block_obj):										# "" block object
-	return 'BK'+json_bytestream(block_obj)
+	return json_bytestream(block_obj)
 
 def json_print(obj):													#prettify output from JSON for export purposes
 	printL(( json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)))
