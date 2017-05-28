@@ -1637,15 +1637,14 @@ class p2pProtocol(Protocol):
 				if blocknumber+1 < pending_blocks['target']:
 					randomize_block_fetch(blocknumber+1)
 				else:
-					blocknumber = pending_blocks['target']
-					if not chain.m_add_block(pending_blocks[blocknumber][1]):
-						printL (( "Failed to add block by m_add_block, re-requesting the block #",blocknumber ))
-						if pending_blocks[blocknumber][1] > 10: #forked if retried more than 10 times
+					for i in range(chain.m_blockheight()+1, chain.m_blockheight()+1+len(pending_blocks)-1): # -1 as 'target' key is stored into pending_blocks
+						block = pending_blocks[i][1]				
+						del pending_blocks[i]
+						if not chain.m_add_block(block):
+							printL (( "Failed to add block by m_add_block, re-requesting the block #",blocknumber ))
 							pending_blocks = {}
-							fork.fork_recovery(blocknumber-1, chain, randomize_headerhash_fetch)
+							fork.fork_recovery(i-1, chain, randomize_headerhash_fetch)		
 							return
-						randomize_block_fetch(blocknumber)
-						return
 					f.sync = 0
 					last_bk_time = time.time()
 					chain.state.update('unsynced')
