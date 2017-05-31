@@ -84,6 +84,14 @@ sys.excepthook = log_traceback
 def parse(data):
 		return data.replace('\r\n','')
 
+def stop_monitor_bk():
+	try: reactor.monitor_bk.cancel()
+	except: pass
+
+def restart_monitor_bk():
+	stop_monitor_bk()
+	reactor.monitor_bk = reactor.callLater(60, monitor_bk)
+
 def monitor_bk():
 	global last_pos_cycle, last_bk_time, last_pb_time
 	
@@ -592,12 +600,12 @@ def pre_block_logic(block_obj):
 				pending_blocks[blocknumber] = [None, block_obj]
 				pending_blocks['target'] = blocknumber
 				printL (( 'Calling downloader from pre_block_logic due to block number ', blocknumber ))
-				printL (( 'Download block from ', chain.m_blockheight()+1 ,' to ', blocknumber-1 ))
+				printL (( 'Download block from ', chain.height()+1 ,' to ', blocknumber-1 ))
 				last_pb_time = time.time()
 				chain.state.update('syncing')
 				randomize_block_fetch(chain.m_blockheight() + 1)
 
-			elif blocknumber == chain.m_blockheight() + 1:
+			elif blocknumber == chain.height() + 1:
 				if blocknumber>1 and not pos_consensus(chain.m_blockchain[-1].blockheader.blocknumber+1, chain.m_blockchain[-1].blockheader.headerhash):
 					printL (( 'POS consensus failed for blocknumber ', blocknumber ))
 					return
@@ -774,7 +782,7 @@ def randomize_block_fetch(block_number):
 			printL (( 'Removing : ', host_port, ' from target_peers' ))
 			del f.target_peers[host_port]
 
-	if block_number not in pending_blocks or not pending_blocks[block_number][1]:
+	if block_number not in pending_blocks:
 		block_monitor = reactor.callLater(15, randomize_block_fetch, block_number)
 		if len(f.peers) > 0:
 			try:
@@ -800,15 +808,20 @@ def randomize_block_fetch(block_number):
 			printL (( 'No peers connected.. Will try again... randomize_block_fetch: ', block_number ))
 
 def randomize_headerhash_fetch(block_number):
-	if block_number not in fork.pending_blocks or not fork.pending_blocks[block_number][1]:
+	#TODO: maximum block fetch retry limit to be implemented.
+	if block_number not in fork.pending_blocks or not fork.pending_blocks[block_number][1]>10: #retry only 11 times
 		headerhash_monitor = reactor.callLater(15, randomize_headerhash_fetch, block_number)
 		if len(f.peers) > 0:
 			try:
 				if len(f.fork_target_peers) == 0:
-					f.fork_target_peers = f.peers
+					for peer in f.peers:
+						f.fork_target_peers[peer.identity] = peer
 				if len(f.fork_target_peers) > 0:
 					random_peer = f.fork_target_peers[random.choice(f.fork_target_peers.keys())]
-					fork.pending_blocks[block_number] = [random_peer.identity, None, None, headerhash_monitor]
+					count = 0
+					#if block_number in fork.pending_blocks:
+					#	count = fork.pending_blocks[block_number][1]+1
+					fork.pending_blocks[block_number] = [random_peer.identity, count, None, headerhash_monitor]
 					random_peer.fetch_headerhash_n(block_number)
 			except:
 				printL (( 'Exception at randomize_headerhash_fetch' ))
@@ -1621,7 +1634,7 @@ class p2pProtocol(Protocol):
 			block = chain.json_decode_block(data)
 			blocknumber = block.blockheader.blocknumber
 			printL (( '>>>Received Block #', block.blockheader.blocknumber))
-			if blocknumber in pending_blocks:
+			if blocknumber in pending_blocks and self.identity == pending_blocks[blocknumber][0]:
 				printL (( 'Found in Pending List' ))
 				try: pending_blocks[blocknumber][3].cancel()
 				except Exception: pass
@@ -1648,7 +1661,7 @@ class p2pProtocol(Protocol):
 					f.sync = 0
 					last_bk_time = time.time()
 					chain.state.update('unsynced')
-					reactor.monitor_bk = reactor.callLater(120, monitor_bk)
+					restart_monitor_bk()
 			else:
 				printL (( 'Didnt match', pending_blocks[block.blockheader.blocknumber][0], thisPeerHost.host, thisPeerHost.port ))
 
@@ -2506,7 +2519,7 @@ if __name__ == "__main__":
 	reactor.listenTCP(9000, f)
 	reactor.listenTCP(8080, api)
 
-	reactor.monitor_bk = reactor.callLater(120, monitor_bk)
+	restart_monitor_bk()
 
 	printL(( 'Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"'))
 	printL(( '<<<Connecting to nodes in peer.dat'))
