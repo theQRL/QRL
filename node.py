@@ -550,7 +550,7 @@ def pre_block_logic(block_obj):
 	if block_obj.blockheader.blocknumber <= chain.m_blockheight():
 		return
 
-	global next_header_hash, next_block_number, last_pos_cycle, sync_tme, last_bk_time, last_selected_height, last_pb_time
+	global next_header_hash, next_block_number, last_pos_cycle, sync_tme, last_bk_time, last_selected_height, last_pb_time, pending_blocks
 	bk_time_diff = time.time() - last_bk_time
 	last_bk_time = time.time()
 	blocknumber = block_obj.blockheader.blocknumber
@@ -597,6 +597,7 @@ def pre_block_logic(block_obj):
 					printL (( 'Unsynced on Different Epoch' ))
 				if check_fork_status():
 					return
+				pending_blocks = {}
 				pending_blocks[blocknumber] = [None, block_obj]
 				pending_blocks['target'] = blocknumber
 				printL (( 'Calling downloader from pre_block_logic due to block number ', blocknumber ))
@@ -782,7 +783,7 @@ def randomize_block_fetch(block_number):
 			printL (( 'Removing : ', host_port, ' from target_peers' ))
 			del f.target_peers[host_port]
 
-	if block_number not in pending_blocks:
+	if block_number not in pending_blocks or pending_blocks[block_number][1]<=10:
 		block_monitor = reactor.callLater(15, randomize_block_fetch, block_number)
 		if len(f.peers) > 0:
 			try:
@@ -806,10 +807,16 @@ def randomize_block_fetch(block_number):
 				printL(( str(ex) ))
 		else:
 			printL (( 'No peers connected.. Will try again... randomize_block_fetch: ', block_number ))
+	else:
+		if pending_blocks[block_number][1] > 10: #forked if retried more than 10 times
+			pending_blocks = {}
+			fork.fork_recovery(block_number-1, chain, randomize_headerhash_fetch)
+			return
+
 
 def randomize_headerhash_fetch(block_number):
 	#TODO: maximum block fetch retry limit to be implemented.
-	if block_number not in fork.pending_blocks or not fork.pending_blocks[block_number][1]>10: #retry only 11 times
+	if block_number not in fork.pending_blocks or fork.pending_blocks[block_number][1]<=10: #retry only 11 times
 		headerhash_monitor = reactor.callLater(15, randomize_headerhash_fetch, block_number)
 		if len(f.peers) > 0:
 			try:
@@ -1636,16 +1643,12 @@ class p2pProtocol(Protocol):
 			printL (( '>>>Received Block #', block.blockheader.blocknumber))
 			if blocknumber in pending_blocks and self.identity == pending_blocks[blocknumber][0]:
 				printL (( 'Found in Pending List' ))
-				try: pending_blocks[blocknumber][3].cancel()
-				except Exception: pass
 				if not chain.m_add_block(block):
 					printL (( "Failed to add block by m_add_block, re-requesting the block #",blocknumber ))
-					if pending_blocks[blocknumber][1] > 10: #forked if retried more than 10 times
-						pending_blocks = {}
-						fork.fork_recovery(blocknumber-1, chain, randomize_headerhash_fetch)
-						return
-					randomize_block_fetch(blocknumber)
 					return
+
+				try: pending_blocks[blocknumber][3].cancel()
+				except Exception: pass
 				del pending_blocks[blocknumber]
 				if blocknumber+1 < pending_blocks['target']:
 					randomize_block_fetch(blocknumber+1)

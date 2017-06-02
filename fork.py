@@ -10,6 +10,8 @@ def set_epoch(blocknumber):
 	epoch_minimum_blocknumber = blocknumber - blocknumer % 10000
 
 def fork_recovery(blocknumber, chain, randomize_headerhash_fetch):
+	global pending_blocks
+	pending_blocks = {}
 	randomize_headerhash_fetch(blocknumber-1)
 	chain.state.update('forked')
 	#change state to FORKED
