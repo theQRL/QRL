@@ -800,6 +800,8 @@ def update_target_peers(block_number):
 	f.target_peers = {}
 	printL (( str(f.peers) ))
 	for peer in f.peers:
+		if peer.identity not in f.fork_target_peers:
+			continue
 		printL (( peer.identity, peer.identity in f.peers_blockheight, f.peers_blockheight.keys() ))
 		if peer.identity in f.peers_blockheight:
 			printL (( peer.identity, f.peers_blockheight[peer.identity], '>=', block_number-1 ))
@@ -852,7 +854,6 @@ def randomize_block_fetch(block_number):
 
 
 def randomize_headerhash_fetch(block_number):
-	#TODO: maximum block fetch retry limit to be implemented.
 	if block_number not in fork.pending_blocks or fork.pending_blocks[block_number][1]<=10: #retry only 11 times
 		headerhash_monitor = reactor.callLater(15, randomize_headerhash_fetch, block_number)
 		if len(f.peers) > 0:
@@ -863,14 +864,16 @@ def randomize_headerhash_fetch(block_number):
 				if len(f.fork_target_peers) > 0:
 					random_peer = f.fork_target_peers[random.choice(f.fork_target_peers.keys())]
 					count = 0
-					#if block_number in fork.pending_blocks:
-					#	count = fork.pending_blocks[block_number][1]+1
+					if block_number in fork.pending_blocks:
+						count = fork.pending_blocks[block_number][1]+1
 					fork.pending_blocks[block_number] = [random_peer.identity, count, None, headerhash_monitor]
 					random_peer.fetch_headerhash_n(block_number)
 			except:
 				printL (( 'Exception at randomize_headerhash_fetch' ))
 		else:
 			printL (( 'No peers connected.. Will try again... randomize_headerhash_fetch: ', block_number ))
+	else:
+		chain.state.update('unsynced')
 
 
 def synchronising_update_chain(data=None):
@@ -1789,24 +1792,24 @@ class p2pProtocol(Protocol):
 		
 	def FB(self, data):		#Fetch Request for block
 		data = int(data)
-		if data > 0 and data <= chain.m_blockheight():
+		if data > 0 and data <= chain.height():
 			printL(( '<<<Pushing block number', str(data), str(len(chain.json_bytestream(chain.m_get_block(data)))),' bytes', 'to node: ', self.transport.getPeer().host ))
 			self.transport.write(self.wrap_message('PB',chain.json_bytestream_pb(chain.m_get_block(data))))
 		else:
-			if data > chain.m_blockheight():
+			if data > chain.height():
 				printL(( 'FB for a blocknumber is greater than the local chain length..' ))
 				return
 
 	def FH(self, data):		#Fetch Block Headerhash
 		data = int(data)
-		if data > 0 and data <= chain.m_blockheight():
+		if data > 0 and data <= chain.height():
 			mini_block = {}
 			printL(( '<<<Pushing block headerhash of block number ', str(data), ' to node: ', self.transport.getPeer().host ))
 			mini_block['headerhash'] = chain.m_get_block(data).blockheader.headerhash
 			mini_block['blocknumber'] = data
 			self.transport.write(self.wrap_message('PH',chain.json_bytestream_ph(mini_block)))
 		else:
-			if data > chain.m_blockheight():
+			if data > chain.height():
 				printL(( 'FH for a blocknumber is greater than the local chain length..' ))
 				return
 
