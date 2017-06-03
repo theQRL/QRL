@@ -261,6 +261,7 @@ def pre_pos_2(data=None):
 def process_transactions(num):
 	tmp_num = num
 	for tx in chain.pending_tx_pool:
+		tmp_num -= 1
 		tx_peer = tx[1]
 		tx = tx[0]
 		if tx.validate_tx() != True:
@@ -274,12 +275,10 @@ def process_transactions(num):
 		printL(( '>>>TX - ', tx.txhash, ' from - ', tx_peer.transport.getPeer().host, ' relaying..'))
 		chain.add_tx_to_pool(tx)
 
+		txn_msg = tx_peer.wrap_message('TX',tx.transaction_to_json())
 		for peer in tx_peer.factory.peers:
 			if peer != tx_peer:
-				peer.transport.write(tx_peer.wrap_message('TX'+tx.transaction_to_json()))
-		tmp_num -= 1
-		if tmp_num == 0:
-			break
+				peer.transport.write(txn_msg)
 	
 	for i in range(num-tmp_num):
 		del chain.pending_tx_pool[0]
@@ -2191,21 +2190,6 @@ class p2pProtocol(Protocol):
 				return
 
 		chain.update_pending_tx_pool(tx, self)
-		
-		#if tx.validate_tx() != True:
-		#		printL(( '>>>TX ', tx.txhash, 'failed validate_tx'))
-		#		return
-
-		#if tx.state_validate_tx() != True:
-		#		printL(( '>>>TX', tx.txhash, 'failed state_validate'))
-		#		return
-
-		#printL(( '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'))
-		#chain.add_tx_to_pool(tx)
-
-		#for peer in self.factory.peers:
-		#	if peer != self:
-		#		peer.transport.write(self.wrap_message(tx.transaction_to_json()))
 		
 		return
 
