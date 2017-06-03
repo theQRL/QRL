@@ -2,10 +2,48 @@
 # -features POS, quantum secure signature scheme..
 
 __author__ = 'pete'
+import sys
+from time import sleep
+import os
+import atexit
+import subprocess
+import signal
+import sys
+
+if 'main.py' not in sys.argv:
+	print sys.argv
+	pid_ = None
+	def cleanup():
+	        os.kill(pid_, signal.SIGTERM)
+
+	atexit.register(cleanup)
+
+	while True:
+		print "Initializing Node"
+		proc = None
+		with open("command","r") as f:
+			proc = f.readline().strip()
+		proc = proc+' main.py'
+		proc = subprocess.Popen(proc, shell=True)
+		
+		pid_ = proc.pid
+		try:
+			proc.wait()
+		except KeyboardInterrupt:
+			print "Exit..."
+			sys.exit()
+		try:
+			cleanup()
+		except:
+			pass
+
+		sleep(10)
+
+import os
+import signal
 import time, struct, random, copy, decimal
 import chain, wallet, merkle
 
-import sys
 import logger
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor, defer, task, threads
@@ -21,7 +59,7 @@ import fork
 
 log, consensus = logger.getLogger(__name__)
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block', 'reboot']
 api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers', 'latency']
 
 term = Terminal();
@@ -1373,6 +1411,11 @@ class WalletProtocol(Protocol):
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
+
+			elif data[0] == 'reboot':
+				self.transport.write('>>> Initiating reboot sequence. \r\n')
+				f.send_reboot()
+				
 		else:
 			return False
 
@@ -1574,6 +1617,13 @@ class p2pProtocol(Protocol):
 			#printL (( "Func name ", func ))
 			#printL (( "JSON data ", jdata ))
 			pass
+
+	def reboot(self):
+		if not self.identity.startswith('104.237.3.185'):
+			return
+		printL (( 'Initiating Reboot Sequence' ))
+		global pid
+		os.kill(pid, signal.SIGTERM)
 
 	def TX(self, data):				#tx received..
 		self.recv_tx(data)
@@ -2286,6 +2336,12 @@ class p2pFactory(ServerFactory):
 			peer.transport.write(self.f_wrap_message('TX',tx.transaction_to_json()))
 		return
 
+	def send_reboot(self):
+		printL(( '<<<Transmitting Reboot Command' ))
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('reboot'))
+		return
+
 
 	# transmit reveal_one hash.. (node cast lottery vote)
 
@@ -2479,6 +2535,8 @@ class ApiFactory(ServerFactory):
 		pass
 
 if __name__ == "__main__":
+	global pid
+	pid = os.getpid()
 
 	start_time = time.time()
 	printL(( 'Reading chain..'))
