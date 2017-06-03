@@ -2,10 +2,48 @@
 # -features POS, quantum secure signature scheme..
 
 __author__ = 'pete'
+import sys
+from time import sleep
+import os
+import atexit
+import subprocess
+import signal
+import sys
+
+if 'main.py' not in sys.argv:
+	print sys.argv
+	pid_ = None
+	def cleanup():
+	        os.kill(pid_, signal.SIGTERM)
+
+	atexit.register(cleanup)
+
+	while True:
+		print "Initializing Node"
+		proc = None
+		with open("command","r") as f:
+			proc = f.readline().strip()
+		proc = proc+' main.py'
+		proc = subprocess.Popen(proc, shell=True)
+		
+		pid_ = proc.pid
+		try:
+			proc.wait()
+		except KeyboardInterrupt:
+			print "Exit..."
+			sys.exit()
+		try:
+			cleanup()
+		except:
+			pass
+
+		sleep(10)
+
+import os
+import signal
 import time, struct, random, copy, decimal
 import chain, wallet, merkle
 
-import sys
 import logger
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor, defer, task, threads
@@ -21,7 +59,7 @@ import fork
 
 log, consensus = logger.getLogger(__name__)
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block', 'reboot']
 api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers', 'latency']
 
 term = Terminal();
@@ -261,6 +299,7 @@ def pre_pos_2(data=None):
 def process_transactions(num):
 	tmp_num = num
 	for tx in chain.pending_tx_pool:
+		tmp_num -= 1
 		tx_peer = tx[1]
 		tx = tx[0]
 		if tx.validate_tx() != True:
@@ -274,12 +313,10 @@ def process_transactions(num):
 		printL(( '>>>TX - ', tx.txhash, ' from - ', tx_peer.transport.getPeer().host, ' relaying..'))
 		chain.add_tx_to_pool(tx)
 
+		txn_msg = tx_peer.wrap_message('TX',tx.transaction_to_json())
 		for peer in tx_peer.factory.peers:
 			if peer != tx_peer:
-				peer.transport.write(tx_peer.wrap_message('TX'+tx.transaction_to_json()))
-		tmp_num -= 1
-		if tmp_num == 0:
-			break
+				peer.transport.write(txn_msg)
 	
 	for i in range(num-tmp_num):
 		del chain.pending_tx_pool[0]
@@ -763,6 +800,8 @@ def update_target_peers(block_number):
 	f.target_peers = {}
 	printL (( str(f.peers) ))
 	for peer in f.peers:
+		if peer.identity not in f.fork_target_peers:
+			continue
 		printL (( peer.identity, peer.identity in f.peers_blockheight, f.peers_blockheight.keys() ))
 		if peer.identity in f.peers_blockheight:
 			printL (( peer.identity, f.peers_blockheight[peer.identity], '>=', block_number-1 ))
@@ -815,7 +854,6 @@ def randomize_block_fetch(block_number):
 
 
 def randomize_headerhash_fetch(block_number):
-	#TODO: maximum block fetch retry limit to be implemented.
 	if block_number not in fork.pending_blocks or fork.pending_blocks[block_number][1]<=10: #retry only 11 times
 		headerhash_monitor = reactor.callLater(15, randomize_headerhash_fetch, block_number)
 		if len(f.peers) > 0:
@@ -826,14 +864,16 @@ def randomize_headerhash_fetch(block_number):
 				if len(f.fork_target_peers) > 0:
 					random_peer = f.fork_target_peers[random.choice(f.fork_target_peers.keys())]
 					count = 0
-					#if block_number in fork.pending_blocks:
-					#	count = fork.pending_blocks[block_number][1]+1
+					if block_number in fork.pending_blocks:
+						count = fork.pending_blocks[block_number][1]+1
 					fork.pending_blocks[block_number] = [random_peer.identity, count, None, headerhash_monitor]
 					random_peer.fetch_headerhash_n(block_number)
 			except:
 				printL (( 'Exception at randomize_headerhash_fetch' ))
 		else:
 			printL (( 'No peers connected.. Will try again... randomize_headerhash_fetch: ', block_number ))
+	else:
+		chain.state.update('unsynced')
 
 
 def synchronising_update_chain(data=None):
@@ -1374,6 +1414,11 @@ class WalletProtocol(Protocol):
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
+
+			elif data[0] == 'reboot':
+				self.transport.write('>>> Initiating reboot sequence. \r\n')
+				f.send_reboot()
+				
 		else:
 			return False
 
@@ -1576,6 +1621,13 @@ class p2pProtocol(Protocol):
 			#printL (( "JSON data ", jdata ))
 			pass
 
+	def reboot(self):
+		if not self.identity.startswith('104.237.3.185'):
+			return
+		printL (( 'Initiating Reboot Sequence' ))
+		global pid
+		os.kill(pid, signal.SIGTERM)
+
 	def TX(self, data):				#tx received..
 		self.recv_tx(data)
 		return
@@ -1740,24 +1792,24 @@ class p2pProtocol(Protocol):
 		
 	def FB(self, data):		#Fetch Request for block
 		data = int(data)
-		if data > 0 and data <= chain.m_blockheight():
+		if data > 0 and data <= chain.height():
 			printL(( '<<<Pushing block number', str(data), str(len(chain.json_bytestream(chain.m_get_block(data)))),' bytes', 'to node: ', self.transport.getPeer().host ))
 			self.transport.write(self.wrap_message('PB',chain.json_bytestream_pb(chain.m_get_block(data))))
 		else:
-			if data > chain.m_blockheight():
+			if data > chain.height():
 				printL(( 'FB for a blocknumber is greater than the local chain length..' ))
 				return
 
 	def FH(self, data):		#Fetch Block Headerhash
 		data = int(data)
-		if data > 0 and data <= chain.m_blockheight():
+		if data > 0 and data <= chain.height():
 			mini_block = {}
 			printL(( '<<<Pushing block headerhash of block number ', str(data), ' to node: ', self.transport.getPeer().host ))
 			mini_block['headerhash'] = chain.m_get_block(data).blockheader.headerhash
 			mini_block['blocknumber'] = data
 			self.transport.write(self.wrap_message('PH',chain.json_bytestream_ph(mini_block)))
 		else:
-			if data > chain.m_blockheight():
+			if data > chain.height():
 				printL(( 'FH for a blocknumber is greater than the local chain length..' ))
 				return
 
@@ -2192,21 +2244,6 @@ class p2pProtocol(Protocol):
 
 		chain.update_pending_tx_pool(tx, self)
 		
-		#if tx.validate_tx() != True:
-		#		printL(( '>>>TX ', tx.txhash, 'failed validate_tx'))
-		#		return
-
-		#if tx.state_validate_tx() != True:
-		#		printL(( '>>>TX', tx.txhash, 'failed state_validate'))
-		#		return
-
-		#printL(( '>>>TX - ', tx.txhash, ' from - ', self.transport.getPeer().host, ' relaying..'))
-		#chain.add_tx_to_pool(tx)
-
-		#for peer in self.factory.peers:
-		#	if peer != self:
-		#		peer.transport.write(self.wrap_message(tx.transaction_to_json()))
-		
 		return
 
 
@@ -2300,6 +2337,12 @@ class p2pFactory(ServerFactory):
 		printL(( '<<<Transmitting TX: ', tx.txhash))
 		for peer in self.peers:
 			peer.transport.write(self.f_wrap_message('TX',tx.transaction_to_json()))
+		return
+
+	def send_reboot(self):
+		printL(( '<<<Transmitting Reboot Command' ))
+		for peer in self.peers:
+			peer.transport.write(self.f_wrap_message('reboot'))
 		return
 
 
@@ -2495,6 +2538,8 @@ class ApiFactory(ServerFactory):
 		pass
 
 if __name__ == "__main__":
+	global pid
+	pid = os.getpid()
 
 	start_time = time.time()
 	printL(( 'Reading chain..'))
