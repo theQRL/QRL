@@ -7,7 +7,7 @@ last_ph_time = None
 epoch_minimum_blocknumber = None
 
 def set_epoch(blocknumber):
-	epoch_minimum_blocknumber = blocknumber - blocknumer % 10000
+	epoch_minimum_blocknumber = blocknumber - blocknumber % 10000
 
 def fork_recovery(blocknumber, chain, randomize_headerhash_fetch):
 	global pending_blocks
