@@ -10,6 +10,7 @@
 
 __author__ = 'pete'
 
+import ntp
 from merkle import sha256, numlist
 from time import time, sleep
 from operator import itemgetter
@@ -59,6 +60,7 @@ ip_list = []
 blockheight_map = []
 stake_validator_latency = defaultdict(dict)
 
+ntp.printL = printL
 printL(( 'QRL blockchain ledger v', version_number))
 printL(( 'loading db'))
 db = db.DB()
@@ -71,6 +73,58 @@ printL(( 'mining/staking address', mining_address))
 #hash_chain = my[0][1].hc
 
 # pos
+
+def validate_block_timestamp(timestamp, blocknumber):
+	last_block_timestamp = m_blockchain[-1].blockheader.timestamp
+	if last_block_timestamp>=timestamp:
+		return False
+	curr_ntp = ntp.getNTP()
+	if curr_ntp == 0:
+		return False
+	block_creation_second = 55
+	
+	max_block_number = int((curr_ntp - last_block_timestamp)/(1000*block_creation_second))
+	if blocknumber > max_block_number:
+		return False
+
+def validate_reboot(hash, nonce):
+	reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
+	try:
+		reboot_data = db.get('reboot_data')
+	except:
+		pass
+	if reboot_data[1]>nonce:	#already used
+		return 
+	reboot_data[1] = nonce
+	output = hash
+	for i in range(0, reboot_data[1]):
+		output = sha256(output)
+
+	if output != hash:
+		return False
+	reboot_data[1] += 1
+	db.put('reboot_data', reboot_data)
+	return True
+
+def generate_reboot_hash(key, nonce=None):		
+	reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
+	try:
+		reboot_data = db.get('reboot_data')
+	except:
+		pass
+	if nonce:
+		if reboot_data[1]>nonce:
+			return None, 'Nonce must be greater than or equals to '+str(reboot_data[1])+'\r\n'
+		reboot_data[1] = nonce
+	
+	output = sha256(key)
+	for i in range(0, 40000-reboot_data[1]):
+		output = sha256(output)
+
+	if not validate_reboot(output, reboot_data[1]):
+		return None, 'Invalid Key\r\n'
+
+	return json.dumps({'hash':output, 'nonce':reboot_data[1]}), "Reboot Initiated\r\n"
 
 def update_pending_tx_pool(tx, peer):
 	if len(pending_tx_pool)>=10000:
@@ -431,10 +485,10 @@ class BlockHeader():
 	def __init__(self, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions, number_stake, hashedstake, reveal_list=None):
 		self.blocknumber = blocknumber
 		self.hash = hashchain_link
-		if self.blocknumber == 0:
-			self.timestamp = 0
-		else:
-			self.timestamp = time()
+		self.timestamp = ntp.getNTP()
+		if self.timestamp == 0:
+			printL (( 'Failed to get NTP timestamp' ))
+			return
 		self.prev_blockheaderhash = prev_blockheaderhash
 		self.number_transactions = number_transactions
 		self.merkle_root_tx_hash = hashedtransactions
@@ -500,6 +554,8 @@ class CreateBlock():
 			self.stake.append(st)
 
 		self.blockheader = BlockHeader(blocknumber=lastblocknumber+1, reveal_list=reveal_list, hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash, number_transactions=len(transaction_pool), hashedtransactions=hashedtransactions, number_stake=len(stake_pool), hashedstake=hashedstake)
+		if self.blockheader.timestamp == 0:
+			printL(( 'Failed to create block due to timestamp 0' ))
 
 
 class CreateGenesisBlock():			#first block has no previous header to reference..
@@ -1597,6 +1653,10 @@ def validate_tx_pool():									#invalid transactions are auto removed from pool
 # block validation
 
 def validate_block(block, last_block='default', verbose=0, new=0):		#check validity of new block..
+
+	if block.blockheader.timestamp == 0:
+		printL(( 'Invalid block timestamp ' ))
+		return False
 
 	b = block.blockheader
 
