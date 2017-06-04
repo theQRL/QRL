@@ -10,12 +10,11 @@ def set_epoch(blocknumber):
 	epoch_minimum_blocknumber = blocknumber - blocknumber % 10000
 
 def fork_recovery(blocknumber, chain, randomize_headerhash_fetch):
+	set_epoch(blocknumber)
 	global pending_blocks
 	pending_blocks = {}
 	randomize_headerhash_fetch(blocknumber-1)
 	chain.state.update('forked')
-	#change state to FORKED
-	#call headerhash_lookup in reverse
 
 def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
 	mini_block = json.loads(suffix)
@@ -35,7 +34,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
 
 def unfork(blocknumber, chain):
 	sl = chain.stake_list_get()
-	for blocknum in xrange(blocknumber, chain.m_blockheight()+1):
+	for blocknum in xrange(blocknumber, chain.height()+1):
 		stake_selector = chain.m_blockchain[blocknum].blockheader.stake_selector
 		for s in sl:
 			if stake_selector == s[0]:

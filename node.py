@@ -2,48 +2,10 @@
 # -features POS, quantum secure signature scheme..
 
 __author__ = 'pete'
-import sys
-from time import sleep
-import os
-import atexit
-import subprocess
-import signal
-import sys
-
-if 'main.py' not in sys.argv:
-	print sys.argv
-	pid_ = None
-	def cleanup():
-	        os.kill(pid_, signal.SIGTERM)
-
-	atexit.register(cleanup)
-
-	while True:
-		print "Initializing Node"
-		proc = None
-		with open("command","r") as f:
-			proc = f.readline().strip()
-		proc = proc+' main.py'
-		proc = subprocess.Popen(proc, shell=True)
-		
-		pid_ = proc.pid
-		try:
-			proc.wait()
-		except KeyboardInterrupt:
-			print "Exit..."
-			sys.exit()
-		try:
-			cleanup()
-		except:
-			pass
-
-		sleep(10)
-
-import os
-import signal
 import time, struct, random, copy, decimal
 import chain, wallet, merkle
 
+import ntp
 import logger
 from twisted.internet.protocol import ServerFactory, Protocol 
 from twisted.internet import reactor, defer, task, threads
@@ -54,8 +16,8 @@ from math import ceil
 from blessings import Terminal
 import statistics
 import json
+import sys
 import fork
-
 
 log, consensus = logger.getLogger(__name__)
 
@@ -99,6 +61,7 @@ chain.printL = printL
 wallet.printL = printL
 merkle.printL = printL
 fork.printL = printL
+ntp.printL = printL
 
 r1_time_diff = defaultdict(list) #r1_time_diff[block_number] = { 'stake_address':{ 'r1_time_diff': value_in_ms }}
 r2_time_diff = defaultdict(list) #r2_time_diff[block_number] = { 'stake_address':{ 'r2_time_diff': value_in_ms }}
@@ -584,8 +547,11 @@ def select_blockheight_by_consensus():
 # pre block logic..
 
 def pre_block_logic(block_obj):
-	if block_obj.blockheader.blocknumber <= chain.m_blockheight():
+	if block_obj.blockheader.blocknumber <= chain.height():
 		return
+	if chain.validate_block_timestamp(block_obj.blockheader.timestamp, block_obj.blockheader.blocknumber):
+		printL (( 'Block rejected due to NTP' ))
+		return 
 
 	global next_header_hash, next_block_number, last_pos_cycle, sync_tme, last_bk_time, last_selected_height, last_pb_time, pending_blocks
 	bk_time_diff = time.time() - last_bk_time
@@ -810,6 +776,8 @@ def update_target_peers(block_number):
 				f.target_retry[peer.identity] = 0
 
 def randomize_block_fetch(block_number):
+	if chain.state.current!='syncing':
+		return
 	if block_number<=chain.height():
 		printL (( 'Already in blockchain... skipping' ))
 		return
@@ -854,6 +822,8 @@ def randomize_block_fetch(block_number):
 
 
 def randomize_headerhash_fetch(block_number):
+	if chain.state.current != 'forked':
+		return
 	if block_number not in fork.pending_blocks or fork.pending_blocks[block_number][1]<=10: #retry only 11 times
 		headerhash_monitor = reactor.callLater(15, randomize_headerhash_fetch, block_number)
 		if len(f.peers) > 0:
@@ -939,11 +909,8 @@ def blockheight_map():
 
 # rank the winning hashes for the current block number, by number, by address balance and both..after receipt of each valid R2 msg
 
+
 def pos_d(block_number, headerhash):
-
-	#chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, reveal_two]) 
-	#chain.stake_reveal_two.append([stake_address, headerhash, block_number, reveal_one, nonce, winning_hash, reveal_three] rkey2		
-
 	p = []
 	l = []
 	curr_time = int(time.time()*1000)
@@ -992,7 +959,6 @@ def pos_d(block_number, headerhash):
 	chain.pos_d = [c[0][0], c[0][1], total_voters, percentage_a, total_voted, total_staked, percentage_d, stake_address]
 
 	return True
-
 
 # rank the consensus hashes..
 
@@ -1043,7 +1009,7 @@ def pos_consensus(block_number, headerhash):
 	percentage_d = decimal.Decimal(total_voted)/decimal.Decimal(total_staked)*100
 
 	chain.pos_consensus = [c[0][0], c[0][1], total_voters, percentage_a, total_voted, total_staked, percentage_d, stake_address]
-
+	#return [c[0][0], c[0][1], total_voters, percentage_a, total_voted, total_staked, percentage_d, stake_address]
 	return True
 
 
@@ -1416,9 +1382,21 @@ class WalletProtocol(Protocol):
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
 
 			elif data[0] == 'reboot':
-				self.transport.write('>>> Initiating reboot sequence. \r\n')
-				f.send_reboot()
-				
+				if len(args)<1:
+					self.transport.write('>>> reboot <password>\r\n')
+					self.transport.write('>>> or\r\n')
+					self.transport.write('>>> reboot <password> <nonce>\r\n')
+					return 
+				json_hash, err = None, None
+				if len(args)==2:
+					json_hash, status = chain.generate_reboot_hash(args[0], args[1])
+				else:
+					json_hash, status = chain.generate_reboot_hash(args[0])
+				if json_hash:
+					f.send_reboot(json_hash)
+					chain.state.update('synced')
+					restart_post_block_logic()
+				self.transport.write(status)
 		else:
 			return False
 
@@ -1579,6 +1557,15 @@ class WalletProtocol(Protocol):
 			return
 		
 		#printL(( 'new local tx: ', tx
+		if tx.validate_tx():
+			if not tx.state_validate_tx():
+				self.transport.write('>>> OTS key reused')
+				return
+		else:
+			self.transport.write('>>> TXN failed at validate_tx')
+			printL(( '>>> TXN failed at validate_tx' ))
+			return
+
 		f.send_tx_to_peers(tx)
 		self.transport.write('>>> '+str(tx.txhash))
 		self.transport.write('>>> From: '+str(tx.txfrom)+' To: '+str(tx.txto)+' For: '+str(tx.amount/100000000.000000000)+'\r\n'+'>>>created and sent into p2p network'+'\r\n')
@@ -1616,17 +1603,24 @@ class p2pProtocol(Protocol):
 			else:
 				getattr(self, func)()
 		except:
-			#printL (( "parse_msg exception" ))
-			#printL (( "Func name ", func ))
+			printL (( "parse_msg Exception while calling " ))
+			printL (( "Func name ", func ))
 			#printL (( "JSON data ", jdata ))
 			pass
 
-	def reboot(self):
-		if not self.identity.startswith('104.237.3.185'):
+	def reboot(self, data):
+		hash_dict = json.loads(data)
+		if not ('hash' in hash_dict and 'nonce' in hash_dict):
 			return
-		printL (( 'Initiating Reboot Sequence' ))
-		global pid
-		os.kill(pid, signal.SIGTERM)
+		if not chain.validate_reboot(hash_dict['hash'], hash_dict['nonce']):
+			return
+		for peer in self.factory.peers:
+			if peer!=self:
+				peer.transport.write(self.wrap_message('reboot',data))
+		printL (( 'Initiating Reboot Sequence.....' ))
+		
+		chain.state.update('synced')
+		restart_post_block_logic()
 
 	def TX(self, data):				#tx received..
 		self.recv_tx(data)
@@ -2339,10 +2333,10 @@ class p2pFactory(ServerFactory):
 			peer.transport.write(self.f_wrap_message('TX',tx.transaction_to_json()))
 		return
 
-	def send_reboot(self):
+	def send_reboot(self, json_hash):
 		printL(( '<<<Transmitting Reboot Command' ))
 		for peer in self.peers:
-			peer.transport.write(self.f_wrap_message('reboot'))
+			peer.transport.write(self.f_wrap_message('reboot', json_hash))
 		return
 
 
@@ -2538,9 +2532,6 @@ class ApiFactory(ServerFactory):
 		pass
 
 if __name__ == "__main__":
-	global pid
-	pid = os.getpid()
-
 	start_time = time.time()
 	printL(( 'Reading chain..'))
 	chain.m_load_chain()
