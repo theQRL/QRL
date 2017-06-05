@@ -543,6 +543,8 @@ class CreateBlock():
 			for st in stake_pool:
 				if st.epoch != curr_epoch:
 					printL (( 'Skipping st as epoch mismatch, CreateBlock()' ))
+					printL (( 'Expected st epoch : ', curr_epoch ))
+					printL (( 'Found st epoch : ', st.epoch )) 
 					continue
 				sthashes.append(st.hash)
 			hashedstake = sha256(''.join(sthashes))
@@ -550,6 +552,9 @@ class CreateBlock():
 		for st in stake_pool:
 			if st.epoch != curr_epoch:
 				printL (( 'Skipping st as epoch mismatch, CreateBlock()' ))
+				printL (( 'Expected st epoch : ', curr_epoch ))
+				printL (( 'Found st epoch : ', st.epoch )) 
+
 				continue
 			self.stake.append(st)
 
