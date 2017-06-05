@@ -21,7 +21,7 @@ import fork
 
 log, consensus = logger.getLogger(__name__)
 
-cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block', 'reboot']
+cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords', 'stakenextepoch', 'stake', 'address', 'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit', 'search' ,'json_search', 'help', 'savenewaddress', 'listaddresses','getinfo','blockheight', 'json_block', 'reboot', 'peers']
 api_list = ['block_data','stats', 'ip_geotag','exp_win','txhash', 'address', 'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers', 'next_stakers', 'latency']
 
 term = Terminal();
@@ -1361,7 +1361,7 @@ class WalletProtocol(Protocol):
 				self.transport.write('>>> Number of transactions in memory pool: '+ str(len(chain.transaction_pool))+'\r\n')
 
 			elif data[0] == 'help':
-				self.transport.write('>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, recoverfromwords, stake, stakenextepoch, mempool, json_block, json_search, seed, hexseed, getinfo, or blockheight'+'\r\n')
+				self.transport.write('>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, recoverfromwords, stake, stakenextepoch, mempool, json_block, json_search, seed, hexseed, getinfo, peers, or blockheight'+'\r\n')
 				#removed 'hrs, hrs_check,'
 			elif data[0] == 'quit' or data[0] == 'exit':
 				self.transport.loseConnection()
@@ -1387,6 +1387,11 @@ class WalletProtocol(Protocol):
 
 			elif data[0] == 'blockheight':
 					self.transport.write('>>> Blockheight: '+str(chain.m_blockheight())+'\r\n')
+
+			elif data[0] == 'peers':
+					self.transport.write('>>> Connected Peers:\r\n')
+					for peer in f.peers:
+						self.transport.write('>>> ' + peer.identity + " [" + peer.version + "]  blockheight: " + str(peer.blockheight) + '\r\n')
 
 			elif data[0] == 'reboot':
 				if len(args)<1:
@@ -1594,6 +1599,7 @@ class p2pProtocol(Protocol):
 		self.messages = []
 		self.identity = None
 		self.blockheight = None
+		self.version = ''
 		self.blocknumber_headerhash = {}
 		pass
 
@@ -1847,6 +1853,7 @@ class p2pProtocol(Protocol):
 		if not data:
 			self.transport.write(self.wrap_message('VE',chain.version_number))
 		else:
+			self.version = str(data)
 			printL(( self.transport.getPeer().host, 'version: ', data))
 		return
 
