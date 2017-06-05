@@ -664,8 +664,15 @@ def received_block_logic(block_obj):
 			return
 	
 	if block_obj.blockheader.prev_blockheaderhash != chain.m_blockchain[-1].blockheader.headerhash:
+			# Fork recovery should not be called from here. As it could be a fake block 
+			# or block from some other POS cycle.
+			# in case if the block is from the current cycle, it will be switch to unsynced
+			# after some delay
 			printL(( '>>>WARNING: FORK..'))
-			fork.fork_recovery(block_obj.blockheader.blocknumber-1, chain, randomize_headerhash_fetch)
+			printL(( 'Block rejected hash doesnt matches with prev_blockheaderhash' ))
+			printL(( 'Expected prev_headerhash - ', chain.m_blockchain[-1].blockheader.headerhash ))
+			printL(( 'Found prev_headerhash - ', block_obj.blockheader.prev_blockheaderhash ))
+			#fork.fork_recovery(block_obj.blockheader.blocknumber-1, chain, randomize_headerhash_fetch)
 			return
 
 	# pos checks
