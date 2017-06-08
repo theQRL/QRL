@@ -2,6 +2,7 @@
 ####### requirements.txt #######
 #pip install -r requirements.txt                           #simplifies installation of dependencies
 ###### Requirements without Version Specifiers ######
+python-dev
 jsonpickle
 leveldb
 beautifulsoup4
