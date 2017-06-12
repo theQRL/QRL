@@ -9,7 +9,7 @@ import cPickle as pickle
 import node 
 import os
 import sys
-from blessings import Terminal
+#from blessings import Terminal
 
 def log(string_data):
     with open("./log/log.txt", "a") as myfile:
@@ -42,10 +42,11 @@ def f_read_wallet():
 
 	addr_list = []
 
-	term = Terminal()
+#	term = Terminal()
 
 	if os.path.isfile('./wallet.dat') is False:
-		printL(( term.green + '[info] ' + term.normal + 'Creating new wallet file..this could take up to a minute'))
+#		printL(( term.green + '[info] ' + term.normal + 'Creating new wallet file..this could take up to a minute'))
+		printL(( '[info] ' + 'Creating new wallet file..this could take up to a minute'))
 		addr_list.append(getnewaddress(4096, 'XMSS'))
 		with open("./wallet.dat", "a") as myfile:				#add in a new call to create random_otsmss
 			pickle.dump(addr_list, myfile)
