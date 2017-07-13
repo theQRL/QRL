@@ -13,6 +13,7 @@
 
 __author__ = 'pete'
 
+import configuration as c
 from words import wordlist  #4096 unique word list for mnemonic SEED retrieval..
 import hmac
 import hashlib
@@ -362,32 +363,46 @@ class XMSS():
                 return False
         return self.addresses[t][1]
 
-    def hashchain(self,n=10000, epoch=0):             #generates a 20,000th hash in iterative sha256 chain..derived from private SEED
-        x = GEN(self.private_SEED,5000+epoch,l=32)
-        y = GEN(x, 5000, l=32)
-        z = GEN(y,5000, l=32)
+    def hashchain(self, n=c.blocks_per_epoch, epoch=0):             #generates a 20,000th hash in iterative sha256 chain..derived from private SEED
+        half = int(c.blocks_per_epoch/2)
+        x = GEN(self.private_SEED,half+epoch,l=32)
+        y = GEN(x, half, l=32)
+        z = GEN(y, half, l=32)
         z = hexlify(z)
-        hc = []
-        hc.append(z)
-        for x in range(n):
-            z = sha256(z)
-            hc.append(z)
+        #z = GEN_range(z, 1, 50)
+        global hashchain_nums
+        z = GEN_range(z, 1, hashchain_nums)
         self.hc_seed = z
+        hc = []
+        for hash_chain in z:
+            hc.append([hash_chain])
+
+        self.hc_terminator = []
+        for hash_chain in hc:
+            for x in range(n):
+                hash_chain.append(sha256(hash_chain[-1]))
+            self.hc_terminator.append(hash_chain[-1])
+
         self.hc = hc
-        self.hc_terminator = hc[-1]
         return
 
-    def hashchain_reveal(self, n=10000, epoch=0):
-        x = GEN(self.private_SEED,5000+epoch,l=32)
-        y = GEN(x, 5000, l=32)
-        z = GEN(y,5000, l=32)
+    def hashchain_reveal(self, n=c.blocks_per_epoch, epoch=0):
+        half = int(c.blocks_per_epoch/2)
+        x = GEN(self.private_SEED,half+epoch,l=32)
+        y = GEN(x, half, l=32)
+        z = GEN(y, half, l=32)
         z = hexlify(z)
+	global hashchain_nums
+        z = GEN_range(z, 1, hashchain_nums)
         hc = []
-        hc.append(z)
-        for x in range(n):
-            z = sha256(z)
-            hc.append(z)
-        return hc
+        for hash_chain in z:
+            hc.append([hash_chain])
+        tmp_hc_terminator = []
+        for hash_chain in hc:
+            for x in range(n):
+                hash_chain.append(sha256(hash_chain[-1]))
+            tmp_hc_terminator.append(hash_chain[-1])
+        return tmp_hc_terminator
 
 
 def xmss_tree(n, private_SEED, public_SEED):
