@@ -1,4 +1,4 @@
-import json
+import simplejson as json
 
 #Initializers to be decided
 pending_blocks = {}
