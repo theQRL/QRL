@@ -24,8 +24,8 @@ class State:
         else:
             printL(('Creating peers.dat'))
             with open('./peers.dat', 'w+') as myfile:
-                pickle.dump(c.node_list, myfile)
-                self.state_put_peers(c.node_list)
+                pickle.dump(c.peer_list, myfile)
+                self.state_put_peers(c.peer_list)
 
     def state_save_peers(self):
         with open("./peers.dat", "w+") as myfile:

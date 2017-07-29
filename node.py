@@ -490,11 +490,17 @@ class POS:
         return
 
     def make_st_tx(self, blocknumber, first_hash):
+        balance = self.chain.state.state_balance(self.chain.mining_address)
+        if balance < c.minimum_staking_balance_required:
+            printL (( 'Staking not allowed due to insufficient balance'))
+            printL (( 'Balance ', balance))
+            return
+
         st = StakeTransaction().create_stake_transaction(
             self.chain.mining_address, blocknumber,
             self.chain.my[0][1],
             first_hash = first_hash,
-            balance = self.chain.state.state_balance(self.chain.mining_address)
+            balance = balance
         )
         self.p2pFactory.send_st_to_peers(st)
         self.chain.wallet.f_save_winfo()
@@ -1397,6 +1403,13 @@ class P2PProtocol(Protocol):
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
         self.identity = peerHost + ":" + str(peerPort)
+        if len(self.factory.peers) >= c.max_peers_limit:
+            printL (( 'Peer limit hit '))
+            printL (( '# of Connected peers ', len(self.factory.peers) ))
+            printL (( 'Peer Limit ', c.peer_list))
+            printL (( 'Disconnecting client ', self.identity))
+            self.transport.loseConnection()
+
         self.factory.connections += 1
         self.factory.peers.append(self)
         peer_list = self.factory.chain.state.state_get_peers()
@@ -1576,7 +1589,7 @@ class P2PFactory(ServerFactory):
             z['block_number'] = self.chain.block_chain_buffer.height() + 1  # next block..
         z['headerhash'] = self.chain.block_chain_buffer.get_strongest_headerhash(
             z['block_number'] - 1)  # demonstrate the hash from last block to prevent building upon invalid block..
-        epoch = z['block_number'] / c.blocks_per_epoch
+        epoch = z['block_number'] // c.blocks_per_epoch
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(z['block_number'])
         # +1 to skip first reveal
         z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * c.blocks_per_epoch) + 1]

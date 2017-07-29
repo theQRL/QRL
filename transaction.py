@@ -99,10 +99,6 @@ class StakeTransaction(Transaction):
         self.epoch = blocknumber // c.blocks_per_epoch  # in this block the epoch is..
         self.first_hash = first_hash
         self.balance = balance
-        #epoch_blocknum = blocknumber - self.epoch * c.blocks_per_epoch
-
-        #if epoch_blocknum < min(c.low_staker_first_hash_block, c.high_staker_first_hash_block):
-        #    self.first_hash = None #To be added here
 
         if hashchain_terminator is None:
             self.hash = data.hashchain_reveal(epoch=self.epoch + 1)  # my[0][1].hc_terminator
@@ -162,7 +158,7 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
         #message.write(self.amount)
         #message.write(self.fee)
         #message.write(self.ots_key)
-        message.write(self.hash)
+        message.write(self.txhash)
         return sha256(message.getvalue())
 
     def dict_to_transaction(self, dict_tx):
@@ -172,9 +168,10 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
         self.amount = int(dict_tx['amount'])
         self.fee = int(dict_tx['fee'])
         self.ots_key = int(dict_tx['ots_key'])
-        self.hash = []
-        for hash_item in dict_tx['hash']:
-            self.hash.append(hash_item.encode('ascii'))
+        self.pubhash = dict_tx['pubhash']
+        self.txhash = dict_tx['txhash']
+        #for hash_item in dict_tx['hash']:
+        #    self.hash.append(hash_item.encode('ascii'))
         return self
 
     def pre_condition(self, state):
