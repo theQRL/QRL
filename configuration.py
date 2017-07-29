@@ -11,3 +11,4 @@ low_staker_first_hash_block = 7000
 high_staker_first_hash_block = 8000
 N = 256 #Constant used in Block winner formula
 POS_delay_after_block = 15
+enable_auto_staking = False

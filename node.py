@@ -801,7 +801,7 @@ class P2PProtocol(Protocol):
 
         if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
             return
-        printL (( 'Received ST Transaction with', st.txfrom, st.first_hash, st.epoch ))
+        #printL (( 'Received ST Transaction with', st.txfrom, st.first_hash, st.epoch ))
         '''
         for t in self.factory.chain.stake_pool:  # duplicate tx already received, would mess up nonce..
             if st.hash == t.hash:
@@ -862,13 +862,12 @@ class P2PProtocol(Protocol):
             return
 
     def BK(self, data):  # block received
-        printL(('>>>Received block from ', self.identity))
         try:
             block = helper.json_decode_block(data)
         except:
             printL(('block rejected - unable to decode serialised data', self.transport.getPeer().host))
             return
-
+        printL(('>>>Received block from ', self.identity, block.blockheader.blocknumber, block.blockheader.stake_selector))
         if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self):
             return
 
@@ -1182,6 +1181,8 @@ class P2PProtocol(Protocol):
             printL(('Found : ', str(z['weighted_hash'])))
             printL(('Seed found : ', str(z['seed']) ))
             printL(('Seed Expected : ', str(str(self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])))))
+            printL(('Balance : ', self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number)))
+
             return
 
         epoch = block_number // c.blocks_per_epoch
@@ -1472,7 +1473,7 @@ class P2PFactory(ServerFactory):
         self.protocol = P2PProtocol
         self.chain = chain
         self.nodeState = nodeState
-        self.stake = True  # default to mining off as the wallet functions are not that responsive at present with it enabled..
+        self.stake = c.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
         self.peers_blockheight = {}
         self.target_retry = defaultdict(int)
         self.peers = []
@@ -1622,18 +1623,18 @@ class P2PFactory(ServerFactory):
             tmp_stake_reveal_one.append(r)
 
         self.chain.stake_reveal_one = tmp_stake_reveal_one
-        printL(('<<<Transmitting POS reveal_one'))
+        printL(('<<<Transmitting POS reveal_one ', blocknumber, self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber)))
 
         self.last_reveal_one = z
         for peer in self.peers:
             peer.transport.write(self.f_wrap_message('R1', helper.json_encode(z)))
-        score = self.chain.score(stake_address=self.chain.mining_address,
-                                 reveal_one=z['reveal_one'],
-                                 balance=self.chain.block_chain_buffer.get_st_balance(self.chain.mining_address, blocknumber),
-                                 seed=epoch_seed)
+        #score = self.chain.score(stake_address=self.chain.mining_address,
+        #                         reveal_one=z['reveal_one'],
+        #                         balance=self.chain.block_chain_buffer.get_st_balance(self.chain.mining_address, blocknumber),
+        #                         seed=epoch_seed)
         if y == False:
             self.chain.stake_reveal_one.append([z['stake_address'], z['headerhash'], z['block_number'], z['reveal_one'],
-                                                score])  # don't forget to store our reveal in stake_reveal_one
+                                                z['weighted_hash']])  # don't forget to store our reveal in stake_reveal_one
 
         return z['reveal_one']  # , z['block_number']
 
@@ -1666,7 +1667,7 @@ class P2PFactory(ServerFactory):
     # send/relay block to peers
 
     def send_block_to_peers(self, block, peer_identity=None):
-        printL(('<<<Transmitting block: ', block.blockheader.headerhash))
+        #printL(('<<<Transmitting block: ', block.blockheader.headerhash))
         self.register_and_broadcast('BK', block.blockheader.headerhash, helper.json_bytestream_bk(block))
         return
 

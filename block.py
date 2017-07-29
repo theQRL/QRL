@@ -6,7 +6,7 @@ from math import log
 import decimal
 import merkle
 from transaction import StakeTransaction, SimpleTransaction
-
+from copy import deepcopy
 
 class BlockHeader():
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions,
@@ -162,7 +162,24 @@ class Block():
                     printL(('Found st epoch : ', st.epoch))
                     continue
                 #if st.get_message_hash() not in chain.block_chain_buffer.st_buffer:
+                '''
                 if not self.isHashPresent(st.get_message_hash(), chain.block_chain_buffer.st_buffer, last_block_number + 1):
+                    sthashes.append(str(st.hash))
+                    self.stake.append(st)
+                '''
+                balance = 0
+                for st2 in chain.block_chain_buffer.next_stake_list_get(lastblocknumber+1):
+                    if st2[1] == st.hash:
+                        balance = st2[-1]
+                        break
+                if balance>0 or lastblocknumber==0:
+                    if st.first_hash:
+                        new_st = deepcopy(st)
+                        if lastblocknumber>0:
+                            new_st.balance = balance
+                        sthashes.append(str(new_st.hash))
+                        self.stake.append(new_st)
+                elif not st.first_hash:
                     sthashes.append(str(st.hash))
                     self.stake.append(st)
 
@@ -373,9 +390,9 @@ class CreateGenesisBlock():  # first block has no previous header to reference..
         self.transactions = []
         self.stake = []
         self.state = [
-            ['Q1cd0007a3c2f78ee535d10a267c43652fdd39acc833d35955d7bf1347a3f9f7bd8b9', [0, 10000 * 100000000, []]],
-            ['Q9cfcf704f5eed6387486b68749c039cf3cdfd499cc58303e06e432dedc1cb3943f50', [0, 10000 * 100000000, []]],
-            ['Q5c9cbdaf90a9a15c0a6937573ed7b3d57d226658ced86c03ec8fbd4639567721d4da', [0, 10000 * 100000000,
+            ['Q4a206b1b779295b255827d60a964eaf6abed9f4abd016081df3b76976c006a6d4220', [0, 10000 * 100000000, []]],
+            ['Q8e8b07be5db4b41108cab22ab4c5af846b1de9edef979f7e4a6cce90c9d3495bf33f', [0, 10000 * 100000000, []]],
+            ['Q8659fc2ad3435d8a3b2e516301d523eef1502a40e4218e867e02c3af57ce561a5477', [0, 10000 * 100000000,
                                                                                        []]]]  # , ['Q34eabf7ef2c6582096a433237a603b862fd5a70ac4efe4fd69faae21ca390512b3ac', [0, 10000*100000000,[]]], ['Qfc6a9b751915048a7888b65e77f9a248379d8b47c94081b3baced7c1234dc7f4b419', [0, 10000*100000000,[]]] ]
 
         self.stake_list = []

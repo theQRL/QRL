@@ -160,7 +160,7 @@ class Chain:
         return winners_dict
 
     # def score(self, stake_address, reveal_one, block_reward=0, blocknumber=None, block=None, seed=None):
-    def score(self, stake_address, reveal_one, balance=0, seed=None):
+    def score(self, stake_address, reveal_one, balance=0, seed=None, verbose=False):
         if not seed:
             printL (( 'Exception Raised due to seed none in score fn'))
             raise Exception
@@ -174,6 +174,11 @@ class Chain:
         #epoch_seed = self.block_chain_buffer.get_epoch_seed(blocknumber)
 
         score = (Decimal(c.N) - (Decimal(reveal_one_number | seed).log10()/Decimal(2).log10())) / Decimal(balance)
+        if verbose:
+            printL (( 'Score - ', score))
+            printL (( 'reveal_one - ', reveal_one_number))
+            printL (( 'seed - ', seed ))
+            printL (( 'balance - ', balance ))
         return score
 
     def update_pending_tx_pool(self, tx, peer):
@@ -947,15 +952,14 @@ class BlockBuffer:
         #self.seed = sha256(block.blockheader.headerhash + str(prev_seed))
 
     def block_score(self, chain, seed, balance):
-        reward = 0
         stake_selector = self.block.blockheader.stake_selector
-        if stake_selector in self.stake_reward:
-            reward = self.stake_reward[stake_selector]
+
         seed = int(str(seed), 16)
         score_val = chain.score(stake_address=self.block.blockheader.stake_selector,
                                 reveal_one=self.block.blockheader.hash,
                                 balance=balance,
-                                seed=seed)
+                                seed=seed,
+                                verbose=False)
         return score_val
 
 
@@ -968,6 +972,15 @@ class StateBuffer:
 
     def set_next_seed(self, headerhash, prev_seed):
         self.next_seed = sha256(headerhash + str(prev_seed))
+
+    def tx_to_list(self, txn_dict):
+        tmp_sl = []
+        for txfrom in txn_dict:
+            st = txn_dict[txfrom]
+            if not st[3]:  # rejecting ST having first_hash None
+                continue
+            tmp_sl.append(st)
+        return tmp_sl
 
     def update(self, state, parent_state_buffer, block):
         #epoch mod, helps you to know if its the new epoch
@@ -983,36 +996,32 @@ class StateBuffer:
         if not epoch_mod:   #State belongs to first block of next epoch
             self.stake_list = self.next_stake_list
             self.next_stake_list = {}
-            self.next_seed = state.calc_seed(self.stake_list)
+
+            tmp_sl = self.tx_to_list(self.stake_list)
+
+            self.stake_list = {}
+            for st in tmp_sl:
+                self.stake_list[st[0]] = st
+
+        if epoch_mod == c.blocks_per_epoch - 1:
+            tmp_sl = self.tx_to_list(self.next_stake_list)
+
+            self.next_seed = state.calc_seed(tmp_sl, verbose=False)
 
         self.update_stake_list(block)
         self.update_next_stake_list(block, state)
 
     def update_next_stake_list(self, block, state):
-        blocknum = block.blockheader.blocknumber
-        #epoch = blocknum // c.blocks_per_epoch
-
         for st in block.stake:
-            '''
-            if st.txfrom in self.next_stake_list:
-                st2 = self.next_stake_list[st.txfrom]
-                if st2[3] is None and st.first_hash is not None:
-                    threshold_block = state.get_staker_threshold_blocknum(self.next_stake_list, st2[0])
-                    epoch_blocknum = blocknum - (epoch * c.blocks_per_epoch)
-                    if epoch_blocknum >= threshold_block - 1:
-                        st2[3] = st.first_hash
-
-                st2[1] = st.hash
-                continue
-            '''
             if st.txfrom in self.next_stake_list and self.next_stake_list[st.txfrom][3]:
                 continue
-            self.next_stake_list[st.txfrom] = [st.txfrom, st.hash, 0, st.first_hash, state.state_balance(st.txfrom)]
+            self.next_stake_list[st.txfrom] = [st.txfrom, st.hash, 0, st.first_hash, st.balance]
 
     def update_stake_list(self, block):
         stake_selector = block.blockheader.stake_selector
-        if block.blockheader.stake_selector not in self.stake_list:
+        if stake_selector not in self.stake_list:
             printL (( 'Error Stake selector not found stake_list of block buffer state' ))
+            raise Exception
         self.stake_list[stake_selector][2] += 1
 
 
@@ -1040,9 +1049,14 @@ class ChainBuffer:
             self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / c.blocks_per_epoch)
 
     def get_st_balance(self, stake_address, blocknumber):
+        if stake_address is None:
+            printL (('stake address should not be none'))
+            raise Exception
+            return None
         if blocknumber-1 == self.chain.height():
             for st in self.state.stake_list_get():
                 if stake_address == st[0]:
+                    #printL (( 'balance by 1 '))
                     return st[-1]
             printL (('Blocknumber not found'))
             return None
@@ -1052,8 +1066,9 @@ class ChainBuffer:
             return None
 
         if blocknumber % c.blocks_per_epoch == 0:
+            #printL(('balance by 2 '))
             return self.strongest_chain[blocknumber-1][1].next_stake_list[stake_address][-1]
-
+        #printL(('balance by 3 '))
         return self.strongest_chain[blocknumber - 1][1].stake_list[stake_address][-1]
 
     def add_pending_block(self, block):
@@ -1109,13 +1124,15 @@ class ChainBuffer:
         self.tx_buffer = {}
         self.st_buffer = {}
         min_blocknum = self.chain.height() + 1
-        max_blocknum = max(self.blocks.keys())
+        #max_blocknum = max(self.blocks.keys())
+        max_blocknum = max(self.strongest_chain.keys())
 
-        prev_headerhash = self.chain.m_blockchain[min_blocknum - 1].blockheader.headerhash
+        #prev_headerhash = self.chain.m_blockchain[min_blocknum - 1].blockheader.headerhash
         for blocknum in range(min_blocknum, max_blocknum + 1):
-            block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
+            #block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
+            block_state_buffer = self.strongest_chain[blocknum]
             block = block_state_buffer[0].block
-            prev_headerhash = block.blockheader.headerhash
+            #prev_headerhash = block.blockheader.headerhash
             self.st_buffer[blocknum] = []
             self.tx_buffer[blocknum] = []
             for st in block.stake:
@@ -1125,7 +1142,6 @@ class ChainBuffer:
                 self.tx_buffer[blocknum].append(tx.txhash)
 
     def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True):
-
         # TODO : minimum block validation in unsynced state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // c.blocks_per_epoch)
@@ -1157,9 +1173,8 @@ class ChainBuffer:
             block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch))
 
         self.add_txns_buffer()
-
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
-            self.epoch_seed = self.state.calc_seed(self.state.stake_list_get())
+            self.epoch_seed = self.state.calc_seed(self.state.stake_list_get(), verbose=False)
             self.update_hash_chain(block.blockheader.blocknumber)
         else:
             self.epoch_seed = sha256(headerhash + str(self.epoch_seed))
@@ -1331,7 +1346,7 @@ class ChainBuffer:
         del (self.headerhashes[blocknum])
         del self.strongest_chain[blocknum]
         prev_epoch = self.epoch
-        self.epoch = int(blocknum / c.blocks_per_epoch)
+        self.epoch = int(blocknum // c.blocks_per_epoch)
         if prev_epoch != self.epoch:
             del self.hash_chain[prev_epoch]
 
@@ -1383,6 +1398,7 @@ class ChainBuffer:
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
         max_blocknum = max(self.pending_blocks.keys())
+        printL(('Processing pending blocks', min_blocknum, max_blocknum))
         for blocknum in range(min_blocknum, max_blocknum + 1):
             for block in self.pending_blocks[blocknum]:
                 self.add_block(block)
