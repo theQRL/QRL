@@ -1233,6 +1233,8 @@ class P2PProtocol(Protocol):
         return
 
     def recv_peers(self, json_data):
+        if not c.enable_peer_discovery:
+            return
         data = helper.json_decode(json_data)
         new_ips = []
         for ip in data:

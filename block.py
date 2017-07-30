@@ -376,7 +376,7 @@ class Block():
         if curr_time == 0:
             return False
 
-        max_block_number = int((curr_time - last_block_timestamp) / c.block_creation_second)
+        max_block_number = int((curr_time - last_block_timestamp) / c.block_creation_seconds)
         if self.blockheader.blocknumber > max_block_number:
             return False
 
