@@ -1152,11 +1152,11 @@ class ChainBuffer:
         if blocknum <= self.chain.height():
             return
 
-        if len(self.blocks) == 0:
+        if blocknum - 1 == self.chain.height():
             if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
                 printL(('prev_headerhash of block doesnt match with headerhash of m_blockchain'))
                 return
-        elif len(self.blocks) > 0:
+        elif blocknum - 1 > 0:
             if blocknum - 1 not in self.blocks or prev_headerhash not in self.headerhashes[blocknum - 1]:
                 printL(('No block found in buffer that matches with the prev_headerhash of received block'))
                 return
@@ -1289,6 +1289,9 @@ class ChainBuffer:
     def stake_list_get(self, blocknumber):
         if blocknumber - 1 == self.chain.height():
             return self.state.stake_list_get()
+
+        if blocknumber - 1 not in self.strongest_chain:
+            return None
 
         stake_list = None
         if blocknumber % c.blocks_per_epoch == 0:

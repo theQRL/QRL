@@ -133,7 +133,6 @@ class POS:
             # pending_blocks['target'] = blocknumber
             printL(('Calling downloader from peers_blockheight due to no POS CYCLE ', blocknumber))
             printL(('Download block from ', self.chain.height() + 1, ' to ', blocknumber))
-
             self.last_pb_time = time.time()
             self.update_node_state('syncing')
             self.randomize_block_fetch(self.chain.height() + 1)
@@ -740,6 +739,9 @@ class P2PProtocol(Protocol):
 
         self.factory.master_mr.add(data['hash'], data['type'], self)
 
+        if data['hash'] in self.factory.master_mr.hash_callLater:   # Ignore if already requested
+            return
+
         if self.factory.master_mr.contains(data['hash'], data['type']):
             return
 
@@ -896,7 +898,7 @@ class P2PProtocol(Protocol):
         return False
 
     def PBB(self, data):
-        self.last_pb_time = time.time()
+        self.factory.pos.last_pb_time = time.time()
         try:
             if self.isNoMoreBlock(data):
                 return
@@ -936,7 +938,7 @@ class P2PProtocol(Protocol):
             return
 
     def PB(self, data):
-        self.last_pb_time = time.time()
+        self.factory.pos.last_pb_time = time.time()
         try:
             if self.isNoMoreBlock(data):
                 return
@@ -979,6 +981,8 @@ class P2PProtocol(Protocol):
         return
 
     def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
+        if self.factory.pos.nodeState.state != 'synced':
+            return
         printL(('<<<Sending blockheight and headerhash to: ', self.transport.getPeer().host, str(time.time())))
         data = {}
         data['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
@@ -1059,7 +1063,7 @@ class P2PProtocol(Protocol):
 
     def FB(self, data):  # Fetch Request for block
         data = int(data)
-        printL((' Request for ', data, ' by ', self.identity))
+        printL((' Reqeust for ', data, ' by ', self.identity))
         if data > 0 and data <= self.factory.chain.block_chain_buffer.height():
             self.factory.chain.block_chain_buffer.send_block(data, self.transport, self.wrap_message)
         else:
@@ -1124,7 +1128,7 @@ class P2PProtocol(Protocol):
     def R1(self, data):
         if self.factory.nodeState.state != 'synced':
             return
-        z = json.loads(data, parse_float=Decimal)#helper.json_decode(data)
+        z = json.loads(data, parse_float=Decimal)
         if not z:
             return
         block_number = z['block_number']
@@ -1132,6 +1136,9 @@ class P2PProtocol(Protocol):
         stake_address = z['stake_address'].encode('latin1')
         vote_hash = z['vote_hash'].encode('latin1')
         reveal_one = z['reveal_one'].encode('latin1')
+
+        if not self.factory.master_mr.isRequested(z['vote_hash'], self):
+            return
 
         if block_number <= self.factory.chain.height():
             return
@@ -1156,11 +1163,11 @@ class P2PProtocol(Protocol):
                             block_number - 1), stake_address=stake_address, blocknumber=z['block_number'])
                     if vote_hash_tmp != vote_hash_terminator:
                         printL((self.identity, ' vote hash doesnt hash to stake terminator', 'vote', vote_hash, 'nonce',
-                                s[2], 'hash_term', vote_hash_terminator))
+                                s[2], 'vote_hash', vote_hash_terminator))
                         return
                     if reveal_one_tmp != reveal_hash_terminator:
                         printL((self.identity, ' reveal doesnt hash to stake terminator', 'reveal', reveal_one, 'nonce',
-                                s[2], 'hash_term', reveal_hash_terminator))
+                                s[2], 'reveal_hash', reveal_hash_terminator))
                         return
             if y == 0:
                 printL(('stake address not in the stake_list'))
@@ -1209,11 +1216,12 @@ class P2PProtocol(Protocol):
         #	return
 
         self.factory.chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, score])
-
+        self.factory.master_mr.register(z['vote_hash'], data, 'R1')
         if self.factory.nodeState.state == 'synced':
-            for peer in self.factory.peers:
-                if peer != self:
-                    peer.transport.write(self.wrap_message('R1', helper.json_encode(z)))  # relay
+            self.broadcast(z['vote_hash'], 'R1')
+            #for peer in self.factory.peers:
+            #    if peer != self:
+            #        peer.transport.write(self.wrap_message('R1', helper.json_encode(z)))  # relay
 
         return
 
@@ -1352,7 +1360,7 @@ class P2PProtocol(Protocol):
                 self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')  # yes
             return False
 
-        if m > 500 * 1024:  # check if size is more than 500 KB
+        if m > c.message_buffer_size:  # check if size is more than 500 KB
             if num_d > 1:
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(chr(255) + chr(0) + chr(0))
@@ -1405,6 +1413,11 @@ class P2PProtocol(Protocol):
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
         self.identity = peerHost + ":" + str(peerPort)
+        #For AWS
+        if c.public_ip:
+            if self.transport.getPeer().host == c.public_ip:
+                self.transport.loseConnection()
+                return
         if len(self.factory.peers) >= c.max_peers_limit:
             printL (( 'Peer limit hit '))
             printL (( '# of Connected peers ', len(self.factory.peers) ))
@@ -1641,8 +1654,9 @@ class P2PFactory(ServerFactory):
         printL(('<<<Transmitting POS reveal_one ', blocknumber, self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber)))
 
         self.last_reveal_one = z
-        for peer in self.peers:
-            peer.transport.write(self.f_wrap_message('R1', helper.json_encode(z)))
+        self.register_and_broadcast('R1', z['vote_hash'], helper.json_encode(z))
+        #for peer in self.peers:
+        #    peer.transport.write(self.f_wrap_message('R1', helper.json_encode(z)))
         #score = self.chain.score(stake_address=self.chain.mining_address,
         #                         reveal_one=z['reveal_one'],
         #                         balance=self.chain.block_chain_buffer.get_st_balance(self.chain.mining_address, blocknumber),

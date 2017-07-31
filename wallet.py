@@ -52,7 +52,14 @@ class Wallet:
 
         if os.path.isfile('./wallet.dat') is False:
             printL((term.green + '[info] ' + term.normal + 'Creating new wallet file..this could take up to a minute'))
-            addr_list.append(self.getnewaddress(4096, 'XMSS'))
+            SEED = None
+            # For AWS test only
+            if os.path.isfile('./mnemonic'):
+                with open('./mnemonic','r') as f:
+                    SEED = f.read()
+                    SEED = mnemonic_to_seed(SEED.strip())
+
+            addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
             with open("./wallet.dat", "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(addr_list, myfile)
 
