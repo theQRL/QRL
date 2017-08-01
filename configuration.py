@@ -6,7 +6,7 @@ enable_auto_staking = True
 
 #PEER Configuration
 enable_peer_discovery = True  # Allows to discover new peers from the connected peers
-peer_list = ['104.237.3.184', '104.251.219.145', '104.251.219.40']  # Atleast one active peer IP required
+peer_list = ['104.251.219.215', '104.237.3.184', '104.251.219.145', '104.251.219.40']  # Atleast one active peer IP required
 max_peers_limit = 10 # Number of allowed peers
 ################################################################
 #                       END                                    #
