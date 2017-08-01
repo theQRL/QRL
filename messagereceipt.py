@@ -42,6 +42,17 @@ class MessageReceipt:
         self.hash_msg[msg_hash] = msg_obj
         self.hash_type[msg_hash] = msg_type
 
+    def deregister(self, msg_hash, msg_type):
+        msg_hash = sha256(str(msg_hash))
+        if msg_hash in self.hash_msg:
+            del self.hash_msg[msg_hash]
+        if msg_hash in self.hash_type:
+            del self.hash_type[msg_hash]
+        if msg_hash in self.hash_peer:
+            del self.hash_peer[msg_hash]
+
+        pass
+
     def add(self, msg_hash, msg_type, peer):
         if msg_type not in self.allowed_types:
             return

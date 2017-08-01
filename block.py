@@ -10,7 +10,7 @@ from copy import deepcopy
 
 class BlockHeader():
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions,
-               number_stake, hashedstake, reveal_list=[], last_block_number=-1):
+               number_stake, hashedstake, reveal_list=None, vote_hashes=None, last_block_number=-1):
         self.blocknumber = blocknumber
         self.hash = hashchain_link
         if self.blocknumber == 0:
@@ -26,6 +26,7 @@ class BlockHeader():
         self.number_stake = number_stake
         self.hashedstake = hashedstake
         self.reveal_list = reveal_list
+        self.vote_hashes = vote_hashes
         self.epoch = self.blocknumber // c.blocks_per_epoch  # need to add in logic for epoch stake_list recalculation..
 
         if self.blocknumber == 0:
@@ -65,6 +66,10 @@ class BlockHeader():
         self.reveal_list = []
         for r in rl:
             self.reveal_list.append(r.encode('latin1'))
+        v1 = json_blockheader['vote_hashes']
+        self.vote_hashes = []
+        for v in v1:
+            self.vote_hashes.append(v.encode('latin1'))
         self.stake_nonce = json_blockheader['stake_nonce']
         self.epoch = json_blockheader['epoch']
         self.headerhash = json_blockheader['headerhash'].encode('latin1')
@@ -122,10 +127,12 @@ class Block():
 
         return False
 
-    def create(self, chain, hashchain_link, reveal_list=None, last_block_number=-1):
+    def create(self, chain, hashchain_link, reveal_list=None, vote_hashes=None, last_block_number=-1):
         # difficulty = 232
         if not reveal_list:
             reveal_list = []
+        if not vote_hashes:
+            vote_hashes = []
 
         data = None
         if last_block_number == -1:
@@ -197,7 +204,7 @@ class Block():
                 self.stake.append(st)
         '''
         self.blockheader = BlockHeader()
-        self.blockheader.create(chain=chain, blocknumber=lastblocknumber + 1, reveal_list=reveal_list,
+        self.blockheader.create(chain=chain, blocknumber=lastblocknumber + 1, reveal_list=reveal_list, vote_hashes=vote_hashes,
                                 hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash,
                                 number_transactions=len(chain.transaction_pool), hashedtransactions=hashedtransactions,
                                 number_stake=len(chain.stake_pool), hashedstake=hashedstake,
@@ -320,6 +327,22 @@ class Block():
                             i += 1
 
                 if i != len(b.reveal_list):
+                    printL(('Not all the reveal_hashes are valid..'))
+                    return False
+
+                i = 0
+                for r in b.vote_hashes:
+                    t = sha256(r)
+                    for x in range(b.blocknumber - (b.epoch * c.blocks_per_epoch)):
+                        t = sha256(t)
+                    for s in tmp_stake_list:
+                        reveal_hash_terminator, vote_hash_terminator = chain.select_hashchain(
+                            last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(
+                                b.blocknumber - 1), stake_address=s[0], blocknumber=b.blocknumber)
+                        if t == vote_hash_terminator:
+                            i += 1
+
+                if i != len(b.vote_hashes):
                     printL(('Not all the reveal_hashes are valid..'))
                     return False
 

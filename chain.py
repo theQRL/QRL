@@ -36,7 +36,7 @@ from decimal import Decimal
 class Chain:
     def __init__(self, state):
         self.state = state
-        self.version_number = "alpha/0.10a"  # should be moved to node.py
+        self.version_number = "alpha/0.11a"  # should be moved to node.py
         self.transaction_pool = []
         self.stake_pool = []
         self.txhash_timestamp = []
@@ -199,7 +199,7 @@ class Chain:
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
 
-    def create_stake_block(self, tx_hash_list, hashchain_hash, reveal_list, last_block_number):
+    def create_stake_block(self, tx_hash_list, hashchain_hash, reveal_list, vote_hashes, last_block_number):
 
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
@@ -218,7 +218,7 @@ class Chain:
 
         # create the block..
 
-        block_obj = self.m_create_block(hashchain_hash, reveal_list, last_block_number)
+        block_obj = self.m_create_block(hashchain_hash, reveal_list, vote_hashes, last_block_number)
 
         # reset the pool back
 
@@ -804,9 +804,9 @@ class Chain:
     def m_get_last_block(self):
         return self.m_read_chain()[-1]
 
-    def m_create_block(self, nonce, reveal_list=[], last_block_number=-1):
+    def m_create_block(self, nonce, reveal_list=[], vote_hashes=[], last_block_number=-1):
         myBlock = Block()
-        myBlock.create(self, nonce, reveal_list, last_block_number)
+        myBlock.create(self, nonce, reveal_list, vote_hashes, last_block_number)
         return myBlock
 
     def m_add_block(self, block_obj, verify_block_reveal_list=True):
@@ -970,8 +970,8 @@ class StateBuffer:
         self.next_seed = None ##
         self.hash_chain = None ##
 
-    def set_next_seed(self, headerhash, prev_seed):
-        self.next_seed = sha256(headerhash + str(prev_seed))
+    def set_next_seed(self, winning_reveal, prev_seed):
+        self.next_seed = sha256(winning_reveal + str(prev_seed))
 
     def tx_to_list(self, txn_dict):
         tmp_sl = []
@@ -990,7 +990,7 @@ class StateBuffer:
         self.next_stake_list = deepcopy(parent_state_buffer.next_stake_list)
         #TODO filter all next_stake_list with first_reveal None
         #Before adding_block, check if the stake_selector is in stake_list
-        self.set_next_seed(block.blockheader.headerhash, parent_state_buffer.next_seed)
+        self.set_next_seed(block.blockheader.hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
 
         if not epoch_mod:   #State belongs to first block of next epoch
@@ -1177,7 +1177,7 @@ class ChainBuffer:
             self.epoch_seed = self.state.calc_seed(self.state.stake_list_get(), verbose=False)
             self.update_hash_chain(block.blockheader.blocknumber)
         else:
-            self.epoch_seed = sha256(headerhash + str(self.epoch_seed))
+            self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
         self.epoch = epoch
         return True
@@ -1223,7 +1223,7 @@ class ChainBuffer:
             for st in tmp_next_stake_list:
                 state_buffer.next_stake_list[st[0]] = st
             block_buffer = BlockBuffer(block, stake_reward, self.chain, self.epoch_seed, self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber))
-            state_buffer.set_next_seed(block.blockheader.headerhash, self.epoch_seed)
+            state_buffer.set_next_seed(block.blockheader.hash, self.epoch_seed)
             state_buffer.update_stake_list(block)
             state_buffer.update_next_stake_list(block, self.state)
         else:
@@ -1293,16 +1293,11 @@ class ChainBuffer:
         if blocknumber - 1 not in self.strongest_chain:
             return None
 
-        stake_list = None
+        stateBuffer = self.strongest_chain[blocknumber - 1][1]
         if blocknumber % c.blocks_per_epoch == 0:
-            stake_list = self.strongest_chain[blocknumber - 1][1].next_stake_list
-        else:
-            stake_list = self.strongest_chain[blocknumber - 1][1].stake_list
-        tmp_stake_list = []
-        for txfrom in stake_list:
-            tmp_stake_list.append(stake_list[txfrom])
+            return stateBuffer.tx_to_list(stateBuffer.next_stake_list)
 
-        return tmp_stake_list
+        return stateBuffer.tx_to_list(stateBuffer.stake_list)
 
     def next_stake_list_get(self, blocknumber):
         if blocknumber - 1 == self.chain.height():

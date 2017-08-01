@@ -26,6 +26,7 @@ class NodeState:
 
 class POS:
     def __init__(self, chain, p2pFactory, nodeState, ntp):
+        self.master_mr = MessageReceipt()
         self.nodeState = nodeState
         self.ntp = ntp
         self.chain = chain
@@ -260,17 +261,21 @@ class POS:
 
     # create new block..
 
-    def create_new_block(self, winner, reveals, last_block_number):
+    def create_new_block(self, winner, reveals, vote_hashes, last_block_number):
         printL(('create_new_block #', (last_block_number+1) ))
         tx_list = []
         for t in self.chain.transaction_pool:
             tx_list.append(t.txhash)
-        block_obj = self.chain.create_stake_block(tx_list, winner, reveals, last_block_number)
+        block_obj = self.chain.create_stake_block(tx_list, winner, reveals, vote_hashes, last_block_number)
 
         return block_obj
 
     def reset_everything(self, data=None):
         printL(('** resetting loops and emptying chain.stake_reveal_one and chain.expected_winner '))
+        for r in self.chain.stake_reveal_one:
+            msg_hash = r[5]
+            self.master_mr.deregister(msg_hash, 'R1')
+
         del self.chain.stake_reveal_one[:]
         return
 
@@ -351,9 +356,21 @@ class POS:
         pending_blocks['headerhash'] = selected_blockhash
         randomize_block_fetch(chain.height() + 1)
         '''
+        max = -1
+        max_headerhash = None
+        for headerhash in self.fmbh_blockhash_peers:
+            if self.fmbh_blockhash_peers[headerhash]['blocknumber'] > self.chain.height():
+                if len(self.fmbh_blockhash_peers[headerhash]['peers']) > max:
+                    max = len(self.fmbh_blockhash_peers[headerhash]['peers'])
+                    max_headerhash = headerhash
+
         # Adding all peers
         # TODO only trusted peer
-        for peer in self.p2pFactory.peers:
+        #for peer in self.p2pFactory.peers:
+        if not max_headerhash:
+            printL (( 'No peers responded FMBH request'))
+            return
+        for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
             self.p2pFactory.target_peers[peer.identity] = peer
         self.update_node_state('syncing')
         self.randomize_block_fetch(self.chain.height() + 1)
@@ -475,16 +492,23 @@ class POS:
             epoch_blocknum = blocknumber - epoch * c.blocks_per_epoch
 
             if epoch_blocknum < c.stake_before_x_blocks and self.chain.mining_address not in next_stake_first_hash:
-                self.make_st_tx(blocknumber, None)
-            #elif epoch_blocknum >= c.stake_before_x_blocks:
+                diff = max(1, ((c.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - c.st_txn_safety_margin)))
+                if random.randint(1, diff) == 1:
+                    self.make_st_tx(blocknumber, None)
             elif epoch_blocknum >= c.stake_before_x_blocks-1 and self.chain.mining_address in next_stake_first_hash:
                 if next_stake_first_hash[self.chain.mining_address] is None:
                     threshold_blocknum = self.chain.state.get_staker_threshold_blocknum(next_stake_list,
                                                                                         self.chain.mining_address)
-                    if epoch_blocknum >= threshold_blocknum - 1:
-                        my = deepcopy(self.chain.my[0][1])
-                        my.hashchain(epoch=epoch+1)
-                        self.make_st_tx(blocknumber, my.hc[-1][-2])
+                    max_threshold_blocknum = c.blocks_per_epoch
+                    if threshold_blocknum == c.low_staker_first_hash_block:
+                        max_threshold_blocknum = c.high_staker_first_hash_block
+
+                    if epoch_blocknum >= threshold_blocknum - 1 and epoch_blocknum < max_threshold_blocknum - 1:
+                        diff = max(1, ((max_threshold_blocknum - epoch_blocknum + 1)*int(1-c.st_txn_safety_margin)) )
+                        if random.randint(1, diff) == 1:
+                            my = deepcopy(self.chain.my[0][1])
+                            my.hashchain(epoch=epoch+1)
+                            self.make_st_tx(blocknumber, my.hc[-1][-2])
 
         return
 
@@ -537,12 +561,14 @@ class POS:
             return
         filtered_reveal_one = []
         reveals = []
+        vote_hashes = []
         next_block_num = last_block_number + 1
         for s in self.chain.stake_reveal_one:
             tmp_strongest_headerhash = self.chain.block_chain_buffer.get_strongest_headerhash(last_block_number)
             if s[1] == tmp_strongest_headerhash and s[2] == next_block_num:
                 filtered_reveal_one.append(s)
                 reveals.append(s[3])
+                vote_hashes.append(s[5])
 
         self.restart_post_block_logic(30)
 
@@ -564,6 +590,7 @@ class POS:
         if our_reveal in winners:
             block = self.create_new_block(our_reveal,
                                           reveals,
+                                          vote_hashes,
                                           last_block_number)
             self.pre_block_logic(block)  # broadcast this block
 
@@ -682,7 +709,6 @@ class P2PProtocol(Protocol):
                         'R1': self.R1,
                         'IP': self.IP,
                         }
-        self.mr = MessageReceipt()
         self.buffer = ''
         self.messages = []
         self.identity = None
@@ -1215,7 +1241,7 @@ class P2PProtocol(Protocol):
         #	printL (( 'Found : ', z['SV_hash'] ))
         #	return
 
-        self.factory.chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, score])
+        self.factory.chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, score, vote_hash])
         self.factory.master_mr.register(z['vote_hash'], data, 'R1')
         if self.factory.nodeState.state == 'synced':
             self.broadcast(z['vote_hash'], 'R1')
@@ -1246,7 +1272,8 @@ class P2PProtocol(Protocol):
         data = helper.json_decode(json_data)
         new_ips = []
         for ip in data:
-            new_ips.append(ip.encode('latin1'))
+            if ip not in new_ips:
+                new_ips.append(ip.encode('latin1'))
         peers_list = self.factory.chain.state.state_get_peers()
         printL((self.transport.getPeer().host, 'peers data received: ', new_ips))
         for node in new_ips:
@@ -1424,6 +1451,7 @@ class P2PProtocol(Protocol):
             printL (( 'Peer Limit ', c.peer_list))
             printL (( 'Disconnecting client ', self.identity))
             self.transport.loseConnection()
+            return
 
         self.factory.connections += 1
         self.factory.peers.append(self)
@@ -1452,17 +1480,21 @@ class P2PProtocol(Protocol):
     # should ask for latest block/block number.
 
     def connectionLost(self, reason):
-        self.factory.connections -= 1
         printL((self.transport.getPeer().host, ' disconnected. ', 'remainder connected: ',
                 str(self.factory.connections)))  # , reason
-        self.factory.peers.remove(self)
-        if self.identity in self.factory.target_peers:
-            del self.factory.target_peers[self.identity]
-        host_port = self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)
-        if host_port in self.factory.peers_blockheight:
-            del self.factory.peers_blockheight[host_port]
-        if self.factory.connections == 0:
-            reactor.callLater(60, self.factory.connect_peers)
+        try:
+            self.factory.peers.remove(self)
+            self.factory.connections -= 1
+
+            if self.identity in self.factory.target_peers:
+                del self.factory.target_peers[self.identity]
+            host_port = self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)
+            if host_port in self.factory.peers_blockheight:
+                del self.factory.peers_blockheight[host_port]
+            if self.factory.connections == 0:
+                reactor.callLater(60, self.factory.connect_peers)
+        except Exception:
+            pass
 
     def recv_tx(self, json_tx_obj):
 
@@ -1496,7 +1528,7 @@ class P2PProtocol(Protocol):
 
 class P2PFactory(ServerFactory):
     def __init__(self, chain, nodeState, pos=None):
-        self.master_mr = MessageReceipt()
+        self.master_mr = None
         self.pos = None
         self.protocol = P2PProtocol
         self.chain = chain
@@ -1526,6 +1558,7 @@ class P2PFactory(ServerFactory):
     # factory network functions
     def setPOS(self, pos):
         self.pos = pos
+        self.master_mr = self.pos.master_mr
 
     def get_block_a_to_b(self, a, b):
         printL(('<<<Requested blocks:', a, 'to ', b, ' from peers..'))
@@ -1663,7 +1696,7 @@ class P2PFactory(ServerFactory):
         #                         seed=epoch_seed)
         if y == False:
             self.chain.stake_reveal_one.append([z['stake_address'], z['headerhash'], z['block_number'], z['reveal_one'],
-                                                z['weighted_hash']])  # don't forget to store our reveal in stake_reveal_one
+                                                z['weighted_hash'],  z['vote_hash']])  # don't forget to store our reveal in stake_reveal_one
 
         return z['reveal_one']  # , z['block_number']
 

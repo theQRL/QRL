@@ -6,7 +6,7 @@ enable_auto_staking = True
 
 #PEER Configuration
 enable_peer_discovery = True  # Allows to discover new peers from the connected peers
-peer_list = ['104.237.3.184']  # Atleast one active peer IP required
+peer_list = ['104.237.3.184', '104.251.219.145', '104.251.219.40']  # Atleast one active peer IP required
 max_peers_limit = 10 # Number of allowed peers
 ################################################################
 #                       END                                    #
@@ -20,7 +20,7 @@ max_peers_limit = 10 # Number of allowed peers
 # Warning: Don't change following configuration.               #
 #          For QRL Developers only                             #
 ################################################################
-public_ip="13.59.217.44"
+public_ip=None
 minimum_required_stakers = 5
 minimum_staking_balance_required = 1
 blocks_per_epoch = 100
@@ -32,9 +32,10 @@ message_receipt_timeout = 10 # request timeout for full message
 stake_before_x_blocks = 50
 low_staker_first_hash_block = 70
 high_staker_first_hash_block = 80
+st_txn_safety_margin = 0.10 # 10% safety margin
 N = 256 # Constant used in Block winner formula
 POS_delay_after_block = 15
-message_buffer_size = 1024*1024 #  1 MB
+message_buffer_size = 3*1024*1024 #  3 MB
 ################################################################
 #                       END                                    #
 ################################################################
