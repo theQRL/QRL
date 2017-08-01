@@ -9,7 +9,6 @@ import cPickle as pickle
 import node
 import os
 import sys
-from blessings import Terminal
 
 
 class Wallet:
@@ -48,10 +47,8 @@ class Wallet:
 
         addr_list = []
 
-        term = Terminal()
-
         if os.path.isfile('./wallet.dat') is False:
-            printL((term.green + '[info] ' + term.normal + 'Creating new wallet file..this could take up to a minute'))
+            printL(('[info] Creating new wallet file..this could take up to a minute'))
             SEED = None
             # For AWS test only
             if os.path.isfile('./mnemonic'):

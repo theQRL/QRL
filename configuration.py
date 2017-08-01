@@ -35,7 +35,7 @@ high_staker_first_hash_block = 80
 st_txn_safety_margin = 0.10 # 10% safety margin
 N = 256 # Constant used in Block winner formula
 POS_delay_after_block = 15
-message_buffer_size = 3*1024*1024 #  3 MB
+message_buffer_size = 3*1024*1024 # 3 MB
 ################################################################
 #                       END                                    #
 ################################################################
