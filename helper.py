@@ -3,8 +3,18 @@ import simplejson as json
 from merkle import sha256
 import block
 import merkle
+import configuration as c
 
 # simple transaction creation and wallet functions using the wallet file..
+
+def select_target_hashchain(last_block_headerhash):
+    target_chain = 0
+    for byte in last_block_headerhash:
+        target_chain += ord(byte)
+
+    target_chain = (target_chain - 1) % (c.hashchain_nums - 1)  # 1 Primary hashchain size
+
+    return target_chain
 
 def wlt():
     return merkle.numlist(wallet.list_addresses())
