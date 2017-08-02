@@ -1151,15 +1151,6 @@ class ChainBuffer:
         headerhash = block.blockheader.headerhash
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
-        if block.blockheader.blocknumber > 2106:
-            balance = self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber)
-            score = self.chain.score(stake_address=block.blockheader.stake_selector,
-                        reveal_one=block.blockheader.hash,
-                        balance=balance,
-                        seed=self.get_epoch_seed(block.blockheader.blocknumber),
-                        verbose=False)
-            printL (( block.blockheader.blocknumber, '<-->', score ))
-
         if blocknum <= self.chain.height():
             return
 
