@@ -185,16 +185,23 @@ class WalletProtocol(Protocol):
                         self.transport.write('>>> reboot <password>\r\n')
                         self.transport.write('>>> or\r\n')
                         self.transport.write('>>> reboot <password> <nonce>\r\n')
+                        self.transport.write('>>> or\r\n')
+                        self.transport.write('>>> reboot <password> <nonce> <trim_blocknum>\r\n')
                         return
                     json_hash, err = None, None
-                    if len(args) == 2:
+                    if len(args) == 3:
+                        json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1], args[2])
+                        self.transport.write(str(args[0])+str(args[1])+str(args[2]))
+                    elif len(args) == 2:
                         json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1])
                     else:
                         json_hash, status = self.factory.chain.generate_reboot_hash(args[0])
+
                     if json_hash:
                         self.factory.p2pFactory.send_reboot(json_hash)
-                        self.factory.state.update('synced')
+                        #self.factory.state.update('synced')
                     self.transport.write(status)
+
         else:
             return False
 

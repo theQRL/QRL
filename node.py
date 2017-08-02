@@ -744,23 +744,37 @@ class P2PProtocol(Protocol):
 
     def reboot(self, data):
         hash_dict = json.loads(data)
-        if not ('hash' in hash_dict and 'nonce' in hash_dict):
+        if not ('hash' in hash_dict and 'nonce' in hash_dict and 'blocknumber' in hash_dict):
             return
-        if not self.factory.chain.validate_reboot(hash_dict['hash'], hash_dict['nonce']):
+        status, error = self.factory.chain.validate_reboot(hash_dict['hash'], hash_dict['nonce'])
+        if not status:
+            printL (( 'status ', status))
+            printL (( 'error ', error))
             return
         for peer in self.factory.peers:
             if peer != self:
                 peer.transport.write(self.wrap_message('reboot', data))
-        printL(('Initiating Reboot Sequence.....'))
-
-        self.update_node_state('synced')
+        reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', hash_dict['nonce']]
+        self.factory.chain.state.db.put('reboot_data', reboot_data)
+        blocknumber = hash_dict['blocknumber']
+        printL(('Initiating Reboot Sequence..... #', blocknumber))
+        if blocknumber!=0:
+            if blocknumber <= self.factory.chain.height():
+                self.factory.pos.update_node_state('unsynced')
+                del self.factory.chain.m_blockchain[blocknumber:]
+                self.factory.chain.f_write_m_blockchain()
+                self.factory.chain.m_load_chain()
+                self.factory.pos.update_node_state('synced')
 
     def MR(self, data):
         data = json.loads(data)
         if data['type'] not in MessageReceipt.allowed_types:
             return
 
-        if data['type'] in ['R1', 'ST', 'TX'] and self.factory.nodeState.state != 'synced':
+        if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != 'synced':
+            return
+
+        if data['type'] == 'ST' and self.factory.chain.height()>1:
             return
 
         if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):

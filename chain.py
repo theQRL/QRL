@@ -70,42 +70,55 @@ class Chain:
 
         printL(('mining/staking address', self.mining_address))
 
-    def validate_reboot(self, db, hash, nonce):
+    def validate_reboot(self, hash, nonce):
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
-        reboot_data = db.get('reboot_data')
+        try:
+            reboot_data_db = self.state.db.get('reboot_data')
+            reboot_data = reboot_data_db
+        except:
+            pass
 
-        if reboot_data[1] > nonce:  # already used
-            return
+        if reboot_data[1] >= nonce:  # already used
+            msg = 'nonce in db '+str(reboot_data[1])
+            msg += '\nnonce provided '+str(nonce)
+            return None, msg
+
         reboot_data[1] = nonce
         output = hash
         for i in range(0, reboot_data[1]):
             output = sha256(output)
 
-        if output != hash:
-            return False
-        reboot_data[1] += 1
-        db.put('reboot_data', reboot_data)
-        return True
+        if output != reboot_data[0]:
+            msg = 'expected hash '+str(reboot_data[0])
+            msg += '\nhash found '+str(output)
+            msg += '\nnonce provided '+str(nonce)+"\n"
+            return None, msg
+        #reboot_data[1] += 1
+        #self.state.db.put('reboot_data', reboot_data)
 
-    def generate_reboot_hash(self, key, nonce=None):
+        return True, 'Success'
+
+    def generate_reboot_hash(self, key, nonce=None, blocknumber=0):
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
+
         try:
-            reboot_data = db.get('reboot_data')
+            reboot_data = self.state.db.get('reboot_data')
         except:
             pass
         if nonce:
             if reboot_data[1] > nonce:
                 return None, 'Nonce must be greater than or equals to ' + str(reboot_data[1]) + '\r\n'
-            reboot_data[1] = nonce
+            reboot_data[1] = int(nonce)
 
         output = sha256(key)
         for i in range(0, 40000 - reboot_data[1]):
             output = sha256(output)
 
-        if not self.validate_reboot(output, reboot_data[1]):
-            return None, 'Invalid Key\r\n'
+        status, error = self.validate_reboot(output, reboot_data[1])
+        if not status:
+            return None, error
 
-        return json.dumps({'hash': output, 'nonce': reboot_data[1]}), "Reboot Initiated\r\n"
+        return json.dumps({'hash': output, 'nonce': reboot_data[1], 'blocknumber': int(blocknumber)}), "Reboot Initiated\r\n"
 
     def get_sv(self, terminator):
         for s in self.state.stake_list_get():
