@@ -834,7 +834,9 @@ class Chain:
         self.m_blockchain.pop()
 
     def m_blockheight(self):
-        return len(self.m_read_chain()) - 1
+        # return len(self.m_read_chain()) - 1
+        return self.height()
+
 
     def height(self):
         return len(self.m_blockchain) - 1
@@ -850,7 +852,7 @@ class Chain:
         printL(('Validates: ', validate_block(b)))
 
     def m_f_sync_chain(self):
-        if self.m_blockchain[-1].blockheader.blocknumber % 1 == 0:
+        if self.m_blockchain[-1].blockheader.blocknumber % 100 == 0:
             self.f_write_m_blockchain()
         return
 

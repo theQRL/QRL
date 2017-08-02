@@ -331,15 +331,13 @@ class Block():
                     return False
 
                 i = 0
+                target_chain = helper.select_target_hashchain(b.prev_blockheaderhash)
                 for r in b.vote_hashes:
                     t = sha256(r)
                     for x in range(b.blocknumber - (b.epoch * c.blocks_per_epoch)):
                         t = sha256(t)
                     for s in tmp_stake_list:
-                        reveal_hash_terminator, vote_hash_terminator = chain.select_hashchain(
-                            last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(
-                                b.blocknumber - 1), stake_address=s[0], blocknumber=b.blocknumber)
-                        if t == vote_hash_terminator:
+                        if t == s[1][target_chain]:
                             i += 1
 
                 if i != len(b.vote_hashes):

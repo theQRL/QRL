@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     log, consensus = logger.getLogger(__name__)
     printL = logger.PrintHelper(log, nodeState).printL
-    ntp.PrintL = printL
+    ntp.printL = printL
     ntp.setDrift()
 
     node.printL = printL
