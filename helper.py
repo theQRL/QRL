@@ -2,7 +2,7 @@ import jsonpickle
 import simplejson as json
 from merkle import sha256
 import block
-
+import merkle
 
 # simple transaction creation and wallet functions using the wallet file..
 

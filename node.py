@@ -472,7 +472,7 @@ class POS:
         our_reveal = None
         blocknumber = self.chain.block_chain_buffer.height() + 1
 
-        if self.p2pFactory.stake == True:
+        if self.p2pFactory.stake:
             tmp_stake_list = [
                 s[0] for s in self.chain.block_chain_buffer.stake_list_get(blocknumber)
             ]
@@ -758,6 +758,9 @@ class P2PProtocol(Protocol):
     def MR(self, data):
         data = json.loads(data)
         if data['type'] not in MessageReceipt.allowed_types:
+            return
+
+        if data['type'] in ['R1', 'ST', 'TX'] and self.factory.nodeState.state != 'synced':
             return
 
         if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):

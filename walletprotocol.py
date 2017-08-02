@@ -2,7 +2,9 @@ from twisted.internet.protocol import ServerFactory, Protocol
 from transaction import StakeTransaction
 import decimal
 import configuration as c
-
+import helper
+import time
+from merkle import  hexseed_to_seed, mnemonic_to_seed
 
 class WalletProtocol(Protocol):
     def __init__(self):
@@ -25,23 +27,23 @@ class WalletProtocol(Protocol):
                     return
 
                 if data[0] == 'hexseed':
-                    for c in self.factory.chain.my:
-                        if type(c[1]) == list:
+                    for x in self.factory.chain.my:
+                        if type(x[1]) == list:
                             pass
                         else:
-                            if c[1].type == 'XMSS':
-                                self.transport.write('Address: ' + c[1].address + '\r\n')
-                                self.transport.write('Recovery seed: ' + c[1].hexSEED + '\r\n')
+                            if x[1].type == 'XMSS':
+                                self.transport.write('Address: ' + x[1].address + '\r\n')
+                                self.transport.write('Recovery seed: ' + x[1].hexSEED + '\r\n')
                     return
 
                 if data[0] == 'seed':
-                    for c in self.factory.chain.my:
-                        if type(c[1]) == list:
+                    for x in self.factory.chain.my:
+                        if type(x[1]) == list:
                             pass
                         else:
-                            if c[1].type == 'XMSS':
-                                self.transport.write('Address: ' + c[1].address + '\r\n')
-                                self.transport.write('Recovery seed: ' + c[1].mnemonic + '\r\n')
+                            if x[1].type == 'XMSS':
+                                self.transport.write('Address: ' + x[1].address + '\r\n')
+                                self.transport.write('Recovery seed: ' + x[1].mnemonic + '\r\n')
                     return
 
                 elif data[0] == 'search':
@@ -117,10 +119,10 @@ class WalletProtocol(Protocol):
                     return
 
                 elif data[0] == 'stake':
-                    self.transport.write('>> Toggling stake from: ' + str(f.stake) + ' to: ' + str(
-                        not self.factory.p2pfactorystake) + '\r\n')
-                    self.factory.p2pFactory.stake = not self.factory.p2pfactorystake
-                    printL(('STAKING set to: ', self.factory.p2pfactorystake))
+                    self.transport.write('>> Toggling stake from: ' + str(self.factory.p2pFactory.stake) + ' to: ' + str(
+                        not self.factory.p2pFactory.stake) + '\r\n')
+                    self.factory.p2pFactory.stake = not self.factory.p2pFactory.stake
+                    printL(('STAKING set to: ', self.factory.p2pFactory.stake))
                     return
 
                 elif data[0] == 'stakenextepoch':
@@ -151,9 +153,6 @@ class WalletProtocol(Protocol):
                 elif data[0] == 'quit' or data[0] == 'exit':
                     self.transport.loseConnection()
 
-                # elif data[0] == 'balance':
-                #	self.state_balance(args)
-
                 elif data[0] == 'listaddresses':
                     addresses, num_sigs, types = self.factory.chain.wallet.inspect_wallet()
 
@@ -165,10 +164,10 @@ class WalletProtocol(Protocol):
 
                 elif data[0] == 'getinfo':
                     self.transport.write('>>> Version: ' + self.factory.chain.version_number + '\r\n')
-                    self.transport.write('>>> Uptime: ' + str(time.time() - start_time) + '\r\n')
-                    self.transport.write('>>> Nodes connected: ' + str(len(f.peers)) + '\r\n')
-                    self.transport.write('>>> Staking set to: ' + str(f.stake) + '\r\n')
-                    self.transport.write('>>> Sync status: ' + self.factory.state.current + '\r\n')
+                    self.transport.write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
+                    self.transport.write('>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peers)) + '\r\n')
+                    self.transport.write('>>> Staking set to: ' + str(self.factory.p2pFactory.stake) + '\r\n')
+                    self.transport.write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state + '\r\n')
 
                 elif data[0] == 'blockheight':
                     self.transport.write('>>> Blockheight: ' + str(self.factory.chain.m_blockheight()) + '\r\n')
@@ -177,7 +176,7 @@ class WalletProtocol(Protocol):
 
                 elif data[0] == 'peers':
                     self.transport.write('>>> Connected Peers:\r\n')
-                    for peer in self.factory.p2pfactorypeers:
+                    for peer in self.factory.p2pFactory.peers:
                         self.transport.write('>>> ' + peer.identity + " [" + peer.version + "]  blockheight: " + str(
                             peer.blockheight) + '\r\n')
 
@@ -355,7 +354,6 @@ class WalletProtocol(Protocol):
                 '>>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)' + '\r\n')
             return
 
-        # to_send = decimal.Decimal(format(decimal.Decimal(args[2]), '.8f')*100000000)
         amount = decimal.Decimal(decimal.Decimal(args[2]) * 100000000).quantize(decimal.Decimal('1'),
                                                                                 rounding=decimal.ROUND_HALF_UP)
 
@@ -366,11 +364,9 @@ class WalletProtocol(Protocol):
 
         tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=args[1], amount=amount)
 
-        # self.transport.write(msg+'\r\n')
         if tx is False:
             return
 
-        # printL(( 'new local tx: ', tx
         if tx.validate_tx():
             if not tx.state_validate_tx(state=self.factory.state, transaction_pool=self.factory.chain.transaction_pool):
                 self.transport.write('>>> OTS key reused')
@@ -407,4 +403,5 @@ class WalletFactory(ServerFactory):
         self.recn = 0
         self.maxconnections = 1
         self.connections = 0
+        self.start_time = time.time()
         self.last_cmd = 'help'

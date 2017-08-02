@@ -11,7 +11,6 @@ import ntp
 import logger
 import fork
 import merkle
-
 import sys
 from traceback import extract_tb
 from twisted.internet import reactor
