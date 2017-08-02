@@ -1151,6 +1151,15 @@ class ChainBuffer:
         headerhash = block.blockheader.headerhash
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
+        if block.blockheader.blocknumber > 2106:
+            balance = self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber)
+            score = self.chain.score(stake_address=block.blockheader.stake_selector,
+                        reveal_one=block.blockheader.hash,
+                        balance=balance,
+                        seed=self.get_epoch_seed(block.blockheader.blocknumber),
+                        verbose=False)
+            printL (( block.blockheader.blocknumber, '<-->', score ))
+
         if blocknum <= self.chain.height():
             return
 
@@ -1241,7 +1250,9 @@ class ChainBuffer:
             state_buffer.update(self.state, parent_state_buffer, block)
         self.blocks[blocknum].append([block_buffer, state_buffer])
 
-        if len(self.strongest_chain) == 0 or blocknum not in self.strongest_chain:
+        if len(self.strongest_chain) == 0 and self.chain.m_blockchain[-1].blockheader.headerhash==prev_headerhash:
+            self.strongest_chain[blocknum] = [block_buffer, state_buffer]
+        elif blocknum not in self.strongest_chain and self.strongest_chain[blocknum - 1][0].block.blockheader.headerhash == prev_headerhash:
             self.strongest_chain[blocknum] = [block_buffer, state_buffer]
         elif blocknum in self.strongest_chain:
             old_block_buffer = self.strongest_chain[blocknum][0]
