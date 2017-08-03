@@ -1161,9 +1161,9 @@ class P2PProtocol(Protocol):
 
     def VE(self, data=None):
         if not data:
-            self.transport.write(self.wrap_message('VE', self.factory.chain.version_number))
+            self.transport.write(self.wrap_message('VE', '%s %s' % (self.factory.chain.version_number, c.node_name)))
         else:
-            self.version = str(data)
+            self.version = str(data)[:40]
             printL((self.transport.getPeer().host, 'version: ', data))
         return
 
