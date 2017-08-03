@@ -188,8 +188,8 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
             return False
 
         if self.amount < 0:
-        	printL(('State validation failed for', self.txhash, 'because: Negative send'))
-        	return False
+            printL(('State validation failed for', self.txhash, 'because: Negative send'))
+            return False
 
         return True
 
@@ -214,10 +214,10 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
         return self
 
     def validate_tx(self):
-    	#sanity check: this is not how the economy is supposed to work!
+        #sanity check: this is not how the economy is supposed to work!
     	if self.amount < 0:
-        	printL(('State validation failed for', self.txhash, 'because: Negative send'))
-        	return False
+            printL(('State validation failed for', self.txhash, 'because: Negative send'))
+            return False
         # cryptographic checks
         if self.txhash != sha256(''.join(self.txfrom + str(self.pubhash)) + self.txto + str(self.amount) + str(
                 self.fee)):

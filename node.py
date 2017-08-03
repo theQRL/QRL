@@ -774,7 +774,7 @@ class P2PProtocol(Protocol):
         if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != 'synced':
             return
 
-        if data['type'] == 'ST' and self.factory.chain.height()>1:
+        if data['type'] == 'ST' and self.factory.chain.height()>1  and self.factory.nodeState.state != 'synced':
             return
 
         if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):
