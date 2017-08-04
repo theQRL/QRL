@@ -222,11 +222,11 @@ class WalletProtocol(Protocol):
     def parse(self, data):
         return data.replace('\r\n', '')
 
-    # Unused
-    # def dataReceived(self, data):
-    #     self.factory.recn += 1
-    #     if self.parse_cmd(self.parse(data)) == False:
-    #         self.transport.write(">>> Command not recognised. Use 'help' for details" + '\r\n')
+    #Unused?
+    def dataReceived(self, data):
+        self.factory.recn += 1
+        if self.parse_cmd(self.parse(data)) == False:
+            self.transport.write(">>> Command not recognised. Use 'help' for details" + '\r\n')
 
     #What does this do?
     #It:
