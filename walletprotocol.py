@@ -51,7 +51,7 @@ class WalletProtocol(Protocol):
                         self.transport.write('>>> Usage: search <txhash or Q-address>' + '\r\n')
                         return
                     for result in self.factory.chain.search_telnet(args[0], long=0):
-                        self.transport.write(result + '\r\n')
+                        self.transport.write(str(result) + '\r\n')
                     return
 
                 elif data[0] == 'json_search':
