@@ -27,8 +27,8 @@ class WalletProtocol(Protocol):
 
         	command = data[0]
 
-        	if len(data > 0): #args optional
-        		args = data[1:]
+            if len(data > 0): #args optional
+                args = data[1:]
 
             if command in self.cmd_list:
 
@@ -220,19 +220,20 @@ class WalletProtocol(Protocol):
 
     #Silly
     def parse(self, data):
-        return data.replace('\r\n', '')
+        return data.strip()
 
-    #Unused?
+    #Called when a command is recieved through telnet
+    #Might be a good idea to use a json encrypted wallet
     def dataReceived(self, data):
         self.factory.recn += 1
         if self.parse_cmd(self.parse(data)) == False:
             self.transport.write(">>> Command not recognised. Use 'help' for details" + '\r\n')
 
     #What does this do?
-    #It:
-    #
+    #whenever you type telnet 127.0.0.1 2000
+    #a connection is made and this function is called to initialize the things.
     def connectionMade(self):
-        self.transport.write(self.factory.stuff)
+        self.transport.write('QRL node connection established. Try starting with "help" ')
         self.factory.connections += 1
         if self.factory.connections > 1:
             printL(('only one local connection allowed'))
@@ -468,7 +469,7 @@ class WalletFactory(ServerFactory):
         self.p2pFactory = p2pFactory
         self.protocol = WalletProtocol
         self.newaddress = 0
-        self.stuff = stuff #???????????????????????????????????????????
+        self.stuff = stuff
         self.recn = 0
         self.maxconnections = 1
         self.connections = 0
