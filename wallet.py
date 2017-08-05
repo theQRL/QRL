@@ -181,6 +181,19 @@ class Wallet:
 
         return list_addr
 
+    def get_num_signatures(self, address_to_check):
+        if not self.chain.my:
+            addr = self.f_read_wallet()
+        else:
+            addr = self.chain.my
+
+        for address in addr:
+            if address[0] == address_to_check:
+                if type(address[1]) == list:
+                    return address[1][0].signatures - self.state.state_nonce(address[0])
+                else:  # xmss
+                    return address[1].remaining
+
     def getnewaddress(self, signatures=4096, type='XMSS',
                       SEED=None):  # new address format is a list of two items [address, data structure from random_mss call]
         addr = []

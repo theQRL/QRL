@@ -369,6 +369,15 @@ class WalletProtocol(Protocol):
                 '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address' + '\r\n')
             return
 
+        # Stop user from sending less than their entire balance if they've only
+        # got one signature remaining.
+        sigsremaining = self.factory.chain.wallet.get_num_signatures(self.factory.chain.my[int(args[0])][0])
+        if sigsremaining is 1:
+            if amount < balance:
+                self.transport.write(
+                    '>>> Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!' + '\r\n')
+                return
+
         tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=args[1], amount=amount)
 
         if tx is False:
