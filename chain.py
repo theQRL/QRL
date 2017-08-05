@@ -586,7 +586,7 @@ class Chain:
         if self.state.state_uptodate(self.m_blockheight()) == False:
             return helper.json_print_telnet({'status': 'error', 'error': 'leveldb failed', 'method': 'richlist'})
 
-        addr = db.return_all_addresses()
+        addr = self.state.db.return_all_addresses()
         richlist = sorted(addr, key=itemgetter(1), reverse=True)
 
         rl = {}
@@ -1136,6 +1136,8 @@ class ChainBuffer:
     def add_txns_buffer(self):
         if len(self.blocks) == 0:
             return
+        del self.tx_buffer
+        del self.st_buffer
         self.tx_buffer = {}
         self.st_buffer = {}
         min_blocknum = self.chain.height() + 1
@@ -1191,6 +1193,8 @@ class ChainBuffer:
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.calc_seed(self.state.stake_list_get(), verbose=False)
             self.update_hash_chain(block.blockheader.blocknumber)
+            if epoch - 1 in self.my:
+                del self.my[epoch - 1]
         else:
             self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
@@ -1279,7 +1283,11 @@ class ChainBuffer:
         return True
 
     def recalculate_strongest_chain(self, blocknum):
-        del self.strongest_chain[blocknum+1:]
+        if blocknum+1 not in self.strongest_chain:
+            return
+
+        for i in range(blocknum+1, max(self.strongest_chain)+1):
+            del self.strongest_chain[i]
 
         block = self.strongest_chain[blocknum].block
         prev_headerhash = block.blockheader.headerhash
@@ -1287,14 +1295,42 @@ class ChainBuffer:
         block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
 
         while block_state_buffer is not None:
+            self.strongest_chain[blocknum] = block_state_buffer
+
             block_buffer = block_state_buffer[0]
             state_buffer = block_state_buffer[1]
             block = block_buffer.block
 
-            self.strongest_chain[blocknum] = [block_buffer, state_buffer]
             prev_headerhash = block.blockheader.headerhash
             blocknum += 1
             block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
+
+    def get_strongest_block(self, blocknum, prev_headerhash):
+        if blocknum not in self.blocks:
+            return None
+        strongest_blockBuffer = None
+
+        for blockStateBuffer in self.blocks[blocknum]:
+            block = blockStateBuffer[0].block
+            if prev_headerhash == block.blockheader.prev_blockheaderhash:
+                if strongest_blockBuffer and strongest_blockBuffer[0].score < blockStateBuffer[0].score:
+                    continue
+                strongest_blockBuffer = blockStateBuffer
+
+        if not strongest_blockBuffer:
+            return None
+
+        return strongest_blockBuffer
+
+    def get_strongest_headerhash(self, blocknum):
+        if blocknum < len(self.chain.m_blockchain):
+            return self.chain.m_blockchain[blocknum].blockheader.headerhash
+
+        if blocknum not in self.strongest_chain:
+            printL(('Blocknum : ', str(blocknum), ' not found in buffer'))
+            return None
+
+        return self.strongest_chain[blocknum][0].block.blockheader.headerhash
 
     def get_epoch_seed(self, blocknumber):
         if blocknumber - 1 == self.chain.height():
@@ -1360,10 +1396,13 @@ class ChainBuffer:
         del (self.blocks[blocknum])
         del (self.headerhashes[blocknum])
         del self.strongest_chain[blocknum]
-        prev_epoch = self.epoch
+        prev_epoch = int((blocknum - 1) // c.blocks_per_epoch )
         self.epoch = int(blocknum // c.blocks_per_epoch)
         if prev_epoch != self.epoch:
-            del self.hash_chain[prev_epoch]
+            if prev_epoch in self.my:
+                del self.my[prev_epoch]
+            if prev_epoch in self.hash_chain:
+                del self.hash_chain[prev_epoch]
 
         return True
 
@@ -1371,35 +1410,6 @@ class ChainBuffer:
         if len(self.strongest_chain) == 0:
             return self.chain.height()
         return max(self.strongest_chain)
-
-    def get_strongest_block(self, blocknum, prev_headerhash):
-        if blocknum not in self.blocks:
-            return None
-        strongest_blockBuffer = None
-
-        for blockStateBuffer in self.blocks[blocknum]:
-            block = blockStateBuffer[0].block
-            if prev_headerhash == block.blockheader.prev_blockheaderhash:
-                if strongest_blockBuffer and strongest_blockBuffer[0].score < blockStateBuffer[0].score:
-                    continue
-                strongest_blockBuffer = blockStateBuffer
-
-        if not strongest_blockBuffer:
-            return None
-
-        return strongest_blockBuffer
-
-    # return self.blocks[blocknum][0].block
-
-    def get_strongest_headerhash(self, blocknum):
-        if blocknum < len(self.chain.m_blockchain):
-            return self.chain.m_blockchain[blocknum].blockheader.headerhash
-
-        if blocknum not in self.strongest_chain:
-            printL(('Blocknum : ', str(blocknum), ' not found in buffer'))
-            return None
-
-        return self.strongest_chain[blocknum][0].block.blockheader.headerhash
 
     def send_block(self, blocknumber, transport, wrap_message):
         if blocknumber < len(self.chain.m_blockchain):

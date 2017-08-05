@@ -306,10 +306,14 @@ class Block():
                 printL(('Stake selector not in stake_list for this epoch..'))
                 return False
 
-
-            if b.hash not in chain.select_winners(b.reveal_list, topN=3, blocknumber=b.blocknumber, block=self, seed=chain.block_chain_buffer.get_epoch_seed(b.blocknumber)):
-                printL(("Closest hash not in block selector.."))
-                return False
+            '''
+                This condition not required, in case of a strongest block selected is not in top 3. 
+                As it may happen that top 3 winners, didn't create the block, and other node created the block who was 
+                not in the top 3 winners.
+            '''
+            #if b.hash not in chain.select_winners(b.reveal_list, topN=3, blocknumber=b.blocknumber, block=self, seed=chain.block_chain_buffer.get_epoch_seed(b.blocknumber)):
+            #    printL(("Closest hash not in block selector.."))
+            #    return False
 
             if len(b.reveal_list) != len(set(b.reveal_list)):
                 printL(('Repetition in reveal_list'))
