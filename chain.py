@@ -10,6 +10,7 @@
 
 __author__ = 'pete'
 
+import gc
 from StringIO import StringIO
 from time import time, sleep
 from operator import itemgetter, attrgetter
@@ -765,6 +766,7 @@ class Chain:
             block_list.append(CreateGenesisBlock(self))
             with open("./chain.dat", "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(block_list, myfile)
+                gc.collect()
         try:
             with open('./chain.dat', 'r') as myfile:
                 return pickle.load(myfile)
@@ -784,12 +786,15 @@ class Chain:
             with open("./chain.dat",
                       "w+") as myfile:  # overwrites self.wallet..must use w+ as cannot append pickle item
                 pickle.dump(data, myfile)
+
+        gc.collect()
         return
 
     def f_write_m_blockchain(self):
         printL(('Appending data to chain'))
         with open("./chain.dat", "w+") as myfile:
             pickle.dump(self.m_blockchain, myfile)
+        gc.collect()
         return
 
     def m_load_chain(self):
@@ -1132,6 +1137,7 @@ class ChainBuffer:
         self.my[epoch] = new_my
         self.hash_chain[epoch] = new_my[0][1].hc
         self.wallet.f_save_wallet()
+        gc.collect()
 
     def add_txns_buffer(self):
         if len(self.blocks) == 0:
@@ -1404,6 +1410,7 @@ class ChainBuffer:
             if prev_epoch in self.hash_chain:
                 del self.hash_chain[prev_epoch]
 
+        gc.collect()
         return True
 
     def height(self):

@@ -2,11 +2,10 @@
 
 __author__ = 'pete'
 
-from merkle import sha256, mnemonic_to_seed
+import gc
+from merkle import mnemonic_to_seed
 import merkle
-import chain
 import cPickle as pickle
-import node
 import os
 import sys
 
@@ -76,6 +75,7 @@ class Wallet:
         printL(('Syncing wallet file'))
         with open("./wallet.dat", "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
+            gc.collect()
             return
 
     def f_save_winfo(self):

@@ -1,9 +1,6 @@
 jsonpickle
 leveldb
-beautifulsoup4
-blessings
 statistics
-service_identity
 ntplib
 Twisted==16.0.0
 simplejson
