@@ -1106,7 +1106,7 @@ class P2PProtocol(Protocol):
 
     def FB(self, data):  # Fetch Request for block
         data = int(data)
-        printL((' Reqeust for ', data, ' by ', self.identity))
+        printL((' Request for ', data, ' by ', self.identity))
         if data > 0 and data <= self.factory.chain.block_chain_buffer.height():
             self.factory.chain.block_chain_buffer.send_block(data, self.transport, self.wrap_message)
         else:
