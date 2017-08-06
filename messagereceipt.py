@@ -50,7 +50,6 @@ class MessageReceipt:
             del self.hash_type[msg_hash]
         if msg_hash in self.hash_peer:
             del self.hash_peer[msg_hash]
-
         pass
 
     def add(self, msg_hash, msg_type, peer):
@@ -89,6 +88,7 @@ class MessageReceipt:
                 if self.hash_peer[msg_hash]:
                     return
                 del self.hash_peer[msg_hash]
+                del self.hash_type[msg_hash]
 
     def contains(self, msg_hash, msg_type):
         if msg_hash in self.hash_msg:

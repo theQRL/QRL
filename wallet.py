@@ -2,11 +2,10 @@
 
 __author__ = 'pete'
 
-from merkle import sha256, mnemonic_to_seed
+import gc
+from merkle import mnemonic_to_seed
 import merkle
-import chain
 import cPickle as pickle
-import node
 import os
 import sys
 
@@ -76,6 +75,7 @@ class Wallet:
         printL(('Syncing wallet file'))
         with open("./wallet.dat", "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
+            gc.collect()
             return
 
     def f_save_winfo(self):
@@ -180,6 +180,19 @@ class Wallet:
                                       address[1].remaining) + '/' + str(address[1].signatures) + ')'])
 
         return list_addr
+
+    def get_num_signatures(self, address_to_check):
+        if not self.chain.my:
+            addr = self.f_read_wallet()
+        else:
+            addr = self.chain.my
+
+        for address in addr:
+            if address[0] == address_to_check:
+                if type(address[1]) == list:
+                    return address[1][0].signatures - self.state.state_nonce(address[0])
+                else:  # xmss
+                    return address[1].remaining
 
     def getnewaddress(self, signatures=4096, type='XMSS',
                       SEED=None):  # new address format is a list of two items [address, data structure from random_mss call]

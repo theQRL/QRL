@@ -1,0 +1,8 @@
+# Compiled Python files
+*.pyc
+
+# Blockchain/Wallet
+chain.dat
+wallet.dat
+wallet.info
+

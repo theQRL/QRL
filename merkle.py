@@ -1188,24 +1188,10 @@ class Merkle():
 
     def create_tree(self):
 
-        if self.num_leaves <= 2:
+        if self.num_leaves <= 2: # catch case for which log doesn't do the job
             num_branches = 1
-        elif self.num_leaves > 2 and self.num_leaves <= 4:
-            num_branches = 2
-        elif self.num_leaves > 4 and self.num_leaves <= 8:
-            num_branches = 3
-        elif self.num_leaves > 8 and self.num_leaves <= 16:
-            num_branches = 4
-        elif self.num_leaves > 16 and self.num_leaves <= 32:
-            num_branches = 5
-        elif self.num_leaves > 32 and self.num_leaves <= 64:
-            num_branches = 6
-        elif self.num_leaves > 64 and self.num_leaves <= 128:
-            num_branches = 7
-        elif self.num_leaves > 128 and self.num_leaves <= 256:
-            num_branches = 8
-        elif self.num_leaves > 256 and self.num_leaves <= 512:
-            num_branches = 9
+        elif self.num_leaves <= 512:
+            num_branches = int(ceil(log(num_leaves, 2)))
 
         self.num_branches = num_branches
         self.tree.append(self.base)
