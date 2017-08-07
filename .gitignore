@@ -1,8 +1,7 @@
-# Compiled Python files
-*.pyc
-
-# Blockchain/Wallet
-chain.dat
-wallet.dat
-wallet.info
-
+*.swp
+.DS_Store
+*.py[cod]
+*.dat
+*.info
+*.log
+state/

@@ -10,7 +10,8 @@ This document describes the setup procedure to install and configure a QRL node 
 
 ### Install python packages
 
-`sudo apt-get install python-dev python-pip`
+- Ubuntu: `sudo apt-get install python-dev python-pip`
+- CentOs: `sudo yum install python-devel python-pip`
 
 ### Clone the QRL Repo
 
@@ -27,3 +28,4 @@ This document describes the setup procedure to install and configure a QRL node 
 ### Start your node
 
 `python main.py`
+
