@@ -4,7 +4,8 @@ import decimal
 import configuration as c
 import helper
 import time
-from merkle import  hexseed_to_seed, mnemonic_to_seed
+from merkle import hexseed_to_seed, mnemonic_to_seed
+
 
 class WalletProtocol(Protocol):
     def __init__(self):
@@ -13,26 +14,27 @@ class WalletProtocol(Protocol):
                          'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit',
                          'search', 'json_search', 'help', 'savenewaddress', 'listaddresses',
                          'getinfo', 'blockheight', 'json_block', 'reboot', 'peers']
-    #Parse out passed in argument to get:
-    #1. Command ([0])
-    #1. 0-Many arguments ([1:])
+
+    # Parse out passed in argument to get:
+    # 1. Command ([0])
+    # 1. 0-Many arguments ([1:])
     def parse_cmd(self, data):
 
-    	#Get entered line as an array of strings delimited by "space."
-    	#Will chomp away any extra spaces
+        # Get entered line as an array of strings delimited by "space."
+        # Will chomp away any extra spaces
         data = data.split()
-        #Arguments include anything beyond the first index
+        # Arguments include anything beyond the first index
 
-        if len(data) != 0: #if anything was entered
+        if len(data) != 0:  # if anything was entered
 
-        	command = data[0]
-
-            if len(data > 0): #args optional
+            command = data[0]
+            args=None
+            if len(data)>0:  # args optional
                 args = data[1:]
 
             if command in self.cmd_list:
 
-            	#Use switch cases when porting to a different language
+                # Use switch cases when porting to a different language
                 if command == 'getnewaddress':
                     self.getnewaddress(args)
                     return
@@ -130,8 +132,9 @@ class WalletProtocol(Protocol):
                     return
 
                 elif command == 'stake':
-                    self.transport.write('>> Toggling stake from: ' + str(self.factory.p2pFactory.stake) + ' to: ' + str(
-                        not self.factory.p2pFactory.stake) + '\r\n')
+                    self.transport.write(
+                        '>> Toggling stake from: ' + str(self.factory.p2pFactory.stake) + ' to: ' + str(
+                            not self.factory.p2pFactory.stake) + '\r\n')
                     self.factory.p2pFactory.stake = not self.factory.p2pFactory.stake
                     printL(('STAKING set to: ', self.factory.p2pFactory.stake))
                     return
@@ -140,14 +143,15 @@ class WalletProtocol(Protocol):
                     self.transport.write(
                         '>>> Sending a stake transaction for address: ' + self.factory.chain.mining_address + ' to activate next epoch(' + str(
                             c.blocks_per_epoch - (self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
-                            self.factory.chain.m_blockchain[
-                                -1].blockheader.epoch * c.blocks_per_epoch))) + ' blocks time)' + '\r\n')
+                                self.factory.chain.m_blockchain[
+                                    -1].blockheader.epoch * c.blocks_per_epoch))) + ' blocks time)' + '\r\n')
                     printL(('STAKE for address:', self.factory.chain.mining_address))
                     self.factory.p2pFactory.send_st_to_peers(
                         StakeTransaction().create_stake_transaction(self.factory.chain.mining_address,
                                                                     self.factory.chain.block_chain_buffer.height() + 1,
                                                                     self.factory.chain.my[0][1],
-                                                                    balance=self.factory.chain.state.state_balance(self.factory.chain.mining_address)))
+                                                                    balance=self.factory.chain.state.state_balance(
+                                                                        self.factory.chain.mining_address)))
                     return
 
                 elif command == 'send':
@@ -202,7 +206,7 @@ class WalletProtocol(Protocol):
                     json_hash, err = None, None
                     if len(args) == 3:
                         json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1], args[2])
-                        self.transport.write(str(args[0])+str(args[1])+str(args[2]))
+                        self.transport.write(str(args[0]) + str(args[1]) + str(args[2]))
                     elif len(args) == 2:
                         json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1])
                     else:
@@ -210,7 +214,7 @@ class WalletProtocol(Protocol):
 
                     if json_hash:
                         self.factory.p2pFactory.send_reboot(json_hash)
-                        #self.factory.state.update('synced')
+                        # self.factory.state.update('synced')
                     self.transport.write(status)
 
         else:
@@ -218,20 +222,20 @@ class WalletProtocol(Protocol):
 
         return True
 
-    #Silly
+    # Silly
     def parse(self, data):
         return data.strip()
 
-    #Called when a command is recieved through telnet
-    #Might be a good idea to use a json encrypted wallet
+    # Called when a command is recieved through telnet
+    # Might be a good idea to use a json encrypted wallet
     def dataReceived(self, data):
         self.factory.recn += 1
         if self.parse_cmd(self.parse(data)) == False:
             self.transport.write(">>> Command not recognised. Use 'help' for details" + '\r\n')
 
-    #What does this do?
-    #whenever you type telnet 127.0.0.1 2000
-    #a connection is made and this function is called to initialize the things.
+    # What does this do?
+    # whenever you type telnet 127.0.0.1 2000
+    # a connection is made and this function is called to initialize the things.
     def connectionMade(self):
         self.transport.write('QRL node connection established. Try starting with "help" ')
         self.factory.connections += 1
@@ -250,22 +254,22 @@ class WalletProtocol(Protocol):
     def connectionLost(self, reason):
         self.factory.connections -= 1
 
-    ###################################### LOCAL WALLET ACCESS ###############################################
+        ###################################### LOCAL WALLET ACCESS ###############################################
 
-    	# Pseudocode:
+    # Pseudocode:
 
-    	# is chain up to date? If not, fail/inform user
-    	# is address null/void? If it is, fail/print usage instructions
-    	# is the first letter of the address Q? If not, fail/print usage instructions
-    	# is the address in use? If not, fail/inform user
+    # is chain up to date? If not, fail/inform user
+    # is address null/void? If it is, fail/print usage instructions
+    # is the first letter of the address Q? If not, fail/print usage instructions
+    # is the address in use? If not, fail/inform user
 
-    	# if all of these are met, return the balance
+    # if all of these are met, return the balance
     def getbalance(self, addr):
 
-    	# is chain up to date? If not, fail/inform user
+        # is chain up to date? If not, fail/inform user
         if self.factory.state.state_uptodate(self.factory.chain.height()) is False:
             self.transport.write('>>> LevelDB not up to date..' + '\r\n')
-            #add "force" argument to bring it up to date and get balance?
+            # add "force" argument to bring it up to date and get balance?
             return
 
         # is address null/void? If it is, fail/print usage instructions
@@ -282,17 +286,14 @@ class WalletProtocol(Protocol):
         if self.factory.state.state_address_used(addr[0]) is False:
             self.transport.write('>>> Unused address: ' + addr + '\r\n')
             return
-        else:
-
-        #check: can you think of any more necessary checks?
 
         # if all of these are met, return the balance
         self.transport.write('>>> balance:  ' + str(self.factory.state.state_balance(addr[0])) + '\r\n')
         return
 
-    #Pseudocode:
-    #If no arguments are used, or more than 3 are used, fail/inform user of usage
-    #else:
+    # Pseudocode:
+    # If no arguments are used, or more than 3 are used, fail/inform user of usage
+    # else:
     #	get signature type to use, reject if the type is incorrect
     #   prevent user from generating an extremely large number of XMSS signatures
     #	generate address
@@ -307,7 +308,7 @@ class WalletProtocol(Protocol):
             return
         else:
             try:
-            	#Check to see if args[0] is an integer string
+                # Check to see if args[0] is an integer string
                 int(args[0])
             except:
                 self.transport.write(
@@ -315,7 +316,7 @@ class WalletProtocol(Protocol):
                 self.transport.write('>>> i.e. getnewaddress 4096 XMSS' + '\r\n')
                 return
 
-        #signature type to use
+        # signature type to use
         sig_type = args[1].upper()
         if sig_type != 'XMSS' and sig_type != 'WOTS' and sig_type != 'LDOTS' and sig_type != 'LD':
             self.transport.write(
@@ -324,9 +325,9 @@ class WalletProtocol(Protocol):
             return
 
         if int(args[0]) > 256 and args[1] != 'XMSS':
-        	#TODO: 
-        	#You are trying to generate an extremely large number of signatures. Are you sure about this?
-           	#Y/N
+            # TODO:
+            # You are trying to generate an extremely large number of signatures. Are you sure about this?
+            # Y/N
             self.transport.write(
                 '>>> Try a lower number of signatures or you may be waiting a very long time...' + '\r\n')
             return
@@ -344,13 +345,13 @@ class WalletProtocol(Protocol):
             self.transport.write('>>> Signatures possible with address: ' + str(addr[1].signatures) + '\r\n')
             self.transport.write('>>> Address: ' + addr[1].address + '\r\n')
 
-        #TODO: Would you like to save this address to your wallet file (call savenewaddress)? Y/N
+        # TODO: Would you like to save this address to your wallet file (call savenewaddress)? Y/N
         self.transport.write(">>> type 'savenewaddress' to append to wallet file" + '\r\n')
         self.factory.newaddress = addr
 
         return
 
-    #Simply saves wallet information
+    # Simply saves wallet information
     def savenewaddress(self):
         if not self.factory.newaddress:
             self.transport.write(">>> No new addresses created, yet. Try 'getnewaddress'" + '\r\n')
@@ -359,10 +360,10 @@ class WalletProtocol(Protocol):
         self.transport.write('>>> new address saved in self.factory.chain.wallet.' + '\r\n')
         return
 
-    #This method is for sending between local wallets as well as network wallets
+    # This method is for sending between local wallets as well as network wallets
     def send_tx(self, args):
 
-    	#Check if method was used correctly
+        # Check if method was used correctly
         if not args or len(args) < 3:
             self.transport.write('>>> Usage: send <from> <to> <amount>' + '\r\n')
             self.transport.write('>>> i.e. send 0 4 100' + '\r\n')
@@ -373,7 +374,7 @@ class WalletProtocol(Protocol):
         wallet_from = args[0]
         wallet_to = args[1]
 
-        #Check if the wallet entered is a local wallet (should be, since sender should be local - it's you)
+        # Check if the wallet entered is a local wallet (should be, since sender should be local - it's you)
         try:
             int(wallet_from)
         except:
@@ -381,18 +382,18 @@ class WalletProtocol(Protocol):
                 '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.' + '\r\n')
             return
 
-        #Check if local wallet number is higher than the number of local wallets that are saved
+        # Check if local wallet number is higher than the number of local wallets that are saved
         if int(wallet_from) > len(self.factory.chain.wallet.list_addresses()) - 1:
             self.transport.write(
                 '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.' + '\r\n')
             return
 
-        #perhaps make a "wallet_precondition(wallet)" method
-        #to check if the wallet string is correct
-        #good way to centralize that code too
-        #in case it ever changes
+        # perhaps make a "wallet_precondition(wallet)" method
+        # to check if the wallet string is correct
+        # good way to centralize that code too
+        # in case it ever changes
 
-        #if wallet_to is not a local wallet, and wallet_to is not prepended by Q and 
+        # if wallet_to is not a local wallet, and wallet_to is not prepended by Q and
         if len(wallet_to) > 1 and wallet_to[0] != 'Q' and self.factory.state.state_hrs(wallet_to) != False:
             pass
         elif wallet_to[0] == 'Q':
@@ -410,8 +411,8 @@ class WalletProtocol(Protocol):
                 return
             wallet_to = int(wallet_to)
 
-      	#Check to see if sending amount > amount owned (and reject if so)
-      	#This is hard to interpret. Break it up?
+        # Check to see if sending amount > amount owned (and reject if so)
+        # This is hard to interpret. Break it up?
         balance = self.factory.state.state_balance(self.factory.chain.my[int(wallet_from)][0])
         send_amt_arg = args[2]
         try:
@@ -422,7 +423,7 @@ class WalletProtocol(Protocol):
             return
 
         amount = decimal.Decimal(decimal.Decimal(send_amt_arg) * 100000000).quantize(decimal.Decimal('1'),
-                                                                                rounding=decimal.ROUND_HALF_UP)
+                                                                                     rounding=decimal.ROUND_HALF_UP)
 
         if balance < amount:
             self.transport.write(
@@ -441,7 +442,7 @@ class WalletProtocol(Protocol):
         tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=args[1], amount=amount)
 
         if tx is False:
-        	#print error here?
+            # print error here?
             return
 
         if tx.validate_tx():
@@ -453,7 +454,7 @@ class WalletProtocol(Protocol):
             printL(('>>> TXN failed at validate_tx'))
             return
 
-        #send the transaction to peers (ie send it to the network - we are done)
+        # send the transaction to peers (ie send it to the network - we are done)
         self.factory.p2pFactory.send_tx_to_peers(tx)
         self.transport.write('>>> ' + str(tx.txhash))
         self.transport.write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
