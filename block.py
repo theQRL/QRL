@@ -11,6 +11,10 @@ from copy import deepcopy
 class BlockHeader():
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions,
                number_stake, hashedstake, reveal_list=None, vote_hashes=None, last_block_number=-1):
+        if not reveal_list:
+            reveal_list = []
+        if not vote_hashes:
+            vote_hashes = []
         self.blocknumber = blocknumber
         self.hash = hashchain_link
         if self.blocknumber == 0:
@@ -223,7 +227,9 @@ class Block():
 
         stake = json_block['stake']
         self.stake = []
-
+        if self.blockheader.blocknumber == 0:
+            self.state = json_block['state']
+            self.stake_list = json_block['stake_list']
         for st in stake:
             st_obj = StakeTransaction().dict_to_transaction(st)
             if st_obj.epoch != self.blockheader.epoch:

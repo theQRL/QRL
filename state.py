@@ -371,7 +371,7 @@ class State:
 
     def state_read_genesis(self, genesis_block):
         printL(('genesis:'))
-        self.db.zero_all_addresses()
+
         for address in genesis_block.state:
             self.db.put(address[0], address[1])
         return True

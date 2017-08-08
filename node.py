@@ -1,4 +1,3 @@
-# QRL testnet node..
 # -features POS, quantum secure signature scheme..
 
 __author__ = 'pete'
@@ -990,7 +989,7 @@ class P2PProtocol(Protocol):
             blocknumber = block.blockheader.blocknumber
             printL(('>>>Received Block #', blocknumber))
             if blocknumber != self.last_requested_blocknum:
-                printL(('Didnt match', self.last_requested_blocknum, thisPeerHost.host, thisPeerHost.port))
+                printL(('Didnt match', self.last_requested_blocknum, self.identity))
                 return
 
             if blocknumber > self.factory.chain.height():
@@ -1065,7 +1064,8 @@ class P2PProtocol(Protocol):
         if self.factory.nodeState.state == 'syncing': return
 
         if block_number == self.factory.chain.m_blockheight():
-            if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
+            #if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
+            if self.factory.chain.m_get_block(block_number).blockheader.headerhash != headerhash:
                 printL(('>>> WARNING: headerhash mismatch from ', self.transport.getPeer().host))
 
                 # initiate fork recovery and protection code here..

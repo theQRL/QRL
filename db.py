@@ -2,6 +2,7 @@
 __author__ = 'pete'
 
 import leveldb
+import gc
 import cPickle as pickle
 
 
@@ -39,6 +40,7 @@ class DB:
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
         value_obj = pickle.dumps(value_obj)
         self.db.Put(key_obj, value_obj)
+        gc.collect()
         return
 
     def put_batch(self, key_obj, value_obj, batch):  # serialise with pickle into a string
@@ -49,7 +51,9 @@ class DB:
     def get(self, key_obj):
         value_obj = self.db.Get(key_obj)
         try:
-            return pickle.loads(value_obj)
+            value_obj = pickle.loads(value_obj)
+            gc.collect()
+            return value_obj
         except:
             return value_obj
 
