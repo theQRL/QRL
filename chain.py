@@ -42,7 +42,7 @@ from decimal import Decimal
 class Chain:
     def __init__(self, state):
         self.state = state
-        self.version_number = "alpha/0.11a"  # should be moved to node.py
+        self.version_number = c.version_number  
         self.transaction_pool = []
         self.stake_pool = []
         self.txhash_timestamp = []
@@ -68,7 +68,7 @@ class Chain:
         self.stake_validator_latency = defaultdict(dict)
 
     def initialize(self):
-        printL(('QRL blockchain ledger v', self.version_number))
+        printL(('QRL blockchain ledger ', self.version_number))
         printL(('loading db'))
         printL(('loading wallet'))
 

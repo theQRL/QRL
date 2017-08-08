@@ -42,6 +42,7 @@ chain_read_buffer_size=1024
 binary_file_delimiter = '-_-_'
 compression_type = "zlib"
 compression_level = 9
+version_number = "alpha/0.11a"
 ################################################################
 #                       END                                    #
 ################################################################
