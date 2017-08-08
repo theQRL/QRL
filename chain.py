@@ -1189,14 +1189,14 @@ class StateBuffer:
 
 
 class ChainBuffer:
-    def __init__(self, chain, size=3):
+    def __init__(self, chain):
         self.chain = chain
         self.state = self.chain.state
         self.wallet = self.chain.wallet
         self.blocks = {}
         self.strongest_chain = {}
         self.headerhashes = {}
-        self.size = size
+        self.size = c.reorg_limit
         self.pending_blocks = {}
         self.epoch = max(0, self.chain.height()) // c.blocks_per_epoch  # Main chain epoch
         self.my = {}
