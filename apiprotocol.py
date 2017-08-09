@@ -179,12 +179,17 @@ class ApiProtocol(Protocol):
         z = 0
         t = []
 
-        for b in reversed(self.factory.chain.m_blockchain[-100:]):
-            if b.blockheader.blocknumber > 0:
-                x = b.blockheader.timestamp - self.factory.chain.m_blockchain[
-                    b.blockheader.blocknumber - 1].blockheader.timestamp
-                t.append(x)
-                z += x
+        last_n_block = 100
+
+        last_block = self.factory.chain.m_blockchain[-1]
+        for _ in range(last_n_block):
+            if last_block.blockheader.blocknumber <= 0:
+                break
+            prev_block = self.factory.chain.m_get_block(last_block.blockheader.blocknumber - 1)
+            x = last_block.blockheader.timestamp - prev_block.blockheader.timestamp
+            last_block = prev_block
+            t.append(x)
+            z += x
 
         net_stats = {'status': 'ok', 'version': self.factory.chain.version_number,
                      'block_reward': self.factory.chain.m_blockchain[-1].blockheader.block_reward / 100000000.00000000,
