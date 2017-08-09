@@ -1,0 +1,3 @@
+libraries:
+- name: pycrypto
+  version: "2.6"
