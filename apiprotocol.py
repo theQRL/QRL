@@ -197,7 +197,7 @@ class ApiProtocol(Protocol):
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
                      'staked_percentage_emission': staked, 'network': 'qrl testnet',
                      'network_uptime': time.time() - self.factory.chain.m_blockchain[1].blockheader.timestamp,
-                     'block_time': z / len(self.factory.chain.m_blockchain[-100:]),
+                     'block_time': z / len(t),
                      'block_time_variance': max(t) - min(t), 'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
                      'emission': self.factory.state.db.total_coin_supply() / 100000000.000000000,
