@@ -627,12 +627,17 @@ class Chain:
         if n <= 0 or n > 20:
             return helper.json_print_telnet(error)
 
-        lb = self.m_blockchain[-n:]
+        lb = []
+        beginning = self.height() - n
+        for blocknum in range(self.height(), beginning-1, -1):
+            block = self.m_get_block(blocknum)
+            lb.append(block)
 
         last_blocks = {}
         last_blocks['blocks'] = {}
-
-        for block in reversed(lb):
+        i = 0
+        for block in lb[1:]:
+            i += 1
             last_blocks['blocks'][block.blockheader.blocknumber] = {}
             last_blocks['blocks'][block.blockheader.blocknumber][
                 'block_reward'] = block.blockheader.block_reward / 100000000.00000000
@@ -643,8 +648,7 @@ class Chain:
             last_blocks['blocks'][block.blockheader.blocknumber]['number_stake'] = block.blockheader.number_stake
             last_blocks['blocks'][block.blockheader.blocknumber]['timestamp'] = block.blockheader.timestamp
             last_blocks['blocks'][block.blockheader.blocknumber]['block_interval'] = block.blockheader.timestamp - \
-                                                                                     self.m_blockchain[
-                                                                                         block.blockheader.blocknumber - 1].blockheader.timestamp
+                                                                                     lb[i-1].blockheader.timestamp
 
         last_blocks['status'] = 'ok'
 
@@ -765,9 +769,18 @@ class Chain:
         return
 
     def f_read_chain(self, epoch):
+        baseDir = os.path.split(os.path.abspath(__file__))[0]+os.sep+c.chain_file_directory+os.sep
+
+        if not os.path.isdir(baseDir):
+            try:
+                os.makedirs(baseDir)
+            except:
+                print "Failed to create directory " + baseDir
+                sys.exit()
+
         delimiter = c.binary_file_delimiter
         block_list = []
-        if os.path.isfile('./chain.da' + str(epoch)) is False:
+        if os.path.isfile(baseDir+'chain.da' + str(epoch)) is False:
             if epoch != 0:
                 return []
             printL(('Creating new chain file'))
@@ -775,7 +788,7 @@ class Chain:
             return block_list
 
         try:
-            with open('./chain.da'+str(epoch), 'rb') as myfile:
+            with open(baseDir+'chain.da'+str(epoch), 'rb') as myfile:
                 jsonBlock = StringIO()
                 tmp = ""
                 count = 0
@@ -833,11 +846,12 @@ class Chain:
         self.state.db.db.Put('block_' + str(blocknumber), str(blockPos) + ',' + str(blockSize))
 
     def f_write_m_blockchain(self):
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
         suffix = int(blocknumber // c.blocks_per_chain_file)
         writeable = self.m_blockchain[-c.disk_writes_after_x_blocks:]
         printL(('Appending data to chain'))
-        with open('./chain.da'+str(suffix), 'ab') as myfile:
+        with open(baseDir+'chain.da'+str(suffix), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = helper.json_bytestream(block)
                 compressedBlock = zip.compress(jsonBlock, c.compression_level)
@@ -877,7 +891,8 @@ class Chain:
             return self.m_blockchain
 
         epoch = 1
-        while os.path.isfile('./chain.da' + str(epoch)):
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
+        while os.path.isfile(baseDir+'chain.da' + str(epoch)):
             del self.m_blockchain[:-1]
             chains = self.f_read_chain(epoch)
 
@@ -894,8 +909,9 @@ class Chain:
         return self.m_blockchain
 
     def load_from_file(self, blocknum):
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
         epoch = int( blocknum // c.blocks_per_chain_file )
-        with open('chain.da'+str(epoch), 'rb') as f:
+        with open(baseDir+'chain.da'+str(epoch), 'rb') as f:
             pos_size = self.state.db.db.Get('block_'+str(blocknum))
             pos, size = pos_size.split(',')
             pos = int(pos)

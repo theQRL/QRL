@@ -73,7 +73,7 @@ if __name__ == "__main__":
     pos = node.POS(chain=chainObj, p2pFactory=p2pFactory, nodeState=nodeState, ntp=ntp)
     p2pFactory.setPOS(pos)
 
-    apiFactory = apiprotocol.ApiFactory(chainObj, stateObj, p2pFactory.peers)
+    apiFactory = apiprotocol.ApiFactory(pos, chainObj, stateObj, p2pFactory.peers)
 
     stuff = 'QRL node connection established. Try starting with "help"' + '\r\n'
     walletFactory = walletprotocol.WalletFactory(stuff, chainObj, stateObj, p2pFactory)

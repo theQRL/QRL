@@ -82,7 +82,7 @@ class ApiProtocol(Protocol):
 
     def ping(self, data=None):
         printL(('<<< API network latency ping call'))
-        self.factory.ping_peers()  # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
+        self.factory.pos.p2pFactory.ping_peers()  # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
         pings = {}
         pings['status'] = 'ok'
         pings['peers'] = {}
@@ -123,7 +123,7 @@ class ApiProtocol(Protocol):
 
     def ip_geotag(self, data=None):
         printL(('<<< API ip_geotag call'))
-        self.factory.ip_geotag_peers()
+        self.factory.pos.p2pFactory.ip_geotag_peers()
         return self.factory.chain.ip_geotag(data)
 
     def empty(self, data=None):
@@ -253,10 +253,11 @@ class ApiProtocol(Protocol):
 
 
 class ApiFactory(ServerFactory):
-    def __init__(self, chain, state, peers):
+    def __init__(self, pos, chain, state, peers):
         self.protocol = ApiProtocol
         self.connections = 0
         self.api = 1
+        self.pos = pos
         self.chain = chain
         self.state = state
         self.peers = peers
