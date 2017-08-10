@@ -775,7 +775,7 @@ class Chain:
             return block_list
 
         try:
-            with open('./chain.da'+str(epoch), 'r') as myfile:
+            with open('./chain.da'+str(epoch), 'rb') as myfile:
                 jsonBlock = StringIO()
                 tmp = ""
                 count = 0
@@ -813,42 +813,6 @@ class Chain:
         gc.collect()
         return block_list
 
-
-    '''
-    def f_read_chain(self, epoch):
-        block_list = []
-
-        if os.path.isfile('./chain.da'+str(epoch)) is False:
-            if epoch != 0:
-                return None
-            printL(('Creating new chain file'))
-            block_list.append(CreateGenesisBlock(self))
-            with open("./chain.da"+str(epoch), "a") as myfile:  # add in a new call to create random_otsmss
-                pickle.dump(block_list, myfile)
-                gc.collect()
-        try:
-            with open('./chain.da'+str(epoch), 'r') as myfile:
-                return pickle.load(myfile)
-        except:
-            printL(('IO error'))
-            return None
-    '''
-    '''
-    def f_read_chain(self):
-        block_list = []
-        if os.path.isfile('./chain.dat') is False:
-            printL(('Creating new chain file'))
-            block_list.append(CreateGenesisBlock(self))
-            with open("./chain.dat", "a") as myfile:  # add in a new call to create random_otsmss
-                pickle.dump(block_list, myfile)
-                gc.collect()
-        try:
-            with open('./chain.dat', 'r') as myfile:
-                return pickle.load(myfile)
-        except:
-            printL(('IO error'))
-            return False
-    '''
     def f_get_last_block(self):
         return self.f_read_chain()[-1]
 
@@ -873,7 +837,7 @@ class Chain:
         suffix = int(blocknumber // c.blocks_per_chain_file)
         writeable = self.m_blockchain[-c.disk_writes_after_x_blocks:]
         printL(('Appending data to chain'))
-        with open('./chain.da'+str(suffix), 'a') as myfile:
+        with open('./chain.da'+str(suffix), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = helper.json_bytestream(block)
                 compressedBlock = zip.compress(jsonBlock, c.compression_level)
@@ -931,7 +895,7 @@ class Chain:
 
     def load_from_file(self, blocknum):
         epoch = int( blocknum // c.blocks_per_chain_file )
-        with open('chain.da'+str(epoch), 'r') as f:
+        with open('chain.da'+str(epoch), 'rb') as f:
             pos_size = self.state.db.db.Get('block_'+str(blocknum))
             pos, size = pos_size.split(',')
             pos = int(pos)
