@@ -222,7 +222,6 @@ class WalletProtocol(Protocol):
 
         return True
 
-    # Silly
     def parse(self, data):
         return data.strip()
 
