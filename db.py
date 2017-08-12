@@ -3,6 +3,7 @@ __author__ = 'pete'
 
 import leveldb
 import cPickle as pickle
+import json
 
 
 class DB:
@@ -13,15 +14,17 @@ class DB:
     def return_all_addresses(self):
         addresses = []
         for k, v in self.db.RangeIter('Q'):
+            v = json.loads(v)['value']
             if k[0] == 'Q':
-                addresses.append([k, pickle.loads(v)[1]])
+                addresses.append([k, v[1]])
         return addresses
 
     def total_coin_supply(self):
         coins = 0
         for k, v in self.db.RangeIter('Q'):
+            v = json.loads(v)['value']
             if k[0] == 'Q':
-                coins = coins + pickle.loads(v)[1]
+                coins = coins + v[1]
         return coins
 
     def zero_all_addresses(self):
@@ -37,8 +40,8 @@ class DB:
         leveldb.DestroyDB('./state')
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
-        value_obj = pickle.dumps(value_obj)
-        self.db.Put(key_obj, value_obj)
+        dictObj = {'value' : value_obj}
+        self.db.Put(key_obj, json.dumps(dictObj))
         return
 
     def put_batch(self, key_obj, value_obj, batch):  # serialise with pickle into a string
@@ -48,10 +51,7 @@ class DB:
 
     def get(self, key_obj):
         value_obj = self.db.Get(key_obj)
-        try:
-            return pickle.loads(value_obj)
-        except:
-            return value_obj
+        return json.loads(value_obj)['value']
 
     def get_batch(self):
         return leveldb.WriteBatch()
