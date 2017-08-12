@@ -141,13 +141,15 @@ class Wallet:
     #			return addresses, num_sigs, types
     #	return False
 
-    def list_addresses(self):
+    def list_addresses(self, dict_format=False):
         if not self.chain.my:
             addr = self.f_read_wallet()
         else:
             addr = self.chain.my
 
         list_addr = []
+        dict_addresses = {}
+        count = 0
         for address in addr:
             x = 0
             y = 0
@@ -159,25 +161,45 @@ class Wallet:
                 if t.txto == address[0]:
                     x += t.amount
 
-            # add state check for
 
+            dict_addr = {}
+
+            # add state check for
             if type(address[1]) == list:
-                list_addr.append([address[0], 'type:', address[1][0].type, 'balance: ' + str(
+                dict_addr['address'] = address[0]
+                dict_addr['type'] = address[1][0].type
+                dict_addr['balance'] = str(
                     self.state.state_balance(address[0]) / 100000000.000000000) + '(' + str(
-                    self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')',
-                                  'nonce:' + str(self.state.state_nonce(address[0])) + '(' + str(
-                                      self.state.state_nonce(address[0]) + y) + ')', 'signatures left: ' + str(
+                    self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')'
+                dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
+                                     '(' + str(self.state.state_nonce(address[0]) + y) + ')'
+                dict_addr['signatures_left'] = str(
                         address[1][0].signatures - self.state.state_nonce(address[0])) + ' (' + str(
                         address[1][0].signatures - self.state.state_nonce(address[0]) - y) + '/' + str(
-                        address[1][0].signatures) + ')'])
+                        address[1][0].signatures) + ')'
+                list_addr.append([address[0], 'type:', address[1][0].type, 'balance: ' + dict_addr['balance'],
+                                  'nonce:' + dict_addr['nonce'], 'signatures left: ' + dict_addr['signatures_left']])
             else:  # xmss
-                list_addr.append([address[0], 'type:', address[1].type, 'balance: ' + str(
+                dict_addr['address'] = address[0]
+                dict_addr['type'] = address[1].type
+                dict_addr['balance'] = str(
                     self.state.state_balance(address[0]) / 100000000.000000000) + '(' + str(
-                    self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')',
-                                  'nonce:' + str(self.state.state_nonce(address[0])) + '(' + str(
-                                      self.state.state_nonce(address[0]) + y) + ')',
-                                  'signatures left: ' + str(address[1].remaining) + ' (' + str(
-                                      address[1].remaining) + '/' + str(address[1].signatures) + ')'])
+                    self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')'
+                dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
+                                     '(' + str(self.state.state_nonce(address[0]) + y) + ')'
+                dict_addr['signatures_left'] = str(address[1].remaining) + \
+                                               ' (' + str(address[1].remaining) + '/' + str(address[1].signatures) + ')'
+
+                list_addr.append([address[0],
+                                  'type:', address[1].type,
+                                  'balance: ' + dict_addr['balance'],
+                                  'nonce:' + dict_addr['nonce'],
+                                  'signatures left: ' + dict_addr['signatures_left']])
+
+            dict_addresses[count] = dict_addr
+            count += 1
+        if dict_format:
+            return list_addr, dict_addresses
 
         return list_addr
 
