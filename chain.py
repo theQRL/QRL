@@ -634,21 +634,20 @@ class Chain:
             lb.append(block)
 
         last_blocks = {}
-        last_blocks['blocks'] = {}
+        last_blocks['blocks'] = []
         i = 0
         for block in lb[1:]:
             i += 1
-            last_blocks['blocks'][block.blockheader.blocknumber] = {}
-            last_blocks['blocks'][block.blockheader.blocknumber][
-                'block_reward'] = block.blockheader.block_reward / 100000000.00000000
-            last_blocks['blocks'][block.blockheader.blocknumber]['blocknumber'] = block.blockheader.blocknumber
-            last_blocks['blocks'][block.blockheader.blocknumber]['blockhash'] = block.blockheader.prev_blockheaderhash
-            last_blocks['blocks'][block.blockheader.blocknumber][
-                'number_transactions'] = block.blockheader.number_transactions
-            last_blocks['blocks'][block.blockheader.blocknumber]['number_stake'] = block.blockheader.number_stake
-            last_blocks['blocks'][block.blockheader.blocknumber]['timestamp'] = block.blockheader.timestamp
-            last_blocks['blocks'][block.blockheader.blocknumber]['block_interval'] = block.blockheader.timestamp - \
-                                                                                     lb[i-1].blockheader.timestamp
+            tmp_block = {}
+            tmp_block['blocknumber'] = block.blockheader.blocknumber
+            tmp_block['block_reward'] = block.blockheader.block_reward / 100000000.00000000
+            tmp_block['blocknumber'] = block.blockheader.blocknumber
+            tmp_block['blockhash'] = block.blockheader.prev_blockheaderhash
+            tmp_block['number_transactions'] = block.blockheader.number_transactions
+            tmp_block['number_stake'] = block.blockheader.number_stake
+            tmp_block['timestamp'] = block.blockheader.timestamp
+            tmp_block['block_interval'] = block.blockheader.timestamp - lb[i-1].blockheader.timestamp
+            last_blocks['blocks'].append(tmp_block)
 
         last_blocks['status'] = 'ok'
 

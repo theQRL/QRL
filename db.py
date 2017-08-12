@@ -14,17 +14,17 @@ class DB:
     def return_all_addresses(self):
         addresses = []
         for k, v in self.db.RangeIter('Q'):
-            v = json.loads(v)['value']
             if k[0] == 'Q':
+                v = json.loads(v)['value']
                 addresses.append([k, v[1]])
         return addresses
 
     def total_coin_supply(self):
         coins = 0
         for k, v in self.db.RangeIter('Q'):
-            v = json.loads(v)['value']
             if k[0] == 'Q':
-                coins = coins + v[1]
+                value = json.loads(v)['value']
+                coins = coins + value[1]
         return coins
 
     def zero_all_addresses(self):
@@ -51,7 +51,10 @@ class DB:
 
     def get(self, key_obj):
         value_obj = self.db.Get(key_obj)
-        return json.loads(value_obj)['value']
+        try:
+            return json.loads(value_obj)['value']
+        except Exception:
+            return value_obj
 
     def get_batch(self):
         return leveldb.WriteBatch()
