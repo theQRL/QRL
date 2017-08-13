@@ -23,7 +23,7 @@ This document describes the setup procedure to install and configure a QRL node 
 
 ### Install QRL Dependencies
 
-`pip install -r requirements.txt`
+`sudo pip install -r requirements.txt`
 
 ### Start your node
 
