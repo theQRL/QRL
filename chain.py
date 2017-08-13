@@ -675,13 +675,14 @@ class Chain:
         # (stake -> address, hash_term, nonce)
         stakers = {}
         stakers['status'] = 'ok'
-        stakers['stake_list'] = {}
+        stakers['stake_list'] = []
         for s in self.state.stake_list_get():
-            stakers['stake_list'][s[0]] = {}
-            stakers['stake_list'][s[0]]['address'] = s[0]
-            stakers['stake_list'][s[0]]['balance'] = self.state.state_balance(s[0]) / 100000000.00000000
-            stakers['stake_list'][s[0]]['hash_terminator'] = s[1]
-            stakers['stake_list'][s[0]]['nonce'] = s[2]
+            tmp_stakers = {}
+            tmp_stakers['address'] = s[0]
+            tmp_stakers['balance'] = self.state.state_balance(s[0]) / 100000000.00000000
+            tmp_stakers['hash_terminator'] = s[1]
+            tmp_stakers['nonce'] = s[2]
+            stakers['stake_list'].append(tmp_stakers)
 
         return helper.json_print_telnet(stakers)
 
@@ -689,13 +690,14 @@ class Chain:
         # (stake -> address, hash_term, nonce)
         next_stakers = {}
         next_stakers['status'] = 'ok'
-        next_stakers['stake_list'] = {}
+        next_stakers['stake_list'] = []
         for s in self.state.next_stake_list_get():
-            next_stakers['stake_list'][s[0]] = {}
-            next_stakers['stake_list'][s[0]]['address'] = s[0]
-            next_stakers['stake_list'][s[0]]['balance'] = self.state.state_balance(s[0]) / 100000000.00000000
-            next_stakers['stake_list'][s[0]]['hash_terminator'] = s[1]
-            next_stakers['stake_list'][s[0]]['nonce'] = s[2]
+            tmp_stakers = {}
+            tmp_stakers['address'] = s[0]
+            tmp_stakers['balance'] = self.state.state_balance(s[0]) / 100000000.00000000
+            tmp_stakers['hash_terminator'] = s[1]
+            tmp_stakers['nonce'] = s[2]
+            next_stakers['stake_list'].append(tmp_stakers)
 
         return helper.json_print_telnet(next_stakers)
 
