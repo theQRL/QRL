@@ -55,6 +55,14 @@ Fast saving wallet recovery details to wallet.info..
 After the wallet is created it will start syncronizing the chain.
 This might take a while, leave it running untill the chain is sync
 
+- If you want to keep QRL running after disconnecting terminal, you have to launch it in background :
+
+```nohup python main.py > /dev/null 2>&1 &```
+
+## Stopping the node
+- It can be required to stop the node, specialy during testnet. Type the following to kill python process.
+
+```pkill python```
 
 ## Accessing the wallet
 - To acces the wallet, you need telnet. Type the following command to install telnet :
