@@ -522,15 +522,12 @@ class Chain:
 
     # return json info on last n tx in the blockchain
 
-    def last_tx(self, n=None):
+    def last_tx(self, n=1):
 
         addr = {}
         addr['transactions'] = {}
 
         error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
-
-        if not n:
-            n = 1
 
         try:
             n = int(n)
@@ -539,6 +536,8 @@ class Chain:
 
         if n <= 0 or n > 20:
             return helper.json_print_telnet(error)
+
+        addr['transactions'] = []
 
         if len(self.transaction_pool) != 0:
             if n - len(self.transaction_pool) >= 0:  # request bigger than tx in pool
@@ -549,30 +548,34 @@ class Chain:
                 n = 0
 
             for tx in reversed(self.transaction_pool[-z:]):
-                addr['transactions'][tx.txhash] = {}
-                addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-                addr['transactions'][tx.txhash]['block'] = 'unconfirmed'
-                addr['transactions'][tx.txhash]['timestamp'] = 'unconfirmed'
-                addr['transactions'][tx.txhash]['amount'] = tx.amount / 100000000.000000000
-                addr['transactions'][tx.txhash]['type'] = tx.type
+                tmp_txn = {}
+                tmp_txn['txhash'] = tx.txhash
+                tmp_txn['block'] = 'unconfirmed'
+                tmp_txn['timestamp'] = 'unconfirmed'
+                tmp_txn['amount'] = tx.amount / 100000000.000000000
+                tmp_txn['type'] = tx.type
+                addr['transactions'].append(tmp_txn)
 
             if n == 0:
                 addr['status'] = 'ok'
                 return helper.json_print_telnet(addr)
 
-        for block in reversed(self.m_blockchain):
-            if len(block.transactions) > 0:
-                for tx in reversed(block.transactions):
-                    addr['transactions'][tx.txhash] = {}
-                    addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-                    addr['transactions'][tx.txhash]['block'] = block.blockheader.blocknumber
-                    addr['transactions'][tx.txhash]['timestamp'] = block.blockheader.timestamp
-                    addr['transactions'][tx.txhash]['amount'] = tx.amount / 100000000.000000000
-                    addr['transactions'][tx.txhash]['type'] = tx.type
-                    n -= 1
-                    if n == 0:
-                        addr['status'] = 'ok'
-                        return helper.json_print_telnet(addr)
+        last_txn = self.state.db.get('last_txn')
+
+        for tx_meta in reversed(last_txn):
+            tx = SimpleTransaction().json_to_transaction(tx_meta[0])
+            tmp_txn = {}
+            tmp_txn['txhash'] = tx.txhash
+            tmp_txn['block'] = tx_meta[1]
+            tmp_txn['timestamp'] = tx_meta[2]
+            tmp_txn['amount'] = tx.amount / 100000000.000000000
+            tmp_txn['type'] = tx.type
+            addr['transactions'].append(tmp_txn)
+            n -= 1
+            if n == 0:
+                addr['status'] = 'ok'
+                return helper.json_print_telnet(addr)
+
         return helper.json_print_telnet(error)
 
     def richlist(self, n=None):  # only feasible while chain is small..
@@ -845,6 +848,19 @@ class Chain:
 
     def update_block_metadata(self, blocknumber, blockPos, blockSize):
         self.state.db.db.Put('block_' + str(blocknumber), str(blockPos) + ',' + str(blockSize))
+
+    def update_last_tx(self, block):
+        if block.blockheader.number_transactions==0:
+            return
+        last_txn = []
+        try:
+            last_txn = self.state.db.get('last_txn')
+        except:
+            pass
+        for txn in block.transactions[-20:]:
+            last_txn.insert(0, [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
+        del last_txn[20:]
+        self.state.db.put('last_txn', last_txn)
 
     def f_write_m_blockchain(self):
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
@@ -1330,6 +1346,7 @@ class ChainBuffer:
         else:
             self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
+        self.chain.update_last_tx(block)
         self.epoch = epoch
         return True
 
