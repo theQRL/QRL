@@ -23,6 +23,27 @@
 
 ```sudo apt update```
 
+- Install firewall
+```
+sudo apt-get install ufw
+```
+
+- Setup firewall rules
+```
+sudo ufw allow OpenSSH
+sudo ufw allow 9000/tcp
+sudo ufw allow from 127.0.0.1 to 127.0.0.1 port 2000 proto tcp
+sudo ufw default deny incoming
+sudo ufw default allow outgoing 
+sudo ufw enable
+```
+
+- Check firewall status
+
+```
+sudo ufw status verbose
+```
+
 ## QRL installation & setup
 - Install python packages :
 
@@ -39,7 +60,7 @@
 ## Running the node
 - In the terminal, type the following commands :
 ```
-cd QRL
+cd /home/pi/QRL
 python main.py
 ```
 
@@ -59,10 +80,65 @@ This might take a while, leave it running untill the chain is sync
 
 ```nohup python main.py > /dev/null 2>&1 &```
 
+## Check Sync process
+
+- You can find the status of the sync process (synced, syncing or unsynced) in the QRL log :
+
+```grep -i sync /home/pi/QRL/qrl.log | tail -1```
+
+- Find last received blocks and compare it with QRL chain explorer http://qrlexplorer.info/
+
+```grep -i "Received Block"  /home/pi/QRL/qrl.log | tail -1```
+
+> Another way to get the last received block is to connect localy on the wallet (see below) and use command `blockheight`
+
+
+
+## Check QRL memory usage
+
+- Find QRL process :
+
+```pgrep python```
+
+- Check memory usage
+
+```top -p <python process id>```
+
+- Is this example, memory usage is : 418MB (945512 x 44.9%) :
+
+```
+pi@raspberrypi:$ pgrep python
+23028
+pi@raspberrypi:$ top -p 23028
+top - 11:47:08 up 19:40,  4 users,  load average: 0.82, 0.95, 0.98
+Tasks:   1 total,   1 running,   0 sleeping,   0 stopped,   0 zombie
+%Cpu(s): 25.0 us,  0.1 sy,  0.0 ni, 74.9 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
+KiB Mem:    **945512** total,   873320 used,    72192 free,    29036 buffers
+KiB Swap:   102396 total,     9240 used,    93156 free.   213964 cached Mem
+PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+23028 pi        20   0  441368 424340   3716 R  99.9 **44.9** 600:54.15 python
+```
+
+
 ## Stopping the node
 - It can be required to stop the node, specialy during testnet. Type the following to kill python process.
 
 ```pkill python```
+
+## Update the node
+
+- First stop the python process (see above) and update the local git repository
+
+```
+cd /home/pi/QRL
+git pull
+```
+- restart QRL
+
+```
+cd /home/pi/QRL
+python main.py
+```
 
 ## Accessing the wallet
 - To acces the wallet, you need telnet. Type the following command to install telnet :
