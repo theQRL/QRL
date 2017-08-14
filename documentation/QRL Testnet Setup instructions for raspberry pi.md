@@ -78,7 +78,7 @@ This might take a while, leave it running untill the chain is sync
 
 - If you want to keep QRL running after disconnecting terminal, you have to launch it in background :
 
-```nohup python main.py > /dev/null 2>&1 &```
+```nohup python main.py &```
 
 ## Check Sync process
 
