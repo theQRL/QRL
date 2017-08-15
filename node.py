@@ -852,7 +852,7 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
             return
 
-        if len(self.m_blockchain) == 1 and st.epoch > 0:        #catch error for new nodes listening for ST's from later epochs
+        if len(self.factory.chain.m_blockchain) == 1 and st.epoch > 0:        #catch error for new nodes listening for ST's from later epochs
             return
         #printL (( 'Received ST Transaction with', st.txfrom, st.first_hash, st.epoch ))
         '''
