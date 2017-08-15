@@ -302,12 +302,11 @@ class Block():
             for st in tmp_stake_list:
                 if st[0] == b.stake_selector:
                     y = 1
-                    #hash, _ = chain.select_hashchain(chain.block_chain_buffer.get_strongest_headerhash(last_block),
-                    #                                 b.stake_selector, blocknumber=b.blocknumber)
 
                     if terminator != st[1][-1]:
                         printL(('Supplied hash does not iterate to terminator: failed validation'))
                         return False
+
             if y != 1:
                 printL(('Stake selector not in stake_list for this epoch..'))
                 return False

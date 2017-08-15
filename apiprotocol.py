@@ -196,7 +196,7 @@ class ApiProtocol(Protocol):
                      'stake_validators': len(self.factory.chain.m_blockchain[-1].blockheader.reveal_list),
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
                      'staked_percentage_emission': staked, 'network': 'qrl testnet',
-                     'network_uptime': time.time() - self.factory.chain.m_blockchain[1].blockheader.timestamp,
+                     'network_uptime': time.time() - self.factory.chain.m_get_block(1).blockheader.timestamp,
                      'block_time': z / len(t),
                      'block_time_variance': max(t) - min(t), 'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,

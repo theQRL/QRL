@@ -435,6 +435,7 @@ class Chain:
     # used for port 80 api - produces JSON output of a specific tx hash, including status of tx, in a block or unconfirmed + timestampe of parent block
 
     def search_txhash(self, txhash):  # txhash is unique due to nonce.
+        err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
         for tx in self.transaction_pool:
             if tx.txhash == txhash:
                 printL((txhash, 'found in transaction pool..'))
@@ -443,22 +444,28 @@ class Chain:
                 tx_new.hexsize = len(helper.json_bytestream(tx_new))
                 tx_new.status = 'ok'
                 return helper.json_print_telnet(tx_new)
-        for block in self.m_blockchain:
-            for tx in block.transactions:
-                if tx.txhash == txhash:
-                    tx_new = copy.deepcopy(tx)
-                    tx_new.block = block.blockheader.blocknumber
-                    tx_new.timestamp = block.blockheader.timestamp
-                    tx_new.confirmations = self.m_blockheight() - block.blockheader.blocknumber
-                    tx_new.hexsize = len(helper.json_bytestream(tx_new))
-                    tx_new.amount = tx_new.amount / 100000000.000000000
-                    tx_new.fee = tx_new.fee / 100000000.000000000
-                    printL((txhash, 'found in block', str(block.blockheader.blocknumber), '..'))
-                    tx_new.status = 'ok'
-                    return helper.json_print_telnet(tx_new)
-        printL((txhash, 'does not exist in memory pool or local blockchain..'))
-        err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
-        return helper.json_print_telnet(err)
+
+        txn_metadata = None
+        try:
+            txn_metadata = self.state.db.get(txhash)
+        except:
+            pass
+        if not txn_metadata:
+            printL((txhash, 'does not exist in memory pool or local blockchain..'))
+            return helper.json_print_telnet(err)
+
+        tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+        tx_new = copy.deepcopy(tx)
+        tx_new.block = txn_metadata[1]
+        tx_new.timestamp = txn_metadata[2]
+        tx_new.confirmations = self.m_blockheight() - txn_metadata[1]
+        tx_new.hexsize = len(helper.json_bytestream(tx_new))
+        tx_new.amount = tx_new.amount / 100000000.000000000
+        tx_new.fee = tx_new.fee / 100000000.000000000
+        printL((txhash, 'found in block', str(txn_metadata[1]), '..'))
+        tx_new.status = 'ok'
+        return helper.json_print_telnet(tx_new)
+
 
     # return False
 
@@ -860,6 +867,13 @@ class Chain:
             last_txn.insert(0, [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
         del last_txn[20:]
         self.state.db.put('last_txn', last_txn)
+
+    def update_tx_metadata(self, block):
+        if block.blockheader.number_transactions==0:
+            return
+
+        for txn in block.transactions:
+            self.state.db.put(txn.txhash, [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
 
     def f_write_m_blockchain(self):
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
@@ -1379,6 +1393,7 @@ class ChainBuffer:
             self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
         self.chain.update_last_tx(block)
+        self.chain.update_tx_metadata(block)
         self.epoch = epoch
         return True
 
@@ -1458,8 +1473,10 @@ class ChainBuffer:
 
         if len(self.strongest_chain) == 0 and self.chain.m_blockchain[-1].blockheader.headerhash==prev_headerhash:
             self.strongest_chain[blocknum] = [block_buffer, state_buffer]
+            self.chain.update_tx_metadata(block)
         elif blocknum not in self.strongest_chain and self.strongest_chain[blocknum - 1][0].block.blockheader.headerhash == prev_headerhash:
             self.strongest_chain[blocknum] = [block_buffer, state_buffer]
+            self.chain.update_tx_metadata(block)
         elif blocknum in self.strongest_chain:
             old_block_buffer = self.strongest_chain[blocknum][0]
             if old_block_buffer.block.blockheader.prev_blockheaderhash == block_buffer.block.blockheader.prev_blockheaderhash:
