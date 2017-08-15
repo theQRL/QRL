@@ -233,7 +233,8 @@ class Chain:
                 if tx == t.txhash:
                     d.append(t.txfrom)
                     self.transaction_pool.append(t)
-                    t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
+                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number+1, t.txfrom) + d.count(t.txfrom)
+                    #t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
 
         # create the block..
 
@@ -536,9 +537,7 @@ class Chain:
 
         if n <= 0 or n > 20:
             return helper.json_print_telnet(error)
-
         addr['transactions'] = []
-
         if len(self.transaction_pool) != 0:
             if n - len(self.transaction_pool) >= 0:  # request bigger than tx in pool
                 z = len(self.transaction_pool)
@@ -951,8 +950,6 @@ class Chain:
         if diff < len(self.m_blockchain):
             return self.m_blockchain[diff]
 
-
-
         return False
 
     def m_get_last_block(self):
@@ -1127,6 +1124,7 @@ class StateBuffer:
     def __init__(self):
         self.stake_list = {}
         self.next_stake_list = {}
+        self.stxn_state = {}  #key address, value [nonce, balance, pubhash]
         self.next_seed = None ##
         self.hash_chain = None ##
 
@@ -1152,6 +1150,7 @@ class StateBuffer:
         #Before adding_block, check if the stake_selector is in stake_list
         self.set_next_seed(block.blockheader.hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
+        self.stxn_state = deepcopy(parent_state_buffer.stxn_state)
 
         if not epoch_mod:   #State belongs to first block of next epoch
             self.stake_list = self.next_stake_list
@@ -1169,9 +1168,42 @@ class StateBuffer:
             self.next_seed = state.calc_seed(tmp_sl, verbose=False)
 
         self.update_stake_list(block)
-        self.update_next_stake_list(block, state)
+        self.update_next_stake_list(block)
+        self.update_stxn_state(block, state)
 
-    def update_next_stake_list(self, block, state):
+    def update_stxn_state(self, block, state):
+        ignore_addr = set()
+        for tx in block.transactions:
+            ignore_addr.add(tx.txfrom)
+            self.stxn_state[tx.txfrom][2].append(tx.pubhash)
+            if tx.txfrom in self.stxn_state:
+                if self.stxn_state[tx.txfrom][0]>tx.nonce:
+                    continue
+
+            self.stxn_state[tx.txfrom][0] = tx.nonce
+
+        if block.blockheader.stake_selector not in self.stxn_state:
+            self.stxn_state[block.blockheader.stake_selector] = state.db.get(block.blockheader.stake_selector)
+
+        self.stxn_state[block.blockheader.stake_selector][1] += block.blockheader.block_reward
+        stxn_state_keys = self.stxn_state.keys()
+        for addr in stxn_state_keys:
+            if addr in ignore_addr:
+                continue
+            addr_list = state.db.get(addr)
+            if not addr_list:
+                continue
+
+            allMatch = True
+            for i in range(0,len(addr_list)):
+                if self.stxn_state[addr][i] != addr_list[i]:
+                    allMatch = False
+
+            if allMatch:
+                del self.stxn_state[addr]
+
+
+    def update_next_stake_list(self, block):
         for st in block.stake:
             if st.txfrom in self.next_stake_list and self.next_stake_list[st.txfrom][3]:
                 continue
@@ -1182,7 +1214,7 @@ class StateBuffer:
         if stake_selector not in self.stake_list:
             printL (( 'Error Stake selector not found stake_list of block buffer state' ))
             raise Exception
-        self.stake_list[stake_selector][2] += 1
+        self.stake_list[stake_selector][2] += 1 #Update Nonce
 
 
 class ChainBuffer:
@@ -1375,6 +1407,13 @@ class ChainBuffer:
         if headerhash in self.headerhashes[blocknum]:
             return 0
 
+
+        '''
+        if not self.state_validate_block(block):
+            printL (('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber ))
+            return
+        '''
+
         if min(self.blocks) + self.size <= blocknum:
             self.move_to_mainchain()
 
@@ -1384,16 +1423,22 @@ class ChainBuffer:
         block_buffer = None
         if blocknum-1 == self.chain.height():
             tmp_stake_list = self.state.stake_list_get()
+            tmp_next_stake_list = self.state.next_stake_list_get()
+
+            if not self.state_validate_block(block, copy.deepcopy(tmp_stake_list), copy.deepcopy(tmp_next_stake_list)):
+                printL(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
+                return
+
             for st in tmp_stake_list:
                 state_buffer.stake_list[st[0]] = st
 
-            tmp_next_stake_list = self.state.next_stake_list_get()
             for st in tmp_next_stake_list:
                 state_buffer.next_stake_list[st[0]] = st
             block_buffer = BlockBuffer(block, stake_reward, self.chain, self.epoch_seed, self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber))
             state_buffer.set_next_seed(block.blockheader.hash, self.epoch_seed)
             state_buffer.update_stake_list(block)
-            state_buffer.update_next_stake_list(block, self.state)
+            state_buffer.update_next_stake_list(block)
+
         else:
             parent_state_buffer = None
             parent_seed = None
@@ -1403,6 +1448,10 @@ class ChainBuffer:
                     parent_state_buffer = buffer[1]
                     parent_seed = buffer[1].next_seed
                     break
+
+            if not self.state_validate_block(block, copy.deepcopy(parent_state_buffer.tx_to_list(parent_state_buffer.stake_list)), copy.deepcopy(parent_state_buffer.tx_to_list(parent_state_buffer.next_stake_list))):
+                printL(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
+                return
             block_buffer = BlockBuffer(block, stake_reward, self.chain, parent_seed, self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber))
             state_buffer.update(self.state, parent_state_buffer, block)
         self.blocks[blocknum].append([block_buffer, state_buffer])
@@ -1429,6 +1478,120 @@ class ChainBuffer:
             self.update_hash_chain(block.blockheader.blocknumber)
 
         self.add_txns_buffer()
+
+        return True
+
+    def state_validate_block(self, block, sl, next_sl):
+        if block.blockheader.blocknumber % c.blocks_per_epoch == 0:
+            sl = next_sl
+            next_sl = []
+
+        address_txn = {}
+        blocknumber = block.blockheader.blocknumber
+        address_txn[block.blockheader.stake_selector] = self.get_stxn_state(blocknumber, block.blockheader.stake_selector)
+
+        for st in block.stake:
+            if st.txfrom not in address_txn:
+                address_txn[st.txfrom] = self.get_stxn_state(blocknumber, st.txfrom)
+
+        for tx in block.transactions:
+            if tx.txfrom not in address_txn:
+                address_txn[tx.txfrom] = self.get_stxn_state(blocknumber, tx.txfrom)
+            if tx.txto not in address_txn:
+                address_txn[tx.txto] = self.get_stxn_state(blocknumber, tx.txto)
+
+
+        found = False
+        #sl = self.stake_list_get(block.blockheader.blocknumber)
+        #next_sl = self.next_stake_list_get(block.blockheader.blocknumber)
+
+        blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch)
+        blocks_left = c.blocks_per_epoch - blocks_left
+
+        for s in sl:
+            if block.blockheader.stake_selector == s[0]:
+                found = True
+                s[2] += 1
+                if s[2] != block.blockheader.stake_nonce:
+                    printL(('stake_nonce wrong..'))
+                    printL(('block STake Selector ', block.blockheader.stake_selector))
+                    printL(('Expected Nonce ', str(s[2])))
+                    printL(('Actual Nonce ', str(block.blockheader.stake_nonce)))
+                    return
+                break
+
+        if not found:
+            printL(('stake selector not in stake_list_get'))
+            return
+
+        for st in block.stake:
+            pub = st.pub
+            pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
+            pubhash = sha256(''.join(pub))
+            found = False
+
+            for s in next_sl:
+                # already in the next stake list, ignore for staker list but update as usual the state_for_address..
+                if st.txfrom == s[0]:
+                    found = True
+                    if s[3] is None and st.first_hash is not None:
+                        threshold_block = self.state.get_staker_threshold_blocknum(next_sl, s[0])
+                        epoch_blocknum = c.blocks_per_epoch - blocks_left
+                        # TODO: Make sure the block doesn't add such ST transaction
+                        # above has to be implemented into st.validate
+                        if epoch_blocknum >= threshold_block - 1:
+                            s[3] = st.first_hash
+                        else:
+                            printL(('^^^^^^Rejected as ', epoch_blocknum, threshold_block - 1))
+                            printL(('Loss of data ', s[0], 'old ', s[3], 'new ', st.first_hash))
+                    # else:
+                    #    printL (('Else of next_sl ', s[0], s[3], st.first_hash ))
+                    break
+
+            address_txn[st.txfrom][2].append(pubhash)
+
+            if not found:
+                next_sl.append([st.txfrom, st.hash, 0, st.first_hash, st.balance])
+
+        for tx in block.transactions:
+
+            pub = tx.pub
+            if tx.type == 'TX':
+                pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
+
+            pubhash = sha256(''.join(pub))
+
+            # basic tx state checks..
+
+            # if s1[1] - tx.amount < 0:
+            if address_txn[tx.txfrom][1] - tx.amount < 0:
+                printL((tx, tx.txfrom, 'exceeds balance, invalid tx'))
+                return False
+
+            if tx.nonce != address_txn[tx.txfrom][0] + 1:
+                printL(('nonce incorrect, invalid tx'))
+                printL((tx, tx.txfrom, tx.nonce))
+                return False
+
+            if pubhash in address_txn[tx.txfrom][2]:
+                printL(('pubkey reuse detected: invalid tx', tx.txhash))
+                return False
+
+            # add a check to prevent spend from stake address..
+            # if tx.txfrom in stake_list_get():
+            # printL(( 'attempt to spend from a stake address: invalid tx type'
+            # break
+
+            address_txn[tx.txfrom][0] += 1
+            address_txn[tx.txfrom][1] -= tx.amount
+            address_txn[tx.txfrom][2].append(pubhash)
+
+            address_txn[tx.txto][1] = address_txn[tx.txto][1] + tx.amount
+
+        # committing state
+
+        # first the coinbase address is updated
+        address_txn[block.blockheader.stake_selector][1] += block.blockheader.block_reward
 
         return True
 
@@ -1490,11 +1653,28 @@ class ChainBuffer:
             return None
         return int(str(self.strongest_chain[blocknumber - 1][1].next_seed), 16)
 
+    def get_stxn_state(self, blocknumber, addr):
+        if blocknumber - 1 == self.chain.height():
+            return self.state.db.get(addr)
+
+        if blocknumber - 1 not in self.strongest_chain:
+            return None
+
+        stateBuffer = self.strongest_chain[blocknumber - 1][1]
+
+        if addr in stateBuffer.stxn_state:
+            return stateBuffer.stxn_state[addr]
+
+        return self.state.db.get(addr)
+
+
     def stake_list_get(self, blocknumber):
         if blocknumber - 1 == self.chain.height():
             return self.state.stake_list_get()
 
         if blocknumber - 1 not in self.strongest_chain:
+            printL (('Stake list None'))
+            printL (('blocknumber #', blocknumber-1, 'not found in strongest_chain'))
             return None
 
         stateBuffer = self.strongest_chain[blocknumber - 1][1]

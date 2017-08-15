@@ -1117,6 +1117,7 @@ class P2PProtocol(Protocol):
             if data > self.factory.chain.height():
                 printL(('FB for a blocknumber is greater than the local chain length..'))
                 return
+            printL((' Send for blocmnumber #', data, ' to ', self.identity))
 
     def FH(self, data):  # Fetch Block Headerhash
         data = int(data)

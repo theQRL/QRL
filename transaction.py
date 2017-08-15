@@ -195,7 +195,7 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
 
     def create_simple_transaction(self, state, txfrom, txto, amount, data, fee=0, hrs=''):
         self.txfrom = txfrom
-        self.nonce = 0
+        self.nonce = 0      #Nonce is set when block is being created
         self.txto = txto
         self.amount = int(amount)
         self.fee = int(fee)
