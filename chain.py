@@ -489,34 +489,43 @@ class Chain:
                 addr['stake']['selector'] = s[2]
                 # pubhashes used could be put here..
 
+        addr['transactions'] = []
         for tx in self.transaction_pool:
             if tx.txto == address or tx.txfrom == address:
                 printL((address, 'found in transaction pool'))
-                addr['transactions'][tx.txhash] = {}
-                addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-                addr['transactions'][tx.txhash]['block'] = 'unconfirmed'
-                addr['transactions'][tx.txhash]['amount'] = tx.amount / 100000000.000000000
-                addr['transactions'][tx.txhash]['fee'] = tx.fee / 100000000.000000000
-                addr['transactions'][tx.txhash]['nonce'] = tx.nonce
-                addr['transactions'][tx.txhash]['ots_key'] = tx.ots_key
-                addr['transactions'][tx.txhash]['txto'] = tx.txto
-                addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom
-                addr['transactions'][tx.txhash]['timestamp'] = 'unconfirmed'
+                tmp_txn = {}
+                tmp_txn['txhash'] = tx.txhash
+                tmp_txn['block'] = 'unconfirmed'
+                tmp_txn['amount'] = tx.amount / 100000000.000000000
+                tmp_txn['fee'] = tx.fee / 100000000.000000000
+                tmp_txn['nonce'] = tx.nonce
+                tmp_txn['ots_key'] = tx.ots_key
+                tmp_txn['txto'] = tx.txto
+                tmp_txn['txfrom'] = tx.txfrom
+                tmp_txn['timestamp'] = 'unconfirmed'
+                addr['transactions'].append(tmp_txn)
+        my_txn = []
+        try:
+            my_txn = self.state.db.get('txn_'+address)
+        except:
+            pass
 
-        for block in self.m_blockchain:
-            for tx in block.transactions:
-                if tx.txto == address or tx.txfrom == address:
-                    printL((address, 'found in block ', str(block.blockheader.blocknumber), '..'))
-                    addr['transactions'][tx.txhash] = {}
-                    addr['transactions'][tx.txhash]['txhash'] = tx.txhash
-                    addr['transactions'][tx.txhash]['block'] = block.blockheader.blocknumber
-                    addr['transactions'][tx.txhash]['timestamp'] = block.blockheader.timestamp
-                    addr['transactions'][tx.txhash]['amount'] = tx.amount / 100000000.000000000
-                    addr['transactions'][tx.txhash]['fee'] = tx.fee / 100000000.000000000
-                    addr['transactions'][tx.txhash]['nonce'] = tx.nonce
-                    addr['transactions'][tx.txhash]['ots_key'] = tx.ots_key
-                    addr['transactions'][tx.txhash]['txto'] = tx.txto
-                    addr['transactions'][tx.txhash]['txfrom'] = tx.txfrom
+        for txn_hash in my_txn:
+            txn_metadata = self.state.db.get(txn_hash)
+            tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+            if tx.txto == address or tx.txfrom == address:
+                printL((address, 'found in block ', str(txn_metadata[1]), '..'))
+                tmp_txn = {}
+                tmp_txn['txhash'] = tx.txhash
+                tmp_txn['block'] = txn_metadata[1]
+                tmp_txn['timestamp'] = txn_metadata[2]
+                tmp_txn['amount'] = tx.amount / 100000000.000000000
+                tmp_txn['fee'] = tx.fee / 100000000.000000000
+                tmp_txn['nonce'] = tx.nonce
+                tmp_txn['ots_key'] = tx.ots_key
+                tmp_txn['txto'] = tx.txto
+                tmp_txn['txfrom'] = tx.txfrom
+                addr['transactions'].append(tmp_txn)
 
         if len(addr['transactions']) > 0:
             addr['state']['transactions'] = len(addr['transactions'])
@@ -868,12 +877,24 @@ class Chain:
         del last_txn[20:]
         self.state.db.put('last_txn', last_txn)
 
+    def update_wallet_tx_metadata(self, addr, new_txhash):
+        txhash = []
+        try:
+            txhash = self.state.db.get('txn_'+addr)
+        except Exception:
+            pass
+        txhash.append(new_txhash)
+        self.state.db.put('txn_'+addr, txhash)
+
+
     def update_tx_metadata(self, block):
         if block.blockheader.number_transactions==0:
             return
 
         for txn in block.transactions:
             self.state.db.put(txn.txhash, [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
+            self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
+            self.update_wallet_tx_metadata(txn.txto, txn.txhash)
 
     def f_write_m_blockchain(self):
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
