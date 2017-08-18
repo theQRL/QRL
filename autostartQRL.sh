@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Killing python..."
-/usr/bin/pkill python
+ps -ef | grep "python main.py" | grep -v grep | awk '{print $2}' | xargs kill -9
 
 echo "Updating QRL..."
 cd $HOME/QRL
