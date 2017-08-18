@@ -476,12 +476,16 @@ class Chain:
         addr = {}
         addr['transactions'] = {}
 
-        if self.state.state_address_used(address) != False:
-            nonce, balance, pubhash_list = self.state.state_get_address(address)
-            addr['state'] = {}
-            addr['state']['address'] = address
-            addr['state']['balance'] = balance / 100000000.000000000
-            addr['state']['nonce'] = nonce
+        if self.state.state_address_used(address) == False:
+            addr['status'] = 'error'
+            addr['error'] = 'Address not found'
+            return helper.json_print_telnet(addr)
+
+        nonce, balance, pubhash_list = self.state.state_get_address(address)
+        addr['state'] = {}
+        addr['state']['address'] = address
+        addr['state']['balance'] = balance / 100000000.000000000
+        addr['state']['nonce'] = nonce
 
         for s in self.state.stake_list_get():
             if address == s[0]:
@@ -591,6 +595,7 @@ class Chain:
                 addr['status'] = 'ok'
                 return helper.json_print_telnet(addr)
 
+        error['error'] = 'txnhash not found'
         return helper.json_print_telnet(error)
 
     def richlist(self, n=None):  # only feasible while chain is small..

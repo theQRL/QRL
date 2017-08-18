@@ -77,9 +77,21 @@ class WalletProtocol(Protocol):
                         self.output['status'] = 1
                         self.output['message'].write('>>> Usage: search <txhash or Q-address>' + '\r\n')
                         return
-                    for result in self.factory.chain.search_telnet(args[0], long=0):
-                        self.output['status'] = 0
-                        self.output['message'].write(str(result) + '\r\n')
+                    tmp_output = None
+                    if args[0][0] == 'Q':
+                        tmp_output = json.loads(self.factory.chain.search_address(args[0]))
+                    else:
+                        tmp_output = json.loads(self.factory.chain.search_txhash(args[0]))
+                    if not tmp_output:
+                         self.output['status'] = 1
+                         self.output['message'].write('>>> No Information available')
+                         return
+                    for key in tmp_output.keys():
+                        self.output['keys'] += [key]
+                        self.output[key] = tmp_output[key]
+                    self.output['status'] = 0
+                    self.output['message'].write('')
+
                     return
 
                 elif command == 'json_search':
@@ -88,9 +100,9 @@ class WalletProtocol(Protocol):
                         self.output['status'] = 1
                         self.output['message'].write('>>>Usage: search <txhash or Q-address>' + '\r\n')
                         return
-                    for result in self.factory.chain.search_telnet(args[0], long=1):
-                        self.output['status'] = 0
-                        self.output['message'].write(result + '\r\n')
+                    #for result in self.factory.chain.search_telnet(args[0], long=1):
+                    #    self.output['status'] = 0
+                    #    self.output['message'].write(result + '\r\n')
                     return
 
                 elif command == 'json_block':
