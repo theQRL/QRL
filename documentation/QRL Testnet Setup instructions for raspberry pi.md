@@ -158,34 +158,9 @@ python main.py
 ## Launch the node automatically at startup
 - In the system settings (Start - Preferences - Raspberry Pi Configuration), make sure the "Boot" option is set to "To Desktop". In GUI distributions this is already pre-configured.
 
-- Create a new script (for example autostartQRL.sh) :
+- Make sure you have the `/home/pi/autostartQRL.sh` script with executable right
 
-`nano /home/pi/autostartQRL.sh`
-
-- Type in the following lines in the script `autostartQRL.sh`:
-
-```
-#!/bin/bash
-echo "Killing python..."
-/usr/bin/pkill python
-
-echo "Updating QRL..."
-cd $HOME/QRL
-git pull
-
-echo "Updating QRL pyhton dependencies..."
-sudo pip install -r requirements.txt
-
-echo "Restart QRL node"
-python main.py
-
-$SHELL
-```
-Press ctrl+x to close, press y to save and press enter
-
-- Make the sh script executable :
-
-`chmodx autostartQRL.sh`
+`ls -l /home/pi/QRL/autostartQRL.sh/home/pi/autostartQRL.sh`
 
 - Add the script to the autostart folder (the location of the autostart file varies depending on your raspberry distribution) :
 
@@ -193,7 +168,7 @@ Press ctrl+x to close, press y to save and press enter
 
 - Add the following line above(!) @xscreensaver -no-splash :
 
-`@lxterminal -e /home/pi/autostartQRL.sh &`
+`@lxterminal -e /home/pi/QRL/autostartQRL.sh &`
 Press ctrl+x to close, press y to save and press enter
 
 - Make the python script executable :
@@ -205,9 +180,9 @@ Press ctrl+x to close, press y to save and press enter
 ## Launch the node automatically every night
 - It can be usefull to restart the node on a regular basis, specially during testnet
 
-- Make sure you have the `/home/pi/autostartQRL.sh` script with executable right (see above)
+- Make sure you have the `/home/pi/QRL/autostartQRL.sh` script with executable right
 
-`ls -l /home/pi/autostartQRL.sh/home/pi/autostartQRL.sh`
+`ls -l /home/pi/autostartQRL.sh/home/pi/QRL/autostartQRL.sh`
 
 - Edit the crontab to restart QRL automatically
 
@@ -215,6 +190,6 @@ Press ctrl+x to close, press y to save and press enter
 
 - Append the following entry :
 
-`43 6 * * * /home/pi/autostartQRL.sh`
+`43 6 * * * /home/pi/QRL/autostartQRL.sh`
 
 > In this example, QRL is restarted every day at 6:43. Please change the time to whatever in order to avoid all nodes restart at same time !
