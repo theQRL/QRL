@@ -166,9 +166,20 @@ python main.py
 
 ```
 #!/bin/bash
-cd /home/pi/QRL (or cd /location/QRL source code folder)
+echo "Killing python..."
+/usr/bin/pkill python
+
+echo "Updating QRL..."
+cd $HOME/QRL
+git pull
+
+echo "Updating QRL pyhton dependencies..."
+sudo pip install -r requirements.txt
+
+echo "Restart QRL node"
 python main.py
-$SHELL (to keep the terminal open)
+
+$SHELL
 ```
 Press ctrl+x to close, press y to save and press enter
 
@@ -190,3 +201,20 @@ Press ctrl+x to close, press y to save and press enter
 `sudo chmodx [your folder]/QRL/main.py`
 
 - See if it works!
+
+## Launch the node automatically every night
+- It can be usefull to restart the node on a regular basis, specially during testnet
+
+- Make sure you have the `/home/pi/autostartQRL.sh` script with executable right (see above)
+
+`ls -l /home/pi/autostartQRL.sh/home/pi/autostartQRL.sh`
+
+- Edit the crontab to restart QRL automatically
+
+`crontab -e`
+
+- Append the following entry :
+
+`43 6 * * * /home/pi/autostartQRL.sh`
+
+> In this example, QRL is restarted every day at 6:43. Please change the time to whatever in order to avoid all nodes restart at same time !
