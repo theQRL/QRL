@@ -87,6 +87,12 @@ class State:
     def state_blockheight(self):
         return self.db.get('blockheight')
 
+    def state_get_txn_count(self, addr):
+        try:
+            return self.db.get('txn_count_'+addr)
+        except:
+            return 0
+
     def state_get_address(self, addr):
         try:
             return self.db.get(addr)

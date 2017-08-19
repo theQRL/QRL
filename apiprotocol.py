@@ -14,7 +14,7 @@ class ApiProtocol(Protocol):
             'block_data', 'stats', 'ip_geotag', 'exp_win', 'txhash', 'address',
             'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist',
             'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers',
-            'next_stakers', 'latency'
+            'next_stakers', 'latency', 'balance'
         ]
 
     def parse_cmd(self, data):
@@ -207,6 +207,10 @@ class ApiProtocol(Protocol):
     def txhash(self, data=None):
         printL(('<<< API tx/hash call', data))
         return self.factory.chain.search_txhash(data)
+
+    def balance(self, data=None):
+        printL(('<<< API address call', data))
+        return self.factory.chain.basic_info(data)
 
     def address(self, data=None):
         printL(('<<< API address call', data))
