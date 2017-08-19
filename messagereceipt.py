@@ -39,6 +39,10 @@ class MessageReceipt:
 
     def register(self, msg_hash, msg_obj, msg_type):
         msg_hash = sha256(str(msg_hash))
+
+        if len(self.hash_type) == c.message_q_size:
+            self.__remove__()
+
         self.hash_msg[msg_hash] = msg_obj
         self.hash_type[msg_hash] = msg_type
 
