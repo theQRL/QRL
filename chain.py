@@ -233,7 +233,7 @@ class Chain:
                 if tx == t.txhash:
                     d.append(t.txfrom)
                     self.transaction_pool.append(t)
-                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number+1, t.txfrom) + d.count(t.txfrom)
+                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number+1, t.txfrom)[0] + d.count(t.txfrom)
                     #t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
 
         # create the block..
