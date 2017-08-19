@@ -1448,14 +1448,7 @@ class ChainBuffer:
         if headerhash in self.headerhashes[blocknum]:
             return 0
 
-
-        '''
-        if not self.state_validate_block(block):
-            printL (('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber ))
-            return
-        '''
-
-        if min(self.blocks) + self.size <= blocknum:
+        if blocknum - self.size in self.strongest_chain:
             self.move_to_mainchain()
 
         stake_reward = {}
@@ -1708,7 +1701,10 @@ class ChainBuffer:
         if addr in stateBuffer.stxn_state:
             return stateBuffer.stxn_state[addr]
 
-        return self.state.db.get(addr)
+        try:
+            return self.state.db.get(addr)
+        except:
+            return [0, 0, []] #[nonce, balance, [pubhash]]
 
 
     def stake_list_get(self, blocknumber):
