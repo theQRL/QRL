@@ -86,7 +86,8 @@ class HMAC_DRBG():
                 "requested_security_strength exceeds this instance's security_strength (%d)" % self.security_strength)
 
         # if self.reseed_counter >= 10001:
-        if self.reseed_counter >= 20001:
+        # if self.reseed_counter >= 20001:
+        if self.reseed_counter >= 80001:
             return None
 
         temp = b""
@@ -238,8 +239,10 @@ class XMSS():
     def __init__(self, signatures, SEED=None):
         self.type = 'XMSS'
         self.index = 0
-        if signatures > 4986:  # after this we need to update seed for PRF..
-            signatures = 4986
+        #if signatures > 4986:  # after this we need to update seed for PRF..
+        #    signatures = 4986
+        if signatures > 8000:
+             signatures = 8000
         self.signatures = signatures  # number of OTS keypairs in tree to generate: n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
         self.remaining = signatures
 

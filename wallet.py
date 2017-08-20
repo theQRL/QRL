@@ -55,7 +55,8 @@ class Wallet:
                     SEED = f.read()
                     SEED = mnemonic_to_seed(SEED.strip())
 
-            addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
+            #addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
+            addr_list.append(self.getnewaddress(8000, 'XMSS', SEED=SEED))
             with open("./wallet.dat", "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(addr_list, myfile)
 
@@ -169,7 +170,7 @@ class Wallet:
                 dict_addr['address'] = address[0]
                 dict_addr['type'] = address[1][0].type
                 dict_addr['balance'] = str(
-                    self.state.state_balance(address[0]) / 100000000.000000000) + '(' + str(
+                    self.state.state_balance(address[0]) / 100000000.000000000) + ' (' + str(
                     self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')'
                 dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
                                      '(' + str(self.state.state_nonce(address[0]) + y) + ')'
@@ -217,7 +218,8 @@ class Wallet:
                 else:  # xmss
                     return address[1].remaining
 
-    def getnewaddress(self, signatures=4096, type='XMSS',
+    #def getnewaddress(self, signatures=4096, type='XMSS',
+    def getnewaddress(self, signatures=8000, type='XMSS',
                       SEED=None):  # new address format is a list of two items [address, data structure from random_mss call]
         addr = []
         if type == 'XMSS':
@@ -237,7 +239,8 @@ class Wallet:
 
         return addr
 
-    def xmss_getnewaddress(self, signatures=4096, SEED=None,
+    #def xmss_getnewaddress(self, signatures=4096, SEED=None,
+    def xmss_getnewaddress(self, signatures=8000, SEED=None,
                            type='WOTS+'):  # new address format returns a stateful XMSS class object
         return merkle.XMSS(signatures, SEED)
 

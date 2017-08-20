@@ -58,7 +58,7 @@ class newAddress(Resource):
 
     isLeaf = True
     def render_GET(self, request):
-        return self.wallet.savenewaddress(signatures=4096, type='XMSS')
+        return self.wallet.savenewaddress(signatures=8000, type='XMSS')
 
 
 class sendQuanta(Resource):
