@@ -906,7 +906,7 @@ class Chain:
         txhash.append(new_txhash)
         self.state.db.put('txn_'+addr, txhash)
 
-    def update_txn_count(txto, txfrom):
+    def update_txn_count(self, txto, txfrom):
         last_count = self.state.state_get_txn_count(txto)
         self.state.db.put('txn_count_'+txto, last_count+1)
         last_count = self.state.state_get_txn_count(txfrom)
