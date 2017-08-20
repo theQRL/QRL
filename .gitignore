@@ -5,3 +5,4 @@
 *.info
 *.log
 state/
+data/

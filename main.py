@@ -7,6 +7,7 @@ import block
 import helper
 import transaction
 import wallet
+import webwallet
 import ntp
 import logger
 import fork
@@ -78,10 +79,15 @@ if __name__ == "__main__":
     stuff = 'QRL node connection established. Try starting with "help"' + '\r\n'
     walletFactory = walletprotocol.WalletFactory(stuff, chainObj, stateObj, p2pFactory)
 
+
     printL(('Reading chain..'))
     reactor.listenTCP(2000, walletFactory, interface='127.0.0.1')
     reactor.listenTCP(9000, p2pFactory)
     reactor.listenTCP(8080, apiFactory)
+
+    # Load web wallet
+    webWallet = webwallet.WebWallet(chainObj, stateObj, p2pFactory)
+
 
     pos.restart_monitor_bk(80)
 
