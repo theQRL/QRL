@@ -1236,11 +1236,12 @@ class StateBuffer:
         ignore_addr = set()
         for tx in block.transactions:
             ignore_addr.add(tx.txfrom)
-            self.stxn_state[tx.txfrom][2].append(tx.pubhash)
             if tx.txfrom in self.stxn_state:
                 if self.stxn_state[tx.txfrom][0]>tx.nonce:
                     continue
-
+            if tx.txfrom not in self.stxn_state:
+                self.stxn_state[tx.txfrom] = state.db.get(block.blockheader.stake_selector)
+            self.stxn_state[tx.txfrom][2].append(tx.pubhash)
             self.stxn_state[tx.txfrom][0] = tx.nonce
 
         if block.blockheader.stake_selector not in self.stxn_state:
