@@ -210,7 +210,7 @@ class Block():
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain, blocknumber=lastblocknumber + 1, reveal_list=reveal_list, vote_hashes=vote_hashes,
                                 hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash,
-                                number_transactions=len(chain.transaction_pool), hashedtransactions=hashedtransactions,
+                                number_transactions=len(self.transactions), hashedtransactions=hashedtransactions,
                                 number_stake=len(chain.stake_pool), hashedstake=hashedstake,
                                 last_block_number=last_block_number)
         if self.blockheader.timestamp == 0:
