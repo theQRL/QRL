@@ -239,7 +239,7 @@ class Block():
     def validate_tx_in_block(self):
 
         for transaction in self.transactions:
-            if transaction.validate_tx() is False and self.blockheader.blocknumber>2900:
+            if transaction.validate_tx() is False:
                 printL(('invalid tx: ', transaction, 'in block'))
                 return False
 
