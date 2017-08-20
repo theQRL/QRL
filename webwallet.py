@@ -39,7 +39,7 @@ class WebWallet:
         resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
 
         factory = Site(resource)
-        endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888)
+        endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888, interface='127.0.0.1')
         endpoint.listen(factory)
 
 
