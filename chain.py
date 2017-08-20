@@ -63,8 +63,6 @@ class Chain:
         self.stake_reveal_one = []
         self.stake_ban_list = []
         self.stake_ban_block = {}
-        # self.epoch_prf = []
-        # self.epoch_PRF = []
         self.stake_validator_latency = defaultdict(dict)
 
     def initialize(self):
@@ -467,8 +465,24 @@ class Chain:
         return helper.json_print_telnet(tx_new)
 
 
-    # return False
+    def basic_info(self, address):
+        addr = {}
 
+        if self.state.state_address_used(address) == False:
+            addr['status'] = 'error'
+            addr['error'] = 'Address not found'
+            addr['parameter'] = address
+            return helper.json_print_telnet(addr)
+
+        nonce, balance, pubhash_list = self.state.state_get_address(address)
+        addr['state'] = {}
+        addr['state']['address'] = address
+        addr['state']['balance'] = balance / 100000000.000000000
+        addr['state']['nonce'] = nonce
+        addr['state']['transactions'] = self.state.state_get_txn_count(address)
+        addr['status'] = 'ok'
+        return helper.json_print_telnet(addr)
+        
     # used for port 80 api - produces JSON output reporting every transaction for an address, plus final balance..
 
     def search_address(self, address):
@@ -479,6 +493,7 @@ class Chain:
         if self.state.state_address_used(address) == False:
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
+            addr['parameter'] = address
             return helper.json_print_telnet(addr)
 
         nonce, balance, pubhash_list = self.state.state_get_address(address)
@@ -891,7 +906,12 @@ class Chain:
         txhash.append(new_txhash)
         self.state.db.put('txn_'+addr, txhash)
 
-
+    def update_txn_count(self, txto, txfrom):
+        last_count = self.state.state_get_txn_count(txto)
+        self.state.db.put('txn_count_'+txto, last_count+1)
+        last_count = self.state.state_get_txn_count(txfrom)
+        self.state.db.put('txn_count_'+txfrom, last_count+1)
+        
     def update_tx_metadata(self, block):
         if block.blockheader.number_transactions==0:
             return
@@ -900,6 +920,7 @@ class Chain:
             self.state.db.put(txn.txhash, [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
             self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
             self.update_wallet_tx_metadata(txn.txto, txn.txhash)
+            self.update_txn_count(txn.txto, txn.txfrom)
 
     def f_write_m_blockchain(self):
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep

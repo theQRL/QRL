@@ -148,7 +148,7 @@ class Wallet:
             addr = self.chain.my
 
         list_addr = []
-        dict_addresses = {}
+        list_addresses = []
         count = 0
         for address in addr:
             x = 0
@@ -196,10 +196,11 @@ class Wallet:
                                   'nonce:' + dict_addr['nonce'],
                                   'signatures left: ' + dict_addr['signatures_left']])
 
-            dict_addresses[count] = dict_addr
+            dict_addr['position'] = count
+            list_addresses.append(dict_addr)
             count += 1
         if dict_format:
-            return list_addr, dict_addresses
+            return list_addr, list_addresses
 
         return list_addr
 

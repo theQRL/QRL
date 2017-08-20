@@ -583,8 +583,8 @@ class WalletProtocol(Protocol):
         self.output['keys'] += ['list_addresses']
         self.output['list_addresses'] = {}
 
-        list_addr, dict_addresses = self.factory.chain.wallet.list_addresses(True)
-        self.output['list_addresses'] = dict_addresses
+        list_addr, list_addresses = self.factory.chain.wallet.list_addresses(True)
+        self.output['list_addresses'] = list_addresses
 
         y = 0
         for address in list_addr:
