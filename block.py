@@ -146,19 +146,19 @@ class Block():
         lastblocknumber = data.blockheader.blocknumber
         prev_blockheaderhash = data.blockheader.headerhash
         hashedtransactions = []
-        for transaction in chain.transaction_pool:
-            # if transaction.txhash not in chain.block_chain_buffer.tx_buffer:
-            if not self.isHashPresent(transaction.txhash, chain.block_chain_buffer.tx_buffer, last_block_number + 1):
-                hashedtransactions.append(transaction.txhash)
+        for tx in chain.transaction_pool:
+            if not chain.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
+                if not self.isHashPresent(tx.txhash, chain.block_chain_buffer.tx_buffer, last_block_number + 1):
+                    hashedtransactions.append(tx.txhash)
         if not hashedtransactions:
             hashedtransactions = sha256('')
 
         hashedtransactions = chain.merkle_tx_hash(hashedtransactions)
         self.transactions = []
         for tx in chain.transaction_pool:
-            # if tx.txhash not in chain.block_chain_buffer.tx_buffer:
-            if not self.isHashPresent(tx.txhash, chain.block_chain_buffer.tx_buffer, last_block_number + 1):
-                self.transactions.append(tx)  # copy memory rather than sym link
+            if not chain.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
+                if not self.isHashPresent(tx.txhash, chain.block_chain_buffer.tx_buffer, last_block_number + 1):
+                    self.transactions.append(tx)  # copy memory rather than sym link
         curr_epoch = int((last_block_number + 1) / c.blocks_per_epoch)
 
         self.stake = []

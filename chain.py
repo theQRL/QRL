@@ -1235,27 +1235,32 @@ class StateBuffer:
     def update_stxn_state(self, block, state):
         ignore_addr = set()
         for tx in block.transactions:
-            ignore_addr.add(tx.txfrom)
+            ignore_addr.add(tx.txfrom) #list of addresses that needs to be included in the buffer
+
+            if tx.txfrom not in self.stxn_state:
+                self.stxn_state[tx.txfrom] = state.state_get_address(block.blockheader.stake_selector)
+
+            self.stxn_state[tx.txfrom][2].append(tx.pubhash)
+
             if tx.txfrom in self.stxn_state:
                 if self.stxn_state[tx.txfrom][0]>tx.nonce:
                     continue
-            if tx.txfrom not in self.stxn_state:
-                self.stxn_state[tx.txfrom] = state.db.get(block.blockheader.stake_selector)
-            self.stxn_state[tx.txfrom][2].append(tx.pubhash)
+
             self.stxn_state[tx.txfrom][0] = tx.nonce
 
         if block.blockheader.stake_selector not in self.stxn_state:
-            self.stxn_state[block.blockheader.stake_selector] = state.db.get(block.blockheader.stake_selector)
+            self.stxn_state[block.blockheader.stake_selector] = state.state_get_address(block.blockheader.stake_selector)
 
         self.stxn_state[block.blockheader.stake_selector][1] += block.blockheader.block_reward
         stxn_state_keys = self.stxn_state.keys()
         for addr in stxn_state_keys:
             if addr in ignore_addr:
                 continue
-            addr_list = state.db.get(addr)
+            addr_list = state.state_get_address(addr)
             if not addr_list:
                 continue
 
+            #Delete from buffer if the state contains the same information as buffer
             allMatch = True
             for i in range(0,len(addr_list)):
                 if self.stxn_state[addr][i] != addr_list[i]:
@@ -1477,13 +1482,19 @@ class ChainBuffer:
 
         state_buffer = StateBuffer()
         block_buffer = None
-        if blocknum-1 == self.chain.height():
+        if blocknum - 1 == self.chain.height():
             tmp_stake_list = self.state.stake_list_get()
             tmp_next_stake_list = self.state.next_stake_list_get()
+
+            if blocknum % c.blocks_per_epoch == 0:   #quick fix when a node starts, it already moved to next epoch stake list
+                tmp_stake_list, tmp_next_stake_list = tmp_next_stake_list, tmp_stake_list
 
             if not self.state_validate_block(block, copy.deepcopy(tmp_stake_list), copy.deepcopy(tmp_next_stake_list)):
                 printL(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
                 return
+
+            if blocknum % c.blocks_per_epoch == 0:   #quick fix swapping back values
+                tmp_stake_list, tmp_next_stake_list = tmp_next_stake_list, tmp_stake_list
 
             for st in tmp_stake_list:
                 state_buffer.stake_list[st[0]] = st
@@ -1628,7 +1639,7 @@ class ChainBuffer:
 
             if tx.nonce != address_txn[tx.txfrom][0] + 1:
                 printL(('nonce incorrect, invalid tx'))
-                printL((tx, tx.txfrom, tx.nonce))
+                printL((tx, tx.txfrom, tx.nonce, address_txn[tx.txfrom][0]+1))
                 return False
 
             if pubhash in address_txn[tx.txfrom][2]:
@@ -1713,7 +1724,7 @@ class ChainBuffer:
 
     def get_stxn_state(self, blocknumber, addr):
         if blocknumber - 1 == self.chain.height():
-            return self.state.db.get(addr)
+            return self.state.state_get_address(addr)
 
         if blocknumber - 1 not in self.strongest_chain:
             return None
@@ -1723,11 +1734,7 @@ class ChainBuffer:
         if addr in stateBuffer.stxn_state:
             return stateBuffer.stxn_state[addr]
 
-        try:
-            return self.state.db.get(addr)
-        except:
-            return [0, 0, []] #[nonce, balance, [pubhash]]
-
+        return self.state.state_get_address(addr)
 
     def stake_list_get(self, blocknumber):
         if blocknumber - 1 == self.chain.height():
@@ -1821,3 +1828,15 @@ class ChainBuffer:
             for block in self.pending_blocks[blocknum]:
                 self.add_block(block)
             del self.pending_blocks[blocknum]
+
+    def pubhashExists(self, addr, pubhash, blocknumber):
+        state_addr = self.get_stxn_state(blocknumber, addr)
+
+        if state_addr is None:
+            printL (( '-->> state_addr None not possible' ))
+            return False
+
+        if pubhash in state_addr[2]:
+            return True
+
+        return False
