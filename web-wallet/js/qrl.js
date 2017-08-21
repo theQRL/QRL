@@ -123,6 +123,7 @@ function getNodeInfo(hideDimmer = false) {
             x = (Math.round(x * 10000)) / 10000;
             $('#unmined').text(x);
             $('#reward').text(data.block_reward);
+            $('#nodeversion').text(data.version);
         },
         error: function(data) {
             $('.dimmer').hide();
