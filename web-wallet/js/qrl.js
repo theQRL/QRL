@@ -27,41 +27,6 @@ function drawTransRow(a, b, c, d, e, f, g, h) {
     TransT.row.add([c, d, t, e, z, f, b, g, c, e, f]);
 }
 
-// Draws all addresses in wallet file to page.
-function drawAddresses(addresses) {
-    console.log(addresses);
-
-    viewState = 0;
-
-    // Clear list first
-    $('#walletlist').empty();
-
-    // Loop all wallets, and present them
-    var addressIndex = 0;
-    $.each(addresses, function() {
-
-        var thisAddress = this[0];
-        var thisBalance = this[3];
-
-        $('#walletlist').append(
-            '<div class="event"><div class="content"><div class="summary"><div class="ui horizontal label" style="background-color:#d5a500;">'
-            + addressIndex
-            + '</div><b style="font-size:1.4em"><a onclick="showAddress('+ addressIndex +')">'
-            + thisAddress +
-            '</a></b><br>'
-            + thisBalance +
-            '</div></div></div><div class="ui divider"></div>'
-        );
-
-        // Increment address index id
-        addressIndex += 1;
-    });
-
-    // Remove dimmer
-    $('.dimmer').hide();
-}
-
-
 // Gets detail about the running node
 function getNodeInfo(hideDimmer = false) {
 
@@ -123,6 +88,7 @@ function getNodeInfo(hideDimmer = false) {
             x = (Math.round(x * 10000)) / 10000;
             $('#unmined').text(x);
             $('#reward').text(data.block_reward);
+            $('#nodeversion').text(data.version);
         },
         error: function(data) {
             $('.dimmer').hide();
@@ -156,7 +122,6 @@ function getNodeInfo(hideDimmer = false) {
     });
 
 }
-
 
 // Draws all addresses in wallet file to page.
 function drawAddresses(addresses) {
@@ -309,7 +274,9 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
         });
 
     } else {
+        console.log("clear");
         TransT.clear();
+        TransT.columns.adjust().draw(true);
         $('#balance').text("0");
         $('#nonce').text("0");
         $('#transactions').text("0");
