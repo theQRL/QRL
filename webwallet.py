@@ -14,10 +14,7 @@ import helper
 import time
 import json
 import os
-import apiprotocol
-import walletprotocol
 import wallet
-
 
 class WebWallet:
     def __init__(self, chain, state, p2pFactory):
@@ -29,7 +26,6 @@ class WebWallet:
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
-        self.stuff = "QRL node connection established."
         self.wallet = wallet.Wallet(self.chain, self.state)
 
         # Start local web server and define routes
@@ -37,11 +33,12 @@ class WebWallet:
         resource.putChild("webwallet-addresses", showAddresses(self.wallet))
         resource.putChild("webwallet-create-new-address", newAddress(self.wallet))
         resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
+        resource.putChild("webwallet-mempool", memPoolSize(self.chain))
+        resource.putChild("webwallet-sync", syncStatus(self.p2pFactory))
 
         factory = Site(resource)
         endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888, interface='127.0.0.1')
         endpoint.listen(factory)
-
 
 class showAddresses(Resource):
     def __init__(self, Wallet):
@@ -51,7 +48,6 @@ class showAddresses(Resource):
     def render_GET(self, request):
         return helper.json_encode(self.wallet.list_addresses())
 
-
 class newAddress(Resource):
     def __init__(self, Wallet):
         self.wallet = Wallet
@@ -60,6 +56,21 @@ class newAddress(Resource):
     def render_GET(self, request):
         return self.wallet.savenewaddress(signatures=8000, type='XMSS')
 
+class memPoolSize(Resource):
+    def __init__(self, chain):
+        self.chain = chain
+
+    isLeaf = True
+    def render_GET(self, request):
+        return str(len(self.chain.transaction_pool))
+
+class syncStatus(Resource):
+    def __init__(self, p2pFactory):
+        self.p2pFactory = p2pFactory
+
+    isLeaf = True
+    def render_GET(self, request):
+        return str(self.p2pFactory.nodeState.state)
 
 class sendQuanta(Resource):
     def __init__(self, chain, state, p2pFactory):
@@ -162,7 +173,4 @@ class sendQuanta(Resource):
         self.txnResult["amount"] = str(tx.amount / 100000000.000000000)
 
         return helper.json_encode(self.txnResult)
-
-
-
 

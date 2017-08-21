@@ -36,6 +36,8 @@ body {
 }
 #petefix > .item {
     margin-right: 2em;
+    border-left: 0px;
+    padding-left: 0px !important;
 }
 #petefix2 > .item {
     margin-right: 2em;
@@ -74,6 +76,21 @@ a.item {
 .ui.list .list > a.item:hover,
 .ui.list > a.item:hover {
     color: #1D2951;
+}
+#TransT {
+    width:100% !important;
+    white-space: normal;
+}
+#TransT tbody tr td {
+    word-break: break-word;
+    vertical-align: top;
+}
+#TransT_filter {
+    float: right;
+}
+#TransT_length {
+    float: left;
+    padding-bottom: 20px;
 }
 @media all and (max-width: 519px) {
     /* First, hide the main menu */
