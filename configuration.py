@@ -27,7 +27,7 @@ blocks_per_epoch = 100
 reorg_limit = 3
 hashchain_nums = 50	# 1 Primary and rest Secondary hashchain
 block_creation_seconds = 55
-message_q_size = 500
+message_q_size = 300
 message_receipt_timeout = 10 # request timeout for full message
 stake_before_x_blocks = 50
 low_staker_first_hash_block = 70
@@ -42,7 +42,7 @@ chain_read_buffer_size=1024
 binary_file_delimiter = '-_-_'
 compression_type = "zlib"
 compression_level = 0
-version_number = "alpha/0.27a"
+version_number = "alpha/0.28a"
 chain_file_directory = 'data'
 ################################################################
 #                       END                                    #

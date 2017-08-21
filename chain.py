@@ -1505,7 +1505,7 @@ class ChainBuffer:
             state_buffer.set_next_seed(block.blockheader.hash, self.epoch_seed)
             state_buffer.update_stake_list(block)
             state_buffer.update_next_stake_list(block)
-
+            state_buffer.update_stxn_state(block, self.state)
         else:
             parent_state_buffer = None
             parent_seed = None
@@ -1671,7 +1671,7 @@ class ChainBuffer:
         for i in range(blocknum+1, max(self.strongest_chain)+1):
             del self.strongest_chain[i]
 
-        block = self.strongest_chain[blocknum].block
+        block = self.strongest_chain[blocknum][0].block
         prev_headerhash = block.blockheader.headerhash
         blocknum += 1
         block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
@@ -1732,7 +1732,7 @@ class ChainBuffer:
         stateBuffer = self.strongest_chain[blocknumber - 1][1]
 
         if addr in stateBuffer.stxn_state:
-            return stateBuffer.stxn_state[addr]
+            return deepcopy(stateBuffer.stxn_state[addr])
 
         return self.state.state_get_address(addr)
 
