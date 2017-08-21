@@ -31,6 +31,9 @@
                         -->
                     </div>
                 </div>
+                <a href="#" onclick="getNodeInfo()" class="header item" style="font-weight: inherit;">
+                    Node Details
+                </a>
                 <div class="ui simple dropdown item pull_right">
                     About <i class="dropdown icon"></i>
                     <div class="menu">
@@ -72,7 +75,7 @@
                     <div class="twelve wide centered column">
                         <div class="ui fluid card">
                             <div class="content">
-                                <div class="header">QRL Web Wallet v0.01</div>
+                                <div class="header">QRL Web Client</div>
                             </div>
                             <!-- Show All Wallets -->
                             <div id="show-all-wallets" class="content">
@@ -84,26 +87,181 @@
                                     <button onclick="createNewAddress()" class="ui button">Create New Address</button>
                                 </div>
                             </div>
+
+
                             <!-- Show Single Wallet -->
                             <div id="show-wallet" class="content">
-                                <h4 class="ui sub header dash_header">Viewing Address</h4>
-                                <div class="ui small feed" id="walletdetail">
-                                    <!-- Wallets detail here -->
+
+                                <!-- Address Heading - Show Address -->
+                                <b id="addressHeading" style="font-size:1.5em"></b>
+                                
+                                <br /><br />
+                                
+                                <div class="ui divided horizontal selection list" id="petefix">
+                                    <a class="item">
+                                        <div class="ui green horizontal label" id="balance"></div>
+                                        QRL Balance
+                                    </a>
+                                    <br />
+                                    <a class="item">
+                                        <div class="ui orange horizontal label" id="usdvalue"></div>
+                                        USD Value
+                                    </a>
+                                    <a class="item">
+                                        <div class="ui purple horizontal label" id="nonce"></div>
+                                        Nonce
+                                    </a>
+                                    <a class="item">
+                                        <div class="ui blue horizontal label" id="transactions"></div>
+                                        Transactions
+                                    </a>
+                                    <a class="item">
+                                        <div class="ui yellow horizontal label" id="sigsremaining"></div>
+                                        Signatures Remaining
+                                    </a>
                                 </div>
+
+                                <br /><br /><br />
+
                                 <div class="extra content">
                                     <h4 class="ui sub header dash_header">Send Quanta</h4>
                                     <label for="to">To</label><br />
-                                    <input type="text" id="to" name="to" style="max-width: 100%; width: 460px;" />
+                                    <input type="text" id="to" name="to" style="max-width: 100%; width: 540px;" />
                                     <br /><br />
                                     <label for="amount">Amount</label><br />
-                                    <input type="text" id="amount" name="amount" style="max-width: 100%;  width: 460px;"  />
+                                    <input type="text" id="amount" name="amount" style="max-width: 100%;  width: 540px;"  />
                                     <br /><br />
                                 </div>
                                 <div class="extra content">
                                     <button style="float:left;" onclick="sendQuanta()" class="ui button">Send Quanta</button>
-                                    <button style="float:right;" onclick="getAddresses()" class="ui button">Back to All Addresses</button>
+                                    <button style="float:right;" onclick="getAddresses()" class="ui button">Back to Addresses</button>
+                                </div>
+
+                                <br /><br /><br />
+
+
+                                <div id="Saddress">
+                                    <div class="ui top attached tabular menu">
+                                        <a class="active item" data-tab="first">Transactions</a>
+                                        <!--
+                                        <a class="item" data-tab="second">Staked blocks</a>
+                                        -->
+                                    </div>
+                                    <div class="ui bottom attached active tab segment" data-tab="first">
+                                        <div class="ui stackable grid">
+                                            <div class="sixteen wide column">
+                                                <table id="TransT" class="ui single line unstackable celled selectable table">
+                                                    <thead>
+                                                        <th>Txhash</th>
+                                                        <th>Block</th>
+                                                        <th>Timestamp</th>
+                                                        <th>From</th>
+                                                        <th>&nbsp;</th>
+                                                        <th>To</th>
+                                                        <th>Value</th>
+                                                        <th>Fee</th>
+                                                    </thead>
+                                                    <tbody id="TransT-table">
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                    <!--
+                                    <div class="ui bottom attached tab segment" data-tab="second">
+                                        Staked blocks
+                                    </div>
+                                    -->
+                                </div>
+
+
+                            </div>
+
+
+
+                            <!-- Show Node Stats -->
+                            <div id="show-node-stats" class="content">
+                                <h4 class="ui sub header dash_header">Node Details</h4>
+                                <div class="ui small feed" id="nodedetails">
+                                  
+
+                                    <div class="content">
+                                        <div class="ui divided list">
+                                            <strong style="color:#000;"></strong><strong style="color:#000;">Local Node</strong>
+                                            <a class="item">
+                                                sync status <div class="right floated content"><div class="ui red horizontal label" id="syncstatus"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                mempool transactions <div class="right floated content"><div class="ui purple horizontal label" id="mempooltransactions"></div></div>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="content">
+                                        <div class="ui divided list">
+                                            <strong style="color:#000;"></strong><strong style="color:#000;">Network</strong>
+                                            <a class="item">
+                                                id <div class="right floated content"><div class="ui red horizontal label" id="network"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                uptime <div class="right floated content"><div class="ui purple horizontal label" id="uptime"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                nodes <div class="right floated content"><div class="ui blue horizontal label" id="nodes"></div></div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="content">
+                                        <div class="ui divided list">
+                                            <strong style="color:#000;"></strong><strong style="color:#000;">Proof-of-stake</strong>
+                                            <a class="item">
+                                                stake validators <div class="right floated content"><div class="ui red horizontal label" id="validators"></div> </div>
+                                            </a>
+                                            <a class="item">
+                                                staked emission <div class="right floated content"><div class="ui purple horizontal label" id="PCemission"></div>  </div>
+                                            </a>
+                                            <a class="item">
+                                                epoch <div class="right floated content"><div class="ui blue horizontal label" id="epoch"></div></div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="content">
+                                        <div class="ui divided list">
+                                            <strong style="color:#000;"></strong><strong style="color:#000;">Blocks</strong>
+                                            <a class="item">
+                                                block time variance <div class="right floated content"><div class="ui red horizontal label" id="variance"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                block time <div class="right floated content"><div class="ui purple horizontal label" id="blocktime"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                blockheight <div class="right floated content"><div class="ui blue horizontal label" id="blockheight"></div></div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="content">
+                                        <div class="ui divided list">
+                                            <strong style="color:#000;"></strong><strong style="color:#000;">Coin supply</strong>
+                                            <a class="item">
+                                                emission <div class="right floated content"><div class="ui red horizontal label" id="emission"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                unmined <div class="right floated content"><div class="ui purple horizontal label" id="unmined"></div></div>
+                                            </a>
+                                            <a class="item">
+                                                block reward <div class="right floated content"><div class="ui blue horizontal label" id="reward"></div></div>
+                                            </a>
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                                <div class="extra content">
+                                <button onclick="getAddresses()" class="ui button">Back to Addresses</button>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
