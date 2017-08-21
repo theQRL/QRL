@@ -81,6 +81,13 @@ a.item {
     width:100% !important;
     white-space: normal;
 }
+@-moz-document url-prefix() {
+    #TransT {
+        width:100% !important;
+        white-space: normal;
+        word-break: break-all;
+    }
+}
 #TransT tbody tr td {
     word-break: break-word;
     vertical-align: top;
