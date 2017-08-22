@@ -229,8 +229,10 @@ class Chain:
         for tx in tx_hash_list:
             for t in t_pool2:
                 if tx == t.txhash:
-                    d.append(t.txfrom)
                     self.transaction_pool.append(t)
+                    if self.block_chain_buffer.pubhashExists(t.txfrom, t.pubhash, last_block_number + 1):
+                        continue
+                    d.append(t.txfrom)
                     t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number+1, t.txfrom)[0] + d.count(t.txfrom)
                     #t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
 
