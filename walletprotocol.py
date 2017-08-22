@@ -406,7 +406,7 @@ class WalletProtocol(Protocol):
     def getnewaddress(self, args):
         self.output['status'] = 1
         if not args or len(args) > 2:
-            self.output['message'].write('>>> Invalid Command' + '\r\n')
+            self.output['message'].write('>>> Invalid format' + '\r\n')
             self.output['message'].write('>>> Usage: getnewaddress <n bits> <type (XMSS, WOTS or LDOTS)>' + '\r\n')
             self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS' + '\r\n')
             self.output['message'].write('>>> or: getnewaddress 128 LDOTS' + '\r\n')
