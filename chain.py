@@ -511,7 +511,7 @@ class Chain:
 
         addr['transactions'] = []
         for tx in self.transaction_pool:
-            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
+            if tx.txto == address or tx.txfrom == address:
                 printL((address, 'found in transaction pool'))
                 tmp_txn = {}
                 tmp_txn['txhash'] = tx.txhash
