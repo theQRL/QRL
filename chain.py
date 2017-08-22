@@ -511,7 +511,7 @@ class Chain:
 
         addr['transactions'] = []
         for tx in self.transaction_pool:
-            if tx.txto == address or tx.txfrom == address:
+            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 printL((address, 'found in transaction pool'))
                 tmp_txn = {}
                 tmp_txn['txhash'] = tx.txhash
@@ -523,9 +523,8 @@ class Chain:
                 tmp_txn['txto'] = tx.txto
                 tmp_txn['txfrom'] = tx.txfrom
                 tmp_txn['timestamp'] = 'unconfirmed'
-                if tx.txhash not in txnhash_added:
-                    addr['transactions'].append(tmp_txn)
-                    txnhash_added.add(tx.txhash)
+                addr['transactions'].append(tmp_txn)
+                txnhash_added.add(tx.txhash)
 
         my_txn = []
         try:
@@ -536,7 +535,7 @@ class Chain:
         for txn_hash in my_txn:
             txn_metadata = self.state.db.get(txn_hash)
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            if tx.txto == address or tx.txfrom == address:
+            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 printL((address, 'found in block ', str(txn_metadata[1]), '..'))
                 tmp_txn = {}
                 tmp_txn['txhash'] = tx.txhash
@@ -548,9 +547,8 @@ class Chain:
                 tmp_txn['ots_key'] = tx.ots_key
                 tmp_txn['txto'] = tx.txto
                 tmp_txn['txfrom'] = tx.txfrom
-                if tx.txhash not in txnhash_added:
-                    addr['transactions'].append(tmp_txn)
-                    txnhash_added.add(tx.txhash)
+                addr['transactions'].append(tmp_txn)
+                txnhash_added.add(tx.txhash)
 
         if len(addr['transactions']) > 0:
             addr['state']['transactions'] = len(addr['transactions'])
