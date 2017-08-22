@@ -1242,11 +1242,16 @@ class StateBuffer:
         ignore_addr = set()
         for tx in block.transactions:
             ignore_addr.add(tx.txfrom) #list of addresses that needs to be included in the buffer
+            ignore_addr.add(tx.txto)
+            if tx.txto not in self.stxn_state:
+                self.stxn_state[tx.txto] = state.state_get_address(tx.txto)
 
             if tx.txfrom not in self.stxn_state:
-                self.stxn_state[tx.txfrom] = state.state_get_address(block.blockheader.stake_selector)
+                self.stxn_state[tx.txfrom] = state.state_get_address(tx.txfrom)
 
             self.stxn_state[tx.txfrom][2].append(tx.pubhash)
+            self.stxn_state[tx.txfrom][1] -= tx.amount
+            self.stxn_state[tx.txto][1] += tx.amount
 
             if tx.txfrom in self.stxn_state:
                 if self.stxn_state[tx.txfrom][0]>tx.nonce:
@@ -1258,6 +1263,8 @@ class StateBuffer:
             self.stxn_state[block.blockheader.stake_selector] = state.state_get_address(block.blockheader.stake_selector)
 
         self.stxn_state[block.blockheader.stake_selector][1] += block.blockheader.block_reward
+        ignore_addr.add(block.blockheader.stake_selector)
+
         stxn_state_keys = self.stxn_state.keys()
         for addr in stxn_state_keys:
             if addr in ignore_addr:
@@ -1266,13 +1273,8 @@ class StateBuffer:
             if not addr_list:
                 continue
 
-            #Delete from buffer if the state contains the same information as buffer
-            allMatch = True
-            for i in range(0,len(addr_list)):
-                if self.stxn_state[addr][i] != addr_list[i]:
-                    allMatch = False
-
-            if allMatch:
+            #Delete from buffer if the sta
+            if self.stxn_state[addr][1] == addr_list[1] and self.stxn_state[addr][2] == addr_list[2]:
                 del self.stxn_state[addr]
 
 
@@ -1641,6 +1643,7 @@ class ChainBuffer:
             # if s1[1] - tx.amount < 0:
             if address_txn[tx.txfrom][1] - tx.amount < 0:
                 printL((tx, tx.txfrom, 'exceeds balance, invalid tx'))
+                printL(('Buffer State Balance: ', address_txn[tx.txfrom][1], ' Transfer Amount ', tx.amount ))
                 return False
 
             if tx.nonce != address_txn[tx.txfrom][0] + 1:
