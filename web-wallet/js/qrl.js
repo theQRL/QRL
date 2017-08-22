@@ -221,6 +221,7 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
     var addressIndex = 0;
     var thisAddress = '';
     var sigSplit;
+    var pendingBalance;
     $.each(addresses, function() {
 
         if(addressIndex == showAddressId) {
@@ -237,6 +238,11 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
             sigSplit = thisSigs.split('(')[1]; // 7993/8000)
             sigSplit = sigSplit.split(')')[0]; // 7993/8000
             sigSplit = sigSplit.split('/'); // [0] = 7993, [1] = 8000
+
+            // Grab pending balance
+            // balance: 287.20450158(700.0)
+            pendingBalance = thisBalance.split('(')[1]; // 700.0)
+            pendingBalance = pendingBalance.split(')')[0]; // 700.0
         }
 
         // Increment address index id
@@ -250,6 +256,7 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
     // Only show these details if we get a successful reply from the API
     if(addressDetail.status == "ok") {
         $('#balance').text(addressDetail.state.balance);
+        $('#pendingbalance').text(pendingBalance);
         $('#nonce').text(addressDetail.state.nonce);
         $('#transactions').text(addressDetail.state.transactions);
         $('#sigsremaining').text(sigSplit[0]);
@@ -278,6 +285,7 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
         TransT.clear();
         TransT.columns.adjust().draw(true);
         $('#balance').text("0");
+        $('#pendingbalance').text("0");
         $('#nonce').text("0");
         $('#transactions').text("0");
         $('#sigsremaining').text(sigSplit[0]);
@@ -326,6 +334,7 @@ function showAddress(addressIndex, hideDimmer = false) {
         $('#amount').val("");
         $('#addressHeading').text("");
         $('#balance').text("");
+        $('#pendingbalance').text("");
         $('#nonce').text("");
         $('#transactions').text("");
         $('#sigsremaining').text("");
