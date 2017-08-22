@@ -17,6 +17,12 @@ from merkle import GEN_range, sha256
 from messagereceipt import MessageReceipt
 from copy import deepcopy
 from decimal import Decimal
+
+
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 class NodeState:
     def __init__(self):
         self.state = 'unsynced'

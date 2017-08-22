@@ -12,6 +12,12 @@ __author__ = 'pete'
 
 import gc
 import configuration as c
+
+
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 if c.compression_type == 'bz2':
     import bz2 as zip
 else:

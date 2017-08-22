@@ -8,6 +8,10 @@ times = 5
 drift = None
 
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 def get_ntp_response():
     try:
         c = ntplib.NTPClient()

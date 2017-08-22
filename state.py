@@ -8,6 +8,10 @@ from merkle import sha256
 from operator import itemgetter
 
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 # state functions
 # first iteration - state data stored in leveldb file
 # state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
@@ -35,48 +39,56 @@ class State:
         try:
             return self.db.get('node_list')
         except:
+            # FIXME: Log Exception!
             return False
 
     def state_put_peers(self, peer_list):
         try:
             self.db.put('node_list', peer_list)
         except:
+            # FIXME: Log Exception!
             return False
 
     def stake_list_get(self):
         try:
             return self.db.get('stake_list')
         except:
+            # FIXME: Log Exception!
             return []
 
     def stake_list_put(self, sl):
         try:
             self.db.put('stake_list', sl)
         except:
+            # FIXME: Log Exception!
             return False
 
     def next_stake_list_get(self):
         try:
             return self.db.get('next_stake_list')
         except:
+            # FIXME: Log Exception!
             return []
 
     def next_stake_list_put(self, next_sl):
         try:
             self.db.put('next_stake_list', next_sl)
         except:
+            # FIXME: Log Exception!
             return False
 
     def put_epoch_seed(self, epoch_seed):
         try:
             self.db.put('epoch_seed', epoch_seed)
         except:
+            # FIXME: Log Exception!
             return False
 
     def get_epoch_seed(self):
         try:
             return self.db.get('epoch_seed')
         except:
+            # FIXME: Log Exception!
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
@@ -91,42 +103,49 @@ class State:
         try:
             return self.db.get('txn_count_'+addr)
         except:
+            # FIXME: Log Exception!
             return 0
 
     def state_get_address(self, addr):
         try:
             return self.db.get(addr)
         except:
+            # FIXME: Log Exception!
             return [0, 0, []]
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
             return self.db.get(addr)
         except:
+            # FIXME: Log Exception!
             return False
 
     def state_balance(self, addr):
         try:
             return self.db.get(addr)[1]
         except:
+            # FIXME: Log Exception!
             return 0
 
     def state_nonce(self, addr):
         try:
             return self.db.get(addr)[0]
         except:
+            # FIXME: Log Exception!
             return 0
 
     def state_pubhash(self, addr):
         try:
             return self.db.get(addr)[2]
         except:
+            # FIXME: Log Exception!
             return []
 
     def state_hrs(self, hrs):
         try:
             return self.db.get('hrs' + hrs)
         except:
+            # FIXME: Log Exception!
             return False
 
     def state_validate_tx_pool(self, chain):

@@ -3,7 +3,6 @@
 
 __author__ = 'cyyber'
 import logging
-import sys
 from logging.handlers import RotatingFileHandler
 
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s -  %(message)s')

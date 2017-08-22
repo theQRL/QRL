@@ -6,6 +6,10 @@ import cPickle as pickle
 import json
 
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 class DB:
     def __init__(self, dbfile='./state'):
         leveldb.DestroyDB(dbfile)
