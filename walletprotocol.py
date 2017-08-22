@@ -406,10 +406,10 @@ class WalletProtocol(Protocol):
     def getnewaddress(self, args):
         self.output['status'] = 1
         if not args or len(args) > 2:
+            self.output['message'].write('>>> Invalid Command' + '\r\n')
             self.output['message'].write('>>> Usage: getnewaddress <n bits> <type (XMSS, WOTS or LDOTS)>' + '\r\n')
             self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS' + '\r\n')
             self.output['message'].write('>>> or: getnewaddress 128 LDOTS' + '\r\n')
-            self.output['message'].write('>>> (new address creation can take a while, please be patient..)' + '\r\n')
             return
         else:
             try:
@@ -438,7 +438,7 @@ class WalletProtocol(Protocol):
             return
 
         self.output['status'] = 0
-        self.output['message'].write('>>> Creating address..please wait' + '\r\n')
+        self.output['message'].write('>>> Creating new address, please be patient as this can take some time ...' + '\r\n')
         self.output['keys'] += ['keypair_type', 'possible_signatures', 'address']
 
         addr = self.factory.chain.wallet.getnewaddress(int(args[0]), args[1])
