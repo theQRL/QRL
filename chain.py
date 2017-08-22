@@ -491,6 +491,7 @@ class Chain:
 
         addr = {}
         addr['transactions'] = {}
+        txnhash_added = set()
 
         if self.state.state_address_used(address) == False:
             addr['status'] = 'error'
@@ -525,6 +526,8 @@ class Chain:
                 tmp_txn['txfrom'] = tx.txfrom
                 tmp_txn['timestamp'] = 'unconfirmed'
                 addr['transactions'].append(tmp_txn)
+                txnhash_added.add(tx.txhash)
+
         my_txn = []
         try:
             my_txn = self.state.db.get('txn_'+address)
@@ -534,7 +537,7 @@ class Chain:
         for txn_hash in my_txn:
             txn_metadata = self.state.db.get(txn_hash)
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            if tx.txto == address or tx.txfrom == address:
+            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 printL((address, 'found in block ', str(txn_metadata[1]), '..'))
                 tmp_txn = {}
                 tmp_txn['txhash'] = tx.txhash
@@ -547,6 +550,7 @@ class Chain:
                 tmp_txn['txto'] = tx.txto
                 tmp_txn['txfrom'] = tx.txfrom
                 addr['transactions'].append(tmp_txn)
+                txnhash_added.add(tx.txhash)
 
         if len(addr['transactions']) > 0:
             addr['state']['transactions'] = len(addr['transactions'])
