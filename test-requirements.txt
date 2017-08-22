@@ -1,0 +1,10 @@
+pytest
+coverage
+mock>=1.0.0
+flake8
+jsonpickle
+leveldb
+statistics
+ntplib
+Twisted==16.0.0
+simplejson
