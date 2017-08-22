@@ -489,6 +489,7 @@ class Chain:
 
         addr = {}
         addr['transactions'] = {}
+        txnhash_added = set()
 
         if self.state.state_address_used(address) == False:
             addr['status'] = 'error'
@@ -522,7 +523,10 @@ class Chain:
                 tmp_txn['txto'] = tx.txto
                 tmp_txn['txfrom'] = tx.txfrom
                 tmp_txn['timestamp'] = 'unconfirmed'
-                addr['transactions'].append(tmp_txn)
+                if tx.txhash not in txnhash_added:
+                    addr['transactions'].append(tmp_txn)
+                    txnhash_added.add(tx.txhash)
+
         my_txn = []
         try:
             my_txn = self.state.db.get('txn_'+address)
@@ -544,7 +548,9 @@ class Chain:
                 tmp_txn['ots_key'] = tx.ots_key
                 tmp_txn['txto'] = tx.txto
                 tmp_txn['txfrom'] = tx.txfrom
-                addr['transactions'].append(tmp_txn)
+                if tx.txhash not in txnhash_added:
+                    addr['transactions'].append(tmp_txn)
+                    txnhash_added.add(tx.txhash)
 
         if len(addr['transactions']) > 0:
             addr['state']['transactions'] = len(addr['transactions'])
