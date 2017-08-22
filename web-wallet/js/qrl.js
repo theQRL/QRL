@@ -125,8 +125,6 @@ function getNodeInfo(hideDimmer = false) {
 
 // Draws all addresses in wallet file to page.
 function drawAddresses(addresses) {
-    console.log(addresses);
-
     viewState = 0;
 
     // Clear list first
@@ -208,9 +206,6 @@ function createNewAddress() {
 
 // Draws address detail to page
 function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
-    //console.log(addresses);
-    //console.log(addressDetail);
-
     viewState = 1;
 
     // Clear list first
@@ -281,7 +276,6 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
         });
 
     } else {
-        console.log("clear");
         TransT.clear();
         TransT.columns.adjust().draw(true);
         $('#balance').text("0");
@@ -307,8 +301,6 @@ function showAddressStep2(addresses, addressIndex) {
         }
         counter += 1;
     });
-
-    console.log(thisAddress);
 
     $.ajax({
         url: 'http://localhost:8080/api/address/' + thisAddress,
@@ -391,14 +383,11 @@ function drawTxnResult(txnResult) {
 
 // Creates a transaction in the network
 function sendQuanta() {
-
     $('.dimmer').show();
 
     var from = currentDetailAddress;
     var to = $('#to').val();
     var amount = $('#amount').val();
-
-    console.log("Send from index "+from+", to: "+ to + ", amount:"+amount)
 
     $.ajax({
         url: 'http://localhost:8888/webwallet-send',
