@@ -16,6 +16,11 @@ import json
 import os
 import wallet
 
+
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 class WebWallet:
     def __init__(self, chain, state, p2pFactory):
 

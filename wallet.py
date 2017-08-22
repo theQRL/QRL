@@ -10,12 +10,17 @@ import os
 import sys
 
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 class Wallet:
     def __init__(self, chain, state):
         self.chain = chain
         self.state = state
 
     def log(self, string_data):
+        #FIXME: Another way of logging?
         with open("./log/log.txt", "a") as myfile:
             myfile.write(string_data)
         return
@@ -49,6 +54,8 @@ class Wallet:
         if os.path.isfile('./wallet.dat') is False:
             printL(('[info] Creating new wallet file..this could take up to a minute'))
             SEED = None
+
+            # FIXME: Clean this up. Test code in production code
             # For AWS test only
             if os.path.isfile('./mnemonic'):
                 with open('./mnemonic','r') as f:

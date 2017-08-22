@@ -6,3 +6,7 @@
 *.log
 state/
 data/
+
+\.idea/
+
+\.cache/v/cache/

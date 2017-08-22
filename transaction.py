@@ -6,6 +6,11 @@ from merkle import sha256
 import helper
 import json
 
+
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 # A base class to be inherited by all other transaction
 class Transaction(object):
     def __init__(self):

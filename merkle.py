@@ -26,6 +26,10 @@ import configuration as c
 
 # timing runs..
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 def t(n):
     start_time = time.time()
     z = XMSS(n)

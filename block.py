@@ -8,7 +8,12 @@ import merkle
 from transaction import StakeTransaction, SimpleTransaction
 from copy import deepcopy
 
-class BlockHeader():
+
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
+class BlockHeader(object):
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions,
                number_stake, hashedstake, reveal_list=None, vote_hashes=None, last_block_number=-1):
         if not reveal_list:

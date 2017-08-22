@@ -1,5 +1,9 @@
 import simplejson as json
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 # Initializers to be decided
 pending_blocks = {}
 last_bk_time = None

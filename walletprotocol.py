@@ -9,6 +9,10 @@ from merkle import hexseed_to_seed, mnemonic_to_seed
 import json
 
 
+def printL(*_):
+    pass  # TODO: Clean this later
+
+
 class WalletProtocol(Protocol):
     def __init__(self):
         self.cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed',

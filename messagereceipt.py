@@ -28,8 +28,10 @@ from collections import OrderedDict, defaultdict
 import configuration as c
 from merkle import sha256
 
-class MessageReceipt:
+
+class MessageReceipt(object):
     allowed_types = ['TX', 'ST', 'BK', 'R1']
+
     def __init__(self):
         self.hash_msg = dict()
         self.hash_type = OrderedDict()
