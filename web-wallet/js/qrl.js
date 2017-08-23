@@ -470,7 +470,7 @@ function drawTxnResult(txnResult) {
         $('#domModalBody').html('<b>TXN Hash: </b><a href="http://qrlexplorer.info/search.html#'+txnResult.txnhash+'" target="_blank">'+txnResult.txnhash+'</a><br />'+
                                 '<b>From: </b>' + txnResult.from+'<br />'+
                                 '<b>To: </b>' + txnResult.to+'<br />'+
-                                '<b>Amount: </b>' + txnResult.amount+' Qaunta<br />'
+                                '<b>Amount: </b>' + txnResult.amount+' Quanta<br />'
                                 );
 
         $('#domModal').modal('show');
