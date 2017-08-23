@@ -1,6 +1,9 @@
 ################################################################
 #                   Configuration for users                    #
 ################################################################
+#Node Configuration
+node_name = 'QRLnode'
+
 #Staking Configuration
 enable_auto_staking = True
 
