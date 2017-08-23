@@ -8,7 +8,7 @@ import configuration as c
 from qrlcore import merkle
 from qrlcore import logger
 from qrlcore.merkle import sha256
-
+from qrlcore import block
 
 # simple transaction creation and wallet functions using the wallet file..
 
