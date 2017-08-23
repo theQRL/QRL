@@ -5,10 +5,108 @@ var currentDetailAddress = 0;
 // 0 = list addresses
 // 1 = show single address
 // 2 = show node stats
+// 3 = recover address
 var viewState = 0;
 
 // Init Transactions table
 var TransT = $("#TransT").DataTable();
+
+
+// Modal to show address recovery result
+function drawRecoverResult(result) {
+
+    // Show modal with results
+    if(result.status == "success") {
+        $('#domModalTitle').text('Address Recovery Successful');
+        $('#domModalBody').html('Please ensure you keep a copy of these details in a secure location!<br />' +
+                                '<b>Address: </b><a href="http://qrlexplorer.info/search.html#'+result.recoveredAddress+'" target="_blank">'+result.recoveredAddress+'</a><br />'+
+                                '<b>Hexseed: </b>' + result.hexseed+'<br />'+
+                                '<b>Mnemonic: </b>' + result.mnemonic+'<br />'
+                                );
+
+        $('#domModal').modal('show');
+
+        // Hide loading pane
+        $('.dimmer').hide();
+        $('#dimmerText').text("Please wait ...");
+
+        // Show addresses
+        getAddresses();
+    } else {
+        $('#domModalTitle').text('Recovery Failed!');
+        $('#domModalBody').html('<b>Error: </b>'+result.message);
+
+        $('#domModal').modal('show');
+
+        // Hide loading pane
+        $('.dimmer').hide();
+        $('#dimmerText').text("Please wait ...");
+    }
+}
+
+
+// Recovers the wallet!
+function recoverAddress() {
+    $('.dimmer').show();
+    $('#dimmerText').text("Please wait ... this can take a while!");
+
+    var type = $('#restoretype').val();
+    var words = $('#words').val();
+    var hexseed = $('#hexseed').val();
+
+    $.ajax({
+        url: 'http://localhost:8888/webwallet-recover',
+        dataType: 'json',
+        contentType: 'application/json',
+        type: "POST",
+        data: JSON.stringify( { "type": type, "words": words, "hexseed": hexseed } ),
+        processData: false,
+        success: function(data) {
+            drawRecoverResult(data);
+        },
+        error: function(data) {
+            drawRecoverResult(data);
+        }
+    });
+}
+
+// Toggles which texbox to show on restore page.
+function toggleRestoreType() {
+    selectedRestoreType = $("#restoretype").val();
+
+    if(selectedRestoreType == "mnemonic") {
+        $('#restoreHex').hide();
+        $('#restoreMnemonic').show();
+    } else if(selectedRestoreType == "hexseed") {
+        $('#restoreHex').show();
+        $('#restoreMnemonic').hide();
+    } else {
+        $('#restoreHex').hide();
+        $('#restoreMnemonic').hide();
+    }
+}
+
+// Show the recover address page
+function recover() {
+    // Change view state
+    viewState = 3;
+
+    // Clear form values
+    $('#restoretype').val("");
+    $('#hexseed').val("");
+    $('#words').val("");
+
+    // Hide restore types
+    $('#restoreHex').hide();
+    $('#restoreMnemonic').hide();
+
+    // Hide other panes and show this one.
+    $('#show-all-wallets').hide();
+    $('#show-node-stats').hide();
+    $('#show-wallet').hide();
+    $('#show-recover').show();
+}
+
 
 // Draw a row in transactions table
 function drawTransRow(a, b, c, d, e, f, g, h) {
@@ -29,7 +127,7 @@ function drawTransRow(a, b, c, d, e, f, g, h) {
 
 // Gets detail about the running node
 function getNodeInfo(hideDimmer = false) {
-
+    // Change view state
     viewState = 2;
 
     // Dimmer does not show for auto refreshes.
@@ -39,6 +137,7 @@ function getNodeInfo(hideDimmer = false) {
 
     $('#show-wallet').hide();
     $('#show-all-wallets').hide();
+    $('#show-recover').hide();
     $('#show-node-stats').show();
 
 
@@ -125,6 +224,7 @@ function getNodeInfo(hideDimmer = false) {
 
 // Draws all addresses in wallet file to page.
 function drawAddresses(addresses) {
+    // Change view state
     viewState = 0;
 
     // Clear list first
@@ -153,6 +253,7 @@ function drawAddresses(addresses) {
 
     // Remove dimmer
     $('.dimmer').hide();
+    $('#dimmerText').text("Please wait ...");
 }
 
 // Queries a list of all addresses from wallet, and passing to draw function to rendor to screen
@@ -165,6 +266,7 @@ function getAddresses(hideDimmer = false) {
 
     $('#show-wallet').hide();
     $('#show-node-stats').hide();
+    $('#show-recover').hide();
     $('#show-all-wallets').show();
 
     $.ajax({
@@ -185,6 +287,7 @@ function getAddresses(hideDimmer = false) {
 // Creates a new XMSS 8000sig address in local wallet, then refreshes addresses on page.
 function createNewAddress() {
     $('.dimmer').show();
+    $('#dimmerText').text("Please wait ... this can take a while!");
     $.ajax({
         url: 'http://localhost:8888/webwallet-create-new-address',
         dataType: 'json',
@@ -206,6 +309,7 @@ function createNewAddress() {
 
 // Draws address detail to page
 function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
+    // Change view state
     viewState = 1;
 
     // Clear list first
@@ -336,6 +440,7 @@ function showAddress(addressIndex, hideDimmer = false) {
     // Change view
     $('#show-all-wallets').hide();
     $('#show-node-stats').hide();
+    $('#show-recover').hide();
     $('#show-wallet').show();
     
     // Get addresses then draw
@@ -360,18 +465,19 @@ function drawTxnResult(txnResult) {
     showAddress(currentDetailAddress);
 
     // Show modal with results
-    if(txnResult.status == "fail") {
-        $('#domModalTitle').text('Transaction Failed!');
-        $('#domModalBody').html('<b>Error: </b>'+txnResult.message);
-
-        $('#domModal').modal('show');
-    } else {
+    if(txnResult.status == "success") {
         $('#domModalTitle').text('Transaction Successful');
         $('#domModalBody').html('<b>TXN Hash: </b><a href="http://qrlexplorer.info/search.html#'+txnResult.txnhash+'" target="_blank">'+txnResult.txnhash+'</a><br />'+
                                 '<b>From: </b>' + txnResult.from+'<br />'+
                                 '<b>To: </b>' + txnResult.to+'<br />'+
                                 '<b>Amount: </b>' + txnResult.amount+' Qaunta<br />'
                                 );
+
+        $('#domModal').modal('show');
+    } else {
+
+        $('#domModalTitle').text('Transaction Failed!');
+        $('#domModalBody').html('<b>Error: </b>'+txnResult.message);
 
         $('#domModal').modal('show');
     }
@@ -411,6 +517,7 @@ $( document ).ready(function() {
     // Hide the detail pane
     $('#show-wallet').hide();
     $('#show-node-stats').hide();
+    $('#show-recover').hide();
 
     // Rendor addresses to screen.
     getAddresses();

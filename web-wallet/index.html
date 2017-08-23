@@ -23,12 +23,9 @@
                         <a class="item" href="#" onclick="getAddresses()">Show Addresses</a>
                         <a class="item" href="#" onclick="createNewAddress()">Create New Address</a>
                         
-                        <!--
                         <div class="divider"></div>
                         <div class="header">Recover</div>
-                        <a class="item" href="#" onclick="recoverWords()">Recover from Words</a>
-                        <a class="item" href="#" onclick="recoverHex()">Recover from Hex Seed</a>
-                        -->
+                        <a class="item" href="#" onclick="recover()">Recover Address</a>
                     </div>
                 </div>
                 <a href="#" onclick="getNodeInfo()" class="header item" style="font-weight: inherit;">
@@ -49,11 +46,10 @@
             <div class="item header">Wallet</div>
             <a class="item" href="#" onclick="getAddresses()">Show Addresses</a>
             <a class="item" href="#" onclick="createNewAddress()">Create New Address</a>
-            <!--
+
             <div class="item header">Recover</div>
-            <a class="item" href="#" onclick="recoverWords()">Recover from Words</a>
-            <a class="item" href="#" onclick="recoverHex()">Recover from Hex Seed</a>
-            -->
+            <a class="item" href="#" onclick="recover()">Recover Address</a>
+
             <div class="item header">About</div>
             <a class="item" href="http://theqrl.org/">&raquo; theQRL.org</a>
             <a class="item" href="http://theqrl.org/whitepaper/QRL_whitepaper.pdf">&raquo; White Paper</a>
@@ -69,7 +65,7 @@
             </div>
             <div class="main container">
                 <div class="ui active dimmer">
-                    <div class="ui massive text loader">Please Wait ...</div>
+                    <div class="ui massive text loader" id="dimmerText">Please Wait ...</div>
                 </div>
                 <div class="ui stackable grid">
                     <div class="twelve wide centered column">
@@ -137,7 +133,7 @@
                                     <br /><br />
                                 </div>
                                 <div class="extra content">
-                                    <button style="float:left;" onclick="sendQuanta()" class="ui button">Send Quanta</button>
+                                    <button style="float:left;" onclick="sendQuanta()" class="ui green button">Send Quanta</button>
                                     <button style="float:right;" onclick="getAddresses()" class="ui button">Back to Addresses</button>
                                 </div>
 
@@ -178,9 +174,45 @@
                                     </div>
                                     -->
                                 </div>
+                            </div>
 
+
+
+
+
+
+                            <!-- Show Recovery Pane -->
+                            <div id="show-recover" class="content">
+
+                                <b id="restoreheading" style="font-size:1.5em">Recover Address</b>
+                                <br /><br />
+                                <div class="extra content">
+                                    <label for="to">Recovery Type</label><br />
+                                    <select id="restoretype" name="restoretype" onchange="toggleRestoreType();" style="max-width: 100%; width: 540px;">
+                                        <option value="">-- Please Select --</option>
+                                        <option value="mnemonic">Mnemonic Phrase</option>
+                                        <option value="hexseed">Hexseed</option>
+                                    </select>
+
+                                    <br /><br />
+                                    <div id="restoreHex">
+                                        <label for="hexseed">Enter your Hexseed</label><br />
+                                        <input type="text" id="hexseed" name="hexseed" style="max-width: 100%;  width: 540px;"  />
+                                    </div>
+                                    <div id="restoreMnemonic">
+                                        <label for="words">Enter your Mnemonic Phrase</label><br />
+                                        <input type="text" id="words" name="words" style="max-width: 100%;  width: 540px;"  />
+                                    </div>
+                                    <br />
+                                </div>
+
+                                <div class="extra content">
+                                    <button style="float:left;" onclick="recoverAddress()" class="ui green button">Recover Address</button>
+                                    <button style="float:right;" onclick="getAddresses()" class="ui button">Back to Addresses</button>
+                                </div>
 
                             </div>
+
 
 
 

@@ -244,5 +244,5 @@ class Wallet:
                            type='WOTS+'):  # new address format returns a stateful XMSS class object
         return merkle.XMSS(signatures, SEED)
 
-    def savenewaddress(self, signatures=64, type='WOTS'):
-        self.f_append_wallet(self.getnewaddress(signatures, type))
+    def savenewaddress(self, signatures=64, type='WOTS', seed=None):
+        self.f_append_wallet(self.getnewaddress(signatures, type, seed))
