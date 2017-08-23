@@ -46,8 +46,10 @@ class Chain:
         self.transaction_pool = []
         self.txhash_timestamp = []
         self.m_blockchain = []
+
         self.wallet = wallet.Wallet(self, state)
         self.my = self.wallet.f_read_wallet()
+
         self.mining_address = self.my[0][1].address
         self.initialize()
         self.ping_list = []
@@ -608,7 +610,6 @@ class Chain:
 
         addr['status'] = 'ok'
         return helper.json_print_telnet(addr)
-
 
     # return json info on last n tx in the blockchain
 
@@ -1286,7 +1287,6 @@ class StateBuffer:
 
             if self.stxn_state[addr][1] == addr_list[1] and self.stxn_state[addr][2] == addr_list[2]:
                 del self.stxn_state[addr]
-
 
     def update_next_stake_list(self, block):
         for st in block.transactions:

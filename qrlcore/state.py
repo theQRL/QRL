@@ -9,6 +9,8 @@ import configuration as config
 from qrlcore import db, logger, transaction
 from qrlcore.merkle import sha256
 
+FILE_PEERS_DATA = './peers.dat'
+
 
 # state functions
 # first iteration - state data stored in leveldb file
@@ -312,7 +314,7 @@ class State:
         if verbose:
             logger.info(('stake_list --> '))
             for s in sl:
-                logger.info(( s[0], s[3] ))
+                logger.info((s[0], s[3]))
 
         epoch_seed = 0
 

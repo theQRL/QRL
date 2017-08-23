@@ -13,6 +13,8 @@ TX_SUBTYPE_STAKE = 'STAKE'
 TX_SUBTYPE_COINBASE = 'COINBASE'
 TX_SUBTYPE_LATTICE = 'LATTICE_PUBLIC_KEY'
 
+# A base class to be inherited by all other transaction
+# FIXME: Make class abstract?
 class Transaction(object):
 
     """
@@ -21,6 +23,8 @@ class Transaction(object):
 
     def __init__(self):
         self.nonce = 0  # Nonce is set when block is being created
+        # FIXME: Define attributes here
+        pass
 
     @staticmethod
     def get_tx_obj(tx):
@@ -99,6 +103,7 @@ class Transaction(object):
 
     def get_message_hash(self):
         message = StringIO()
+        # FIXME: This looks suspicious
         '''
         message.write(self.nonce)
         message.write(self.txfrom)
@@ -141,7 +146,7 @@ class StakeTransaction(Transaction):
 
     def get_message_hash(self):
         message = super(StakeTransaction, self).get_message_hash()
-        #message.write(self.epoch)
+        # message.write(self.epoch)
         message.write(self.hash)
         message.write(str(self.first_hash))
         return sha256(message.getvalue())

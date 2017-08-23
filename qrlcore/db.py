@@ -12,6 +12,7 @@ import json
 from qrlcore import logger
 import configuration as config
 
+
 class DB:
     def __init__(self):
         self.db_path = os.path.join(config.user.data_path, config.dev.db_name)
@@ -29,6 +30,7 @@ class DB:
         self.db = leveldb.LevelDB(self.db_path)
 
     def return_all_addresses(self):
+        # FIXME: Separate concerns (db / logic)
         addresses = []
         for k, v in self.db.RangeIter('Q'):
             if k[0] == 'Q':
@@ -37,6 +39,7 @@ class DB:
         return addresses
 
     def total_coin_supply(self):
+        # FIXME: Separate concerns (db / logic)
         coins = 0
         for k, v in self.db.RangeIter('Q'):
             if k[0] == 'Q':
@@ -45,6 +48,7 @@ class DB:
         return coins
 
     def zero_all_addresses(self):
+        # FIXME: Separate concerns (db / logic)
         addresses = []
         for k, v in self.db.RangeIter('Q'):
             addresses.append(k)

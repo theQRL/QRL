@@ -9,6 +9,9 @@ from traceback import extract_tb
 
 from twisted.internet import reactor
 
+import qrlcore.apifactory
+import qrlcore.p2pfactory
+import qrlcore.walletfactory
 import webwallet
 # TODO: Clean this up
 from qrlcore import apiprotocol, ntp, walletprotocol, node, logger
@@ -20,9 +23,9 @@ from qrlcore.state import State
 
 
 def log_traceback(exctype, value, tb):  # Function to log error's traceback
-    logger.info('*** Error ***')
-    logger.info(str(exctype))
-    logger.info(str(value))
+    logger.error('*** Error ***')
+    logger.error(str(exctype))
+    logger.error(str(value))
     tb_info = extract_tb(tb)
     for line in tb_info:
         logger.info(line)
@@ -62,8 +65,8 @@ def main():
 
     ntp.setDrift()
 
-    stateObj = State()
     logger.info('Initializing chain..')
+    stateObj = State()
     chainObj = Chain(state=stateObj)
 
     logger.info('Reading chain..')
@@ -75,7 +78,7 @@ def main():
     welcome = 'QRL node connection established. Try starting with "help"' + '\r\n'
     logger.info('>>>Listening..')
 
-    p2pFactory = node.P2PFactory(chain=chainObj, nodeState=nodeState)
+    p2pFactory = qrlcore.p2pfactory.P2PFactory(chain=chainObj, nodeState=nodeState)
     pos = node.POS(chain=chainObj, p2pFactory=p2pFactory, nodeState=nodeState, ntp=ntp)
     p2pFactory.setPOS(pos)
 

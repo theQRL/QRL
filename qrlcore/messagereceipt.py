@@ -32,8 +32,10 @@ from collections import OrderedDict, defaultdict
 import configuration as config
 from qrlcore.merkle import sha256
 
-class MessageReceipt:
+
+class MessageReceipt(object):
     allowed_types = ['TX', 'ST', 'BK', 'R1']
+
     def __init__(self):
         self.hash_msg = dict()
         self.hash_type = OrderedDict()
@@ -113,4 +115,3 @@ class MessageReceipt:
                     return True
 
         return
-

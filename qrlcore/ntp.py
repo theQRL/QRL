@@ -18,10 +18,9 @@ def get_ntp_response():
         ntp_client = ntplib.NTPClient()
         response = ntp_client.request(ntp_server, version=version)
     except Exception as ex:
-        logger.info(' Failed to Get NTP timing ')
-        logger.info((' Reason - ', str(ex)))
+        logger.error(' Failed to Get NTP timing ')
+        logger.error(' Reason %s ', str(ex))
         sys.exit(0)
-        return None
     return response
 
 

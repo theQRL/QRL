@@ -7,18 +7,14 @@ __author__ = 'pete'
 import os
 import json
 import random
-import struct
 import time
 from collections import Counter, defaultdict
 from copy import deepcopy
-from decimal import Decimal
 
 from twisted.internet import reactor
-from twisted.internet.protocol import ServerFactory, Protocol
 
 
 import fork
-import helper
 from messagereceipt import MessageReceipt
 from qrlcore.merkle import sha256
 from qrlcore.transaction import StakeTransaction, SimpleTransaction
@@ -636,45 +632,6 @@ class POS:
         return result
 
 
-class P2PProtocol(Protocol):
-    def __init__(self):
-        self.service = {'reboot': self.reboot,
-                        'MR': self.MR,
-                        # 'RFM': self.RFM, only for internal usage
-                        'SFM': self.SFM,
-                        'TX': self.TX,
-                        'ST': self.ST,
-                        'BM': self.BM,
-                        'BK': self.BK,
-                        'PBB': self.PBB,
-                        'PB': self.PB,
-                        'PH': self.PH,
-                        'LB': self.LB,
-                        'FMBH': self.FMBH,
-                        'PMBH': self.PMBH,
-                        'MB': self.MB,
-                        'CB': self.CB,
-                        'BN': self.BN,
-                        'FB': self.FB,
-                        'FH': self.FH,
-                        'PO': self.PO,
-                        'PI': self.PI,
-                        'PL': self.PL,
-                        'RT': self.RT,
-                        'PE': self.PE,
-                        'VE': self.VE,
-                        'R1': self.R1,
-                        'IP': self.IP,
-                        }
-        self.buffer = ''
-        self.messages = []
-        self.identity = None
-        self.blockheight = None
-        self.version = ''
-        self.blocknumber_headerhash = {}
-        self.last_requested_blocknum = None
-        self.fetch_tried = 0
-        pass
 
     def parse_msg(self, data):
         try:

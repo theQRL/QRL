@@ -128,7 +128,7 @@ class HMAC_DRBG():
 
         return
 
-    # PRF overlay functions
+        # PRF overlay functions
 
 
 def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
@@ -195,7 +195,7 @@ def mnemonic_to_seed(
 
     words = mnemonic.lower().split()
     if len(words) != 32:
-        logger.info('ERROR: mnemonic is not 32 words in length..')
+        logger.error('mnemonic is not 32 words in length..')
         return False
     SEED = ''
     y = 0
@@ -210,7 +210,7 @@ def mnemonic_to_seed(
 
 def seed_to_mnemonic(SEED):
     if len(SEED) != 48:
-        logger.info('ERROR: SEED is not 48 bytes in length..')
+        logger.error('SEED is not 48 bytes in length..')
         return False
     words = []
     y = 0
@@ -243,10 +243,10 @@ class XMSS(object):
     def __init__(self, signatures, SEED=None):
         self.type = 'XMSS'
         self.index = 0
-        #if signatures > 4986:  # after this we need to update seed for PRF..
+        # if signatures > 4986:  # after this we need to update seed for PRF..
         #    signatures = 4986
         if signatures > 8000:
-             signatures = 8000
+            signatures = 8000
         self.signatures = signatures  # number of OTS keypairs in tree to generate: n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
         self.remaining = signatures
 
@@ -289,12 +289,12 @@ class XMSS(object):
         self.index = i
 
     def sk(self, i=None):  # return OTS private key at position i
-        if i == None:
+        if i is None:
             i = self.index
         return self.privs[i]
 
     def pk(self, i=None):  # return OTS public key at position i
-        if i == None:
+        if i is None:
             i = self.index
         return self.pubs[i]
 
@@ -327,7 +327,7 @@ class XMSS(object):
     def SIGN(self, msg):
         i = self.index
         logger.info(('xmss signing with OTS n = ',
-                str(self.index)))  # formal sign and increment the index to the next OTS to be used..
+                     str(self.index)))  # formal sign and increment the index to the next OTS to be used..
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         self.index += 1
@@ -345,7 +345,7 @@ class XMSS(object):
         if i == None:
             i = self.signatures - len(self.addresses)
         if i > self.signatures or i < self.index:
-            logger.info('ERROR: i cannot be below signing index or above the pre-calculated signature count for xmss tree')
+            logger.error('i cannot be below signing index or above the pre-calculated signature count for xmss tree')
             return False
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i, self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]), hexlify(self.public_SEED)]
@@ -356,10 +356,10 @@ class XMSS(object):
 
     def address_adds(self, start_i, stop_i):  # batch creation of multiple addresses..
         if start_i > self.signatures or stop_i > self.signatures:
-            logger.info('ERROR: i cannot be greater than pre-calculated signature count for xmss tree')
+            logger.error('i cannot be greater than pre-calculated signature count for xmss tree')
             return False
         if start_i >= stop_i:
-            logger.info('ERROR: starting i must be lower than stop_i')
+            logger.error('starting i must be lower than stop_i')
             return False
 
         for i in range(start_i, stop_i):
@@ -368,13 +368,14 @@ class XMSS(object):
 
     def SIGN_subtree(self, msg, t=0):  # default to full xmss tree with max sigs
         if len(self.addresses) < t + 1:
-            logger.info('ERROR: self.addresses new address does not exist')
+            logger.error('self.addresses new address does not exist')
             return False
         i = self.index
         if self.addresses[t][2] < i:
-            logger.info('ERROR: xmss index above address derivation i')
+            logger.error('xmss index above address derivation i')
             return False
-        logger.info(('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
+        logger.info(
+            ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
         self.index += 1
@@ -414,7 +415,7 @@ class XMSS(object):
             self.hc_terminator.append(hash_chain[-1])
 
         for hash_chain in hc[-1:]:  # Reveal hash chain
-            for x in range(n+1):  # Extra hash to reveal one hash value
+            for x in range(n + 1):  # Extra hash to reveal one hash value
                 hash_chain.append(sha256(hash_chain[-1]))
             self.hc_terminator.append(hash_chain[-1])
         self.hc = hc
@@ -438,7 +439,7 @@ class XMSS(object):
             tmp_hc_terminator.append(hash_chain[-1])
 
         for hash_chain in hc[-1:]:
-            for x in range(n+1):
+            for x in range(n + 1):
                 hash_chain.append(sha256(hash_chain[-1]))
             tmp_hc_terminator.append(hash_chain[-1])
 
@@ -1017,7 +1018,7 @@ def verify_root(pub, merkle_root, merkle_path):
                 return False
         if sha256(merkle_path[x][0] + merkle_path[x][1]) not in merkle_path[x + 1]:
             return False
-            logger.info(('path authentication error'))
+            logger.error('path authentication error')
 
     return False
 
@@ -1196,7 +1197,7 @@ class Merkle(object):
 
     def create_tree(self):
 
-        if self.num_leaves <= 2: # catch case for which log doesn't do the job
+        if self.num_leaves <= 2:  # catch case for which log doesn't do the job
             num_branches = 1
         elif self.num_leaves <= 512:
             num_branches = int(ceil(log(num_leaves, 2)))
@@ -1223,7 +1224,7 @@ class Merkle(object):
         self.height = len(self.tree)
         if self.verbose == 1:
             logger.info(('Merkle tree created with ' + str(self.num_leaves),
-                    ' leaves, and ' + str(self.num_branches) + ' to root.'))
+                         ' leaves, and ' + str(self.num_branches) + ' to root.'))
         return self.tree
 
     def check_item(self):

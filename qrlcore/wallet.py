@@ -14,6 +14,10 @@ from qrlcore import merkle, logger, transaction
 from qrlcore.merkle import mnemonic_to_seed
 import configuration as config
 
+FILE_WALLET_INFO = './wallet.info'
+FILE_WALLET_DATA = './wallet.dat'
+FILE_MNEMONIC = './wallet.dat'
+
 
 class Wallet:
     ADDRESS_TYPE_XMSS = 'XMSS'
@@ -21,6 +25,8 @@ class Wallet:
     ADDRESS_TYPE_LDOTS = 'LDOTS'
 
     def __init__(self, chain, state):
+        # FIXME: state is already part of the chain
+        # FIXME: Probably the wallet should own the chain, not the opposite
         self.chain = chain
         self.state = state
         self.wallet_dat_filename = os.path.join(config.user.data_path, config.dev.wallet_dat_filename)
@@ -105,7 +111,7 @@ class Wallet:
             with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
         except:
-            logger.info('Error: likely no wallet.info found, creating..')
+            logger.error('Error: likely no wallet.info found, creating..')
             self.f_save_winfo()
             return False
         x = 0
