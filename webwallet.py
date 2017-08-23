@@ -14,7 +14,9 @@ import helper
 import time
 import json
 import os
+from merkle import hexseed_to_seed, mnemonic_to_seed
 import wallet
+
 
 class WebWallet:
     def __init__(self, chain, state, p2pFactory):
@@ -35,6 +37,7 @@ class WebWallet:
         resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
         resource.putChild("webwallet-mempool", memPoolSize(self.chain))
         resource.putChild("webwallet-sync", syncStatus(self.p2pFactory))
+        resource.putChild("webwallet-recover", recoverAddress(self.wallet, self.chain))
 
         factory = Site(resource)
         endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888, interface='127.0.0.1')
@@ -55,6 +58,89 @@ class newAddress(Resource):
     isLeaf = True
     def render_GET(self, request):
         return self.wallet.savenewaddress(signatures=8000, type='XMSS')
+
+class recoverAddress(Resource):
+    def __init__(self, Wallet, Chain):
+        self.wallet = Wallet
+        self.chain = Chain
+        self.result = {}
+
+    isLeaf = True
+    def render_POST(self, request):
+        req = request.content.read()
+        jsQ = json.loads(req)
+
+        self.result = {
+            'status': 'fail',
+            'message': '',
+            'recoveredAddress': '',
+            'hexseed': '',
+            'mnemonic': ''
+        }
+
+        # Recover address from mnemonic
+        if jsQ["type"] == "mnemonic":
+            # Fail if no words provided
+            if not jsQ["words"]:
+                self.result["message"] = "You must provide your mnemonic phrase!"
+                return helper.json_encode(self.result)
+
+            mnemonicphrase = jsQ["words"]
+            words = mnemonicphrase.split()
+            if len(words) != 32:
+                self.result["message"] = "Invalid mnemonic phrase! It must be 32 words exactly"
+                return helper.json_encode(self.result)
+
+            # Try to recover
+            try:
+                addr = self.wallet.savenewaddress(signatures=8000, type='XMSS', seed=mnemonic_to_seed(mnemonicphrase))
+
+                # Find hex/mnemonic for recovered wallet
+                for x in self.chain.my:
+                    if type(x[1]) == list:
+                        pass
+                    else:
+                        if x[1].type == 'XMSS' and x[1].mnemonic == mnemonicphrase:
+                            self.result["recoveredAddress"] = x[1].address
+                            self.result["hexseed"] = x[1].hexSEED
+                            self.result["mnemonic"] = x[1].mnemonic
+            except:
+                self.result["message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
+                return helper.json_encode(self.result)
+
+        # Recover address from hexseed
+        elif jsQ["type"] == "hexseed":
+            if not jsQ["hexseed"] or not hexseed_to_seed(jsQ["hexseed"]):
+                self.result["message"] = "Invalid Hex Seed!"
+                return helper.json_encode(self.result)
+
+            # Try to recover
+            try:
+                addr = self.wallet.savenewaddress(signatures=8000, type='XMSS', seed=hexseed_to_seed(jsQ["hexseed"]))
+
+                # Find hex/mnemonic for recovered wallet
+                for x in self.chain.my:
+                    if type(x[1]) == list:
+                        pass
+                    else:
+                        if x[1].type == 'XMSS' and x[1].hexSEED == jsQ["hexseed"]:
+                            self.result["recoveredAddress"] = x[1].address
+                            self.result["hexseed"] = x[1].hexSEED
+                            self.result["mnemonic"] = x[1].mnemonic
+            except:
+                self.result["message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
+                return helper.json_encode(self.result)
+
+        # Invalid selection
+        else:
+            self.result["message"] = "You must select either mnemonic or hexseed recovery options to restore an address!"
+            return helper.json_encode(self.result)
+
+        # If we got this far, it must have worked!
+        self.result["status"] = "success"
+
+        return helper.json_encode(self.result)
+
 
 class memPoolSize(Resource):
     def __init__(self, chain):
