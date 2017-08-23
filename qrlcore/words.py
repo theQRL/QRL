@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 # words list from which to derive mnemonic for SEED retrieval. 4096 words. Thus a 48 byte SEED can be represented by 32 words..
 
 __author__ = 'pete'

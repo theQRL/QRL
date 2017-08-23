@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
@@ -19,6 +22,8 @@ def initialize_default(force_console_output=False):
     if sys.flags.interactive or force_console_output:
         logger.setLevel(logging.INFO)
         logging_target = sys.stdout
+
+    print("INIT")
 
     handler = logging.StreamHandler(logging_target)
     handler.setFormatter(logging.Formatter(LOG_FORMAT_FULL, None))

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 from traceback import extract_tb
 from twisted.internet import reactor
 
@@ -31,10 +35,10 @@ if __name__ == "__main__":
     logger.initialize_default(force_console_output=True)
 
     # TODO: Decide when to log to a file
-    # TODO: Add command line arguments to set this
+    # TODO: Add command line arguments to apply configuration changes
     # logger.log_to_file()
 
-    nodeState = NodeState()
+    nodeState = NodeState()     # FIXME: purpose?
     ntp.setDrift()
 
     stateObj = State()

@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 import cPickle as pickle
 import os
 from operator import itemgetter
@@ -12,6 +15,7 @@ from qrlcore.merkle import sha256
 # state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
 
 class State:
+    # TODO: A more appropriate name would be something like persistent state
     def __init__(self):
         self.db = db.DB()  # generate db object here
 
@@ -33,49 +37,57 @@ class State:
     def state_get_peers(self):
         try:
             return self.db.get('node_list')
-        except:
-            return False
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
+            return []
 
     def state_put_peers(self, peer_list):
         try:
             self.db.put('node_list', peer_list)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def stake_list_get(self):
         try:
             return self.db.get('stake_list')
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return []
 
     def stake_list_put(self, sl):
         try:
             self.db.put('stake_list', sl)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def next_stake_list_get(self):
         try:
             return self.db.get('next_stake_list')
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return []
 
     def next_stake_list_put(self, next_sl):
         try:
             self.db.put('next_stake_list', next_sl)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def put_epoch_seed(self, epoch_seed):
         try:
             self.db.put('epoch_seed', epoch_seed)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def get_epoch_seed(self):
         try:
             return self.db.get('epoch_seed')
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
@@ -89,43 +101,50 @@ class State:
     def state_get_txn_count(self, addr):
         try:
             return self.db.get('txn_count_'+addr)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return 0
 
     def state_get_address(self, addr):
         try:
             return self.db.get(addr)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return [0, 0, []]
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
             return self.db.get(addr)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def state_balance(self, addr):
         try:
             return self.db.get(addr)[1]
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return 0
 
     def state_nonce(self, addr):
         try:
             return self.db.get(addr)[0]
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return 0
 
     def state_pubhash(self, addr):
         try:
             return self.db.get(addr)[2]
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return []
 
     def state_hrs(self, hrs):
         try:
             return self.db.get('hrs' + hrs)
-        except:
+        except Exception as e:
+            logger.warn("%s %s", type(e), e.message)
             return False
 
     def state_validate_tx_pool(self, chain):

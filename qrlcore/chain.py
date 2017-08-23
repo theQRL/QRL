@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 # QRL main blockchain, state, stake, transaction functions.
 
 # todo:
@@ -33,7 +36,7 @@ from collections import defaultdict
 import cPickle as pickle
 
 import wallet
-from block import CreateGenesisBlock
+from qrlcore.CreateGenesisBlock import CreateGenesisBlock
 import merkle
 from merkle import sha256
 import helper

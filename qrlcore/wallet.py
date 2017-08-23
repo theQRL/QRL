@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 # wallet code
 
 __author__ = 'pete'
@@ -12,6 +15,10 @@ from qrlcore.merkle import mnemonic_to_seed
 
 
 class Wallet:
+    ADDRESS_TYPE_XMSS = 'XMSS'
+    ADDRESS_TYPE_WOTS = 'WOTS'
+    ADDRESS_TYPE_LDOTS = 'LDOTS'
+
     def __init__(self, chain, state):
         self.chain = chain
         self.state = state
@@ -43,15 +50,15 @@ class Wallet:
         addr_list = []
 
         if os.path.isfile('./wallet.dat') is False:
-            logger.info('[info] Creating new wallet file..this could take up to a minute')
+            logger.info('Creating new wallet file..this could take up to a minute')
             SEED = None
             # For AWS test only
             if os.path.isfile('./mnemonic'):
-                with open('./mnemonic','r') as f:
+                with open('./mnemonic', 'r') as f:
                     SEED = f.read()
                     SEED = mnemonic_to_seed(SEED.strip())
 
-            #addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
+            # addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
             addr_list.append(self.getnewaddress(8000, 'XMSS', SEED=SEED))
             with open("./wallet.dat", "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(addr_list, myfile)
@@ -158,7 +165,6 @@ class Wallet:
                 if t.txto == address[0]:
                     x += t.amount
 
-
             dict_addr = {}
 
             # add state check for
@@ -171,9 +177,9 @@ class Wallet:
                 dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
                                      '(' + str(self.state.state_nonce(address[0]) + y) + ')'
                 dict_addr['signatures_left'] = str(
-                        address[1][0].signatures - self.state.state_nonce(address[0])) + ' (' + str(
-                        address[1][0].signatures - self.state.state_nonce(address[0]) - y) + '/' + str(
-                        address[1][0].signatures) + ')'
+                    address[1][0].signatures - self.state.state_nonce(address[0])) + ' (' + str(
+                    address[1][0].signatures - self.state.state_nonce(address[0]) - y) + '/' + str(
+                    address[1][0].signatures) + ')'
                 list_addr.append([address[0], 'type:', address[1][0].type, 'balance: ' + dict_addr['balance'],
                                   'nonce:' + dict_addr['nonce'], 'signatures left: ' + dict_addr['signatures_left']])
             else:  # xmss
@@ -214,19 +220,26 @@ class Wallet:
                 else:  # xmss
                     return address[1].remaining
 
-    #def getnewaddress(self, signatures=4096, type='XMSS',
-    def getnewaddress(self, signatures=8000, type='XMSS',
-                      SEED=None):  # new address format is a list of two items [address, data structure from random_mss call]
+    # def getnewaddress(self, signatures=4096, type='XMSS',
+    def getnewaddress(self, signatures=8000, type=ADDRESS_TYPE_XMSS, SEED=None):
+        """
+        Get a new wallet address
+        The address format is a list of two items [address, data structure from random_mss call]
+        :param signatures:
+        :param type:
+        :param SEED:
+        :return: a wallet address
+        """
         addr = []
-        if type == 'XMSS':
+        if type == Wallet.ADDRESS_TYPE_XMSS:
             new = merkle.XMSS(signatures=signatures, SEED=SEED)
             addr.append(new.address)
             addr.append(new)
-        elif type == 'WOTS':
+        elif type == Wallet.ADDRESS_TYPE_WOTS:
             new = merkle.random_wmss(signatures=signatures)
             addr.append(self.chain.roottoaddr(new[0].merkle_root))
             addr.append(new)
-        elif type == 'LDOTS':
+        elif type == Wallet.ADDRESS_TYPE_LDOTS:
             new = merkle.random_ldmss(signatures=signatures)
             addr.append(self.chain.roottoaddr(new[0].merkle_root))
             addr.append(new)
@@ -235,7 +248,7 @@ class Wallet:
 
         return addr
 
-    #def xmss_getnewaddress(self, signatures=4096, SEED=None,
+    # def xmss_getnewaddress(self, signatures=4096, SEED=None,
     def xmss_getnewaddress(self, signatures=8000, SEED=None,
                            type='WOTS+'):  # new address format returns a stateful XMSS class object
         return merkle.XMSS(signatures, SEED)

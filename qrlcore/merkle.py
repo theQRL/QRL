@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 # Python hash signature library (quantum resistant)
 #
 # creates merkle trees for the MSS incorporating either lamport or winternitz OTS.
@@ -88,6 +91,7 @@ class HMAC_DRBG():
 
         # if self.reseed_counter >= 10001:
         # if self.reseed_counter >= 20001:
+        # FIXME: Check the correct value
         if self.reseed_counter >= 80001:
             return None
 
@@ -131,6 +135,7 @@ class HMAC_DRBG():
 
 
 def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
+    # FIXME: There is no check for the seed size
     if i < 1:
         logger.info('i must be integer greater than 0')
         return
@@ -154,6 +159,7 @@ def GEN_range(SEED, start_i, end_i, l=32):  # returns start -> end iteration of 
 
 
 def GEN_range_bin(SEED, start_i, end_i, l=32):  # returns start -> end iteration of bin PRF (inclusive at both ends)
+    # FIXME: code repetition
     if start_i < 1:
         logger.info('starting i must be integer greater than 0')
         return
@@ -236,7 +242,7 @@ def hexseed_to_seed(hexSEED):
 
 # a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures. 
 
-class XMSS():
+class XMSS(object):
     def __init__(self, signatures, SEED=None):
         self.type = 'XMSS'
         self.index = 0
@@ -443,6 +449,7 @@ class XMSS():
 
 
 def xmss_tree(n, private_SEED, public_SEED):
+    # FIXME: Most other methods use pub/priv. Refactor?
     # no.leaves = 2^h
     h = ceil(log(n, 2))
 
