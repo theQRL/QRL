@@ -1,9 +1,14 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 import jsonpickle
 import simplejson as json
-from merkle import sha256
-import block
-import merkle
+
 import configuration as c
+from qrlcore import merkle
+from qrlcore import logger
+from qrlcore.merkle import sha256
+
 
 # simple transaction creation and wallet functions using the wallet file..
 
@@ -41,6 +46,7 @@ def checkaddress(merkle_root, address):
 
 
 def json_decode_block(json_block):
+    # FIXME: This is bad as it will required recursive imports
     myBlock = block.Block()
     myBlock.json_to_block(json.loads(json_block))
     return myBlock
@@ -84,7 +90,7 @@ def json_bytestream_bk(block_obj):  # "" block object
 
 
 def json_print(obj):  # prettify output from JSON for export purposes
-    printL((json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)))
+    logger.info((json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)))
 
 
 def json_print_telnet(obj):

@@ -1,6 +1,11 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 import sys
 from time import time
 import ntplib
+
+from qrlcore import logger
 
 ntp_server = 'pool.ntp.org'
 version = 3
@@ -13,8 +18,8 @@ def get_ntp_response():
         c = ntplib.NTPClient()
         response = c.request(ntp_server, version=version)
     except Exception as ex:
-        printL((' Failed to Get NTP timing '))
-        printL((' Reason - ', str(ex)))
+        logger.info(' Failed to Get NTP timing ')
+        logger.info((' Reason - ', str(ex)))
         sys.exit(0)
         return None
     return response

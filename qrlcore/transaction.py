@@ -1,10 +1,16 @@
-from StringIO import StringIO
-import simplejson as json
-import configuration as c
-import merkle
-from merkle import sha256
-import helper
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 import json
+from StringIO import StringIO
+
+import simplejson as json
+
+import configuration as c
+import helper
+from qrlcore import merkle, logger
+from qrlcore.merkle import sha256
+
 
 # A base class to be inherited by all other transaction
 class Transaction(object):
@@ -94,7 +100,7 @@ class StakeTransaction(Transaction):
 
     def create_stake_transaction(self, mining_address, blocknumber, data, hashchain_terminator=None, first_hash=None, balance=None):
         if not balance:
-            printL (( 'Invalid Balance', balance ))
+            logger.info(( 'Invalid Balance', balance ))
             raise Exception
         self.epoch = blocknumber // c.blocks_per_epoch  # in this block the epoch is..
         self.first_hash = first_hash
@@ -112,7 +118,7 @@ class StakeTransaction(Transaction):
             return False
         if self.first_hash:
             if sha256(self.first_hash) != self.hash[-1]:
-                printL ((' First_hash doesnt stake to hashterminator '))
+                logger.info(' First_hash doesnt stake to hashterminator ')
                 return False
 
         for i in range(len(self.hash)):
@@ -134,13 +140,13 @@ class StakeTransaction(Transaction):
         pubhash = sha256(''.join(pub))
 
         if self.balance > state.state_balance(self.txfrom):
-            printL (( 'Stake Transaction Balance is exceeds maximum balance' ))
-            printL (( 'Max Balance Expected ', state.state_balance(self.txfrom) ))
-            printL (( 'Balance found ', self.balance ))
+            logger.info('Stake Transaction Balance is exceeds maximum balance')
+            logger.info(( 'Max Balance Expected ', state.state_balance(self.txfrom) ))
+            logger.info(( 'Balance found ', self.balance ))
             return False
 
         if pubhash in state.state_pubhash(self.txfrom):
-            printL(('State validation failed for', self.hash, 'because: OTS Public key re-use detected'))
+            logger.info(('State validation failed for', self.hash, 'because: OTS Public key re-use detected'))
             return False
 
         return True
@@ -176,19 +182,19 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
 
     def pre_condition(self, state):
         # if state_uptodate() is False:
-        #	printL(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
+        #	logger.info(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
         #	return False
 
         if state.state_balance(self.txfrom) is 0:
-            printL(('State validation failed for', self.txhash, 'because: Empty address'))
+            logger.info(('State validation failed for', self.txhash, 'because: Empty address'))
             return False
 
         if state.state_balance(self.txfrom) < self.amount:
-            printL(('State validation failed for', self.txhash, 'because: Insufficient funds'))
+            logger.info(('State validation failed for', self.txhash, 'because: Insufficient funds'))
             return False
 
         if self.amount < 0:
-            printL(('State validation failed for', self.txhash, 'because: Negative send'))
+            logger.info(('State validation failed for', self.txhash, 'because: Negative send'))
             return False
 
         return True
@@ -216,7 +222,7 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
     def validate_tx(self):
         #sanity check: this is not how the economy is supposed to work!
     	if self.amount < 0:
-            printL(('State validation failed for', self.txhash, 'because: Negative send'))
+            logger.info(('State validation failed for', self.txhash, 'because: Negative send'))
             return False
         # cryptographic checks
         if self.txhash != sha256(''.join(self.txfrom + str(self.pubhash)) + self.txto + str(self.amount) + str(
@@ -261,11 +267,11 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
             pubhashn = sha256(''.join(pub))
 
             if pubhashn == pubhash:
-                printL(('State validation failed for', self.txhash, 'because: OTS Public key re-use detected'))
+                logger.info(('State validation failed for', self.txhash, 'because: OTS Public key re-use detected'))
                 return False
 
         if pubhash in state.state_pubhash(self.txfrom):
-            printL(('State validation failed for', self.txhash, 'because: OTS Public key re-use detected'))
+            logger.info(('State validation failed for', self.txhash, 'because: OTS Public key re-use detected'))
             return False
 
         return True

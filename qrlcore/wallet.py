@@ -1,24 +1,27 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 # wallet code
 
 __author__ = 'pete'
 
-import gc
-from merkle import mnemonic_to_seed
-import merkle
 import cPickle as pickle
+import gc
 import os
 import sys
 
+from qrlcore import merkle, logger
+from qrlcore.merkle import mnemonic_to_seed
+
 
 class Wallet:
+    ADDRESS_TYPE_XMSS = 'XMSS'
+    ADDRESS_TYPE_WOTS = 'WOTS'
+    ADDRESS_TYPE_LDOTS = 'LDOTS'
+
     def __init__(self, chain, state):
         self.chain = chain
         self.state = state
-
-    def log(self, string_data):
-        with open("./log/log.txt", "a") as myfile:
-            myfile.write(string_data)
-        return
 
     def recover_wallet(self):
         data = None
@@ -26,10 +29,10 @@ class Wallet:
             with open('./wallet.info', 'r') as myfile:
                 data = pickle.load(myfile)
             if data and len(data[0]) != 5:
-                printL(('wallet.info is also corrupted, cannot recover'))
+                logger.info('wallet.info is also corrupted, cannot recover')
                 return False
         except:
-            printL(('Wallet.info is corrupted'))
+            logger.info('Wallet.info is corrupted')
             return False
 
         with open("./wallet.dat", "w+") as myfile:
@@ -47,15 +50,15 @@ class Wallet:
         addr_list = []
 
         if os.path.isfile('./wallet.dat') is False:
-            printL(('[info] Creating new wallet file..this could take up to a minute'))
+            logger.info('Creating new wallet file..this could take up to a minute')
             SEED = None
             # For AWS test only
             if os.path.isfile('./mnemonic'):
-                with open('./mnemonic','r') as f:
+                with open('./mnemonic', 'r') as f:
                     SEED = f.read()
                     SEED = mnemonic_to_seed(SEED.strip())
 
-            #addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
+            # addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
             addr_list.append(self.getnewaddress(8000, 'XMSS', SEED=SEED))
             with open("./wallet.dat", "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(addr_list, myfile)
@@ -65,15 +68,15 @@ class Wallet:
                 with open('./wallet.dat', 'r') as myfile:
                     return pickle.load(myfile)
             except:
-                printL(('Wallet.dat corrupted'))
-                printL(('Trying to recover'))
+                logger.info('Wallet.dat corrupted')
+                logger.info('Trying to recover')
                 if self.recover_wallet():
                     continue
-                printL(('Failed to Recover Wallet'))
+                logger.info('Failed to Recover Wallet')
                 sys.exit()
 
     def f_save_wallet(self):
-        printL(('Syncing wallet file'))
+        logger.info('Syncing wallet file')
         with open("./wallet.dat", "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
             gc.collect()
@@ -88,7 +91,7 @@ class Wallet:
                 if tree[1].type == 'XMSS':
                     data.append(
                         [tree[1].mnemonic, tree[1].hexSEED, tree[1].signatures, tree[1].index, tree[1].remaining])
-        printL(('Fast saving wallet recovery details to wallet.info..'))
+        logger.info('Fast saving wallet recovery details to wallet.info..')
         with open("./wallet.info",
                   "w+") as myfile:  # stores the recovery phrase, signatures and the index for each tree in the wallet..
             pickle.dump(data, myfile)
@@ -99,7 +102,7 @@ class Wallet:
             with open('./wallet.info', 'r') as myfile:
                 data = pickle.load(myfile)
         except:
-            printL(('Error: likely no wallet.info found, creating..'))
+            logger.info('Error: likely no wallet.info found, creating..')
             self.f_save_winfo()
             return False
         x = 0
@@ -123,7 +126,7 @@ class Wallet:
                 self.chain.my = self.f_read_wallet()
         if data is not False:
             self.chain.my.append(data)
-            printL(('Appending wallet file..'))
+            logger.info('Appending wallet file..')
             with open("./wallet.dat", "w+") as myfile:  # overwrites wallet..
                 pickle.dump(self.chain.my, myfile)
         self.f_save_winfo()
@@ -162,7 +165,6 @@ class Wallet:
                 if t.txto == address[0]:
                     x += t.amount
 
-
             dict_addr = {}
 
             # add state check for
@@ -175,9 +177,9 @@ class Wallet:
                 dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
                                      '(' + str(self.state.state_nonce(address[0]) + y) + ')'
                 dict_addr['signatures_left'] = str(
-                        address[1][0].signatures - self.state.state_nonce(address[0])) + ' (' + str(
-                        address[1][0].signatures - self.state.state_nonce(address[0]) - y) + '/' + str(
-                        address[1][0].signatures) + ')'
+                    address[1][0].signatures - self.state.state_nonce(address[0])) + ' (' + str(
+                    address[1][0].signatures - self.state.state_nonce(address[0]) - y) + '/' + str(
+                    address[1][0].signatures) + ')'
                 list_addr.append([address[0], 'type:', address[1][0].type, 'balance: ' + dict_addr['balance'],
                                   'nonce:' + dict_addr['nonce'], 'signatures left: ' + dict_addr['signatures_left']])
             else:  # xmss
@@ -218,19 +220,26 @@ class Wallet:
                 else:  # xmss
                     return address[1].remaining
 
-    #def getnewaddress(self, signatures=4096, type='XMSS',
-    def getnewaddress(self, signatures=8000, type='XMSS',
-                      SEED=None):  # new address format is a list of two items [address, data structure from random_mss call]
+    # def getnewaddress(self, signatures=4096, type='XMSS',
+    def getnewaddress(self, signatures=8000, type=ADDRESS_TYPE_XMSS, SEED=None):
+        """
+        Get a new wallet address
+        The address format is a list of two items [address, data structure from random_mss call]
+        :param signatures:
+        :param type:
+        :param SEED:
+        :return: a wallet address
+        """
         addr = []
-        if type == 'XMSS':
+        if type == Wallet.ADDRESS_TYPE_XMSS:
             new = merkle.XMSS(signatures=signatures, SEED=SEED)
             addr.append(new.address)
             addr.append(new)
-        elif type == 'WOTS':
+        elif type == Wallet.ADDRESS_TYPE_WOTS:
             new = merkle.random_wmss(signatures=signatures)
             addr.append(self.chain.roottoaddr(new[0].merkle_root))
             addr.append(new)
-        elif type == 'LDOTS':
+        elif type == Wallet.ADDRESS_TYPE_LDOTS:
             new = merkle.random_ldmss(signatures=signatures)
             addr.append(self.chain.roottoaddr(new[0].merkle_root))
             addr.append(new)
@@ -239,7 +248,7 @@ class Wallet:
 
         return addr
 
-    #def xmss_getnewaddress(self, signatures=4096, SEED=None,
+    # def xmss_getnewaddress(self, signatures=4096, SEED=None,
     def xmss_getnewaddress(self, signatures=8000, SEED=None,
                            type='WOTS+'):  # new address format returns a stateful XMSS class object
         return merkle.XMSS(signatures, SEED)

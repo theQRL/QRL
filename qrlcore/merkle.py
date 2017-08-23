@@ -1,3 +1,6 @@
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 # Python hash signature library (quantum resistant)
 #
 # creates merkle trees for the MSS incorporating either lamport or winternitz OTS.
@@ -10,6 +13,7 @@
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
+from qrlcore import logger
 
 __author__ = 'pete'
 
@@ -29,19 +33,19 @@ import configuration as c
 def t(n):
     start_time = time.time()
     z = XMSS(n)
-    printL((str(time.time() - start_time)))
+    logger.info((str(time.time() - start_time)))
     return z
 
 
 def t2(s, m):
     start_time = time.time()
     xmss_verify(m, s)
-    printL((str(time.time() - start_time)))
+    logger.info(str(time.time() - start_time))
 
 
 def numlist(array):
     for a, b in enumerate(array):
-        printL((a, b))
+        logger.info((a, b))
     return
 
 
@@ -87,6 +91,7 @@ class HMAC_DRBG():
 
         # if self.reseed_counter >= 10001:
         # if self.reseed_counter >= 20001:
+        # FIXME: Check the correct value
         if self.reseed_counter >= 80001:
             return None
 
@@ -130,8 +135,9 @@ class HMAC_DRBG():
 
 
 def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
+    # FIXME: There is no check for the seed size
     if i < 1:
-        printL(('i must be integer greater than 0'))
+        logger.info('i must be integer greater than 0')
         return
     z = HMAC_DRBG(SEED)
     for x in range(i):
@@ -141,7 +147,7 @@ def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at positi
 
 def GEN_range(SEED, start_i, end_i, l=32):  # returns start -> end iteration of hex PRF (inclusive at both ends)
     if start_i < 1:
-        printL(('starting i must be integer greater than 0'))
+        logger.info('starting i must be integer greater than 0')
         return
     z = HMAC_DRBG(SEED)
     random_arr = []
@@ -153,8 +159,9 @@ def GEN_range(SEED, start_i, end_i, l=32):  # returns start -> end iteration of 
 
 
 def GEN_range_bin(SEED, start_i, end_i, l=32):  # returns start -> end iteration of bin PRF (inclusive at both ends)
+    # FIXME: code repetition
     if start_i < 1:
-        printL(('starting i must be integer greater than 0'))
+        logger.info('starting i must be integer greater than 0')
         return
     z = HMAC_DRBG(SEED)
     random_arr = []
@@ -191,7 +198,7 @@ def mnemonic_to_seed(
 
     words = mnemonic.lower().split()
     if len(words) != 32:
-        printL(('ERROR: mnemonic is not 32 words in length..'))
+        logger.info('ERROR: mnemonic is not 32 words in length..')
         return False
     SEED = ''
     y = 0
@@ -206,7 +213,7 @@ def mnemonic_to_seed(
 
 def seed_to_mnemonic(SEED):
     if len(SEED) != 48:
-        printL(('ERROR: SEED is not 48 bytes in length..'))
+        logger.info('ERROR: SEED is not 48 bytes in length..')
         return False
     words = []
     y = 0
@@ -235,7 +242,7 @@ def hexseed_to_seed(hexSEED):
 
 # a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures. 
 
-class XMSS():
+class XMSS(object):
     def __init__(self, signatures, SEED=None):
         self.type = 'XMSS'
         self.index = 0
@@ -322,7 +329,7 @@ class XMSS():
 
     def SIGN(self, msg):
         i = self.index
-        printL(('xmss signing with OTS n = ',
+        logger.info(('xmss signing with OTS n = ',
                 str(self.index)))  # formal sign and increment the index to the next OTS to be used..
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
@@ -341,7 +348,7 @@ class XMSS():
         if i == None:
             i = self.signatures - len(self.addresses)
         if i > self.signatures or i < self.index:
-            printL(('ERROR: i cannot be below signing index or above the pre-calculated signature count for xmss tree'))
+            logger.info('ERROR: i cannot be below signing index or above the pre-calculated signature count for xmss tree')
             return False
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i, self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]), hexlify(self.public_SEED)]
@@ -352,10 +359,10 @@ class XMSS():
 
     def address_adds(self, start_i, stop_i):  # batch creation of multiple addresses..
         if start_i > self.signatures or stop_i > self.signatures:
-            printL(('ERROR: i cannot be greater than pre-calculated signature count for xmss tree'))
+            logger.info('ERROR: i cannot be greater than pre-calculated signature count for xmss tree')
             return False
         if start_i >= stop_i:
-            printL(('ERROR: starting i must be lower than stop_i'))
+            logger.info('ERROR: starting i must be lower than stop_i')
             return False
 
         for i in range(start_i, stop_i):
@@ -364,13 +371,13 @@ class XMSS():
 
     def SIGN_subtree(self, msg, t=0):  # default to full xmss tree with max sigs
         if len(self.addresses) < t + 1:
-            printL(('ERROR: self.addresses new address does not exist'))
+            logger.info('ERROR: self.addresses new address does not exist')
             return False
         i = self.index
         if self.addresses[t][2] < i:
-            printL(('ERROR: xmss index above address derivation i'))
+            logger.info('ERROR: xmss index above address derivation i')
             return False
-        printL(('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
+        logger.info(('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
         self.index += 1
@@ -385,7 +392,7 @@ class XMSS():
 
     def address_n(self, t):
         if len(self.addresses) < t + 1:
-            printL(('ERROR: self.addresses new address does not exist'))
+            logger.info('ERROR: self.addresses new address does not exist')
             return False
         return self.addresses[t][1]
 
@@ -442,6 +449,7 @@ class XMSS():
 
 
 def xmss_tree(n, private_SEED, public_SEED):
+    # FIXME: Most other methods use pub/priv. Refactor?
     # no.leaves = 2^h
     h = ceil(log(n, 2))
 
@@ -509,7 +517,7 @@ def xmss_route(x_bms, x_tree, i=0):
             if node == ''.join(x_tree[x]):
                 auth_route.append(''.join(x_tree[x]))
             else:
-                printL(('Failed..root'))
+                logger.info('Failed..root')
                 return
 
         elif i == len(x_tree[x]) - 1 and leaf in x_tree[
@@ -521,7 +529,7 @@ def xmss_route(x_bms, x_tree, i=0):
         else:
             n = nodehash_list.index(leaf)  # position in the list == bitmask..
             if i % 2 == 0:  # left leaf, go right..
-                # printL((  'left'
+                # logger.info((  'left'
                 node = sha256(hex(int(leaf, 16) ^ int(x_bms[n], 16))[2:-1] + hex(
                     int(nodehash_list[n + 1], 16) ^ int(x_bms[n + 1], 16))[2:-1])
                 pair = nodehash_list[n + 1]
@@ -539,7 +547,7 @@ def xmss_route(x_bms, x_tree, i=0):
             try:
                 x_tree[x + 1].index(node)  # confirm node matches a hash in next layer up?
             except:
-                printL(('Failed at height', str(x)))
+                logger.info(('Failed at height', str(x)))
                 return
             leaf = node
             i = x_tree[x + 1].index(leaf)
@@ -644,7 +652,7 @@ def l_tree(pub, bm, l=67):
             if len(l_array[x]) == z + 1:
                 next_layer.append(l_array[x][z])
             else:
-                # printL((  str(l_array[x][z])
+                # logger.info((  str(l_array[x][z])
                 next_layer.append(sha256(hex(int(l_array[x][z], 16) ^ int(bm[2 * x], 16))[2:-1] + hex(
                     int(l_array[x][z + 1], 16) ^ int(bm[2 * x + 1], 16))[2:-1]))
             z += 2
@@ -707,7 +715,7 @@ def random_wpkey_xmss(seed, w=16, verbose=0):
         pub.append(chain_fn(sk_, r, w - 1, k))
 
     if verbose == 1:
-        printL((str(time.time() - start_time)))
+        logger.info((str(time.time() - start_time)))
     return priv, pub
 
 
@@ -748,7 +756,7 @@ def random_wpkey(w=16, verbose=0):
         pub.append(chain_fn(sk_, r, w - 1, k))
 
     if verbose == 1:
-        printL((str(time.time() - start_time)))
+        logger.info((str(time.time() - start_time)))
     return priv, pub
 
 
@@ -849,7 +857,7 @@ def random_wkey(w=8, verbose=0):  # create random W-OTS keypair
 
     elapsed_time = time.time() - start_time
     if verbose == 1:
-        printL((elapsed_time))
+        logger.info((elapsed_time))
     return priv, pub
 
 
@@ -1000,7 +1008,7 @@ def verify_root(pub, merkle_root, merkle_path):
     pubhash = sha256(''.join(pub))
 
     if pubhash not in merkle_path[0]:
-        printL(('hashed public key not in merkle path'))
+        logger.info('hashed public key not in merkle path')
         return False
 
     for x in range(len(merkle_path)):
@@ -1008,11 +1016,11 @@ def verify_root(pub, merkle_root, merkle_path):
             if ''.join(merkle_path[x]) == merkle_root:
                 return True
             else:
-                printL(('root check failed'))
+                logger.info('root check failed')
                 return False
         if sha256(merkle_path[x][0] + merkle_path[x][1]) not in merkle_path[x + 1]:
             return False
-            printL(('path authentication error'))
+            logger.info(('path authentication error'))
 
     return False
 
@@ -1055,7 +1063,7 @@ def random_wmss(signatures=4, verbose=0):  # create a w-ots mms with multiple si
         data[y].merkle_obj = a
 
     if verbose == 1:
-        printL(('Total MSS time = ', str(time.time() - begin)))
+        logger.info(('Total MSS time = ', str(time.time() - begin)))
 
     return data  # array of wots classes full of data.. and a class full of merkle
 
@@ -1080,12 +1088,12 @@ def random_ldmss(signatures=4, verbose=0):
         data[y].merkle_path = a.auth_lists[y]
         data[y].merkle_obj = a
     if verbose == 1:
-        printL(('Total MSS time = ', str(time.time() - begin)))
+        logger.info(('Total MSS time = ', str(time.time() - begin)))
 
     return data
 
 
-class LDOTS():
+class LDOTS(object):
     def __init__(self, signatures, index=0, verbose=0):
         self.signatures = signatures
         self.merkle_obj = []
@@ -1096,7 +1104,7 @@ class LDOTS():
         self.index = index
         self.concatpub = ""
         if verbose == 1:
-            printL(('New LD keypair generation ', str(self.index)))
+            logger.info(('New LD keypair generation ', str(self.index)))
         self.priv, self.pub = random_lkey()
 
         self.publist = [i for sub in self.pub for i in sub]  # convert list of tuples to list to allow cat.
@@ -1105,14 +1113,14 @@ class LDOTS():
         return
 
     def screen_printL(self):
-        printL((numlist(self.priv)))
-        printL((numlist(self.pub)))
-        printL((self.concatpub))
-        printL((self.pubhash))
+        logger.info((numlist(self.priv)))
+        logger.info((numlist(self.pub)))
+        logger.info((self.concatpub))
+        logger.info((self.pubhash))
         return
 
 
-class WOTS():
+class WOTS(object):
     def __init__(self, signatures, index=0, verbose=0):
         self.signatures = signatures
         self.merkle_obj = []
@@ -1123,7 +1131,7 @@ class WOTS():
         self.index = index
         self.concatpub = ""
         if verbose == 1:
-            printL(('New W-OTS keypair generation ', str(self.index)))
+            logger.info(('New W-OTS keypair generation ', str(self.index)))
         self.priv, self.pub = random_wkey(verbose=verbose)
 
         self.concatpub = ''.join(self.pub)
@@ -1131,16 +1139,16 @@ class WOTS():
         return
 
     def screen_print(self):
-        printL((numlist(self.priv)))
-        printL((numlist(self.pub)))
-        printL((self.concatpub))
-        printL((self.pubhash))
+        logger.info((numlist(self.priv)))
+        logger.info((numlist(self.pub)))
+        logger.info((self.concatpub))
+        logger.info((self.pubhash))
         return
 
 
 # merkle tree creation
 
-class Merkle():
+class Merkle(object):
     def __init__(self, base=[], verbose=0):
         self.base = base
         self.verbose = verbose
@@ -1157,7 +1165,7 @@ class Merkle():
         self.auth_lists = []
 
         if self.verbose == 1:
-            printL(('Calculating proofs: tree height ', str(self.height), ',', str(self.num_leaves), ' leaves'))
+            logger.info(('Calculating proofs: tree height ', str(self.height), ',', str(self.num_leaves), ' leaves'))
 
         for y in range(self.num_leaves):
             auth_route = []
@@ -1168,7 +1176,7 @@ class Merkle():
                         auth_route.append(self.root)
                         self.auth_lists.append(auth_route)
                     else:
-                        printL(('Merkle route calculation failed @ root'))
+                        logger.info(('Merkle route calculation failed @ root'))
                 else:
                     nodes = self.tree[x]
                     nodes_above = self.tree[x + 1]
@@ -1185,7 +1193,7 @@ class Merkle():
                                     pass
         elapsed_time = time.time() - start_time
         if self.verbose == 1:
-            printL((elapsed_time))
+            logger.info((elapsed_time))
 
         return
 
@@ -1217,7 +1225,7 @@ class Merkle():
         self.root = temp_array
         self.height = len(self.tree)
         if self.verbose == 1:
-            printL(('Merkle tree created with ' + str(self.num_leaves),
+            logger.info(('Merkle tree created with ' + str(self.num_leaves),
                     ' leaves, and ' + str(self.num_branches) + ' to root.'))
         return self.tree
 
