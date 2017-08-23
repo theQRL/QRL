@@ -1,12 +1,14 @@
-from twisted.internet.protocol import ServerFactory, Protocol
-from transaction import StakeTransaction
-from StringIO import StringIO
 import decimal
+import json
+import time
+from StringIO import StringIO
+
+from twisted.internet.protocol import ServerFactory, Protocol
+
 import configuration as c
 import helper
-import time
-from merkle import hexseed_to_seed, mnemonic_to_seed
-import json
+from qrlcore.merkle import hexseed_to_seed, mnemonic_to_seed
+from qrlcore.transaction import StakeTransaction
 
 
 class WalletProtocol(Protocol):
@@ -167,7 +169,7 @@ class WalletProtocol(Protocol):
                             not self.factory.p2pFactory.stake) + '\r\n')
 
                     self.factory.p2pFactory.stake = not self.factory.p2pFactory.stake
-                    printL(('STAKING set to: ', self.factory.p2pFactory.stake))
+                    logger.info(('STAKING set to: ', self.factory.p2pFactory.stake))
                     self.output['keys'] += ['stake']
                     self.output['stake'] = self.factory.p2pFactory.stake
                     return
@@ -179,7 +181,7 @@ class WalletProtocol(Protocol):
                                 self.factory.chain.m_blockchain[
                                     -1].blockheader.epoch * c.blocks_per_epoch))) + ' blocks time)' + '\r\n')
 
-                    printL(('STAKE for address:', self.factory.chain.mining_address))
+                    logger.info(('STAKE for address:', self.factory.chain.mining_address))
                     self.factory.p2pFactory.send_st_to_peers(
                         StakeTransaction().create_stake_transaction(self.factory.chain.mining_address,
                                                                     self.factory.chain.block_chain_buffer.height() + 1,
@@ -311,7 +313,7 @@ class WalletProtocol(Protocol):
             else:
                 self.transport.write(self.output['message'])
         except Exception:
-            printL (( 'Walletprotocol unexpected exception while sending msg to client'))
+            logger.info(( 'Walletprotocol unexpected exception while sending msg to client'))
             pass
 
         del self.output
@@ -328,16 +330,16 @@ class WalletProtocol(Protocol):
         self.transport.write('QRL node connection established. Try starting with "help" ')
         self.factory.connections += 1
         if self.factory.connections > 1:
-            printL(('only one local connection allowed'))
+            logger.info(('only one local connection allowed'))
             self.transport.write('only one local connection allowed, sorry')
             self.transport.loseConnection()
         else:
             if self.transport.getPeer().host == '127.0.0.1':
-                printL(('>>> new local connection', str(self.factory.connections), self.transport.getPeer()))
+                logger.info(('>>> new local connection', str(self.factory.connections), self.transport.getPeer()))
             # welcome functions to run here..
             else:
                 self.transport.loseConnection()
-                printL(('Unauthorised remote login attempt..'))
+                logger.info(('Unauthorised remote login attempt..'))
 
     def connectionLost(self, reason):
         self.factory.connections -= 1
@@ -552,7 +554,7 @@ class WalletProtocol(Protocol):
                 return
         else:
             self.output['message'].write('>>> TXN failed at validate_tx')
-            printL(('>>> TXN failed at validate_tx'))
+            logger.info(('>>> TXN failed at validate_tx'))
             return
 
         # send the transaction to peers (ie send it to the network - we are done)

@@ -3,15 +3,7 @@
 
 __author__ = 'scottdonaldau'
 
-from twisted.web.server import Site
-from twisted.web.static import File
-from twisted.web.resource import Resource
-from twisted.internet import reactor, endpoints
-from StringIO import StringIO
 import decimal
-import configuration as c
-import helper
-import time
 import json
 import os
 from merkle import hexseed_to_seed, mnemonic_to_seed
@@ -20,7 +12,6 @@ import wallet
 
 class WebWallet:
     def __init__(self, chain, state, p2pFactory):
-
         # Get working directory
         cwd = os.getcwd()
 
@@ -43,19 +34,25 @@ class WebWallet:
         endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888, interface='127.0.0.1')
         endpoint.listen(factory)
 
+
 class showAddresses(Resource):
     def __init__(self, Wallet):
+        Resource.__init__(self)
         self.wallet = Wallet
 
     isLeaf = True
+
     def render_GET(self, request):
         return helper.json_encode(self.wallet.list_addresses())
 
+
 class newAddress(Resource):
     def __init__(self, Wallet):
+        Resource.__init__(self)
         self.wallet = Wallet
 
     isLeaf = True
+
     def render_GET(self, request):
         return self.wallet.savenewaddress(signatures=8000, type='XMSS')
 
@@ -144,22 +141,29 @@ class recoverAddress(Resource):
 
 class memPoolSize(Resource):
     def __init__(self, chain):
+        Resource.__init__(self)
         self.chain = chain
 
     isLeaf = True
+
     def render_GET(self, request):
         return str(len(self.chain.transaction_pool))
 
+
 class syncStatus(Resource):
     def __init__(self, p2pFactory):
+        Resource.__init__(self)
         self.p2pFactory = p2pFactory
 
     isLeaf = True
+
     def render_GET(self, request):
         return str(self.p2pFactory.nodeState.state)
 
+
 class sendQuanta(Resource):
     def __init__(self, chain, state, p2pFactory):
+        Resource.__init__(self)
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
@@ -167,6 +171,7 @@ class sendQuanta(Resource):
         self.txnResult = {}
 
     isLeaf = True
+
     def render_POST(self, request):
         req = request.content.read()
         jsQ = json.loads(req)

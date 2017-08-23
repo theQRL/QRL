@@ -1,6 +1,8 @@
 import simplejson as json
 
 # Initializers to be decided
+from qrlcore import logger
+
 pending_blocks = {}
 last_bk_time = None
 last_ph_time = None
@@ -23,7 +25,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
     mini_block = json.loads(suffix)
     blocknumber = mini_block['blocknumber']
     if blocknumber in pending_blocks and pending_blocks[blocknumber][0] == peerIdentity:
-        printL(('Found in Fork Pending List'))
+        logger.info(('Found in Fork Pending List'))
         try:
             pending_blocks[blocknumber][3].cancel()
         except Exception:
@@ -36,8 +38,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
         if blocknumber >= epoch_minimum_blocknumber:
             randomize_headerhash_fetch(blocknumber - 1)
         else:
-            printL((
-                   '******Seems like chain has been forked in previous epoch... Manual intervention is required!!!!!******'))
+            logger.info('******Seems like chain has been forked in previous epoch... Manual intervention is required!!!!!******')
 
 
 def unfork(blocknumber, chain):
@@ -49,7 +50,7 @@ def unfork(blocknumber, chain):
                 s[2] -= 1
     del chain.m_blockchain[blocknumber:]
     chain.stake_list_put(sl)
-    printL(('Forked chain has been removed from blocknumber ', blocknumber))
+    logger.info(('Forked chain has been removed from blocknumber ', blocknumber))
     chain.state.update('unsynced')
 
 # def headerhash_lookup(blocknumber):

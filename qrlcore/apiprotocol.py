@@ -1,13 +1,18 @@
-import statistics
-import json
-import helper
 import copy
 import decimal
+import json
 import time
+
+import statistics
 from twisted.internet.protocol import ServerFactory, Protocol
+
+import helper
+from qrlcore import logger
 
 
 # factories and protocols..
+
+
 class ApiProtocol(Protocol):
     def __init__(self):
         self.api_list = [
@@ -77,11 +82,11 @@ class ApiProtocol(Protocol):
         return
 
     def exp_win(self, data=None):
-        printL(('<<< API expected winner call'))
+        logger.info('<<< API expected winner call')
         return self.factory.chain.exp_win(data)
 
     def ping(self, data=None):
-        printL(('<<< API network latency ping call'))
+        logger.info('<<< API network latency ping call')
         self.factory.pos.p2pFactory.ping_peers()  # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
         pings = {}
         pings['status'] = 'ok'
@@ -90,31 +95,31 @@ class ApiProtocol(Protocol):
         return helper.json_print_telnet(pings)
 
     def stakers(self, data=None):
-        printL(('<<< API stakers call'))
+        logger.info('<<< API stakers call')
         return self.factory.chain.stakers(data)
 
     def next_stakers(self, data=None):
-        printL(('<<< API next_stakers call'))
+        logger.info('<<< API next_stakers call')
         return self.factory.chain.next_stakers(data)
 
     def stake_commits(self, data=None):
-        printL(('<<< API stake_commits call'))
+        logger.info('<<< API stake_commits call')
         return self.factory.chain.stake_commits(data)
 
     def stake_reveals(self, data=None):
-        printL(('<<< API stake_reveals call'))
+        logger.info('<<< API stake_reveals call')
         return self.factory.chain.stake_reveals(data)
 
     def stake_reveal_ones(self, data=None):
-        printL(('<<< API stake_reveal_ones'))
+        logger.info('<<< API stake_reveal_ones')
         return self.factory.chain.stake_reveal_ones(data)
 
     def richlist(self, data=None):
-        printL(('<<< API richlist call'))
+        logger.info('<<< API richlist call')
         return self.factory.chain.richlist(data)
 
     def last_block(self, data=None):
-        printL(('<<< API last_block call'))
+        logger.info('<<< API last_block call')
         return self.factory.chain.last_block(data)
 
     def last_unconfirmed_tx(self, data=None):
@@ -122,11 +127,11 @@ class ApiProtocol(Protocol):
         return self.factory.chain.last_unconfirmed_tx(data)
 
     def last_tx(self, data=None):
-        printL(('<<< API last_tx call'))
+        logger.info('<<< API last_tx call')
         return self.factory.chain.last_tx(data)
 
     def ip_geotag(self, data=None):
-        printL(('<<< API ip_geotag call'))
+        logger.info('<<< API ip_geotag call')
         self.factory.pos.p2pFactory.ip_geotag_peers()
         return self.factory.chain.ip_geotag(data)
 
@@ -148,7 +153,7 @@ class ApiProtocol(Protocol):
             'method': 'block_data',
             'parameter': data
         }
-        printL(('<<< API block data call', data))
+        logger.info(('<<< API block data call', data))
         if not data:
             data = self.factory.chain.m_get_last_block()
             data1 = copy.deepcopy(data)
@@ -168,7 +173,7 @@ class ApiProtocol(Protocol):
             return helper.json_print_telnet(js_bk1)
 
     def stats(self, data=None):
-        printL(('<<< API stats call'))
+        logger.info('<<< API stats call')
 
         # calculate staked/emission %
         b = 0
@@ -209,15 +214,15 @@ class ApiProtocol(Protocol):
         return helper.json_print_telnet(net_stats)
 
     def txhash(self, data=None):
-        printL(('<<< API tx/hash call', data))
+        logger.info(('<<< API tx/hash call', data))
         return self.factory.chain.search_txhash(data)
 
     def balance(self, data=None):
-        printL(('<<< API address call', data))
+        logger.info(('<<< API address call', data))
         return self.factory.chain.basic_info(data)
 
     def address(self, data=None):
-        printL(('<<< API address call', data))
+        logger.info(('<<< API address call', data))
         return self.factory.chain.search_address(data)
 
     def dataReceived(self, data=None):

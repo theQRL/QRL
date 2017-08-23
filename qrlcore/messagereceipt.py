@@ -25,8 +25,9 @@ TODO:
    of hours.
 '''
 from collections import OrderedDict, defaultdict
+
 import configuration as c
-from merkle import sha256
+from qrlcore.merkle import sha256
 
 class MessageReceipt:
     allowed_types = ['TX', 'ST', 'BK', 'R1']

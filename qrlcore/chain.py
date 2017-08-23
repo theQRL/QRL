@@ -7,28 +7,30 @@
 # fees
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
+from qrlcore import logger
 
 __author__ = 'pete'
 
 import gc
+
 import configuration as c
+
 if c.compression_type == 'bz2':
     import bz2 as zip
 else:
     import zlib as zip
 from StringIO import StringIO
-from time import time, sleep
-from operator import itemgetter, attrgetter
+from time import time
+from operator import itemgetter
 from math import log, ceil
 import heapq
 
-import os, copy, ast, sys, jsonpickle
+import os, copy, sys
 from copy import deepcopy
 import simplejson as json
 from collections import defaultdict
 
 import cPickle as pickle
-
 
 import wallet
 from block import CreateGenesisBlock
@@ -39,10 +41,11 @@ from block import Block
 from transaction import SimpleTransaction
 from decimal import Decimal
 
+
 class Chain:
     def __init__(self, state):
         self.state = state
-        self.version_number = c.version_number  
+        self.version_number = c.version_number
         self.transaction_pool = []
         self.stake_pool = []
         self.txhash_timestamp = []
@@ -66,13 +69,13 @@ class Chain:
         self.stake_validator_latency = defaultdict(dict)
 
     def initialize(self):
-        printL(('QRL blockchain ledger ', self.version_number))
-        printL(('loading db'))
-        printL(('loading wallet'))
+        logger.info(('QRL blockchain ledger ', self.version_number))
+        logger.info(('loading db'))
+        logger.info(('loading wallet'))
 
         self.wallet.f_load_winfo()
 
-        printL(('mining/staking address', self.mining_address))
+        logger.info(('mining/staking address', self.mining_address))
 
     def validate_reboot(self, hash, nonce):
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
@@ -83,8 +86,8 @@ class Chain:
             pass
 
         if reboot_data[1] >= nonce:  # already used
-            msg = 'nonce in db '+str(reboot_data[1])
-            msg += '\nnonce provided '+str(nonce)
+            msg = 'nonce in db ' + str(reboot_data[1])
+            msg += '\nnonce provided ' + str(nonce)
             return None, msg
 
         reboot_data[1] = nonce
@@ -93,12 +96,12 @@ class Chain:
             output = sha256(output)
 
         if output != reboot_data[0]:
-            msg = 'expected hash '+str(reboot_data[0])
-            msg += '\nhash found '+str(output)
-            msg += '\nnonce provided '+str(nonce)+"\n"
+            msg = 'expected hash ' + str(reboot_data[0])
+            msg += '\nhash found ' + str(output)
+            msg += '\nnonce provided ' + str(nonce) + "\n"
             return None, msg
-        #reboot_data[1] += 1
-        #self.state.db.put('reboot_data', reboot_data)
+        # reboot_data[1] += 1
+        # self.state.db.put('reboot_data', reboot_data)
 
         return True, 'Success'
 
@@ -160,7 +163,7 @@ class Chain:
     def select_winners(self, reveals, topN=1, blocknumber=None, block=None, seed=None):
         winners = None
         if not seed:
-            printL (( 'Exception raised due to Seed is None'))
+            logger.info(('Exception raised due to Seed is None'))
             raise Exception
         if blocknumber:
             winners = heapq.nsmallest(topN, reveals, key=lambda reveal: self.score(
@@ -179,23 +182,23 @@ class Chain:
     # def score(self, stake_address, reveal_one, block_reward=0, blocknumber=None, block=None, seed=None):
     def score(self, stake_address, reveal_one, balance=0, seed=None, verbose=False):
         if not seed:
-            printL (( 'Exception Raised due to seed none in score fn'))
+            logger.info('Exception Raised due to seed none in score fn')
             raise Exception
-        #balance = self.state.state_balance(stake_address)
+        # balance = self.state.state_balance(stake_address)
         if not balance:
-            printL((' balance 0 so score none '))
-            printL((' stake_address ', stake_address))
+            logger.info(' balance 0 so score none ')
+            logger.info((' stake_address ', stake_address))
             return None
 
         reveal_one_number = int(reveal_one, 16)
-        #epoch_seed = self.block_chain_buffer.get_epoch_seed(blocknumber)
+        # epoch_seed = self.block_chain_buffer.get_epoch_seed(blocknumber)
 
-        score = (Decimal(c.N) - (Decimal(reveal_one_number | seed).log10()/Decimal(2).log10())) / Decimal(balance)
+        score = (Decimal(c.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(balance)
         if verbose:
-            printL (( 'Score - ', score))
-            printL (( 'reveal_one - ', reveal_one_number))
-            printL (( 'seed - ', seed ))
-            printL (( 'balance - ', balance ))
+            logger.info(('Score - ', score))
+            logger.info(('reveal_one - ', reveal_one_number))
+            logger.info(('seed - ', seed))
+            logger.info(('balance - ', balance))
         return score
 
     def update_pending_tx_pool(self, tx, peer):
@@ -233,8 +236,8 @@ class Chain:
                     if self.block_chain_buffer.pubhashExists(t.txfrom, t.pubhash, last_block_number + 1):
                         continue
                     d.append(t.txfrom)
-                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number+1, t.txfrom)[0] + d.count(t.txfrom)
-                    #t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
+                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, t.txfrom)[0] + d.count(t.txfrom)
+                    # t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
 
         # create the block..
 
@@ -268,7 +271,7 @@ class Chain:
     # merkle tree root hash of tx from pool for next POS block
 
     def merkle_tx_hash(self, hashes):
-        # printL(( 'type', type(hashes), 'len', len(hashes)
+        # logger.info(( 'type', type(hashes), 'len', len(hashes)
         if len(hashes) == 64:  # if len = 64 then it is a single hash string rather than a list..
             return hashes
         j = int(ceil(log(len(hashes), 2)))
@@ -285,13 +288,13 @@ class Chain:
                     next_layer.append(sha256(l_array[x][z] + l_array[x][z + 1]))
                 z += 2
             l_array.append(next_layer)
-        # printL(( l_array
+        # logger.info(( l_array
         return ''.join(l_array[-1])
 
     # return closest hash in numerical terms to merkle root hash of all the supplied hashes..
 
     def closest_hash(self, list_hash):
-        # printL(( 'list_hash', list_hash, len(list_hash)
+        # logger.info(( 'list_hash', list_hash, len(list_hash)
 
         if type(list_hash) == list:
             if len(list_hash) == 1:
@@ -332,7 +335,7 @@ class Chain:
             epoch_diff = (self.height() / c.blocks_per_epoch) - (
                 self.stake_ban_block[stake_address] / c.blocks_per_epoch)
             if self.height() - self.stake_ban_block[stake_address] > 10 or epoch_diff > 0:
-                printL(('Stake removed from ban list'))
+                logger.info('Stake removed from ban list')
                 del self.stake_ban_block[stake_address]
                 self.stake_ban_list.remove(stake_address)
                 return False
@@ -341,7 +344,7 @@ class Chain:
         return False
 
     def ban_stake(self, stake_address):
-        printL(('stake address ', stake_address, ' added to block list'))
+        logger.info(('stake address ', stake_address, ' added to block list'))
         self.stake_ban_list.append(stake_address)
         self.stake_ban_block[stake_address] = self.height() + 1
 
@@ -419,14 +422,14 @@ class Chain:
 
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
-                # printL(( txcontains, 'found in transaction pool..'
+                # logger.info(( txcontains, 'found in transaction pool..'
                 if long == 0: tx_list.append('<tx:txhash> ' + tx.txhash + ' <transaction_pool>')
                 if long == 1: tx_list.append(helper.json_print_telnet(tx))
 
         for block in self.m_blockchain:
             for tx in block.transactions:
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
-                    # printL(( txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
+                    # logger.info(( txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
                     if long == 0: tx_list.append(
                         '<tx:txhash> ' + tx.txhash + ' <block> ' + str(block.blockheader.blocknumber))
                     if long == 1: tx_list.append(helper.json_print_telnet(tx))
@@ -438,7 +441,7 @@ class Chain:
         err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
         for tx in self.transaction_pool:
             if tx.txhash == txhash:
-                printL((txhash, 'found in transaction pool..'))
+                logger.info((txhash, 'found in transaction pool..'))
                 tx_new = copy.deepcopy(tx)
                 tx_new.block = 'unconfirmed'
                 tx_new.hexsize = len(helper.json_bytestream(tx_new))
@@ -451,7 +454,7 @@ class Chain:
         except:
             pass
         if not txn_metadata:
-            printL((txhash, 'does not exist in memory pool or local blockchain..'))
+            logger.info((txhash, 'does not exist in memory pool or local blockchain..'))
             return helper.json_print_telnet(err)
 
         tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
@@ -462,10 +465,9 @@ class Chain:
         tx_new.hexsize = len(helper.json_bytestream(tx_new))
         tx_new.amount = tx_new.amount / 100000000.000000000
         tx_new.fee = tx_new.fee / 100000000.000000000
-        printL((txhash, 'found in block', str(txn_metadata[1]), '..'))
+        logger.info((txhash, 'found in block', str(txn_metadata[1]), '..'))
         tx_new.status = 'ok'
         return helper.json_print_telnet(tx_new)
-
 
     def basic_info(self, address):
         addr = {}
@@ -484,7 +486,7 @@ class Chain:
         addr['state']['transactions'] = self.state.state_get_txn_count(address)
         addr['status'] = 'ok'
         return helper.json_print_telnet(addr)
-        
+
     # used for port 80 api - produces JSON output reporting every transaction for an address, plus final balance..
 
     def search_address(self, address):
@@ -514,7 +516,7 @@ class Chain:
         addr['transactions'] = []
         for tx in self.transaction_pool:
             if tx.txto == address or tx.txfrom == address:
-                printL((address, 'found in transaction pool'))
+                logger.info((address, 'found in transaction pool'))
                 tmp_txn = {}
                 tmp_txn['txhash'] = tx.txhash
                 tmp_txn['block'] = 'unconfirmed'
@@ -530,7 +532,7 @@ class Chain:
 
         my_txn = []
         try:
-            my_txn = self.state.db.get('txn_'+address)
+            my_txn = self.state.db.get('txn_' + address)
         except:
             pass
 
@@ -538,7 +540,7 @@ class Chain:
             txn_metadata = self.state.db.get(txn_hash)
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
-                printL((address, 'found in block ', str(txn_metadata[1]), '..'))
+                logger.info((address, 'found in block ', str(txn_metadata[1]), '..'))
                 tmp_txn = {}
                 tmp_txn['txhash'] = tx.txhash
                 tmp_txn['block'] = txn_metadata[1]
@@ -708,7 +710,7 @@ class Chain:
 
         lb = []
         beginning = self.height() - n
-        for blocknum in range(self.height(), beginning-1, -1):
+        for blocknum in range(self.height(), beginning - 1, -1):
             block = self.m_get_block(blocknum)
             lb.append(block)
 
@@ -725,7 +727,7 @@ class Chain:
             tmp_block['number_transactions'] = block.blockheader.number_transactions
             tmp_block['number_stake'] = block.blockheader.number_stake
             tmp_block['timestamp'] = block.blockheader.timestamp
-            tmp_block['block_interval'] = block.blockheader.timestamp - lb[i-1].blockheader.timestamp
+            tmp_block['block_interval'] = block.blockheader.timestamp - lb[i - 1].blockheader.timestamp
             last_blocks['blocks'].append(tmp_block)
 
         last_blocks['status'] = 'ok'
@@ -838,18 +840,18 @@ class Chain:
     def search(self, txcontains, long=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
-                printL((txcontains, 'found in transaction pool..'))
+                logger.info((txcontains, 'found in transaction pool..'))
                 if long == 1: helper.json_print(tx)
         for block in self.m_blockchain:
             for tx in block.transactions:
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
-                    printL((txcontains, 'found in block', str(block.blockheader.blocknumber), '..'))
-                    if long == 0: printL(('<tx:txhash> ' + tx.txhash))
+                    logger.info((txcontains, 'found in block', str(block.blockheader.blocknumber), '..'))
+                    if long == 0: logger.info(('<tx:txhash> ' + tx.txhash))
                     if long == 1: helper.json_print(tx)
         return
 
     def f_read_chain(self, epoch):
-        baseDir = os.path.split(os.path.abspath(__file__))[0]+os.sep+c.chain_file_directory+os.sep
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
 
         if not os.path.isdir(baseDir):
             try:
@@ -860,15 +862,15 @@ class Chain:
 
         delimiter = c.binary_file_delimiter
         block_list = []
-        if os.path.isfile(baseDir+'chain.da' + str(epoch)) is False:
+        if os.path.isfile(baseDir + 'chain.da' + str(epoch)) is False:
             if epoch != 0:
                 return []
-            printL(('Creating new chain file'))
+            logger.info(('Creating new chain file'))
             block_list.append(CreateGenesisBlock(self))
             return block_list
 
         try:
-            with open(baseDir+'chain.da'+str(epoch), 'rb') as myfile:
+            with open(baseDir + 'chain.da' + str(epoch), 'rb') as myfile:
                 jsonBlock = StringIO()
                 tmp = ""
                 count = 0
@@ -877,7 +879,7 @@ class Chain:
                     chars = myfile.read(c.chain_read_buffer_size)
                     for char in chars:
                         offset += 1
-                        if count>0 and char!=delimiter[count]:
+                        if count > 0 and char != delimiter[count]:
                             count = 0
                             jsonBlock.write(tmp)
                             tmp = ""
@@ -900,7 +902,7 @@ class Chain:
                     if len(chars) < c.chain_read_buffer_size:
                         break
         except:
-            printL(('IO error'))
+            logger.info(('IO error'))
             return []
 
         gc.collect()
@@ -914,7 +916,7 @@ class Chain:
         for block in block_data:
             data.append(block)
         if block_data is not False:
-            printL(('Appending data to chain'))
+            logger.info(('Appending data to chain'))
             with open("./chain.dat",
                       "w+") as myfile:  # overwrites self.wallet..must use w+ as cannot append pickle item
                 pickle.dump(data, myfile)
@@ -926,7 +928,7 @@ class Chain:
         self.state.db.db.Put('block_' + str(blocknumber), str(blockPos) + ',' + str(blockSize))
 
     def update_last_tx(self, block):
-        if block.blockheader.number_transactions==0:
+        if block.blockheader.number_transactions == 0:
             return
         last_txn = []
         try:
@@ -941,20 +943,20 @@ class Chain:
     def update_wallet_tx_metadata(self, addr, new_txhash):
         txhash = []
         try:
-            txhash = self.state.db.get('txn_'+addr)
+            txhash = self.state.db.get('txn_' + addr)
         except Exception:
             pass
         txhash.append(new_txhash)
-        self.state.db.put('txn_'+addr, txhash)
+        self.state.db.put('txn_' + addr, txhash)
 
     def update_txn_count(self, txto, txfrom):
         last_count = self.state.state_get_txn_count(txto)
-        self.state.db.put('txn_count_'+txto, last_count+1)
+        self.state.db.put('txn_count_' + txto, last_count + 1)
         last_count = self.state.state_get_txn_count(txfrom)
-        self.state.db.put('txn_count_'+txfrom, last_count+1)
-        
+        self.state.db.put('txn_count_' + txfrom, last_count + 1)
+
     def update_tx_metadata(self, block):
-        if block.blockheader.number_transactions==0:
+        if block.blockheader.number_transactions == 0:
             return
 
         for txn in block.transactions:
@@ -968,8 +970,8 @@ class Chain:
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
         suffix = int(blocknumber // c.blocks_per_chain_file)
         writeable = self.m_blockchain[-c.disk_writes_after_x_blocks:]
-        printL(('Appending data to chain'))
-        with open(baseDir+'chain.da'+str(suffix), 'ab') as myfile:
+        logger.info(('Appending data to chain'))
+        with open(baseDir + 'chain.da' + str(suffix), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = helper.json_bytestream(block)
                 compressedBlock = zip.compress(jsonBlock, c.compression_level)
@@ -1010,7 +1012,7 @@ class Chain:
 
         epoch = 1
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
-        while os.path.isfile(baseDir+'chain.da' + str(epoch)):
+        while os.path.isfile(baseDir + 'chain.da' + str(epoch)):
             del self.m_blockchain[:-1]
             chains = self.f_read_chain(epoch)
 
@@ -1028,9 +1030,9 @@ class Chain:
 
     def load_from_file(self, blocknum):
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
-        epoch = int( blocknum // c.blocks_per_chain_file )
-        with open(baseDir+'chain.da'+str(epoch), 'rb') as f:
-            pos_size = self.state.db.db.Get('block_'+str(blocknum))
+        epoch = int(blocknum // c.blocks_per_chain_file)
+        with open(baseDir + 'chain.da' + str(epoch), 'rb') as f:
+            pos_size = self.state.db.db.Get('block_' + str(blocknum))
             pos, size = pos_size.split(',')
             pos = int(pos)
             size = int(size)
@@ -1074,11 +1076,11 @@ class Chain:
                 self.remove_tx_in_block_from_pool(block_obj)
                 self.remove_st_in_block_from_pool(block_obj)
             else:
-                printL(('last block failed state/stake checks, removed from chain'))
+                logger.info('last block failed state/stake checks, removed from chain')
                 self.state.state_validate_tx_pool(self)
                 return False
         else:
-            printL(('m_add_block failed - block failed validation.'))
+            logger.info('m_add_block failed - block failed validation.')
             return False
         self.m_f_sync_chain()
         return True
@@ -1089,9 +1091,8 @@ class Chain:
         self.m_blockchain.pop()
 
     def m_blockheight(self):
-        #return len(self.m_read_chain()) - 1
+        # return len(self.m_read_chain()) - 1
         return self.height()
-
 
     def height(self):
         if len(self.m_blockchain):
@@ -1100,13 +1101,13 @@ class Chain:
 
     def m_info_block(self, n):
         if n > self.m_blockheight():
-            printL(('No such block exists yet..'))
+            logger.info('No such block exists yet..')
             return False
         b = self.m_get_block(n)
-        printL(('Block: ', b, str(b.blockheader.blocknumber)))
-        printL(('Blocksize, ', str(len(helper.json_bytestream(b)))))
-        printL(('Number of transactions: ', str(len(b.transactions))))
-        printL(('Validates: ', b.validate_block(self)))
+        logger.info(('Block: ', b, str(b.blockheader.blocknumber)))
+        logger.info(('Blocksize, ', str(len(helper.json_bytestream(b)))))
+        logger.info(('Number of transactions: ', str(len(b.transactions))))
+        logger.info(('Validates: ', b.validate_block(self)))
 
     def m_f_sync_chain(self):
         if (self.m_blockchain[-1].blockheader.blocknumber + 1) % c.disk_writes_after_x_blocks == 0:
@@ -1130,7 +1131,7 @@ class Chain:
 
         for block in self.m_read_chain()[-x:]:
             if self.validate_block(block, verbose=verbose) is False:
-                printL(('block failed:', block.blockheader.blocknumber))
+                logger.info(('block failed:', block.blockheader.blocknumber))
                 return False
             n += 1
             if verbose is 1:
@@ -1184,7 +1185,7 @@ class Chain:
         for transaction in self.transaction_pool:
             if transaction.validate_tx() is False:
                 self.remove_tx_from_pool(transaction)
-                printL(('invalid tx: ', transaction, 'removed from pool'))
+                logger.info(('invalid tx: ', transaction, 'removed from pool'))
 
         return True
 
@@ -1204,11 +1205,11 @@ class Chain:
 
 
 class BlockBuffer:
-    def __init__(self, block, stake_reward, chain, seed, balance):#, prev_seed):
+    def __init__(self, block, stake_reward, chain, seed, balance):  # , prev_seed):
         self.block = block
         self.stake_reward = stake_reward
         self.score = self.block_score(chain, seed, balance)
-        #self.seed = sha256(block.blockheader.headerhash + str(prev_seed))
+        # self.seed = sha256(block.blockheader.headerhash + str(prev_seed))
 
     def block_score(self, chain, seed, balance):
         stake_selector = self.block.blockheader.stake_selector
@@ -1226,9 +1227,9 @@ class StateBuffer:
     def __init__(self):
         self.stake_list = {}
         self.next_stake_list = {}
-        self.stxn_state = {}  #key address, value [nonce, balance, pubhash]
-        self.next_seed = None ##
-        self.hash_chain = None ##
+        self.stxn_state = {}  # key address, value [nonce, balance, pubhash]
+        self.next_seed = None  ##
+        self.hash_chain = None  ##
 
     def set_next_seed(self, winning_reveal, prev_seed):
         self.next_seed = sha256(winning_reveal + str(prev_seed))
@@ -1243,18 +1244,18 @@ class StateBuffer:
         return tmp_sl
 
     def update(self, state, parent_state_buffer, block):
-        #epoch mod, helps you to know if its the new epoch
+        # epoch mod, helps you to know if its the new epoch
         epoch_mod = block.blockheader.blocknumber % c.blocks_per_epoch
 
         self.stake_list = deepcopy(parent_state_buffer.stake_list)
         self.next_stake_list = deepcopy(parent_state_buffer.next_stake_list)
-        #TODO filter all next_stake_list with first_reveal None
-        #Before adding_block, check if the stake_selector is in stake_list
+        # TODO filter all next_stake_list with first_reveal None
+        # Before adding_block, check if the stake_selector is in stake_list
         self.set_next_seed(block.blockheader.hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
         self.stxn_state = deepcopy(parent_state_buffer.stxn_state)
 
-        if not epoch_mod:   #State belongs to first block of next epoch
+        if not epoch_mod:  # State belongs to first block of next epoch
             self.stake_list = self.next_stake_list
             self.next_stake_list = {}
 
@@ -1276,7 +1277,7 @@ class StateBuffer:
     def update_stxn_state(self, block, state):
         ignore_addr = set()
         for tx in block.transactions:
-            ignore_addr.add(tx.txfrom) #list of addresses that needs to be included in the buffer
+            ignore_addr.add(tx.txfrom)  # list of addresses that needs to be included in the buffer
             ignore_addr.add(tx.txto)
             if tx.txto not in self.stxn_state:
                 self.stxn_state[tx.txto] = state.state_get_address(tx.txto)
@@ -1289,7 +1290,7 @@ class StateBuffer:
             self.stxn_state[tx.txto][1] += tx.amount
 
             if tx.txfrom in self.stxn_state:
-                if self.stxn_state[tx.txfrom][0]>tx.nonce:
+                if self.stxn_state[tx.txfrom][0] > tx.nonce:
                     continue
 
             self.stxn_state[tx.txfrom][0] = tx.nonce
@@ -1322,9 +1323,9 @@ class StateBuffer:
     def update_stake_list(self, block):
         stake_selector = block.blockheader.stake_selector
         if stake_selector not in self.stake_list:
-            printL (( 'Error Stake selector not found stake_list of block buffer state' ))
+            logger.info('Error Stake selector not found stake_list of block buffer state')
             raise Exception
-        self.stake_list[stake_selector][2] += 1 #Update Nonce
+        self.stake_list[stake_selector][2] += 1  # Update Nonce
 
 
 class ChainBuffer:
@@ -1343,8 +1344,8 @@ class ChainBuffer:
         self.epoch_seed = None
         self.hash_chain = {}
         self.hash_chain[self.epoch] = self.chain.my[0][1].hc
-        #self.tx_buffer = []  # maintain the list of tx transaction that has been confirmed in buffer
-        #self.st_buffer = []  # maintain the list of st transaction that has been confirmed in buffer
+        # self.tx_buffer = []  # maintain the list of tx transaction that has been confirmed in buffer
+        # self.st_buffer = []  # maintain the list of st transaction that has been confirmed in buffer
         self.tx_buffer = {}  # maintain the list of tx transaction that has been confirmed in buffer
         self.st_buffer = {}  # maintain the list of st transaction that has been confirmed in buffer
         if self.chain.height() > 0:
@@ -1352,25 +1353,25 @@ class ChainBuffer:
 
     def get_st_balance(self, stake_address, blocknumber):
         if stake_address is None:
-            printL (('stake address should not be none'))
+            logger.info('stake address should not be none')
             raise Exception
             return None
-        if blocknumber-1 == self.chain.height():
+        if blocknumber - 1 == self.chain.height():
             for st in self.state.stake_list_get():
                 if stake_address == st[0]:
-                    #printL (( 'balance by 1 '))
+                    # logger.info(( 'balance by 1 '))
                     return st[-1]
-            printL (('Blocknumber not found'))
+            logger.info('Blocknumber not found')
             return None
 
-        if blocknumber-1 not in self.strongest_chain:
-            printL (('Blocknumber not in strongest chain'))
+        if blocknumber - 1 not in self.strongest_chain:
+            logger.info('Blocknumber not in strongest chain')
             return None
 
         if blocknumber % c.blocks_per_epoch == 0:
-            #printL(('balance by 2 '))
-            return self.strongest_chain[blocknumber-1][1].next_stake_list[stake_address][-1]
-        #printL(('balance by 3 '))
+            # logger.info(('balance by 2 '))
+            return self.strongest_chain[blocknumber - 1][1].next_stake_list[stake_address][-1]
+        # logger.info(('balance by 3 '))
         return self.strongest_chain[blocknumber - 1][1].stake_list[stake_address][-1]
 
     def add_pending_block(self, block):
@@ -1412,13 +1413,13 @@ class ChainBuffer:
 
     def update_hash_chain(self, blocknumber):
         epoch = int((blocknumber + 1) // c.blocks_per_epoch)
-        printL(('Created new hash chain'))
-        #self.chain.my[0][1].hashchain(epoch=epoch)
-        new_my = deepcopy(self.my[epoch-1])
+        logger.info('Created new hash chain')
+        # self.chain.my[0][1].hashchain(epoch=epoch)
+        new_my = deepcopy(self.my[epoch - 1])
         new_my[0][1].hashchain(epoch=epoch)
         self.my[epoch] = new_my
         self.hash_chain[epoch] = new_my[0][1].hc
-        #self.wallet.f_save_wallet()
+        # self.wallet.f_save_wallet()
         gc.collect()
 
     def add_txns_buffer(self):
@@ -1429,15 +1430,15 @@ class ChainBuffer:
         self.tx_buffer = {}
         self.st_buffer = {}
         min_blocknum = self.chain.height() + 1
-        #max_blocknum = max(self.blocks.keys())
+        # max_blocknum = max(self.blocks.keys())
         max_blocknum = max(self.strongest_chain.keys())
 
-        #prev_headerhash = self.chain.m_blockchain[min_blocknum - 1].blockheader.headerhash
+        # prev_headerhash = self.chain.m_blockchain[min_blocknum - 1].blockheader.headerhash
         for blocknum in range(min_blocknum, max_blocknum + 1):
-            #block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
+            # block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
             block_state_buffer = self.strongest_chain[blocknum]
             block = block_state_buffer[0].block
-            #prev_headerhash = block.blockheader.headerhash
+            # prev_headerhash = block.blockheader.headerhash
             self.st_buffer[blocknum] = []
             self.tx_buffer[blocknum] = []
             for st in block.stake:
@@ -1450,7 +1451,7 @@ class ChainBuffer:
         # TODO : minimum block validation in unsynced state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // c.blocks_per_epoch)
-        prev_epoch = int((blocknum - 1 ) // c.blocks_per_epoch)
+        prev_epoch = int((blocknum - 1) // c.blocks_per_epoch)
         headerhash = block.blockheader.headerhash
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
@@ -1459,16 +1460,16 @@ class ChainBuffer:
 
         if blocknum - 1 == self.chain.height():
             if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
-                printL(('prev_headerhash of block doesnt match with headerhash of m_blockchain'))
+                logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
                 return
         elif blocknum - 1 > 0:
             if blocknum - 1 not in self.blocks or prev_headerhash not in self.headerhashes[blocknum - 1]:
-                printL(('No block found in buffer that matches with the prev_headerhash of received block'))
+                logger.info('No block found in buffer that matches with the prev_headerhash of received block')
                 return
 
         if validate:
             if not self.chain.m_add_block(block, verify_block_reveal_list):
-                printL(("Failed to add block by m_add_block, re-requesting the block #", blocknum))
+                logger.info(("Failed to add block by m_add_block, re-requesting the block #", blocknum))
                 return
         else:
             if self.state.state_add_block(self.chain, block) is True:
@@ -1480,7 +1481,7 @@ class ChainBuffer:
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.calc_seed(self.state.stake_list_get(), verbose=False)
-            #self.update_hash_chain(block.blockheader.blocknumber)
+            # self.update_hash_chain(block.blockheader.blocknumber)
             self.my[epoch + 1] = self.chain.my
             self.hash_chain[epoch + 1] = self.chain.my[0][1].hc
             if epoch in self.my:
@@ -1504,11 +1505,11 @@ class ChainBuffer:
 
         if blocknum - 1 == self.chain.height():
             if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
-                printL(('Failed due to prevheaderhash mismatch, blockslen ', len(self.blocks)))
+                logger.info(('Failed due to prevheaderhash mismatch, blockslen ', len(self.blocks)))
                 return
         else:
             if blocknum - 1 not in self.blocks or prev_headerhash not in self.headerhashes[blocknum - 1]:
-                printL(('Failed due to prevheaderhash mismatch, blockslen ', len(self.blocks)))
+                logger.info(('Failed due to prevheaderhash mismatch, blockslen ', len(self.blocks)))
                 return
 
         if blocknum not in self.blocks:
@@ -1529,14 +1530,14 @@ class ChainBuffer:
             tmp_stake_list = self.state.stake_list_get()
             tmp_next_stake_list = self.state.next_stake_list_get()
 
-            if blocknum % c.blocks_per_epoch == 0:   #quick fix when a node starts, it already moved to next epoch stake list
+            if blocknum % c.blocks_per_epoch == 0:  # quick fix when a node starts, it already moved to next epoch stake list
                 tmp_stake_list, tmp_next_stake_list = tmp_next_stake_list, tmp_stake_list
 
             if not self.state_validate_block(block, copy.deepcopy(tmp_stake_list), copy.deepcopy(tmp_next_stake_list)):
-                printL(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
+                logger.info(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
                 return
 
-            if blocknum % c.blocks_per_epoch == 0:   #quick fix swapping back values
+            if blocknum % c.blocks_per_epoch == 0:  # quick fix swapping back values
                 tmp_stake_list, tmp_next_stake_list = tmp_next_stake_list, tmp_stake_list
 
             for st in tmp_stake_list:
@@ -1552,7 +1553,7 @@ class ChainBuffer:
         else:
             parent_state_buffer = None
             parent_seed = None
-            for buffer in self.blocks[blocknum-1]:
+            for buffer in self.blocks[blocknum - 1]:
                 prev_block = buffer[0].block
                 if prev_block.blockheader.headerhash == prev_headerhash:
                     parent_state_buffer = buffer[1]
@@ -1582,7 +1583,7 @@ class ChainBuffer:
 
         self.headerhashes[blocknum].append(block.blockheader.headerhash)
 
-        #block_left = c.blocks_per_epoch - (
+        # block_left = c.blocks_per_epoch - (
         #    block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch))
         epoch = blocknum // c.blocks_per_epoch
         next_epoch = (blocknum + 1) // c.blocks_per_epoch
@@ -1600,7 +1601,8 @@ class ChainBuffer:
 
         address_txn = {}
         blocknumber = block.blockheader.blocknumber
-        address_txn[block.blockheader.stake_selector] = self.get_stxn_state(blocknumber, block.blockheader.stake_selector)
+        address_txn[block.blockheader.stake_selector] = self.get_stxn_state(blocknumber,
+                                                                            block.blockheader.stake_selector)
 
         for st in block.stake:
             if st.txfrom not in address_txn:
@@ -1614,8 +1616,8 @@ class ChainBuffer:
 
 
         found = False
-        #sl = self.stake_list_get(block.blockheader.blocknumber)
-        #next_sl = self.next_stake_list_get(block.blockheader.blocknumber)
+        # sl = self.stake_list_get(block.blockheader.blocknumber)
+        # next_sl = self.next_stake_list_get(block.blockheader.blocknumber)
 
         blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch)
         blocks_left = c.blocks_per_epoch - blocks_left
@@ -1625,15 +1627,15 @@ class ChainBuffer:
                 found = True
                 s[2] += 1
                 if s[2] != block.blockheader.stake_nonce:
-                    printL(('stake_nonce wrong..'))
-                    printL(('block STake Selector ', block.blockheader.stake_selector))
-                    printL(('Expected Nonce ', str(s[2])))
-                    printL(('Actual Nonce ', str(block.blockheader.stake_nonce)))
+                    logger.info(('stake_nonce wrong..'))
+                    logger.info(('block STake Selector ', block.blockheader.stake_selector))
+                    logger.info(('Expected Nonce ', str(s[2])))
+                    logger.info(('Actual Nonce ', str(block.blockheader.stake_nonce)))
                     return
                 break
 
         if not found:
-            printL(('stake selector not in stake_list_get'))
+            logger.info(('stake selector not in stake_list_get'))
             return
 
         for st in block.stake:
@@ -1654,10 +1656,10 @@ class ChainBuffer:
                         if epoch_blocknum >= threshold_block - 1:
                             s[3] = st.first_hash
                         else:
-                            printL(('^^^^^^Rejected as ', epoch_blocknum, threshold_block - 1))
-                            printL(('Loss of data ', s[0], 'old ', s[3], 'new ', st.first_hash))
+                            logger.info(('^^^^^^Rejected as ', epoch_blocknum, threshold_block - 1))
+                            logger.info(('Loss of data ', s[0], 'old ', s[3], 'new ', st.first_hash))
                     # else:
-                    #    printL (('Else of next_sl ', s[0], s[3], st.first_hash ))
+                    #    logger.info(('Else of next_sl ', s[0], s[3], st.first_hash ))
                     break
 
             address_txn[st.txfrom][2].append(pubhash)
@@ -1677,22 +1679,22 @@ class ChainBuffer:
 
             # if s1[1] - tx.amount < 0:
             if address_txn[tx.txfrom][1] - tx.amount < 0:
-                printL((tx, tx.txfrom, 'exceeds balance, invalid tx'))
-                printL(('Buffer State Balance: ', address_txn[tx.txfrom][1], ' Transfer Amount ', tx.amount ))
+                logger.info((tx, tx.txfrom, 'exceeds balance, invalid tx'))
+                logger.info(('Buffer State Balance: ', address_txn[tx.txfrom][1], ' Transfer Amount ', tx.amount ))
                 return False
 
             if tx.nonce != address_txn[tx.txfrom][0] + 1:
-                printL(('nonce incorrect, invalid tx'))
-                printL((tx, tx.txfrom, tx.nonce, address_txn[tx.txfrom][0]+1))
+                logger.info('nonce incorrect, invalid tx')
+                logger.info((tx, tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1))
                 return False
 
             if pubhash in address_txn[tx.txfrom][2]:
-                printL(('pubkey reuse detected: invalid tx', tx.txhash))
+                logger.info(('pubkey reuse detected: invalid tx', tx.txhash))
                 return False
 
             # add a check to prevent spend from stake address..
             # if tx.txfrom in stake_list_get():
-            # printL(( 'attempt to spend from a stake address: invalid tx type'
+            # logger.info(( 'attempt to spend from a stake address: invalid tx type'
             # break
 
             address_txn[tx.txfrom][0] += 1
@@ -1709,10 +1711,10 @@ class ChainBuffer:
         return True
 
     def recalculate_strongest_chain(self, blocknum):
-        if blocknum+1 not in self.strongest_chain:
+        if blocknum + 1 not in self.strongest_chain:
             return
 
-        for i in range(blocknum+1, max(self.strongest_chain)+1):
+        for i in range(blocknum + 1, max(self.strongest_chain) + 1):
             del self.strongest_chain[i]
 
         block = self.strongest_chain[blocknum][0].block
@@ -1751,10 +1753,10 @@ class ChainBuffer:
     def get_strongest_headerhash(self, blocknum):
         if blocknum <= self.chain.height():
             return self.chain.m_get_block(blocknum).blockheader.headerhash
-            #return self.chain.m_blockchain[blocknum].blockheader.headerhash
+            # return self.chain.m_blockchain[blocknum].blockheader.headerhash
 
         if blocknum not in self.strongest_chain:
-            printL(('Blocknum : ', str(blocknum), ' not found in buffer'))
+            logger.info(('Blocknum : ', str(blocknum), ' not found in buffer'))
             return None
 
         return self.strongest_chain[blocknum][0].block.blockheader.headerhash
@@ -1785,8 +1787,8 @@ class ChainBuffer:
             return self.state.stake_list_get()
 
         if blocknumber - 1 not in self.strongest_chain:
-            printL (('Stake list None'))
-            printL (('blocknumber #', blocknumber-1, 'not found in strongest_chain'))
+            logger.info(('Stake list None'))
+            logger.info(('blocknumber #', blocknumber - 1, 'not found in strongest_chain'))
             return None
 
         stateBuffer = self.strongest_chain[blocknumber - 1][1]
@@ -1811,22 +1813,22 @@ class ChainBuffer:
             return
         min_block = min(self.blocks)
         max_block = max(self.blocks)
-        printL(('=' * 40))
+        logger.info(('=' * 40))
         for blocknum in range(min_block, max_block + 1):
-            printL(('Block number #', str(blocknum)))
+            logger.info(('Block number #', str(blocknum)))
             for buffer in self.blocks[blocknum]:
                 blockBuffer = buffer[0]
                 block = blockBuffer.block
-                printL((block.blockheader.headerhash, ' ', str(blockBuffer.score), ' ',
-                        str(block.blockheader.block_reward)))
-                printL((block.blockheader.hash, ' ', block.blockheader.stake_selector))
-        printL(('=' * 40))
+                logger.info((block.blockheader.headerhash, ' ', str(blockBuffer.score), ' ',
+                             str(block.blockheader.block_reward)))
+                logger.info((block.blockheader.hash, ' ', block.blockheader.stake_selector))
+        logger.info(('=' * 40))
 
     def move_to_mainchain(self):
         blocknum = self.chain.height() + 1
         block = self.strongest_chain[blocknum][0].block
         if not self.state.state_add_block(self.chain, block):
-            printL(('last block failed state/stake checks, removed from chain'))
+            logger.info('last block failed state/stake checks, removed from chain')
             return False
 
         self.chain.m_blockchain.append(block)
@@ -1839,7 +1841,7 @@ class ChainBuffer:
         del (self.blocks[blocknum])
         del (self.headerhashes[blocknum])
         del self.strongest_chain[blocknum]
-        prev_epoch = int((blocknum - 1) // c.blocks_per_epoch )
+        prev_epoch = int((blocknum - 1) // c.blocks_per_epoch)
         self.epoch = int(blocknum // c.blocks_per_epoch)
         if prev_epoch != self.epoch:
             if prev_epoch in self.my:
@@ -1869,7 +1871,7 @@ class ChainBuffer:
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
         max_blocknum = max(self.pending_blocks.keys())
-        printL(('Processing pending blocks', min_blocknum, max_blocknum))
+        logger.info(('Processing pending blocks', min_blocknum, max_blocknum))
         for blocknum in range(min_blocknum, max_blocknum + 1):
             for block in self.pending_blocks[blocknum]:
                 self.add_block(block)
@@ -1879,7 +1881,7 @@ class ChainBuffer:
         state_addr = self.get_stxn_state(blocknumber, addr)
 
         if state_addr is None:
-            printL (( '-->> state_addr None not possible' ))
+            logger.info('-->> state_addr None not possible')
             return False
 
         if pubhash in state_addr[2]:

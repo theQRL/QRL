@@ -1,14 +1,17 @@
-from merkle import sha256
+import decimal
+from copy import deepcopy
+from math import log
+
 import configuration as c
 import helper
-import ntp
-from math import log
-import decimal
 import merkle
+import ntp
+from merkle import sha256
+from qrlcore import logger
 from transaction import StakeTransaction, SimpleTransaction
-from copy import deepcopy
 
-class BlockHeader():
+
+class BlockHeader(object):
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions,
                number_stake, hashedstake, reveal_list=None, vote_hashes=None, last_block_number=-1):
         if not reveal_list:
@@ -22,7 +25,7 @@ class BlockHeader():
         else:
             self.timestamp = ntp.getTime()
             if self.timestamp == 0:
-                printL(('Failed to get NTP timestamp'))
+                logger.info('Failed to get NTP timestamp')
                 return
         self.prev_blockheaderhash = prev_blockheaderhash
         self.number_transactions = number_transactions
@@ -168,9 +171,9 @@ class Block():
             sthashes = []
             for st in chain.stake_pool:
                 if st.epoch != curr_epoch:
-                    printL(('Skipping st as epoch mismatch, CreateBlock()'))
-                    printL(('Expected st epoch : ', curr_epoch))
-                    printL(('Found st epoch : ', st.epoch))
+                    logger.info('Skipping st as epoch mismatch, CreateBlock()')
+                    logger.info(('Expected st epoch : ', curr_epoch))
+                    logger.info(('Found st epoch : ', st.epoch))
                     continue
                 #if st.get_message_hash() not in chain.block_chain_buffer.st_buffer:
                 '''
@@ -198,9 +201,9 @@ class Block():
         '''
         for st in chain.stake_pool:
             if st.epoch != curr_epoch:
-                printL(('Skipping st as epoch mismatch, CreateBlock()'))
-                printL(('Expected st epoch : ', curr_epoch))
-                printL(('Found st epoch : ', st.epoch))
+                logger.info(('Skipping st as epoch mismatch, CreateBlock()'))
+                logger.info(('Expected st epoch : ', curr_epoch))
+                logger.info(('Found st epoch : ', st.epoch))
                 continue
 
             #if st.get_message_hash() not in chain.block_chain_buffer.st_buffer:
@@ -214,7 +217,7 @@ class Block():
                                 number_stake=len(chain.stake_pool), hashedstake=hashedstake,
                                 last_block_number=last_block_number)
         if self.blockheader.timestamp == 0:
-            printL(('Failed to create block due to timestamp 0'))
+            logger.info('Failed to create block due to timestamp 0')
 
     def json_to_block(self, json_block):
         self.blockheader = BlockHeader()
@@ -240,7 +243,7 @@ class Block():
 
         for transaction in self.transactions:
             if transaction.validate_tx() is False:
-                printL(('invalid tx: ', transaction, 'in block'))
+                logger.info(('invalid tx: ', transaction, 'in block'))
                 return False
 
         return True
@@ -249,7 +252,7 @@ class Block():
 
         for st in self.stake:
             if st.validate_tx() is False:
-                printL(('invalid st:', st, 'in block'))
+                logger.info(('invalid st:', st, 'in block'))
                 return False
 
         return True
@@ -261,23 +264,23 @@ class Block():
         last_block = b.blocknumber - 1
 
         if merkle.xmss_verify(b.headerhash, [b.i, b.signature, b.merkle_path, b.i_bms, b.pub, b.PK]) is False:
-            printL(('BLOCK : merkle xmss_verify failed for the block'))
+            logger.info('BLOCK : merkle xmss_verify failed for the block')
             return False
 
         if helper.xmss_checkaddress(b.PK, b.stake_selector) is False:
-            printL(('BLOCK : xmss checkaddress failed'))
+            logger.info('BLOCK : xmss checkaddress failed')
             return False
 
         if b.timestamp == 0 and b.blocknumber > 0:
-            printL(('Invalid block timestamp '))
+            logger.info('Invalid block timestamp ')
             return False
 
         if b.block_reward != b.block_reward_calc():
-            printL(('Block reward incorrect for block: failed validation'))
+            logger.info('Block reward incorrect for block: failed validation')
             return False
 
         if b.epoch != b.blocknumber / c.blocks_per_epoch:
-            printL(('Epoch incorrect for block: failed validation'))
+            logger.info('Epoch incorrect for block: failed validation')
 
         if b.blocknumber == 1:
             x = 0
@@ -288,10 +291,10 @@ class Block():
                                                      st.hash, blocknumber=1)
 
                     if sha256(b.hash) != hash or hash not in st.hash:
-                        printL(('Hashchain_link does not hash correctly to terminator: failed validation'))
+                        logger.info('Hashchain_link does not hash correctly to terminator: failed validation')
                         return False
             if x != 1:
-                printL(('Stake selector not in block.stake: failed validation'))
+                logger.info('Stake selector not in block.stake: failed validation')
                 return False
         else:  # we look in stake_list for the hash terminator and hash to it..
             y = 0
@@ -304,11 +307,11 @@ class Block():
                     y = 1
 
                     if terminator != st[1][-1]:
-                        printL(('Supplied hash does not iterate to terminator: failed validation'))
+                        logger.info('Supplied hash does not iterate to terminator: failed validation')
                         return False
 
             if y != 1:
-                printL(('Stake selector not in stake_list for this epoch..'))
+                logger.info('Stake selector not in stake_list for this epoch..')
                 return False
 
             '''
@@ -317,11 +320,11 @@ class Block():
                 not in the top 3 winners.
             '''
             #if b.hash not in chain.select_winners(b.reveal_list, topN=3, blocknumber=b.blocknumber, block=self, seed=chain.block_chain_buffer.get_epoch_seed(b.blocknumber)):
-            #    printL(("Closest hash not in block selector.."))
+            #    logger.info(("Closest hash not in block selector.."))
             #    return False
 
             if len(b.reveal_list) != len(set(b.reveal_list)):
-                printL(('Repetition in reveal_list'))
+                logger.info('Repetition in reveal_list')
                 return False
 
             if verify_block_reveal_list:
@@ -336,7 +339,7 @@ class Block():
                             i += 1
 
                 if i != len(b.reveal_list):
-                    printL(('Not all the reveal_hashes are valid..'))
+                    logger.info('Not all the reveal_hashes are valid..')
                     return False
 
                 i = 0
@@ -350,30 +353,30 @@ class Block():
                             i += 1
 
                 if i != len(b.vote_hashes):
-                    printL(('Not all the reveal_hashes are valid..'))
+                    logger.info('Not all the reveal_hashes are valid..')
                     return False
 
         if sha256(b.stake_selector + str(b.epoch) + str(b.stake_nonce) + str(b.block_reward) + str(b.timestamp) + str(
                 b.hash) + str(b.blocknumber) + b.prev_blockheaderhash + str(
                 b.number_transactions) + b.merkle_root_tx_hash + str(b.number_stake) + b.hashedstake) != b.headerhash:
-            printL(('Headerhash false for block: failed validation'))
+            logger.info('Headerhash false for block: failed validation')
             return False
 
         tmp_last_block = chain.m_get_block(last_block)
 
         if tmp_last_block.blockheader.headerhash != b.prev_blockheaderhash:
-            printL(('Headerhash not in sequence: failed validation'))
+            logger.info('Headerhash not in sequence: failed validation')
             return False
         if tmp_last_block.blockheader.blocknumber != b.blocknumber - 1:
-            printL(('Block numbers out of sequence: failed validation'))
+            logger.info('Block numbers out of sequence: failed validation')
             return False
 
         if self.validate_tx_in_block() == False:
-            printL(('Block validate_tx_in_block error: failed validation'))
+            logger.info('Block validate_tx_in_block error: failed validation')
             return False
 
         if self.validate_st_in_block() == False:
-            printL(('Block validate_st_in_block error: failed validation'))
+            logger.info('Block validate_st_in_block error: failed validation')
             return False
 
         if len(self.transactions) == 0:
@@ -384,7 +387,7 @@ class Block():
                 txhashes.append(transaction.txhash)
 
         if chain.merkle_tx_hash(txhashes) != b.merkle_root_tx_hash:
-            printL(('Block hashedtransactions error: failed validation'))
+            logger.info('Block hashedtransactions error: failed validation')
             return False
 
         sthashes = []
@@ -392,10 +395,10 @@ class Block():
             sthashes.append(str(st.hash))
 
         if sha256(''.join(sthashes)) != b.hashedstake:
-            printL(('Block hashedstake error: failed validation'))
+            logger.info('Block hashedstake error: failed validation')
 
         if verbose == 1:
-            printL((b.blocknumber, 'True'))
+            logger.info((b.blocknumber, 'True'))
 
         return True
 

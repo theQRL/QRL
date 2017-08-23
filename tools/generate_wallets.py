@@ -1,5 +1,6 @@
-import merkle
 import json
+
+from qrlcore import merkle
 
 num_accounts = 100
 file_name = "aws_wallet"
