@@ -562,6 +562,41 @@ class Chain:
 
         return helper.json_print_telnet(addr)
 
+    def last_unconfirmed_tx(self, n=1):
+        addr = {}
+        addr['transactions'] = {}
+
+        error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
+
+        try:
+            n = int(n)
+        except:
+            return helper.json_print_telnet(error)
+
+        if n <= 0 or n > 20:
+            return helper.json_print_telnet(error)
+        addr['transactions'] = []
+        if len(self.transaction_pool) != 0:
+            if n - len(self.transaction_pool) >= 0:  # request bigger than tx in pool
+                z = len(self.transaction_pool)
+                n = n - len(self.transaction_pool)
+            elif n - len(self.transaction_pool) <= 0:  # request smaller than tx in pool..
+                z = n
+                n = 0
+
+            for tx in reversed(self.transaction_pool[-z:]):
+                tmp_txn = {}
+                tmp_txn['txhash'] = tx.txhash
+                tmp_txn['block'] = 'unconfirmed'
+                tmp_txn['timestamp'] = 'unconfirmed'
+                tmp_txn['amount'] = tx.amount / 100000000.000000000
+                tmp_txn['type'] = tx.type
+                addr['transactions'].append(tmp_txn)
+
+        addr['status'] = 'ok'
+        return helper.json_print_telnet(addr)
+
+
     # return json info on last n tx in the blockchain
 
     def last_tx(self, n=1):
@@ -1812,6 +1847,8 @@ class ChainBuffer:
             if prev_epoch in self.hash_chain:
                 del self.hash_chain[prev_epoch]
 
+        self.chain.update_last_tx(block)
+        self.chain.update_tx_metadata(block)
         gc.collect()
         return True
 

@@ -12,8 +12,8 @@ class ApiProtocol(Protocol):
     def __init__(self):
         self.api_list = [
             'block_data', 'stats', 'ip_geotag', 'exp_win', 'txhash', 'address',
-            'empty', 'last_tx', 'stake_reveal_ones', 'last_block', 'richlist',
-            'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers',
+            'empty', 'last_tx', 'last_unconfirmed_tx', 'stake_reveal_ones', 'last_block', 
+            'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers',
             'next_stakers', 'latency', 'balance'
         ]
 
@@ -116,6 +116,10 @@ class ApiProtocol(Protocol):
     def last_block(self, data=None):
         printL(('<<< API last_block call'))
         return self.factory.chain.last_block(data)
+
+    def last_unconfirmed_tx(self, data=None):
+        printL(('<<< API last_unconfirmed_tx call'))
+        return self.factory.chain.last_unconfirmed_tx(data)
 
     def last_tx(self, data=None):
         printL(('<<< API last_tx call'))

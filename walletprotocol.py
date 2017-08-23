@@ -14,7 +14,7 @@ class WalletProtocol(Protocol):
         self.cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed',
                          'recoverfromwords', 'stakenextepoch', 'stake', 'address',
                          'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit',
-                         'search', 'json_search', 'help', 'savenewaddress', 'listaddresses',
+                         'search', 'help', 'savenewaddress', 'listaddresses',
                          'getinfo', 'blockheight', 'json_block', 'reboot', 'peers']
         self.output = {}
         self.output['status'] = 1
@@ -92,17 +92,6 @@ class WalletProtocol(Protocol):
                     self.output['status'] = 0
                     self.output['message'].write('')
 
-                    return
-
-                elif command == 'json_search':
-                    if not args:
-                        #self.output['message'].write('>>>Usage: search <txhash or Q-address>' + '\r\n')
-                        self.output['status'] = 1
-                        self.output['message'].write('>>>Usage: search <txhash or Q-address>' + '\r\n')
-                        return
-                    #for result in self.factory.chain.search_telnet(args[0], long=1):
-                    #    self.output['status'] = 0
-                    #    self.output['message'].write(result + '\r\n')
                     return
 
                 elif command == 'json_block':
