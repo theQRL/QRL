@@ -6,3 +6,13 @@
 *.log
 state/
 data/
+
+\.idea/
+
+\.cache/v/cache/
+.cache/
+__pycache__/
+tests/.cache/
+tests/__pycache__/
+/doc/_build/doctrees/
+/doc/_build/html/

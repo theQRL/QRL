@@ -1,5 +1,7 @@
-sphinx
-sphinx_rtd_theme
+pytest
+coverage
+mock>=1.0.0
+flake8
 jsonpickle
 leveldb
 statistics
