@@ -2,7 +2,7 @@
 
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
+import argparse
 from traceback import extract_tb
 from twisted.internet import reactor
 
@@ -32,11 +32,13 @@ def log_traceback(exctype, value, tb):  # Function to log error's traceback
 
 
 if __name__ == "__main__":
-    logger.initialize_default(force_console_output=True)
+    parser = argparse.ArgumentParser(description='QRL node')
+    parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False)
 
-    # TODO: Decide when to log to a file
-    # TODO: Add command line arguments to apply configuration changes
-    # logger.log_to_file()
+    args = parser.parse_args()
+
+    logger.initialize_default(force_console_output=not args.quiet)
+    logger.log_to_file()
 
     nodeState = NodeState()     # FIXME: purpose?
     ntp.setDrift()
