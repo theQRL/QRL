@@ -1196,8 +1196,12 @@ class Chain:
         if isinstance(txto, int):
             txto = self.my[txto][0]
 
-        tx = SimpleTransaction().create_simple_transaction(state=self.state, txfrom=self.my[txfrom][0], txto=txto,
-                                                           amount=amount, data=self.my[txfrom][1], fee=fee)
+        if isinstance(txfrom, int):
+            data = self.my[txfrom][1]
+            txfrom = self.my[txfrom][0]
+
+        tx = SimpleTransaction().create_simple_transaction(state=self.state, txfrom=txfrom, txto=txto,
+                                                           amount=amount, data=data, fee=fee)
 
         if tx and tx.state_validate_tx(state=self.state, transaction_pool=self.transaction_pool):
             self.add_tx_to_pool(tx)

@@ -12,6 +12,18 @@ from qrlcore import block
 
 # simple transaction creation and wallet functions using the wallet file..
 
+def isValidAddress(addr):
+    if addr.startswith('Q'):
+        suffix = addr[1:]
+        if len(suffix) == 68:
+            try:
+                int(suffix, 16)
+                return True
+            except:
+                return False
+
+    return False
+
 def select_target_hashchain(last_block_headerhash):
     target_chain = 0
     for byte in last_block_headerhash:

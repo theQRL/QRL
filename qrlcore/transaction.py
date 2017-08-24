@@ -116,6 +116,11 @@ class StakeTransaction(Transaction):
     def validate_tx(self):
         if self.type != 'ST':
             return False
+
+        if not helper.isValidAddress(self.txfrom):
+            logger.info(('Invalid From Address ', self.txfrom ))
+            return False
+
         if self.first_hash:
             if sha256(self.first_hash) != self.hash[-1]:
                 logger.info(' First_hash doesnt stake to hashterminator ')
@@ -220,6 +225,15 @@ class SimpleTransaction(Transaction):  # creates a transaction python class obje
         return self
 
     def validate_tx(self):
+
+        if not helper.isValidAddress(self.txto):
+            logger.info(('Invalid TO Address ', self.txto ))
+            return False
+
+        if not helper.isValidAddress(self.txfrom):
+            logger.info(('Invalid From Address ', self.txfrom ))
+            return False
+
         #sanity check: this is not how the economy is supposed to work!
     	if self.amount < 0:
             logger.info(('State validation failed for', self.txhash, 'because: Negative send'))
