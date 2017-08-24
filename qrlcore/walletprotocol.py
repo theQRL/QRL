@@ -544,8 +544,10 @@ class WalletProtocol(Protocol):
             if amount < balance:
                 self.output['message'].write('>>> Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!' + '\r\n')
                 return
-
-        tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=args[1], amount=amount)
+        txto = args[1]
+        if txto.isdigit():
+            txto = int(txto)
+        tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=txto, amount=amount)
 
         if tx is False:
             self.output['message'].write('Failed to Create txn')
