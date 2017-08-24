@@ -69,7 +69,7 @@ def SEED(n=48):  # returns a n-byte binary random string
 # pseudo random function generator (PRF) utilising hash-based message authentication code deterministic random bit generation (HMAC_DRBG)
 # k, v = key and value..
 
-class HMAC_DRBG():
+class HMAC_DRBG:
     def __init__(self, entropy, personalisation_string="",
                  security_strength=256):  # entropy should be 1.5X length of strength..384 bits / 48 bytes
         self.security_strength = security_strength
@@ -342,7 +342,7 @@ class XMSS(object):
 
     def address_add(self,
                     i=None):  # derive new address from an xmss tree using the same SEED but i base leaves..allows deterministic address creation
-        if i == None:
+        if i is None:
             i = self.signatures - len(self.addresses)
         if i > self.signatures or i < self.index:
             logger.error('i cannot be below signing index or above the pre-calculated signature count for xmss tree')
@@ -478,8 +478,7 @@ def xmss_tree(n, private_SEED, public_SEED):
     # create xmss tree with 2^n leaves, need 2 bitmasks per parent node (excluding layer 0), therefore for a perfect binary tree total nodes = 2*n_leaves-1
     # Given even an odd number we just create a bm for each node but dont use it for ease (the extra moves up to just below root) n_bm = 2*n-2 - 2n+h 
 
-    xmss_array = []
-    xmss_array.append(leafs)
+    xmss_array = [leafs]
 
     p = 0
     for x in range(int(h)):
@@ -601,10 +600,10 @@ def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
 # SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
 
 def xmss_verify_long(msg, SIG):
-    if verify_wpkey(SIG[1], msg, SIG[4]) == False:
+    if not verify_wpkey(SIG[1], msg, SIG[4]):
         return False
 
-    if verify_auth(SIG[2], SIG[3], SIG[4], SIG[5]) == False:
+    if not verify_auth(SIG[2], SIG[3], SIG[4], SIG[5]):
         return False
 
     return True
@@ -614,10 +613,10 @@ def xmss_verify_long(msg, SIG):
 # main verification function..
 
 def xmss_verify(msg, SIG):
-    if verify_wpkey(SIG[1], msg, SIG[4]) == False:
+    if not verify_wpkey(SIG[1], msg, SIG[4]):
         return False
 
-    if verify_auth_SEED(SIG[2], SIG[3], SIG[4], SIG[5]) == False:
+    if not verify_auth_SEED(SIG[2], SIG[3], SIG[4], SIG[5]):
         return False
 
     return True
@@ -639,8 +638,7 @@ def l_tree(pub, bm, l=67):
     else:
         j = ceil(log(l, 2))
 
-    l_array = []
-    l_array.append(pub[1:])  # pk_0 = (r,k) - given with the OTS pk but not in the xmss tree..
+    l_array = [pub[1:]]  # pk_0 = (r,k) - given with the OTS pk but not in the xmss tree..
 
     for x in range(j):
         next_layer = []
@@ -855,7 +853,7 @@ def random_wkey(w=8, verbose=0):  # create random W-OTS keypair
 
     elapsed_time = time.time() - start_time
     if verbose == 1:
-        logger.info((elapsed_time))
+        logger.info(elapsed_time)
     return priv, pub
 
 
@@ -1113,8 +1111,8 @@ class LDOTS(object):
     def screen_printL(self):
         logger.info((numlist(self.priv)))
         logger.info((numlist(self.pub)))
-        logger.info((self.concatpub))
-        logger.info((self.pubhash))
+        logger.info(self.concatpub)
+        logger.info(self.pubhash)
         return
 
 
@@ -1174,7 +1172,7 @@ class Merkle(object):
                         auth_route.append(self.root)
                         self.auth_lists.append(auth_route)
                     else:
-                        logger.info(('Merkle route calculation failed @ root'))
+                        logger.info('Merkle route calculation failed @ root')
                 else:
                     nodes = self.tree[x]
                     nodes_above = self.tree[x + 1]
@@ -1191,7 +1189,7 @@ class Merkle(object):
                                     pass
         elapsed_time = time.time() - start_time
         if self.verbose == 1:
-            logger.info((elapsed_time))
+            logger.info(elapsed_time)
 
         return
 
@@ -1211,6 +1209,7 @@ class Merkle(object):
             temp_array = []
             cycles = len(hashlayer) % 2 + len(hashlayer) / 2
             y = 0
+            # FIXME: Same variable as outer loop??
             for x in range(cycles):
                 if y + 1 == len(hashlayer):
                     temp_array.append(str(hashlayer[y]))

@@ -57,7 +57,7 @@ class DB:
         self.put('blockheight', 0)
         return
 
-    def destroy(self, dbfile='./state'):
+    def destroy(self):
         leveldb.DestroyDB(self.db_path)
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string

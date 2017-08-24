@@ -200,14 +200,14 @@ class Block(object):
                                  block_headerhash=self.blockheader.headerhash)
 
         if not valid:
-            logger.warn('coinbase txn in block failed')
+            logger.warning('coinbase txn in block failed')
             return False
 
         for tx_num in xrange(1, len(self.transactions)):
             tx = self.transactions[tx_num]
             if tx.validate_tx() is False:
-                logger.warn('invalid tx in block')
-                logger.warn('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
+                logger.warning('invalid tx in block')
+                logger.warning('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
                 return False
 
         return True
@@ -230,23 +230,23 @@ class Block(object):
             return False
 
         if merkle.xmss_verify(b.headerhash, [b.i, b.signature, b.merkle_path, b.i_bms, b.pub, b.PK]) is False:
-            logger.warn('BLOCK : merkle xmss_verify failed for the block')
+            logger.warning('BLOCK : merkle xmss_verify failed for the block')
             return False
 
         if helper.xmss_checkaddress(b.PK, b.stake_selector) is False:
-            logger.warn('BLOCK : xmss checkaddress failed')
+            logger.warning('BLOCK : xmss checkaddress failed')
             return False
 
         if b.timestamp == 0 and b.blocknumber > 0:
-            logger.warn('Invalid block timestamp ')
+            logger.warning('Invalid block timestamp ')
             return False
 
         if b.block_reward != b.block_reward_calc():
-            logger.warn('Block reward incorrect for block: failed validation')
+            logger.warning('Block reward incorrect for block: failed validation')
             return False
 
         if b.epoch != b.blocknumber / config.dev.blocks_per_epoch:
-            logger.warn('Epoch incorrect for block: failed validation')
+            logger.warning('Epoch incorrect for block: failed validation')
             return False
 
         if b.blocknumber == 1:
@@ -259,10 +259,10 @@ class Block(object):
                                                          tx.hash, blocknumber=1)
 
                         if sha256(b.hash) != hash or hash not in tx.hash:
-                            logger.warn('Hashchain_link does not hash correctly to terminator: failed validation')
+                            logger.warning('Hashchain_link does not hash correctly to terminator: failed validation')
                             return False
             if x != 1:
-                logger.warn('Stake selector not in block.stake: failed validation')
+                logger.warning('Stake selector not in block.stake: failed validation')
                 return False
         else:  # we look in stake_list for the hash terminator and hash to it..
             found = False
@@ -275,15 +275,15 @@ class Block(object):
                     found = True
 
                     if terminator != st[1][-1]:
-                        logger.warn('Supplied hash does not iterate to terminator: failed validation')
+                        logger.warning('Supplied hash does not iterate to terminator: failed validation')
                         return False
 
             if not found:
-                logger.warn('Stake selector not in stake_list for this epoch..')
+                logger.warning('Stake selector not in stake_list for this epoch..')
                 return False
 
             if len(b.reveal_list) != len(set(b.reveal_list)):
-                logger.warn('Repetition in reveal_list')
+                logger.warning('Repetition in reveal_list')
                 return False
 
             if verify_block_reveal_list:
@@ -297,7 +297,7 @@ class Block(object):
                             i += 1
 
                 if i != len(b.reveal_list):
-                    logger.warn('Not all the reveal_hashes are valid..')
+                    logger.warning('Not all the reveal_hashes are valid..')
                     return False
 
                 i = 0
@@ -311,25 +311,25 @@ class Block(object):
                             i += 1
 
                 if i != len(b.vote_hashes):
-                    logger.warn('Not all the reveal_hashes are valid..')
+                    logger.warning('Not all the reveal_hashes are valid..')
                     return False
 
         if b.generate_headerhash() != b.headerhash:
-            logger.warn('Headerhash false for block: failed validation')
+            logger.warning('Headerhash false for block: failed validation')
             return False
 
         tmp_last_block = chain.block_chain_buffer.get_block_n(last_blocknum)
 
         if tmp_last_block.blockheader.headerhash != b.prev_blockheaderhash:
-            logger.warn('Headerhash not in sequence: failed validation')
+            logger.warning('Headerhash not in sequence: failed validation')
             return False
 
         if tmp_last_block.blockheader.blocknumber != b.blocknumber - 1:
-            logger.warn('Block numbers out of sequence: failed validation')
+            logger.warning('Block numbers out of sequence: failed validation')
             return False
 
         if not self.validate_tx_in_block():
-            logger.warn('Block validate_tx_in_block error: failed validation')
+            logger.warning('Block validate_tx_in_block error: failed validation')
             return False
 
         if len(self.transactions) == 1:
@@ -341,7 +341,7 @@ class Block(object):
                 txhashes.append(tx.txhash)
 
         if chain.merkle_tx_hash(txhashes) != b.tx_merkle_root:
-            logger.warn('Block hashedtransactions error: failed validation')
+            logger.warning('Block hashedtransactions error: failed validation')
             return False
 
         return True

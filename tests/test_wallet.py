@@ -34,12 +34,12 @@ class TestWallet(TestCase):
     # def test_getnewaddress(self):
     #     wallet = Wallet(None, None)
     #     address = wallet.getnewaddress()
-
-        chain = Chain(state)
-        self.assertIsNotNone(state)
-
-        wallet = Wallet(chain, state)
-        self.assertIsNotNone(state)
+    #
+    #     chain = Chain(state)
+    #     self.assertIsNotNone(state)
+    #
+    #     wallet = Wallet(chain, state)
+    #     self.assertIsNotNone(state)
 
     @timeout_decorator.timeout(100)
     def test_getnewaddress(self):

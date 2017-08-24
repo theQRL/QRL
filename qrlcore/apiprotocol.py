@@ -6,7 +6,7 @@ import json
 import time
 
 import statistics
-from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import Protocol, connectionDone
 
 import helper
 from qrlcore import logger
@@ -87,10 +87,10 @@ class ApiProtocol(Protocol):
     def ping(self, data=None):
         logger.info('<<< API network latency ping call')
         self.factory.pos.p2pFactory.ping_peers()  # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
-        pings = {}
-        pings['status'] = 'ok'
-        pings['peers'] = {}
-        pings['peers'] = self.factory.chain.ping_list
+
+        pings = {'status': 'ok',
+                 'peers': self.factory.chain.ping_list}
+
         return helper.json_print_telnet(pings)
 
     def stakers(self, data=None):
@@ -122,7 +122,7 @@ class ApiProtocol(Protocol):
         return self.factory.chain.last_block(data)
 
     def last_unconfirmed_tx(self, data=None):
-        printL(('<<< API last_unconfirmed_tx call'))
+        logger.info('<<< API last_unconfirmed_tx call')
         return self.factory.chain.last_unconfirmed_tx(data)
 
     def last_tx(self, data=None):
@@ -163,7 +163,7 @@ class ApiProtocol(Protocol):
         except:
             return helper.json_print_telnet(error)
         js_bk = self.factory.chain.m_get_block(int(data))
-        if js_bk == False:
+        if not js_bk:
             return helper.json_print_telnet(error)
         else:
             js_bk1 = copy.deepcopy(js_bk)
@@ -231,8 +231,9 @@ class ApiProtocol(Protocol):
     def connectionMade(self):
         self.factory.connections += 1
 
-    def connectionLost(self, reason):
+    def connectionLost(self, reason=connectionDone):
         self.factory.connections -= 1
+        logger.info("Connection lost: %s", reason)
 
     def latency(self, type=None):
         output = {}
@@ -241,7 +242,7 @@ class ApiProtocol(Protocol):
                 output[block_num] = {}
                 for stake in self.factory.chain.stake_validator_latency[block_num].keys():
                     time_list = self.factory.chain.stake_validator_latency[block_num][stake]
-                    print time_list
+                    logger.info(time_list)
                     output[block_num][stake] = {}
                     if 'r2_time_diff' in time_list:
                         return

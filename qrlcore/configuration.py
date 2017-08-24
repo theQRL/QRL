@@ -33,12 +33,13 @@ class UserConfig(object):
             return UserConfig()
         return UserConfig.__instance
 
-    def from_yaml(self):
+    def from_yaml(self, path):
         """
         Overrides default configuration using a yaml file
         :param path: The path to the configuration file
         """
         # TODO: Complete this part
+        pass
 
 
 class DevConfig(object):

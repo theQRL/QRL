@@ -14,10 +14,6 @@ from qrlcore import merkle, logger, transaction
 from qrlcore.merkle import mnemonic_to_seed
 import configuration as config
 
-FILE_WALLET_INFO = './wallet.info'
-FILE_WALLET_DATA = './wallet.dat'
-FILE_MNEMONIC = './wallet.dat'
-
 
 class Wallet:
     ADDRESS_TYPE_XMSS = 'XMSS'
@@ -86,7 +82,8 @@ class Wallet:
 
     def f_save_wallet(self):
         logger.info('Syncing wallet file')
-        with open(self.wallet_dat_filename, "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
+        with open(self.wallet_dat_filename,
+                  "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
             gc.collect()
             return

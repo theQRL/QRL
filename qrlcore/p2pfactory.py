@@ -4,12 +4,16 @@ import struct
 import time
 from collections import defaultdict
 
+import os
+import cPickle as pickle
+
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-import configuration as c
+import configuration as config
 from qrlcore import logger, helper
 from qrlcore.merkle import sha256
+from qrlcore.p2pprotocol import P2PProtocol
 
 
 class P2PFactory(ServerFactory):
@@ -19,10 +23,9 @@ class P2PFactory(ServerFactory):
         self.protocol = P2PProtocol
         self.chain = chain
         self.nodeState = nodeState
-        self.stake = c.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
+        self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
         self.peers_blockheight = {}
         self.target_retry = defaultdict(int)
-        self.peers = []
         self.target_peers = {}
         self.fork_target_peers = {}
         self.connections = 0
@@ -41,50 +44,55 @@ class P2PFactory(ServerFactory):
         self.last_reveal_two = None
         self.last_reveal_three = None
 
+        self.peer_connections = []
+        self.peer_addresses = []
+        self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
+        self.load_peer_addresses()
+
     # factory network functions
     def setPOS(self, pos):
         self.pos = pos
         self.master_mr = self.pos.master_mr
 
     def get_block_a_to_b(self, a, b):
-        logger.info(('<<<Requested blocks:', a, 'to ', b, ' from peers..'))
+        logger.info('<<<Requested blocks: %s to %s from peers..', a, b)
         l = range(a, b)
-        for peer in self.peers:
+        for peer in self.peer_connections:
             if len(l) > 0:
                 peer.transport.write(self.f_wrap_message('BN', str(l.pop(0))))
             else:
                 return
 
     def get_block_n_random_peer(self, n):
-        logger.info(('<<<Requested block: ', n, 'from random peer.'))
-        random.choice(self.peers).get_block_n(n)
+        logger.info('<<<Requested block: %s from random peer.', n)
+        random.choice(self.peer_connections).get_block_n(n)
         return
 
     def get_block_n(self, n):
-        logger.info(('<<<Requested block: ', n, 'from peers.'))
-        for peer in self.peers:
+        logger.info('<<<Requested block: %s from peers.', n)
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('BN', str(n)))
         return
 
     def get_m_blockheight_from_random_peer(self):
         logger.info('<<<Requested blockheight from random peer.')
-        random.choice(self.peers).get_m_blockheight_from_connection()
+        random.choice(self.peer_connections).get_m_blockheight_from_connection()
         return
 
     def get_blockheight_map_from_peers(self):
         logger.info('<<<Requested blockheight_map from peers.')
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('BM'))
         return
 
     def get_m_blockheight_from_peers(self):
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.get_m_blockheight_from_connection()
         return
 
     def send_m_blockheight_to_peers(self):
         logger.info('<<<Sending blockheight to peers.')
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.send_m_blockheight_to_peer()
         return
 
@@ -98,18 +106,18 @@ class P2PFactory(ServerFactory):
             0) + chr(255)
 
     def send_st_to_peers(self, st):
-        logger.info(('<<<Transmitting ST:', st.epoch))
+        logger.info('<<<Transmitting ST: %s', st.epoch)
         self.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())
         return
 
     def send_tx_to_peers(self, tx):
-        logger.info(('<<<Transmitting TX: ', tx.txhash))
+        logger.info('<<<Transmitting TX: %s', tx.txhash)
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.transaction_to_json())
         return
 
     def send_reboot(self, json_hash):
         logger.info('<<<Transmitting Reboot Command')
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('reboot', json_hash))
         return
 
@@ -123,15 +131,13 @@ class P2PFactory(ServerFactory):
             z['block_number'] = self.chain.block_chain_buffer.height() + 1  # next block..
         z['headerhash'] = self.chain.block_chain_buffer.get_strongest_headerhash(
             z['block_number'] - 1)  # demonstrate the hash from last block to prevent building upon invalid block..
-        epoch = z['block_number'] // c.blocks_per_epoch
+        epoch = z['block_number'] // config.dev.blocks_per_epoch
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(z['block_number'])
         # +1 to skip first reveal
-        z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * c.blocks_per_epoch) + 1]
+        z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch) + 1]
         z['vote_hash'] = None
         z['weighted_hash'] = None
-        # epoch_PRF = self.chain.block_chain_buffer.get_epoch_PRF(blocknumber)
         epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
-        # z['PRF'] = epoch_PRF[z['block_number'] - (epoch * c.blocks_per_epoch)]
         z['seed'] = epoch_seed
         z['SV_hash'] = self.chain.get_stake_validators_hash()
 
@@ -141,15 +147,15 @@ class P2PFactory(ServerFactory):
 
         for hashes in hash_chain:
             if hashes[-1] == hash:
-                z['vote_hash'] = hashes[:-1][::-1][z['block_number'] - (epoch * c.blocks_per_epoch)]
+                z['vote_hash'] = hashes[:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch)]
                 break
 
         if z['reveal_one'] == None or z['vote_hash'] == None:
             logger.info(
                 ('reveal_one or vote_hash None for stake_address: ', z['stake_address'], ' selected hash:', hash))
-            logger.info(('reveal_one', z['reveal_one']))
-            logger.info(('vote_hash', z['vote_hash']))
-            logger.info(('hash', hash))
+            logger.info('reveal_one %s', z['reveal_one'])
+            logger.info('vote_hash %s', z['vote_hash'])
+            logger.info('hash %s', hash)
             return
 
         z['weighted_hash'] = self.chain.score(stake_address=z['stake_address'],
@@ -172,8 +178,8 @@ class P2PFactory(ServerFactory):
             tmp_stake_reveal_one.append(r)
 
         self.chain.stake_reveal_one = tmp_stake_reveal_one
-        logger.info(('<<<Transmitting POS reveal_one ', blocknumber,
-                     self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber)))
+        logger.info('<<<Transmitting POS reveal_one %s %s', blocknumber,
+                     self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber))
 
         self.last_reveal_one = z
         self.register_and_broadcast('R1', z['vote_hash'], helper.json_encode(z))
@@ -191,28 +197,28 @@ class P2PFactory(ServerFactory):
         return z['reveal_one']  # , z['block_number']
 
     def send_last_stake_reveal_one(self):
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('R1', helper.json_encode(self.last_reveal_one)))
 
     def ip_geotag_peers(self):
         logger.info('<<<IP geotag broadcast')
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('IP'))
         return
 
     def ping_peers(self):
         logger.info('<<<Transmitting network PING')
         self.chain.last_ping = time.time()
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('PING'))
         return
 
     # send POS block to peers..
 
     def send_stake_block(self, block_obj):
-        logger.info(('<<<Transmitting POS created block', str(block_obj.blockheader.blocknumber),
-                     block_obj.blockheader.headerhash))
-        for peer in self.peers:
+        logger.info('<<<Transmitting POS created block %s %s', str(block_obj.blockheader.blocknumber),
+                     block_obj.blockheader.headerhash)
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('S4', helper.json_bytestream(block_obj)))
         return
 
@@ -229,7 +235,7 @@ class P2PFactory(ServerFactory):
         data = {'hash': msg_hash,
                 'type': msg_type}
 
-        for peer in self.peers:
+        for peer in self.peer_connections:
             if msg_hash in self.master_mr.hash_peer:
                 if peer in self.master_mr.hash_peer[msg_hash]:
                     continue
@@ -239,7 +245,7 @@ class P2PFactory(ServerFactory):
 
     def get_tx_pool_from_peers(self):
         logger.info('<<<Requesting TX pool from peers..')
-        for peer in self.peers:
+        for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('RT'))
         return
 
@@ -247,7 +253,7 @@ class P2PFactory(ServerFactory):
 
     def connect_peers(self):
         logger.info('<<<Reconnecting to peer list:')
-        for peer in self.chain.state.state_get_peers():
+        for peer in self.peer_addresses:
             reactor.connectTCP(peer, 9000, self)
 
     def clientConnectionLost(self, connector, reason):  # try and reconnect
@@ -262,3 +268,22 @@ class P2PFactory(ServerFactory):
     def startedConnecting(self, connector):
         # logger.info(( 'Started to connect.', connector
         return
+
+    # FIXME: Temporarily moving here
+    def load_peer_addresses(self):
+        if os.path.isfile(self.peers_path) is True:
+            logger.info('Opening peers.dat')
+            with open(self.peers_path, 'r') as my_file:
+                self.peer_addresses = pickle.load(my_file)
+        else:
+            logger.info('Creating peers.dat')
+            with open(self.peers_path, 'w+') as my_file:
+                pickle.dump(config.user.peer_list, my_file)
+                self.peer_addresses = config.user.peer_list
+
+        logger.info('Known Peers: %s', self.peer_addresses)
+
+    def update_peer_addresses(self, peer_addresses):
+        self.peer_addresses = peer_addresses
+        with open(self.peers_path, "w+") as myfile:
+            pickle.dump(self.peer_addresses, myfile)

@@ -1,32 +1,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-'''
-1> dict Hash to peer
-2> dict peer to Hash
-Remove hash
-1. check peers for that particular hash
-2. remove hash from each peer in peer to hash
-3. Finally remove hash from  hash to peer
-Remove peer
-1. Check hash for that particular peer
-2. remove peer from each hash in hash to peer
-3. remove peer from peer to hash
-
-In case of a peer requested for a particular hash message,
-fails to provide that, then it is considered that peer
-doesn't have message of that hash. so peer is removed from
-that hash and also the hash is removed from that peer.
-Next peer is asked for that same hash message.
-
-Hash has to be removed if it has no peer
-
-TODO:
-1. If a peer fails to provide particular message for X number of times
-   in a last Y hrs of time. Then that peer is forcefully disconnected.
-   IP could be added into block list of that particular peer for couple
-   of hours.
-'''
 from collections import OrderedDict, defaultdict
 
 import configuration as config
@@ -34,6 +8,33 @@ from qrlcore.merkle import sha256
 
 
 class MessageReceipt(object):
+    """
+    1> dict Hash to peer
+    2> dict peer to Hash
+    Remove hash
+    1. check peers for that particular hash
+    2. remove hash from each peer in peer to hash
+    3. Finally remove hash from  hash to peer
+    Remove peer
+    1. Check hash for that particular peer
+    2. remove peer from each hash in hash to peer
+    3. remove peer from peer to hash
+
+    In case of a peer requested for a particular hash message,
+    fails to provide that, then it is considered that peer
+    doesn't have message of that hash. so peer is removed from
+    that hash and also the hash is removed from that peer.
+    Next peer is asked for that same hash message.
+
+    Hash has to be removed if it has no peer
+
+    TODO:
+    1. If a peer fails to provide particular message for X number of times
+       in a last Y hrs of time. Then that peer is forcefully disconnected.
+       IP could be added into block list of that particular peer for couple
+       of hours.
+    """
+
     allowed_types = ['TX', 'ST', 'BK', 'R1']
 
     def __init__(self):

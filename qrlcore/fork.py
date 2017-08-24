@@ -33,9 +33,8 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
         logger.info('Found in Fork Pending List')
         try:
             pending_blocks[blocknumber][3].cancel()
-        except Exception:
-            # FIXME: log exception
-            pass
+        except Exception as e:
+            logger.warning("fork:verify %s", e)
 
         del pending_blocks[blocknumber]
         if mini_block['headerhash'] == chain.m_get_block(

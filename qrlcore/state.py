@@ -1,23 +1,20 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-import cPickle as pickle
-import os
 from operator import itemgetter
 
 import configuration as config
 from qrlcore import db, logger, transaction
 from qrlcore.merkle import sha256
 
-FILE_PEERS_DATA = './peers.dat'
-
-
-# state functions
-# first iteration - state data stored in leveldb file
-# state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
 
 class State:
-    # TODO: A more appropriate name would be something like persistent state
+    """
+        state functions
+        first iteration - state data stored in leveldb file
+        state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
+    """
+
     def __init__(self):
         self.db = db.DB()  # generate db object here
 
@@ -25,42 +22,42 @@ class State:
         try:
             return self.db.get('stake_list')
         except Exception as e:
-            logger.warn("stake_list_get: %s %s", type(e), e.message)
+            logger.warning("stake_list_get: %s %s", type(e), e.message)
             return []
 
     def stake_list_put(self, sl):
         try:
             self.db.put('stake_list', sl)
         except Exception as e:
-            logger.warn("stake_list_put: %s %s", type(e), e.message)
+            logger.warning("stake_list_put: %s %s", type(e), e.message)
             return False
 
     def next_stake_list_get(self):
         try:
             return self.db.get('next_stake_list')
         except Exception as e:
-            logger.warn("next_stake_list_get: %s %s", type(e), e.message)
+            logger.warning("next_stake_list_get: %s %s", type(e), e.message)
             return []
 
     def next_stake_list_put(self, next_sl):
         try:
             self.db.put('next_stake_list', next_sl)
         except Exception as e:
-            logger.warn("next_stake_list_put: %s %s", type(e), e.message)
+            logger.warning("next_stake_list_put: %s %s", type(e), e.message)
             return False
 
     def put_epoch_seed(self, epoch_seed):
         try:
             self.db.put('epoch_seed', epoch_seed)
         except Exception as e:
-            logger.warn("put_epoch_seed: %s %s", type(e), e.message)
+            logger.warning("put_epoch_seed: %s %s", type(e), e.message)
             return False
 
     def get_epoch_seed(self):
         try:
             return self.db.get('epoch_seed')
         except Exception as e:
-            logger.warn("get_epoch_seed: %s %s", type(e), e.message)
+            logger.warning("get_epoch_seed: %s %s", type(e), e.message)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
@@ -75,49 +72,49 @@ class State:
         try:
             return self.db.get('txn_count_' + addr)
         except Exception as e:
-            logger.warn("state_get_txn_count: %s %s", type(e), e.message)
+            logger.warning("state_get_txn_count: %s %s", type(e), e.message)
             return 0
 
     def state_get_address(self, addr):
         try:
             return self.db.get(addr)
         except Exception as e:
-            logger.warn("state_get_address: %s %s", type(e), e.message)
+            logger.warning("state_get_address: %s %s", type(e), e.message)
             return [0, 0, []]
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
             return self.db.get(addr)
         except Exception as e:
-            logger.warn("state_address_used: %s %s", type(e), e.message)
+            logger.warning("state_address_used: %s %s", type(e), e.message)
             return False
 
     def state_balance(self, addr):
         try:
             return self.db.get(addr)[1]
         except Exception as e:
-            logger.warn("state_balance: %s %s", type(e), e.message)
+            logger.warning("state_balance: %s %s", type(e), e.message)
             return 0
 
     def state_nonce(self, addr):
         try:
             return self.db.get(addr)[0]
         except Exception as e:
-            logger.warn("state_nonce: %s %s", type(e), e.message)
+            logger.warning("state_nonce: %s %s", type(e), e.message)
             return 0
 
     def state_pubhash(self, addr):
         try:
             return self.db.get(addr)[2]
         except Exception as e:
-            logger.warn("state_pubhash: %s %s", type(e), e.message)
+            logger.warning("state_pubhash: %s %s", type(e), e.message)
             return []
 
     def state_hrs(self, hrs):
         try:
             return self.db.get('hrs' + hrs)
         except Exception as e:
-            logger.warn("state_hrs: %s %s", type(e), e.message)
+            logger.warning("state_hrs: %s %s", type(e), e.message)
             return False
 
     def state_validate_tx_pool(self, chain):
@@ -129,7 +126,7 @@ class State:
                                                          addr=tx.txfrom)
             if tx.state_validate_tx(tx_state=tx_state) is False:
                 result = False
-                logger.warn('tx %s failed', tx.txhash)
+                logger.warning('tx %s failed', tx.txhash)
                 chain.remove_tx_from_pool(tx)
 
         return result
@@ -161,14 +158,14 @@ class State:
             pubhash = sha256(''.join(pub))
 
             if tx.nonce != address_txn[tx.txfrom][0] + 1:
-                logger.warn('nonce incorrect, invalid tx')
-                logger.warn('subtype: %s', tx.subtype)
-                logger.warn('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
+                logger.warning('nonce incorrect, invalid tx')
+                logger.warning('subtype: %s', tx.subtype)
+                logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
                 return False
 
             if pubhash in address_txn[tx.txfrom][2]:
-                logger.warn('pubkey reuse detected: invalid tx %s', tx.txhash)
-                logger.warn('subtype: %s', tx.subtype)
+                logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+                logger.warning('subtype: %s', tx.subtype)
                 return False
 
 
@@ -185,7 +182,7 @@ class State:
                             sl.append([tx.txfrom, tx.hash, 1, tx.first_hash, tx.balance])
                             address_txn[tx.txfrom][0] += 1
                         else:
-                            logger.warn('designated staker not in genesis..')
+                            logger.warning('designated staker not in genesis..')
                             return False
                     else:
                         if tx.txfrom in chain.m_blockchain[0].stake_list:
@@ -229,7 +226,7 @@ class State:
                     break
 
             if not found:
-                logger.warn('stake selector not in stake_list_get')
+                logger.warning('stake selector not in stake_list_get')
                 return
 
             # cycle through every tx in the new block to check state
@@ -241,18 +238,18 @@ class State:
                 pubhash = sha256(''.join(pub))
 
                 if tx.nonce != address_txn[tx.txfrom][0] + 1:
-                    logger.warn('nonce incorrect, invalid tx')
-                    logger.warn('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
+                    logger.warning('nonce incorrect, invalid tx')
+                    logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
                     return False
 
                 if pubhash in address_txn[tx.txfrom][2]:
-                    logger.warn('pubkey reuse detected: invalid tx %s', tx.txhash)
+                    logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                     return False
 
                 if tx.subtype == transaction.TX_SUBTYPE_TX:
                     if address_txn[tx.txfrom][1] - tx.amount < 0:
-                        logger.warn('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                        logger.warn('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
+                        logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                        logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
                         return False
                 elif tx.subtype == transaction.TX_SUBTYPE_STAKE:
                     found = False
@@ -266,7 +263,7 @@ class State:
                                 if epoch_blocknum >= threshold_block - 1:
                                     s[3] = tx.first_hash
                                 else:
-                                    logger.warn('^^^^^^Rejected as %s %s', epoch_blocknum, threshold_block - 1)
+                                    logger.warning('^^^^^^Rejected as %s %s', epoch_blocknum, threshold_block - 1)
                             break
 
                     address_txn[tx.txfrom][2].append(pubhash)

@@ -13,9 +13,7 @@ class ApiFactory(ServerFactory):
         self.state = state
         self.peers = peers
 
-    '''
-    def buildProtocol(self, addr):
-        self.protocol = ApiProtocol()
-        self.protocol.factory = self
-        return self.protocol
-    '''
+    # def buildProtocol(self, addr):
+    #     self.protocol = ApiProtocol()
+    #     self.protocol.factory = self
+    #     return self.protocol
