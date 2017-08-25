@@ -1,3 +1,4 @@
+[![GitHub version](https://badge.fury.io/gh/theqrl%2Fqrl.svg)](https://badge.fury.io/gh/theqrl%2Fqrl)
 [![Build Status](https://travis-ci.org/theQRL/QRL.svg?branch=master)](https://travis-ci.org/theQRL/QRL)
 [![Coverage Status](https://coveralls.io/repos/github/theQRL/QRL/badge.svg?branch=master)](https://coveralls.io/github/theQRL/QRL?branch=master)
 
