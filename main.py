@@ -56,7 +56,7 @@ def main():
     chainObj.state.state_load_peers()
     logger.info(chainObj.state.state_get_peers())
 
-    stuff = 'QRL node connection established. Try starting with "help"' + '\r\n'
+    welcome = 'QRL node connection established. Try starting with "help"' + '\r\n'
     logger.info('>>>Listening..')
 
     p2pFactory = node.P2PFactory(chain=chainObj, nodeState=nodeState)
@@ -64,9 +64,7 @@ def main():
     p2pFactory.setPOS(pos)
 
     apiFactory = apiprotocol.ApiFactory(pos, chainObj, stateObj, p2pFactory.peers)
-
-    stuff = 'QRL node connection established. Try starting with "help"' + '\r\n'
-    walletFactory = walletprotocol.WalletFactory(stuff, chainObj, stateObj, p2pFactory)
+    walletFactory = walletprotocol.WalletFactory(welcome, chainObj, stateObj, p2pFactory)
 
     logger.info('Reading chain..')
     reactor.listenTCP(2000, walletFactory, interface='127.0.0.1')
