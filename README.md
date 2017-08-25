@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/theQRL/QRL.svg?branch=master)](https://travis-ci.org/theQRL/QRL)
-[![Coverage Status](https://coveralls.io/repos/github/jleni/QRL/badge.svg?branch=master)](https://coveralls.io/github/jleni/QRL?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/theQRL/QRL/badge.svg?branch=master)](https://coveralls.io/github/theQRL/QRL?branch=master)
 
 # QRL
 Quantum Resistant Ledger 
