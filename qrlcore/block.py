@@ -4,6 +4,8 @@ import decimal
 from copy import deepcopy
 from math import log
 
+from jsonpickle import json
+
 import configuration as c
 import helper
 import merkle
@@ -240,6 +242,17 @@ class Block(object):
             if st_obj.epoch != self.blockheader.epoch:
                 continue
             self.stake.append(st_obj)
+
+    @staticmethod
+    def from_json(json_block):
+        """
+        Constructor a block from a json string
+        :param json_block: a block serialized as a json string
+        :return: A block
+        """
+        tmp_block = Block()
+        tmp_block.json_to_block(json.loads(json_block))
+        return tmp_block
 
     def validate_tx_in_block(self):
 

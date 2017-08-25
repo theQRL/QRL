@@ -30,8 +30,7 @@ def log_traceback(exctype, value, tb):  # Function to log error's traceback
 
 # sys.excepthook = log_traceback
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='QRL node')
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False)
 
@@ -86,3 +85,6 @@ if __name__ == "__main__":
     reactor.callLater(20, pos.unsynced_logic)
 
     reactor.run()
+
+if __name__ == "__main__":
+    main()
