@@ -121,7 +121,7 @@ class TestMerkle(TestCase):
         self.assertNotEqual(xmss1.root, xmss2.root)
         self.assertNotEqual(xmss1.address, xmss2.address)
 
-    @timeout_decorator.timeout(2)
+    @timeout_decorator.timeout(5)
     def test_XMSS_get_address_known(self):
         xmss = merkle.XMSS(signatures=1, SEED=TestMerkle.S_1)
         self.assertEqual(xmss.signatures, 1)

@@ -3,6 +3,7 @@
 
 # -features POS, quantum secure signature scheme..
 from qrlcore import logger
+from qrlcore.block import Block
 
 __author__ = 'pete'
 import json
@@ -923,7 +924,7 @@ class P2PProtocol(Protocol):
 
     def BK(self, data):  # block received
         try:
-            block = helper.json_decode_block(data)
+            block = Block.from_json(data)
         except:
             logger.info(('block rejected - unable to decode serialised data', self.transport.getPeer().host))
             return
@@ -956,7 +957,7 @@ class P2PProtocol(Protocol):
             if self.isNoMoreBlock(data):
                 return
 
-            data = helper.json_decode(data)
+            data = Block.json_decode(data)
             blocknumber = int(data.keys()[0].encode('ascii'))
 
             if blocknumber != self.last_requested_blocknum:
@@ -964,7 +965,7 @@ class P2PProtocol(Protocol):
                 return
 
             for jsonBlock in data[unicode(blocknumber)]:
-                block = helper.json_decode_block(json.dumps(jsonBlock))
+                block = Block.from_json(json.dumps(jsonBlock))
                 logger.info(('>>>Received Block #', block.blockheader.blocknumber))
 
                 status = self.factory.chain.block_chain_buffer.add_block(block)

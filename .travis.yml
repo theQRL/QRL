@@ -1,11 +1,28 @@
+# Travis configuration file using the build matrix feature
+# Read more under http://docs.travis-ci.com/user/build-configuration/
+dist: trusty
 sudo: false
 language: python
-python:
-    - 2.7
-before_install:
-    - pip install tox-travis
-    - pip install coveralls
+virtualenv:
+  system_site_packages: true
+env:
+  matrix:
+    - DISTRIB="ubuntu" PYTHON_VERSION="2.7" COVERAGE="true"
+    #- DISTRIB="conda" PYTHON_VERSION="2.7" COVERAGE="false"   # TODO: Fix conda tests
+addons:
+  apt:
+    packages:
+      - git
+      - python-pip
+install:
+  - source tests/travis_install.sh
+  - pip install -r requirements.txt
+before_script:
+#  - git config --global user.email "you@example.com"
+#  - git config --global user.name "Your Name"
 script:
-    - tox
+  - python setup.py test
 after_success:
-    - coveralls
+  - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
+cache:
+  - apt

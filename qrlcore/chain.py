@@ -896,7 +896,7 @@ class Chain:
                             compressedBlock = jsonBlock.getvalue()
                             pos = offset - len(delimiter) - len(compressedBlock)
                             jsonBlock = zip.decompress(compressedBlock)
-                            block = helper.json_decode_block(jsonBlock)
+                            block = Block.from_json(jsonBlock)
                             self.update_block_metadata(block.blockheader.blocknumber, pos, len(compressedBlock))
                             block_list.append(block)
                             jsonBlock = StringIO()
@@ -1041,7 +1041,7 @@ class Chain:
             size = int(size)
             f.seek(pos)
             jsonBlock = zip.decompress(f.read(size))
-            block = helper.json_decode_block(jsonBlock)
+            block = Block.from_json(jsonBlock)
             return block
 
     def m_get_block(self, n):
