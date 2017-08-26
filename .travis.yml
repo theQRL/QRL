@@ -22,6 +22,7 @@ addons:
 install:
 - source tests/travis_install.sh
 - pip install -r requirements.txt
+- pip install codacy-coverage
 before_script:
 - git config --global user.email "info@theQRL.org"
 - git config --global user.name "QRL"
@@ -29,6 +30,7 @@ script:
 - python setup.py test
 after_success:
 - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
+- if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
 deploy:
 - provider: script
   script: sh $TRAVIS_BUILD_DIR/scripts/deploy_pypi.sh
