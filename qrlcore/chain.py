@@ -11,14 +11,13 @@
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
 from qrlcore import logger
+import configuration as config
 
 __author__ = 'pete'
 
 import gc
 
-import configuration as c
-
-if c.compression_type == 'bz2':
+if config.dev.compression_type == 'bz2':
     import bz2 as zip
 else:
     import zlib as zip
@@ -48,7 +47,7 @@ from decimal import Decimal
 class Chain:
     def __init__(self, state):
         self.state = state
-        self.version_number = c.version_number
+        self.version_number = config.dev.version_number
         self.transaction_pool = []
         self.stake_pool = []
         self.txhash_timestamp = []
@@ -139,8 +138,8 @@ class Chain:
 
     def reveal_to_terminator(self, reveal, blocknumber, add_loop=0):
         tmp = sha256(reveal)
-        epoch = blocknumber // c.blocks_per_epoch
-        for x in range(blocknumber - (epoch * c.blocks_per_epoch) + add_loop):
+        epoch = blocknumber // config.dev.blocks_per_epoch
+        for x in range(blocknumber - (epoch * config.dev.blocks_per_epoch) + add_loop):
             tmp = sha256(tmp)
         return tmp
 
@@ -205,7 +204,7 @@ class Chain:
         return score
 
     def update_pending_tx_pool(self, tx, peer):
-        if len(self.pending_tx_pool) >= c.blocks_per_epoch:
+        if len(self.pending_tx_pool) >= config.dev.blocks_per_epoch:
             del self.pending_tx_pool[0]
             del self.pending_tx_pool_hash[0]
         self.pending_tx_pool.append([tx, peer])
@@ -335,8 +334,8 @@ class Chain:
 
     def is_stake_banned(self, stake_address):
         if stake_address in self.stake_ban_list:
-            epoch_diff = (self.height() / c.blocks_per_epoch) - (
-                self.stake_ban_block[stake_address] / c.blocks_per_epoch)
+            epoch_diff = (self.height() / config.dev.blocks_per_epoch) - (
+                self.stake_ban_block[stake_address] / config.dev.blocks_per_epoch)
             if self.height() - self.stake_ban_block[stake_address] > 10 or epoch_diff > 0:
                 logger.info('Stake removed from ban list')
                 del self.stake_ban_block[stake_address]
@@ -854,7 +853,7 @@ class Chain:
         return
 
     def f_read_chain(self, epoch):
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
 
         if not os.path.isdir(baseDir):
             try:
@@ -863,7 +862,7 @@ class Chain:
                 print "Failed to create directory " + baseDir
                 sys.exit()
 
-        delimiter = c.binary_file_delimiter
+        delimiter = config.dev.binary_file_delimiter
         block_list = []
         if os.path.isfile(baseDir + 'chain.da' + str(epoch)) is False:
             if epoch != 0:
@@ -902,7 +901,7 @@ class Chain:
                             jsonBlock = StringIO()
                             continue
                         jsonBlock.write(char)
-                    if len(chars) < c.chain_read_buffer_size:
+                    if len(chars) < config.dev.chain_read_buffer_size:
                         break
         except:
             logger.info(('IO error'))
@@ -969,15 +968,15 @@ class Chain:
             self.update_txn_count(txn.txto, txn.txfrom)
 
     def f_write_m_blockchain(self):
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
-        suffix = int(blocknumber // c.blocks_per_chain_file)
+        suffix = int(blocknumber // config.dev.blocks_per_chain_file)
         writeable = self.m_blockchain[-c.disk_writes_after_x_blocks:]
         logger.info(('Appending data to chain'))
         with open(baseDir + 'chain.da' + str(suffix), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = helper.json_bytestream(block)
-                compressedBlock = zip.compress(jsonBlock, c.compression_level)
+                compressedBlock = zip.compress(jsonBlock, config.dev.compression_level)
                 pos = myfile.tell()
                 blockSize = len(compressedBlock)
                 self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
@@ -1010,11 +1009,11 @@ class Chain:
         for block in chains[1:]:
             self.block_chain_buffer.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
 
-        if len(self.m_blockchain) < c.blocks_per_chain_file:
+        if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
             return self.m_blockchain
 
         epoch = 1
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
         while os.path.isfile(baseDir + 'chain.da' + str(epoch)):
             del self.m_blockchain[:-1]
             chains = self.f_read_chain(epoch)
@@ -1032,8 +1031,8 @@ class Chain:
         return self.m_blockchain
 
     def load_from_file(self, blocknum):
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + c.chain_file_directory + os.sep
-        epoch = int(blocknum // c.blocks_per_chain_file)
+        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
+        epoch = int(blocknum // config.dev.blocks_per_chain_file)
         with open(baseDir + 'chain.da' + str(epoch), 'rb') as f:
             pos_size = self.state.db.db.Get('block_' + str(blocknum))
             pos, size = pos_size.split(',')
@@ -1113,7 +1112,7 @@ class Chain:
         logger.info(('Validates: ', b.validate_block(self)))
 
     def m_f_sync_chain(self):
-        if (self.m_blockchain[-1].blockheader.blocknumber + 1) % c.disk_writes_after_x_blocks == 0:
+        if (self.m_blockchain[-1].blockheader.blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
             self.f_write_m_blockchain()
         return
 
@@ -1252,7 +1251,7 @@ class StateBuffer:
 
     def update(self, state, parent_state_buffer, block):
         # epoch mod, helps you to know if its the new epoch
-        epoch_mod = block.blockheader.blocknumber % c.blocks_per_epoch
+        epoch_mod = block.blockheader.blocknumber % config.dev.blocks_per_epoch
 
         self.stake_list = deepcopy(parent_state_buffer.stake_list)
         self.next_stake_list = deepcopy(parent_state_buffer.next_stake_list)
@@ -1272,7 +1271,7 @@ class StateBuffer:
             for st in tmp_sl:
                 self.stake_list[st[0]] = st
 
-        if epoch_mod == c.blocks_per_epoch - 1:
+        if epoch_mod == config.dev.blocks_per_epoch - 1:
             tmp_sl = self.tx_to_list(self.next_stake_list)
 
             self.next_seed = state.calc_seed(tmp_sl, verbose=False)
@@ -1343,9 +1342,9 @@ class ChainBuffer:
         self.blocks = {}
         self.strongest_chain = {}
         self.headerhashes = {}
-        self.size = c.reorg_limit
+        self.size = config.dev.reorg_limit
         self.pending_blocks = {}
-        self.epoch = max(0, self.chain.height()) // c.blocks_per_epoch  # Main chain epoch
+        self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.my = {}
         self.my[self.epoch] = deepcopy(self.chain.my)
         self.epoch_seed = None
@@ -1356,7 +1355,7 @@ class ChainBuffer:
         self.tx_buffer = {}  # maintain the list of tx transaction that has been confirmed in buffer
         self.st_buffer = {}  # maintain the list of st transaction that has been confirmed in buffer
         if self.chain.height() > 0:
-            self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / c.blocks_per_epoch)
+            self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / config.dev.blocks_per_epoch)
 
     def get_st_balance(self, stake_address, blocknumber):
         if stake_address is None:
@@ -1375,7 +1374,7 @@ class ChainBuffer:
             logger.info('Blocknumber not in strongest chain')
             return None
 
-        if blocknumber % c.blocks_per_epoch == 0:
+        if blocknumber % config.dev.blocks_per_epoch == 0:
             # logger.info(('balance by 2 '))
             return self.strongest_chain[blocknumber - 1][1].next_stake_list[stake_address][-1]
         # logger.info(('balance by 3 '))
@@ -1415,11 +1414,11 @@ class ChainBuffer:
         return self.strongest_chain[blocknum][0].block
 
     def hash_chain_get(self, blocknumber):
-        epoch = int(blocknumber // c.blocks_per_epoch)
+        epoch = int(blocknumber // config.dev.blocks_per_epoch)
         return self.hash_chain[epoch]
 
     def update_hash_chain(self, blocknumber):
-        epoch = int((blocknumber + 1) // c.blocks_per_epoch)
+        epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
         logger.info('Created new hash chain')
         # self.chain.my[0][1].hashchain(epoch=epoch)
         new_my = deepcopy(self.my[epoch - 1])
@@ -1457,8 +1456,8 @@ class ChainBuffer:
     def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True):
         # TODO : minimum block validation in unsynced state
         blocknum = block.blockheader.blocknumber
-        epoch = int(blocknum // c.blocks_per_epoch)
-        prev_epoch = int((blocknum - 1) // c.blocks_per_epoch)
+        epoch = int(blocknum // config.dev.blocks_per_epoch)
+        prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
         headerhash = block.blockheader.headerhash
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
@@ -1482,8 +1481,8 @@ class ChainBuffer:
             if self.state.state_add_block(self.chain, block) is True:
                 self.chain.m_blockchain.append(block)
 
-        block_left = c.blocks_per_epoch - (
-            block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch))
+        block_left = config.dev.blocks_per_epoch - (
+            block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
@@ -1537,14 +1536,14 @@ class ChainBuffer:
             tmp_stake_list = self.state.stake_list_get()
             tmp_next_stake_list = self.state.next_stake_list_get()
 
-            if blocknum % c.blocks_per_epoch == 0:  # quick fix when a node starts, it already moved to next epoch stake list
+            if blocknum % config.dev.blocks_per_epoch == 0:  # quick fix when a node starts, it already moved to next epoch stake list
                 tmp_stake_list, tmp_next_stake_list = tmp_next_stake_list, tmp_stake_list
 
             if not self.state_validate_block(block, copy.deepcopy(tmp_stake_list), copy.deepcopy(tmp_next_stake_list)):
                 logger.info(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
                 return
 
-            if blocknum % c.blocks_per_epoch == 0:  # quick fix swapping back values
+            if blocknum % config.dev.blocks_per_epoch == 0:  # quick fix swapping back values
                 tmp_stake_list, tmp_next_stake_list = tmp_next_stake_list, tmp_stake_list
 
             for st in tmp_stake_list:
@@ -1590,10 +1589,10 @@ class ChainBuffer:
 
         self.headerhashes[blocknum].append(block.blockheader.headerhash)
 
-        # block_left = c.blocks_per_epoch - (
-        #    block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch))
-        epoch = blocknum // c.blocks_per_epoch
-        next_epoch = (blocknum + 1) // c.blocks_per_epoch
+        # block_left = config.dev.blocks_per_epoch - (
+        #    block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
+        epoch = blocknum // config.dev.blocks_per_epoch
+        next_epoch = (blocknum + 1) // config.dev.blocks_per_epoch
         if epoch != next_epoch:
             self.update_hash_chain(block.blockheader.blocknumber)
 
@@ -1602,7 +1601,7 @@ class ChainBuffer:
         return True
 
     def state_validate_block(self, block, sl, next_sl):
-        if block.blockheader.blocknumber % c.blocks_per_epoch == 0:
+        if block.blockheader.blocknumber % config.dev.blocks_per_epoch == 0:
             sl = next_sl
             next_sl = []
 
@@ -1626,8 +1625,8 @@ class ChainBuffer:
         # sl = self.stake_list_get(block.blockheader.blocknumber)
         # next_sl = self.next_stake_list_get(block.blockheader.blocknumber)
 
-        blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch)
-        blocks_left = c.blocks_per_epoch - blocks_left
+        blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch)
+        blocks_left = config.dev.blocks_per_epoch - blocks_left
 
         for s in sl:
             if block.blockheader.stake_selector == s[0]:
@@ -1657,7 +1656,7 @@ class ChainBuffer:
                     found = True
                     if s[3] is None and st.first_hash is not None:
                         threshold_block = self.state.get_staker_threshold_blocknum(next_sl, s[0])
-                        epoch_blocknum = c.blocks_per_epoch - blocks_left
+                        epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
                         # TODO: Make sure the block doesn't add such ST transaction
                         # above has to be implemented into st.validate
                         if epoch_blocknum >= threshold_block - 1:
@@ -1799,7 +1798,7 @@ class ChainBuffer:
             return None
 
         stateBuffer = self.strongest_chain[blocknumber - 1][1]
-        if blocknumber % c.blocks_per_epoch == 0:
+        if blocknumber % config.dev.blocks_per_epoch == 0:
             return stateBuffer.tx_to_list(stateBuffer.next_stake_list)
 
         return stateBuffer.tx_to_list(stateBuffer.stake_list)
@@ -1848,8 +1847,8 @@ class ChainBuffer:
         del (self.blocks[blocknum])
         del (self.headerhashes[blocknum])
         del self.strongest_chain[blocknum]
-        prev_epoch = int((blocknum - 1) // c.blocks_per_epoch)
-        self.epoch = int(blocknum // c.blocks_per_epoch)
+        prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
+        self.epoch = int(blocknum // config.dev.blocks_per_epoch)
         if prev_epoch != self.epoch:
             if prev_epoch in self.my:
                 del self.my[prev_epoch]

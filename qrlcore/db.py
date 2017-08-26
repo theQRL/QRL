@@ -43,7 +43,7 @@ class DB:
         leveldb.DestroyDB('./state')
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
-        dictObj = {'value' : value_obj}
+        dictObj = {'value': value_obj}
         self.db.Put(key_obj, json.dumps(dictObj))
         return
 

@@ -4,9 +4,8 @@
 import jsonpickle
 import simplejson as json
 
-import configuration as c
-from qrlcore import merkle
 from qrlcore import logger
+from qrlcore import merkle
 from qrlcore.merkle import sha256
 
 
@@ -24,6 +23,7 @@ def isValidAddress(addr):
 
     return False
 
+
 def select_target_hashchain(last_block_headerhash):
     target_chain = 0
     for byte in last_block_headerhash:
@@ -35,6 +35,7 @@ def select_target_hashchain(last_block_headerhash):
 
 
 def wlt():
+    # FIXME: unresolved reference here
     return merkle.numlist(wallet.list_addresses())
 
 

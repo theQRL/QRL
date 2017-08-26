@@ -6,7 +6,6 @@ from StringIO import StringIO
 
 import simplejson as json
 
-import configuration as c
 import helper
 from qrlcore import merkle, logger
 from qrlcore.merkle import sha256

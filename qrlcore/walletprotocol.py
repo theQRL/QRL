@@ -8,11 +8,11 @@ from StringIO import StringIO
 
 from twisted.internet.protocol import ServerFactory, Protocol
 
-import configuration as c
 import helper
+from qrlcore import logger
 from qrlcore.merkle import hexseed_to_seed, mnemonic_to_seed
 from qrlcore.transaction import StakeTransaction
-from qrlcore import logger
+
 
 class WalletProtocol(Protocol):
     def __init__(self):

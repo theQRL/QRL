@@ -5,8 +5,8 @@ import cPickle as pickle
 import os
 from operator import itemgetter
 
-import configuration as c
 from qrlcore import db, logger
+import configuration as config
 from qrlcore.merkle import sha256
 
 
@@ -27,8 +27,8 @@ class State:
         else:
             logger.info('Creating peers.dat')
             with open('./peers.dat', 'w+') as myfile:
-                pickle.dump(c.peer_list, myfile)
-                self.state_put_peers(c.peer_list)
+                pickle.dump(config.user.peer_list, myfile)
+                self.state_put_peers(config.user.peer_list)
 
     def state_save_peers(self):
         with open("./peers.dat", "w+") as myfile:
@@ -100,7 +100,7 @@ class State:
 
     def state_get_txn_count(self, addr):
         try:
-            return self.db.get('txn_count_'+addr)
+            return self.db.get('txn_count_' + addr)
         except Exception as e:
             logger.warn("%s %s", type(e), e.message)
             return 0
@@ -150,18 +150,16 @@ class State:
     def state_validate_tx_pool(self, chain):
         result = True
 
-        for tx in chain.transaction_pool:  ####
+        for tx in chain.transaction_pool:
             if tx.state_validate_tx(state=self) is False:
                 result = False
                 logger.info(('tx', tx.txhash, 'failed..'))
-                chain.remove_tx_from_pool(tx)  ####
+                chain.remove_tx_from_pool(tx)
 
         return result
 
     def state_add_block(self, chain, block):
-        address_txn = {}
-
-        address_txn[block.blockheader.stake_selector] = self.state_get_address(block.blockheader.stake_selector)
+        address_txn = {block.blockheader.stake_selector: self.state_get_address(block.blockheader.stake_selector)}
 
         for st in block.stake:
             if st.txfrom not in address_txn:
@@ -178,8 +176,8 @@ class State:
         next_sl = self.next_stake_list_get()
         sl = self.stake_list_get()
 
-        blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch * c.blocks_per_epoch)
-        blocks_left = c.blocks_per_epoch - blocks_left
+        blocks_left = block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch)
+        blocks_left = config.dev.blocks_per_epoch - blocks_left
 
         if block.blockheader.blocknumber == 1:
 
@@ -214,18 +212,18 @@ class State:
                                                                    seed=epoch_seed))
             '''
             chain.epoch_PRF = merkle.GEN_range(
-                chain.m_blockchain[block.blockheader.epoch * c.blocks_per_epoch].stake_seed,
+                chain.m_blockchain[block.blockheader.epoch * config.dev.blocks_per_epoch].stake_seed,
                 1,
-                c.blocks_per_epoch,
+                config.dev.blocks_per_epoch,
                 32)
             chain.block_chain_buffer.epoch_PRF[0] = chain.epoch_PRF
             chain.epoch_prf = chain.pos_block_selector(
-                chain.m_blockchain[block.blockheader.epoch * c.blocks_per_epoch].stake_seed,
+                chain.m_blockchain[block.blockheader.epoch * config.dev.blocks_per_epoch].stake_seed,
                 len(stake_list))
             '''
 
-            #if stake_list[
-            #    chain.epoch_prf[block.blockheader.blocknumber - block.blockheader.epoch * c.blocks_per_epoch]][
+            # if stake_list[
+            #    chain.epoch_prf[block.blockheader.blocknumber - block.blockheader.epoch * config.dev.blocks_per_epoch]][
             #    0] != block.blockheader.stake_selector:
             if stake_list[0][0] != block.blockheader.stake_selector:
                 logger.info('stake selector wrong..')
@@ -240,9 +238,10 @@ class State:
             found = False
 
             # increase the stake_nonce of state selector..must be in stake list..
-            logger.info(('BLOCK:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce, 'epoch: ',
-                    block.blockheader.epoch, 'blocks_left: ', blocks_left - 1, 'stake_selector: ',
-                    block.blockheader.stake_selector))
+            logger.info(
+                ('BLOCK:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce, 'epoch: ',
+                 block.blockheader.epoch, 'blocks_left: ', blocks_left - 1, 'stake_selector: ',
+                 block.blockheader.stake_selector))
 
             for s in sl:
                 if block.blockheader.stake_selector == s[0]:
@@ -274,15 +273,15 @@ class State:
                         found = True
                         if s[3] is None and st.first_hash is not None:
                             threshold_block = self.get_staker_threshold_blocknum(next_sl, s[0])
-                            epoch_blocknum = c.blocks_per_epoch - blocks_left
-                            #TODO: Make sure the block doesn't add such ST transaction
-                            #above has to be implemented into st.validate
+                            epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
+                            # TODO: Make sure the block doesn't add such ST transaction
+                            # above has to be implemented into st.validate
                             if epoch_blocknum >= threshold_block - 1:
                                 s[3] = st.first_hash
                             else:
-                                logger.info(( '^^^^^^Rejected as ', epoch_blocknum, threshold_block-1 ))
-                                logger.info(( 'Loss of data ', s[0], 'old ', s[3], 'new ', st.first_hash ))
-                        #else:
+                                logger.info(('^^^^^^Rejected as ', epoch_blocknum, threshold_block - 1))
+                                logger.info(('Loss of data ', s[0], 'old ', s[3], 'new ', st.first_hash))
+                        # else:
                         #    logger.info(('Else of next_sl ', s[0], s[3], st.first_hash ))
                         break
 
@@ -348,11 +347,11 @@ class State:
             sl = next_sl
             sl = filter(lambda staker: staker[3] is not None, sl)
 
-            #epoch_seed = self.calc_seed(sl)
-            #epoch = (block.blockheader.blocknumber // c.blocks_per_epoch)
-            #chain.block_chain_buffer.epoch_seed = epoch_seed
-            #chain.block_chain_buffer.epoch_seed[epoch + 1] = epoch_seed
-            #self.put_epoch_seed(epoch_seed)
+            # epoch_seed = self.calc_seed(sl)
+            # epoch = (block.blockheader.blocknumber // config.dev.blocks_per_epoch)
+            # chain.block_chain_buffer.epoch_seed = epoch_seed
+            # chain.block_chain_buffer.epoch_seed[epoch + 1] = epoch_seed
+            # self.put_epoch_seed(epoch_seed)
             # TODO: unlock stakers fund who are not selected for the epoch
             self.stake_list_put(sl)
             del next_sl[:]
@@ -370,7 +369,7 @@ class State:
         if verbose:
             logger.info(('stake_list --> '))
             for s in sl:
-                logger.info(( s[0], s[3] ))
+                logger.info((s[0], s[3]))
 
         epoch_seed = 0
 
@@ -390,9 +389,9 @@ class State:
                 break
 
         if found_position < total_stakers // 2:
-            return c.low_staker_first_hash_block
+            return config.dev.low_staker_first_hash_block
 
-        return c.high_staker_first_hash_block
+        return config.dev.high_staker_first_hash_block
 
     def state_read_genesis(self, genesis_block):
         logger.info(('genesis:'))

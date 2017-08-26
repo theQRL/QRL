@@ -3,18 +3,17 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
+from os.path import expanduser
 from traceback import extract_tb
+
 from twisted.internet import reactor
 
 import webwallet
-
 # TODO: Clean this up
-from qrlcore import chain, block, apiprotocol, merkle, transaction, ntp, wallet, walletprotocol, state, helper, node, \
-    fork, logger
+from qrlcore import apiprotocol, ntp, walletprotocol, node, logger, configuration
+from qrlcore import configuration as config
 from qrlcore.chain import Chain
-
 from qrlcore.node import NodeState
-
 # Initializing function to log console output
 from qrlcore.state import State
 
@@ -33,13 +32,16 @@ def log_traceback(exctype, value, tb):  # Function to log error's traceback
 def main():
     parser = argparse.ArgumentParser(description='QRL node')
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False)
-
+    parser.add_argument('--datapath', '-d', dest='data_path', default=expanduser("~/.qrl"))
     args = parser.parse_args()
 
     logger.initialize_default(force_console_output=not args.quiet)
     logger.log_to_file()
 
-    nodeState = NodeState()     # FIXME: purpose?
+    logger.info("Data Path: %s", args.data_path)
+    config.user.data_path = args.data_path
+
+    nodeState = NodeState()  # FIXME: purpose?
     ntp.setDrift()
 
     stateObj = State()
@@ -83,6 +85,7 @@ def main():
     reactor.callLater(20, pos.unsynced_logic)
 
     reactor.run()
+
 
 if __name__ == "__main__":
     main()

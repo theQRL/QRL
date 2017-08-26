@@ -17,12 +17,12 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory, Protocol
 
-import configuration as c
 import fork
 import helper
 from messagereceipt import MessageReceipt
 from qrlcore.merkle import sha256
 from qrlcore.transaction import StakeTransaction, SimpleTransaction
+import configuration as config
 
 
 class NodeState:
@@ -78,8 +78,7 @@ class POS:
         reactor.monitor_bk = reactor.callLater(delay, self.monitor_bk)
 
     def monitor_bk(self):
-        if (
-                        self.nodeState.state == 'synced' or self.nodeState.state == 'unsynced') and time.time() - self.last_pos_cycle > 90:
+        if (self.nodeState.state == 'synced' or self.nodeState.state == 'unsynced') and 90 < time.time() - self.last_pos_cycle:
             if self.nodeState.state == 'synced':
                 self.stop_post_block_logic()
                 self.reset_everything()
@@ -211,10 +210,10 @@ class POS:
                                                                            balance=self.chain.state.state_balance(st.txfrom),
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 
-        logger.info(('genesis stakers ready = ', len(self.chain.stake_list), '/', c.minimum_required_stakers))
+        logger.info(('genesis stakers ready = ', len(self.chain.stake_list), '/', config.dev.minimum_required_stakers))
         logger.info(('node address:', self.chain.mining_address))
 
-        if len(self.chain.stake_list) < c.minimum_required_stakers:  # stake pool still not full..reloop..
+        if len(self.chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
             self.p2pFactory.send_st_to_peers(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
@@ -389,8 +388,8 @@ class POS:
         blocknumber = block.blockheader.blocknumber
         headerhash = block.blockheader.headerhash
         prev_blockheaderhash = block.blockheader.prev_blockheaderhash
-        curr_epoch = self.chain.height() / c.blocks_per_epoch
-        next_epoch = (self.chain.height() + 1) / c.blocks_per_epoch
+        curr_epoch = self.chain.height() /config.dev.blocks_per_epoch
+        next_epoch = (self.chain.height() + 1) /config.dev.blocks_per_epoch
         chain_buffer_height = self.chain.block_chain_buffer.height()
 
         if blocknumber <= self.chain.height():
@@ -414,7 +413,7 @@ class POS:
                 self.last_pos_cycle = time.time()
                 block_timestamp = int(block.blockheader.timestamp)
                 curr_time = int(self.ntp.getTime())
-                delay = c.POS_delay_after_block - min(c.POS_delay_after_block, max(0, curr_time - block_timestamp))
+                delay = config.dev.POS_delay_after_block - min(c.POS_delay_after_block, max(0, curr_time - block_timestamp))
 
                 self.restart_post_block_logic(delay)
         # commented
@@ -495,23 +494,23 @@ class POS:
             for s in next_stake_list:
                 next_stake_first_hash[s[0]] = s[3]
 
-            epoch = blocknumber // c.blocks_per_epoch
-            epoch_blocknum = blocknumber - epoch * c.blocks_per_epoch
+            epoch = blocknumber // config.dev.blocks_per_epoch
+            epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
-            if epoch_blocknum < c.stake_before_x_blocks and self.chain.mining_address not in next_stake_first_hash:
-                diff = max(1, ((c.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - c.st_txn_safety_margin)))
+            if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_first_hash:
+                diff = max(1, ((c.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                 if random.randint(1, diff) == 1:
                     self.make_st_tx(blocknumber, None)
-            elif epoch_blocknum >= c.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_first_hash:
+            elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_first_hash:
                 if next_stake_first_hash[self.chain.mining_address] is None:
                     threshold_blocknum = self.chain.state.get_staker_threshold_blocknum(next_stake_list,
                                                                                         self.chain.mining_address)
-                    max_threshold_blocknum = c.blocks_per_epoch
-                    if threshold_blocknum == c.low_staker_first_hash_block:
-                        max_threshold_blocknum = c.high_staker_first_hash_block
+                    max_threshold_blocknum = config.dev.blocks_per_epoch
+                    if threshold_blocknum == config.dev.low_staker_first_hash_block:
+                        max_threshold_blocknum = config.dev.high_staker_first_hash_block
 
                     if epoch_blocknum >= threshold_blocknum - 1 and epoch_blocknum < max_threshold_blocknum - 1:
-                        diff = max(1, ((max_threshold_blocknum - epoch_blocknum + 1) * int(1 - c.st_txn_safety_margin)))
+                        diff = max(1, ((max_threshold_blocknum - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                         if random.randint(1, diff) == 1:
                             my = deepcopy(self.chain.my[0][1])
                             my.hashchain(epoch=epoch + 1)
@@ -521,7 +520,7 @@ class POS:
 
     def make_st_tx(self, blocknumber, first_hash):
         balance = self.chain.state.state_balance(self.chain.mining_address)
-        if balance < c.minimum_staking_balance_required:
+        if balance < config.dev.minimum_staking_balance_required:
             logger.info('Staking not allowed due to insufficient balance')
             logger.info(('Balance ', balance))
             return
@@ -583,7 +582,7 @@ class POS:
             logger.info(('only received one reveal for this block.. blocknum #', next_block_num))
             return
 
-        epoch = (next_block_num) / c.blocks_per_epoch  # +1 = next block
+        epoch = (next_block_num) / config.dev.blocks_per_epoch  # +1 = next block
         seed = self.chain.block_chain_buffer.get_epoch_seed(next_block_num)
         winners = self.chain.select_winners(filtered_reveal_one,
                                             topN=3,
@@ -874,8 +873,8 @@ class P2PProtocol(Protocol):
                 next_stake_list = self.factory.chain.block_chain_buffer.next_stake_list_get(blocknumber)
                 threshold_blocknum = self.factory.chain.state.get_staker_threshold_blocknum(next_stake_list,
                                                                                     self.factory.chain.mining_address)
-                epoch = blocknumber // c.blocks_per_epoch
-                epoch_blocknum = blocknumber - epoch * c.blocks_per_epoch
+                epoch = blocknumber // config.dev.blocks_per_epoch
+                epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
                 if epoch_blocknum < threshold_blocknum - 1:
                     return
@@ -1261,7 +1260,7 @@ class P2PProtocol(Protocol):
 
             return
 
-        epoch = block_number // c.blocks_per_epoch
+        epoch = block_number // config.dev.blocks_per_epoch
         epoch_seed = self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])
 
         if epoch_seed != z['seed']:
@@ -1303,7 +1302,7 @@ class P2PProtocol(Protocol):
         return
 
     def recv_peers(self, json_data):
-        if not c.enable_peer_discovery:
+        if not config.dev.enable_peer_discovery:
             return
         data = helper.json_decode(json_data)
         new_ips = []
@@ -1424,7 +1423,7 @@ class P2PProtocol(Protocol):
                 self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')  # yes
             return False
 
-        if m > c.message_buffer_size:  # check if size is more than 500 KB
+        if m > config.dev.message_buffer_size:  # check if size is more than 500 KB
             if num_d > 1:
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(chr(255) + chr(0) + chr(0))
@@ -1478,14 +1477,14 @@ class P2PProtocol(Protocol):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
         self.identity = peerHost + ":" + str(peerPort)
         # For AWS
-        if c.public_ip:
-            if self.transport.getPeer().host == c.public_ip:
+        if config.dev.public_ip:
+            if self.transport.getPeer().host == config.dev.public_ip:
                 self.transport.loseConnection()
                 return
-        if len(self.factory.peers) >= c.max_peers_limit:
+        if len(self.factory.peers) >= config.user.max_peers_limit:
             logger.info('Peer limit hit ')
             logger.info(('# of Connected peers ', len(self.factory.peers)))
-            logger.info(('Peer Limit ', c.peer_list))
+            logger.info(('Peer Limit ', config.dev.peer_list))
             logger.info(('Disconnecting client ', self.identity))
             self.transport.loseConnection()
             return
@@ -1571,7 +1570,7 @@ class P2PFactory(ServerFactory):
         self.protocol = P2PProtocol
         self.chain = chain
         self.nodeState = nodeState
-        self.stake = c.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
+        self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
         self.peers_blockheight = {}
         self.target_retry = defaultdict(int)
         self.peers = []
@@ -1675,15 +1674,15 @@ class P2PFactory(ServerFactory):
             z['block_number'] = self.chain.block_chain_buffer.height() + 1  # next block..
         z['headerhash'] = self.chain.block_chain_buffer.get_strongest_headerhash(
             z['block_number'] - 1)  # demonstrate the hash from last block to prevent building upon invalid block..
-        epoch = z['block_number'] // c.blocks_per_epoch
+        epoch = z['block_number'] // config.dev.blocks_per_epoch
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(z['block_number'])
         # +1 to skip first reveal
-        z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * c.blocks_per_epoch) + 1]
+        z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch) + 1]
         z['vote_hash'] = None
         z['weighted_hash'] = None
         # epoch_PRF = self.chain.block_chain_buffer.get_epoch_PRF(blocknumber)
         epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
-        # z['PRF'] = epoch_PRF[z['block_number'] - (epoch * c.blocks_per_epoch)]
+        # z['PRF'] = epoch_PRF[z['block_number'] - (epoch * config.dev.blocks_per_epoch)]
         z['seed'] = epoch_seed
         z['SV_hash'] = self.chain.get_stake_validators_hash()
 
@@ -1693,7 +1692,7 @@ class P2PFactory(ServerFactory):
 
         for hashes in hash_chain:
             if hashes[-1] == hash:
-                z['vote_hash'] = hashes[:-1][::-1][z['block_number'] - (epoch * c.blocks_per_epoch)]
+                z['vote_hash'] = hashes[:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch)]
                 break
 
         if z['reveal_one'] == None or z['vote_hash'] == None:
