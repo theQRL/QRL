@@ -23,42 +23,42 @@ class State:
         try:
             return self.db.get('stake_list')
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("stake_list_get: %s %s", type(e), e.message)
             return []
 
     def stake_list_put(self, sl):
         try:
             self.db.put('stake_list', sl)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("stake_list_put: %s %s", type(e), e.message)
             return False
 
     def next_stake_list_get(self):
         try:
             return self.db.get('next_stake_list')
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("next_stake_list_get: %s %s", type(e), e.message)
             return []
 
     def next_stake_list_put(self, next_sl):
         try:
             self.db.put('next_stake_list', next_sl)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("next_stake_list_put: %s %s", type(e), e.message)
             return False
 
     def put_epoch_seed(self, epoch_seed):
         try:
             self.db.put('epoch_seed', epoch_seed)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("put_epoch_seed: %s %s", type(e), e.message)
             return False
 
     def get_epoch_seed(self):
         try:
             return self.db.get('epoch_seed')
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("get_epoch_seed: %s %s", type(e), e.message)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
@@ -73,49 +73,49 @@ class State:
         try:
             return self.db.get('txn_count_' + addr)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_get_txn_count: %s %s", type(e), e.message)
             return 0
 
     def state_get_address(self, addr):
         try:
             return self.db.get(addr)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_get_address: %s %s", type(e), e.message)
             return [0, 0, []]
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
             return self.db.get(addr)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_address_used: %s %s", type(e), e.message)
             return False
 
     def state_balance(self, addr):
         try:
             return self.db.get(addr)[1]
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_balance: %s %s", type(e), e.message)
             return 0
 
     def state_nonce(self, addr):
         try:
             return self.db.get(addr)[0]
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_nonce: %s %s", type(e), e.message)
             return 0
 
     def state_pubhash(self, addr):
         try:
             return self.db.get(addr)[2]
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_pubhash: %s %s", type(e), e.message)
             return []
 
     def state_hrs(self, hrs):
         try:
             return self.db.get('hrs' + hrs)
         except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
+            logger.warn("state_hrs: %s %s", type(e), e.message)
             return False
 
     def state_validate_tx_pool(self, chain):
