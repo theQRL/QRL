@@ -80,6 +80,7 @@ class DevConfig(object):
         self.compression_level = 0
         self.version_number = "alpha/0.30a"
         self.chain_file_directory = 'data'
+        self.db_name = 'state'
 
     @staticmethod
     def getInstance():
