@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
+import logging
 from os.path import expanduser
 from traceback import extract_tb
 
@@ -29,6 +30,18 @@ def log_traceback(exctype, value, tb):  # Function to log error's traceback
 
 # sys.excepthook = log_traceback
 
+LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| - %(levelname)s  - %(message)s'
+
+class ContextFilter(logging.Filter):
+    def __init__(self, node_state):
+        super(ContextFilter, self).__init__()
+        self.node_state = node_state
+
+    def filter(self, record):
+        record.node_state = self.node_state.state
+        return True
+
+
 def main():
     parser = argparse.ArgumentParser(description='QRL node')
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False)
@@ -41,7 +54,14 @@ def main():
     logger.info("Data Path: %s", args.data_path)
     config.user.data_path = args.data_path
 
-    nodeState = NodeState()  # FIXME: purpose?
+    nodeState = NodeState()
+
+    # Applying a custom logger formatter
+    custom_filter = ContextFilter(nodeState)
+    for h in logger.logger.handlers:
+        h.setFormatter(logging.Formatter(LOG_FORMAT_CUSTOM))
+    logger.logger.addFilter(custom_filter)
+
     ntp.setDrift()
 
     stateObj = State()
