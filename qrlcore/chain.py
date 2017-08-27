@@ -158,7 +158,7 @@ class Chain:
         for byte in last_block_headerhash:
             target_chain += ord(byte)
 
-        target_chain = (target_chain - 1) % (c.hashchain_nums - 1)  # 1 Primary hashchain size
+        target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
         return hashchain[-1], hashchain[target_chain]
 
@@ -195,7 +195,7 @@ class Chain:
         reveal_one_number = int(reveal_one, 16)
         # epoch_seed = self.block_chain_buffer.get_epoch_seed(blocknumber)
 
-        score = (Decimal(c.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(balance)
+        score = (Decimal(config.dev.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(balance)
         if verbose:
             logger.info(('Score - ', score))
             logger.info(('reveal_one - ', reveal_one_number))
@@ -878,7 +878,7 @@ class Chain:
                 count = 0
                 offset = 0
                 while True:
-                    chars = myfile.read(c.chain_read_buffer_size)
+                    chars = myfile.read(config.dev.chain_read_buffer_size)
                     for char in chars:
                         offset += 1
                         if count > 0 and char != delimiter[count]:
@@ -971,7 +971,7 @@ class Chain:
         baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
         suffix = int(blocknumber // config.dev.blocks_per_chain_file)
-        writeable = self.m_blockchain[-c.disk_writes_after_x_blocks:]
+        writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
         logger.info(('Appending data to chain'))
         with open(baseDir + 'chain.da' + str(suffix), 'ab') as myfile:
             for block in writeable:
@@ -981,7 +981,7 @@ class Chain:
                 blockSize = len(compressedBlock)
                 self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
                 myfile.write(compressedBlock)
-                myfile.write(c.binary_file_delimiter)
+                myfile.write(config.dev.binary_file_delimiter)
         del self.m_blockchain[:-1]
         gc.collect()
         return

@@ -1003,16 +1003,16 @@ class P2PProtocol(Protocol):
             if self.isNoMoreBlock(data):
                 return
 
-            block = helper.json_decode_block(data)
+            block = Block.from_json(data)
             blocknumber = block.blockheader.blocknumber
-            logger.info(('>>>Received Block #', blocknumber))
+            logger.info('>>>Received Block #%d', blocknumber)
             if blocknumber != self.last_requested_blocknum:
-                logger.info(('Didnt match', self.last_requested_blocknum, self.identity))
+                logger.warning(('Didnt match', self.last_requested_blocknum, self.identity))
                 return
 
             if blocknumber > self.factory.chain.height():
                 if not self.factory.chain.block_chain_buffer.add_block_mainchain(block):
-                    logger.info(('PB failed to add block to mainchain'))
+                    logger.warning('PB failed to add block to mainchain')
                     return
 
             try:
@@ -1836,8 +1836,7 @@ class P2PFactory(ServerFactory):
                 pickle.dump(config.user.peer_list, my_file)
                 self.peer_addresses = config.user.peer_list
 
-        logger.info('Peers list')  # load the peers for connection based upon previous history..
-        logger.info(self.peer_connections)
+        logger.info('Known Peers: %s', self.peer_addresses)
 
     def update_peer_addresses(self, peer_addresses):
         self.peer_addresses = peer_addresses

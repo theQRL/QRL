@@ -7,6 +7,7 @@ import simplejson as json
 from qrlcore import logger
 from qrlcore import merkle
 from qrlcore.merkle import sha256
+import configuration as config
 
 
 # simple transaction creation and wallet functions using the wallet file..
@@ -29,7 +30,7 @@ def select_target_hashchain(last_block_headerhash):
     for byte in last_block_headerhash:
         target_chain += ord(byte)
 
-    target_chain = (target_chain - 1) % (c.hashchain_nums - 1)  # 1 Primary hashchain size
+    target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
     return target_chain
 

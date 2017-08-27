@@ -12,6 +12,7 @@ import sys
 
 from qrlcore import merkle, logger
 from qrlcore.merkle import mnemonic_to_seed
+import configuration as config
 
 
 class Wallet:
@@ -22,11 +23,13 @@ class Wallet:
     def __init__(self, chain, state):
         self.chain = chain
         self.state = state
+        self.wallet_dat_filename = os.path.join(config.user.data_path, config.dev.wallet_dat_filename)
+        self.wallet_info_filename = os.path.join(config.user.data_path, config.dev.wallet_info_filename)
 
     def recover_wallet(self):
         data = None
         try:
-            with open('./wallet.info', 'r') as myfile:
+            with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
             if data and len(data[0]) != 5:
                 logger.info('wallet.info is also corrupted, cannot recover')
@@ -35,7 +38,7 @@ class Wallet:
             logger.info('Wallet.info is corrupted')
             return False
 
-        with open("./wallet.dat", "w+") as myfile:
+        with open(self.wallet_dat_filename, "w+") as myfile:
             pass
         self.chain.my = []
         for wallets in data:
@@ -49,7 +52,7 @@ class Wallet:
 
         addr_list = []
 
-        if os.path.isfile('./wallet.dat') is False:
+        if os.path.isfile(self.wallet_dat_filename) is False:
             logger.info('Creating new wallet file..this could take up to a minute')
             SEED = None
             # For AWS test only
@@ -60,24 +63,24 @@ class Wallet:
 
             # addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
             addr_list.append(self.getnewaddress(8000, 'XMSS', SEED=SEED))
-            with open("./wallet.dat", "a") as myfile:  # add in a new call to create random_otsmss
+            with open(self.wallet_dat_filename, "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(addr_list, myfile)
 
         while True:
             try:
-                with open('./wallet.dat', 'r') as myfile:
+                with open(self.wallet_dat_filename, 'r') as myfile:
                     return pickle.load(myfile)
             except:
-                logger.info('Wallet.dat corrupted')
-                logger.info('Trying to recover')
+                logger.warning('Wallet.dat corrupted')
+                logger.warning('Trying to recover')
                 if self.recover_wallet():
                     continue
-                logger.info('Failed to Recover Wallet')
+                logger.error('Failed to Recover Wallet')
                 sys.exit()
 
     def f_save_wallet(self):
         logger.info('Syncing wallet file')
-        with open("./wallet.dat", "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
+        with open(self.wallet_dat_filename, "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
             gc.collect()
             return
@@ -92,14 +95,14 @@ class Wallet:
                     data.append(
                         [tree[1].mnemonic, tree[1].hexSEED, tree[1].signatures, tree[1].index, tree[1].remaining])
         logger.info('Fast saving wallet recovery details to wallet.info..')
-        with open("./wallet.info",
-                  "w+") as myfile:  # stores the recovery phrase, signatures and the index for each tree in the wallet..
+        # stores the recovery phrase, signatures and the index for each tree in the wallet..
+        with open(self.wallet_info_filename, "w+") as myfile:
             pickle.dump(data, myfile)
             return
 
     def f_load_winfo(self):
         try:
-            with open('./wallet.info', 'r') as myfile:
+            with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
         except:
             logger.info('Error: likely no wallet.info found, creating..')
@@ -127,7 +130,7 @@ class Wallet:
         if data is not False:
             self.chain.my.append(data)
             logger.info('Appending wallet file..')
-            with open("./wallet.dat", "w+") as myfile:  # overwrites wallet..
+            with open(self.wallet_filename, "w+") as myfile:  # overwrites wallet..
                 pickle.dump(self.chain.my, myfile)
         self.f_save_winfo()
         return

@@ -12,6 +12,7 @@ import helper
 from qrlcore import logger
 from qrlcore.merkle import hexseed_to_seed, mnemonic_to_seed
 from qrlcore.transaction import StakeTransaction
+import configuration as config
 
 
 class WalletProtocol(Protocol):
@@ -180,9 +181,9 @@ class WalletProtocol(Protocol):
                 elif command == 'stakenextepoch':
                     self.output['status'] = 0
                     self.output['message'].write('>>> Sending a stake transaction for address: ' + self.factory.chain.mining_address + ' to activate next epoch(' + str(
-                            c.blocks_per_epoch - (self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
+                            config.dev.blocks_per_epoch - (self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
                                 self.factory.chain.m_blockchain[
-                                    -1].blockheader.epoch * c.blocks_per_epoch))) + ' blocks time)' + '\r\n')
+                                    -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)' + '\r\n')
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
                     self.factory.p2pFactory.send_st_to_peers(
