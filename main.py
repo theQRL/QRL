@@ -54,10 +54,6 @@ def main():
     logger.info('Verifying chain')
     logger.info('Building state leveldb')
 
-    logger.info('Loading node list..')  # load the peers for connection based upon previous history..
-    chainObj.state.state_load_peers()
-    logger.info(chainObj.state.state_get_peers())
-
     welcome = 'QRL node connection established. Try starting with "help"' + '\r\n'
     logger.info('>>>Listening..')
 
@@ -65,7 +61,7 @@ def main():
     pos = node.POS(chain=chainObj, p2pFactory=p2pFactory, nodeState=nodeState, ntp=ntp)
     p2pFactory.setPOS(pos)
 
-    apiFactory = apiprotocol.ApiFactory(pos, chainObj, stateObj, p2pFactory.peers)
+    apiFactory = apiprotocol.ApiFactory(pos, chainObj, stateObj, p2pFactory.peer_connections)
     walletFactory = walletprotocol.WalletFactory(welcome, chainObj, stateObj, p2pFactory)
 
     logger.info('Reading chain..')

@@ -19,7 +19,14 @@ class DB:
     def __init__(self):
         self.db_path = os.path.join(config.user.data_path, config.dev.db_name)
         logger.info('DB path: %s', self.db_path)
-        os.makedirs(self.db_path)
+
+        try:
+            # TODO: This is easier in python3 with exists_ok=True
+            os.makedirs(self.db_path)
+        except OSError as err:
+            if err.errno != 17:  # Already exists
+                raise
+
         # TODO: leveldb python module is not very active. Decouple and replace
         self.destroy()
         self.db = leveldb.LevelDB(self.db_path)

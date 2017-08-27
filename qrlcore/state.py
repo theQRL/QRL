@@ -19,35 +19,6 @@ class State:
     def __init__(self):
         self.db = db.DB()  # generate db object here
 
-    def state_load_peers(self):
-        if os.path.isfile('./peers.dat') is True:
-            logger.info('Opening peers.dat')
-            with open('./peers.dat', 'r') as myfile:
-                self.state_put_peers(pickle.load(myfile))
-        else:
-            logger.info('Creating peers.dat')
-            with open('./peers.dat', 'w+') as myfile:
-                pickle.dump(config.user.peer_list, myfile)
-                self.state_put_peers(config.user.peer_list)
-
-    def state_save_peers(self):
-        with open("./peers.dat", "w+") as myfile:
-            pickle.dump(self.state_get_peers(), myfile)
-
-    def state_get_peers(self):
-        try:
-            return self.db.get('node_list')
-        except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
-            return []
-
-    def state_put_peers(self, peer_list):
-        try:
-            self.db.put('node_list', peer_list)
-        except Exception as e:
-            logger.warn("%s %s", type(e), e.message)
-            return False
-
     def stake_list_get(self):
         try:
             return self.db.get('stake_list')
