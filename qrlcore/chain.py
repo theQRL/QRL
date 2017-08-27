@@ -70,6 +70,20 @@ class Chain:
         self.stake_ban_block = {}
         self.stake_validator_latency = defaultdict(dict)
 
+        self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
+
+    @staticmethod
+    def get_base_dir():
+        tmp_path = os.path.join(config.user.data_path, config.dev.chain_file_directory)
+        if not os.path.isdir(tmp_path):
+            try:
+                os.makedirs(tmp_path)
+            except Exception as e:
+                logger.error("Failed to create directory: %s - %s", tmp_path, e)
+                sys.exit(1)
+
+        return tmp_path
+
     def initialize(self):
         logger.info(('QRL blockchain ledger ', self.version_number))
         logger.info(('loading db'))
@@ -127,7 +141,8 @@ class Chain:
         if not status:
             return None, error
 
-        return json.dumps({'hash': output, 'nonce': reboot_data[1], 'blocknumber': int(blocknumber)}), "Reboot Initiated\r\n"
+        return json.dumps(
+            {'hash': output, 'nonce': reboot_data[1], 'blocknumber': int(blocknumber)}), "Reboot Initiated\r\n"
 
     def get_sv(self, terminator):
         for s in self.state.stake_list_get():
@@ -171,8 +186,9 @@ class Chain:
             winners = heapq.nsmallest(topN, reveals, key=lambda reveal: self.score(
                 stake_address=self.get_sv(self.reveal_to_terminator(reveal, blocknumber, add_loop=1)),
                 reveal_one=reveal,
-                balance=self.block_chain_buffer.get_st_balance(self.get_sv(self.reveal_to_terminator(reveal, blocknumber, add_loop=1)), blocknumber),
-                seed=seed))  #blocknumber+1 as we have one extra hash for the reveal
+                balance=self.block_chain_buffer.get_st_balance(
+                    self.get_sv(self.reveal_to_terminator(reveal, blocknumber, add_loop=1)), blocknumber),
+                seed=seed))  # blocknumber+1 as we have one extra hash for the reveal
             return winners
 
         winners = heapq.nsmallest(topN, reveals, key=lambda reveal: reveal[4])  # reveal[4] is score
@@ -195,7 +211,8 @@ class Chain:
         reveal_one_number = int(reveal_one, 16)
         # epoch_seed = self.block_chain_buffer.get_epoch_seed(blocknumber)
 
-        score = (Decimal(config.dev.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(balance)
+        score = (Decimal(config.dev.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(
+            balance)
         if verbose:
             logger.info(('Score - ', score))
             logger.info(('reveal_one - ', reveal_one_number))
@@ -238,7 +255,8 @@ class Chain:
                     if self.block_chain_buffer.pubhashExists(t.txfrom, t.pubhash, last_block_number + 1):
                         continue
                     d.append(t.txfrom)
-                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, t.txfrom)[0] + d.count(t.txfrom)
+                    t.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, t.txfrom)[0] + d.count(
+                        t.txfrom)
                     # t.nonce = self.state.state_nonce(t.txfrom) + d.count(t.txfrom)
 
         # create the block..
@@ -600,7 +618,6 @@ class Chain:
         addr['status'] = 'ok'
         return helper.json_print_telnet(addr)
 
-
     # return json info on last n tx in the blockchain
 
     def last_tx(self, n=1):
@@ -853,21 +870,14 @@ class Chain:
         return
 
     def f_read_chain(self, epoch):
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
-
-        if not os.path.isdir(baseDir):
-            try:
-                os.makedirs(baseDir)
-            except:
-                print "Failed to create directory " + baseDir
-                sys.exit()
-
+        baseDir = self.get_base_dir()
         delimiter = config.dev.binary_file_delimiter
         block_list = []
+
         if os.path.isfile(baseDir + 'chain.da' + str(epoch)) is False:
             if epoch != 0:
                 return []
-            logger.info(('Creating new chain file'))
+            logger.info('Creating new chain file')
             block_list.append(CreateGenesisBlock(self))
             return block_list
 
@@ -903,8 +913,8 @@ class Chain:
                         jsonBlock.write(char)
                     if len(chars) < config.dev.chain_read_buffer_size:
                         break
-        except:
-            logger.info(('IO error'))
+        except Exception as e:
+            logger.error('IO error %s', e)
             return []
 
         gc.collect()
@@ -918,9 +928,9 @@ class Chain:
         for block in block_data:
             data.append(block)
         if block_data is not False:
-            logger.info(('Appending data to chain'))
-            with open("./chain.dat",
-                      "w+") as myfile:  # overwrites self.wallet..must use w+ as cannot append pickle item
+            logger.info('Appending data to chain')
+            # overwrites self.wallet..must use w+ as cannot append pickle item
+            with open(self.chain_dat_filename, "w+") as myfile:
                 pickle.dump(data, myfile)
 
         gc.collect()
@@ -962,17 +972,20 @@ class Chain:
             return
 
         for txn in block.transactions:
-            self.state.db.put(txn.txhash, [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
+            self.state.db.put(txn.txhash,
+                              [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
             self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
             self.update_wallet_tx_metadata(txn.txto, txn.txhash)
             self.update_txn_count(txn.txto, txn.txfrom)
 
     def f_write_m_blockchain(self):
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
+        baseDir = self.get_base_dir()
+
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
         suffix = int(blocknumber // config.dev.blocks_per_chain_file)
         writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
-        logger.info(('Appending data to chain'))
+        logger.info('Appending data to chain')
+
         with open(baseDir + 'chain.da' + str(suffix), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = helper.json_bytestream(block)
@@ -982,6 +995,7 @@ class Chain:
                 self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
                 myfile.write(compressedBlock)
                 myfile.write(config.dev.binary_file_delimiter)
+
         del self.m_blockchain[:-1]
         gc.collect()
         return
@@ -1013,7 +1027,7 @@ class Chain:
             return self.m_blockchain
 
         epoch = 1
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
+        baseDir = self.get_base_dir()
         while os.path.isfile(baseDir + 'chain.da' + str(epoch)):
             del self.m_blockchain[:-1]
             chains = self.f_read_chain(epoch)
@@ -1031,7 +1045,7 @@ class Chain:
         return self.m_blockchain
 
     def load_from_file(self, blocknum):
-        baseDir = os.path.split(os.path.abspath(__file__))[0] + os.sep + config.dev.chain_file_directory + os.sep
+        baseDir = self.get_base_dir()
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
         with open(baseDir + 'chain.da' + str(epoch), 'rb') as f:
             pos_size = self.state.db.db.Get('block_' + str(blocknum))
@@ -1302,7 +1316,8 @@ class StateBuffer:
             self.stxn_state[tx.txfrom][0] = tx.nonce
 
         if block.blockheader.stake_selector not in self.stxn_state:
-            self.stxn_state[block.blockheader.stake_selector] = state.state_get_address(block.blockheader.stake_selector)
+            self.stxn_state[block.blockheader.stake_selector] = state.state_get_address(
+                block.blockheader.stake_selector)
 
         self.stxn_state[block.blockheader.stake_selector][1] += block.blockheader.block_reward
         ignore_addr.add(block.blockheader.stake_selector)
@@ -1315,10 +1330,9 @@ class StateBuffer:
             if not addr_list:
                 continue
 
-            #Delete from buffer if the sta
+            # Delete from buffer if the sta
             if self.stxn_state[addr][1] == addr_list[1] and self.stxn_state[addr][2] == addr_list[2]:
                 del self.stxn_state[addr]
-
 
     def update_next_stake_list(self, block):
         for st in block.stake:
@@ -1329,7 +1343,7 @@ class StateBuffer:
     def update_stake_list(self, block):
         stake_selector = block.blockheader.stake_selector
         if stake_selector not in self.stake_list:
-            logger.info('Error Stake selector not found stake_list of block buffer state')
+            logger.error('Error Stake selector not found stake_list of block buffer state')
             raise Exception
         self.stake_list[stake_selector][2] += 1  # Update Nonce
 
@@ -1551,7 +1565,9 @@ class ChainBuffer:
 
             for st in tmp_next_stake_list:
                 state_buffer.next_stake_list[st[0]] = st
-            block_buffer = BlockBuffer(block, stake_reward, self.chain, self.epoch_seed, self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber))
+            block_buffer = BlockBuffer(block, stake_reward, self.chain, self.epoch_seed,
+                                       self.get_st_balance(block.blockheader.stake_selector,
+                                                           block.blockheader.blocknumber))
             state_buffer.set_next_seed(block.blockheader.hash, self.epoch_seed)
             state_buffer.update_stake_list(block)
             state_buffer.update_next_stake_list(block)
@@ -1566,17 +1582,22 @@ class ChainBuffer:
                     parent_seed = buffer[1].next_seed
                     break
 
-            if not self.state_validate_block(block, copy.deepcopy(parent_state_buffer.tx_to_list(parent_state_buffer.stake_list)), copy.deepcopy(parent_state_buffer.tx_to_list(parent_state_buffer.next_stake_list))):
+            if not self.state_validate_block(block, copy.deepcopy(
+                    parent_state_buffer.tx_to_list(parent_state_buffer.stake_list)), copy.deepcopy(
+                    parent_state_buffer.tx_to_list(parent_state_buffer.next_stake_list))):
                 printL(('State_validate_block failed inside chainbuffer #', block.blockheader.blocknumber))
                 return
-            block_buffer = BlockBuffer(block, stake_reward, self.chain, parent_seed, self.get_st_balance(block.blockheader.stake_selector, block.blockheader.blocknumber))
+            block_buffer = BlockBuffer(block, stake_reward, self.chain, parent_seed,
+                                       self.get_st_balance(block.blockheader.stake_selector,
+                                                           block.blockheader.blocknumber))
             state_buffer.update(self.state, parent_state_buffer, block)
         self.blocks[blocknum].append([block_buffer, state_buffer])
 
-        if len(self.strongest_chain) == 0 and self.chain.m_blockchain[-1].blockheader.headerhash==prev_headerhash:
+        if len(self.strongest_chain) == 0 and self.chain.m_blockchain[-1].blockheader.headerhash == prev_headerhash:
             self.strongest_chain[blocknum] = [block_buffer, state_buffer]
             self.chain.update_tx_metadata(block)
-        elif blocknum not in self.strongest_chain and self.strongest_chain[blocknum - 1][0].block.blockheader.headerhash == prev_headerhash:
+        elif blocknum not in self.strongest_chain and self.strongest_chain[blocknum - 1][
+            0].block.blockheader.headerhash == prev_headerhash:
             self.strongest_chain[blocknum] = [block_buffer, state_buffer]
             self.chain.update_tx_metadata(block)
         elif blocknum in self.strongest_chain:
@@ -1619,7 +1640,6 @@ class ChainBuffer:
                 address_txn[tx.txfrom] = self.get_stxn_state(blocknumber, tx.txfrom)
             if tx.txto not in address_txn:
                 address_txn[tx.txto] = self.get_stxn_state(blocknumber, tx.txto)
-
 
         found = False
         # sl = self.stake_list_get(block.blockheader.blocknumber)
@@ -1686,7 +1706,7 @@ class ChainBuffer:
             # if s1[1] - tx.amount < 0:
             if address_txn[tx.txfrom][1] - tx.amount < 0:
                 logger.info((tx, tx.txfrom, 'exceeds balance, invalid tx'))
-                logger.info(('Buffer State Balance: ', address_txn[tx.txfrom][1], ' Transfer Amount ', tx.amount ))
+                logger.info(('Buffer State Balance: ', address_txn[tx.txfrom][1], ' Transfer Amount ', tx.amount))
                 return False
 
             if tx.nonce != address_txn[tx.txfrom][0] + 1:
