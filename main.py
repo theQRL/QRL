@@ -3,15 +3,15 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
-import logging
 from os.path import expanduser
+import logging
 from traceback import extract_tb
 
 from twisted.internet import reactor
 
 import webwallet
 # TODO: Clean this up
-from qrlcore import apiprotocol, ntp, walletprotocol, node, logger, configuration
+from qrlcore import apiprotocol, ntp, walletprotocol, node, logger
 from qrlcore import configuration as config
 from qrlcore.chain import Chain
 from qrlcore.node import NodeState
@@ -25,7 +25,7 @@ def log_traceback(exctype, value, tb):  # Function to log error's traceback
     logger.info(str(value))
     tb_info = extract_tb(tb)
     for line in tb_info:
-        logger.info(tb_info)
+        logger.info(line)
 
 
 # sys.excepthook = log_traceback
@@ -55,8 +55,6 @@ def main():
     config.user.data_path = args.data_path
 
     nodeState = NodeState()
-
-    # Applying a custom logger formatter
     custom_filter = ContextFilter(nodeState)
     for h in logger.logger.handlers:
         h.setFormatter(logging.Formatter(LOG_FORMAT_CUSTOM))
@@ -90,7 +88,7 @@ def main():
     reactor.listenTCP(8080, apiFactory)
 
     # Load web wallet HERE??
-    webWallet = webwallet.WebWallet(chainObj, stateObj, p2pFactory)
+    webwallet.WebWallet(chainObj, stateObj, p2pFactory)
 
     pos.restart_monitor_bk(80)
 
@@ -101,7 +99,6 @@ def main():
     reactor.callLater(20, pos.unsynced_logic)
 
     reactor.run()
-
 
 if __name__ == "__main__":
     main()

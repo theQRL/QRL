@@ -5,8 +5,8 @@ import cPickle as pickle
 import os
 from operator import itemgetter
 
-from qrlcore import db, logger
 import configuration as config
+from qrlcore import db, logger, transaction
 from qrlcore.merkle import sha256
 
 
@@ -122,25 +122,25 @@ class State:
         result = True
 
         for tx in chain.transaction_pool:
-            if tx.state_validate_tx(state=self) is False:
+            block_chain_buffer = chain.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height()+1,
+                                                         addr=tx.txfrom)
+            if tx.state_validate_tx(tx_state=tx_state) is False:
                 result = False
-                logger.info(('tx', tx.txhash, 'failed..'))
+                logger.warn('tx %s failed', tx.txhash)
                 chain.remove_tx_from_pool(tx)
 
         return result
 
     def state_add_block(self, chain, block):
-        address_txn = {block.blockheader.stake_selector: self.state_get_address(block.blockheader.stake_selector)}
-
-        for st in block.stake:
-            if st.txfrom not in address_txn:
-                address_txn[st.txfrom] = self.state_get_address(st.txfrom)
+        address_txn = dict()
 
         for tx in block.transactions:
             if tx.txfrom not in address_txn:
                 address_txn[tx.txfrom] = self.state_get_address(tx.txfrom)
-            if tx.txto not in address_txn:
-                address_txn[tx.txto] = self.state_get_address(tx.txto)
+            if tx.subtype == transaction.TX_SUBTYPE_TX:
+                if tx.txto not in address_txn:
+                    address_txn[tx.txto] = self.state_get_address(tx.txto)
 
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
@@ -151,27 +151,48 @@ class State:
         blocks_left = config.dev.blocks_per_epoch - blocks_left
 
         if block.blockheader.blocknumber == 1:
+            # Start Updating coin base txn
+            tx = block.transactions[0]
+            pub = tx.pub
+            pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
 
-            for st in block.stake:
-                # update txfrom, hash and stake_nonce against genesis for current or next stake_list
-                if st.txfrom == block.blockheader.stake_selector:
-                    if st.txfrom in chain.m_blockchain[0].stake_list:
-                        sl.append([st.txfrom, st.hash, 1, st.first_hash, st.balance])
+            pubhash = sha256(''.join(pub))
+
+            if tx.nonce != address_txn[tx.txfrom][0] + 1:
+                logger.warn('nonce incorrect, invalid tx')
+                logger.warn('subtype: %s', tx.subtype)
+                logger.warn('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
+                return False
+
+            if pubhash in address_txn[tx.txfrom][2]:
+                logger.warn('pubkey reuse detected: invalid tx %s', tx.txhash)
+                logger.warn('subtype: %s', tx.subtype)
+                return False
+
+
+            address_txn[tx.txfrom][0] += 1
+            address_txn[tx.txto][1] = address_txn[tx.txto][1] + tx.amount
+            address_txn[tx.txfrom][2].append(pubhash)
+            # Coinbase update end here
+
+            for tx in block.transactions:
+                if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                    # update txfrom, hash and stake_nonce against genesis for current or next stake_list
+                    if tx.txfrom == block.blockheader.stake_selector:
+                        if tx.txfrom in chain.m_blockchain[0].stake_list:
+                            sl.append([tx.txfrom, tx.hash, 1, tx.first_hash, tx.balance])
+                            address_txn[tx.txfrom][0] += 1
+                        else:
+                            logger.warn('designated staker not in genesis..')
+                            return False
                     else:
-                        logger.info(('designated staker not in genesis..'))
-                        return False
-                else:
-                    if st.txfrom in chain.m_blockchain[0].stake_list:
-                        sl.append([st.txfrom, st.hash, 0, st.first_hash, st.balance])
-                    else:
-                        next_sl.append([st.txfrom, st.hash, 0, st.first_hash, st.balance])
+                        if tx.txfrom in chain.m_blockchain[0].stake_list:
+                            sl.append([tx.txfrom, tx.hash, 0, tx.first_hash, tx.balance])
+                        else:
+                            next_sl.append([tx.txfrom, tx.hash, 0, tx.first_hash, tx.balance])
 
-                pub = st.pub
-                pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
-                pubhash = sha256(''.join(pub))
-                address_txn[st.txfrom][2].append(pubhash)
-
-                logger.info(('state st.txfrom', self.state_get_address(st.txfrom)))
+                    pubhash = tx.generate_pubhash(tx.pub)
+                    address_txn[tx.txfrom][2].append(pubhash)
 
             epoch_seed = self.calc_seed(sl)
             chain.block_chain_buffer.epoch_seed = epoch_seed
@@ -181,21 +202,7 @@ class State:
                                                                    reveal_one=sha256(str(staker[1])),
                                                                    balance=self.state_balance(staker[0]),
                                                                    seed=epoch_seed))
-            '''
-            chain.epoch_PRF = merkle.GEN_range(
-                chain.m_blockchain[block.blockheader.epoch * config.dev.blocks_per_epoch].stake_seed,
-                1,
-                config.dev.blocks_per_epoch,
-                32)
-            chain.block_chain_buffer.epoch_PRF[0] = chain.epoch_PRF
-            chain.epoch_prf = chain.pos_block_selector(
-                chain.m_blockchain[block.blockheader.epoch * config.dev.blocks_per_epoch].stake_seed,
-                len(stake_list))
-            '''
 
-            # if stake_list[
-            #    chain.epoch_prf[block.blockheader.blocknumber - block.blockheader.epoch * config.dev.blocks_per_epoch]][
-            #    0] != block.blockheader.stake_selector:
             if stake_list[0][0] != block.blockheader.stake_selector:
                 logger.info('stake selector wrong..')
                 return
@@ -206,102 +213,74 @@ class State:
 
         else:
 
+            logger.info('BLOCK: %s stake nonce: %s epoch: %s blocks_left: %s stake_selector %s',
+                        block.blockheader.blocknumber,
+                        block.blockheader.stake_nonce,
+                        block.blockheader.epoch,
+                        blocks_left - 1,
+                        block.blockheader.stake_selector)
+
             found = False
-
-            # increase the stake_nonce of state selector..must be in stake list..
-            logger.info(
-                ('BLOCK:', block.blockheader.blocknumber, 'stake nonce:', block.blockheader.stake_nonce, 'epoch: ',
-                 block.blockheader.epoch, 'blocks_left: ', blocks_left - 1, 'stake_selector: ',
-                 block.blockheader.stake_selector))
-
             for s in sl:
                 if block.blockheader.stake_selector == s[0]:
                     found = True
-                    s[2] += 1
-                    if s[2] != block.blockheader.stake_nonce:
-                        logger.info('stake_nonce wrong..')
-                        logger.info(('block STake Selector ', block.blockheader.stake_selector))
-                        logger.info(('Expected Nonce ', str(s[2])))
-                        logger.info(('Actual Nonce ', str(block.blockheader.stake_nonce)))
-                        return
                     break
 
             if not found:
-                logger.info('stake selector not in stake_list_get')
+                logger.warn('stake selector not in stake_list_get')
                 return
 
-            # update and re-order the next_stake_list:
+            # cycle through every tx in the new block to check state
+            for tx in block.transactions:
 
-            for st in block.stake:
-                pub = st.pub
+                pub = tx.pub
                 pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
+
                 pubhash = sha256(''.join(pub))
-                found = False
 
-                for s in next_sl:
-                    # already in the next stake list, ignore for staker list but update as usual the state_for_address..
-                    if st.txfrom == s[0]:
-                        found = True
-                        if s[3] is None and st.first_hash is not None:
-                            threshold_block = self.get_staker_threshold_blocknum(next_sl, s[0])
-                            epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
-                            # TODO: Make sure the block doesn't add such ST transaction
-                            # above has to be implemented into st.validate
-                            if epoch_blocknum >= threshold_block - 1:
-                                s[3] = st.first_hash
-                            else:
-                                logger.info(('^^^^^^Rejected as ', epoch_blocknum, threshold_block - 1))
-                                logger.info(('Loss of data ', s[0], 'old ', s[3], 'new ', st.first_hash))
-                        # else:
-                        #    logger.info(('Else of next_sl ', s[0], s[3], st.first_hash ))
-                        break
+                if tx.nonce != address_txn[tx.txfrom][0] + 1:
+                    logger.warn('nonce incorrect, invalid tx')
+                    logger.warn('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
+                    return False
 
-                address_txn[st.txfrom][2].append(pubhash)
+                if pubhash in address_txn[tx.txfrom][2]:
+                    logger.warn('pubkey reuse detected: invalid tx %s', tx.txhash)
+                    return False
 
-                if not found:
-                    next_sl.append([st.txfrom, st.hash, 0, st.first_hash, st.balance])
+                if tx.subtype == transaction.TX_SUBTYPE_TX:
+                    if address_txn[tx.txfrom][1] - tx.amount < 0:
+                        logger.warn('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                        logger.warn('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
+                        return False
+                elif tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                    found = False
+                    for s in next_sl:
+                        # already in the next stake list, ignore for staker list but update as usual the state_for_address..
+                        if tx.txfrom == s[0]:
+                            found = True
+                            if s[3] is None and tx.first_hash is not None:
+                                threshold_block = self.get_staker_threshold_blocknum(next_sl, s[0])
+                                epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
+                                if epoch_blocknum >= threshold_block - 1:
+                                    s[3] = tx.first_hash
+                                else:
+                                    logger.warn('^^^^^^Rejected as %s %s', epoch_blocknum, threshold_block - 1)
+                            break
 
-        # cycle through every tx in the new block to check state
+                    address_txn[tx.txfrom][2].append(pubhash)
 
-        for tx in block.transactions:
+                    if not found:
+                        next_sl.append([tx.txfrom, tx.hash, 0, tx.first_hash, tx.balance])
 
-            pub = tx.pub
-            if tx.type == 'TX':
-                pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
+                address_txn[tx.txfrom][0] += 1
 
-            pubhash = sha256(''.join(pub))
+                if tx.subtype == transaction.TX_SUBTYPE_TX:
+                    address_txn[tx.txfrom][1] -= tx.amount
 
-            # basic tx state checks..
+                if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+                    address_txn[tx.txto][1] = address_txn[tx.txto][1] + tx.amount
 
-            # if s1[1] - tx.amount < 0:
-            if address_txn[tx.txfrom][1] - tx.amount < 0:
-                logger.info((tx, tx.txfrom, 'exceeds balance, invalid tx'))
-                return False
-
-            if tx.nonce != address_txn[tx.txfrom][0] + 1:
-                logger.info('nonce incorrect, invalid tx')
-                logger.info((tx, tx.txfrom, tx.nonce))
-                return False
-
-            if pubhash in address_txn[tx.txfrom][2]:
-                logger.info(('pubkey reuse detected: invalid tx', tx.txhash))
-                return False
-
-            # add a check to prevent spend from stake address..
-            # if tx.txfrom in stake_list_get():
-            # logger.info(( 'attempt to spend from a stake address: invalid tx type'
-            # break
-
-            address_txn[tx.txfrom][0] += 1
-            address_txn[tx.txfrom][1] -= tx.amount
-            address_txn[tx.txfrom][2].append(pubhash)
-
-            address_txn[tx.txto][1] = address_txn[tx.txto][1] + tx.amount
-
-        # committing state
-
-        # first the coinbase address is updated
-        address_txn[block.blockheader.stake_selector][1] += block.blockheader.block_reward
+                address_txn[tx.txfrom][2].append(pubhash)
 
         for address in address_txn:
             self.db.put(address, address_txn[address])
@@ -311,36 +290,29 @@ class State:
             self.next_stake_list_put(sorted(next_sl, key=itemgetter(1)))
 
         if blocks_left == 1:
-            logger.info((
-                'EPOCH change: resetting stake_list, activating next_stake_list, updating PRF with seed+entropy, '
-                'updating wallet hashchains..'))
+            logger.info('EPOCH change: resetting stake_list, activating next_stake_list, updating PRF with '
+                        'seed+entropy updating wallet hashchains..')
 
             sl = next_sl
             sl = filter(lambda staker: staker[3] is not None, sl)
 
-            # epoch_seed = self.calc_seed(sl)
-            # epoch = (block.blockheader.blocknumber // config.dev.blocks_per_epoch)
-            # chain.block_chain_buffer.epoch_seed = epoch_seed
-            # chain.block_chain_buffer.epoch_seed[epoch + 1] = epoch_seed
-            # self.put_epoch_seed(epoch_seed)
-            # TODO: unlock stakers fund who are not selected for the epoch
             self.stake_list_put(sl)
             del next_sl[:]
             self.next_stake_list_put(next_sl)
 
-            chain.my[0][1].hashchain(epoch=block.blockheader.epoch + 1)  ####
-            chain.hash_chain = chain.my[0][1].hc  ####
-            chain.wallet.f_save_wallet()  ####
+            chain.my[0][1].hashchain(epoch=block.blockheader.epoch + 1)
+            chain.hash_chain = chain.my[0][1].hc
+            chain.wallet.f_save_wallet()
 
         self.db.put('blockheight', chain.height() + 1)
-        logger.info((block.blockheader.headerhash, str(len(block.transactions)), 'tx ', ' passed verification.'))
+        logger.info('%s %s tx passed verification.', block.blockheader.headerhash, len(block.transactions))
         return True
 
     def calc_seed(self, sl, verbose=False):
         if verbose:
             logger.info(('stake_list --> '))
             for s in sl:
-                logger.info((s[0], s[3]))
+                logger.info(( s[0], s[3] ))
 
         epoch_seed = 0
 
@@ -365,7 +337,7 @@ class State:
         return config.dev.high_staker_first_hash_block
 
     def state_read_genesis(self, genesis_block):
-        logger.info(('genesis:'))
+        logger.info('genesis:')
 
         for address in genesis_block.state:
             self.db.put(address[0], address[1])

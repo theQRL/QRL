@@ -2,12 +2,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # -features POS, quantum secure signature scheme..
-import os
-
-from qrlcore import logger
-from qrlcore.block import Block
-
 __author__ = 'pete'
+
+import os
 import json
 import random
 import struct
@@ -19,11 +16,14 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory, Protocol
 
+
 import fork
 import helper
 from messagereceipt import MessageReceipt
 from qrlcore.merkle import sha256
 from qrlcore.transaction import StakeTransaction, SimpleTransaction
+from qrlcore.block import Block
+from qrlcore import transaction, CreateGenesisBlock, logger
 import configuration as config
 import cPickle as pickle
 
@@ -57,7 +57,7 @@ class POS:
 
     def update_node_state(self, state):
         self.nodeState.state = state
-        logger.info(('Status changed to ', self.nodeState.state))
+        logger.info('Status changed to %s', self.nodeState.state)
         if self.nodeState.state == 'synced':
             self.nodeState.epoch_diff = 0
             self.last_pos_cycle = time.time()
@@ -117,8 +117,8 @@ class POS:
             actual_blockhash = self.chain.m_get_block(current_height).blockheader.headerhash
             if actual_blockhash != blockhash:
                 logger.info('Blockhash didnt matched in peers_blockheight()')
-                logger.info(('Local blockhash - ', actual_blockhash))
-                logger.info(('Consensus blockhash - ', blockhash))
+                logger.info('Local blockhash - %s', actual_blockhash)
+                logger.info('Consensus blockhash - %s', blockhash)
                 fork.fork_recovery(current_height, self.chain, self.randomize_headerhash_fetch)
                 return True
         return
@@ -142,8 +142,8 @@ class POS:
 
         if blocknumber > self.chain.height():  # chain.m_blockheight():  len(chain.m_blockchain)
             # pending_blocks['target'] = blocknumber
-            logger.info(('Calling downloader from peers_blockheight due to no POS CYCLE ', blocknumber))
-            logger.info(('Download block from ', self.chain.height() + 1, ' to ', blocknumber))
+            logger.info('Calling downloader from peers_blockheight due to no POS CYCLE %s', blocknumber)
+            logger.info('Download block from %s to %s', self.chain.height() + 1, blocknumber)
             self.last_pb_time = time.time()
             self.update_node_state('syncing')
             self.randomize_block_fetch(self.chain.height() + 1)
@@ -166,25 +166,24 @@ class POS:
     # first block 1 is created with the stake list for epoch 0 decided from circulated st transactions
 
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
-        logger.info(('pre_pos_1'))
+        logger.info('pre_pos_1')
         # are we a staker in the stake list?
 
         if self.chain.mining_address in self.chain.m_blockchain[0].stake_list:
-            logger.info(('mining address:', self.chain.mining_address, ' in the genesis.stake_list'))
+            logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
 
             self.chain.my[0][1].hashchain(epoch=0)
             self.chain.hash_chain = self.chain.my[0][1].hc
             self.chain.block_chain_buffer.hash_chain[0] = self.chain.my[0][1].hc
 
-            logger.info(('hashchain terminator: ', self.chain.my[0][1].hc_terminator))
-            st = StakeTransaction().create_stake_transaction(mining_address=self.chain.mining_address,
-                                                             blocknumber=0,
-                                                             data=self.chain.my[0][1],
-                                                             hashchain_terminator=self.chain.my[0][1].hc_terminator,
-                                                             first_hash=self.chain.my[0][1].hc[-1][-2],
-                                                             balance=self.chain.state.state_balance(self.chain.mining_address))
+            logger.info('hashchain terminator: %s', self.chain.my[0][1].hc_terminator)
+            st = StakeTransaction().create(blocknumber=0,
+                                           xmss=self.chain.my[0][1],
+                                           hashchain_terminator=self.chain.my[0][1].hc_terminator,
+                                           first_hash=self.chain.my[0][1].hc[-1][-2],
+                                           balance=self.chain.state.state_balance(self.chain.mining_address))
             self.chain.wallet.f_save_winfo()
-            self.chain.add_st_to_pool(st)
+            self.chain.add_tx_to_pool(st)
             # send the stake tx to generate hashchain terminators for the staker addresses..
             self.p2pFactory.send_st_to_peers(st)
             logger.info('await delayed call to build staker list from genesis')
@@ -195,34 +194,34 @@ class POS:
         return
 
     def pre_pos_2(self, data=None):
-        logger.info(('pre_pos_2'))
+        logger.info('pre_pos_2')
         if self.chain.height() >= 1:
             return
         # assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
 
         tmp_list = []
 
-        for st in self.chain.stake_pool:
-            if st.txfrom in self.chain.m_blockchain[0].stake_list:
-                tmp_list.append([st.txfrom, st.hash, 0, st.first_hash, self.chain.state.state_balance(st.txfrom)])
+        for tx in self.chain.transaction_pool:
+            if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                if tx.txfrom in self.chain.m_blockchain[0].stake_list:
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, CreateGenesisBlock.genesis_info[tx.txfrom]])
 
         # required as doing chain.stake_list.index(s) which will result into different number on different server
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
                                                                            reveal_one=sha256(str(staker[1])),
-                                                                           balance=self.chain.state.state_balance(st.txfrom),
+                                                                           balance=staker[4],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 
-        logger.info(('genesis stakers ready = ', len(self.chain.stake_list), '/', config.dev.minimum_required_stakers))
-        logger.info(('node address:', self.chain.mining_address))
+        logger.info('genesis stakers ready = %s / %s', len(self.chain.stake_list), config.dev.minimum_required_stakers)
+        logger.info('node address: %s', self.chain.mining_address)
 
         if len(self.chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
             self.p2pFactory.send_st_to_peers(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
-        logger.info((str(self.chain.stake_list)))
 
         if self.chain.mining_address == self.chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
@@ -234,7 +233,7 @@ class POS:
             b = self.chain.m_create_block(my_hash_chain[-2])
             self.pre_block_logic(b)
         else:
-            logger.info(('await block creation by stake validator:', self.chain.stake_list[0][0]))
+            logger.info('await block creation by stake validator: %s', self.chain.stake_list[0][0])
             self.last_bk_time = time.time()
             self.restart_unsynced_logic()
         return
@@ -246,22 +245,25 @@ class POS:
             tx_peer = tx[1]
             tx = tx[0]
             if tx.validate_tx() != True:
-                logger.info(('>>>TX ', tx.txhash, 'failed validate_tx'))
+                logger.info('>>>TX %s failed validate_tx', tx.txhash)
                 continue
-
+            
+            block_chain_buffer = self.chain.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
+                                                         addr=tx.txfrom)
             isValidState = tx.state_validate_tx(
-                state=self.chain.state,
+                tx_state=tx_state,
                 transaction_pool=self.chain.transaction_pool
             )
             if not isValidState:
-                logger.info(('>>>TX', tx.txhash, 'failed state_validate'))
+                logger.info('>>>TX %s failed state_validate', tx.txhash)
                 continue
 
-            logger.info(('>>>TX - ', tx.txhash, ' from - ', tx_peer.transport.getPeer().host, ' relaying..'))
+            logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
             self.chain.add_tx_to_pool(tx)
 
             txn_msg = tx_peer.wrap_message('TX', tx.transaction_to_json())
-            for peer in tx_peer.factory.peers:
+            for peer in tx_peer.factory.peer_connections:
                 if peer != tx_peer:
                     peer.transport.write(txn_msg)
 
@@ -272,11 +274,8 @@ class POS:
     # create new block..
 
     def create_new_block(self, winner, reveals, vote_hashes, last_block_number):
-        logger.info(('create_new_block #', (last_block_number + 1)))
-        tx_list = []
-        for t in self.chain.transaction_pool:
-            tx_list.append(t.txhash)
-        block_obj = self.chain.create_stake_block(tx_list, winner, reveals, vote_hashes, last_block_number)
+        logger.info('create_new_block #%s', (last_block_number + 1))
+        block_obj = self.chain.create_stake_block(winner, reveals, vote_hashes, last_block_number)
 
         return block_obj
 
@@ -343,7 +342,7 @@ class POS:
         # FMBH
         if self.nodeState.state == 'synced':
             return
-        logger.info(('Checking Download..'))
+        logger.info('Checking Download..')
         '''
         global fmbh_blockhash_peers
         max_height = None
@@ -390,10 +389,6 @@ class POS:
             self.chain.m_read_chain()
 
         blocknumber = block.blockheader.blocknumber
-        headerhash = block.blockheader.headerhash
-        prev_blockheaderhash = block.blockheader.prev_blockheaderhash
-        curr_epoch = self.chain.height() / config.dev.blocks_per_epoch
-        next_epoch = (self.chain.height() + 1) / config.dev.blocks_per_epoch
         chain_buffer_height = self.chain.block_chain_buffer.height()
 
         if blocknumber <= self.chain.height():
@@ -420,46 +415,7 @@ class POS:
                 delay = config.dev.POS_delay_after_block - min(config.dev.POS_delay_after_block, max(0, curr_time - block_timestamp))
 
                 self.restart_post_block_logic(delay)
-        # commented
-        '''
-        if chain.m_blockchain and block.blockheader.epoch == curr_epoch or block.blockheader.epoch == next_epoch:
-            if blocknumber < chain.height() + 1 and headerhash != chain.m_blockchain[blocknumber].blockheader.headerhash:
-                if not chain.validate_block(block):
-                    return False
 
-                sum_block_reward_old_sl, sum_block_reward_new_sl = sumBlockReward(chain.m_blockchain[block.blockheader.blocknumber].blockheader.stake_selector, block.blockheader.stake_selector, block.blockheader.blocknumber)
-
-                #Compare if strongest, then replace from the buffer
-                total_stakers_new_block, score_new_block = getBlockStakeInfo(block, block_reward=sum_block_reward_new_sl)
-                total_stakers, score = getBlockStakeInfo(chain.m_blockchain[blocknumber], block_reward=sum_block_reward_old_sl)
-                printL (( 'New Block # ', blocknumber, ' HeaderHash: ', headerhash, ' Score: ', score_new_block, ' sum block reward : ', sum_block_reward_new_sl ))
-                printL (( 'Old Block # ', blocknumber, ' HeaderHash: ', chain.m_blockchain[blocknumber].blockheader.headerhash, ' Score: ', score, ' sum block reward : ', sum_block_reward_old_sl ))
-                printL (( str(chain.state_balance(block.blockheader.stake_selector)) ))
-                if score_new_block < score:  #or total_stakers_new_block>total_stakers#Need to be reviewed
-                    tmp_blocks = chain.m_blockchain[blocknumber:][::-1]
-                    for tmp_block in tmp_blocks:
-                        update_nonce(tmp_block)
-                        txn_block_to_pool(tmp_block)
-                        del chain.m_blockchain[tmp_block.blockheader.blocknumber]
-                    add_block(block)
-                    if chain.state.current == 'synced':
-                        f.send_block_to_peers(block)
-
-                return True
-
-            if blocknumber == chain.height()+1 and prev_blockheaderhash == chain.m_blockchain[-1].blockheader.headerhash:
-                if not chain.validate_block(block):
-                    return False
-
-                add_block(block)
-
-                if chain.state.current == 'synced':
-                    f.send_block_to_peers(block)
-                if chain.state.current == 'unsynced':
-                    chain.state.update('synced')
-                restart_post_block_logic()
-                return True
-        '''
         return True
 
     def stop_post_block_logic(self, delay=0):
@@ -490,9 +446,7 @@ class POS:
                 our_reveal = self.p2pFactory.send_stake_reveal_one(blocknumber)
                 self.schedule_prepare_winners(our_reveal, blocknumber - 1, 30)
 
-            '''tmp_next_stake_list = [
-                s[0] for s in self.chain.block_chain_buffer.next_stake_list_get(blocknumber)
-            ]'''
+
             next_stake_list = self.chain.block_chain_buffer.next_stake_list_get(blocknumber)
             next_stake_first_hash = {}
             for s in next_stake_list:
@@ -525,35 +479,28 @@ class POS:
     def make_st_tx(self, blocknumber, first_hash):
         balance = self.chain.state.state_balance(self.chain.mining_address)
         if balance < config.dev.minimum_staking_balance_required:
-            logger.info('Staking not allowed due to insufficient balance')
-            logger.info(('Balance ', balance))
+            logger.warning('Staking not allowed due to insufficient balance')
+            logger.warning('Balance %s', balance)
             return
 
-        st = StakeTransaction().create_stake_transaction(
-            self.chain.mining_address, blocknumber,
+        st = StakeTransaction().create(
+            blocknumber,
             self.chain.my[0][1],
             first_hash=first_hash,
             balance=balance
         )
         self.p2pFactory.send_st_to_peers(st)
         self.chain.wallet.f_save_winfo()
-        for num in range(len(self.chain.stake_pool)):
-            t = self.chain.stake_pool[num]
-            if st.hash == t.hash:
+        for num in range(len(self.chain.transaction_pool)):
+            t = self.chain.transaction_pool[num]
+            if t.subtype == transaction.TX_SUBTYPE_STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
-                del self.chain.stake_pool[num]
+                self.chain.remove_tx_from_pool(t)
                 break
 
-        self.chain.stake_pool.append(st)
-        '''
-        for t in self.chain.stake_pool:
-            if st.hash == t.hash:
-                if st.get_message_hash() != t.get_message_hash():
-                    t.first_hash = st.first_hash
-                return
-        self.chain.add_st_to_pool(st)
-        '''
+        self.chain.add_tx_to_pool(st)
+
 
     def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
         try:
@@ -583,7 +530,7 @@ class POS:
         self.restart_post_block_logic(30)
 
         if len(filtered_reveal_one) <= 1:
-            logger.info(('only received one reveal for this block.. blocknum #', next_block_num))
+            logger.info('only received one reveal for this block.. blocknum #%s', next_block_num)
             return
 
         epoch = (next_block_num) / config.dev.blocks_per_epoch  # +1 = next block
@@ -649,7 +596,7 @@ class POS:
                 except:
                     logger.info('Exception at randomize_headerhash_fetch')
             else:
-                logger.info(('No peers connected.. Will try again... randomize_headerhash_fetch: ', block_number))
+                logger.info('No peers connected.. Will try again... randomize_headerhash_fetch: %s', block_number)
         else:
             self.update_node_state('unsynced')
 
@@ -661,8 +608,8 @@ class POS:
 
         # i = [block_number, headerhash, self.transport.getPeer().host]
 
-        logger.info(('blockheight_map:'))
-        logger.info((self.chain.blockheight_map))
+        logger.info('blockheight_map:')
+        logger.info(self.chain.blockheight_map)
 
         # first strip out any laggards..
         self.chain.blockheight_map = filter(
@@ -747,9 +694,7 @@ class P2PProtocol(Protocol):
             else:
                 func()
         except Exception as e:
-            logger.error("parse_msg Exception while calling % s \n%s", func, e)
-            # logger.info(( "JSON data ", jdata ))
-            pass
+            logger.error("parse_msg Exception while calling %s \n%s", func, e)
 
     def reboot(self, data):
         hash_dict = json.loads(data)
@@ -757,8 +702,8 @@ class P2PProtocol(Protocol):
             return
         status, error = self.factory.chain.validate_reboot(hash_dict['hash'], hash_dict['nonce'])
         if not status:
-            logger.info(('status ', status))
-            logger.info(('error ', error))
+            logger.info('status %s', status)
+            logger.info('error %s', error)
             return
         for peer in self.factory.peers:
             if peer != self:
@@ -766,7 +711,7 @@ class P2PProtocol(Protocol):
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', hash_dict['nonce']]
         self.factory.chain.state.db.put('reboot_data', reboot_data)
         blocknumber = hash_dict['blocknumber']
-        logger.info(('Initiating Reboot Sequence..... #', blocknumber))
+        logger.info('Initiating Reboot Sequence..... #%s', blocknumber)
         if blocknumber != 0:
             if blocknumber <= self.factory.chain.height():
                 self.factory.pos.update_node_state('unsynced')
@@ -854,8 +799,8 @@ class P2PProtocol(Protocol):
     def ST(self, data):
         try:
             st = StakeTransaction().json_to_transaction(data)
-        except:
-            logger.warning('st rejected - unable to decode serialised data - closing connection')
+        except Exception as e:
+            logger.error('st rejected - unable to decode serialised data - closing connection \n%s', e)
             self.transport.loseConnection()
             return
 
@@ -864,40 +809,17 @@ class P2PProtocol(Protocol):
 
         if len(self.factory.chain.m_blockchain) == 1 and st.epoch > 0:        #catch error for new nodes listening for ST's from later epochs
             return
-        # logger.info(( 'Received ST Transaction with', st.txfrom, st.first_hash, st.epoch ))
-        '''
-        for t in self.factory.chain.stake_pool:  # duplicate tx already received, would mess up nonce..
-            if st.hash == t.hash:
-                if t.first_hash:
-                    return
-                if not st.first_hash:
-                    return
-                blocknumber = self.factory.chain.block_chain_buffer.height() + 1
-                next_stake_list = self.factory.chain.block_chain_buffer.next_stake_list_get(blocknumber)
-                threshold_blocknum = self.factory.chain.state.get_staker_threshold_blocknum(next_stake_list,
-                                                                                    self.factory.chain.mining_address)
-                epoch = blocknumber // config.dev.blocks_per_epoch
-                epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
-                if epoch_blocknum < threshold_blocknum - 1:
-                    return
-
-                if st.validate_tx() and st.state_validate_tx(state=self.factory.chain.state):
-                    t.first_hash = st.first_hash
-                    self.factory.master_mr.register(st.get_message_hash(), st.transaction_to_json(), 'ST')
-                    self.broadcast(st.get_message_hash(), 'ST')
-
-                return
-        '''
-        for t in self.factory.chain.stake_pool:
+        for t in self.factory.chain.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
-
-        if st.validate_tx() and st.state_validate_tx(state=self.factory.chain.state):
-            self.factory.chain.add_st_to_pool(st)
+        #logger.info('--> %s %s',self.factory.chain.block_chain_buffer.height(), self.factory.chain.height())
+        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(blocknumber=self.factory.chain.block_chain_buffer.height()+1,
+                                                                        addr=st.txfrom)
+        if st.validate_tx() and st.state_validate_tx(tx_state=tx_state):
+            self.factory.chain.add_tx_to_pool(st)
         else:
-            logger.info(('>>>ST', st.hash,
-                         'invalid state validation failed..'))  # ' invalid - closing connection to ', self.transport.getPeer().host
+            logger.warn('>>>ST %s invalid state validation failed..', st.hash)
             return
 
         self.factory.master_mr.register(st.get_message_hash(), st.transaction_to_json(), 'ST')
@@ -906,20 +828,20 @@ class P2PProtocol(Protocol):
 
     def BM(self, data=None):  # blockheight map for synchronisation and error correction prior to POS cycle resync..
         if not data:
-            logger.info(('<<<Sending block_map', self.transport.getPeer().host))
+            logger.info('<<<Sending block_map %s', self.transport.getPeer().host)
             z = {}
             z['block_number'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
             z['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
             self.transport.write(self.wrap_message('BM', helper.json_encode(z)))
             return
         else:
-            logger.info(('>>>Receiving block_map'))
+            logger.info('>>>Receiving block_map')
             z = helper.json_decode(data)
             block_number = z['block_number']
             headerhash = z['headerhash'].encode('latin1')
 
             i = [block_number, headerhash, self.transport.getPeer().host]
-            logger.info((i))
+            logger.info('%s',i)
             if i not in self.factory.chain.blockheight_map:
                 self.factory.chain.blockheight_map.append(i)
             return
@@ -927,15 +849,14 @@ class P2PProtocol(Protocol):
     def BK(self, data):  # block received
         try:
             block = Block.from_json(data)
-        except:
-            logger.warning('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+        except Exception as e:
+            logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+            logger.error('Reason - \n%s', e)
             return
-
-        logger.info(('>>>Received block from ',
-                     self.identity,
-                     block.blockheader.blocknumber,
-                     block.blockheader.stake_selector))
-
+        logger.info('>>>Received block from %s %s %s',
+                    self.identity,
+                    block.blockheader.blocknumber,
+                    block.blockheader.stake_selector)
         if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self):
             return
 
@@ -963,20 +884,20 @@ class P2PProtocol(Protocol):
             if self.isNoMoreBlock(data):
                 return
 
-            data = Block.json_decode(data)
+            data = helper.json_decode(data)
             blocknumber = int(data.keys()[0].encode('ascii'))
 
             if blocknumber != self.last_requested_blocknum:
-                logger.info(('Blocknumber not found in pending_blocks', blocknumber, self.identity))
+                logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.identity)
                 return
 
             for jsonBlock in data[unicode(blocknumber)]:
                 block = Block.from_json(json.dumps(jsonBlock))
-                logger.info(('>>>Received Block #', block.blockheader.blocknumber))
+                logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
 
                 status = self.factory.chain.block_chain_buffer.add_block(block)
                 if type(status) == bool and not status:
-                    logger.info(("[PBB] Failed to add block by add_block, re-requesting the block #", blocknumber))
+                    logger.info("[PBB] Failed to add block by add_block, re-requesting the block #%s", blocknumber)
                     logger.info('Skipping one block')
                     continue
 
@@ -993,8 +914,9 @@ class P2PProtocol(Protocol):
                 self.factory.chain.block_chain_buffer.process_pending_blocks()
                 return
             self.factory.pos.randomize_block_fetch(blocknumber + 1)
-        except KeyboardInterrupt:
-            logger.info(('.block rejected - unable to decode serialised data', self.transport.getPeer().host))
+        except Exception as e:
+            logger.error('.block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+            logger.error('Exception \n%s', e)
             return
 
     def PB(self, data):
@@ -1007,7 +929,7 @@ class P2PProtocol(Protocol):
             blocknumber = block.blockheader.blocknumber
             logger.info('>>>Received Block #%d', blocknumber)
             if blocknumber != self.last_requested_blocknum:
-                logger.warning(('Didnt match', self.last_requested_blocknum, self.identity))
+                logger.warning('Didnt match %s %s', self.last_requested_blocknum, self.identity)
                 return
 
             if blocknumber > self.factory.chain.height():
@@ -1023,7 +945,7 @@ class P2PProtocol(Protocol):
             self.factory.pos.randomize_block_fetch(blocknumber + 1)
 
         except KeyboardInterrupt:
-            logger.info(('.block rejected - unable to decode serialised data', self.transport.getPeer().host))
+            logger.info('.block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
         return
 
     def PH(self, data):
@@ -1034,16 +956,16 @@ class P2PProtocol(Protocol):
             self.blocknumber_headerhash[mini_block['blocknumber']] = mini_block['headerhash']
 
     def LB(self):  # request for last block to be sent
-        logger.info(('<<<Sending last block', str(self.factory.chain.m_blockheight()),
-                     str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))), ' bytes', 'to node: ',
-                     self.transport.getPeer().host))
+        logger.info('<<<Sending last block %s %s bytes to node %s', self.factory.chain.m_blockheight(),
+                     str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))),
+                     self.transport.getPeer().host)
         self.transport.write(self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_last_block())))
         return
 
     def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
         if self.factory.pos.nodeState.state != 'synced':
             return
-        logger.info(('<<<Sending blockheight and headerhash to: ', self.transport.getPeer().host, str(time.time())))
+        logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
         data = {}
         data['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
         data['blocknumber'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
@@ -1062,7 +984,7 @@ class P2PProtocol(Protocol):
             self.factory.pos.fmbh_blockhash_peers[data['headerhash']]['peers'].append(self)
 
     def MB(self):  # we send with just prefix as request..with CB number and blockhash as answer..
-        logger.info(('<<<Sending blockheight to:', self.transport.getPeer().host, str(time.time())))
+        logger.info('<<<Sending blockheight to: %s %s', self.transport.getPeer().host, str(time.time()))
         self.send_m_blockheight_to_peer()
         return
 
@@ -1073,8 +995,9 @@ class P2PProtocol(Protocol):
 
         self.blockheight = block_number
 
-        logger.info(('>>>Blockheight from:', self.transport.getPeer().host, 'blockheight: ', block_number,
-                     'local blockheight: ', str(self.factory.chain.m_blockheight()), str(time.time())))
+        logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
+                    self.transport.getPeer().host, block_number,
+                    self.factory.chain.m_blockheight(), str(time.time()))
 
         self.factory.peers_blockheight[self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)] = z[
             'block_number']
@@ -1084,7 +1007,7 @@ class P2PProtocol(Protocol):
         if block_number == self.factory.chain.m_blockheight():
             # if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
             if self.factory.chain.m_get_block(block_number).blockheader.headerhash != headerhash:
-                logger.info(('>>> WARNING: headerhash mismatch from ', self.transport.getPeer().host))
+                logger.info('>>> WARNING: headerhash mismatch from %s', self.transport.getPeer().host)
 
                 # initiate fork recovery and protection code here..
                 # call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
@@ -1096,57 +1019,57 @@ class P2PProtocol(Protocol):
             return
 
         if len(self.factory.chain.m_blockchain) == 1 and self.factory.genesis == 0:
-            self.factory.genesis = 1  # set the flag so that no other Protocol instances trigger the genesis stake functions..
-            logger.info(('genesis pos countdown to block 1 begun, 60s until stake tx circulated..'))
+            # set the flag so that no other Protocol instances trigger the genesis stake functions..
+            self.factory.genesis = 1
+            logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
             reactor.callLater(1, self.factory.pos.pre_pos_1)
             return
 
-        elif len(
-                self.factory.chain.m_blockchain) == 1 and self.factory.genesis == 1:  # connected to multiple hosts and already passed through..
+        # connected to multiple hosts and already passed through..
+        elif len(self.factory.chain.m_blockchain) == 1 and self.factory.genesis == 1:
             return
 
     def BN(self, data):  # request for block (n)
         if int(data) <= self.factory.chain.m_blockheight():
-            logger.info(('<<<Sending block number', str(int(data)),
-                         str(len(helper.json_bytestream(self.factory.chain.m_get_block(int(data))))), ' bytes',
-                         'to node: ',
-                         self.transport.getPeer().host))
+            logger.info('<<<Sending block number %s %s bytes to node: %s', int(data),
+                         len(helper.json_bytestream(self.factory.chain.m_get_block(int(data)))),
+                         self.transport.getPeer().host)
             self.transport.write(
                 self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_block(int(data)))))
             return
         else:
             if int(data) >= self.factory.chain.m_blockheight():
-                logger.info(('BN for a blockheight greater than local chain length..'))
+                logger.info('BN for a blockheight greater than local chain length..')
                 return
             else:
-                logger.info(('BN request without valid block number', data, '- closing connection'))
+                logger.info('BN request without valid block number %s - closing connection', str(data))
                 self.transport.loseConnection()
                 return
 
     def FB(self, data):  # Fetch Request for block
         data = int(data)
-        logger.info((' Request for ', data, ' by ', self.identity))
+        logger.info(' Request for %s by %s', data, self.identity)
         if data > 0 and data <= self.factory.chain.block_chain_buffer.height():
             self.factory.chain.block_chain_buffer.send_block(data, self.transport, self.wrap_message)
         else:
             self.transport.write(self.wrap_message('PB', data))
             if data > self.factory.chain.height():
-                logger.info(('FB for a blocknumber is greater than the local chain length..'))
+                logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
-            logger.info((' Send for blocmnumber #', data, ' to ', self.identity))
+            logger.info(' Send for blocmnumber #%s to %s', data, self.identity)
 
     def FH(self, data):  # Fetch Block Headerhash
         data = int(data)
         if data > 0 and data <= self.factory.chain.height():
             mini_block = {}
-            logger.info(('<<<Pushing block headerhash of block number ', str(data), ' to node: ',
-                         self.transport.getPeer().host))
+            logger.info('<<<Pushing block headerhash of block number %s to node: %s',
+                        str(data), self.transport.getPeer().host)
             mini_block['headerhash'] = self.factory.chain.m_get_block(data).blockheader.headerhash
             mini_block['blocknumber'] = data
             self.transport.write(self.wrap_message('PH', helper.json_bytestream_ph(mini_block)))
         else:
             if data > self.factory.chain.height():
-                logger.info(('FH for a blocknumber is greater than the local chain length..'))
+                logger.info('FH for a blocknumber is greater than the local chain length..')
                 return
 
     def PO(self, data):
@@ -1184,7 +1107,7 @@ class P2PProtocol(Protocol):
             self.transport.write(self.wrap_message('VE', self.factory.chain.version_number))
         else:
             self.version = str(data)
-            logger.info((self.transport.getPeer().host, 'version: ', data))
+            logger.info('%s version: %s', self.transport.getPeer().host, data)
         return
 
     # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
@@ -1225,17 +1148,15 @@ class P2PProtocol(Protocol):
                         last_block_headerhash=self.factory.chain.block_chain_buffer.get_strongest_headerhash(
                             block_number - 1), stake_address=stake_address, blocknumber=z['block_number'])
                     if vote_hash_tmp != vote_hash_terminator:
-                        logger.info(
-                            (self.identity, ' vote hash doesnt hash to stake terminator', 'vote', vote_hash, 'nonce',
-                             s[2], 'vote_hash', vote_hash_terminator))
+                        logger.info('%s vote hash doesnt hash to stake terminator vote %s nonce %s vote_hash %s',
+                                    self.identity, vote_hash, s[2], vote_hash_terminator)
                         return
                     if reveal_one_tmp != reveal_hash_terminator:
-                        logger.info(
-                            (self.identity, ' reveal doesnt hash to stake terminator', 'reveal', reveal_one, 'nonce',
-                             s[2], 'reveal_hash', reveal_hash_terminator))
+                        logger.info('%s reveal doesnt hash to stake terminator reveal %s nonce %s reveal_hash %s',
+                                    self.identity, reveal_one, s[2], reveal_hash_terminator)
                         return
             if y == 0:
-                logger.info(('stake address not in the stake_list'))
+                logger.info('stake address not in the stake_list')
                 return
 
         if len(self.factory.pos.r1_time_diff) > 2:
@@ -1243,8 +1164,7 @@ class P2PProtocol(Protocol):
 
         self.factory.pos.r1_time_diff[block_number].append(int(time.time() * 1000))
 
-        logger.info(
-            ('>>> POS reveal_one:', self.transport.getPeer().host, stake_address, str(block_number), reveal_one))
+        logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number, reveal_one)
         score = self.factory.chain.score(stake_address=stake_address,
                                          reveal_one=reveal_one,
                                          balance=self.factory.chain.block_chain_buffer.get_st_balance(stake_address,
@@ -1252,18 +1172,18 @@ class P2PProtocol(Protocol):
                                          seed=z['seed'])
 
         if score == None:
-            logger.info(('Score None for stake_address ', stake_address, ' reveal_one ', reveal_one))
+            logger.info('Score None for stake_address %s reveal_one %s', stake_address, reveal_one)
             return
 
         if score != z['weighted_hash']:
-            logger.info(('Weighted_hash didnt match'))
-            logger.info(('Expected : ', str(score)))
-            logger.info(('Found : ', str(z['weighted_hash'])))
-            logger.info(('Seed found : ', str(z['seed'])))
-            logger.info(
-                ('Seed Expected : ', str(str(self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])))))
-            logger.info(
-                ('Balance : ', self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number)))
+            logger.info('Weighted_hash didnt match')
+            logger.info('Expected : %f', score)
+            logger.info('Found : %f', z['weighted_hash'])
+            logger.info('Seed found : %ld', z['seed'])
+            logger.info('Seed Expected : %ld',
+                        self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number']))
+            logger.info('Balance : %ld',
+                        self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number))
 
             return
 
@@ -1271,9 +1191,9 @@ class P2PProtocol(Protocol):
         epoch_seed = self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])
 
         if epoch_seed != z['seed']:
-            logger.info(('Seed didnt match'))
-            logger.info(('Expected : ', str(epoch_seed)))
-            logger.info(('Found : ', str(z['seed'])))
+            logger.info('Seed didnt match')
+            logger.info('Expected : %ld', epoch_seed)
+            logger.info('Found : %ld', z['seed'])
             return
 
         sv_hash = self.factory.chain.get_stake_validators_hash()
@@ -1317,8 +1237,9 @@ class P2PProtocol(Protocol):
             if ip not in new_ips:
                 new_ips.append(ip.encode('latin1'))
 
+
         peer_addresses = self.factory.peer_addresses
-        logger.info((self.transport.getPeer().host, 'peers data received: ', new_ips))
+        logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
         for node in new_ips:
             if node not in peer_addresses:
                 if node != self.transport.getHost().host:
@@ -1329,12 +1250,12 @@ class P2PProtocol(Protocol):
         return
 
     def get_latest_block_from_connection(self):
-        logger.info(('<<<Requested last block from', self.transport.getPeer().host))
+        logger.info('<<<Requested last block from %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('LB'))
         return
 
     def get_m_blockheight_from_connection(self):
-        logger.info(('<<<Requesting blockheight from', self.transport.getPeer().host))
+        logger.info('<<<Requesting blockheight from %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('MB'))
         return
 
@@ -1348,12 +1269,12 @@ class P2PProtocol(Protocol):
         return
 
     def get_version(self):
-        logger.info(('<<<Getting version', self.transport.getPeer().host))
+        logger.info('<<<Getting version %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('VE'))
         return
 
     def get_peers(self):
-        logger.info(('<<<Sending connected peers to', self.transport.getPeer().host))
+        logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
         peers_list = []
         for peer in self.factory.peer_connections:
             peers_list.append(peer.transport.getPeer().host)
@@ -1361,7 +1282,7 @@ class P2PProtocol(Protocol):
         return
 
     def get_block_n(self, n):
-        logger.info(('<<<Requested block: ', str(n), 'from ', self.transport.getPeer().host))
+        logger.info('<<<Requested block: %s from %s', n, self.transport.getPeer().host)
         self.transport.write(self.wrap_message('BN', str(n)))
         return
 
@@ -1370,18 +1291,16 @@ class P2PProtocol(Protocol):
             self.fetch_tried = 0
         self.fetch_tried += 1  # TODO: remove from target_peers if tried is greater than x
         self.last_requested_blocknum = n
-        logger.info(
-            ('<<<Fetching block: ', n, 'from ', self.transport.getPeer().host, ':', self.transport.getPeer().port))
+        logger.info('<<<Fetching block: %s from %s', n, self.identity)
         self.transport.write(self.wrap_message('FB', str(n)))
         return
 
     def fetch_FMBH(self):
-        logger.info(('<<<Fetching FMBH from : ', self.identity))
+        logger.info('<<<Fetching FMBH from : %s', self.identity)
         self.transport.write(self.wrap_message('FMBH'))
 
     def fetch_headerhash_n(self, n):
-        logger.info(('<<<Fetching headerhash of block: ', n, 'from ', self.transport.getPeer().host, ':',
-                     self.transport.getPeer().port))
+        logger.info('<<<Fetching headerhash of block: %s from %s', n, self.identity)
         self.transport.write(self.wrap_message('FH', str(n)))
         return
 
@@ -1396,7 +1315,7 @@ class P2PProtocol(Protocol):
 
     def clean_buffer(self, reason=None, upto=None):
         if reason:
-            logger.info((reason))
+            logger.info('%s', reason)
         if upto:
             self.buffer = self.buffer[upto:]  # Clean buffer till the value provided in upto
         else:
@@ -1484,6 +1403,7 @@ class P2PProtocol(Protocol):
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
         self.identity = peerHost + ":" + str(peerPort)
+
         # For AWS
         if config.dev.public_ip:
             if self.transport.getPeer().host == config.dev.public_ip:
@@ -1491,9 +1411,9 @@ class P2PProtocol(Protocol):
                 return
         if len(self.factory.peer_connections) >= config.user.max_peers_limit:
             logger.info('Peer limit hit ')
-            logger.info(('# of Connected peers ', len(self.factory.peer_connections)))
-            logger.info(('Peer Limit ', config.user.max_peers_limit))
-            logger.info(('Disconnecting client ', self.identity))
+            logger.info('# of Connected peers %s', len(self.factory.peer_connections))
+            logger.info('Peer Limit %s', config.user.max_peers_limit)
+            logger.info('Disconnecting client %s', self.identity)
             self.transport.loseConnection()
             return
 
@@ -1523,8 +1443,9 @@ class P2PProtocol(Protocol):
     # should ask for latest block/block number.
 
     def connectionLost(self, reason):
-        logger.info((self.transport.getPeer().host, ' disconnected. ', 'remainder connected: ',
-                     str(self.factory.connections)))  # , reason
+        logger.info('%s disconnected. remainder connected: %s',
+                    self.transport.getPeer().host,
+                    str(self.factory.connections))  # , reason
         try:
             self.factory.peer_connections.remove(self)
             self.factory.connections -= 1
@@ -1608,7 +1529,7 @@ class P2PFactory(ServerFactory):
         self.master_mr = self.pos.master_mr
 
     def get_block_a_to_b(self, a, b):
-        logger.info(('<<<Requested blocks:', a, 'to ', b, ' from peers..'))
+        logger.info('<<<Requested blocks: %s to %s from peers..', a, b)
         l = range(a, b)
         for peer in self.peer_connections:
             if len(l) > 0:
@@ -1617,12 +1538,12 @@ class P2PFactory(ServerFactory):
                 return
 
     def get_block_n_random_peer(self, n):
-        logger.info(('<<<Requested block: ', n, 'from random peer.'))
+        logger.info('<<<Requested block: %s from random peer.', n)
         random.choice(self.peer_connections).get_block_n(n)
         return
 
     def get_block_n(self, n):
-        logger.info(('<<<Requested block: ', n, 'from peers.'))
+        logger.info('<<<Requested block: %s from peers.', n)
         for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('BN', str(n)))
         return
@@ -1659,12 +1580,12 @@ class P2PFactory(ServerFactory):
             0) + chr(255)
 
     def send_st_to_peers(self, st):
-        logger.info(('<<<Transmitting ST:', st.epoch))
+        logger.info('<<<Transmitting ST: %s', st.epoch)
         self.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())
         return
 
     def send_tx_to_peers(self, tx):
-        logger.info(('<<<Transmitting TX: ', tx.txhash))
+        logger.info('<<<Transmitting TX: %s', tx.txhash)
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.transaction_to_json())
         return
 
@@ -1690,9 +1611,7 @@ class P2PFactory(ServerFactory):
         z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch) + 1]
         z['vote_hash'] = None
         z['weighted_hash'] = None
-        # epoch_PRF = self.chain.block_chain_buffer.get_epoch_PRF(blocknumber)
         epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
-        # z['PRF'] = epoch_PRF[z['block_number'] - (epoch * config.dev.blocks_per_epoch)]
         z['seed'] = epoch_seed
         z['SV_hash'] = self.chain.get_stake_validators_hash()
 
@@ -1708,9 +1627,9 @@ class P2PFactory(ServerFactory):
         if z['reveal_one'] == None or z['vote_hash'] == None:
             logger.info(
                 ('reveal_one or vote_hash None for stake_address: ', z['stake_address'], ' selected hash:', hash))
-            logger.info(('reveal_one', z['reveal_one']))
-            logger.info(('vote_hash', z['vote_hash']))
-            logger.info(('hash', hash))
+            logger.info('reveal_one %s', z['reveal_one'])
+            logger.info('vote_hash %s', z['vote_hash'])
+            logger.info('hash %s', hash)
             return
 
         z['weighted_hash'] = self.chain.score(stake_address=z['stake_address'],
@@ -1733,8 +1652,8 @@ class P2PFactory(ServerFactory):
             tmp_stake_reveal_one.append(r)
 
         self.chain.stake_reveal_one = tmp_stake_reveal_one
-        logger.info(('<<<Transmitting POS reveal_one ', blocknumber,
-                     self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber)))
+        logger.info('<<<Transmitting POS reveal_one %s %s', blocknumber,
+                     self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber))
 
         self.last_reveal_one = z
         self.register_and_broadcast('R1', z['vote_hash'], helper.json_encode(z))
@@ -1771,8 +1690,8 @@ class P2PFactory(ServerFactory):
     # send POS block to peers..
 
     def send_stake_block(self, block_obj):
-        logger.info(('<<<Transmitting POS created block', str(block_obj.blockheader.blocknumber),
-                     block_obj.blockheader.headerhash))
+        logger.info('<<<Transmitting POS created block %s %s', str(block_obj.blockheader.blocknumber),
+                     block_obj.blockheader.headerhash)
         for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('S4', helper.json_bytestream(block_obj)))
         return

@@ -21,6 +21,7 @@ def get_ntp_response():
         logger.info(' Failed to Get NTP timing ')
         logger.info((' Reason - ', str(ex)))
         sys.exit(0)
+        return None
     return response
 
 

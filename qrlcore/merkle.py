@@ -13,9 +13,6 @@
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
-from qrlcore import logger
-import configuration as config
-
 __author__ = 'pete'
 
 from words import wordlist  # 4096 unique word list for mnemonic SEED retrieval..
@@ -25,7 +22,8 @@ from binascii import unhexlify, hexlify
 from math import ceil, floor, log
 import time
 from os import urandom
-
+from qrlcore import logger
+from qrlcore import configuration as config
 
 # timing runs..
 
@@ -1212,7 +1210,6 @@ class Merkle(object):
             temp_array = []
             cycles = len(hashlayer) % 2 + len(hashlayer) / 2
             y = 0
-            # FIXME: x is being used twice.. this is probably a mistake. Test
             for x in range(cycles):
                 if y + 1 == len(hashlayer):
                     temp_array.append(str(hashlayer[y]))

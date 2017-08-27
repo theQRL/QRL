@@ -14,7 +14,6 @@ from qrlcore.merkle import hexseed_to_seed, mnemonic_to_seed
 from qrlcore.transaction import StakeTransaction
 import configuration as config
 
-
 class WalletProtocol(Protocol):
     def __init__(self):
         self.cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed',
@@ -187,10 +186,10 @@ class WalletProtocol(Protocol):
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
                     self.factory.p2pFactory.send_st_to_peers(
-                        StakeTransaction().create_stake_transaction(self.factory.chain.mining_address,
-                                                                    self.factory.chain.block_chain_buffer.height() + 1,
-                                                                    self.factory.chain.my[0][1],
-                                                                    balance=self.factory.chain.state.state_balance(
+                        StakeTransaction().create(self.factory.chain.mining_address,
+                                                  self.factory.chain.block_chain_buffer.height() + 1,
+                                                  self.factory.chain.my[0][1],
+                                                  balance=self.factory.chain.state.state_balance(
                                                                         self.factory.chain.mining_address)))
                     return
 
@@ -228,14 +227,14 @@ class WalletProtocol(Protocol):
                     self.output['status'] = 0
                     self.output['message'].write('>>> Version: ' + self.factory.chain.version_number + '\r\n')
                     self.output['message'].write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
-                    self.output['message'].write('>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peers)) + '\r\n')
+                    self.output['message'].write('>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peer_connections)) + '\r\n')
                     self.output['message'].write('>>> Staking set to: ' + str(self.factory.p2pFactory.stake) + '\r\n')
                     self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state + '\r\n')
 
                     self.output['keys'] += ['version', 'uptime', 'nodes_connected', 'staking_status', 'sync_status']
                     self.output['version'] = self.factory.chain.version_number
                     self.output['uptime'] = str(time.time() - self.factory.start_time)
-                    self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peers))
+                    self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peer_connections))
                     self.output['staking_status'] = str(self.factory.p2pFactory.stake)
                     self.output['sync_status'] = self.factory.p2pFactory.nodeState.state
 
@@ -255,7 +254,7 @@ class WalletProtocol(Protocol):
                     self.output['message'].write('>>> Connected Peers:\r\n')
                     self.output['keys'] += ['peers']
                     self.output['peers'] = {}
-                    for peer in self.factory.p2pFactory.peers:
+                    for peer in self.factory.p2pFactory.peer_connections:
                         self.output['message'].write('>>> ' + peer.identity + " [" + peer.version + "]  blockheight: " + str(
                             peer.blockheight) + '\r\n')
                         self.output['peers'][peer.identity] = {}
@@ -555,7 +554,11 @@ class WalletProtocol(Protocol):
             return
 
         if tx.validate_tx():
-            if not tx.state_validate_tx(state=self.factory.state, transaction_pool=self.factory.chain.transaction_pool):
+            block_chain_buffer = self.factory.chain.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
+                                                         addr=tx.txfrom)
+            if not tx.state_validate_tx(tx_state=tx_state,
+                                        transaction_pool=self.factory.chain.transaction_pool):
                 self.output['message'].write('>>> OTS key reused')
                 return
         else:
