@@ -2,18 +2,15 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-import os
-
-from qrlcore import logger
-
 __author__ = 'pete'
 
+import os
 import leveldb
 import cPickle as pickle
 import json
 
+from qrlcore import logger
 import configuration as config
-
 
 class DB:
     def __init__(self):
@@ -56,7 +53,7 @@ class DB:
         self.put('blockheight', 0)
         return
 
-    def destroy(self):
+    def destroy(self, dbfile='./state'):
         leveldb.DestroyDB(self.db_path)
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string

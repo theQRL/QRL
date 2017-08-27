@@ -10,7 +10,7 @@ import gc
 import os
 import sys
 
-from qrlcore import merkle, logger
+from qrlcore import merkle, logger, transaction
 from qrlcore.merkle import mnemonic_to_seed
 import configuration as config
 
@@ -28,6 +28,7 @@ class Wallet:
         self.mnemonic_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
     def recover_wallet(self):
+        data = None
         try:
             with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
@@ -129,7 +130,7 @@ class Wallet:
         if data is not False:
             self.chain.my.append(data)
             logger.info('Appending wallet file..')
-            with open(self.wallet_filename, "w+") as myfile:  # overwrites wallet..
+            with open(self.wallet_dat_filename, "w+") as myfile:  # overwrites wallet..
                 pickle.dump(self.chain.my, myfile)
         self.f_save_winfo()
         return
@@ -160,12 +161,13 @@ class Wallet:
             x = 0
             y = 0
             for t in self.chain.transaction_pool:
-                if t.txfrom == address[0]:
-                    y += 1
-                    x -= t.amount
+                if t.subtype == transaction.TX_SUBTYPE_TX:
+                    if t.txfrom == address[0]:
+                        y += 1
+                        x -= t.amount
 
-                if t.txto == address[0]:
-                    x += t.amount
+                    if t.txto == address[0]:
+                        x += t.amount
 
             dict_addr = {}
 

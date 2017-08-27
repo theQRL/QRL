@@ -1,7 +1,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import decimal
-from copy import deepcopy
 from math import log
 
 from jsonpickle import json
@@ -12,16 +11,12 @@ import ntp
 import configuration as config
 from merkle import sha256
 from qrlcore import logger
-from transaction import StakeTransaction, SimpleTransaction
-
+from transaction import Transaction
+import transaction
 
 class BlockHeader(object):
-    def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, number_transactions, hashedtransactions,
-               number_stake, hashedstake, reveal_list=None, vote_hashes=None, last_block_number=-1):
-        if not reveal_list:
-            reveal_list = []
-        if not vote_hashes:
-            vote_hashes = []
+    def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, hashedtransactions, reveal_list,
+               vote_hashes):
         self.blocknumber = blocknumber
         self.hash = hashchain_link
         if self.blocknumber == 0:
@@ -32,14 +27,9 @@ class BlockHeader(object):
                 logger.info('Failed to get NTP timestamp')
                 return
         self.prev_blockheaderhash = prev_blockheaderhash
-        self.number_transactions = number_transactions
-        self.merkle_root_tx_hash = hashedtransactions
-        self.number_stake = number_stake
-        self.hashedstake = hashedstake
+        self.tx_merkle_root = hashedtransactions
         self.reveal_list = reveal_list
         self.vote_hashes = vote_hashes
-
-        # TODO: need to add in logic for epoch stake_list recalculation..
         self.epoch = self.blocknumber // config.dev.blocks_per_epoch
 
         if self.blocknumber == 0:
@@ -60,10 +50,7 @@ class BlockHeader(object):
             self.stake_selector = chain.mining_address
             self.block_reward = self.block_reward_calc()
 
-        self.headerhash = sha256(
-            self.stake_selector + str(self.epoch) + str(self.stake_nonce) + str(self.block_reward) + str(
-                self.timestamp) + self.hash + str(self.blocknumber) + self.prev_blockheaderhash + str(
-                self.number_transactions) + self.merkle_root_tx_hash + str(self.number_stake) + self.hashedstake)
+        self.headerhash = self.generate_headerhash()
 
         data = chain.my[0][1]
         S = data.SIGN(self.headerhash)
@@ -86,12 +73,9 @@ class BlockHeader(object):
         self.stake_nonce = json_blockheader['stake_nonce']
         self.epoch = json_blockheader['epoch']
         self.headerhash = json_blockheader['headerhash'].encode('latin1')
-        self.number_transactions = json_blockheader['number_transactions']
-        self.number_stake = json_blockheader['number_stake']
         self.hash = json_blockheader['hash'].encode('latin1')
         self.timestamp = json_blockheader['timestamp']
-        self.merkle_root_tx_hash = json_blockheader['merkle_root_tx_hash'].encode('latin1')
-        self.hashedstake = json_blockheader['hashedstake'].encode('latin1')
+        self.tx_merkle_root = json_blockheader['tx_merkle_root'].encode('latin1')
         self.blocknumber = json_blockheader['blocknumber']
         self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
         self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
@@ -122,10 +106,15 @@ class BlockHeader(object):
 
     def block_reward_calc(self):
         return int((self.remaining_emission(21000000, self.blocknumber - 1) - self.remaining_emission(21000000,
-                                                                                                      self.blocknumber)) * 100000000)
+                                                                 self.blocknumber)) * 100000000)
 
+    def generate_headerhash(self):
+        return sha256(self.stake_selector + str(self.epoch) + str(self.stake_nonce) + str(self.block_reward) + str(
+            self.timestamp) + str(self.hash) + str(self.blocknumber) + self.prev_blockheaderhash +
+            self.tx_merkle_root + str(self.vote_hashes) + str(self.reveal_list))
 
 class Block(object):
+
     def isHashPresent(self, txhash, buffer, blocknumber):
         if not buffer:
             return False
@@ -140,7 +129,6 @@ class Block(object):
         return False
 
     def create(self, chain, hashchain_link, reveal_list=None, vote_hashes=None, last_block_number=-1):
-        # difficulty = 232
         if not reveal_list:
             reveal_list = []
         if not vote_hashes:
@@ -151,79 +139,35 @@ class Block(object):
             data = chain.block_chain_buffer.get_last_block()  # m_get_last_block()
         else:
             data = chain.block_chain_buffer.get_block_n(last_block_number)
-        lastblocknumber = data.blockheader.blocknumber
+
+        last_block_number = data.blockheader.blocknumber
         prev_blockheaderhash = data.blockheader.headerhash
+
         hashedtransactions = []
+        self.transactions = [None]
+
         for tx in chain.transaction_pool:
-            if not chain.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
-                if not self.isHashPresent(tx.txhash, chain.block_chain_buffer.tx_buffer, last_block_number + 1):
-                    hashedtransactions.append(tx.txhash)
+            hashedtransactions.append(tx.txhash)
+            self.transactions.append(tx) # copy memory rather than sym link
+
         if not hashedtransactions:
             hashedtransactions = sha256('')
 
         hashedtransactions = chain.merkle_tx_hash(hashedtransactions)
-        self.transactions = []
-        for tx in chain.transaction_pool:
-            if not chain.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
-                if not self.isHashPresent(tx.txhash, chain.block_chain_buffer.tx_buffer, last_block_number + 1):
-                    self.transactions.append(tx)  # copy memory rather than sym link
-        curr_epoch = int((last_block_number + 1) / config.dev.blocks_per_epoch)
 
-        self.stake = []
-        if not chain.stake_pool:
-            hashedstake = sha256('')
-        else:
-            sthashes = []
-            for st in chain.stake_pool:
-                if st.epoch != curr_epoch:
-                    logger.info('Skipping st as epoch mismatch, CreateBlock()')
-                    logger.info(('Expected st epoch : ', curr_epoch))
-                    logger.info(('Found st epoch : ', st.epoch))
-                    continue
-                # if st.get_message_hash() not in chain.block_chain_buffer.st_buffer:
-                '''
-                if not self.isHashPresent(st.get_message_hash(), chain.block_chain_buffer.st_buffer, last_block_number + 1):
-                    sthashes.append(str(st.hash))
-                    self.stake.append(st)
-                '''
-                balance = 0
-                for st2 in chain.block_chain_buffer.next_stake_list_get(lastblocknumber + 1):
-                    if st2[1] == st.hash:
-                        balance = st2[-1]
-                        break
-                if balance > 0 or lastblocknumber == 0:
-                    if st.first_hash:
-                        new_st = deepcopy(st)
-                        if lastblocknumber > 0:
-                            new_st.balance = balance
-                        sthashes.append(str(new_st.hash))
-                        self.stake.append(new_st)
-                elif not st.first_hash:
-                    sthashes.append(str(st.hash))
-                    self.stake.append(st)
-
-            hashedstake = sha256(''.join(sthashes))
-        '''
-        for st in chain.stake_pool:
-            if st.epoch != curr_epoch:
-                logger.info(('Skipping st as epoch mismatch, CreateBlock()'))
-                logger.info(('Expected st epoch : ', curr_epoch))
-                logger.info(('Found st epoch : ', st.epoch))
-                continue
-
-            #if st.get_message_hash() not in chain.block_chain_buffer.st_buffer:
-            if not self.isHashPresent(st.get_message_hash(), chain.block_chain_buffer.st_buffer, last_block_number + 1):
-                self.stake.append(st)
-        '''
         self.blockheader = BlockHeader()
-        self.blockheader.create(chain=chain, blocknumber=lastblocknumber + 1, reveal_list=reveal_list,
+        self.blockheader.create(chain=chain,
+                                blocknumber=last_block_number + 1,
+                                reveal_list=reveal_list,
                                 vote_hashes=vote_hashes,
-                                hashchain_link=hashchain_link, prev_blockheaderhash=prev_blockheaderhash,
-                                number_transactions=len(self.transactions), hashedtransactions=hashedtransactions,
-                                number_stake=len(chain.stake_pool), hashedstake=hashedstake,
-                                last_block_number=last_block_number)
-        if self.blockheader.timestamp == 0:
-            logger.info('Failed to create block due to timestamp 0')
+                                hashchain_link=hashchain_link,
+                                prev_blockheaderhash=prev_blockheaderhash,
+                                hashedtransactions=hashedtransactions)
+
+        coinbase_tx = transaction.CoinBase().create(self.blockheader.block_reward, self.blockheader.headerhash, chain.my[0][1])
+        self.transactions[0] = coinbase_tx
+        coinbase_tx.nonce = chain.block_chain_buffer.get_stxn_state(last_block_number + 1, chain.mining_address)[0] + 1
+
 
     def json_to_block(self, json_block):
         self.blockheader = BlockHeader()
@@ -232,18 +176,10 @@ class Block(object):
         transactions = json_block['transactions']
         self.transactions = []
         for tx in transactions:
-            self.transactions.append(SimpleTransaction().dict_to_transaction(tx))
+            self.transactions.append(Transaction.get_tx_obj(tx))
 
-        stake = json_block['stake']
-        self.stake = []
         if self.blockheader.blocknumber == 0:
             self.state = json_block['state']
-            self.stake_list = json_block['stake_list']
-        for st in stake:
-            st_obj = StakeTransaction().dict_to_transaction(st)
-            if st_obj.epoch != self.blockheader.epoch:
-                continue
-            self.stake.append(st_obj)
 
     @staticmethod
     def from_json(json_block):
@@ -257,106 +193,100 @@ class Block(object):
         return tmp_block
 
     def validate_tx_in_block(self):
+        #Validating coinbase txn
+        coinbase_txn = self.transactions[0]
+        valid = coinbase_txn.validate_tx(stake_selector=self.blockheader.stake_selector,
+                                 block_reward=self.blockheader.block_reward,
+                                 block_headerhash=self.blockheader.headerhash)
 
-        for transaction in self.transactions:
-            if transaction.validate_tx() is False:
-                logger.info(('invalid tx: ', transaction, 'in block'))
-                return False
+        if not valid:
+            logger.warn('coinbase txn in block failed')
+            return False
 
-        return True
-
-    def validate_st_in_block(self):
-
-        for st in self.stake:
-            if st.validate_tx() is False:
-                logger.info(('invalid st:', st, 'in block'))
+        for tx_num in xrange(1, len(self.transactions)):
+            tx = self.transactions[tx_num]
+            if tx.validate_tx() is False:
+                logger.warn('invalid tx in block')
+                logger.warn('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
                 return False
 
         return True
 
     # block validation
 
-    def validate_block(self, chain, verbose=0, verify_block_reveal_list=True):  # check validity of new block..
+    def validate_block(self, chain, verify_block_reveal_list=True):  # check validity of new block..
         b = self.blockheader
-        last_block = b.blocknumber - 1
+        last_blocknum = b.blocknumber - 1
 
         if merkle.xmss_verify(b.headerhash, [b.i, b.signature, b.merkle_path, b.i_bms, b.pub, b.PK]) is False:
-            logger.info('BLOCK : merkle xmss_verify failed for the block')
+            logger.warn('BLOCK : merkle xmss_verify failed for the block')
             return False
 
         if helper.xmss_checkaddress(b.PK, b.stake_selector) is False:
-            logger.info('BLOCK : xmss checkaddress failed')
+            logger.warn('BLOCK : xmss checkaddress failed')
             return False
 
         if b.timestamp == 0 and b.blocknumber > 0:
-            logger.info('Invalid block timestamp ')
+            logger.warn('Invalid block timestamp ')
             return False
 
         if b.block_reward != b.block_reward_calc():
-            logger.info('Block reward incorrect for block: failed validation')
+            logger.warn('Block reward incorrect for block: failed validation')
             return False
 
         if b.epoch != b.blocknumber / config.dev.blocks_per_epoch:
-            logger.info('Epoch incorrect for block: failed validation')
+            logger.warn('Epoch incorrect for block: failed validation')
+            return False
 
         if b.blocknumber == 1:
             x = 0
-            for st in self.stake:
-                if st.txfrom == b.stake_selector:
-                    x = 1
-                    hash, _ = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash, b.stake_selector,
-                                                     st.hash, blocknumber=1)
+            for tx in self.transactions:
+                if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                    if tx.txfrom == b.stake_selector:
+                        x = 1
+                        hash, _ = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash, b.stake_selector,
+                                                         tx.hash, blocknumber=1)
 
-                    if sha256(b.hash) != hash or hash not in st.hash:
-                        logger.info('Hashchain_link does not hash correctly to terminator: failed validation')
-                        return False
+                        if sha256(b.hash) != hash or hash not in tx.hash:
+                            logger.warn('Hashchain_link does not hash correctly to terminator: failed validation')
+                            return False
             if x != 1:
-                logger.info('Stake selector not in block.stake: failed validation')
+                logger.warn('Stake selector not in block.stake: failed validation')
                 return False
         else:  # we look in stake_list for the hash terminator and hash to it..
-            y = 0
+            found = False
             terminator = sha256(b.hash)
-            for x in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch) + 1):
+            for _ in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch) + 1):
                 terminator = sha256(terminator)
             tmp_stake_list = chain.state.stake_list_get()
             for st in tmp_stake_list:
                 if st[0] == b.stake_selector:
-                    y = 1
+                    found = True
 
                     if terminator != st[1][-1]:
-                        logger.info('Supplied hash does not iterate to terminator: failed validation')
+                        logger.warn('Supplied hash does not iterate to terminator: failed validation')
                         return False
 
-            if y != 1:
-                logger.info('Stake selector not in stake_list for this epoch..')
+            if not found:
+                logger.warn('Stake selector not in stake_list for this epoch..')
                 return False
 
-            '''
-                This condition not required, in case of a strongest block selected is not in top 3. 
-                As it may happen that top 3 winners, didn't create the block, and other node created the block who was 
-                not in the top 3 winners.
-            '''
-            # if b.hash not in chain.select_winners(b.reveal_list, topN=3, blocknumber=b.blocknumber, block=self, seed=chain.block_chain_buffer.get_epoch_seed(b.blocknumber)):
-            #    logger.info(("Closest hash not in block selector.."))
-            #    return False
-
             if len(b.reveal_list) != len(set(b.reveal_list)):
-                logger.info('Repetition in reveal_list')
+                logger.warn('Repetition in reveal_list')
                 return False
 
             if verify_block_reveal_list:
-
                 i = 0
                 for r in b.reveal_list:
                     t = sha256(r)
-                    for x in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch) + 1):  # +1 as reveal has 1 extra hash
+                    for _ in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch) + 1): # +1 as reveal has 1 extra hash
                         t = sha256(t)
                     for s in tmp_stake_list:
                         if t == s[1][-1]:
                             i += 1
 
                 if i != len(b.reveal_list):
-                    logger.info('Not all the reveal_hashes are valid..')
+                    logger.warn('Not all the reveal_hashes are valid..')
                     return False
 
                 i = 0
@@ -370,52 +300,38 @@ class Block(object):
                             i += 1
 
                 if i != len(b.vote_hashes):
-                    logger.info('Not all the reveal_hashes are valid..')
+                    logger.warn('Not all the reveal_hashes are valid..')
                     return False
 
-        if sha256(b.stake_selector + str(b.epoch) + str(b.stake_nonce) + str(b.block_reward) + str(b.timestamp) + str(
-                b.hash) + str(b.blocknumber) + b.prev_blockheaderhash + str(
-            b.number_transactions) + b.merkle_root_tx_hash + str(b.number_stake) + b.hashedstake) != b.headerhash:
-            logger.info('Headerhash false for block: failed validation')
+        if b.generate_headerhash() != b.headerhash:
+            logger.warn('Headerhash false for block: failed validation')
             return False
 
-        tmp_last_block = chain.m_get_block(last_block)
+        tmp_last_block = chain.block_chain_buffer.get_block_n(last_blocknum)
 
         if tmp_last_block.blockheader.headerhash != b.prev_blockheaderhash:
-            logger.info('Headerhash not in sequence: failed validation')
+            logger.warn('Headerhash not in sequence: failed validation')
             return False
+
         if tmp_last_block.blockheader.blocknumber != b.blocknumber - 1:
-            logger.info('Block numbers out of sequence: failed validation')
+            logger.warn('Block numbers out of sequence: failed validation')
             return False
 
-        if self.validate_tx_in_block() == False:
-            logger.info('Block validate_tx_in_block error: failed validation')
-            return False
-
-        if self.validate_st_in_block() == False:
-            logger.info('Block validate_st_in_block error: failed validation')
+        if not self.validate_tx_in_block():
+            logger.warn('Block validate_tx_in_block error: failed validation')
             return False
 
         if len(self.transactions) == 0:
             txhashes = sha256('')
         else:
             txhashes = []
-            for transaction in self.transactions:
-                txhashes.append(transaction.txhash)
+            for tx_num in range(1,len(self.transactions)):
+                tx = self.transactions[tx_num]
+                txhashes.append(tx.txhash)
 
-        if chain.merkle_tx_hash(txhashes) != b.merkle_root_tx_hash:
-            logger.info('Block hashedtransactions error: failed validation')
+        if chain.merkle_tx_hash(txhashes) != b.tx_merkle_root:
+            logger.warn('Block hashedtransactions error: failed validation')
             return False
-
-        sthashes = []
-        for st in self.stake:
-            sthashes.append(str(st.hash))
-
-        if sha256(''.join(sthashes)) != b.hashedstake:
-            logger.info('Block hashedstake error: failed validation')
-
-        if verbose == 1:
-            logger.info((b.blocknumber, 'True'))
 
         return True
 
@@ -429,3 +345,5 @@ class Block(object):
         max_block_number = int((curr_time - last_block_timestamp) / config.dev.block_creation_seconds)
         if self.blockheader.blocknumber > max_block_number:
             return False
+
+

@@ -8,8 +8,6 @@ from qrlcore import logger
 from qrlcore import merkle
 from qrlcore.merkle import sha256
 import configuration as config
-
-
 # simple transaction creation and wallet functions using the wallet file..
 
 def isValidAddress(addr):
@@ -59,6 +57,13 @@ def checkaddress(merkle_root, address):
         return True
     return False
 
+'''
+def json_decode_block(json_block):
+    # FIXME: This is bad as it will required recursive imports
+    myBlock = block.Block()
+    myBlock.json_to_block(json.loads(json_block))
+    return myBlock
+'''
 
 def json_encode(obj):
     return json.dumps(obj)
@@ -104,13 +109,11 @@ def json_print(obj):  # prettify output from JSON for export purposes
 def json_print_telnet(obj):
     return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)
 
-
 def hash_to_terminator(hash_val, times):
     new_hash = hash_val
     for i in range(times):
         new_hash = sha256(new_hash)
     return new_hash
-
 
 def reveal_to_terminator(hash_val, times):
     return hash_to_terminator(hash_val, times + 1)

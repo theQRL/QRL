@@ -53,7 +53,10 @@ def fatal(msg, *args, **kwargs):
 
 
 def info(msg, *args, **kwargs):
-    logger.info(msg, *args, **kwargs)
+    try:
+        logger.info(msg, *args, **kwargs)
+    except Exception:
+        raise Exception
 
 
 def warn(msg, *args, **kwargs):
