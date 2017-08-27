@@ -42,3 +42,9 @@ cover/*
 MANIFEST
 
 tests/state/
+
+state/
+
+wallet\.dat
+
+wallet\.info

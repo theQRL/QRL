@@ -14,6 +14,7 @@
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
 from qrlcore import logger
+import configuration as config
 
 __author__ = 'pete'
 
@@ -24,8 +25,6 @@ from binascii import unhexlify, hexlify
 from math import ceil, floor, log
 import time
 from os import urandom
-
-import configuration as c
 
 
 # timing runs..
@@ -396,15 +395,15 @@ class XMSS(object):
             return False
         return self.addresses[t][1]
 
-    def hashchain(self, n=c.blocks_per_epoch,
+    def hashchain(self, n=config.dev.blocks_per_epoch,
                   epoch=0):  # generates a 20,000th hash in iterative sha256 chain..derived from private SEED
-        half = int(c.blocks_per_epoch / 2)
+        half = int(config.dev.blocks_per_epoch / 2)
         x = GEN(self.private_SEED, half + epoch, l=32)
         y = GEN(x, half, l=32)
         z = GEN(y, half, l=32)
         z = hexlify(z)
         # z = GEN_range(z, 1, 50)
-        z = GEN_range(z, 1, c.hashchain_nums)
+        z = GEN_range(z, 1, config.dev.hashchain_nums)
         self.hc_seed = z
         hc = []
         for hash_chain in z:
@@ -423,14 +422,14 @@ class XMSS(object):
         self.hc = hc
         return
 
-    def hashchain_reveal(self, n=c.blocks_per_epoch, epoch=0):
-        half = int(c.blocks_per_epoch / 2)
+    def hashchain_reveal(self, n=config.dev.blocks_per_epoch, epoch=0):
+        half = int(config.dev.blocks_per_epoch / 2)
         x = GEN(self.private_SEED, half + epoch, l=32)
         y = GEN(x, half, l=32)
         z = GEN(y, half, l=32)
         z = hexlify(z)
 
-        z = GEN_range(z, 1, c.hashchain_nums)
+        z = GEN_range(z, 1, config.dev.hashchain_nums)
         hc = []
         for hash_chain in z:
             hc.append([hash_chain])
@@ -1213,6 +1212,7 @@ class Merkle(object):
             temp_array = []
             cycles = len(hashlayer) % 2 + len(hashlayer) / 2
             y = 0
+            # FIXME: x is being used twice.. this is probably a mistake. Test
             for x in range(cycles):
                 if y + 1 == len(hashlayer):
                     temp_array.append(str(hashlayer[y]))

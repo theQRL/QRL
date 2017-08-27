@@ -15,13 +15,12 @@ drift = None
 
 def get_ntp_response():
     try:
-        c = ntplib.NTPClient()
-        response = c.request(ntp_server, version=version)
+        ntp_client = ntplib.NTPClient()
+        response = ntp_client.request(ntp_server, version=version)
     except Exception as ex:
         logger.info(' Failed to Get NTP timing ')
         logger.info((' Reason - ', str(ex)))
         sys.exit(0)
-        return None
     return response
 
 

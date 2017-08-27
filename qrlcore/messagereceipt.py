@@ -1,7 +1,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-'''
+"""
 1> dict Hash to peer
 2> dict peer to Hash
 Remove hash
@@ -26,14 +26,16 @@ TODO:
    in a last Y hrs of time. Then that peer is forcefully disconnected.
    IP could be added into block list of that particular peer for couple
    of hours.
-'''
+"""
 from collections import OrderedDict, defaultdict
 
-import configuration as c
+import configuration as config
 from qrlcore.merkle import sha256
 
-class MessageReceipt:
+
+class MessageReceipt(object):
     allowed_types = ['TX', 'ST', 'BK', 'R1']
+
     def __init__(self):
         self.hash_msg = dict()
         self.hash_type = OrderedDict()
@@ -44,7 +46,7 @@ class MessageReceipt:
     def register(self, msg_hash, msg_obj, msg_type):
         msg_hash = sha256(str(msg_hash))
 
-        if len(self.hash_type) == c.message_q_size:
+        if len(self.hash_type) == config.dev.message_q_size:
             self.__remove__()
 
         self.hash_msg[msg_hash] = msg_obj
@@ -64,7 +66,7 @@ class MessageReceipt:
         if msg_type not in self.allowed_types:
             return
 
-        if len(self.hash_type) == c.message_q_size:
+        if len(self.hash_type) == config.dev.message_q_size:
             self.__remove__()
 
         if msg_hash not in self.hash_type:
@@ -113,4 +115,3 @@ class MessageReceipt:
                     return True
 
         return
-

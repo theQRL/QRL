@@ -6,10 +6,10 @@ from StringIO import StringIO
 
 import simplejson as json
 
-import configuration as c
 import helper
 from qrlcore import merkle, logger
 from qrlcore.merkle import sha256
+import configuration as config
 
 
 # A base class to be inherited by all other transaction
@@ -102,7 +102,7 @@ class StakeTransaction(Transaction):
         if not balance:
             logger.info(( 'Invalid Balance', balance ))
             raise Exception
-        self.epoch = blocknumber // c.blocks_per_epoch  # in this block the epoch is..
+        self.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
         self.first_hash = first_hash
         self.balance = balance
 
