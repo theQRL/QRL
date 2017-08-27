@@ -1138,10 +1138,10 @@ class WOTS(object):
         return
 
     def screen_print(self):
-        logger.info((numlist(self.priv)))
-        logger.info((numlist(self.pub)))
-        logger.info((self.concatpub))
-        logger.info((self.pubhash))
+        logger.info(numlist(self.priv))
+        logger.info(numlist(self.pub))
+        logger.info(self.concatpub)
+        logger.info(self.pubhash)
         return
 
 
