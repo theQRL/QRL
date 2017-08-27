@@ -413,7 +413,7 @@ class POS:
                 self.last_pos_cycle = time.time()
                 block_timestamp = int(block.blockheader.timestamp)
                 curr_time = int(self.ntp.getTime())
-                delay = config.dev.POS_delay_after_block - min(c.POS_delay_after_block, max(0, curr_time - block_timestamp))
+                delay = config.dev.POS_delay_after_block - min(config.dev.POS_delay_after_block, max(0, curr_time - block_timestamp))
 
                 self.restart_post_block_logic(delay)
         # commented
@@ -498,7 +498,7 @@ class POS:
             epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
             if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_first_hash:
-                diff = max(1, ((c.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
+                diff = max(1, ((config.dev.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                 if random.randint(1, diff) == 1:
                     self.make_st_tx(blocknumber, None)
             elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_first_hash:
@@ -806,7 +806,7 @@ class P2PProtocol(Protocol):
             if peer not in self.factory.master_mr.requested_hash[msg_hash]:
                 self.factory.master_mr.requested_hash[msg_hash].append(peer)
                 peer.transport.write(self.wrap_message('SFM', helper.json_encode(data)))
-                call_later_obj = reactor.callLater(c.message_receipt_timeout,
+                call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                    self.RFM,
                                                    data)
                 self.factory.master_mr.hash_callLater[msg_hash] = call_later_obj
