@@ -15,18 +15,3 @@ class TestState(TestCase):
     def test_create_state(self):
         state = State()
         self.assertIsNotNone(state)  # to avoid warning (unused variable)
-
-    def test_setget_peers(self):
-        state = State()
-
-        tmp_peers = ['A', 'B', 'C']
-        state.state_put_peers(tmp_peers)
-
-        peers = state.state_get_peers()
-        self.assertEqual(tmp_peers, peers)
-
-    def test_get_peers_empty(self):
-        state = State()
-
-        peers = state.state_get_peers()
-        self.assertEqual([], peers)
