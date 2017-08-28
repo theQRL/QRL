@@ -21,6 +21,8 @@ class Wallet:
     ADDRESS_TYPE_LDOTS = 'LDOTS'
 
     def __init__(self, chain, state):
+        # FIXME: state is already part of the chain
+        # FIXME: Probably the wallet should own the chain, not the opposite
         self.chain = chain
         self.state = state
         self.wallet_dat_filename = os.path.join(config.user.data_path, config.dev.wallet_dat_filename)
@@ -53,7 +55,7 @@ class Wallet:
         addr_list = []
 
         if os.path.isfile(self.wallet_dat_filename) is False:
-            logger.info('Creating new wallet file..this could take up to a minute')
+            logger.info('Creating new wallet file... (this could take up to a minute)')
             SEED = None
             # For AWS test only
             if os.path.isfile(self.mnemonic_filename):
@@ -80,7 +82,8 @@ class Wallet:
 
     def f_save_wallet(self):
         logger.info('Syncing wallet file')
-        with open(self.wallet_dat_filename, "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
+        with open(self.wallet_dat_filename,
+                  "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
             gc.collect()
             return
@@ -104,8 +107,9 @@ class Wallet:
         try:
             with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
-        except:
-            logger.info('Error: likely no wallet.info found, creating..')
+        except Exception as e:
+            logger.exception(e)
+            logger.info('Likely no wallet.info found, creating..')
             self.f_save_winfo()
             return False
         x = 0

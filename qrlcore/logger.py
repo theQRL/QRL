@@ -3,6 +3,7 @@
 
 import sys
 import logging
+import traceback
 from logging.handlers import RotatingFileHandler
 
 LOG_NAME = 'qrl'
@@ -22,8 +23,6 @@ def initialize_default(force_console_output=False):
     if sys.flags.interactive or force_console_output:
         logger.setLevel(logging.INFO)
         logging_target = sys.stdout
-
-    print("INIT")
 
     handler = logging.StreamHandler(logging_target)
     handler.setFormatter(logging.Formatter(LOG_FORMAT_FULL, None))
@@ -59,45 +58,9 @@ def info(msg, *args, **kwargs):
         raise Exception
 
 
-def warn(msg, *args, **kwargs):
-    logger.warn(msg, *args, **kwargs)
-
-
 def warning(msg, *args, **kwargs):
     logger.warning(msg, *args, **kwargs)
 
-# TODO: Finish clean up
-# consensusFileName = 'consensus.log'
-# consensus_handler = RotatingFileHandler(consensusFileName,
-#                                         mode='a',
-#                                         maxBytes=LOGMAXBYTES,
-#                                         backupCount=2,
-#                                         encoding=None,
-#                                         delay=0)
-# consensus_handler.setFormatter(no_formatter)
-# consensus_handler.setLevel(logging.INFO)
 
-# class PrintHelper:
-#     def __init__(self, logger, nodeState):
-#         self.logger = logger
-#         self.nodeState = nodeState
-#         self.enableLogging = True
-#
-#     def logger.info((self, data):
-#         if hasattr(data, '__iter__'):
-#             data = map(str, data)
-#             data = " ".join(data)
-#         else:
-#             data = str(data)
-#         if self.enableLogging:
-#             self.logger.info('[' + self.nodeState.state + '] ' + data)
-#         print '[' + self.nodeState.state + '|' + str(self.nodeState.epoch_diff) + '] ' + data
-
-# def getLogger(name):
-#     logger = logging.getLogger(name)
-#     logger.setLevel(logging.INFO)
-#     logger.addHandler(log_handler)
-#     consensus = logging.getLogger("consensus_" + name)
-#     consensus.setLevel(logging.INFO)
-#     consensus.addHandler(consensus_handler)
-#     return logger, consensus
+def exception(e):
+    logger.error(traceback.format_exc(e))

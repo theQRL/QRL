@@ -13,14 +13,16 @@ TX_SUBTYPE_STAKE = 'STAKE'
 TX_SUBTYPE_COINBASE = 'COINBASE'
 TX_SUBTYPE_LATTICE = 'LATTICE_PUBLIC_KEY'
 
-class Transaction(object):
 
+class Transaction(object):
     """
     Base class Transactionto be inherited by all other transaction sub class
     """
 
     def __init__(self):
         self.nonce = 0  # Nonce is set when block is being created
+        # FIXME: Define attributes here
+        pass
 
     @staticmethod
     def get_tx_obj(tx):
@@ -35,7 +37,7 @@ class Transaction(object):
     def process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.index
         self.pubhash = self.generate_pubhash(xmss.pk())
-        self.txhash = sha256(txhash+self.pubhash)
+        self.txhash = sha256(txhash + self.pubhash)
 
         self.txfrom = txfrom.encode('ascii')
         S = xmss.SIGN(str(self.txhash))  # Sig = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
@@ -79,8 +81,8 @@ class Transaction(object):
 
     def validate_subtype(self, subtype, expected_subtype):
         if subtype != expected_subtype:
-            logger.warn('Invalid subtype')
-            logger.warn('Found: %s Expected: %s', subtype, expected_subtype)
+            logger.warning('Invalid subtype')
+            logger.warning('Found: %s Expected: %s', subtype, expected_subtype)
             return False
 
         return True
@@ -99,6 +101,7 @@ class Transaction(object):
 
     def get_message_hash(self):
         message = StringIO()
+        # FIXME: This looks suspicious
         '''
         message.write(self.nonce)
         message.write(self.txfrom)
@@ -128,8 +131,8 @@ class Transaction(object):
 
         return tx_list
 
-class StakeTransaction(Transaction):
 
+class StakeTransaction(Transaction):
     """
     StakeTransaction performed by the nodes who would like
     to stake.
@@ -141,7 +144,7 @@ class StakeTransaction(Transaction):
 
     def get_message_hash(self):
         message = super(StakeTransaction, self).get_message_hash()
-        #message.write(self.epoch)
+        # message.write(self.epoch)
         message.write(self.hash)
         message.write(str(self.first_hash))
         return sha256(message.getvalue())
@@ -208,8 +211,8 @@ class StakeTransaction(Transaction):
 
         if self.balance > state_balance:
             logger.info('Stake Transaction Balance exceeds maximum balance')
-            logger.info('Max Balance Expected %d', state_balance )
-            logger.info('Balance found %d', self.balance )
+            logger.info('Max Balance Expected %d', state_balance)
+            logger.info('Balance found %d', self.balance)
             return False
 
         if pubhash in state_pubhashes:
@@ -219,9 +222,7 @@ class StakeTransaction(Transaction):
         return True
 
 
-
 class SimpleTransaction(Transaction):
-
     """
     SimpleTransaction for the transaction of QRL from one wallet to another.
     """
@@ -232,10 +233,10 @@ class SimpleTransaction(Transaction):
 
     def get_message_hash(self):
         message = super(SimpleTransaction, self).get_message_hash()
-        #message.write(self.epoch)
-        #message.write(self.txto)
-        #message.write(self.amount)
-        #message.write(self.fee)
+        # message.write(self.epoch)
+        # message.write(self.txto)
+        # message.write(self.amount)
+        # message.write(self.fee)
         message.write(self.txhash)
         return sha256(message.getvalue())
 
@@ -271,7 +272,6 @@ class SimpleTransaction(Transaction):
         self.amount = int(amount)
         self.fee = int(fee)
 
-
         self.txhash = sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)))
         self.merkle_root = xmss.root
         if not self.pre_condition(tx_state):
@@ -285,7 +285,7 @@ class SimpleTransaction(Transaction):
         if self.subtype != TX_SUBTYPE_TX:
             return False
 
-        #sanity check: this is not how the economy is supposed to work!
+        # sanity check: this is not how the economy is supposed to work!
         if self.amount <= 0:
             logger.info('State validation failed for %s because negative or zero', self.txhash)
             logger.info('Amount %d', self.amount)
@@ -331,7 +331,6 @@ class SimpleTransaction(Transaction):
 
 
 class CoinBase(Transaction):
-
     """
     CoinBase is the type of transaction to credit the block_reward to
     the stake selector who created the block.
@@ -387,7 +386,6 @@ class CoinBase(Transaction):
 
 
 class LatticePublicKey(Transaction):
-
     """
     LatticePublicKey transaction to store the public key.
     This transaction has been designed for Ephemeral Messaging.
@@ -418,13 +416,14 @@ class LatticePublicKey(Transaction):
         txhash = sha256(txhash + self.pubhash)
         if self.txhash != txhash:
             logger.info('Invalid Txhash')
-            logger.warn('Found: %s Expected: %s', self.txhash, txhash)
+            logger.warning('Found: %s Expected: %s', self.txhash, txhash)
             return False
 
         if not self.validate_signed_hash():
             return False
 
         return True
+
 
 type_to_txn = dict()
 type_to_txn[TX_SUBTYPE_TX] = SimpleTransaction

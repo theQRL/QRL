@@ -4,4 +4,4 @@
 License
 =======
 
-.. literalinclude:: ../LICENSE.txt
+.. literalinclude:: ../LICENSE
