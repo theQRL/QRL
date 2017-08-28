@@ -62,7 +62,7 @@ class newAddress(Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        return self.wallet.savenewaddress(signatures=8000, type='XMSS')
+        return self.wallet.savenewaddress(signatures=8000, addrtype='XMSS')
 
 
 class recoverAddress(Resource):
@@ -101,7 +101,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.wallet.savenewaddress(signatures=8000, type='XMSS', seed=mnemonic_to_seed(mnemonicphrase))
+                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS', seed=mnemonic_to_seed(mnemonicphrase))
 
                 # Find hex/mnemonic for recovered wallet
                 for x in self.chain.my:
@@ -125,7 +125,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.wallet.savenewaddress(signatures=8000, type='XMSS', seed=hexseed_to_seed(jsQ["hexseed"]))
+                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS', seed=hexseed_to_seed(jsQ["hexseed"]))
 
                 # Find hex/mnemonic for recovered wallet
                 for x in self.chain.my:

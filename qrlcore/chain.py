@@ -81,7 +81,6 @@ class Chain:
 
         return tmp_path + os.sep
 
-
     def initialize(self):
         logger.info('QRL blockchain ledger %s', self.version_number)
         logger.info('loading db')
@@ -91,7 +90,7 @@ class Chain:
 
         logger.info('mining/staking address %s', self.mining_address)
 
-    def validate_reboot(self, hash, nonce):
+    def validate_reboot(self, mhash, nonce):
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
         try:
             reboot_data_db = self.state.db.get('reboot_data')
@@ -105,7 +104,7 @@ class Chain:
             return None, msg
 
         reboot_data[1] = nonce
-        output = hash
+        output = mhash
         for i in range(0, reboot_data[1]):
             output = sha256(output)
 
@@ -526,7 +525,7 @@ class Chain:
                 addr['stake']['selector'] = s[2]
                 # pubhashes used could be put here..
 
-        addr['transactions'] = []
+        tmp_transactions = list()
         for tx in self.transaction_pool:
             if tx.txto == address or tx.txfrom == address:
                 logger.info((address, 'found in transaction pool'))
@@ -541,8 +540,10 @@ class Chain:
                            'txfrom': tx.txfrom,
                            'timestamp': 'unconfirmed'}
 
-                addr['transactions'].append(tmp_txn)
+                tmp_transactions.append(tmp_txn)
                 txnhash_added.add(tx.txhash)
+
+        addr['transactions'] = tmp_transactions
 
         my_txn = []
         try:
@@ -555,16 +556,17 @@ class Chain:
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 logger.info((address, 'found in block ', str(txn_metadata[1]), '..'))
-                tmp_txn = {}
-                tmp_txn['txhash'] = tx.txhash
-                tmp_txn['block'] = txn_metadata[1]
-                tmp_txn['timestamp'] = txn_metadata[2]
-                tmp_txn['amount'] = tx.amount / 100000000.000000000
-                tmp_txn['fee'] = tx.fee / 100000000.000000000
-                tmp_txn['nonce'] = tx.nonce
-                tmp_txn['ots_key'] = tx.ots_key
-                tmp_txn['txto'] = tx.txto
-                tmp_txn['txfrom'] = tx.txfrom
+
+                tmp_txn = {'txhash': tx.txhash,
+                           'block': txn_metadata[1],
+                           'timestamp': txn_metadata[2],
+                           'amount': tx.amount / 100000000.000000000,
+                           'fee': tx.fee / 100000000.000000000,
+                           'nonce': tx.nonce,
+                           'ots_key': tx.ots_key,
+                           'txto': tx.txto,
+                           'txfrom': tx.txfrom}
+
                 addr['transactions'].append(tmp_txn)
                 txnhash_added.add(tx.txhash)
 
@@ -579,9 +581,7 @@ class Chain:
         return helper.json_print_telnet(addr)
 
     def last_unconfirmed_tx(self, n=1):
-        addr = {}
-        addr['transactions'] = {}
-
+        addr = {'transactions': {}}
         error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
 
         try:
@@ -616,9 +616,7 @@ class Chain:
 
     def last_tx(self, n=1):
 
-        addr = {}
-        addr['transactions'] = {}
-
+        addr = {'transactions': {}}
         error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
 
         try:
@@ -638,12 +636,12 @@ class Chain:
                 n = 0
 
             for tx in reversed(self.transaction_pool[-z:]):
-                tmp_txn = {}
-                tmp_txn['txhash'] = tx.txhash
-                tmp_txn['block'] = 'unconfirmed'
-                tmp_txn['timestamp'] = 'unconfirmed'
-                tmp_txn['amount'] = tx.amount / 100000000.000000000
-                tmp_txn['type'] = tx.type
+                tmp_txn = {'txhash': tx.txhash,
+                           'block': 'unconfirmed',
+                           'timestamp': 'unconfirmed',
+                           'amount': tx.amount / 100000000.000000000,
+                           'type': tx.type}
+
                 addr['transactions'].append(tmp_txn)
 
             if n == 0:
@@ -654,12 +652,12 @@ class Chain:
 
         for tx_meta in reversed(last_txn):
             tx = SimpleTransaction().json_to_transaction(tx_meta[0])
-            tmp_txn = {}
-            tmp_txn['txhash'] = tx.txhash
-            tmp_txn['block'] = tx_meta[1]
-            tmp_txn['timestamp'] = tx_meta[2]
-            tmp_txn['amount'] = tx.amount / 100000000.000000000
-            tmp_txn['type'] = tx.type
+            tmp_txn = {'txhash': tx.txhash,
+                       'block': tx_meta[1],
+                       'timestamp': tx_meta[2],
+                       'amount': tx.amount / 100000000.000000000,
+                       'type': tx.type}
+
             addr['transactions'].append(tmp_txn)
             n -= 1
             if n == 0:
@@ -689,8 +687,7 @@ class Chain:
         addr = self.state.db.return_all_addresses()
         richlist = sorted(addr, key=itemgetter(1), reverse=True)
 
-        rl = {}
-        rl['richlist'] = {}
+        rl = {'richlist': {}}
 
         if len(richlist) < n:
             n = len(richlist)
@@ -727,18 +724,16 @@ class Chain:
             block = self.m_get_block(blocknum)
             lb.append(block)
 
-        last_blocks = {}
-        last_blocks['blocks'] = []
+        last_blocks = {'blocks': []}
         i = 0
         for block in lb[1:]:
             i += 1
-            tmp_block = {}
-            tmp_block['blocknumber'] = block.blockheader.blocknumber
-            tmp_block['block_reward'] = block.blockheader.block_reward / 100000000.00000000
-            tmp_block['blocknumber'] = block.blockheader.blocknumber
-            tmp_block['blockhash'] = block.blockheader.prev_blockheaderhash
-            tmp_block['timestamp'] = block.blockheader.timestamp
-            tmp_block['block_interval'] = block.blockheader.timestamp - lb[i - 1].blockheader.timestamp
+            tmp_block = {'blocknumber': block.blockheader.blocknumber,
+                         'block_reward': block.blockheader.block_reward / 100000000.00000000,
+                         'blockhash': block.blockheader.prev_blockheaderhash,
+                         'timestamp': block.blockheader.timestamp,
+                         'block_interval': block.blockheader.timestamp - lb[i - 1].blockheader.timestamp}
+
             last_blocks['blocks'].append(tmp_block)
 
         last_blocks['status'] = 'ok'
@@ -749,9 +744,8 @@ class Chain:
 
     def stake_commits(self, data=None):
 
-        sc = {}
-        sc['status'] = 'ok'
-        sc['commits'] = {}
+        sc = {'status': 'ok',
+              'commits': {}}
 
         for c in self.stake_commit:
             # [stake_address, block_number, merkle_hash_tx, commit_hash]
@@ -780,15 +774,15 @@ class Chain:
 
     def next_stakers(self, data=None):
         # (stake -> address, hash_term, nonce)
-        next_stakers = {}
-        next_stakers['status'] = 'ok'
-        next_stakers['stake_list'] = []
+        next_stakers = {'status': 'ok',
+                        'stake_list': []}
+
         for s in self.state.next_stake_list_get():
-            tmp_stakers = {}
-            tmp_stakers['address'] = s[0]
-            tmp_stakers['balance'] = self.state.state_balance(s[0]) / 100000000.00000000
-            tmp_stakers['hash_terminator'] = s[1]
-            tmp_stakers['nonce'] = s[2]
+            tmp_stakers = {'address': s[0],
+                           'balance': self.state.state_balance(s[0]) / 100000000.00000000,
+                           'hash_terminator': s[1],
+                           'nonce': s[2]}
+
             next_stakers['stake_list'].append(tmp_stakers)
 
         return helper.json_print_telnet(next_stakers)
@@ -796,17 +790,16 @@ class Chain:
     @staticmethod
     def exp_win(data=None):
         # TODO: incomplete
-        ew = {}
-        ew['status'] = 'ok'
-        ew['expected_winner'] = {}
+
+        ew = {'status': 'ok',
+              'expected_winner': {}}
 
         return helper.json_print_telnet(ew)
 
     def stake_reveal_ones(self, data=None):
 
-        sr = {}
-        sr['status'] = 'ok'
-        sr['reveals'] = {}
+        sr = {'status': 'ok',
+              'reveals': {}}
 
         for c in self.stake_reveal_one:
             sr['reveals'][str(c[1]) + '-' + str(c[2])] = {}
@@ -819,10 +812,8 @@ class Chain:
 
     def ip_geotag(self, data=None):
 
-        ip = {}
-        ip['status'] = 'ok'
-        ip['ip_geotag'] = {}
-        ip['ip_geotag'] = self.ip_list
+        ip = {'status': 'ok',
+              'ip_geotag': self.ip_list}
 
         x = 0
         for i in self.ip_list:
@@ -833,9 +824,9 @@ class Chain:
 
     def stake_reveals(self, data=None):
 
-        sr = {}
-        sr['status'] = 'ok'
-        sr['reveals'] = {}
+        sr = {'status': 'ok',
+              'reveals': {}}
+
         # chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
         for c in self.stake_reveal:
             sr['reveals'][str(c[1]) + '-' + c[3]] = {}

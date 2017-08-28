@@ -235,9 +235,9 @@ class ApiProtocol(Protocol):
         self.factory.connections -= 1
         logger.info("Connection lost: %s", reason)
 
-    def latency(self, type=None):
+    def latency(self, mtype=None):
         output = {}
-        if type and type.lower() in ['mean', 'median', 'last']:
+        if mtype and mtype.lower() in ['mean', 'median', 'last']:
             for block_num in self.factory.chain.stake_validator_latency.keys():
                 output[block_num] = {}
                 for stake in self.factory.chain.stake_validator_latency[block_num].keys():
@@ -246,15 +246,15 @@ class ApiProtocol(Protocol):
                     output[block_num][stake] = {}
                     if 'r2_time_diff' in time_list:
                         return
-                    if type.lower() == 'mean':
+                    if mtype.lower() == 'mean':
                         output[block_num][stake]['r1_time_diff'] = statistics.mean(
                             time_list['r1_time_diff'])
                         output[block_num][stake]['r2_time_diff'] = statistics.mean(
                             time_list['r2_time_diff'])
-                    elif type.lower() == 'last':
+                    elif mtype.lower() == 'last':
                         output[block_num][stake]['r1_time_diff'] = time_list['r1_time_diff'][-1]
                         output[block_num][stake]['r2_time_diff'] = time_list['r2_time_diff'][-1]
-                    elif type.lower() == 'median':
+                    elif mtype.lower() == 'median':
                         output[block_num][stake]['r1_time_diff'] = statistics.median(
                             time_list['r1_time_diff'])
                         output[block_num][stake]['r2_time_diff'] = statistics.median(

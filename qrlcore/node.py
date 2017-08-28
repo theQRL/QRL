@@ -356,12 +356,12 @@ class POS:
         pending_blocks['headerhash'] = selected_blockhash
         randomize_block_fetch(chain.height() + 1)
         '''
-        max = -1
+        tmp_max = -1
         max_headerhash = None
         for headerhash in self.fmbh_blockhash_peers:
             if self.fmbh_blockhash_peers[headerhash]['blocknumber'] > self.chain.height():
-                if len(self.fmbh_blockhash_peers[headerhash]['peers']) > max:
-                    max = len(self.fmbh_blockhash_peers[headerhash]['peers'])
+                if len(self.fmbh_blockhash_peers[headerhash]['peers']) > tmp_max:
+                    tmp_max = len(self.fmbh_blockhash_peers[headerhash]['peers'])
                     max_headerhash = headerhash
 
         # Adding all peers
@@ -611,7 +611,7 @@ class POS:
 
         # first strip out any laggards..
         self.chain.blockheight_map = filter(
-            lambda s: s[0] >= self.chain.m_blockheight(),
+            lambda q: q[0] >= self.chain.m_blockheight(),
             self.chain.blockheight_map
         )
 

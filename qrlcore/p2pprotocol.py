@@ -4,7 +4,7 @@ import time
 from decimal import Decimal
 
 from twisted.internet import reactor
-from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import Protocol, connectionDone
 
 import configuration as config
 from qrlcore import logger, helper, fork
@@ -164,9 +164,9 @@ class P2PProtocol(Protocol):
         self.factory.master_mr.add(msg_hash, msg_type, self)
 
     def broadcast(self, msg_hash, msg_type):  # Move to factory
-        data = {}
-        data['hash'] = sha256(str(msg_hash))
-        data['type'] = msg_type
+        data = {'hash': sha256(str(msg_hash)),
+                'type': msg_type}
+
         for peer in self.factory.peer_connections:
             if peer not in self.factory.master_mr.hash_peer[data['hash']]:
                 peer.transport.write(self.wrap_message('MR', helper.json_encode(data)))
@@ -210,14 +210,15 @@ class P2PProtocol(Protocol):
 
     def BM(self, data=None):  # blockheight map for synchronisation and error correction prior to POS cycle resync..
         if not data:
-            logger.info('<<<Sending block_map %s', self.transport.getPeer().host)
-            z = {}
-            z['block_number'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
-            z['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
+            logger.info('<<< Sending block_map %s', self.transport.getPeer().host)
+
+            z = {'block_number': self.factory.chain.m_blockchain[-1].blockheader.blocknumber,
+                 'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash}
+
             self.transport.write(self.wrap_message('BM', helper.json_encode(z)))
             return
         else:
-            logger.info('>>>Receiving block_map')
+            logger.info('>>> Receiving block_map')
             z = helper.json_decode(data)
             block_number = z['block_number']
             headerhash = z['headerhash'].encode('latin1')
@@ -433,7 +434,7 @@ class P2PProtocol(Protocol):
     def FB(self, data):  # Fetch Request for block
         data = int(data)
         logger.info(' Request for %s by %s', data, self.identity)
-        if data > 0 and data <= self.factory.chain.block_chain_buffer.height():
+        if 0 < data <= self.factory.chain.block_chain_buffer.height():
             self.factory.chain.block_chain_buffer.send_block(data, self.transport, self.wrap_message)
         else:
             self.transport.write(self.wrap_message('PB', data))
@@ -444,7 +445,7 @@ class P2PProtocol(Protocol):
 
     def FH(self, data):  # Fetch Block Headerhash
         data = int(data)
-        if data > 0 and data <= self.factory.chain.height():
+        if 0 < data <= self.factory.chain.height():
             mini_block = {}
             logger.info('<<<Pushing block headerhash of block number %s to node: %s',
                         str(data), self.transport.getPeer().host)
@@ -478,7 +479,10 @@ class P2PProtocol(Protocol):
         self.recv_peers(data)
 
     def RT(self):
-        '<<< Transaction_pool to peer..'
+        """
+        Transaction_pool to peer
+        :return:
+        """
         for t in self.factory.chain.transaction_pool:
             f.send_tx_to_peers(t)
         return
@@ -556,7 +560,7 @@ class P2PProtocol(Protocol):
                                                                                                       block_number),
                                          seed=z['seed'])
 
-        if score == None:
+        if score is None:
             logger.info('Score None for stake_address %s reveal_one %s', stake_address, reveal_one)
             return
 
@@ -583,10 +587,10 @@ class P2PProtocol(Protocol):
 
         sv_hash = self.factory.chain.get_stake_validators_hash()
         # if sv_hash != z['SV_hash']:
-        #	logger.info(( 'SV_hash didnt match' ))
-        #	logger.info(( 'Expected : ', sv_hash ))
-        #	logger.info(( 'Found : ', z['SV_hash'] ))
-        #	return
+        # logger.info(( 'SV_hash didnt match' ))
+        # logger.info(( 'Expected : ', sv_hash ))
+        # logger.info(( 'Found : ', z['SV_hash'] ))
+        # return
 
         self.factory.chain.stake_reveal_one.append(
             [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
@@ -645,9 +649,9 @@ class P2PProtocol(Protocol):
         return
 
     def send_m_blockheight_to_peer(self):
-        z = {}
-        z['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
-        z['block_number'] = 0
+        z = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
+             'block_number': 0}
+
         if len(self.factory.chain.m_blockchain):
             z['block_number'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
         self.transport.write(self.wrap_message('CB', helper.json_encode(z)))
@@ -689,9 +693,8 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('FH', str(n)))
         return
 
-    def wrap_message(self, type, data=None):
-        jdata = {}
-        jdata['type'] = type
+    def wrap_message(self, mtype, data=None):
+        jdata = {'type': mtype}
         if data:
             jdata['data'] = data
         str_data = json.dumps(jdata)
@@ -777,7 +780,7 @@ class P2PProtocol(Protocol):
         self.buffer += data
 
         for x in range(50):
-            if self.parse_buffer() == False:
+            if not self.parse_buffer():
                 break
             else:
                 for msg in self.messages:
@@ -829,7 +832,7 @@ class P2PProtocol(Protocol):
     # here goes the code for handshake..using functions within the p2pprotocol class
     # should ask for latest block/block number.
 
-    def connectionLost(self, reason):
+    def connectionLost(self, reason=connectionDone):
         logger.info('%s disconnected. remainder connected: %s',
                     self.transport.getPeer().host,
                     str(self.factory.connections))  # , reason
