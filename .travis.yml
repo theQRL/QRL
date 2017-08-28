@@ -7,22 +7,29 @@ virtualenv:
   system_site_packages: true
 env:
   matrix:
-    - DISTRIB="ubuntu" PYTHON_VERSION="2.7" COVERAGE="true"
     #- DISTRIB="conda" PYTHON_VERSION="2.7" COVERAGE="false"   # TODO: Fix conda tests
+  - DISTRIB="ubuntu" PYTHON_VERSION="2.7" COVERAGE="true"
 addons:
   apt:
     packages:
-      - git
-      - python-pip
+    - git
+    - python-pip
 install:
-  - source tests/travis_install.sh
-  - pip install -r requirements.txt
-before_script:
-#  - git config --global user.email "you@example.com"
-#  - git config --global user.name "Your Name"
+- source tests/travis_install.sh
+- pip install -r requirements.txt
+before_script: 
+- git config --global user.email "info@theQRL.org"
+- git config --global user.name "QRL"
 script:
-  - python setup.py test
+- python setup.py test
 after_success:
-  - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
+- if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
 cache:
-  - apt
+- apt
+deploy:
+- provider: script
+  script: sh $TRAVIS_BUILD_DIR/scripts/deploy_pypi.sh
+  on:
+    tags: true
+  on:
+    branch: pypi

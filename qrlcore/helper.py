@@ -68,6 +68,7 @@ def json_decode(js_obj):
     return json.loads(js_obj)
 
 
+# noinspection PyClassHasNoInit
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
         return obj.__dict__
