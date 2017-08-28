@@ -218,6 +218,17 @@ class Block(object):
         b = self.blockheader
         last_blocknum = b.blocknumber - 1
 
+        if len(self.transactions) == 0:
+            logger.warn('BLOCK : There must be atleast 1 txn')
+            return False
+
+        try:
+            if self.transactions[0].subtype != transaction.TX_SUBTYPE_COINBASE:
+                logger.warn('BLOCK : First txn must be a COINBASE txn')
+                return False
+        except Exception:
+            return False
+
         if merkle.xmss_verify(b.headerhash, [b.i, b.signature, b.merkle_path, b.i_bms, b.pub, b.PK]) is False:
             logger.warn('BLOCK : merkle xmss_verify failed for the block')
             return False
@@ -321,7 +332,7 @@ class Block(object):
             logger.warn('Block validate_tx_in_block error: failed validation')
             return False
 
-        if len(self.transactions) == 0:
+        if len(self.transactions) == 1:
             txhashes = sha256('')
         else:
             txhashes = []
