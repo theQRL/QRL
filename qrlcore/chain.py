@@ -76,7 +76,8 @@ class Chain:
                 logger.error("Failed to create directory: %s - %s", tmp_path, e)
                 sys.exit(1)
 
-        return tmp_path
+        return tmp_path + os.sep
+
 
     def initialize(self):
         logger.info(('QRL blockchain ledger ', self.version_number))
@@ -410,8 +411,7 @@ class Chain:
         return prf_range
 
     # return the POS staker list position for given seed at index, i
-    @staticmethod
-    def pos_block_selector_n(seed, n, i):
+    def pos_block_selector_n(self, seed, n, i):
         l = self.pos_block_selector(seed, n)
         return l[i]
 
@@ -800,8 +800,7 @@ class Chain:
 
         return helper.json_print_telnet(ew)
 
-    @staticmethod
-    def stake_reveal_ones(data=None):
+    def stake_reveal_ones(self, data=None):
 
         sr = {}
         sr['status'] = 'ok'
@@ -816,8 +815,7 @@ class Chain:
 
         return helper.json_print_telnet(sr)
 
-    @staticmethod
-    def ip_geotag(data=None):
+    def ip_geotag(self, data=None):
 
         ip = {}
         ip['status'] = 'ok'
