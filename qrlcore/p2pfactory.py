@@ -1,4 +1,4 @@
-import json
+import simplejson as json
 import random
 import struct
 import time
