@@ -69,9 +69,6 @@ def json_decode(js_obj):
 
 
 class ComplexEncoder(json.JSONEncoder):
-    def __init__(self):
-        pass
-
     def default(self, obj):
         return obj.__dict__
 
@@ -101,11 +98,11 @@ def json_bytestream_bk(block_obj):  # "" block object
 
 
 def json_print(obj):  # prettify output from JSON for export purposes
-    logger.info((json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)))
+    logger.info('%s', json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False))))
 
 
 def json_print_telnet(obj):
-    return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)
+    return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)))
 
 
 def hash_to_terminator(hash_val, times):

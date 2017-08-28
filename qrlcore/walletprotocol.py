@@ -2,7 +2,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import decimal
-import json
+import simplejson as json
 import time
 from StringIO import StringIO
 

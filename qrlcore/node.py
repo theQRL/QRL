@@ -61,8 +61,8 @@ class POS:
     def stop_monitor_bk(self):
         try:
             reactor.monitor_bk.cancel()
-        except Exception as e:
-            logger.exception(e)
+        except Exception:  # No need to log this exception
+            pass
 
     def restart_monitor_bk(self, delay=60):
         self.stop_monitor_bk()
@@ -140,14 +140,14 @@ class POS:
     def schedule_peers_blockheight(self, delay=100):
         try:
             reactor.peers_blockheight.cancel()
-        except Exception as e:
-            logger.exception(e)
+        except Exception:  # No need to log this exception
+            pass
 
         reactor.peers_blockheight = reactor.callLater(delay, self.peers_blockheight)
         try:
-            reactor.peers_blockheight_headerhash.cancel()
+            reactor.peers_blockheight_headerhash.cancel()  # No need to log this exception
         except Exception as e:
-            logger.exception(e)
+            pass
 
         reactor.peers_blockheight_headerhash = reactor.callLater(70, self.peers_blockheight_headerhash)
 
@@ -312,8 +312,8 @@ class POS:
     def restart_unsynced_logic(self, delay=0):
         try:
             reactor.unsynced_logic.cancel()
-        except Exception as e:
-            logger.exception(e)
+        except Exception:  # No need to log this exception
+            pass
 
         reactor.unsynced_logic = reactor.callLater(delay, self.unsynced_logic)
 
@@ -414,8 +414,8 @@ class POS:
         try:
             reactor.post_block_logic.cancel()
             reactor.prepare_winners.cancel()
-        except Exception as e:
-            logger.warning("prepare_winners.cancel() %s", e)
+        except Exception:  # No need to log this exception
+            pass
 
     def restart_post_block_logic(self, delay=0):
         self.stop_post_block_logic()
@@ -501,8 +501,8 @@ class POS:
     def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
         try:
             reactor.prepare_winners.cancel()
-        except Exception as e:
-            logger.exception(e)
+        except Exception:  # No need to log this Exception
+            pass
 
         reactor.prepare_winners = reactor.callLater(
             delay,

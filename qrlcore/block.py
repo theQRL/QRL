@@ -3,7 +3,7 @@
 import decimal
 from math import log
 
-from jsonpickle import json
+import simplejson as json
 
 import helper
 import merkle
@@ -180,6 +180,7 @@ class Block(object):
 
         if self.blockheader.blocknumber == 0:
             self.state = json_block['state']
+            self.stake_list = json_block['stake_list']
 
     @staticmethod
     def from_json(json_block):

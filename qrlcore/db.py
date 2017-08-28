@@ -7,7 +7,7 @@ __author__ = 'pete'
 import os
 import leveldb
 import cPickle as pickle
-import json
+import simplejson as json
 
 from qrlcore import logger
 import configuration as config
