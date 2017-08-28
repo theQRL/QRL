@@ -132,7 +132,7 @@ class WalletProtocol(Protocol):
                         return
 
                     self.output['status'] = 0
-                    addr = self.factory.chain.wallet.getnewaddress(type='XMSS', SEED=hexseed_to_seed(args[0]))
+                    addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].address + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].mnemonic + '\r\n')
@@ -158,7 +158,7 @@ class WalletProtocol(Protocol):
                         return
 
                     args = ' '.join(args)
-                    addr = self.factory.chain.wallet.getnewaddress(type='XMSS', SEED=mnemonic_to_seed(args))
+                    addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=mnemonic_to_seed(args))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].address + '\r\n')

@@ -219,14 +219,15 @@ class Block(object):
         last_blocknum = b.blocknumber - 1
 
         if len(self.transactions) == 0:
-            logger.warn('BLOCK : There must be atleast 1 txn')
+            logger.warning('BLOCK : There must be atleast 1 txn')
             return False
 
         try:
             if self.transactions[0].subtype != transaction.TX_SUBTYPE_COINBASE:
-                logger.warn('BLOCK : First txn must be a COINBASE txn')
+                logger.warning('BLOCK : First txn must be a COINBASE txn')
                 return False
-        except Exception:
+        except Exception as e:
+            logger.exception(e)
             return False
 
         if merkle.xmss_verify(b.headerhash, [b.i, b.signature, b.merkle_path, b.i_bms, b.pub, b.PK]) is False:

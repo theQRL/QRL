@@ -96,9 +96,8 @@ class P2PFactory(ServerFactory):
             peer.send_m_blockheight_to_peer()
         return
 
-    def f_wrap_message(self, type, data=None):
-        jdata = {}
-        jdata['type'] = type
+    def f_wrap_message(self, mtype, data=None):
+        jdata = {'type': mtype }
         if data:
             jdata['data'] = data
         str_data = json.dumps(jdata)
@@ -124,11 +123,13 @@ class P2PFactory(ServerFactory):
     # transmit reveal_one hash.. (node cast lottery vote)
 
     def send_stake_reveal_one(self, blocknumber=None):
-        z = {}
-        z['stake_address'] = self.chain.mining_address
-        z['block_number'] = blocknumber
+
+        z = {'stake_address': self.chain.mining_address,
+             'block_number': blocknumber}
+
         if not z['block_number']:
             z['block_number'] = self.chain.block_chain_buffer.height() + 1  # next block..
+
         z['headerhash'] = self.chain.block_chain_buffer.get_strongest_headerhash(
             z['block_number'] - 1)  # demonstrate the hash from last block to prevent building upon invalid block..
         epoch = z['block_number'] // config.dev.blocks_per_epoch
@@ -141,21 +142,21 @@ class P2PFactory(ServerFactory):
         z['seed'] = epoch_seed
         z['SV_hash'] = self.chain.get_stake_validators_hash()
 
-        _, hash = self.chain.select_hashchain(
+        _, mhash = self.chain.select_hashchain(
             last_block_headerhash=self.chain.block_chain_buffer.get_strongest_headerhash(z['block_number'] - 1),
             stake_address=self.chain.mining_address, blocknumber=z['block_number'])
 
         for hashes in hash_chain:
-            if hashes[-1] == hash:
+            if hashes[-1] == mhash:
                 z['vote_hash'] = hashes[:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch)]
                 break
 
-        if z['reveal_one'] == None or z['vote_hash'] == None:
+        if z['reveal_one'] is None or z['vote_hash'] is None:
             logger.info(
-                ('reveal_one or vote_hash None for stake_address: ', z['stake_address'], ' selected hash:', hash))
+                ('reveal_one or vote_hash None for stake_address: ', z['stake_address'], ' selected hash:', mhash))
             logger.info('reveal_one %s', z['reveal_one'])
             logger.info('vote_hash %s', z['vote_hash'])
-            logger.info('hash %s', hash)
+            logger.info('hash %s', mhash)
             return
 
         z['weighted_hash'] = self.chain.score(stake_address=z['stake_address'],
@@ -170,7 +171,7 @@ class P2PFactory(ServerFactory):
             if r[0] == self.chain.mining_address:
                 if r[1] == z['headerhash']:
                     if r[2] == z['block_number']:
-                        if y == True:
+                        if y:
                             continue  # if repetition then remove..
                         else:
                             z['reveal_one'] = r[3]
@@ -179,7 +180,7 @@ class P2PFactory(ServerFactory):
 
         self.chain.stake_reveal_one = tmp_stake_reveal_one
         logger.info('<<<Transmitting POS reveal_one %s %s', blocknumber,
-                     self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber))
+                    self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber))
 
         self.last_reveal_one = z
         self.register_and_broadcast('R1', z['vote_hash'], helper.json_encode(z))
@@ -189,7 +190,7 @@ class P2PFactory(ServerFactory):
         #                         reveal_one=z['reveal_one'],
         #                         balance=self.chain.block_chain_buffer.get_st_balance(self.chain.mining_address, blocknumber),
         #                         seed=epoch_seed)
-        if y == False:
+        if not y:
             self.chain.stake_reveal_one.append([z['stake_address'], z['headerhash'], z['block_number'], z['reveal_one'],
                                                 z['weighted_hash'],
                                                 z['vote_hash']])  # don't forget to store our reveal in stake_reveal_one
@@ -217,7 +218,7 @@ class P2PFactory(ServerFactory):
 
     def send_stake_block(self, block_obj):
         logger.info('<<<Transmitting POS created block %s %s', str(block_obj.blockheader.blocknumber),
-                     block_obj.blockheader.headerhash)
+                    block_obj.blockheader.headerhash)
         for peer in self.peer_connections:
             peer.transport.write(self.f_wrap_message('S4', helper.json_bytestream(block_obj)))
         return
@@ -287,3 +288,4 @@ class P2PFactory(ServerFactory):
         self.peer_addresses = peer_addresses
         with open(self.peers_path, "w+") as myfile:
             pickle.dump(self.peer_addresses, myfile)
+

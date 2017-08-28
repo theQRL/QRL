@@ -69,6 +69,9 @@ def json_decode(js_obj):
 
 
 class ComplexEncoder(json.JSONEncoder):
+    def __init__(self):
+        pass
+
     def default(self, obj):
         return obj.__dict__
 

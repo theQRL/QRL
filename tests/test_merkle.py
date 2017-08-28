@@ -69,8 +69,8 @@ class TestMerkle(TestCase):
                  '56b424d99242a1a3f40f60bf565b1a63aed94464b26ad022eed800ec3384f11' \
                  'fe40c46dc60cdf80d60dc75b4c908b4afa'
 
-    S1_root =     '18e9198ac177807cc249e29b3d0cdda14b688d2cb8387e782239c0a565faee35'
-    S1_addr =     'Q385d6b85063d6f3593f6de6982bb9dd9c8fc92fc54ed67879f6c92c6cf53473d124a'
+    S1_root = '18e9198ac177807cc249e29b3d0cdda14b688d2cb8387e782239c0a565faee35'
+    S1_addr = 'Q385d6b85063d6f3593f6de6982bb9dd9c8fc92fc54ed67879f6c92c6cf53473d124a'
     S1_addrlong = 'Qa1f72a319c6881dd29a673d1cc5870bba445a0289a3a75641548c60f15a264de97da'
 
     def __init__(self, *args, **kwargs):
@@ -201,11 +201,11 @@ class TestMerkle(TestCase):
         self.assertEqual(xmss3.address, 'Q54ec65785ae34c4fbe9f33db3b8a1027d5f9c58c4398cfde43060a83dca7b59baf0e')
 
         # TODO: Test other values
-        #print(xmss1.PK)
-        #print(xmss1.PK_short)
-        #print(xmss1.catPK)
-        #print(xmss1.catPK_short)
-        #print(xmss1.address_long)
+        # print(xmss1.PK)
+        # print(xmss1.PK_short)
+        # print(xmss1.catPK)
+        # print(xmss1.catPK_short)
+        # print(xmss1.address_long)
 
         # TODO: Enable high limit check once performance is good enough
         # new = merkle.XMSS(signatures=9000, SEED=None)
