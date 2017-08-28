@@ -3,6 +3,7 @@
 
 import sys
 import logging
+import traceback
 from logging.handlers import RotatingFileHandler
 
 LOG_NAME = 'qrl'
@@ -22,8 +23,6 @@ def initialize_default(force_console_output=False):
     if sys.flags.interactive or force_console_output:
         logger.setLevel(logging.INFO)
         logging_target = sys.stdout
-
-    print("INIT")
 
     handler = logging.StreamHandler(logging_target)
     handler.setFormatter(logging.Formatter(LOG_FORMAT_FULL, None))
@@ -61,3 +60,7 @@ def info(msg, *args, **kwargs):
 
 def warning(msg, *args, **kwargs):
     logger.warning(msg, *args, **kwargs)
+
+
+def exception(e):
+    logger.error(traceback.format_exc(e))

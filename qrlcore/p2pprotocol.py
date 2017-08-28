@@ -6,8 +6,9 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol
 
-import configuration as c
+import configuration as config
 from qrlcore import logger, helper, fork
+from qrlcore.block import Block
 from qrlcore.merkle import sha256
 from qrlcore.messagereceipt import MessageReceipt
 from qrlcore.transaction import StakeTransaction, SimpleTransaction
@@ -56,7 +57,8 @@ class P2PProtocol(Protocol):
     def parse_msg(self, data):
         try:
             jdata = json.loads(data)
-        except:
+        except Exception as e:
+            logger.warning("parse_msg [json] %s", e)
             return
 
         func = jdata['type']
@@ -71,7 +73,7 @@ class P2PProtocol(Protocol):
             else:
                 func()
         except Exception as e:
-            logger.error("parse_msg Exception while calling %s \n%s", func, e)
+            logger.error("parse_msg [%s] \n%s", func, e)
 
     def reboot(self, data):
         hash_dict = json.loads(data)
@@ -177,22 +179,25 @@ class P2PProtocol(Protocol):
         try:
             st = StakeTransaction().json_to_transaction(data)
         except Exception as e:
-            logger.error('st rejected - unable to decode serialised data - closing connection \n%s', e)
+            logger.error('st rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
             self.transport.loseConnection()
             return
 
         if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
             return
 
-        if len(self.factory.chain.m_blockchain) == 1 and st.epoch > 0:        #catch error for new nodes listening for ST's from later epochs
+        if len(
+                self.factory.chain.m_blockchain) == 1 and st.epoch > 0:  # catch error for new nodes listening for ST's from later epochs
             return
 
         for t in self.factory.chain.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
-        #logger.info('--> %s %s',self.factory.chain.block_chain_buffer.height(), self.factory.chain.height())
-        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(blocknumber=self.factory.chain.block_chain_buffer.height()+1,
-                                                                        addr=st.txfrom)
+        # logger.info('--> %s %s',self.factory.chain.block_chain_buffer.height(), self.factory.chain.height())
+        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
+            blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
+            addr=st.txfrom)
         if st.validate_tx() and st.state_validate_tx(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(st)
         else:
@@ -218,7 +223,7 @@ class P2PProtocol(Protocol):
             headerhash = z['headerhash'].encode('latin1')
 
             i = [block_number, headerhash, self.transport.getPeer().host]
-            logger.info('%s',i)
+            logger.info('%s', i)
             if i not in self.factory.chain.blockheight_map:
                 self.factory.chain.blockheight_map.append(i)
             return
@@ -228,7 +233,7 @@ class P2PProtocol(Protocol):
             block = Block.from_json(data)
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
-            logger.error('Reason - \n%s', e)
+            logger.exception(e)
             return
         logger.info('>>>Received block from %s %s %s',
                     self.identity,
@@ -292,8 +297,8 @@ class P2PProtocol(Protocol):
                 return
             self.factory.pos.randomize_block_fetch(blocknumber + 1)
         except Exception as e:
-            logger.error('.block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
-            logger.error('Exception \n%s', e)
+            logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+            logger.exception(e)
             return
 
     def PB(self, data):
@@ -304,9 +309,9 @@ class P2PProtocol(Protocol):
 
             block = Block.from_json(data)
             blocknumber = block.blockheader.blocknumber
-            logger.info('>>>Received Block #%d', blocknumber)
+            logger.info('>>> Received Block #%d', blocknumber)
             if blocknumber != self.last_requested_blocknum:
-                logger.warning('Didnt match %s %s', self.last_requested_blocknum, self.identity)
+                logger.warning('Did not match %s %s', self.last_requested_blocknum, self.identity)
                 return
 
             if blocknumber > self.factory.chain.height():
@@ -316,13 +321,14 @@ class P2PProtocol(Protocol):
 
             try:
                 reactor.download_monitor.cancel()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("PB: %s", e)
 
             self.factory.pos.randomize_block_fetch(blocknumber + 1)
 
-        except KeyboardInterrupt:
-            logger.info('.block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+        except Exception as e:
+            logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+            logger.exception(e)
         return
 
     def PH(self, data):
@@ -334,8 +340,9 @@ class P2PProtocol(Protocol):
 
     def LB(self):  # request for last block to be sent
         logger.info('<<<Sending last block %s %s bytes to node %s', self.factory.chain.m_blockheight(),
-                     str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))),
-                     self.transport.getPeer().host)
+                    str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))),
+                    self.transport.getPeer().host)
+
         self.transport.write(self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_last_block())))
         return
 
@@ -409,8 +416,8 @@ class P2PProtocol(Protocol):
     def BN(self, data):  # request for block (n)
         if int(data) <= self.factory.chain.m_blockheight():
             logger.info('<<<Sending block number %s %s bytes to node: %s', int(data),
-                         len(helper.json_bytestream(self.factory.chain.m_get_block(int(data)))),
-                         self.transport.getPeer().host)
+                        len(helper.json_bytestream(self.factory.chain.m_get_block(int(data)))),
+                        self.transport.getPeer().host)
             self.transport.write(
                 self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_block(int(data)))))
             return
@@ -541,7 +548,8 @@ class P2PProtocol(Protocol):
 
         self.factory.pos.r1_time_diff[block_number].append(int(time.time() * 1000))
 
-        logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number, reveal_one)
+        logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number,
+                    reveal_one)
         score = self.factory.chain.score(stake_address=stake_address,
                                          reveal_one=reveal_one,
                                          balance=self.factory.chain.block_chain_buffer.get_st_balance(stake_address,
@@ -580,7 +588,8 @@ class P2PProtocol(Protocol):
         #	logger.info(( 'Found : ', z['SV_hash'] ))
         #	return
 
-        self.factory.chain.stake_reveal_one.append([stake_address, headerhash, block_number, reveal_one, score, vote_hash])
+        self.factory.chain.stake_reveal_one.append(
+            [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
         self.factory.master_mr.register(z['vote_hash'], data, 'R1')
         if self.factory.nodeState.state == 'synced':
             self.broadcast(z['vote_hash'], 'R1')
@@ -808,8 +817,10 @@ class P2PProtocol(Protocol):
             logger.info('Adding to peer_list')
             peer_list.append(self.transport.getPeer().host)
             self.factory.update_peer_addresses(peer_list)
-        logger.info(
-            ('>>> new peer connection :', self.transport.getPeer().host, ' : ', str(self.transport.getPeer().port)))
+
+        logger.info('>>> new peer connection : %s:%s ',
+                    self.transport.getPeer().host,
+                    str(self.transport.getPeer().port))
 
         self.get_m_blockheight_from_connection()
         self.get_peers()
@@ -841,7 +852,8 @@ class P2PProtocol(Protocol):
         try:
             tx = SimpleTransaction().json_to_transaction(json_tx_obj)
         except Exception as e:
-            logger.info('tx rejected - unable to decode serialised data - closing connection %s', e)
+            logger.info('tx rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
             self.transport.loseConnection()
             return
 

@@ -55,7 +55,7 @@ class Wallet:
         addr_list = []
 
         if os.path.isfile(self.wallet_dat_filename) is False:
-            logger.info('Creating new wallet file..this could take up to a minute')
+            logger.info('Creating new wallet file... (this could take up to a minute)')
             SEED = None
             # For AWS test only
             if os.path.isfile(self.mnemonic_filename):
@@ -107,8 +107,9 @@ class Wallet:
         try:
             with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
-        except:
-            logger.error('Error: likely no wallet.info found, creating..')
+        except Exception as e:
+            logger.exception(e)
+            logger.info('Likely no wallet.info found, creating..')
             self.f_save_winfo()
             return False
         x = 0

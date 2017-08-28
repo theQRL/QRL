@@ -326,8 +326,8 @@ class XMSS(object):
 
     def SIGN(self, msg):
         i = self.index
-        logger.info(('xmss signing with OTS n = ',
-                     str(self.index)))  # formal sign and increment the index to the next OTS to be used..
+        # formal sign and increment the index to the next OTS to be used..
+        logger.info('xmss signing with OTS n = %s', str(self.index))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         self.index += 1

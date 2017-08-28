@@ -83,13 +83,13 @@ class Chain:
 
 
     def initialize(self):
-        logger.info(('QRL blockchain ledger ', self.version_number))
+        logger.info('QRL blockchain ledger %s', self.version_number)
         logger.info('loading db')
         logger.info('loading wallet')
 
         self.wallet.f_load_winfo()
 
-        logger.info(('mining/staking address', self.mining_address))
+        logger.info('mining/staking address %s', self.mining_address)
 
     def validate_reboot(self, hash, nonce):
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]

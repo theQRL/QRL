@@ -74,8 +74,11 @@ class DB:
         value_obj = self.db.Get(key_obj)
         try:
             return json.loads(value_obj)['value']
-        except Exception:
-            return value_obj
+        except KeyError as e:
+            logger.error("Key not found %s", key_obj)
+            logger.exception(e)
+        except Exception as e:
+            logger.exception(e)
 
     def get_batch(self):
         return leveldb.WriteBatch()

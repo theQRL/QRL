@@ -22,7 +22,7 @@ class State:
         try:
             return self.db.get('stake_list')
         except Exception as e:
-            logger.warning("stake_list_get: %s %s", type(e), e.message)
+            logger.exception(e)
             return []
 
     def stake_list_put(self, sl):
@@ -36,7 +36,7 @@ class State:
         try:
             return self.db.get('next_stake_list')
         except Exception as e:
-            logger.warning("next_stake_list_get: %s %s", type(e), e.message)
+            logger.exception(e)
             return []
 
     def next_stake_list_put(self, next_sl):
@@ -50,7 +50,7 @@ class State:
         try:
             self.db.put('epoch_seed', epoch_seed)
         except Exception as e:
-            logger.warning("put_epoch_seed: %s %s", type(e), e.message)
+            logger.exception(e)
             return False
 
     def get_epoch_seed(self):
@@ -72,7 +72,7 @@ class State:
         try:
             return self.db.get('txn_count_' + addr)
         except Exception as e:
-            logger.warning("state_get_txn_count: %s %s", type(e), e.message)
+            logger.exception(e)
             return 0
 
     def state_get_address(self, addr):
@@ -86,7 +86,7 @@ class State:
         try:
             return self.db.get(addr)
         except Exception as e:
-            logger.warning("state_address_used: %s %s", type(e), e.message)
+            logger.exception(e)
             return False
 
     def state_balance(self, addr):
@@ -100,7 +100,7 @@ class State:
         try:
             return self.db.get(addr)[0]
         except Exception as e:
-            logger.warning("state_nonce: %s %s", type(e), e.message)
+            logger.exception(e)
             return 0
 
     def state_pubhash(self, addr):
@@ -114,7 +114,7 @@ class State:
         try:
             return self.db.get('hrs' + hrs)
         except Exception as e:
-            logger.warning("state_hrs: %s %s", type(e), e.message)
+            logger.exception(e)
             return False
 
     def state_validate_tx_pool(self, chain):

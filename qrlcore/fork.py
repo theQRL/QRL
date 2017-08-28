@@ -34,7 +34,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
         try:
             pending_blocks[blocknumber][3].cancel()
         except Exception as e:
-            logger.warning("fork:verify %s", e)
+            logger.exception(e)
 
         del pending_blocks[blocknumber]
         if mini_block['headerhash'] == chain.m_get_block(

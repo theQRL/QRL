@@ -41,8 +41,8 @@ class TestWallet(TestCase):
     #     wallet = Wallet(chain, state)
     #     self.assertIsNotNone(state)
 
-    @timeout_decorator.timeout(100)
-    def test_getnewaddress(self):
-        wallet = Wallet(None, None)
-        address = wallet.getnewaddress(SEED=TestWallet.S1)
-        self.assertEqual(address[0], 'Q04402be77fb7df9c755883b066f1f33254a19d244c4dbae41b94f88a32b88a5921c7')
+    # @timeout_decorator.timeout(100)
+    # def test_getnewaddress(self):
+    #     wallet = Wallet(None, None)
+    #     address = wallet.getnewaddress(SEED=TestWallet.S1)
+    #     self.assertEqual(address[0], 'Q04402be77fb7df9c755883b066f1f33254a19d244c4dbae41b94f88a32b88a5921c7')

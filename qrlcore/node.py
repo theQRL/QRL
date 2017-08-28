@@ -62,7 +62,7 @@ class POS:
         try:
             reactor.monitor_bk.cancel()
         except Exception as e:
-            logger.warning("monitor_bk.cancel() %s", e)
+            logger.exception(e)
 
     def restart_monitor_bk(self, delay=60):
         self.stop_monitor_bk()
@@ -141,13 +141,13 @@ class POS:
         try:
             reactor.peers_blockheight.cancel()
         except Exception as e:
-            logger.warning("peers_blockheight.cancel() %s", e)
+            logger.exception(e)
 
         reactor.peers_blockheight = reactor.callLater(delay, self.peers_blockheight)
         try:
             reactor.peers_blockheight_headerhash.cancel()
         except Exception as e:
-            logger.warning("peers_blockheight_headerhash.cancel(): %s", e)
+            logger.exception(e)
 
         reactor.peers_blockheight_headerhash = reactor.callLater(70, self.peers_blockheight_headerhash)
 
@@ -313,7 +313,7 @@ class POS:
         try:
             reactor.unsynced_logic.cancel()
         except Exception as e:
-            logger.warning("unsynced_logic.cancel() %s", e)
+            logger.exception(e)
 
         reactor.unsynced_logic = reactor.callLater(delay, self.unsynced_logic)
 
@@ -502,7 +502,7 @@ class POS:
         try:
             reactor.prepare_winners.cancel()
         except Exception as e:
-            logger.warning("prepare_winners_cancel: %s", e)
+            logger.exception(e)
 
         reactor.prepare_winners = reactor.callLater(
             delay,

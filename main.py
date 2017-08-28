@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
+import shutil
 from os.path import expanduser
 import logging
 from traceback import extract_tb
@@ -18,19 +19,7 @@ from qrlcore.p2pfactory import P2PFactory
 from qrlcore.walletfactory import WalletFactory
 from qrlcore.state import State
 
-
-def log_traceback(exctype, value, tb):  # Function to log error's traceback
-    logger.error('*** Error ***')
-    logger.error(str(exctype))
-    logger.error(str(value))
-    tb_info = extract_tb(tb)
-    for line in tb_info:
-        logger.info(line)
-
-
-# sys.excepthook = log_traceback
-
-LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| - %(levelname)s  - %(message)s'
+LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
 
 
 class ContextFilter(logging.Filter):
@@ -45,8 +34,10 @@ class ContextFilter(logging.Filter):
 
 def main():
     parser = argparse.ArgumentParser(description='QRL node')
-    parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False)
-    parser.add_argument('--datapath', '-d', dest='data_path', default=expanduser("~/.qrl"))
+    parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
+                        help="Avoid writing data to the console")
+    parser.add_argument('--datapath', '-d', dest='data_path', default=expanduser("~/.qrl"),
+                        help="Retrieve data from a different path")
     args = parser.parse_args()
 
     logger.initialize_default(force_console_output=not args.quiet)
