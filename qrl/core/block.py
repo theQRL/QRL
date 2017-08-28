@@ -14,7 +14,11 @@ from qrl.core import logger
 from transaction import Transaction
 
 
+
 class BlockHeader(object):
+    def __init__(self):
+        pass
+
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, hashedtransactions, reveal_list,
                vote_hashes):
         self.blocknumber = blocknumber
@@ -91,15 +95,15 @@ class BlockHeader(object):
 
     def block_reward_calc(self):
         return int((self.remaining_emission(21000000, self.blocknumber - 1) - self.remaining_emission(21000000,
-                                                                 self.blocknumber)) * 100000000)
+                                                                                                      self.blocknumber)) * 100000000)
 
     def generate_headerhash(self):
         return sha256(self.stake_selector + str(self.epoch) + str(self.stake_nonce) + str(self.block_reward) + str(
             self.timestamp) + str(self.hash) + str(self.blocknumber) + self.prev_blockheaderhash +
-            self.tx_merkle_root + str(self.vote_hashes) + str(self.reveal_list))
+                      self.tx_merkle_root + str(self.vote_hashes) + str(self.reveal_list))
+
 
 class Block(object):
-
     def isHashPresent(self, txhash, buffer, blocknumber):
         if not buffer:
             return False
@@ -133,7 +137,7 @@ class Block(object):
 
         for tx in chain.transaction_pool:
             hashedtransactions.append(tx.txhash)
-            self.transactions.append(tx) # copy memory rather than sym link
+            self.transactions.append(tx)  # copy memory rather than sym link
 
         if not hashedtransactions:
             hashedtransactions = sha256('')
@@ -149,10 +153,10 @@ class Block(object):
                                 prev_blockheaderhash=prev_blockheaderhash,
                                 hashedtransactions=hashedtransactions)
 
-        coinbase_tx = transaction.CoinBase().create(self.blockheader.block_reward, self.blockheader.headerhash, chain.my[0][1])
+        coinbase_tx = transaction.CoinBase().create(self.blockheader.block_reward, self.blockheader.headerhash,
+                                                    chain.my[0][1])
         self.transactions[0] = coinbase_tx
         coinbase_tx.nonce = chain.block_chain_buffer.get_stxn_state(last_block_number + 1, chain.mining_address)[0] + 1
-
 
     def json_to_block(self, json_block):
         self.blockheader = BlockHeader()
@@ -179,7 +183,7 @@ class Block(object):
         return tmp_block
 
     def validate_tx_in_block(self):
-        #Validating coinbase txn
+        # Validating coinbase txn
         coinbase_txn = self.transactions[0]
         valid = coinbase_txn.validate_tx(block_headerhash=self.blockheader.headerhash)
 
@@ -244,7 +248,8 @@ class Block(object):
                 if tx.subtype == transaction.TX_SUBTYPE_STAKE:
                     if tx.txfrom == b.stake_selector:
                         x = 1
-                        hash, _ = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash, b.stake_selector,
+                        hash, _ = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash,
+                                                         b.stake_selector,
                                                          tx.hash, blocknumber=1)
 
                         if sha256(b.hash) != hash or hash not in tx.hash:
@@ -279,7 +284,8 @@ class Block(object):
                 i = 0
                 for r in b.reveal_list:
                     t = sha256(r)
-                    for _ in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch) + 1): # +1 as reveal has 1 extra hash
+                    for _ in range(b.blocknumber - (
+                        b.epoch * config.dev.blocks_per_epoch) + 1):  # +1 as reveal has 1 extra hash
                         t = sha256(t)
                     for s in tmp_stake_list:
                         if t == s[1][-1]:
@@ -325,7 +331,7 @@ class Block(object):
             txhashes = sha256('')
         else:
             txhashes = []
-            for tx_num in range(1,len(self.transactions)):
+            for tx_num in range(1, len(self.transactions)):
                 tx = self.transactions[tx_num]
                 txhashes.append(tx.txhash)
 
@@ -345,5 +351,3 @@ class Block(object):
         max_block_number = int((curr_time - last_block_timestamp) / config.dev.block_creation_seconds)
         if self.blockheader.blocknumber > max_block_number:
             return False
-
-

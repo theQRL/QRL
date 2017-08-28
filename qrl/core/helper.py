@@ -5,7 +5,7 @@ import jsonpickle
 import simplejson as json
 
 import configuration as config
-from qrl.core import logger, wallet
+from qrl.core import logger
 from qrl.core import merkle
 
 

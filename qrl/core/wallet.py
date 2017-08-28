@@ -2,7 +2,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # wallet code
-from qrl.core import logger, transaction, merkle
+from qrl.core import logger, merkle, transaction
 from qrl.core.merkle import mnemonic_to_seed
 
 __author__ = 'pete'
@@ -25,9 +25,9 @@ class Wallet:
         # FIXME: Probably the wallet should own the chain, not the opposite
         self.chain = chain
         self.state = state
-        self.wallet_dat_filename = os.path.join(config.user.data_path, config.dev.wallet_dat_filename)
-        self.wallet_info_filename = os.path.join(config.user.data_path, config.dev.wallet_info_filename)
-        self.mnemonic_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
+        self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
+        self.wallet_info_filename = os.path.join(config.user.wallet_path, config.dev.wallet_info_filename)
+        self.mnemonic_filename = os.path.join(config.user.wallet_path, config.dev.mnemonic_filename)
 
     def recover_wallet(self):
         data = None

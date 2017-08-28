@@ -35,15 +35,22 @@ def main():
     parser = argparse.ArgumentParser(description='QRL node')
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
-    parser.add_argument('--datapath', '-d', dest='data_path', default=expanduser("~/.qrl"),
+    parser.add_argument('--datapath', '-d', dest='data_path', default=config.user.data_path,
                         help="Retrieve data from a different path")
+    parser.add_argument('--walletpath', '-w', dest='wallet_path', default=config.user.wallet_path,
+                        help="Retrieve wallet from a different path")
     args = parser.parse_args()
 
     logger.initialize_default(force_console_output=not args.quiet)
     logger.log_to_file()
 
     logger.info("Data Path: %s", args.data_path)
+    logger.info("Wallet Path: %s", args.wallet_path)
     config.user.data_path = args.data_path
+    config.user.wallet_path = args.wallet_path
+
+    config.create_path(config.user.data_path)
+    config.create_path(config.user.wallet_path)
 
     node_state = NodeState()
     custom_filter = ContextFilter(node_state)

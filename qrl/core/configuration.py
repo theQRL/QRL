@@ -2,6 +2,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from os.path import expanduser
 
+import os
+
 
 class UserConfig(object):
     __instance = None
@@ -25,7 +27,8 @@ class UserConfig(object):
                           '104.251.219.40']  # Atleast one active peer IP required
 
         self.max_peers_limit = 40  # Number of allowed peers
-        self.data_path = expanduser("~/.qrl")
+        self.data_path = expanduser("~/.qrl/data")
+        self.wallet_path = expanduser("~/.qrl/wallet")
 
     @staticmethod
     def getInstance():
@@ -40,6 +43,12 @@ class UserConfig(object):
         """
         # TODO: Complete this part
         pass
+
+
+def create_path(path):
+    tmp_path = os.path.join(path)
+    if not os.path.isdir(tmp_path):
+        os.makedirs(tmp_path)
 
 
 class DevConfig(object):
