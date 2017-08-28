@@ -1040,13 +1040,13 @@ def sign_mss(data, message, ots_key=0):
 
 # winternitz merkle signature scheme
 
-def random_wmss(signatures=4, verbose=0):  # create a w-ots mms with multiple signatures..
+def random_generic(func, signatures=4, verbose=False):
     begin = time.time()
     data = []
     pubhashes = []
 
     for x in range(signatures):
-        data.append(WOTS(signatures, index=x, verbose=verbose))
+        data.append(func(signatures, index=x, verbose=verbose))
 
     for i in range(len(data)):
         pubhashes.append(data[i].pubhash)
@@ -1058,35 +1058,30 @@ def random_wmss(signatures=4, verbose=0):  # create a w-ots mms with multiple si
         data[y].merkle_path = a.auth_lists[y]
         data[y].merkle_obj = a
 
-    if verbose == 1:
+    if verbose:
         logger.info(('Total MSS time = ', str(time.time() - begin)))
 
     return data  # array of wots classes full of data.. and a class full of merkle
 
 
-# lamport-diffie merkle signature scheme
+def random_wmss(signatures=4, verbose=False):
+    """
+        Create a w-ots mms with multiple signatures..
+    :param signatures:
+    :param verbose:
+    :return:
+    """
+    return random_generic(WOTS, signatures, verbose)
 
-def random_ldmss(signatures=4, verbose=0):
-    begin = time.time()
-    data = []
-    pubhashes = []
 
-    for x in range(signatures):
-        data.append(LDOTS(signatures, index=x, verbose=verbose))
-
-    for i in range(len(data)):
-        pubhashes.append(data[i].pubhash)
-
-    a = Merkle(base=pubhashes, verbose=verbose)
-
-    for y in range(signatures):
-        data[y].merkle_root = ''.join(a.root)
-        data[y].merkle_path = a.auth_lists[y]
-        data[y].merkle_obj = a
-    if verbose == 1:
-        logger.info(('Total MSS time = ', str(time.time() - begin)))
-
-    return data
+def random_ldmss(signatures=4, verbose=False):
+    """
+        lamport-diffie merkle signature scheme
+    :param signatures:
+    :param verbose:
+    :return:
+    """
+    return random_generic(LDOTS, signatures, verbose)
 
 
 class LDOTS(object):
