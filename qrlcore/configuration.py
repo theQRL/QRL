@@ -78,7 +78,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = '-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.32a"
+        self.version_number = "alpha/0.33a"
         self.chain_file_directory = 'data'
 
         self.db_name = 'state'

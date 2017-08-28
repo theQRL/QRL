@@ -102,7 +102,7 @@ def json_print(obj):  # prettify output from JSON for export purposes
 
 
 def json_print_telnet(obj):
-    return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)))
+    return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)
 
 
 def hash_to_terminator(hash_val, times):

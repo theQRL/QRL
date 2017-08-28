@@ -52,15 +52,6 @@ class BlockHeader(object):
 
         self.headerhash = self.generate_headerhash()
 
-        data = chain.my[0][1]
-        S = data.SIGN(self.headerhash)
-        self.i = S[0]
-        self.signature = S[1]
-        self.merkle_path = S[2]
-        self.i_bms = S[3]
-        self.pub = S[4]
-        self.PK = S[5]
-
     def json_to_blockheader(self, json_blockheader):
         rl = json_blockheader['reveal_list']
         self.reveal_list = []
@@ -80,12 +71,6 @@ class BlockHeader(object):
         self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
         self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
         self.block_reward = json_blockheader['block_reward']
-        self.i = json_blockheader['i']
-        self.signature = json_blockheader['signature']
-        self.merkle_path = json_blockheader['merkle_path']
-        self.i_bms = json_blockheader['i_bms']
-        self.pub = json_blockheader['pub']
-        self.PK = json_blockheader['PK']
 
     # block reward calculation
     # decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
@@ -196,9 +181,7 @@ class Block(object):
     def validate_tx_in_block(self):
         #Validating coinbase txn
         coinbase_txn = self.transactions[0]
-        valid = coinbase_txn.validate_tx(stake_selector=self.blockheader.stake_selector,
-                                 block_reward=self.blockheader.block_reward,
-                                 block_headerhash=self.blockheader.headerhash)
+        valid = coinbase_txn.validate_tx(block_headerhash=self.blockheader.headerhash)
 
         if not valid:
             logger.warning('coinbase txn in block failed')
@@ -223,20 +206,24 @@ class Block(object):
             logger.warning('BLOCK : There must be atleast 1 txn')
             return False
 
+        coinbase_tx = self.transactions[0]
+
         try:
-            if self.transactions[0].subtype != transaction.TX_SUBTYPE_COINBASE:
+            if coinbase_tx.subtype != transaction.TX_SUBTYPE_COINBASE:
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
                 return False
         except Exception as e:
             logger.exception(e)
             return False
 
-        if merkle.xmss_verify(b.headerhash, [b.i, b.signature, b.merkle_path, b.i_bms, b.pub, b.PK]) is False:
-            logger.warning('BLOCK : merkle xmss_verify failed for the block')
+        if coinbase_tx.txfrom != self.blockheader.stake_selector:
+            logger.info('Non matching txto and stake_selector')
+            logger.info('txto: %s stake_selector %s', coinbase_tx.txfrom, self.blockheader.stake_selector)
             return False
 
-        if helper.xmss_checkaddress(b.PK, b.stake_selector) is False:
-            logger.warning('BLOCK : xmss checkaddress failed')
+        if coinbase_tx.amount != self.blockheader.block_reward:
+            logger.info('Block_reward doesnt match')
+            logger.info('Found: %d Expected: %d', coinbase_tx.amount, self.blockheader.block_reward)
             return False
 
         if b.timestamp == 0 and b.blocknumber > 0:
