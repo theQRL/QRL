@@ -170,7 +170,7 @@ class State:
 
 
             address_txn[tx.txfrom][0] += 1
-            address_txn[tx.txto][1] = address_txn[tx.txto][1] + tx.amount
+            address_txn[tx.txto][1] += tx.amount
             address_txn[tx.txfrom][2].append(pubhash)
             # Coinbase update end here
 
@@ -277,7 +277,7 @@ class State:
                     address_txn[tx.txfrom][1] -= tx.amount
 
                 if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
-                    address_txn[tx.txto][1] = address_txn[tx.txto][1] + tx.amount
+                    address_txn[tx.txto][1] += tx.amount
 
                 address_txn[tx.txfrom][2].append(pubhash)
 

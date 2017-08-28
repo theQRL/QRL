@@ -210,7 +210,7 @@ class Chain:
             balance)
 
         if verbose:
-            logger.info('Score - %f', score)
+            logger.info('Score - %s', score)
             logger.info('reveal_one - %ld', reveal_one_number)
             logger.info('seed - %ld', seed)
             logger.info('balance - %ld', balance)
@@ -460,12 +460,9 @@ class Chain:
                 tx_new.status = 'ok'
                 return helper.json_print_telnet(tx_new)
 
-        txn_metadata = None
         try:
             txn_metadata = self.state.db.get(txhash)
         except:
-            pass
-        if not txn_metadata:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return helper.json_print_telnet(err)
 
@@ -477,7 +474,7 @@ class Chain:
         tx_new.hexsize = len(helper.json_bytestream(tx_new))
         tx_new.amount = tx_new.amount / 100000000.000000000
         tx_new.fee = tx_new.fee / 100000000.000000000
-        logger.info((txhash, 'found in block', str(txn_metadata[1]), '..'))
+        logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
         tx_new.status = 'ok'
         return helper.json_print_telnet(tx_new)
 
@@ -503,7 +500,7 @@ class Chain:
 
     def search_address(self, address):
 
-        addr = {'transactions': {}}
+        addr = {'transactions': []}
 
         txnhash_added = set()
 
@@ -581,7 +578,7 @@ class Chain:
         return helper.json_print_telnet(addr)
 
     def last_unconfirmed_tx(self, n=1):
-        addr = {'transactions': {}}
+        addr = {'transactions': []}
         error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
 
         try:
@@ -591,23 +588,20 @@ class Chain:
 
         if n <= 0 or n > 20:
             return helper.json_print_telnet(error)
-        addr['transactions'] = []
-        if len(self.transaction_pool) != 0:
-            if n - len(self.transaction_pool) >= 0:  # request bigger than tx in pool
-                z = len(self.transaction_pool)
-                n = n - len(self.transaction_pool)
-            elif n - len(self.transaction_pool) <= 0:  # request smaller than tx in pool..
-                z = n
-                n = 0
 
-            for tx in reversed(self.transaction_pool[-z:]):
-                tmp_txn = {'txhash': tx.txhash,
-                           'block': 'unconfirmed',
-                           'timestamp': 'unconfirmed',
-                           'amount': tx.amount / 100000000.000000000,
-                           'type': tx.type}
+        tx_num = len(self.transaction_pool)
+        while tx_num > 0:
+            tx_num -= 1
+            tx = self.transaction_pool[tx_num]
+            if tx.subtype != transaction.TX_SUBTYPE_TX:
+                continue
+            tmp_txn = {'txhash': tx.txhash,
+                       'block': 'unconfirmed',
+                       'timestamp': 'unconfirmed',
+                       'amount': tx.amount / 100000000.000000000,
+                       'type': tx.type}
 
-                addr['transactions'].append(tmp_txn)
+            addr['transactions'].append(tmp_txn)
 
         addr['status'] = 'ok'
         return helper.json_print_telnet(addr)
@@ -616,7 +610,7 @@ class Chain:
 
     def last_tx(self, n=1):
 
-        addr = {'transactions': {}}
+        addr = {'transactions': []}
         error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
 
         try:
@@ -626,46 +620,29 @@ class Chain:
 
         if n <= 0 or n > 20:
             return helper.json_print_telnet(error)
-        addr['transactions'] = []
-        if len(self.transaction_pool) != 0:
-            if n - len(self.transaction_pool) >= 0:  # request bigger than tx in pool
-                z = len(self.transaction_pool)
-                n = n - len(self.transaction_pool)
-            elif n - len(self.transaction_pool) <= 0:  # request smaller than tx in pool..
-                z = n
-                n = 0
 
-            for tx in reversed(self.transaction_pool[-z:]):
-                tmp_txn = {'txhash': tx.txhash,
-                           'block': 'unconfirmed',
-                           'timestamp': 'unconfirmed',
-                           'amount': tx.amount / 100000000.000000000,
-                           'type': tx.type}
+        try:
+            last_txn = self.state.db.get('last_txn')
+        except Exception:
+            error['error'] = 'txnhash not found'
+            return helper.json_print_telnet(error)
 
-                addr['transactions'].append(tmp_txn)
-
-            if n == 0:
-                addr['status'] = 'ok'
-                return helper.json_print_telnet(addr)
-
-        last_txn = self.state.db.get('last_txn')
-
-        for tx_meta in reversed(last_txn):
+        n = min(len(last_txn), n)
+        while n > 0:
+            n -= 1
+            tx_meta = last_txn[n]
             tx = SimpleTransaction().json_to_transaction(tx_meta[0])
             tmp_txn = {'txhash': tx.txhash,
                        'block': tx_meta[1],
                        'timestamp': tx_meta[2],
                        'amount': tx.amount / 100000000.000000000,
-                       'type': tx.type}
+                       'type': tx.subtype}
 
             addr['transactions'].append(tmp_txn)
-            n -= 1
-            if n == 0:
-                addr['status'] = 'ok'
-                return helper.json_print_telnet(addr)
+            addr['status'] = 'ok'
 
-        error['error'] = 'txnhash not found'
-        return helper.json_print_telnet(error)
+        return helper.json_print_telnet(addr)
+
 
     def richlist(self, n=None):  # only feasible while chain is small..
         if not n:
@@ -703,10 +680,7 @@ class Chain:
 
     # return json info on last n blocks
 
-    def last_block(self, n=None):
-
-        if not n:
-            n = 1
+    def last_block(self, n=1):
 
         error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_block', 'parameter': n}
 
@@ -732,7 +706,8 @@ class Chain:
                          'block_reward': block.blockheader.block_reward / 100000000.00000000,
                          'blockhash': block.blockheader.prev_blockheaderhash,
                          'timestamp': block.blockheader.timestamp,
-                         'block_interval': block.blockheader.timestamp - lb[i - 1].blockheader.timestamp}
+                         'block_interval': block.blockheader.timestamp - lb[i - 1].blockheader.timestamp,
+                         'number_transactions': len(block.transactions)}
 
             last_blocks['blocks'].append(tmp_block)
 
@@ -1286,9 +1261,12 @@ class StateBuffer:
         for st in block.transactions:
             if st.subtype != transaction.TX_SUBTYPE_STAKE:
                 continue
-            if st.txfrom in self.next_stake_list and self.next_stake_list[st.txfrom][3]:
-                continue
-            self.next_stake_list[st.txfrom] = [st.txfrom, st.hash, 0, st.first_hash, st.balance]
+            balance = st.balance
+            if st.txfrom in self.next_stake_list:
+                if self.next_stake_list[st.txfrom][3]:
+                    continue
+                balance = self.next_stake_list[st.txfrom][4]
+            self.next_stake_list[st.txfrom] = [st.txfrom, st.hash, 0, st.first_hash, balance]
 
     def update_stake_list(self, block):
         stake_selector = block.blockheader.stake_selector

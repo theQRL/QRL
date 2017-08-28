@@ -355,20 +355,10 @@ class CoinBase(Transaction):
         self.process_XMSS(self.txfrom, self.txhash, xmss)
         return self
 
-    def validate_tx(self, stake_selector, block_reward, block_headerhash):
+    def validate_tx(self, block_headerhash):
         if self.txto != self.txfrom:
             logger.info('Non matching txto and txfrom')
             logger.info('txto: %s txfrom: %s', self.txto, self.txfrom)
-            return False
-
-        if self.txto != stake_selector:
-            logger.info('Non matching txto and stake_selector')
-            logger.info('txto: %s stake_selector %s', self.txto, stake_selector)
-            return False
-
-        if self.amount != block_reward:
-            logger.info('Block_reward doesnt match')
-            logger.info('Found: %d Expected: %d', self.amount, block_reward)
             return False
 
         txhash = block_headerhash

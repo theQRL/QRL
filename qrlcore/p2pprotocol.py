@@ -566,8 +566,8 @@ class P2PProtocol(Protocol):
 
         if score != z['weighted_hash']:
             logger.info('Weighted_hash didnt match')
-            logger.info('Expected : %f', score)
-            logger.info('Found : %f', z['weighted_hash'])
+            logger.info('Expected : %s', score)
+            logger.info('Found : %s', z['weighted_hash'])
             logger.info('Seed found : %ld', z['seed'])
             logger.info('Seed Expected : %ld',
                         self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number']))

@@ -167,6 +167,7 @@ class ApiProtocol(Protocol):
             return helper.json_print_telnet(error)
         else:
             js_bk1 = copy.deepcopy(js_bk)
+            js_bk1.number_transactions = len(js_bk1.transactions)
             js_bk1.status = 'ok'
             js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward / 100000000.000000000
             return helper.json_print_telnet(js_bk1)

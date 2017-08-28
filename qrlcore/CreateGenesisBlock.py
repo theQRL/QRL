@@ -12,13 +12,14 @@ genesis_info['Qa4d14fd8f9d0eeaa92d21a21c8d77ea07475d9a4c0baa87ac753aa6aecde8d3e9
 genesis_info['Q3d24023dc38cafb29aaa9ae7753b8979b31706a319ee6306f47e03751bd128fcbe09'] = 1000000
 genesis_info['Qc03edc9e020579d2b2d09795f23ff43f1e487a569cfe343c993731fb50f44c2322a7'] = 1000000
 genesis_info['Q185c158b962619fe64041f15b7e0f30cc3de5d8a2f9dbefec1e3b3d4758d1bf5475e'] = 1000000
+genesis_info['Q64b0d679aa0072155956e0d17f847a1d319bff2a4c346d802d9a450a245fe3ceed01'] = 1000000
 
 
 class CreateGenesisBlock(object):  # first block has no previous header to reference..
     def __init__(self, chain):
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain, blocknumber=0, hashchain_link='genesis',
-                                prev_blockheaderhash=sha256('quantum resistant ledger'),
+                                prev_blockheaderhash=sha256('Terror Blade'),
                                 hashedtransactions=sha256('0'),
                                 reveal_list=[],
                                 vote_hashes=[])
