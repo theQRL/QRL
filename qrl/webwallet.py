@@ -17,19 +17,18 @@ from core import helper, wallet
 
 __author__ = 'scottdonaldau'
 
+
 class WebWallet:
     def __init__(self, chain, state, p2pFactory):
-        # Get working directory
-        cwd = os.getcwd()
+        package_directory = os.path.dirname(os.path.abspath(__file__))
 
-        self.cwd = cwd
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
         self.wallet = wallet.Wallet(self.chain, self.state)
 
         # Start local web server and define routes
-        resource = File(self.cwd + '/qrl/web-wallet')
+        resource = File(os.path.join(package_directory, 'web-wallet'))
         resource.putChild("webwallet-addresses", showAddresses(self.wallet))
         resource.putChild("webwallet-create-new-address", newAddress(self.wallet))
         resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
