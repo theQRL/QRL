@@ -133,16 +133,16 @@ class WalletProtocol(Protocol):
                     if not args:
                         self.output['message'].write(
                             helper.json_print_telnet(self.factory.chain.m_get_last_block()) + '\r\n')
-                        return
+                        return True
                     try:
                         int(args[0])
                     except:
                         self.output['message'].write('>>> Try "json_block <block number>" ' + '\r\n')
-                        return
+                        return True
 
                     if int(args[0]) > self.factory.chain.m_blockheight():
                         self.output['message'].write('>>> Block > Blockheight' + '\r\n')
-                        return
+                        return True
                     self.output['status'] = 0
                     self.output['message'].write(
                         helper.json_print_telnet(self.factory.chain.m_get_block(int(args[0]))) + '\r\n')
@@ -155,7 +155,7 @@ class WalletProtocol(Protocol):
                         self.output['message'].write('>>> Usage: recoverfromhexseed <paste in hexseed>' + '\r\n')
                         self.output['message'].write('>>> Could take up to a minute..' + '\r\n')
                         self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
-                        return
+                        return True
 
                     self.output['status'] = 0
                     addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
@@ -175,12 +175,12 @@ class WalletProtocol(Protocol):
                     if not args:
                         self.output['message'].write(
                             '>>> Usage: recoverfromwords <paste in 32 mnemonic words>' + '\r\n')
-                        return
+                        return True
                     self.output['message'].write('>>> trying..this could take up to a minute..' + '\r\n')
                     if len(args) != 32:
                         self.output['message'].write(
                             '>>> Usage: recoverfromwords <paste in 32 mnemonic words>' + '\r\n')
-                        return
+                        return True
 
                     args = ' '.join(args)
                     addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=mnemonic_to_seed(args))
@@ -302,7 +302,7 @@ class WalletProtocol(Protocol):
                         self.output['message'].write('>>> reboot <password> <nonce>\r\n')
                         self.output['message'].write('>>> or\r\n')
                         self.output['message'].write('>>> reboot <password> <nonce> <trim_blocknum>\r\n')
-                        return
+                        return True
                     json_hash, err = None, None
                     if len(args) == 3:
                         json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1], args[2])
