@@ -2,8 +2,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # wallet code
-from qrl.core import logger, merkle, transaction
-from qrl.core.merkle import mnemonic_to_seed
+import logger, merkle, transaction
+from merkle import mnemonic_to_seed
 
 __author__ = 'pete'
 
@@ -12,7 +12,7 @@ import gc
 import os
 import sys
 
-import qrl.core.configuration as config
+import configuration as config
 
 
 class Wallet:

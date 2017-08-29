@@ -9,10 +9,10 @@ import simplejson as json
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-import qrl.core.configuration as config
-from qrl.core import helper, logger
-from qrl.core.merkle import sha256
-from qrl.core.p2pprotocol import P2PProtocol
+import configuration as config
+import helper, logger
+from merkle import sha256
+from p2pprotocol import P2PProtocol
 
 
 class P2PFactory(ServerFactory):

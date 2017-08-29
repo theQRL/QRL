@@ -5,12 +5,12 @@ import jsonpickle
 import simplejson as json
 
 import configuration as config
-from qrl.core import logger
-from qrl.core import merkle
+import logger
+import merkle
 
 
 # simple transaction creation and wallet functions using the wallet file..
-from qrl.core.merkle import sha256
+from merkle import sha256
 
 
 def isValidAddress(addr):

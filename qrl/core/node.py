@@ -8,12 +8,12 @@ from copy import deepcopy
 
 from twisted.internet import reactor
 
-import qrl.core.configuration as config
+import configuration as config
 import fork
 from messagereceipt import MessageReceipt
-from qrl.core import logger, transaction, CreateGenesisBlock
-from qrl.core.merkle import sha256
-from qrl.core.transaction import StakeTransaction
+import logger, transaction, CreateGenesisBlock
+from merkle import sha256
+from transaction import StakeTransaction
 
 
 class NodeState:

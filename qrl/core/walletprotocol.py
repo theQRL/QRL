@@ -6,13 +6,13 @@ import simplejson as json
 import time
 from StringIO import StringIO
 
-from qrl.core import helper
+import helper
 from twisted.internet.protocol import Protocol, connectionDone
 
 import configuration as config
-from qrl.core.logger import logger
-from qrl.core.merkle import hexseed_to_seed, mnemonic_to_seed
-from qrl.core.transaction import StakeTransaction
+import logger
+from merkle import hexseed_to_seed, mnemonic_to_seed
+from transaction import StakeTransaction
 
 
 class WalletProtocol(Protocol):

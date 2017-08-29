@@ -9,14 +9,14 @@ from os.path import expanduser
 from twisted.internet import reactor
 
 import webwallet
-from qrl.core import logger, ntp, node
-import qrl.core.configuration as config
-from qrl.core.apifactory import ApiFactory
-from qrl.core.chain import Chain
-from qrl.core.node import NodeState
-from qrl.core.p2pfactory import P2PFactory
-from qrl.core.state import State
-from qrl.core.walletfactory import WalletFactory
+from core import logger, ntp, node
+import core.configuration as config
+from core.apifactory import ApiFactory
+from core.chain import Chain
+from core.node import NodeState
+from core.p2pfactory import P2PFactory
+from core.state import State
+from core.walletfactory import WalletFactory
 
 LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
 

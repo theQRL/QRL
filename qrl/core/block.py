@@ -5,12 +5,12 @@ from math import log
 
 import simplejson as json
 
-import qrl.core.configuration as config
+import configuration as config
 import helper
 import ntp
 import transaction
 from merkle import sha256
-from qrl.core import logger
+import logger
 from transaction import Transaction
 
 

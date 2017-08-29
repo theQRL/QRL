@@ -10,8 +10,8 @@ import os
 
 import simplejson as json
 
-import qrl.core.configuration as config
-from qrl.core import logger
+import configuration as config
+import logger
 
 
 class DB:

@@ -4,7 +4,7 @@
 import simplejson as json
 
 # Initializers to be decided
-from qrl.core import logger
+import logger
 
 pending_blocks = {}
 last_bk_time = None
