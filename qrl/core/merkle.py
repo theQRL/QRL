@@ -13,17 +13,20 @@
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
+from qrl.core import logger
+import qrl.core.configuration as config
+
 __author__ = 'pete'
 
-from words import wordlist  # 4096 unique word list for mnemonic SEED retrieval..
-import hmac
 import hashlib
+import hmac
+import time
 from binascii import unhexlify, hexlify
 from math import ceil, floor, log
-import time
 from os import urandom
-from qrlcore import logger
-from qrlcore import configuration as config
+
+from words import wordlist  # 4096 unique word list for mnemonic SEED retrieval..
+
 
 # timing runs..
 

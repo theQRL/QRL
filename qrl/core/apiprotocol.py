@@ -9,7 +9,7 @@ import statistics
 from twisted.internet.protocol import Protocol, connectionDone
 
 import helper
-from qrlcore import logger
+from qrl.core import logger
 
 
 class ApiProtocol(Protocol):

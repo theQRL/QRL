@@ -4,13 +4,14 @@
 import jsonpickle
 import simplejson as json
 
-from qrlcore import logger
-from qrlcore import merkle
-from qrlcore.merkle import sha256
 import configuration as config
+from qrl.core import logger
+from qrl.core import merkle
 
 
 # simple transaction creation and wallet functions using the wallet file..
+from qrl.core.merkle import sha256
+
 
 def isValidAddress(addr):
     if addr.startswith('Q'):
@@ -68,6 +69,7 @@ def json_decode(js_obj):
     return json.loads(js_obj)
 
 
+# noinspection PyClassHasNoInit
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):
         return obj.__dict__

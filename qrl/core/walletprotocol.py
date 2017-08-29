@@ -6,13 +6,13 @@ import simplejson as json
 import time
 from StringIO import StringIO
 
+from qrl.core import helper
 from twisted.internet.protocol import Protocol, connectionDone
 
-import helper
-from qrlcore import logger
-from qrlcore.merkle import hexseed_to_seed, mnemonic_to_seed
-from qrlcore.transaction import StakeTransaction
 import configuration as config
+from qrl.core.logger import logger
+from qrl.core.merkle import hexseed_to_seed, mnemonic_to_seed
+from qrl.core.transaction import StakeTransaction
 
 
 class WalletProtocol(Protocol):
@@ -212,9 +212,9 @@ class WalletProtocol(Protocol):
                     self.output['message'].write(
                         '>>> Sending a stake transaction for address: ' + self.factory.chain.mining_address + ' to activate next epoch(' + str(
                             config.dev.blocks_per_epoch - (
-                            self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
-                                self.factory.chain.m_blockchain[
-                                    -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)' + '\r\n')
+                                self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
+                                    self.factory.chain.m_blockchain[
+                                        -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)' + '\r\n')
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
                     self.factory.p2pFactory.send_st_to_peers(
@@ -237,7 +237,9 @@ class WalletProtocol(Protocol):
                 elif command == 'help':
                     self.output['status'] = 0
                     self.output['message'].write(
-                        '>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, recoverfromwords, stake, stakenextepoch, mempool, json_block, seed, hexseed, getinfo, peers, or blockheight' + '\r\n')
+                        '>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, '
+                        'recoverfromwords, stake, stakenextepoch, mempool, json_block, seed, hexseed, '
+                        'getinfo, peers, or blockheight' + '\r\n')
                 # removed 'hrs, hrs_check,'
                 elif command == 'quit' or command == 'exit':
                     self.transport.loseConnection()

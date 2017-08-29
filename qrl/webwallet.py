@@ -2,21 +2,20 @@
 # localhost:8888/
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
-__author__ = 'scottdonaldau'
-
-from twisted.web.server import Site
-from twisted.web.static import File
-from twisted.web.resource import Resource
-from twisted.internet import reactor, endpoints
-
-from qrlcore import wallet, helper
-from qrlcore.merkle import hexseed_to_seed, mnemonic_to_seed
+from qrl.core.merkle import mnemonic_to_seed, hexseed_to_seed
 
 import decimal
 import json
 import os
 
+from twisted.internet import reactor, endpoints
+from twisted.web.resource import Resource
+from twisted.web.server import Site
+from twisted.web.static import File
+
+from qrl.core import helper, wallet
+
+__author__ = 'scottdonaldau'
 
 class WebWallet:
     def __init__(self, chain, state, p2pFactory):
@@ -101,7 +100,8 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS', seed=mnemonic_to_seed(mnemonicphrase))
+                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS',
+                                                  seed=mnemonic_to_seed(mnemonicphrase))
 
                 # Find hex/mnemonic for recovered wallet
                 for x in self.chain.my:
@@ -125,7 +125,8 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS', seed=hexseed_to_seed(jsQ["hexseed"]))
+                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS',
+                                                  seed=hexseed_to_seed(jsQ["hexseed"]))
 
                 # Find hex/mnemonic for recovered wallet
                 for x in self.chain.my:

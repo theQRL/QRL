@@ -3,12 +3,7 @@
 from binascii import unhexlify
 from unittest import TestCase
 
-from timeout_decorator import timeout_decorator
-
-from qrlcore import logger
-from qrlcore.chain import Chain
-from qrlcore.state import State
-from qrlcore.wallet import Wallet
+from qrl.core import logger
 
 logger.initialize_default(force_console_output=True)
 

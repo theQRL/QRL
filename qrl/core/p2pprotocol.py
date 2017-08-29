@@ -6,12 +6,12 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
-import configuration as config
-from qrlcore import logger, helper, fork
-from qrlcore.block import Block
-from qrlcore.merkle import sha256
-from qrlcore.messagereceipt import MessageReceipt
-from qrlcore.transaction import StakeTransaction, SimpleTransaction
+import qrl.core.configuration as config
+from qrl.core import logger, helper, fork
+from qrl.core.block import Block
+from qrl.core.merkle import sha256
+from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.transaction import StakeTransaction, SimpleTransaction
 
 
 class P2PProtocol(Protocol):

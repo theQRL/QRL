@@ -10,8 +10,8 @@
 # fees
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
-from qrlcore import logger
-import configuration as config
+import qrl.core.configuration as config
+from qrl.core.CreateGenesisBlock import CreateGenesisBlock
 
 __author__ = 'pete'
 
@@ -30,14 +30,13 @@ import simplejson as json
 from collections import defaultdict
 
 import wallet
-from qrlcore.CreateGenesisBlock import CreateGenesisBlock
 import merkle
 from merkle import sha256
 import helper
 from block import Block
 from transaction import SimpleTransaction
 from decimal import Decimal
-from qrlcore import transaction
+from qrl.core import transaction, logger
 
 
 class Chain:
@@ -68,18 +67,6 @@ class Chain:
         self.stake_validator_latency = defaultdict(dict)
 
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
-
-    @staticmethod
-    def get_base_dir():
-        tmp_path = os.path.join(config.user.data_path, config.dev.chain_file_directory)
-        if not os.path.isdir(tmp_path):
-            try:
-                os.makedirs(tmp_path)
-            except Exception as e:
-                logger.error("Failed to create directory: %s - %s", tmp_path, e)
-                sys.exit(1)
-
-        return tmp_path + os.sep
 
     def initialize(self):
         logger.info('QRL blockchain ledger %s', self.version_number)
@@ -828,19 +815,25 @@ class Chain:
                     if islong == 1: helper.json_print(tx)
         return
 
+    @staticmethod
+    def get_chaindatafile(epoch):
+        baseDir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
+        config.create_path(baseDir)
+        return os.path.join(baseDir, 'chain.da' + str(epoch))
+
     def f_read_chain(self, epoch):
-        baseDir = self.get_base_dir()
         delimiter = config.dev.binary_file_delimiter
         block_list = []
-        if os.path.isfile(baseDir + 'chain.da' + str(epoch)) is False:
+        if os.path.isfile(self.get_chaindatafile(epoch)) is False:
             if epoch != 0:
                 return []
             logger.info('Creating new chain file')
-            block_list.append(CreateGenesisBlock(self))
+            genesis_block = CreateGenesisBlock(self)
+            block_list.append(genesis_block)
             return block_list
 
         try:
-            with open(baseDir + 'chain.da' + str(epoch), 'rb') as myfile:
+            with open(self.get_chaindatafile(epoch), 'rb') as myfile:
                 jsonBlock = StringIO()
                 tmp = ""
                 count = 0
@@ -924,14 +917,12 @@ class Chain:
                 self.update_txn_count(txn.txto, txn.txfrom)
 
     def f_write_m_blockchain(self):
-        baseDir = self.get_base_dir()
-
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
         suffix = int(blocknumber // config.dev.blocks_per_chain_file)
         writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
         logger.info('Appending data to chain')
 
-        with open(baseDir + 'chain.da' + str(suffix), 'ab') as myfile:
+        with open(self.get_chaindatafile(suffix), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = helper.json_bytestream(block)
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
@@ -972,8 +963,7 @@ class Chain:
             return self.m_blockchain
 
         epoch = 1
-        baseDir = self.get_base_dir()
-        while os.path.isfile(baseDir + 'chain.da' + str(epoch)):
+        while os.path.isfile( self.get_chaindatafile(epoch)):
             del self.m_blockchain[:-1]
             chains = self.f_read_chain(epoch)
 
@@ -990,9 +980,8 @@ class Chain:
         return self.m_blockchain
 
     def load_from_file(self, blocknum):
-        baseDir = self.get_base_dir()
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
-        with open(baseDir + 'chain.da' + str(epoch), 'rb') as f:
+        with open( self.get_chaindatafile(epoch), 'rb') as f:
             pos_size = self.state.db.db.Get('block_' + str(blocknum))
             pos, size = pos_size.split(',')
             pos = int(pos)

@@ -3,21 +3,20 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
-import shutil
-from os.path import expanduser
 import logging
-from traceback import extract_tb
+from os.path import expanduser
 
 from twisted.internet import reactor
 
 import webwallet
-from qrlcore import configuration as config, logger, ntp, node
-from qrlcore.chain import Chain
-from qrlcore.node import NodeState
-from qrlcore.apifactory import ApiFactory
-from qrlcore.p2pfactory import P2PFactory
-from qrlcore.walletfactory import WalletFactory
-from qrlcore.state import State
+from qrl.core import logger, ntp, node
+import qrl.core.configuration as config
+from qrl.core.apifactory import ApiFactory
+from qrl.core.chain import Chain
+from qrl.core.node import NodeState
+from qrl.core.p2pfactory import P2PFactory
+from qrl.core.state import State
+from qrl.core.walletfactory import WalletFactory
 
 LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
 
@@ -36,15 +35,22 @@ def main():
     parser = argparse.ArgumentParser(description='QRL node')
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
-    parser.add_argument('--datapath', '-d', dest='data_path', default=expanduser("~/.qrl"),
+    parser.add_argument('--datapath', '-d', dest='data_path', default=config.user.data_path,
                         help="Retrieve data from a different path")
+    parser.add_argument('--walletpath', '-w', dest='wallet_path', default=config.user.wallet_path,
+                        help="Retrieve wallet from a different path")
     args = parser.parse_args()
 
     logger.initialize_default(force_console_output=not args.quiet)
     logger.log_to_file()
 
     logger.info("Data Path: %s", args.data_path)
+    logger.info("Wallet Path: %s", args.wallet_path)
     config.user.data_path = args.data_path
+    config.user.wallet_path = args.wallet_path
+
+    config.create_path(config.user.data_path)
+    config.create_path(config.user.wallet_path)
 
     node_state = NodeState()
     custom_filter = ContextFilter(node_state)

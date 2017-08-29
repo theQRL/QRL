@@ -2,8 +2,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from qrlcore import logger
-from qrlcore.state import State
+from qrl.core.state import State
+from qrl.core import logger
 
 logger.initialize_default(force_console_output=True)
 

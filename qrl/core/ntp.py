@@ -3,9 +3,10 @@
 
 import sys
 from time import time
+
 import ntplib
 
-from qrlcore import logger
+from qrl.core import logger
 
 ntp_server = 'pool.ntp.org'
 version = 3
