@@ -1,4 +1,5 @@
 # Fixing sphinx version due to https://github.com/sphinx-doc/sphinx/issues/3976
+--extra-index-url https://pypi.python.org/pypi/
 jsonpickle>=0.9.5
 leveldb==0.20
 statistics>=1.0.3.5
