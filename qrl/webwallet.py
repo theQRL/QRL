@@ -29,7 +29,7 @@ class WebWallet:
         self.wallet = wallet.Wallet(self.chain, self.state)
 
         # Start local web server and define routes
-        resource = File(self.cwd + '/web-wallet')
+        resource = File(self.cwd + '/qrl/web-wallet')
         resource.putChild("webwallet-addresses", showAddresses(self.wallet))
         resource.putChild("webwallet-create-new-address", newAddress(self.wallet))
         resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
