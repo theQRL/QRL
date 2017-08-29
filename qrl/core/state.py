@@ -13,7 +13,8 @@ class State:
     """
         state functions
         first iteration - state data stored in leveldb file
-        state holds address balances, the transaction nonce and a list of pubhash keys used for each tx - to prevent key reuse.
+        state holds address balances, the transaction nonce and a list of
+        pubhash keys used for each tx - to prevent key reuse.
     """
 
     def __init__(self):
@@ -346,7 +347,7 @@ class State:
 
     def calc_seed(self, sl, verbose=False):
         if verbose:
-            logger.info(('stake_list --> '))
+            logger.info('stake_list --> ')
             for s in sl:
                 logger.info((s[0], s[3]))
 

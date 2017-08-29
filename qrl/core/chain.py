@@ -281,30 +281,13 @@ class Chain:
 
         return trimmed_pool
 
-    # merkle tree root hash of tx from pool for next POS block
     @staticmethod
-    def merkle_tx_hash(hashes):
-        if len(hashes) == 64:  # if len = 64 then it is a single hash string rather than a list..
-            return hashes
-        j = int(ceil(log(len(hashes), 2)))
-        l_array = [hashes]
-        for x in range(j):
-            next_layer = []
-            i = len(l_array[x]) % 2 + len(l_array[x]) / 2
-            z = 0
-            for _ in range(i):
-                if len(l_array[x]) == z + 1:
-                    next_layer.append(l_array[x][z])
-                else:
-                    next_layer.append(sha256(l_array[x][z] + l_array[x][z + 1]))
-                z += 2
-            l_array.append(next_layer)
-
-        return ''.join(l_array[-1])
-
-    # return closest hash in numerical terms to merkle root hash of all the supplied hashes..
-
-    def closest_hash(self, list_hash):
+    def closest_hash(list_hash):
+        """
+        returns the closest hash in numerical terms to merkle root hash of all the supplied hashes..
+        :param list_hash:
+        :return:
+        """
 
         if isinstance(list_hash, list):
             if len(list_hash) == 1:
@@ -315,30 +298,15 @@ class Chain:
 
         list_hash.sort()
 
-        root = self.merkle_tx_hash(list_hash)
+        root = merkle.merkle_tx_hash(list_hash)
 
         p = []
         for l in list_hash:
             p.append(int(l, 16))
 
-        closest = self.cl(int(root, 16), p)
+        closest = merkle.cl(int(root, 16), p)
 
         return ''.join(list_hash[p.index(closest)]), root
-
-    # return closest number in a hexlified list
-
-    def cl_hex(self, one, many):
-
-        p = []
-        for l in many:
-            p.append(int(l, 16))
-
-        return many[p.index(self.cl(int(one, 16), p))]
-
-    # return closest number in a list..
-    @staticmethod
-    def cl(one, many):
-        return min(many, key=lambda x: abs(x - one))
 
     def is_stake_banned(self, stake_address):
         if stake_address in self.stake_ban_list:
@@ -353,9 +321,12 @@ class Chain:
 
         return False
 
-    # create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds).
-    # returns: list of merkle root hashes of the tx pool over last 1.5 seconds
     def pos_block_pool(self, n=1.5):
+        """
+        create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds).
+        :param n:
+        :return: list of merkle root hashes of the tx pool over last 1.5 seconds
+        """
         timestamp = time()
         start_time = timestamp - n
 
@@ -364,7 +335,7 @@ class Chain:
         if not y:  # if pool is empty -> return sha256 null
             return [sha256('')], [[]]
         elif x == y:  # if the pool isnt empty but there is no difference then return the only merkle hash possible..
-            return [self.merkle_tx_hash(y)], [y]
+            return [merkle.merkle_tx_hash(y)], [y]
         else:  # there is a difference in contents of pool over last 1.5 seconds..
             merkle_hashes = []
             txhashes = []
@@ -373,7 +344,7 @@ class Chain:
                 x = []
                 txhashes.append(x)
             else:
-                merkle_hashes.append(self.merkle_tx_hash(x))
+                merkle_hashes.append(merkle.merkle_tx_hash(x))
                 txhashes.append(x)
             tmp_txhashes = x
 
@@ -381,14 +352,21 @@ class Chain:
                 if tx.txhash in y and tx.txhash not in x:
                     tmp_txhashes.append(tx.txhash)
                     tmp_txhashes.sort()
-                    merkle_hashes.append(self.merkle_tx_hash(tmp_txhashes))
+                    merkle_hashes.append(merkle.merkle_tx_hash(tmp_txhashes))
                     txhashes.append(tmp_txhashes)
 
             return merkle_hashes, txhashes
 
-    # create the PRF selector sequence based upon a seed and number of stakers in list (temporary..there are better ways to do this with bigger seed value, but it works)
     @staticmethod
     def pos_block_selector(seed, n):
+        """
+        create the PRF selector sequence based upon a seed and number
+        of stakers in list (temporary..there are better ways to do this
+        with bigger seed value, but it works)
+        :param seed:
+        :param n:
+        :return:
+        """
         n_bits = int(ceil(log(n, 2)))
         prf = merkle.GEN_range_bin(seed, 1, 20000, 1)
         prf_range = []
@@ -398,8 +376,14 @@ class Chain:
                 prf_range.append(x)
         return prf_range
 
-    # return the POS staker list position for given seed at index, i
     def pos_block_selector_n(self, seed, n, i):
+        """
+        return the POS staker list position for given seed at index, i
+        :param seed:
+        :param n:
+        :param i:
+        :return:
+        """
         l = self.pos_block_selector(seed, n)
         return l[i]
 
@@ -633,8 +617,12 @@ class Chain:
 
         return helper.json_print_telnet(addr)
 
-
-    def richlist(self, n=None):  # only feasible while chain is small..
+    def richlist(self, n=None):
+        """
+        only feasible while chain is small..
+        :param n:
+        :return:
+        """
         if not n:
             n = 5
 
@@ -963,7 +951,7 @@ class Chain:
             return self.m_blockchain
 
         epoch = 1
-        while os.path.isfile( self.get_chaindatafile(epoch)):
+        while os.path.isfile(self.get_chaindatafile(epoch)):
             del self.m_blockchain[:-1]
             chains = self.f_read_chain(epoch)
 
@@ -981,7 +969,7 @@ class Chain:
 
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
-        with open( self.get_chaindatafile(epoch), 'rb') as f:
+        with open(self.get_chaindatafile(epoch), 'rb') as f:
             pos_size = self.state.db.db.Get('block_' + str(blocknum))
             pos, size = pos_size.split(',')
             pos = int(pos)

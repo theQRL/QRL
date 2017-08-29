@@ -4,7 +4,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import logging
-from os.path import expanduser
 
 from twisted.internet import reactor
 

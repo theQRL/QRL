@@ -1,117 +1,29 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import decimal
-from math import log
 
 import simplejson as json
 
 import configuration as config
 import helper
+import logger
+import merkle
 import ntp
 import transaction
 from merkle import sha256
-import logger
+from blockheader import BlockHeader
 from transaction import Transaction
 
 
-
-class BlockHeader(object):
-    def __init__(self):
-        pass
-
-    def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, hashedtransactions, reveal_list,
-               vote_hashes):
-        self.blocknumber = blocknumber
-        self.hash = hashchain_link
-        if self.blocknumber == 0:
-            self.timestamp = 0
-        else:
-            self.timestamp = ntp.getTime()
-            if self.timestamp == 0:
-                logger.info('Failed to get NTP timestamp')
-                return
-        self.prev_blockheaderhash = prev_blockheaderhash
-        self.tx_merkle_root = hashedtransactions
-        self.reveal_list = reveal_list
-        self.vote_hashes = vote_hashes
-        self.epoch = self.blocknumber // config.dev.blocks_per_epoch
-
-        if self.blocknumber == 0:
-            self.stake_selector = ''
-            self.stake_nonce = 0
-            self.block_reward = 0
-        elif self.blocknumber == 1:
-            tmp_chain, _ = chain.select_hashchain(
-                last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(0), hashchain=chain.hash_chain,
-                blocknumber=self.blocknumber)
-            self.stake_nonce = config.dev.blocks_per_epoch - tmp_chain.index(hashchain_link)
-            self.stake_selector = chain.mining_address
-            self.block_reward = self.block_reward_calc()
-        else:
-            for s in chain.block_chain_buffer.stake_list_get(self.blocknumber):
-                if s[0] == chain.mining_address:
-                    self.stake_nonce = s[2] + 1
-            self.stake_selector = chain.mining_address
-            self.block_reward = self.block_reward_calc()
-
-        self.headerhash = self.generate_headerhash()
-
-    def json_to_blockheader(self, json_blockheader):
-        rl = json_blockheader['reveal_list']
-        self.reveal_list = []
-        for r in rl:
-            self.reveal_list.append(r.encode('latin1'))
-        v1 = json_blockheader['vote_hashes']
-        self.vote_hashes = []
-        for v in v1:
-            self.vote_hashes.append(v.encode('latin1'))
-        self.stake_nonce = json_blockheader['stake_nonce']
-        self.epoch = json_blockheader['epoch']
-        self.headerhash = json_blockheader['headerhash'].encode('latin1')
-        self.hash = json_blockheader['hash'].encode('latin1')
-        self.timestamp = json_blockheader['timestamp']
-        self.tx_merkle_root = json_blockheader['tx_merkle_root'].encode('latin1')
-        self.blocknumber = json_blockheader['blocknumber']
-        self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
-        self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
-        self.block_reward = json_blockheader['block_reward']
-
-    # block reward calculation
-    # decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
-    # N_tot is less the initial coin supply.
-
-    def calc_coeff(self, N_tot, block_tot):
-        return log(N_tot) / block_tot
-
-    # calculate remaining emission at block_n: N=total initial coin supply, coeff = decay constant
-    # need to use decimal as floating point not precise enough on different platforms..
-
-    def remaining_emission(self, N_tot, block_n):
-        coeff = self.calc_coeff(21000000, 420480000)
-        return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()).quantize(decimal.Decimal('1.00000000'),
-                                                                                         rounding=decimal.ROUND_HALF_UP)
-
-    # return block reward for the block_n
-
-    def block_reward_calc(self):
-        return int((self.remaining_emission(21000000, self.blocknumber - 1) - self.remaining_emission(21000000,
-                                                                                                      self.blocknumber)) * 100000000)
-
-    def generate_headerhash(self):
-        return sha256(self.stake_selector + str(self.epoch) + str(self.stake_nonce) + str(self.block_reward) + str(
-            self.timestamp) + str(self.hash) + str(self.blocknumber) + self.prev_blockheaderhash +
-                      self.tx_merkle_root + str(self.vote_hashes) + str(self.reveal_list))
-
-
 class Block(object):
-    def isHashPresent(self, txhash, buffer, blocknumber):
+    @staticmethod
+    def isHashPresent(txhash, buffer, blocknumber):
         if not buffer:
             return False
 
         min_blocknum = min(buffer)
         max_blocknum = min(blocknumber - 1, max(buffer))
 
-        for blocknum in xrange(min_blocknum, max_blocknum + 1):
+        for blocknum in range(min_blocknum, max_blocknum + 1):
             if txhash in buffer[blocknum]:
                 return True
 
@@ -142,7 +54,7 @@ class Block(object):
         if not hashedtransactions:
             hashedtransactions = sha256('')
 
-        hashedtransactions = chain.merkle_tx_hash(hashedtransactions)
+        hashedtransactions = merkle.merkle_tx_hash(hashedtransactions)
 
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain,
@@ -200,9 +112,13 @@ class Block(object):
 
         return True
 
-    # block validation
-
     def validate_block(self, chain, verify_block_reveal_list=True):  # check validity of new block..
+        """
+        block validation
+        :param chain:
+        :param verify_block_reveal_list:
+        :return:
+        """
         b = self.blockheader
         last_blocknum = b.blocknumber - 1
 
@@ -285,7 +201,7 @@ class Block(object):
                 for r in b.reveal_list:
                     t = sha256(r)
                     for _ in range(b.blocknumber - (
-                        b.epoch * config.dev.blocks_per_epoch) + 1):  # +1 as reveal has 1 extra hash
+                                b.epoch * config.dev.blocks_per_epoch) + 1):  # +1 as reveal has 1 extra hash
                         t = sha256(t)
                     for s in tmp_stake_list:
                         if t == s[1][-1]:
@@ -335,7 +251,7 @@ class Block(object):
                 tx = self.transactions[tx_num]
                 txhashes.append(tx.txhash)
 
-        if chain.merkle_tx_hash(txhashes) != b.tx_merkle_root:
+        if merkle.merkle_tx_hash(txhashes) != b.tx_merkle_root:
             logger.warning('Block hashedtransactions error: failed validation')
             return False
 

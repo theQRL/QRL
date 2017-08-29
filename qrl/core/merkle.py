@@ -187,6 +187,49 @@ def new_keys(seed=None,
     return seed, public_SEED, private_SEED
 
 
+def cl_hex(one, many):
+    p = []
+    for l in many:
+        p.append(int(l, 16))
+
+    return many[p.index(cl(int(one, 16), p))]
+
+
+def cl(one, many):
+    """
+    return closest number in a list..
+    :param one:
+    :param many:
+    :return:
+    """
+    return min(many, key=lambda x: abs(x - one))
+
+
+def merkle_tx_hash(hashes):
+    """
+    merkle tree root hash of tx from pool for next POS block
+    :param hashes:
+    :return:
+    """
+    if len(hashes) == 64:  # if len = 64 then it is a single hash string rather than a list..
+        return hashes
+    j = int(ceil(log(len(hashes), 2)))
+    l_array = [hashes]
+    for x in range(j):
+        next_layer = []
+        i = len(l_array[x]) % 2 + len(l_array[x]) / 2
+        z = 0
+        for _ in range(i):
+            if len(l_array[x]) == z + 1:
+                next_layer.append(l_array[x][z])
+            else:
+                next_layer.append(sha256(l_array[x][z] + l_array[x][z + 1]))
+            z += 2
+        l_array.append(next_layer)
+
+    return ''.join(l_array[-1])
+
+
 # 48 byte SEED converted to a backup 32 word mnemonic wordlist to allow backup retrieval of keys and addresses.
 # SEED parsed 12 bits at a time and a word looked up from a dictionary with 4096 unique words in it..
 # another approach would be a hexseed and QR code or BIP38 style encryption of the SEED with a passphrase..
@@ -1018,8 +1061,8 @@ def verify_root(pub, merkle_root, merkle_path):
                 logger.info('root check failed')
                 return False
         if sha256(merkle_path[x][0] + merkle_path[x][1]) not in merkle_path[x + 1]:
-            return False
             logger.error('path authentication error')
+            return False
 
     return False
 
@@ -1033,7 +1076,6 @@ def sign_mss(data, message, ots_key=0):
 
     if ots_key > len(data) - 1:
         raise Exception('OTS key number greater than available signatures')
-        return False
 
     if data[0].type == 'WOTS':
         return sign_wkey(data[ots_key].priv, message)

@@ -351,9 +351,8 @@ class P2PProtocol(Protocol):
         if self.factory.pos.nodeState.state != 'synced':
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
-        data = {}
-        data['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
-        data['blocknumber'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
+        data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
+                'blocknumber': self.factory.chain.m_blockchain[-1].blockheader.blocknumber}
         self.transport.write(self.wrap_message('PMBH', helper.json_encode(data)))
 
     def PMBH(self, data):  # Push Maximum Blockheight and Headerhash
