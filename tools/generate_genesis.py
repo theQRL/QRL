@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import json
 
-from qrl.core import merkle
+from qrl.crypto import merkle
 
 num_accounts = 100
 file_name = "aws_wallet"

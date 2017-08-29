@@ -7,10 +7,12 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
 import configuration as config
-import logger, helper, fork
+import fork
+import helper
+import logger
 from block import Block
-from merkle import sha256
 from messagereceipt import MessageReceipt
+from qrl.crypto.merkle import sha256
 from transaction import StakeTransaction, SimpleTransaction
 
 

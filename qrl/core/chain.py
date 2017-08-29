@@ -30,8 +30,8 @@ import simplejson as json
 from collections import defaultdict
 
 import wallet
-import merkle
-from merkle import sha256
+from qrl.crypto import merkle
+from qrl.crypto.merkle import sha256
 import helper
 from block import Block
 from transaction import SimpleTransaction

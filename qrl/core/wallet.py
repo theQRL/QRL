@@ -2,8 +2,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # wallet code
-import logger, merkle, transaction
-from merkle import mnemonic_to_seed
+import logger
+import transaction
+from qrl.crypto import merkle
+from qrl.crypto.merkle import mnemonic_to_seed
 
 __author__ = 'pete'
 

@@ -6,11 +6,9 @@ import simplejson as json
 
 import configuration as config
 import logger
-import merkle
-
-
+from qrl.crypto import merkle
 # simple transaction creation and wallet functions using the wallet file..
-from merkle import sha256
+from qrl.crypto.merkle import sha256
 
 
 def isValidAddress(addr):

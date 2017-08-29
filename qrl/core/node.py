@@ -8,11 +8,13 @@ from copy import deepcopy
 
 from twisted.internet import reactor
 
+import CreateGenesisBlock
 import configuration as config
 import fork
+import logger
+import transaction
 from messagereceipt import MessageReceipt
-import logger, transaction, CreateGenesisBlock
-from merkle import sha256
+from qrl.crypto.merkle import sha256
 from transaction import StakeTransaction
 
 

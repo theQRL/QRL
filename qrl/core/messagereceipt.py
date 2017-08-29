@@ -4,7 +4,7 @@
 from collections import OrderedDict, defaultdict
 
 import configuration as config
-from merkle import sha256
+from qrl.crypto.merkle import sha256
 
 
 class MessageReceipt(object):

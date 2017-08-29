@@ -2,8 +2,6 @@
 # localhost:8888/
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from core.merkle import mnemonic_to_seed, hexseed_to_seed
-
 import decimal
 import json
 import os
@@ -14,6 +12,7 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from core import helper, wallet
+from qrl.crypto.merkle import mnemonic_to_seed, hexseed_to_seed
 
 __author__ = 'scottdonaldau'
 

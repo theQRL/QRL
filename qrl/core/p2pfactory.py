@@ -10,9 +10,10 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 import configuration as config
-import helper, logger
-from merkle import sha256
+import helper
+import logger
 from p2pprotocol import P2PProtocol
+from qrl.crypto.merkle import sha256
 
 
 class P2PFactory(ServerFactory):

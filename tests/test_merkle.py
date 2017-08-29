@@ -3,10 +3,11 @@
 from binascii import hexlify, unhexlify
 from unittest import TestCase
 
-from qrl.core.merkle import xmss_tree
 from timeout_decorator import timeout_decorator
 
-from qrl.core import logger, merkle
+from qrl.core import logger
+from qrl.crypto import merkle
+from qrl.crypto.merkle import xmss_tree
 
 logger.initialize_default(force_console_output=True)
 

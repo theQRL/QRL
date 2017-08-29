@@ -7,8 +7,9 @@ import simplejson as json
 
 import configuration as config
 import helper
-import logger, merkle
-from merkle import sha256
+import logger
+from qrl.crypto import merkle
+from qrl.crypto.merkle import sha256
 
 TX_SUBTYPE_TX = 'TX'
 TX_SUBTYPE_STAKE = 'STAKE'

@@ -13,8 +13,8 @@
 
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
-import logger
-import configuration as config
+import qrl.core.logger
+import qrl.core.configuration as config
 
 __author__ = 'pete'
 
@@ -25,7 +25,7 @@ from binascii import unhexlify, hexlify
 from math import ceil, floor, log
 from os import urandom
 
-from words import wordlist  # 4096 unique word list for mnemonic SEED retrieval..
+from qrl.core.words import wordlist  # 4096 unique word list for mnemonic SEED retrieval..
 
 
 # timing runs..
@@ -33,19 +33,19 @@ from words import wordlist  # 4096 unique word list for mnemonic SEED retrieval.
 def t(n):
     start_time = time.time()
     z = XMSS(n)
-    logger.info((str(time.time() - start_time)))
+    qrl.core.logger.info((str(time.time() - start_time)))
     return z
 
 
 def t2(s, m):
     start_time = time.time()
     xmss_verify(m, s)
-    logger.info(str(time.time() - start_time))
+    qrl.core.logger.info(str(time.time() - start_time))
 
 
 def numlist(array):
     for a, b in enumerate(array):
-        logger.info((a, b))
+        qrl.core.logger.info((a, b))
     return
 
 
@@ -137,7 +137,7 @@ class HMAC_DRBG:
 def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
     # FIXME: There is no check for the seed size
     if i < 1:
-        logger.info('i must be integer greater than 0')
+        qrl.core.logger.info('i must be integer greater than 0')
         return
     z = HMAC_DRBG(SEED)
     for x in range(i):
@@ -147,7 +147,7 @@ def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at positi
 
 def GEN_range(SEED, start_i, end_i, l=32):  # returns start -> end iteration of hex PRF (inclusive at both ends)
     if start_i < 1:
-        logger.info('starting i must be integer greater than 0')
+        qrl.core.logger.info('starting i must be integer greater than 0')
         return
     z = HMAC_DRBG(SEED)
     random_arr = []
@@ -161,7 +161,7 @@ def GEN_range(SEED, start_i, end_i, l=32):  # returns start -> end iteration of 
 def GEN_range_bin(SEED, start_i, end_i, l=32):  # returns start -> end iteration of bin PRF (inclusive at both ends)
     # FIXME: code repetition
     if start_i < 1:
-        logger.info('starting i must be integer greater than 0')
+        qrl.core.logger.info('starting i must be integer greater than 0')
         return
     z = HMAC_DRBG(SEED)
     random_arr = []
@@ -241,7 +241,7 @@ def mnemonic_to_seed(
 
     words = mnemonic.lower().split()
     if len(words) != 32:
-        logger.error('mnemonic is not 32 words in length..')
+        qrl.core.logger.error('mnemonic is not 32 words in length..')
         return False
     SEED = ''
     y = 0
@@ -256,7 +256,7 @@ def mnemonic_to_seed(
 
 def seed_to_mnemonic(SEED):
     if len(SEED) != 48:
-        logger.error('SEED is not 48 bytes in length..')
+        qrl.core.logger.error('SEED is not 48 bytes in length..')
         return False
     words = []
     y = 0
@@ -373,7 +373,7 @@ class XMSS(object):
     def SIGN(self, msg):
         i = self.index
         # formal sign and increment the index to the next OTS to be used..
-        logger.info('xmss signing with OTS n = %s', str(self.index))
+        qrl.core.logger.info('xmss signing with OTS n = %s', str(self.index))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         self.index += 1
@@ -391,7 +391,7 @@ class XMSS(object):
         if i is None:
             i = self.signatures - len(self.addresses)
         if i > self.signatures or i < self.index:
-            logger.error('i cannot be below signing index or above the pre-calculated signature count for xmss tree')
+            qrl.core.logger.error('i cannot be below signing index or above the pre-calculated signature count for xmss tree')
             return False
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i, self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]), hexlify(self.public_SEED)]
@@ -402,10 +402,10 @@ class XMSS(object):
 
     def address_adds(self, start_i, stop_i):  # batch creation of multiple addresses..
         if start_i > self.signatures or stop_i > self.signatures:
-            logger.error('i cannot be greater than pre-calculated signature count for xmss tree')
+            qrl.core.logger.error('i cannot be greater than pre-calculated signature count for xmss tree')
             return False
         if start_i >= stop_i:
-            logger.error('starting i must be lower than stop_i')
+            qrl.core.logger.error('starting i must be lower than stop_i')
             return False
 
         for i in range(start_i, stop_i):
@@ -414,13 +414,13 @@ class XMSS(object):
 
     def SIGN_subtree(self, msg, t=0):  # default to full xmss tree with max sigs
         if len(self.addresses) < t + 1:
-            logger.error('self.addresses new address does not exist')
+            qrl.core.logger.error('self.addresses new address does not exist')
             return False
         i = self.index
         if self.addresses[t][2] < i:
-            logger.error('xmss index above address derivation i')
+            qrl.core.logger.error('xmss index above address derivation i')
             return False
-        logger.info(
+        qrl.core.logger.info(
             ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
@@ -436,7 +436,7 @@ class XMSS(object):
 
     def address_n(self, t):
         if len(self.addresses) < t + 1:
-            logger.info('ERROR: self.addresses new address does not exist')
+            qrl.core.logger.info('ERROR: self.addresses new address does not exist')
             return False
         return self.addresses[t][1]
 
@@ -560,7 +560,7 @@ def xmss_route(x_bms, x_tree, i=0):
             if node == ''.join(x_tree[x]):
                 auth_route.append(''.join(x_tree[x]))
             else:
-                logger.info('Failed..root')
+                qrl.core.logger.info('Failed..root')
                 return
 
         elif i == len(x_tree[x]) - 1 and leaf in x_tree[
@@ -590,7 +590,7 @@ def xmss_route(x_bms, x_tree, i=0):
             try:
                 x_tree[x + 1].index(node)  # confirm node matches a hash in next layer up?
             except:
-                logger.info(('Failed at height', str(x)))
+                qrl.core.logger.info(('Failed at height', str(x)))
                 return
             leaf = node
             i = x_tree[x + 1].index(leaf)
@@ -757,7 +757,7 @@ def random_wpkey_xmss(seed, w=16, verbose=0):
         pub.append(chain_fn(sk_, r, w - 1, k))
 
     if verbose == 1:
-        logger.info((str(time.time() - start_time)))
+        qrl.core.logger.info((str(time.time() - start_time)))
     return priv, pub
 
 
@@ -798,7 +798,7 @@ def random_wpkey(w=16, verbose=0):
         pub.append(chain_fn(sk_, r, w - 1, k))
 
     if verbose == 1:
-        logger.info((str(time.time() - start_time)))
+        qrl.core.logger.info((str(time.time() - start_time)))
     return priv, pub
 
 
@@ -899,7 +899,7 @@ def random_wkey(w=8, verbose=0):  # create random W-OTS keypair
 
     elapsed_time = time.time() - start_time
     if verbose == 1:
-        logger.info(elapsed_time)
+        qrl.core.logger.info(elapsed_time)
     return priv, pub
 
 
@@ -1050,7 +1050,7 @@ def verify_root(pub, merkle_root, merkle_path):
     pubhash = sha256(''.join(pub))
 
     if pubhash not in merkle_path[0]:
-        logger.info('hashed public key not in merkle path')
+        qrl.core.logger.info('hashed public key not in merkle path')
         return False
 
     for x in range(len(merkle_path)):
@@ -1058,10 +1058,10 @@ def verify_root(pub, merkle_root, merkle_path):
             if ''.join(merkle_path[x]) == merkle_root:
                 return True
             else:
-                logger.info('root check failed')
+                qrl.core.logger.info('root check failed')
                 return False
         if sha256(merkle_path[x][0] + merkle_path[x][1]) not in merkle_path[x + 1]:
-            logger.error('path authentication error')
+            qrl.core.logger.error('path authentication error')
             return False
 
     return False
@@ -1104,7 +1104,7 @@ def random_generic(func, signatures=4, verbose=False):
         data[y].merkle_obj = a
 
     if verbose:
-        logger.info(('Total MSS time = ', str(time.time() - begin)))
+        qrl.core.logger.info(('Total MSS time = ', str(time.time() - begin)))
 
     return data  # array of wots classes full of data.. and a class full of merkle
 
@@ -1140,7 +1140,7 @@ class LDOTS(object):
         self.index = index
         self.concatpub = ""
         if verbose == 1:
-            logger.info(('New LD keypair generation ', str(self.index)))
+            qrl.core.logger.info(('New LD keypair generation ', str(self.index)))
         self.priv, self.pub = random_lkey()
 
         self.publist = [i for sub in self.pub for i in sub]  # convert list of tuples to list to allow cat.
@@ -1149,10 +1149,10 @@ class LDOTS(object):
         return
 
     def screen_printL(self):
-        logger.info((numlist(self.priv)))
-        logger.info((numlist(self.pub)))
-        logger.info(self.concatpub)
-        logger.info(self.pubhash)
+        qrl.core.logger.info((numlist(self.priv)))
+        qrl.core.logger.info((numlist(self.pub)))
+        qrl.core.logger.info(self.concatpub)
+        qrl.core.logger.info(self.pubhash)
         return
 
 
@@ -1167,7 +1167,7 @@ class WOTS(object):
         self.index = index
         self.concatpub = ""
         if verbose == 1:
-            logger.info(('New W-OTS keypair generation ', str(self.index)))
+            qrl.core.logger.info(('New W-OTS keypair generation ', str(self.index)))
         self.priv, self.pub = random_wkey(verbose=verbose)
 
         self.concatpub = ''.join(self.pub)
@@ -1175,10 +1175,10 @@ class WOTS(object):
         return
 
     def screen_print(self):
-        logger.info(numlist(self.priv))
-        logger.info(numlist(self.pub))
-        logger.info(self.concatpub)
-        logger.info(self.pubhash)
+        qrl.core.logger.info(numlist(self.priv))
+        qrl.core.logger.info(numlist(self.pub))
+        qrl.core.logger.info(self.concatpub)
+        qrl.core.logger.info(self.pubhash)
         return
 
 
@@ -1201,7 +1201,7 @@ class Merkle(object):
         self.auth_lists = []
 
         if self.verbose == 1:
-            logger.info(('Calculating proofs: tree height ', str(self.height), ',', str(self.num_leaves), ' leaves'))
+            qrl.core.logger.info(('Calculating proofs: tree height ', str(self.height), ',', str(self.num_leaves), ' leaves'))
 
         for y in range(self.num_leaves):
             auth_route = []
@@ -1212,7 +1212,7 @@ class Merkle(object):
                         auth_route.append(self.root)
                         self.auth_lists.append(auth_route)
                     else:
-                        logger.info('Merkle route calculation failed @ root')
+                        qrl.core.logger.info('Merkle route calculation failed @ root')
                 else:
                     nodes = self.tree[x]
                     nodes_above = self.tree[x + 1]
@@ -1229,7 +1229,7 @@ class Merkle(object):
                                     pass
         elapsed_time = time.time() - start_time
         if self.verbose == 1:
-            logger.info(elapsed_time)
+            qrl.core.logger.info(elapsed_time)
 
         return
 
@@ -1262,7 +1262,7 @@ class Merkle(object):
         self.root = temp_array
         self.height = len(self.tree)
         if self.verbose == 1:
-            logger.info(('Merkle tree created with ' + str(self.num_leaves),
+            qrl.core.logger.info(('Merkle tree created with ' + str(self.num_leaves),
                          ' leaves, and ' + str(self.num_branches) + ' to root.'))
         return self.tree
 

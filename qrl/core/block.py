@@ -6,11 +6,11 @@ import simplejson as json
 import configuration as config
 import helper
 import logger
-import merkle
 import ntp
 import transaction
-from merkle import sha256
 from blockheader import BlockHeader
+from qrl.crypto import merkle
+from qrl.crypto.merkle import sha256
 from transaction import Transaction
 
 

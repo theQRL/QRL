@@ -4,9 +4,10 @@
 from operator import itemgetter
 
 import configuration as config
-
-import db, logger, transaction
-from merkle import sha256
+import db
+import logger
+import transaction
+from qrl.crypto.merkle import sha256
 
 
 class State:

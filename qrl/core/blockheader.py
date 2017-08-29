@@ -1,8 +1,10 @@
 import decimal
 from math import log
 
-import ntp, logger, configuration as config
-from merkle import sha256
+import configuration as config
+import logger
+import ntp
+from qrl.crypto.merkle import sha256
 
 
 class BlockHeader(object):
