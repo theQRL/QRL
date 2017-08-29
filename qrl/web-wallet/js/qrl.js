@@ -16,7 +16,7 @@ var TransT = $("#TransT").DataTable();
 function drawRecoverResult(result) {
 
     // Show modal with results
-    if(result.status == "success") {
+    if(result.status === "success") {
         $('#domModalTitle').text('Address Recovery Successful');
         $('#domModalBody').html('Please ensure you keep a copy of these details in a secure location!<br />' +
                                 '<b>Address: </b><a href="http://qrlexplorer.info/search.html#'+result.recoveredAddress+'" target="_blank">'+result.recoveredAddress+'</a><br />'+
@@ -74,10 +74,10 @@ function recoverAddress() {
 function toggleRestoreType() {
     selectedRestoreType = $("#restoretype").val();
 
-    if(selectedRestoreType == "mnemonic") {
+    if(selectedRestoreType === "mnemonic") {
         $('#restoreHex').hide();
         $('#restoreMnemonic').show();
-    } else if(selectedRestoreType == "hexseed") {
+    } else if(selectedRestoreType === "hexseed") {
         $('#restoreHex').show();
         $('#restoreMnemonic').hide();
     } else {
@@ -113,7 +113,7 @@ function drawTransRow(a, b, c, d, e, f, g, h) {
     var x = moment.unix(a);
     var z = "";
 
-    if (h == e) {
+    if (h === e) {
         z = '<div style=\"text-align: center\"><i class=\"sign out icon\"></i></div>';
     } else {
         z = '<div style=\"text-align: center\"><i class=\"sign in icon\"></i></td></div>';
@@ -131,7 +131,7 @@ function getNodeInfo(hideDimmer = false) {
     viewState = 2;
 
     // Dimmer does not show for auto refreshes.
-    if(hideDimmer == false) {
+    if(hideDimmer === false) {
         $('.dimmer').show();
     }
 
@@ -260,7 +260,7 @@ function drawAddresses(addresses) {
 function getAddresses(hideDimmer = false) {
 
     // Dimmer does not show for auto refreshes.
-    if(hideDimmer == false) {
+    if(hideDimmer === false) {
         $('.dimmer').show();
     }
 
@@ -323,7 +323,7 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
     var pendingBalance;
     $.each(addresses, function() {
 
-        if(addressIndex == showAddressId) {
+        if(addressIndex === showAddressId) {
             currentDetailAddress = showAddressId;
 
             thisAddress = this[0];
@@ -353,7 +353,7 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
     $('#addressHeading').text(thisAddress);
 
     // Only show these details if we get a successful reply from the API
-    if(addressDetail.status == "ok") {
+    if(addressDetail.status === "ok") {
         $('#balance').text(addressDetail.state.balance);
         $('#pendingbalance').text(pendingBalance);
         $('#nonce').text(addressDetail.state.nonce);
@@ -400,7 +400,7 @@ function showAddressStep2(addresses, addressIndex) {
     var counter = 0;
     var thisAddress = '';
     $.each(addresses, function() {
-        if(addressIndex == counter) {
+        if(addressIndex === counter) {
             thisAddress = this[0];
         }
         counter += 1;
@@ -422,7 +422,7 @@ function showAddress(addressIndex, hideDimmer = false) {
 
     // Dimmer does not show for auto refreshes.
     // Also don't reset data
-    if(hideDimmer == false) {
+    if(hideDimmer === false) {
         $('.dimmer').show();
 
         // Clear to and amount onload
@@ -465,7 +465,7 @@ function drawTxnResult(txnResult) {
     showAddress(currentDetailAddress);
 
     // Show modal with results
-    if(txnResult.status == "success") {
+    if(txnResult.status === "success") {
         $('#domModalTitle').text('Transaction Successful');
         $('#domModalBody').html('<b>TXN Hash: </b><a href="http://qrlexplorer.info/search.html#'+txnResult.txnhash+'" target="_blank">'+txnResult.txnhash+'</a><br />'+
                                 '<b>From: </b>' + txnResult.from+'<br />'+
@@ -527,17 +527,17 @@ $( document ).ready(function() {
 // 20 second refresh
 window.setInterval(function() {
     // Refresh addresses
-    if(viewState == 0) {
+    if(viewState === 0) {
         getAddresses(true);
     }
 
     // Refresh individual address view
-    if(viewState == 1) {
+    if(viewState === 1) {
         showAddress(currentDetailAddress, true);
     }
 
     // Refresh node stats
-    if(viewState == 2) {
+    if(viewState === 2) {
         getNodeInfo(true);
     }
 }, 20000);
