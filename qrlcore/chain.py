@@ -522,12 +522,15 @@ class Chain:
                 addr['stake']['selector'] = s[2]
                 # pubhashes used could be put here..
 
-        tmp_transactions = list()
+        tmp_transactions = []
         for tx in self.transaction_pool:
+            if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+                continue
             if tx.txto == address or tx.txfrom == address:
-                logger.info((address, 'found in transaction pool'))
+                logger.info('%s found in transaction pool', address)
 
-                tmp_txn = {'txhash': tx.txhash,
+                tmp_txn = {'subtype': tx.subtype,
+                           'txhash': tx.txhash,
                            'block': 'unconfirmed',
                            'amount': tx.amount / 100000000.000000000,
                            'fee': tx.fee / 100000000.000000000,
@@ -552,7 +555,7 @@ class Chain:
             txn_metadata = self.state.db.get(txn_hash)
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
-                logger.info((address, 'found in block ', str(txn_metadata[1]), '..'))
+                logger.info('%s found in block %s', address, str(txn_metadata[1]), '..')
 
                 tmp_txn = {'txhash': tx.txhash,
                            'block': txn_metadata[1],
