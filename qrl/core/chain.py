@@ -10,8 +10,8 @@
 # fees
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
-from qrlcore import logger
-import configuration as config
+import qrl.core.configuration as config
+from qrl.core.CreateGenesisBlock import CreateGenesisBlock
 
 __author__ = 'pete'
 
@@ -30,14 +30,13 @@ import simplejson as json
 from collections import defaultdict
 
 import wallet
-from qrlcore.CreateGenesisBlock import CreateGenesisBlock
 import merkle
 from merkle import sha256
 import helper
 from block import Block
 from transaction import SimpleTransaction
 from decimal import Decimal
-from qrlcore import transaction
+from qrl.core import transaction, logger
 
 
 class Chain:
@@ -836,7 +835,8 @@ class Chain:
             if epoch != 0:
                 return []
             logger.info('Creating new chain file')
-            block_list.append(CreateGenesisBlock(self))
+            genesis_block = CreateGenesisBlock(self)
+            block_list.append(genesis_block)
             return block_list
 
         try:

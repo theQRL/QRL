@@ -1,19 +1,18 @@
-import simplejson as json
+import cPickle as pickle
+import os
 import random
 import struct
 import time
 from collections import defaultdict
 
-import os
-import cPickle as pickle
-
+import simplejson as json
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-import configuration as config
-from qrlcore import logger, helper
-from qrlcore.merkle import sha256
-from qrlcore.p2pprotocol import P2PProtocol
+import qrl.core.configuration as config
+from qrl.core import helper, logger
+from qrl.core.merkle import sha256
+from qrl.core.p2pprotocol import P2PProtocol
 
 
 class P2PFactory(ServerFactory):

@@ -3,21 +3,20 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
-import shutil
-from os.path import expanduser
 import logging
-from traceback import extract_tb
+from os.path import expanduser
 
 from twisted.internet import reactor
 
 import webwallet
-from qrlcore import configuration as config, logger, ntp, node
-from qrlcore.chain import Chain
-from qrlcore.node import NodeState
-from qrlcore.apifactory import ApiFactory
-from qrlcore.p2pfactory import P2PFactory
-from qrlcore.walletfactory import WalletFactory
-from qrlcore.state import State
+from qrl.core import logger, ntp, node
+import qrl.core.configuration as config
+from qrl.core.apifactory import ApiFactory
+from qrl.core.chain import Chain
+from qrl.core.node import NodeState
+from qrl.core.p2pfactory import P2PFactory
+from qrl.core.state import State
+from qrl.core.walletfactory import WalletFactory
 
 LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
 

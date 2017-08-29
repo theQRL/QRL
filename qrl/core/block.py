@@ -5,14 +5,14 @@ from math import log
 
 import simplejson as json
 
+import qrl.core.configuration as config
 import helper
-import merkle
 import ntp
-import configuration as config
-from merkle import sha256
-from qrlcore import logger
-from transaction import Transaction
 import transaction
+from merkle import sha256
+from qrl.core import logger
+from transaction import Transaction
+
 
 class BlockHeader(object):
     def create(self, chain, blocknumber, hashchain_link, prev_blockheaderhash, hashedtransactions, reveal_list,
