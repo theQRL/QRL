@@ -2,7 +2,7 @@
 # localhost:8888/
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from qrl.core.merkle import mnemonic_to_seed, hexseed_to_seed
+from core.merkle import mnemonic_to_seed, hexseed_to_seed
 
 import decimal
 import json
@@ -13,7 +13,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from qrl.core import helper, wallet
+from core import helper, wallet
 
 __author__ = 'scottdonaldau'
 

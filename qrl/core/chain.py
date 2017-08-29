@@ -10,8 +10,8 @@
 # fees
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
-import qrl.core.configuration as config
-from qrl.core.CreateGenesisBlock import CreateGenesisBlock
+import configuration as config
+from CreateGenesisBlock import CreateGenesisBlock
 
 __author__ = 'pete'
 
@@ -36,7 +36,7 @@ import helper
 from block import Block
 from transaction import SimpleTransaction
 from decimal import Decimal
-from qrl.core import transaction, logger
+import transaction, logger
 
 
 class Chain:

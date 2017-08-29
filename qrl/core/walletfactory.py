@@ -2,7 +2,7 @@ import time
 
 from twisted.internet.protocol import ServerFactory
 
-from qrl.core.walletprotocol import WalletProtocol
+from walletprotocol import WalletProtocol
 
 
 class WalletFactory(ServerFactory):

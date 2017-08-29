@@ -1,8 +1,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core.merkle import sha256
-from qrl.core.block import BlockHeader
+from merkle import sha256
+from block import BlockHeader
 
 genesis_info = dict()
 genesis_info['Qf3dadd056aa76b192fcde016521840b401ab031f550552bc9568ad109bc0efeda304'] = 1000000

@@ -6,7 +6,7 @@ from time import time
 
 import ntplib
 
-from qrl.core import logger
+import logger
 
 ntp_server = 'pool.ntp.org'
 version = 3

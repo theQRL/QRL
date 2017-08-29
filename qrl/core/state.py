@@ -3,10 +3,10 @@
 
 from operator import itemgetter
 
-import qrl.core.configuration as config
+import configuration as config
 
-from qrl.core import db, logger, transaction
-from qrl.core.merkle import sha256
+import db, logger, transaction
+from merkle import sha256
 
 
 class State:
