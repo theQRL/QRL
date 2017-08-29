@@ -10,6 +10,6 @@ echo "Updating QRL pyhton dependencies..."
 sudo pip install -r requirements.txt
 
 echo "Restart QRL node"
-python main.py
+python qrl/main.py
 
 $SHELL
