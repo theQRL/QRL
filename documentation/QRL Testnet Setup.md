@@ -27,8 +27,11 @@ This document describes the setup procedure to install and configure a QRL node 
 
 ### Start your node
 
-`qrl/main.py`
+`python start_qrl.py`
 
+or just
+
+`./start_qrl.py`
 
 ### Information
 
