@@ -45,6 +45,6 @@ tests/state/
 
 state/
 
-wallet\.dat
+tests/core/known_data/testcase1/wallet.dat
 
-wallet\.info
+tests/core/known_data/testcase1/wallet.info

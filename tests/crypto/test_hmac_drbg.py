@@ -4,7 +4,8 @@ from binascii import hexlify, unhexlify
 from unittest import TestCase
 
 from qrl.core import logger
-from qrl.crypto.hmac_drbg import SEED, GEN, GEN_range, GEN_range_bin
+from qrl.crypto.hmac_drbg import SEED, GEN, GEN_range, GEN_range_bin, new_keys
+from tests.crypto.known_values import S1, S1_Pub, S1_Pri
 
 logger.initialize_default(force_console_output=True)
 
@@ -59,3 +60,20 @@ class TestHMAC_DRBG(TestCase):
         expected = [unhexlify(d) for d in expected]
 
         self.assertEqual(expected, data)
+
+    def test_new_keys_random(self):
+        seed1, pub1, priv1 = new_keys()
+        seed2, pub2, priv2 = new_keys()
+
+        self.assertNotEqual(seed1, S1)
+        self.assertNotEqual(seed2, S1)
+        self.assertNotEqual(seed1, seed2)
+        self.assertNotEqual(pub1, pub2)
+        self.assertNotEqual(priv1, priv2)
+
+    def test_new_keys_known_seed(self):
+        seed1, pub1, priv1 = new_keys(S1)
+
+        self.assertEqual(hexlify(seed1), hexlify(S1))
+        self.assertEqual(hexlify(pub1), hexlify(S1_Pub))
+        self.assertEqual(hexlify(priv1), hexlify(S1_Pri))

@@ -18,6 +18,14 @@ class State:
     def __init__(self):
         self.db = db.DB()  # generate db object here
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.db is not None:
+            del self.db
+            self.db = None
+
     def stake_list_get(self):
         try:
             return self.db.get('stake_list')

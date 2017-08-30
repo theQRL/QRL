@@ -12,6 +12,8 @@ class WalletFactory(ServerFactory):
         self.p2pFactory = p2pFactory
         self.protocol = WalletProtocol
         self.newaddress = 0
+
+        # FIXME: stuff is not a very descriptive name..
         self.stuff = stuff
         self.recn = 0
         self.maxconnections = 1
