@@ -15,6 +15,7 @@ from qrl.crypto.misc import sha256
 
 class P2PProtocol(Protocol):
     def __init__(self):
+        # TODO: Comment with some names the services
         self.service = {'reboot': self.reboot,
                         'MR': self.MR,
                         # 'RFM': self.RFM, only for internal usage
@@ -112,7 +113,7 @@ class P2PProtocol(Protocol):
         if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):
             return
 
-        self.factory.master_mr.add(data['hash'], data['type'], self)
+        self.factory.master_mr.add_peer(data['hash'], data['type'], self)
 
         if data['hash'] in self.factory.master_mr.hash_callLater:  # Ignore if already requested
             return
@@ -160,7 +161,7 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message(msg_type,
                                                self.factory.master_mr.hash_msg[msg_hash]))
 
-        self.factory.master_mr.add(msg_hash, msg_type, self)
+        self.factory.master_mr.add_peer(msg_hash, msg_type, self)
 
     def broadcast(self, msg_hash, msg_type):  # Move to factory
         data = {'hash': sha256(str(msg_hash)),

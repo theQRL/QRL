@@ -17,6 +17,7 @@ from qrl.crypto.misc import sha256
 
 class P2PFactory(ServerFactory):
     def __init__(self, chain, nodeState, pos=None):
+        # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
         self.protocol = P2PProtocol
@@ -230,7 +231,9 @@ class P2PFactory(ServerFactory):
         return
 
     def register_and_broadcast(self, msg_type, msg_hash, msg_json):
+        # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
+
         msg_hash = sha256(str(msg_hash))
         data = {'hash': msg_hash,
                 'type': msg_type}

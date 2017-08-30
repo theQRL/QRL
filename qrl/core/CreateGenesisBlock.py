@@ -17,7 +17,9 @@ genesis_info['Q64b0d679aa0072155956e0d17f847a1d319bff2a4c346d802d9a450a245fe3cee
 class CreateGenesisBlock(object):  # first block has no previous header to reference..
     def __init__(self, chain):
         self.blockheader = BlockHeader()
-        self.blockheader.create(chain=chain, blocknumber=0, hashchain_link='genesis',
+        self.blockheader.create(chain=chain,
+                                blocknumber=0,
+                                hashchain_link='genesis',
                                 prev_blockheaderhash=sha256('Terror Blade'),
                                 hashedtransactions=sha256('0'),
                                 reveal_list=[],

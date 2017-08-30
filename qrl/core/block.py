@@ -26,6 +26,7 @@ class Block(object):
         return False
 
     def create(self, chain, hashchain_link, reveal_list=None, vote_hashes=None, last_block_number=-1):
+        # FIXME: probably this should turn into a constructor
         if not reveal_list:
             reveal_list = []
         if not vote_hashes:
