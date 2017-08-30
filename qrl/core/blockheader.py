@@ -16,7 +16,6 @@ class BlockHeader(object):
         self.reveal_list = None
         self.vote_hashes = None
         self.epoch = None
-        self.stake_nonce = None
         self.stake_selector = None
         self.block_reward = None
         self.headerhash = None
@@ -60,20 +59,13 @@ class BlockHeader(object):
 
         if self.blocknumber == 0:
             self.stake_selector = ''
-            self.stake_nonce = 0
             self.block_reward = 0
-        elif self.blocknumber == 1:
-            tmp_chain, _ = chain.select_hashchain(
-                last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(0),
-                hashchain=chain.hash_chain,
-                blocknumber=self.blocknumber)
-            self.stake_nonce = config.dev.blocks_per_epoch - tmp_chain.index(hashchain_link)
-            self.stake_selector = chain.mining_address
-            self.block_reward = self.block_reward_calc()
         else:
-            for s in chain.block_chain_buffer.stake_list_get(self.blocknumber):
-                if s[0] == chain.mining_address:
-                    self.stake_nonce = s[2] + 1
+            if self.blocknumber == 1:
+                tmp_chain, _ = chain.select_hashchain(
+                    last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(0),
+                    hashchain=chain.hash_chain,
+                    blocknumber=self.blocknumber)
             self.stake_selector = chain.mining_address
             self.block_reward = self.block_reward_calc()
 
@@ -89,7 +81,6 @@ class BlockHeader(object):
         self.vote_hashes = []
         for v in v1:
             self.vote_hashes.append(v.encode('latin1'))
-        self.stake_nonce = json_blockheader['stake_nonce']
         self.epoch = json_blockheader['epoch']
         self.headerhash = json_blockheader['headerhash'].encode('latin1')
         self.hash = json_blockheader['hash'].encode('latin1')
@@ -139,7 +130,6 @@ class BlockHeader(object):
         # FIXME: This is using strings... fix
         return sha256(self.stake_selector +
                       str(self.epoch) +
-                      str(self.stake_nonce) +
                       str(self.block_reward) +
                       str(self.timestamp) +
                       str(self.hash) +
