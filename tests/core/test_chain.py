@@ -18,7 +18,7 @@ class TestChain(TestCase):
         test_dir = os.path.dirname(os.path.abspath(__file__))
         config.user.wallet_path = os.path.join(test_dir, 'known_data/testcase1')
 
-    @timeout_decorator.timeout(10)
+    @timeout_decorator.timeout(60)
     def test_check_chain(self):
         with State() as state:
             self.assertIsNotNone(state)
@@ -33,5 +33,5 @@ class TestChain(TestCase):
             self.assertEqual(chain.my[0][0],
                              'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
 
-            # TODO: Add more check for data stability
+            # TODO: Add more checks for data stability
 
