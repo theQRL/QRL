@@ -87,7 +87,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = '-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.33a"
+        self.version_number = "alpha/0.34a"
         self.chain_file_directory = 'data'
 
         self.db_name = 'state'
@@ -95,6 +95,7 @@ class DevConfig(object):
         self.wallet_dat_filename = 'wallet.dat'
         self.wallet_info_filename = 'wallet.info'
         self.mnemonic_filename = 'mnemonic'
+        self.genesis_prev_headerhash = 'SkyBorg'
 
     @staticmethod
     def getInstance():

@@ -491,10 +491,31 @@ class P2PProtocol(Protocol):
 
     def VE(self, data=None):
         if not data:
-            self.transport.write(self.wrap_message('VE', self.factory.chain.version_number))
+            version_details = {
+                'version': config.dev.version_number,
+                'genesis_prev_headerhash': config.dev.genesis_prev_headerhash
+            }
+            self.transport.write(self.wrap_message('VE', helper.json_encode(version_details)))
         else:
-            self.version = str(data)
-            logger.info('%s version: %s', self.transport.getPeer().host, data)
+            try:
+                data = helper.json_decode(data)
+                self.version = str(data['version'])
+                logger.info('%s version: %s | genesis prev_headerhash %s',
+                            self.transport.getPeer().host,
+                            data['version'],
+                            data['genesis_prev_headerhash'])
+
+                if data['genesis_prev_headerhash'] == config.dev.genesis_prev_headerhash:
+                    return
+                logger.warning('%s genesis_prev_headerhash mismatch', self.identity)
+                logger.warning('Expected: ', config.dev.genesis_prev_headerhash)
+                logger.warning('Found: ', data['genesis_prev_headerhash'])
+            except Exception as e:
+                logger.error('Peer Caused Exception %s', self.identity)
+                logger.exception(e)
+
+            self.transport.loseConnection()
+
         return
 
     # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
