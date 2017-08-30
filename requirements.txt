@@ -4,6 +4,7 @@ leveldb==0.20
 statistics>=1.0.3.5
 ntplib>=0.3.3
 Twisted==16.0.0
+colorlog>=3.0.1
 simplejson>=3.11.1
 recommonmark>=0.4.0
 sphinx==1.5.6
