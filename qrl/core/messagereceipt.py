@@ -109,7 +109,9 @@ class MessageReceipt(object):
     def __remove__(self):
         msg_hash, msg_type = self.hash_type.popitem(last=False)
 
-        del self.hash_peer[msg_hash]
+        if msg_hash in self.hash_peer:
+            del self.hash_peer[msg_hash]
+
         if msg_hash in self.hash_msg:
             del self.hash_msg[msg_hash]
 
