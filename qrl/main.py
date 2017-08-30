@@ -33,24 +33,39 @@ def main():
                         help="Retrieve data from a different path")
     parser.add_argument('--walletpath', '-w', dest='wallet_path', default=config.user.wallet_path,
                         help="Retrieve wallet from a different path")
+    parser.add_argument('--no-colors', dest='no_colors', action='store_true', default=False,
+                        help="Disables color output")
+    parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                        help="Set the logging level")
+
     args = parser.parse_args()
 
-    logger.initialize_default(force_console_output=not args.quiet)
-    logger.log_to_file()
+    node_state = NodeState()
+
+    # Logging configuration
+    log_level = logging.INFO
+    if args.logLevel:
+        log_level = getattr(logging, args.logLevel)
+
+    logger.initialize_default(force_console_output=not args.quiet).setLevel(log_level)
+
+    custom_filter = ContextFilter(node_state)
+    logger.logger.addFilter(custom_filter)
+    file_handler = logger.log_to_file()
+    file_handler.addFilter(custom_filter)
+    file_handler.setLevel(logging.DEBUG)
+    logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
+
+    logger.debug("=====================================================================================")
+
+    #######
 
     logger.info("Data Path: %s", args.data_path)
     logger.info("Wallet Path: %s", args.wallet_path)
     config.user.data_path = args.data_path
     config.user.wallet_path = args.wallet_path
-
     config.create_path(config.user.data_path)
     config.create_path(config.user.wallet_path)
-
-    node_state = NodeState()
-    custom_filter = ContextFilter(node_state)
-    for h in logger.logger.handlers:
-        h.setFormatter(logging.Formatter(LOG_FORMAT_CUSTOM))
-    logger.logger.addFilter(custom_filter)
 
     ntp.setDrift()
 
