@@ -1,16 +1,10 @@
-#!/usr/bin/env python
-
-# Distributed under the MIT software license, see the accompanying
-# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import logging
-from os.path import expanduser
 
 from twisted.internet import reactor
 
 import webwallet
-from core import logger, ntp, node
-import core.configuration as config
+from core import logger, ntp, node, config
 from core.apifactory import ApiFactory
 from core.chain import Chain
 from core.node import NodeState
@@ -94,7 +88,3 @@ def main():
     reactor.callLater(20, pos.unsynced_logic)
 
     reactor.run()
-
-
-if __name__ == "__main__":
-    main()

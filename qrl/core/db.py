@@ -2,16 +2,14 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-__author__ = 'pete'
-
 import cPickle as pickle
 import leveldb
 import os
-
 import simplejson as json
 
-import configuration as config
-import logger
+from qrl.core import config, logger
+
+__author__ = 'pete'
 
 
 class DB:

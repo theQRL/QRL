@@ -5,10 +5,8 @@ from StringIO import StringIO
 
 import simplejson as json
 
-import configuration as config
-import helper
-import logger, merkle
-from merkle import sha256
+from qrl.core import logger, helper, config
+from qrl.crypto.misc import sha256, xmss_verify
 
 TX_SUBTYPE_TX = 'TX'
 TX_SUBTYPE_STAKE = 'STAKE'
@@ -90,8 +88,8 @@ class Transaction(object):
         return True
 
     def validate_signed_hash(self):
-        if merkle.xmss_verify(self.txhash,
-                              [self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]) is False:
+        if xmss_verify(self.txhash,
+                       [self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]) is False:
             logger.info('xmss_verify failed')
             return False
 

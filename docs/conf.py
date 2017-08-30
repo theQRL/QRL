@@ -135,7 +135,7 @@ html_theme = 'bizstyle'
 try:
     from qrl.core import __version__ as version
 except ImportError:
-    pass
+    version = "unknown"
 else:
     release = version
 

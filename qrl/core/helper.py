@@ -4,13 +4,8 @@
 import jsonpickle
 import simplejson as json
 
-import configuration as config
-import logger
-import merkle
-
-
-# simple transaction creation and wallet functions using the wallet file..
-from merkle import sha256
+from qrl.core import config, logger
+from qrl.crypto.misc import numlist, sha256
 
 
 def isValidAddress(addr):
@@ -38,7 +33,7 @@ def select_target_hashchain(last_block_headerhash):
 
 def wlt():
     # FIXME: unresolved reference here
-    return merkle.numlist(wallet.list_addresses())
+    return numlist(wallet.list_addresses())
 
 
 def xmss_rootoaddr(PK_short):

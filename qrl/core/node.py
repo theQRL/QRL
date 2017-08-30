@@ -8,12 +8,12 @@ from copy import deepcopy
 
 from twisted.internet import reactor
 
-import configuration as config
-import fork
-from messagereceipt import MessageReceipt
-import logger, transaction, CreateGenesisBlock
-from merkle import sha256
-from transaction import StakeTransaction
+from qrl.core import logger, transaction, config, fork
+from qrl.core.CreateGenesisBlock import genesis_info
+from qrl.core.fork import fork_recovery
+from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.transaction import StakeTransaction
+from qrl.crypto.misc import sha256
 
 
 class NodeState:
@@ -107,7 +107,7 @@ class POS:
                 logger.info('Blockhash didnt matched in peers_blockheight()')
                 logger.info('Local blockhash - %s', actual_blockhash)
                 logger.info('Consensus blockhash - %s', blockhash)
-                fork.fork_recovery(current_height, self.chain, self.randomize_headerhash_fetch)
+                fork_recovery(current_height, self.chain, self.randomize_headerhash_fetch)
                 return True
         return
 
@@ -194,7 +194,7 @@ class POS:
         for tx in self.chain.transaction_pool:
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, CreateGenesisBlock.genesis_info[tx.txfrom]])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, genesis_info[tx.txfrom]])
 
         # required as doing chain.stake_list.index(s) which will result into different number on different server
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)

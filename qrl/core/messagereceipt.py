@@ -3,8 +3,8 @@
 
 from collections import OrderedDict, defaultdict
 
-import configuration as config
-from merkle import sha256
+from qrl.core import config
+from qrl.crypto.misc import sha256
 
 
 class MessageReceipt(object):

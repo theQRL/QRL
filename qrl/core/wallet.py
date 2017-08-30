@@ -1,9 +1,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
-# wallet code
-import logger, merkle, transaction
-from merkle import mnemonic_to_seed
+from qrl.core import config, logger, transaction
+from qrl.crypto.LDOTS import random_ldmss
+from qrl.crypto.WOTS import random_wmss
+from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.xmss import XMSS
 
 __author__ = 'pete'
 
@@ -12,7 +13,6 @@ import gc
 import os
 import sys
 
-import configuration as config
 
 
 class Wallet:
@@ -240,15 +240,15 @@ class Wallet:
         """
         addr = []
         if addrtype == Wallet.ADDRESS_TYPE_XMSS:
-            new = merkle.XMSS(signatures=signatures, SEED=SEED)
+            new = XMSS(signatures=signatures, SEED=SEED)
             addr.append(new.address)
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_WOTS:
-            new = merkle.random_wmss(signatures=signatures)
+            new = random_wmss(signatures=signatures)
             addr.append(self.chain.roottoaddr(new[0].merkle_root))
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_LDOTS:
-            new = merkle.random_ldmss(signatures=signatures)
+            new = random_ldmss(signatures=signatures)
             addr.append(self.chain.roottoaddr(new[0].merkle_root))
             addr.append(new)
         else:
@@ -259,7 +259,7 @@ class Wallet:
     # def xmss_getnewaddress(self, signatures=4096, SEED=None,
     def xmss_getnewaddress(self, signatures=8000, SEED=None, addrtype='WOTS+'):
         # new address format returns a stateful XMSS class object
-        return merkle.XMSS(signatures, SEED)
+        return XMSS(signatures, SEED)
 
     def savenewaddress(self, signatures=64, addrtype='WOTS', seed=None):
         self.f_append_wallet(self.getnewaddress(signatures, addrtype, seed))
