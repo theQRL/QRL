@@ -36,8 +36,8 @@ body {
 }
 #petefix > .item {
     margin-right: 2em;
-    border-left: 0px;
-    padding-left: 0px !important;
+    border-left: 0;
+    padding-left: 0 !important;
 }
 #petefix2 > .item {
     margin-right: 2em;
