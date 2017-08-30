@@ -6,8 +6,9 @@ from unittest import TestCase
 from timeout_decorator import timeout_decorator
 
 from qrl.core import logger
-from qrl.crypto import merkle
-from qrl.crypto.merkle import xmss_tree
+from qrl.crypto.hmac_drbg import SEED, GEN, GEN_range, new_keys, GEN_range_bin
+from qrl.crypto.misc import seed_to_mnemonic, xmss_tree
+from qrl.crypto.xmss import XMSS
 
 logger.initialize_default(force_console_output=True)
 
@@ -78,26 +79,26 @@ class TestMerkle(TestCase):
         super(TestMerkle, self).__init__(*args, **kwargs)
 
     def test_SEED(self):
-        r1 = merkle.SEED()
-        r2 = merkle.SEED()
+        r1 = SEED()
+        r2 = SEED()
         self.assertNotEqual(r1, r2)
         self.assertEqual(len(r1), 48)
         self.assertEqual(len(r2), 48)
-        r3 = merkle.SEED(100)
+        r3 = SEED(100)
         self.assertEqual(len(r3), 100)
 
     def test_GEN(self):
-        data = merkle.GEN(TestMerkle.S1, 1)
+        data = GEN(TestMerkle.S1, 1)
         self.assertEqual(hexlify(data), '2c4147cd5c75622220054bd8923ba565999931634499fc096c0b9cedf8f4f32d')
 
-        data = merkle.GEN(TestMerkle.S1, 1)
+        data = GEN(TestMerkle.S1, 1)
         self.assertEqual(hexlify(data), '2c4147cd5c75622220054bd8923ba565999931634499fc096c0b9cedf8f4f32d')
 
-        data = merkle.GEN(TestMerkle.S1, 2)
+        data = GEN(TestMerkle.S1, 2)
         self.assertEqual(hexlify(data), '055ef7ba547c2db4af3e79fb53c9dc8871419a1fb8e4bf050b3c39abf6883e5d')
 
     def test_GEN_range(self):
-        data = merkle.GEN_range(TestMerkle.S1, 1, 5)
+        data = GEN_range(TestMerkle.S1, 1, 5)
 
         expected = ['2c4147cd5c75622220054bd8923ba565999931634499fc096c0b9cedf8f4f32d',
                     '055ef7ba547c2db4af3e79fb53c9dc8871419a1fb8e4bf050b3c39abf6883e5d',
@@ -108,7 +109,7 @@ class TestMerkle(TestCase):
         self.assertEqual(expected, data)
 
     def test_GEN_range_bin(self):
-        data = merkle.GEN_range_bin(TestMerkle.S1, 1, 5)
+        data = GEN_range_bin(TestMerkle.S1, 1, 5)
 
         expected = ['2c4147cd5c75622220054bd8923ba565999931634499fc096c0b9cedf8f4f32d',
                     '055ef7ba547c2db4af3e79fb53c9dc8871419a1fb8e4bf050b3c39abf6883e5d',
@@ -121,8 +122,8 @@ class TestMerkle(TestCase):
         self.assertEqual(expected, data)
 
     def test_new_keys_random(self):
-        seed1, pub1, priv1 = merkle.new_keys()
-        seed2, pub2, priv2 = merkle.new_keys()
+        seed1, pub1, priv1 = new_keys()
+        seed2, pub2, priv2 = new_keys()
 
         self.assertNotEqual(seed1, TestMerkle.S1)
         self.assertNotEqual(seed2, TestMerkle.S1)
@@ -131,29 +132,29 @@ class TestMerkle(TestCase):
         self.assertNotEqual(priv1, priv2)
 
     def test_new_keys_known_seed(self):
-        seed1, pub1, priv1 = merkle.new_keys(TestMerkle.S1)
+        seed1, pub1, priv1 = new_keys(TestMerkle.S1)
 
         self.assertEqual(hexlify(seed1), hexlify(TestMerkle.S1))
         self.assertEqual(hexlify(pub1), hexlify(TestMerkle.S1_Pub))
         self.assertEqual(hexlify(priv1), hexlify(TestMerkle.S1_Pri))
 
     def test_seed_to_mnemonic_random(self):
-        r_seed1 = merkle.SEED()
-        r_seed2 = merkle.SEED()
-        mnemonic1 = merkle.seed_to_mnemonic(r_seed1)
-        mnemonic2 = merkle.seed_to_mnemonic(r_seed2)
+        r_seed1 = SEED()
+        r_seed2 = SEED()
+        mnemonic1 = seed_to_mnemonic(r_seed1)
+        mnemonic2 = seed_to_mnemonic(r_seed2)
 
         self.assertNotEqual(mnemonic1, TestMerkle.S1_Mne)
         self.assertNotEqual(mnemonic2, TestMerkle.S1_Mne)
         self.assertNotEqual(mnemonic1, mnemonic2)
 
     def test_seed_to_mnemonic_known(self):
-        mnemonic = merkle.seed_to_mnemonic(TestMerkle.S1)
+        mnemonic = seed_to_mnemonic(TestMerkle.S1)
         self.assertEqual(mnemonic, TestMerkle.S1_Mne)
 
     def test_xmss_tree(self):
         # Create seeds from public/private keys
-        seed1, pub1, priv1 = merkle.new_keys(TestMerkle.S1)
+        seed1, pub1, priv1 = new_keys(TestMerkle.S1)
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(2, public_SEED=pub1, private_SEED=priv1)
 
         # Verify sizes
@@ -164,8 +165,8 @@ class TestMerkle(TestCase):
         self.assertEqual(len(pubs), 2)
 
     def test_XMSS_get_address_random(self):
-        xmss1 = merkle.XMSS(signatures=1, SEED=None)
-        xmss2 = merkle.XMSS(signatures=1, SEED=None)
+        xmss1 = XMSS(signatures=1, SEED=None)
+        xmss2 = XMSS(signatures=1, SEED=None)
 
         self.assertEqual(xmss1.signatures, 1)
         self.assertEqual(xmss2.signatures, 1)
@@ -174,7 +175,7 @@ class TestMerkle(TestCase):
 
     @timeout_decorator.timeout(5)
     def test_XMSS_get_address_known(self):
-        xmss1 = merkle.XMSS(signatures=1, SEED=TestMerkle.S1)
+        xmss1 = XMSS(signatures=1, SEED=TestMerkle.S1)
         self.assertEqual(xmss1.signatures, 1)
         self.assertEqual(xmss1.root, TestMerkle.S1_root)
         self.assertEqual(xmss1.address, TestMerkle.S1_addr)
@@ -185,7 +186,7 @@ class TestMerkle(TestCase):
         self.assertEqual(xmss1.address_long, TestMerkle.S1_addrlong)
 
         # Test the same second time to check for independency
-        xmss2 = merkle.XMSS(signatures=1, SEED=TestMerkle.S1)
+        xmss2 = XMSS(signatures=1, SEED=TestMerkle.S1)
         self.assertEqual(xmss2.signatures, 1)
         self.assertEqual(xmss2.root, TestMerkle.S1_root)
         self.assertEqual(xmss2.address, TestMerkle.S1_addr)
@@ -195,7 +196,7 @@ class TestMerkle(TestCase):
         self.assertEqual(xmss2.catPK_short, TestMerkle.S1_catPKsh)
         self.assertEqual(xmss2.address_long, TestMerkle.S1_addrlong)
 
-        xmss3 = merkle.XMSS(signatures=5, SEED=TestMerkle.S1)
+        xmss3 = XMSS(signatures=5, SEED=TestMerkle.S1)
         self.assertEqual(xmss3.signatures, 5)
         self.assertIsNotNone(xmss3.address)
         self.assertEqual(xmss3.root, 'befa9094da96ad69015bebbf63d3ec1d9a0309e714d135f0c1dd3d9a2c9f4a57')

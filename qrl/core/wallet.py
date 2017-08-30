@@ -3,6 +3,7 @@
 
 # wallet code
 import logger
+import qrl.crypto.xmss
 import transaction
 from qrl.crypto import merkle
 from qrl.crypto.merkle import mnemonic_to_seed
@@ -242,7 +243,7 @@ class Wallet:
         """
         addr = []
         if addrtype == Wallet.ADDRESS_TYPE_XMSS:
-            new = merkle.XMSS(signatures=signatures, SEED=SEED)
+            new = qrl.crypto.xmss.XMSS(signatures=signatures, SEED=SEED)
             addr.append(new.address)
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_WOTS:
@@ -261,7 +262,7 @@ class Wallet:
     # def xmss_getnewaddress(self, signatures=4096, SEED=None,
     def xmss_getnewaddress(self, signatures=8000, SEED=None, addrtype='WOTS+'):
         # new address format returns a stateful XMSS class object
-        return merkle.XMSS(signatures, SEED)
+        return qrl.crypto.xmss.XMSS(signatures, SEED)
 
     def savenewaddress(self, signatures=64, addrtype='WOTS', seed=None):
         self.f_append_wallet(self.getnewaddress(signatures, addrtype, seed))
