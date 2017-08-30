@@ -256,9 +256,8 @@ class State:
 
         else:
 
-            logger.info('BLOCK: %s stake nonce: %s epoch: %s blocks_left: %s stake_selector %s',
+            logger.info('BLOCK: %s epoch: %s blocks_left: %s stake_selector %s',
                         block.blockheader.blocknumber,
-                        block.blockheader.stake_nonce,
                         block.blockheader.epoch,
                         blocks_left - 1,
                         block.blockheader.stake_selector)
