@@ -280,6 +280,8 @@ class P2PFactory(ServerFactory):
                 self.peer_addresses = pickle.load(my_file)
         else:
             logger.info('Creating peers.dat')
+            # Ensure the data path exists
+            config.create_path(config.user.data_path)
             with open(self.peers_path, 'w+') as my_file:
                 pickle.dump(config.user.peer_list, my_file)
                 self.peer_addresses = config.user.peer_list
