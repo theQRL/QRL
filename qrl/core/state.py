@@ -296,6 +296,16 @@ class State:
                         logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
                         return False
                 elif tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                    epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
+                    if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
+                        logger.warning('Block rejected #%s due to ST without first_reveal beyond limit',
+                                       block.blockheader.blocknumber)
+                        logger.warning('Stake_selector: %s', block.blockheader.stake_selector)
+                        logger.warning('epoch_blocknum: %s Threshold: %s',
+                                       epoch_blocknum,
+                                       config.dev.stake_before_x_blocks)
+                        return False
+
                     found = False
                     for s in next_sl:
                         # already in the next stake list, ignore for staker list but update as usual the state_for_address..
@@ -303,11 +313,13 @@ class State:
                             found = True
                             if s[3] is None and tx.first_hash is not None:
                                 threshold_block = self.get_staker_threshold_blocknum(next_sl, s[0])
-                                epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
-                                if epoch_blocknum >= threshold_block - 1:
-                                    s[3] = tx.first_hash
-                                else:
-                                    logger.warning('^^^^^^Rejected as %s %s', epoch_blocknum, threshold_block - 1)
+                                if epoch_blocknum < threshold_block - 1:
+                                    logger.warning('Block rejected #%s due to ST before threshold',
+                                                   block.blockheader.blocknumber)
+                                    logger.warning('Stake_selector: %s', block.blockheader.stake_selector)
+                                    logger.warning('epoch_blocknum: %s Threshold: %s', epoch_blocknum, threshold_block - 1)
+                                    return False
+                                s[3] = tx.first_hash
                             break
 
                     address_txn[tx.txfrom][2].append(pubhash)

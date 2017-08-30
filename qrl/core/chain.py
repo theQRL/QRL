@@ -231,6 +231,12 @@ class Chain:
             if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
                 continue
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                epoch_blocknum = last_block_number - (curr_epoch * config.dev.blocks_per_epoch)
+
+                # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
+                if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
+                    continue
+
                 if tx.epoch != curr_epoch:
                     logger.warning('Skipping st as epoch mismatch, CreateBlock()')
                     logger.warning('Expected st epoch : %s', curr_epoch)
@@ -1562,6 +1568,16 @@ class ChainBuffer:
                     return False
 
             elif tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
+                if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
+                    logger.warning('Block rejected #%s due to ST without first_reveal beyond limit',
+                                   block.blockheader.blocknumber)
+                    logger.warning('Stake_selector: %s', block.blockheader.stake_selector)
+                    logger.warning('epoch_blocknum: %s Threshold: %s',
+                                   epoch_blocknum,
+                                   config.dev.stake_before_x_blocks)
+                    return False
+
                 found = False
                 for s in next_sl:
                     # already in the next stake list, ignore for staker list but update as usual the state_for_address..
@@ -1569,9 +1585,13 @@ class ChainBuffer:
                         found = True
                         if s[3] is None and tx.first_hash is not None:
                             threshold_block = self.state.get_staker_threshold_blocknum(next_sl, s[0])
-                            epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
-                            if epoch_blocknum >= threshold_block - 1:
-                                s[3] = tx.first_hash
+                            if epoch_blocknum < threshold_block - 1:
+                                logger.warning('Block rejected #%s due to ST before threshold',
+                                               block.blockheader.blocknumber)
+                                logger.warning('Stake_selector: %s', block.blockheader.stake_selector)
+                                logger.warning('epoch_blocknum: %s Threshold: %s', epoch_blocknum, threshold_block - 1)
+                                return False
+                            s[3] = tx.first_hash
 
                         break
 
