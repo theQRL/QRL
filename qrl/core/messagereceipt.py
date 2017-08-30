@@ -46,9 +46,8 @@ class MessageReceipt(object):
         self.hash_type = OrderedDict()
         self.hash_peer = defaultdict(list)
 
-        # TODO: Check if this is deprecated
-        #self.requested_hash = defaultdict(list)
-        #self.hash_callLater = dict()
+        self.requested_hash = defaultdict(list)
+        self.hash_callLater = dict()
 
     def register(self, msg_hash, msg_obj, msg_type):
         """
@@ -94,17 +93,15 @@ class MessageReceipt(object):
 
         self.hash_peer[msg_hash].append(peer)
 
-    # TODO: confirm this is deprecated
-    # def isRequested(self, msg_hash, peer):
-    #     msg_hash = sha256(str(msg_hash))
-    #     if msg_hash in self.requested_hash:
-    #         if peer in self.requested_hash[msg_hash]:
-    #             return True
-    #     return False
+    def isRequested(self, msg_hash, peer):
+        msg_hash = sha256(str(msg_hash))
+        if msg_hash in self.requested_hash:
+            if peer in self.requested_hash[msg_hash]:
+                return True
+        return False
 
-    # TODO: confirm this is deprecated
-    # def add_to_master(self, msg_hash, msg_type):
-    #     self.hash_type[msg_hash] = msg_type
+    def add_to_master(self, msg_hash, msg_type):
+        self.hash_type[msg_hash] = msg_type
 
     def __remove__(self):
         msg_hash, msg_type = self.hash_type.popitem(last=False)
@@ -115,15 +112,14 @@ class MessageReceipt(object):
         if msg_hash in self.hash_msg:
             del self.hash_msg[msg_hash]
 
-    # TODO: confirm this is deprecated
-    # def remove_hash(self, msg_hash, peer):
-    #     if msg_hash in self.hash_peer:
-    #         if peer in self.hash_peer[msg_hash]:
-    #             self.hash_peer[msg_hash].remove(peer)
-    #             if self.hash_peer[msg_hash]:
-    #                 return
-    #             del self.hash_peer[msg_hash]
-    #             del self.hash_type[msg_hash]
+    def remove_hash(self, msg_hash, peer):
+        if msg_hash in self.hash_peer:
+            if peer in self.hash_peer[msg_hash]:
+                self.hash_peer[msg_hash].remove(peer)
+                if self.hash_peer[msg_hash]:
+                    return
+                del self.hash_peer[msg_hash]
+                del self.hash_type[msg_hash]
 
     def contains(self, msg_hash, msg_type):
         """
