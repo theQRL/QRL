@@ -10,8 +10,14 @@
 # fees
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
-import configuration as config
-from CreateGenesisBlock import CreateGenesisBlock
+from qrl.core import config, logger, transaction
+from qrl.core.CreateGenesisBlock import CreateGenesisBlock
+from qrl.core.block import Block
+from qrl.core.helper import json_print_telnet, json_bytestream, json_print, json_encode_complex
+from qrl.core.transaction import SimpleTransaction
+from qrl.core.wallet import Wallet
+from qrl.crypto.hmac_drbg import GEN_range_bin
+from qrl.crypto.misc import sha256, merkle_tx_hash, closest_number
 
 __author__ = 'pete'
 
@@ -23,20 +29,11 @@ from time import time
 from operator import itemgetter
 from math import log, ceil
 import heapq
-
 import os, copy, sys
 from copy import deepcopy
 import simplejson as json
 from collections import defaultdict
-
-import wallet
-from qrl.crypto import merkle
-from qrl.crypto.merkle import sha256
-import helper
-from block import Block
-from transaction import SimpleTransaction
 from decimal import Decimal
-import transaction, logger
 
 
 class Chain:
@@ -47,7 +44,7 @@ class Chain:
         self.txhash_timestamp = []
         self.m_blockchain = []
 
-        self.wallet = wallet.Wallet(self, state)
+        self.wallet = Wallet(self, state)
         self.my = self.wallet.f_read_wallet()
 
         self.mining_address = self.my[0][1].address
@@ -298,13 +295,13 @@ class Chain:
 
         list_hash.sort()
 
-        root = merkle.merkle_tx_hash(list_hash)
+        root = merkle_tx_hash(list_hash)
 
         p = []
         for l in list_hash:
             p.append(int(l, 16))
 
-        closest = merkle.cl(int(root, 16), p)
+        closest = closest_number(int(root, 16), p)
 
         return ''.join(list_hash[p.index(closest)]), root
 
@@ -335,7 +332,7 @@ class Chain:
         if not y:  # if pool is empty -> return sha256 null
             return [sha256('')], [[]]
         elif x == y:  # if the pool isnt empty but there is no difference then return the only merkle hash possible..
-            return [merkle.merkle_tx_hash(y)], [y]
+            return [merkle_tx_hash(y)], [y]
         else:  # there is a difference in contents of pool over last 1.5 seconds..
             merkle_hashes = []
             txhashes = []
@@ -344,7 +341,7 @@ class Chain:
                 x = []
                 txhashes.append(x)
             else:
-                merkle_hashes.append(merkle.merkle_tx_hash(x))
+                merkle_hashes.append(merkle_tx_hash(x))
                 txhashes.append(x)
             tmp_txhashes = x
 
@@ -352,7 +349,7 @@ class Chain:
                 if tx.txhash in y and tx.txhash not in x:
                     tmp_txhashes.append(tx.txhash)
                     tmp_txhashes.sort()
-                    merkle_hashes.append(merkle.merkle_tx_hash(tmp_txhashes))
+                    merkle_hashes.append(merkle_tx_hash(tmp_txhashes))
                     txhashes.append(tmp_txhashes)
 
             return merkle_hashes, txhashes
@@ -368,7 +365,7 @@ class Chain:
         :return:
         """
         n_bits = int(ceil(log(n, 2)))
-        prf = merkle.GEN_range_bin(seed, 1, 20000, 1)
+        prf = GEN_range_bin(seed, 1, 20000, 1)
         prf_range = []
         for z in prf:
             x = ord(z) >> 8 - n_bits
@@ -407,7 +404,7 @@ class Chain:
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
                 if islong == 0: tx_list.append('<tx:txhash> ' + tx.txhash + ' <transaction_pool>')
-                if islong == 1: tx_list.append(helper.json_print_telnet(tx))
+                if islong == 1: tx_list.append(json_print_telnet(tx))
 
         for block in self.m_blockchain:
             for tx in block.transactions:
@@ -415,7 +412,7 @@ class Chain:
                     # logger.info(( txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
                     if islong == 0: tx_list.append(
                         '<tx:txhash> ' + tx.txhash + ' <block> ' + str(block.blockheader.blocknumber))
-                    if islong == 1: tx_list.append(helper.json_print_telnet(tx))
+                    if islong == 1: tx_list.append(json_print_telnet(tx))
         return tx_list
 
     # used for port 80 api - produces JSON output of a specific tx hash, including status of tx, in a block or unconfirmed + timestampe of parent block
@@ -427,27 +424,27 @@ class Chain:
                 logger.info('%s found in transaction pool..', txhash)
                 tx_new = copy.deepcopy(tx)
                 tx_new.block = 'unconfirmed'
-                tx_new.hexsize = len(helper.json_bytestream(tx_new))
+                tx_new.hexsize = len(json_bytestream(tx_new))
                 tx_new.status = 'ok'
-                return helper.json_print_telnet(tx_new)
+                return json_print_telnet(tx_new)
 
         try:
             txn_metadata = self.state.db.get(txhash)
         except:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
-            return helper.json_print_telnet(err)
+            return json_print_telnet(err)
 
         tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
         tx_new = copy.deepcopy(tx)
         tx_new.block = txn_metadata[1]
         tx_new.timestamp = txn_metadata[2]
         tx_new.confirmations = self.m_blockheight() - txn_metadata[1]
-        tx_new.hexsize = len(helper.json_bytestream(tx_new))
+        tx_new.hexsize = len(json_bytestream(tx_new))
         tx_new.amount = tx_new.amount / 100000000.000000000
         tx_new.fee = tx_new.fee / 100000000.000000000
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
         tx_new.status = 'ok'
-        return helper.json_print_telnet(tx_new)
+        return json_print_telnet(tx_new)
 
     def basic_info(self, address):
         addr = {}
@@ -456,7 +453,7 @@ class Chain:
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
             addr['parameter'] = address
-            return helper.json_print_telnet(addr)
+            return json_print_telnet(addr)
 
         nonce, balance, _ = self.state.state_get_address(address)
         addr['state'] = {}
@@ -465,7 +462,7 @@ class Chain:
         addr['state']['nonce'] = nonce
         addr['state']['transactions'] = self.state.state_get_txn_count(address)
         addr['status'] = 'ok'
-        return helper.json_print_telnet(addr)
+        return json_print_telnet(addr)
 
     # used for port 80 api - produces JSON output reporting every transaction for an address, plus final balance..
 
@@ -479,7 +476,7 @@ class Chain:
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
             addr['parameter'] = address
-            return helper.json_print_telnet(addr)
+            return json_print_telnet(addr)
 
         nonce, balance, pubhash_list = self.state.state_get_address(address)
         addr['state'] = {}
@@ -549,7 +546,7 @@ class Chain:
         else:
             addr['status'] = 'ok'
 
-        return helper.json_print_telnet(addr)
+        return json_print_telnet(addr)
 
     def last_unconfirmed_tx(self, n=1):
         addr = {'transactions': []}
@@ -558,10 +555,10 @@ class Chain:
         try:
             n = int(n)
         except:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         if n <= 0 or n > 20:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         tx_num = len(self.transaction_pool)
         while tx_num > 0:
@@ -578,7 +575,7 @@ class Chain:
             addr['transactions'].append(tmp_txn)
 
         addr['status'] = 'ok'
-        return helper.json_print_telnet(addr)
+        return json_print_telnet(addr)
 
     # return json info on last n tx in the blockchain
 
@@ -590,16 +587,16 @@ class Chain:
         try:
             n = int(n)
         except:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         if n <= 0 or n > 20:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         try:
             last_txn = self.state.db.get('last_txn')
         except Exception:
             error['error'] = 'txnhash not found'
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         n = min(len(last_txn), n)
         while n > 0:
@@ -615,7 +612,7 @@ class Chain:
             addr['transactions'].append(tmp_txn)
             addr['status'] = 'ok'
 
-        return helper.json_print_telnet(addr)
+        return json_print_telnet(addr)
 
     def richlist(self, n=None):
         """
@@ -631,13 +628,13 @@ class Chain:
         try:
             n = int(n)
         except:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         if n <= 0 or n > 20:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         if not self.state.state_uptodate(self.m_blockheight()):
-            return helper.json_print_telnet({'status': 'error', 'error': 'leveldb failed', 'method': 'richlist'})
+            return json_print_telnet({'status': 'error', 'error': 'leveldb failed', 'method': 'richlist'})
 
         addr = self.state.db.return_all_addresses()
         richlist = sorted(addr, key=itemgetter(1), reverse=True)
@@ -654,7 +651,7 @@ class Chain:
 
         rl['status'] = 'ok'
 
-        return helper.json_print_telnet(rl)
+        return json_print_telnet(rl)
 
     # return json info on last n blocks
 
@@ -665,10 +662,10 @@ class Chain:
         try:
             n = int(n)
         except:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         if n <= 0 or n > 20:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
 
         lb = []
         beginning = self.height() - n
@@ -691,7 +688,7 @@ class Chain:
 
         last_blocks['status'] = 'ok'
 
-        return helper.json_print_telnet(last_blocks)
+        return json_print_telnet(last_blocks)
 
     # return json info on stake_commit list
 
@@ -708,7 +705,7 @@ class Chain:
             sc['commits'][str(c[1]) + '-' + c[3]]['merkle_hash_tx'] = c[2]
             sc['commits'][str(c[1]) + '-' + c[3]]['commit_hash'] = c[3]
 
-        return helper.json_print_telnet(sc)
+        return json_print_telnet(sc)
 
     def stakers(self, data=None):
         # (stake -> address, hash_term, nonce)
@@ -723,7 +720,7 @@ class Chain:
 
             stakers['stake_list'].append(tmp_stakers)
 
-        return helper.json_print_telnet(stakers)
+        return json_print_telnet(stakers)
 
     def next_stakers(self, data=None):
         # (stake -> address, hash_term, nonce)
@@ -738,7 +735,7 @@ class Chain:
 
             next_stakers['stake_list'].append(tmp_stakers)
 
-        return helper.json_print_telnet(next_stakers)
+        return json_print_telnet(next_stakers)
 
     @staticmethod
     def exp_win(data=None):
@@ -747,7 +744,7 @@ class Chain:
         ew = {'status': 'ok',
               'expected_winner': {}}
 
-        return helper.json_print_telnet(ew)
+        return json_print_telnet(ew)
 
     def stake_reveal_ones(self, data=None):
 
@@ -761,7 +758,7 @@ class Chain:
             sr['reveals'][str(c[1]) + '-' + str(c[2])]['headerhash'] = c[1]
             sr['reveals'][str(c[1]) + '-' + str(c[2])]['reveal'] = c[3]
 
-        return helper.json_print_telnet(sr)
+        return json_print_telnet(sr)
 
     def ip_geotag(self, data=None):
 
@@ -773,7 +770,7 @@ class Chain:
             ip['ip_geotag'][x] = i
             x += 1
 
-        return helper.json_print_telnet(ip)
+        return json_print_telnet(ip)
 
     def stake_reveals(self, data=None):
 
@@ -788,19 +785,19 @@ class Chain:
             sr['reveals'][str(c[1]) + '-' + c[3]]['merkle_hash_tx'] = c[2]
             sr['reveals'][str(c[1]) + '-' + c[3]]['reveal'] = c[3]
 
-        return helper.json_print_telnet(sr)
+        return json_print_telnet(sr)
 
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
                 logger.info((txcontains, 'found in transaction pool..'))
-                if islong == 1: helper.json_print(tx)
+                if islong == 1: json_print(tx)
         for block in self.m_blockchain:
             for tx in block.transactions:
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
                     logger.info((txcontains, 'found in block', str(block.blockheader.blocknumber), '..'))
                     if islong == 0: logger.info(('<tx:txhash> ' + tx.txhash))
-                    if islong == 1: helper.json_print(tx)
+                    if islong == 1: json_print(tx)
         return
 
     @staticmethod
@@ -912,7 +909,7 @@ class Chain:
 
         with open(self.get_chaindatafile(suffix), 'ab') as myfile:
             for block in writeable:
-                jsonBlock = helper.json_bytestream(block)
+                jsonBlock = json_bytestream(block)
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
                 pos = myfile.tell()
                 blockSize = len(compressedBlock)
@@ -1042,7 +1039,7 @@ class Chain:
             return False
         b = self.m_get_block(n)
         logger.info(('Block: ', b, str(b.blockheader.blocknumber)))
-        logger.info(('Blocksize, ', str(len(helper.json_bytestream(b)))))
+        logger.info(('Blocksize, ', str(len(json_bytestream(b)))))
         logger.info(('Number of transactions: ', str(len(b.transactions))))
         logger.info(('Validates: ', b.validate_block(self)))
 
@@ -1742,12 +1739,12 @@ class ChainBuffer:
 
     def send_block(self, blocknumber, transport, wrap_message):
         if blocknumber <= self.chain.height():
-            transport.write(wrap_message('PB', helper.json_bytestream(self.chain.m_get_block(blocknumber))))
+            transport.write(wrap_message('PB', json_bytestream(self.chain.m_get_block(blocknumber))))
         elif blocknumber in self.blocks:
             tmp = {blocknumber: []}
             for blockStateBuffer in self.blocks[blocknumber]:
                 tmp[blocknumber].append(blockStateBuffer[0].block)
-            transport.write(wrap_message('PBB', helper.json_encode_complex(tmp)))
+            transport.write(wrap_message('PBB', json_encode_complex(tmp)))
 
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())

@@ -8,8 +8,8 @@ import time
 import statistics
 from twisted.internet.protocol import Protocol, connectionDone
 
-import helper
-import logger
+from qrl.core import logger
+from qrl.core.helper import json_print_telnet
 
 
 class ApiProtocol(Protocol):
@@ -55,7 +55,7 @@ class ApiProtocol(Protocol):
 
         if data[1].lower() not in self.api_list:  # supported {command} in api_list
             error = {'status': 'error', 'error': 'supported method not supplied', 'parameter': data[1]}
-            self.transport.write(helper.json_print_telnet(error))
+            self.transport.write(json_print_telnet(error))
             return False
 
         #my_cls = ApiProtocol()  # call the command from api_list directly
@@ -91,7 +91,7 @@ class ApiProtocol(Protocol):
         pings = {'status': 'ok',
                  'peers': self.factory.chain.ping_list}
 
-        return helper.json_print_telnet(pings)
+        return json_print_telnet(pings)
 
     def stakers(self, data=None):
         logger.info('<<< API stakers call')
@@ -143,7 +143,7 @@ class ApiProtocol(Protocol):
                 last_block, richlist, ping, stake_commits, stake_reveals, stakers, \
                 next_stakers'
         }
-        return helper.json_print_telnet(error)
+        return json_print_telnet(error)
 
     def block_data(self, data=None):  # if no data = last block ([-1])			#change this to add error..
         error = {
@@ -157,20 +157,20 @@ class ApiProtocol(Protocol):
             data = self.factory.chain.m_get_last_block()
             data1 = copy.deepcopy(data)
             data1.status = 'ok'
-            return helper.json_print_telnet(data1)
+            return json_print_telnet(data1)
         try:
             int(data)  # is the data actually a number?
         except:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
         js_bk = self.factory.chain.m_get_block(int(data))
         if not js_bk:
-            return helper.json_print_telnet(error)
+            return json_print_telnet(error)
         else:
             js_bk1 = copy.deepcopy(js_bk)
             js_bk1.number_transactions = len(js_bk1.transactions)
             js_bk1.status = 'ok'
             js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward / 100000000.000000000
-            return helper.json_print_telnet(js_bk1)
+            return json_print_telnet(js_bk1)
 
     def stats(self, data=None):
         logger.info('<<< API stats call')
@@ -211,7 +211,7 @@ class ApiProtocol(Protocol):
                      'nodes': len(self.factory.peers) + 1,
                      'emission': self.factory.state.db.total_coin_supply() / 100000000.000000000,
                      'unmined': 21000000 - self.factory.state.db.total_coin_supply() / 100000000.000000000}
-        return helper.json_print_telnet(net_stats)
+        return json_print_telnet(net_stats)
 
     def txhash(self, data=None):
         logger.info(('<<< API tx/hash call', data))

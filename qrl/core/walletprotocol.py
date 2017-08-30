@@ -8,11 +8,10 @@ from StringIO import StringIO
 import simplejson as json
 from twisted.internet.protocol import Protocol, connectionDone
 
-import configuration as config
-import helper
-import logger
-from qrl.crypto.merkle import hexseed_to_seed, mnemonic_to_seed
-from transaction import StakeTransaction
+from qrl.core import helper, logger, config
+from qrl.core.transaction import StakeTransaction
+from qrl.crypto.hmac_drbg import hexseed_to_seed
+from qrl.crypto.mnemonic import mnemonic_to_seed
 
 
 class WalletProtocol(Protocol):
@@ -169,7 +168,6 @@ class WalletProtocol(Protocol):
                     self.output['recovery_address'] = addr[1].address
                     self.output['recovery_seed_phrase'] = addr[1].mnemonic
                     self.output['hexseed_confirm'] = addr[1].hexSEED
-
 
                 elif command == 'recoverfromwords':
                     if not args:

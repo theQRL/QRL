@@ -1,6 +1,6 @@
 from twisted.internet.protocol import ServerFactory
 
-from apiprotocol import ApiProtocol
+from qrl.core.apiprotocol import ApiProtocol
 
 
 class ApiFactory(ServerFactory):

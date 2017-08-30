@@ -1,8 +1,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-# Python hash signature library (quantum resistant)
-#
 # creates merkle trees for the MSS incorporating either lamport or winternitz OTS.
 
 # creates winternitz OTS key pairs, signs and verifies a winternitz one time signature. 
@@ -14,30 +12,26 @@
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
 
-import qrl.core.logger
-from hmac_drbg import GEN_range, random_key
-
 import hashlib
 import time
 from binascii import unhexlify
 from math import ceil, floor, log
 
-from qrl.core.words import wordlist  # 4096 unique word list for mnemonic SEED retrieval..
+from qrl.core import logger
+from qrl.crypto.hmac_drbg import GEN_range, random_key
 
 
 def t2(s, m):
     start_time = time.time()
     xmss_verify(m, s)
-    qrl.core.logger.info(str(time.time() - start_time))
+    logger.info(str(time.time() - start_time))
 
 
 def numlist(array):
     for a, b in enumerate(array):
-        qrl.core.logger.info((a, b))
+        logger.info((a, b))
     return
 
-
-# sha256 short form
 
 def sha256(message):
     return hashlib.sha256(message).hexdigest()
@@ -47,23 +41,15 @@ def sha256b(message):
     return hashlib.sha256(message).digest()
 
 
-
-
-# seed creation for xmss scheme for an address. Take a 48 bytes entropy from os.random, generate two 48 byte keys..public_SEED and private_SEED
-# public_SEED used to generate PK, private_SEED taken as seed for PRF to generate 2^h sk seeds from which to derive sk elements + r,k
-# each private key has 67 sk elements + w-1 +k = 83 -> 339968 keys to generate for a 4096 xmss tree!
-# so we take the private key seed and generate 4096 seeds with hmac_drbg, then generate 83 sk elements from each seed..
-# it is vital therefore the original 48 byte seed is kept secret. A word file with 65536 words in it can then be used to generate a 24 word list to be kept by the user
-
-def cl_hex(one, many):
+def closest_hex(one, many):
     p = []
     for l in many:
         p.append(int(l, 16))
 
-    return many[p.index(cl(int(one, 16), p))]
+    return many[p.index(closest_number(int(one, 16), p))]
 
 
-def cl(one, many):
+def closest_number(one, many):
     """
     return closest number in a list..
     :param one:
@@ -96,52 +82,6 @@ def merkle_tx_hash(hashes):
         l_array.append(next_layer)
 
     return ''.join(l_array[-1])
-
-
-# 48 byte SEED converted to a backup 32 word mnemonic wordlist to allow backup retrieval of keys and addresses.
-# SEED parsed 12 bits at a time and a word looked up from a dictionary with 4096 unique words in it..
-# another approach would be a hexseed and QR code or BIP38 style encryption of the SEED with a passphrase..
-
-# mnemonic back to SEED
-
-def mnemonic_to_seed(
-        mnemonic):  # takes a string..could use type or isinstance here..must be space not comma delimited..
-
-    words = mnemonic.lower().split()
-    if len(words) != 32:
-        qrl.core.logger.error('mnemonic is not 32 words in length..')
-        return False
-    SEED = ''
-    y = 0
-    for x in range(16):
-        n = format(wordlist.index(words[y]), '012b') + format(wordlist.index(words[y + 1]), '012b')
-        SEED += chr(int(n[:8], 2)) + chr(int(n[8:16], 2)) + chr(int(n[16:], 2))
-        y += 2
-    return SEED
-
-
-# SEED to mnemonic
-
-def seed_to_mnemonic(SEED):
-    if len(SEED) != 48:
-        qrl.core.logger.error('SEED is not 48 bytes in length..')
-        return False
-    words = []
-    y = 0
-    for x in range(16):
-        three_bytes = format(ord(SEED[y]), '08b') + format(ord(SEED[y + 1]), '08b') + format(ord(SEED[y + 2]), '08b')
-        words.append(wordlist[int(three_bytes[:12], 2)])
-        words.append(wordlist[int(three_bytes[12:], 2)])
-        y += 3
-    return ' '.join(words)
-
-
-# hexSEED to SEED
-
-def hexseed_to_seed(hexSEED):
-    if len(hexSEED) != 96:
-        return False
-    return unhexlify(hexSEED)
 
 
 def xmss_tree(n, private_SEED, public_SEED):
@@ -198,9 +138,14 @@ def xmss_tree(n, private_SEED, public_SEED):
     return xmss_array, x_bms, l_bms, privs, pubs
 
 
-# generate the xmss tree merkle auth route for a given ots key (starts at 0)
-
 def xmss_route(x_bms, x_tree, i=0):
+    """
+    generate the xmss tree merkle auth route for a given ots key (starts at 0)
+    :param x_bms:
+    :param x_tree:
+    :param i:
+    :return:
+    """
     auth_route = []
     i_bms = []
     nodehash_list = [item for sublist in x_tree for item in sublist]
@@ -212,7 +157,7 @@ def xmss_route(x_bms, x_tree, i=0):
             if node == ''.join(x_tree[x]):
                 auth_route.append(''.join(x_tree[x]))
             else:
-                qrl.core.logger.info('Failed..root')
+                logger.info('Failed..root')
                 return
 
         elif i == len(x_tree[x]) - 1 and leaf in x_tree[
@@ -242,13 +187,12 @@ def xmss_route(x_bms, x_tree, i=0):
             try:
                 x_tree[x + 1].index(node)  # confirm node matches a hash in next layer up?
             except:
-                qrl.core.logger.info(('Failed at height', str(x)))
+                logger.info(('Failed at height', str(x)))
                 return
             leaf = node
             i = x_tree[x + 1].index(leaf)
 
     return auth_route, i_bms
-
 
 
 def verify_auth(auth_route, i_bms, pub, PK):
@@ -271,6 +215,7 @@ def verify_auth(auth_route, i_bms, pub, PK):
 
     h = len(auth_route)
 
+    node = None
     for x in range(h - 1):  # last check is simply to confirm root = pair, no need for sha xor..
         if i_bms[x][0] == 'L':
             node = sha256(hex(int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1] + hex(
@@ -283,12 +228,20 @@ def verify_auth(auth_route, i_bms, pub, PK):
 
     if node == root:
         return True
+
     return False
 
 
-# same but using the shorter PK which is {root, hex(public_SEED)} to reconstitute the long PK with bitmasks then call above..
-
 def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
+    """
+    same as verify_auth but using the shorter PK which is {root, hex(public_SEED)} to reconstitute the long PK
+    with bitmasks then call above..
+    :param auth_route:
+    :param i_bms:
+    :param pub:
+    :param PK_short:
+    :return:
+    """
     PK = []
     root = PK_short[0]
     public_SEED = unhexlify(PK_short[1])
@@ -303,10 +256,14 @@ def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
     return verify_auth(auth_route, i_bms, pub, PK)
 
 
-# verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
-# SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
-
 def xmss_verify_long(msg, SIG):
+    """
+    verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
+    SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
+    :param msg:
+    :param SIG:
+    :return:
+    """
     if not verify_wpkey(SIG[1], msg, SIG[4]):
         return False
 
@@ -329,10 +286,13 @@ def xmss_verify(msg, SIG):
     return True
 
 
-# l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the randomly generated bm array.
-# where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e 0,8), and are 2 bm's per layer in tree, r + l
-
 def l_bm():
+    """
+    l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the
+    randomly generated bm array. where l = 67, # of bitmasks = 14, because h = ceil(log2(l) = 2^h = 7(inclusive..i.e
+    0,8), and are 2 bm's per layer in tree, r + l
+    :return:
+    """
     bm = []
     for x in range(14):
         bm.append(random_key())
@@ -363,7 +323,8 @@ def l_tree(pub, bm, l=67):
     return ''.join(l_array[-1])
 
 
-# winternitz ots+               #need to generate a seed from PRF to populate sk_1->sk_l1, r and k. Otherwise need the public key and private key to sign..
+# winternitz ots+
+# #need to generate a seed from PRF to populate sk_1->sk_l1, r and k. Otherwise need the public key and private key to sign..
 
 def fn_k(x, k):
     return sha256(k + x)
@@ -384,21 +345,25 @@ def chain_fn2(x, r, i, k):
     return x
 
 
-def random_wpkey_xmss(seed, w=16, verbose=0):
-    if verbose == 1:
-        start_time = time.time()
-    # first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
-    # if using SHA-256 then m and n = 256
+def random_wpkey_xmss(seed, w=16, verbose=False):
+    """
+    first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
+    if using SHA-256 then m and n = 256
+    :param seed:
+    :param w:
+    :param verbose:
+    :return:
+    """
+    start_time = time.time()
 
     if w == 16:
-        l = 67
         l_1 = 64
         l_2 = 3
     else:
         m = 256
         l_1 = ceil(m / log(w, 2))
         l_2 = floor(log((l_1 * (w - 1)), 2) / log(w, 2)) + 1
-        l = int(l_1 + l_2)
+    l = int(l_1 + l_2)
 
     pub = []
 
@@ -417,26 +382,31 @@ def random_wpkey_xmss(seed, w=16, verbose=0):
     for sk_ in priv:
         pub.append(chain_fn(sk_, r, w - 1, k))
 
-    if verbose == 1:
-        qrl.core.logger.info((str(time.time() - start_time)))
+    if verbose:
+        logger.info(str(time.time() - start_time))
+
     return priv, pub
 
 
-def random_wpkey(w=16, verbose=0):
-    if verbose == 1:
-        start_time = time.time()
-    # first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
-    # if using SHA-256 then m and n = 256
+def random_wpkey(w=16, verbose=False):
+    """
+    first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
+    if using SHA-256 then m and n = 256
+
+    :param w:
+    :param verbose:
+    :return:
+    """
+    start_time = time.time()
 
     if w == 16:
-        l = 67
         l_1 = 64
         l_2 = 3
     else:
         m = 256
         l_1 = ceil(m / log(w, 2))
         l_2 = floor(log((l_1 * (w - 1)), 2) / log(w, 2)) + 1
-        l = int(l_1 + l_2)
+    l = int(l_1 + l_2)
 
     sk = []
     pub = []
@@ -458,8 +428,9 @@ def random_wpkey(w=16, verbose=0):
     for sk_ in priv:
         pub.append(chain_fn(sk_, r, w - 1, k))
 
-    if verbose == 1:
-        qrl.core.logger.info((str(time.time() - start_time)))
+    if verbose:
+        logger.info((str(time.time() - start_time)))
+
     return priv, pub
 
 
@@ -506,11 +477,10 @@ def verify_wpkey(signature, message, pub, w=16):
     if w == 16:
         l_1 = 64
         l_2 = 3
-        l = 67
     else:
         l_1 = ceil(m / log(w, 2))
         l_2 = floor(log((l_1 * (w - 1)), 2) / log(w, 2)) + 1
-        l = int(l_1 + l_2)
+    l = int(l_1 + l_2)
 
     message = sha256(message)
 
@@ -542,14 +512,21 @@ def verify_wpkey(signature, message, pub, w=16):
     return False
 
 
-# winternitz ots
-
-def random_wkey(w=8, verbose=0):  # create random W-OTS keypair
-    # Use F = SHA256/SHA512 and G = SHA256/512
+def random_wkey(w=8, verbose=False):
+    """
+    winternitz ots
+    create random W-OTS keypair
+    Use F = SHA256/SHA512 and G = SHA256/512
+    :param w:
+    :param verbose:
+    :return:
+    """
     if w > 16:
         w = 16  # too many hash computations to make this sensible.  16 = 3.75s, 8 = 0.01s 1024 bytes..
+
     priv = []
     pub = []
+
     start_time = time.time()
     for x in range(256 / w):
         a = random_key()
@@ -559,8 +536,10 @@ def random_wkey(w=8, verbose=0):  # create random W-OTS keypair
         pub.append(sha256(a))  # G (just in case we have a different f from g).
 
     elapsed_time = time.time() - start_time
-    if verbose == 1:
-        qrl.core.logger.info(elapsed_time)
+
+    if verbose:
+        logger.info(elapsed_time)
+
     return priv, pub
 
 
@@ -665,7 +644,6 @@ def verify_lkey(signature, message, pub):  # verify lamport signature
 
 
 def random_lkey(numbers=256):  # create random lamport signature scheme keypair
-
     priv = []
     pub = []
 
@@ -711,7 +689,7 @@ def verify_root(pub, merkle_root, merkle_path):
     pubhash = sha256(''.join(pub))
 
     if pubhash not in merkle_path[0]:
-        qrl.core.logger.info('hashed public key not in merkle path')
+        logger.info('hashed public key not in merkle path')
         return False
 
     for x in range(len(merkle_path)):
@@ -719,10 +697,10 @@ def verify_root(pub, merkle_root, merkle_path):
             if ''.join(merkle_path[x]) == merkle_root:
                 return True
             else:
-                qrl.core.logger.info('root check failed')
+                logger.info('root check failed')
                 return False
         if sha256(merkle_path[x][0] + merkle_path[x][1]) not in merkle_path[x + 1]:
-            qrl.core.logger.error('path authentication error')
+            logger.error('path authentication error')
             return False
 
     return False

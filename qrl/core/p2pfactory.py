@@ -9,11 +9,10 @@ import simplejson as json
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-import configuration as config
-import helper
-import logger
-from p2pprotocol import P2PProtocol
-from qrl.crypto.merkle import sha256
+from qrl.core import config, logger
+from qrl.core.helper import json_encode, json_bytestream, json_bytestream_bk
+from qrl.core.p2pprotocol import P2PProtocol
+from qrl.crypto.misc import sha256
 
 
 class P2PFactory(ServerFactory):
@@ -183,7 +182,7 @@ class P2PFactory(ServerFactory):
                     self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber))
 
         self.last_reveal_one = z
-        self.register_and_broadcast('R1', z['vote_hash'], helper.json_encode(z))
+        self.register_and_broadcast('R1', z['vote_hash'], json_encode(z))
         # for peer in self.peers:
         #    peer.transport.write(self.f_wrap_message('R1', helper.json_encode(z)))
         # score = self.chain.score(stake_address=self.chain.mining_address,
@@ -199,7 +198,7 @@ class P2PFactory(ServerFactory):
 
     def send_last_stake_reveal_one(self):
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('R1', helper.json_encode(self.last_reveal_one)))
+            peer.transport.write(self.f_wrap_message('R1', json_encode(self.last_reveal_one)))
 
     def ip_geotag_peers(self):
         logger.info('<<<IP geotag broadcast')
@@ -220,14 +219,14 @@ class P2PFactory(ServerFactory):
         logger.info('<<<Transmitting POS created block %s %s', str(block_obj.blockheader.blocknumber),
                     block_obj.blockheader.headerhash)
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('S4', helper.json_bytestream(block_obj)))
+            peer.transport.write(self.f_wrap_message('S4', json_bytestream(block_obj)))
         return
 
     # send/relay block to peers
 
     def send_block_to_peers(self, block, peer_identity=None):
         # logger.info(('<<<Transmitting block: ', block.blockheader.headerhash))
-        self.register_and_broadcast('BK', block.blockheader.headerhash, helper.json_bytestream_bk(block))
+        self.register_and_broadcast('BK', block.blockheader.headerhash, json_bytestream_bk(block))
         return
 
     def register_and_broadcast(self, msg_type, msg_hash, msg_json):
@@ -240,7 +239,7 @@ class P2PFactory(ServerFactory):
             if msg_hash in self.master_mr.hash_peer:
                 if peer in self.master_mr.hash_peer[msg_hash]:
                     continue
-            peer.transport.write(self.f_wrap_message('MR', helper.json_encode(data)))
+            peer.transport.write(self.f_wrap_message('MR', json_encode(data)))
 
     # request transaction_pool from peers
 

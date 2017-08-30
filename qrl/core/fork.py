@@ -1,11 +1,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+import logger
 import simplejson as json
 
 # Initializers to be decided
-import logger
-
 pending_blocks = {}
 last_bk_time = None
 last_ph_time = None
@@ -52,7 +51,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
 def unfork(blocknumber, chain):
     sl = chain.stake_list_get()
 
-    for blocknum in xrange(blocknumber, chain.height() + 1):
+    for blocknum in range(blocknumber, chain.height() + 1):
         stake_selector = chain.m_blockchain[blocknum].blockheader.stake_selector
         for s in sl:
             if stake_selector == s[0]:

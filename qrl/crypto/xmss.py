@@ -2,11 +2,11 @@ from binascii import hexlify
 
 import time
 
-import qrl.core
-from qrl.core import configuration as config, logger
+from qrl.core import logger, config
 from qrl.crypto.hmac_drbg import new_keys, GEN, GEN_range
-from qrl.crypto.misc import seed_to_mnemonic, xmss_tree, sha256, xmss_route, verify_auth, verify_auth_SEED, sign_wpkey, \
-    verify_wpkey, xmss_verify_long, xmss_verify
+from qrl.crypto.misc import xmss_tree, sha256, xmss_route, verify_auth, verify_auth_SEED, sign_wpkey, verify_wpkey, \
+    xmss_verify_long, xmss_verify
+from qrl.crypto.mnemonic import seed_to_mnemonic
 
 
 def t(n):
@@ -112,7 +112,7 @@ class XMSS(object):
     def SIGN(self, msg):
         i = self.index
         # formal sign and increment the index to the next OTS to be used..
-        qrl.core.logger.info('xmss signing with OTS n = %s', str(self.index))
+        logger.info('xmss signing with OTS n = %s', str(self.index))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.x_bms, self.tree, i)
         self.index += 1
@@ -130,9 +130,9 @@ class XMSS(object):
         if i is None:
             i = self.signatures - len(self.addresses)
         if i > self.signatures or i < self.index:
-            qrl.core.logger.error(
-                'i cannot be below signing index or above the pre-calculated signature count for xmss tree')
+            logger.error('i cannot be below signing index or above the pre-calculated signature count for xmss tree')
             return False
+
         xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(i, self.private_SEED, self.public_SEED)
         i_PK = [''.join(xmss_array[-1]), hexlify(self.public_SEED)]
         new_addr = 'Q' + sha256(''.join(i_PK)) + sha256(sha256(''.join(i_PK)))[:4]
@@ -142,10 +142,10 @@ class XMSS(object):
 
     def address_adds(self, start_i, stop_i):  # batch creation of multiple addresses..
         if start_i > self.signatures or stop_i > self.signatures:
-            qrl.core.logger.error('i cannot be greater than pre-calculated signature count for xmss tree')
+            logger.error('i cannot be greater than pre-calculated signature count for xmss tree')
             return False
         if start_i >= stop_i:
-            qrl.core.logger.error('starting i must be lower than stop_i')
+            logger.error('starting i must be lower than stop_i')
             return False
 
         for i in range(start_i, stop_i):
@@ -154,14 +154,13 @@ class XMSS(object):
 
     def SIGN_subtree(self, msg, t=0):  # default to full xmss tree with max sigs
         if len(self.addresses) < t + 1:
-            qrl.core.logger.error('self.addresses new address does not exist')
+            logger.error('self.addresses new address does not exist')
             return False
         i = self.index
         if self.addresses[t][2] < i:
-            qrl.core.logger.error('xmss index above address derivation i')
+            logger.error('xmss index above address derivation i')
             return False
-        qrl.core.logger.info(
-            ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
+        logger.info(('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
         self.index += 1
@@ -176,12 +175,17 @@ class XMSS(object):
 
     def address_n(self, t):
         if len(self.addresses) < t + 1:
-            qrl.core.logger.info('ERROR: self.addresses new address does not exist')
+            logger.info('ERROR: self.addresses new address does not exist')
             return False
         return self.addresses[t][1]
 
-    def hashchain(self, n=config.dev.blocks_per_epoch,
-                  epoch=0):  # generates a 20,000th hash in iterative sha256 chain..derived from private SEED
+    def hashchain(self, n=config.dev.blocks_per_epoch, epoch=0):
+        """
+        generates a 20,000th hash in iterative sha256 chain..derived from private SEED
+        :param n:
+        :param epoch:
+        :return:
+        """
         half = int(config.dev.blocks_per_epoch / 2)
         x = GEN(self.private_SEED, half + epoch, l=32)
         y = GEN(x, half, l=32)

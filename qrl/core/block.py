@@ -3,15 +3,11 @@
 
 import simplejson as json
 
-import configuration as config
-import helper
-import logger
-import ntp
-import transaction
-from blockheader import BlockHeader
-from qrl.crypto import merkle
-from qrl.crypto.merkle import sha256
-from transaction import Transaction
+from qrl.core import transaction, logger, config, ntp
+from qrl.core.blockheader import BlockHeader
+from qrl.core.helper import select_target_hashchain
+from qrl.core.transaction import Transaction
+from qrl.crypto.misc import sha256, merkle_tx_hash
 
 
 class Block(object):
@@ -54,7 +50,7 @@ class Block(object):
         if not hashedtransactions:
             hashedtransactions = sha256('')
 
-        hashedtransactions = merkle.merkle_tx_hash(hashedtransactions)
+        hashedtransactions = merkle_tx_hash(hashedtransactions)
 
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain,
@@ -103,7 +99,7 @@ class Block(object):
             logger.warning('coinbase txn in block failed')
             return False
 
-        for tx_num in xrange(1, len(self.transactions)):
+        for tx_num in range(1, len(self.transactions)):
             tx = self.transactions[tx_num]
             if tx.validate_tx() is False:
                 logger.warning('invalid tx in block')
@@ -212,7 +208,7 @@ class Block(object):
                     return False
 
                 i = 0
-                target_chain = helper.select_target_hashchain(b.prev_blockheaderhash)
+                target_chain = select_target_hashchain(b.prev_blockheaderhash)
                 for r in b.vote_hashes:
                     t = sha256(r)
                     for x in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch)):
@@ -251,7 +247,7 @@ class Block(object):
                 tx = self.transactions[tx_num]
                 txhashes.append(tx.txhash)
 
-        if merkle.merkle_tx_hash(txhashes) != b.tx_merkle_root:
+        if merkle_tx_hash(txhashes) != b.tx_merkle_root:
             logger.warning('Block hashedtransactions error: failed validation')
             return False
 

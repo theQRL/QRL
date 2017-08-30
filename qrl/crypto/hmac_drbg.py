@@ -2,10 +2,17 @@ import hashlib
 import hmac
 
 # sample entropy from OS for true random numbers such as seeds and private keys
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from os import urandom
 
+
+# seed creation for xmss scheme for an address. Take a 48 bytes entropy from os.random, generate two 48 byte
+# keys..public_SEED and private_SEED public_SEED used to generate PK, private_SEED taken as seed for PRF to generate
+# 2^h sk seeds from which to derive sk elements + r,k each private key has 67 sk elements + w-1 +k = 83 -> 339968
+# keys to generate for a 4096 xmss tree! so we take the private key seed and generate 4096 seeds with hmac_drbg,
+# then generate 83 sk elements from each seed.. it is vital therefore the original 48 byte seed is kept secret. A
+# word file with 65536 words in it can then be used to generate a 24 word list to be kept by the user
 from qrl.core import logger
 
 
@@ -17,22 +24,29 @@ def SEED(n=48):  # returns a n-byte binary random string
     return urandom(n)
 
 
-def GEN(SEED, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
+def hexseed_to_seed(hex_seed):
+    if len(hex_seed) != 96:
+        return False
+    return unhexlify(hex_seed)
+
+
+def GEN(seed, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
     # FIXME: There is no check for the seed size
     if i < 1:
         logger.info('i must be integer greater than 0')
         return
-    z = HMAC_DRBG(SEED)
+    z = HMAC_DRBG(seed)
+    y = z
     for x in range(i):
         y = z.generate(l)
     return y
 
 
-def GEN_range(SEED, start_i, end_i, l=32):  # returns start -> end iteration of hex PRF (inclusive at both ends)
+def GEN_range(seed, start_i, end_i, l=32):  # returns start -> end iteration of hex PRF (inclusive at both ends)
     if start_i < 1:
         logger.info('starting i must be integer greater than 0')
         return
-    z = HMAC_DRBG(SEED)
+    z = HMAC_DRBG(seed)
     random_arr = []
     for x in range(1, end_i + 1):
         y = hexlify(z.generate(l))
@@ -64,9 +78,9 @@ def new_keys(seed=None, n=9999):
     """
     if not seed:
         seed = SEED(48)
-    private_SEED = GEN(seed, 1, l=48)
-    public_SEED = GEN(seed, n, l=48)
-    return seed, public_SEED, private_SEED
+    private_seed = GEN(seed, 1, l=48)
+    public_seed = GEN(seed, n, l=48)
+    return seed, public_seed, private_seed
 
 
 class HMAC_DRBG:
@@ -76,7 +90,9 @@ class HMAC_DRBG:
     k, v = key and value..
     """
 
-    def __init__(self, entropy, personalisation_string="",
+    def __init__(self,
+                 entropy,
+                 personalisation_string="",
                  security_strength=256):  # entropy should be 1.5X length of strength..384 bits / 48 bytes
         self.security_strength = security_strength
         self.instantiate(entropy, personalisation_string)

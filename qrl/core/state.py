@@ -3,11 +3,8 @@
 
 from operator import itemgetter
 
-import configuration as config
-import db
-import logger
-import transaction
-from qrl.crypto.merkle import sha256
+from qrl.core import db, logger, transaction, config
+from qrl.crypto.misc import sha256
 
 
 class State:

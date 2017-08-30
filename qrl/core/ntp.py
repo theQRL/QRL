@@ -4,9 +4,9 @@
 import sys
 from time import time
 
-import ntplib
+from ntplib import NTPClient
 
-import logger
+from qrl.core import logger
 
 ntp_server = 'pool.ntp.org'
 version = 3
@@ -16,7 +16,7 @@ drift = None
 
 def get_ntp_response():
     try:
-        ntp_client = ntplib.NTPClient()
+        ntp_client = NTPClient()
         response = ntp_client.request(ntp_server, version=version)
     except Exception as e:
         logger.exception(e)

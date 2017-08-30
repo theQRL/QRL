@@ -1,7 +1,6 @@
 import time
 from math import ceil, log
 
-import qrl.core
 from qrl.core import logger
 from qrl.crypto.misc import sha256
 
@@ -28,7 +27,7 @@ class Merkle(object):
         self.auth_lists = []
 
         if self.verbose == 1:
-            qrl.core.logger.info('Calculating proofs: tree height %d, %d leaves', self.height, self.num_leaves)
+            logger.info('Calculating proofs: tree height %d, %d leaves', self.height, self.num_leaves)
 
         for y in range(self.num_leaves):
             auth_route = []
@@ -39,7 +38,7 @@ class Merkle(object):
                         auth_route.append(self.root)
                         self.auth_lists.append(auth_route)
                     else:
-                        qrl.core.logger.info('Merkle route calculation failed @ root')
+                        logger.info('Merkle route calculation failed @ root')
                 else:
                     nodes = self.tree[x]
                     nodes_above = self.tree[x + 1]
@@ -56,12 +55,12 @@ class Merkle(object):
                                     pass
         elapsed_time = time.time() - start_time
         if self.verbose == 1:
-            qrl.core.logger.info(elapsed_time)
+            logger.info(elapsed_time)
 
         return
 
     def create_tree(self):
-
+        num_branches = 0
         if self.num_leaves <= 2:  # catch case for which log doesn't do the job
             num_branches = 1
         elif self.num_leaves <= 512:
@@ -72,6 +71,7 @@ class Merkle(object):
 
         hashlayer = self.base
 
+        temp_array = []
         for x in range(num_branches):  # iterate through each layer of the merkle tree starting with the base layer
             temp_array = []
             cycles = len(hashlayer) % 2 + len(hashlayer) / 2
@@ -86,10 +86,13 @@ class Merkle(object):
 
             self.tree.append(temp_array)
             hashlayer = temp_array
+
         self.root = temp_array
         self.height = len(self.tree)
+
         if self.verbose == 1:
-            qrl.core.logger.info('Merkle tree created with %d leaves, %d branches', self.num_leaves, self.num_branches)
+            logger.info('Merkle tree created with %d leaves, %d branches', self.num_leaves, self.num_branches)
+
         return self.tree
 
     def check_item(self):

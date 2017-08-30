@@ -1,6 +1,6 @@
-import qrl.core
 from qrl.core import logger
-from qrl.crypto.misc import random_generic, random_wkey, sha256, numlist
+from qrl.crypto.merkle import random_generic
+from qrl.crypto.misc import random_wkey, sha256, numlist
 
 
 class WOTS(object):
@@ -14,7 +14,7 @@ class WOTS(object):
         self.index = index
         self.concatpub = ""
         if verbose == 1:
-            qrl.core.logger.info(('New W-OTS keypair generation ', str(self.index)))
+            logger.info(('New W-OTS keypair generation ', str(self.index)))
         self.priv, self.pub = random_wkey(verbose=verbose)
 
         self.concatpub = ''.join(self.pub)
@@ -28,6 +28,7 @@ class WOTS(object):
         logger.info(self.pubhash)
         return
 
+
 def random_wmss(signatures=4, verbose=False):
     """
         Create a w-ots mms with multiple signatures..
@@ -36,4 +37,3 @@ def random_wmss(signatures=4, verbose=False):
     :return:
     """
     return random_generic(WOTS, signatures, verbose)
-

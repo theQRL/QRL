@@ -6,14 +6,11 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
-import configuration as config
-import fork
-import helper
-import logger
-from block import Block
-from messagereceipt import MessageReceipt
-from qrl.crypto.merkle import sha256
-from transaction import StakeTransaction, SimpleTransaction
+from qrl.core import helper, config, logger, fork
+from qrl.core.block import Block
+from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.transaction import StakeTransaction, SimpleTransaction
+from qrl.crypto.misc import sha256
 
 
 class P2PProtocol(Protocol):
@@ -336,7 +333,7 @@ class P2PProtocol(Protocol):
 
     def PH(self, data):
         if self.factory.nodeState.state == 'forked':
-            fork.verify(data, self.identity, chain, randomize_headerhash_fetch)
+            fork.verify(data, self.identity, self.chain, self.randomize_headerhash_fetch)
         else:
             mini_block = json.loads(data)
             self.blocknumber_headerhash[mini_block['blocknumber']] = mini_block['headerhash']
@@ -463,7 +460,7 @@ class P2PProtocol(Protocol):
             y = 0
             for entry in self.factory.chain.ping_list:
                 if entry['node'] == self.transport.getPeer().host:
-                    entry['ping (ms)'] = (time.time() - chain.last_ping) * 1000
+                    entry['ping (ms)'] = (time.time() - self.chain.last_ping) * 1000
                     y = 1
             if y == 0:
                 self.factory.chain.ping_list.append({'node': self.transport.getPeer().host,
@@ -485,7 +482,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         for t in self.factory.chain.transaction_pool:
-            f.send_tx_to_peers(t)
+            self.f.send_tx_to_peers(t)
         return
 
     def PE(self):  # get a list of connected peers..need to add some ddos and type checking proteection here..

@@ -1,7 +1,6 @@
-import qrl.core
-from misc import random_lkey, sha256, numlist
 from qrl.core import logger
-from merkle import random_generic
+from qrl.crypto.merkle import random_generic
+from qrl.crypto.misc import random_lkey, sha256, numlist
 
 
 class LDOTS(object):
@@ -15,7 +14,7 @@ class LDOTS(object):
         self.index = index
         self.concatpub = ""
         if verbose == 1:
-            qrl.core.logger.info(('New LD keypair generation ', str(self.index)))
+            logger.info(('New LD keypair generation ', str(self.index)))
         self.priv, self.pub = random_lkey()
 
         self.publist = [i for sub in self.pub for i in sub]  # convert list of tuples to list to allow cat.
