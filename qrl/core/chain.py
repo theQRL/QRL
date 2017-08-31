@@ -498,7 +498,7 @@ class Chain:
 
         tmp_transactions = []
         for tx in self.transaction_pool:
-            if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+            if tx.subtype not in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
                 continue
             if tx.txto == address or tx.txfrom == address:
                 logger.info('%s found in transaction pool', address)
