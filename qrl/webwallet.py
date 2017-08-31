@@ -114,7 +114,7 @@ class recoverAddress(Resource):
                             self.result["mnemonic"] = x[1].mnemonic
             except:
                 self.result[
-                    "message"] = "There was a problem restoring your address. " \ 
+                    "message"] = "There was a problem restoring your address. " \
                                  "If you believe this is in error, please raise it with the QRL team."
 
                 return helper.json_encode(self.result)
