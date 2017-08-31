@@ -1,5 +1,7 @@
 from binascii import unhexlify
 
+# FIXME: These values are based on current implementation. There are known issues and these values are subject to change
+
 S1 = unhexlify('7bf1e7c1c84be2c820211572d990c0430e09401053ce2af4'
                '89ee3e4d030c027464d9cac1fff449a2405b7f3fc63018a4')
 

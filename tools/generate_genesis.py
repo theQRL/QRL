@@ -15,4 +15,3 @@ for i in range(num_accounts):
 
 with open(file_name, 'w') as f:
     json.dump(wallets, f)#, encoding = "ISO-8859-1")
-

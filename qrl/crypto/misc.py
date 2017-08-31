@@ -21,12 +21,6 @@ from qrl.core import logger
 from qrl.crypto.hmac_drbg import GEN_range, random_key
 
 
-def t2(s, m):
-    start_time = time.time()
-    xmss_verify(m, s)
-    logger.info(str(time.time() - start_time))
-
-
 def numlist(array):
     for a, b in enumerate(array):
         logger.info((a, b))
@@ -273,14 +267,18 @@ def xmss_verify_long(msg, SIG):
     return True
 
 
-# same function but verifies using shorter signature where PK: {root, hex(public_SEED)}
-# main verification function..
-
-def xmss_verify(msg, SIG):
-    if not verify_wpkey(SIG[1], msg, SIG[4]):
+def xmss_verify(message, signature):
+    """
+    same function but verifies using shorter signature where PK: {root, hex(public_SEED)}
+    # main verification function..
+    :param message:
+    :param signature:
+    :return:
+    """
+    if not verify_wpkey(signature[1], message, signature[4]):
         return False
 
-    if not verify_auth_SEED(SIG[2], SIG[3], SIG[4], SIG[5]):
+    if not verify_auth_SEED(signature[2], signature[3], signature[4], signature[5]):
         return False
 
     return True
@@ -472,7 +470,7 @@ def sign_wpkey(priv, message, pub, w=16):
     return signature
 
 
-def verify_wpkey(signature, message, pub, w=16):
+def get_lengths(w):
     m = 256
     if w == 16:
         l_1 = 64
@@ -481,6 +479,11 @@ def verify_wpkey(signature, message, pub, w=16):
         l_1 = ceil(m / log(w, 2))
         l_2 = floor(log((l_1 * (w - 1)), 2) / log(w, 2)) + 1
     l = int(l_1 + l_2)
+    return l, l_1, l_2
+
+
+def verify_wpkey(signature, message, pub, w=16):
+    l, l_1, l_2 = get_lengths(w)
 
     message = sha256(message)
 
