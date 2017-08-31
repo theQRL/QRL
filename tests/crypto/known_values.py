@@ -9,9 +9,8 @@ S1_Pub = unhexlify('6b424d99242a1a3f40f60bf565b1a63aed94464b26ad022e'
 S1_Pri = unhexlify('2c4147cd5c75622220054bd8923ba565999931634499fc09'
                    '6c0b9cedf8f4f32daaa7b50f313b3c93743a00f027af0551')
 
-S1_Mne = 'lacoca breech scowed lunier towdie livery burree gambit tagua arabia duali tikkun doodah airier ' \
-         'soho quanti merd trees fascia correo adams eldin taiga praxis zymite dyce pavise alant layed ' \
-         'yenned copart mesked'
+S1_Mne = 'law bruise screen lunar than loft but franc strike asleep dwarf tavern dragon alarm snack queen ' \
+         'meadow thing far cotton add emblem strive probe zurich edge peer alight libel won corn medal'
 
 S1_PK = ['18e9198ac177807cc249e29b3d0cdda14b688d2cb8387e782239c0a565faee35',
          ['6fb23184bce2fe956d4996f582f9981abef4d2577124490fec021108f9c9b1fd',

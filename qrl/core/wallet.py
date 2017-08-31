@@ -13,6 +13,8 @@ import gc
 import os
 import sys
 
+# SIGNATURE_SIZE = 4096
+SIGNATURE_SIZE = 8000
 
 
 class Wallet:
@@ -30,41 +32,51 @@ class Wallet:
         self.mnemonic_filename = os.path.join(config.user.wallet_path, config.dev.mnemonic_filename)
 
     def recover_wallet(self):
-        data = None
         try:
             with open(self.wallet_info_filename, 'r') as myfile:
                 data = pickle.load(myfile)
+
             if data and len(data[0]) != 5:
                 logger.info('wallet.info is also corrupted, cannot recover')
                 return False
-        except:
+        except Exception as e:
             logger.error('Wallet.info is corrupted')
+            logger.exception(e)
             return False
 
         with open(self.wallet_dat_filename, "w+") as myfile:
+            # FIXME: What is this? obsolete code?
             pass
+
         self.chain.my = []
         for wallets in data:
             words = wallets[0]
-            addr = self.getnewaddress(addrtype='XMSS', SEED=mnemonic_to_seed(words))
+            addr = self.getnewaddress(addrtype='XMSS',
+                                      SEED=mnemonic_to_seed(words))
             self.f_append_wallet(addr, True)
-
         return True
+
+    def retrieve_seed_from_mnemonic(self):
+        if os.path.isfile(self.mnemonic_filename):
+            with open(self.mnemonic_filename, 'r') as f:
+                seed_mnemonic = f.read()
+                seed = mnemonic_to_seed(seed_mnemonic.strip())
+            return seed
+        return None
 
     def f_read_wallet(self):
         addr_list = []
 
         if os.path.isfile(self.wallet_dat_filename) is False:
             logger.info('Creating new wallet file... (this could take up to a minute)')
-            SEED = None
-            # For AWS test only
-            if os.path.isfile(self.mnemonic_filename):
-                with open(self.mnemonic_filename, 'r') as f:
-                    SEED = f.read()
-                    SEED = mnemonic_to_seed(SEED.strip())
+            seed = None
 
-            # addr_list.append(self.getnewaddress(4096, 'XMSS', SEED=SEED))
-            addr_list.append(self.getnewaddress(8000, 'XMSS', SEED=SEED))
+            # For AWS test only
+            tmp_seed = self.retrieve_seed_from_mnemonic()
+            if tmp_seed is not None:
+                seed = tmp_seed
+
+            addr_list.append(self.getnewaddress(SIGNATURE_SIZE, 'XMSS', SEED=seed))
             with open(self.wallet_dat_filename, "a") as myfile:  # add in a new call to create random_otsmss
                 pickle.dump(addr_list, myfile)
 
@@ -72,11 +84,14 @@ class Wallet:
             try:
                 with open(self.wallet_dat_filename, 'r') as myfile:
                     return pickle.load(myfile)
-            except:
+            except Exception as e:
                 logger.warning('Wallet.dat corrupted')
+                logger.exception(e)
+
                 logger.warning('Trying to recover')
                 if self.recover_wallet():
                     continue
+
                 logger.error('Failed to Recover Wallet')
                 sys.exit()
 
@@ -86,7 +101,6 @@ class Wallet:
                   "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
             gc.collect()
-            return
 
     def f_save_winfo(self):
         data = []
@@ -97,11 +111,11 @@ class Wallet:
                 if tree[1].type == 'XMSS':
                     data.append(
                         [tree[1].mnemonic, tree[1].hexSEED, tree[1].signatures, tree[1].index, tree[1].remaining])
+
         logger.info('Fast saving wallet recovery details to wallet.info..')
         # stores the recovery phrase, signatures and the index for each tree in the wallet..
         with open(self.wallet_info_filename, "w+") as myfile:
             pickle.dump(data, myfile)
-            return
 
     def f_load_winfo(self):
         try:
@@ -114,8 +128,9 @@ class Wallet:
             return False
         x = 0
         for tree in self.chain.my:
-            if type(tree[
-                        1]) == list:  # if any part of self.chain.my which has loaded from f_read_wallet() on startup is lower than winfo then don't load..
+            # if any part of self.chain.my which has loaded from f_read_wallet()
+            # on startup is lower than winfo then don't load..
+            if type(tree[1]) == list:
                 pass
             else:
                 if tree[1].index <= data[x][3]:
@@ -176,6 +191,7 @@ class Wallet:
             dict_addr = {}
 
             # add state check for
+            # TODO: Refactor this. Properties should be exposed and formatting should be done in webwallet
             if type(address[1]) == list:
                 dict_addr['address'] = address[0]
                 dict_addr['type'] = address[1][0].type
@@ -228,8 +244,7 @@ class Wallet:
                 else:  # xmss
                     return address[1].remaining
 
-    # def getnewaddress(self, signatures=4096, type='XMSS',
-    def getnewaddress(self, signatures=8000, addrtype=ADDRESS_TYPE_XMSS, SEED=None):
+    def getnewaddress(self, signatures=SIGNATURE_SIZE, addrtype=ADDRESS_TYPE_XMSS, SEED=None):
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
@@ -256,8 +271,7 @@ class Wallet:
 
         return addr
 
-    # def xmss_getnewaddress(self, signatures=4096, SEED=None,
-    def xmss_getnewaddress(self, signatures=8000, SEED=None, addrtype='WOTS+'):
+    def xmss_getnewaddress(self, signatures=SIGNATURE_SIZE, SEED=None, addrtype='WOTS+'):
         # new address format returns a stateful XMSS class object
         return XMSS(signatures, SEED)
 

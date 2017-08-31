@@ -10,8 +10,6 @@ from tests.crypto.known_values import S1, S1_Mne
 logger.initialize_default(force_console_output=True)
 
 
-# FIXME: These values test consistency. There is no golden value or second implementation to compare with.
-
 class TestMnemonic(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestMnemonic, self).__init__(*args, **kwargs)
@@ -33,3 +31,18 @@ class TestMnemonic(TestCase):
     def test_mnemonic_to_seed(self):
         seed = mnemonic_to_seed(S1_Mne)
         self.assertEqual(seed, S1)
+
+    def test_mnemonic_to_seed_invalid_word(self):
+        bad_word_list = S1_Mne.replace('dragon', 'covfefe')
+        with self.assertRaises(ValueError):
+            mnemonic_to_seed(bad_word_list)
+
+    def test_mnemonic_to_seed_invalid_len_short(self):
+        short_word_list = 'circus'
+        with self.assertRaises(ValueError):
+            mnemonic_to_seed(short_word_list)
+
+    def test_mnemonic_to_seed_invalid_len_long(self):
+        long_word_list = S1_Mne + ' circus'
+        with self.assertRaises(ValueError):
+            mnemonic_to_seed(long_word_list)
