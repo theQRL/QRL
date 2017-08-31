@@ -266,7 +266,11 @@ class sendQuanta(Resource):
             return helper.json_encode(self.txnResult)
 
         if tx.validate_tx():
-            if not tx.state_validate_tx(state=self.state, transaction_pool=self.chain.transaction_pool):
+            block_chain_buffer = self.chain.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
+                                                         addr=tx.txfrom)
+            if not tx.state_validate_tx(tx_state=tx_state,
+                                        transaction_pool=self.chain.transaction_pool):
                 self.txnResult["message"] = "OTS key reused"
                 return helper.json_encode(self.txnResult)
         else:
