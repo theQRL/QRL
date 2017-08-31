@@ -1,3 +1,4 @@
+import ipdb
 from twisted.internet.protocol import ServerFactory, Protocol
 from transaction import StakeTransaction
 from StringIO import StringIO
@@ -15,7 +16,7 @@ class WalletProtocol(Protocol):
                          'recoverfromwords', 'stakenextepoch', 'stake', 'address',
                          'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit',
                          'search', 'json_search', 'help', 'savenewaddress', 'listaddresses',
-                         'getinfo', 'blockheight', 'json_block', 'reboot', 'peers']
+                         'getinfo', 'blockheight', 'json_block', 'reboot', 'peers', 'crash']
         self.output = {}
         self.output['status'] = 1
         self.output['keys'] = []
@@ -212,7 +213,7 @@ class WalletProtocol(Protocol):
                 elif command == 'help':
                     self.output['status'] = 0
                     self.output['message'].write(
-                        '>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, recoverfromwords, stake, stakenextepoch, mempool, json_block, json_search, seed, hexseed, getinfo, peers, or blockheight' + '\r\n')
+                        '>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n')
                 # removed 'hrs, hrs_check,'
                 elif command == 'quit' or command == 'exit':
                     self.transport.loseConnection()
@@ -228,6 +229,11 @@ class WalletProtocol(Protocol):
 
                 elif command == 'wallet':
                     self.wallet()
+
+                elif command == 'crash':
+                    self.output['message'].write('>>> CRASH requested' + '\r\n')
+                    print("==================CRASH REQUESTED OVER TELNET====================")
+                    raise Exception("CRASHING CRASHING CRASHING CRASHING CRASHING CRASHING CRASHING bail now")
 
                 elif command == 'getinfo':
                     self.output['status'] = 0
