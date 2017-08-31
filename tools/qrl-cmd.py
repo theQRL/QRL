@@ -1,5 +1,5 @@
 #!/usr/bin/env
-#-*- coindg:utf-8 -*-
+# -*- coindg:utf-8 -*-
 
 import pdb
 import time
@@ -9,6 +9,7 @@ from cmd import Cmd
 
 try:
     import readline
+
     if "libedit" in readline.__doc__:
         readline.parse_and_bind("bind ^I rl_complete")
     else:
@@ -31,7 +32,6 @@ class BaseInterpreter(Cmd):
         time.sleep(1)
         msg = self.tel.read_very_eager()
         print(msg)
-            
 
     def do_wallet(self, line):
         self.tel.write("wallet")

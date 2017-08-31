@@ -1,0 +1,38 @@
+# Travis configuration file using the build matrix feature
+# Read more under http://docs.travis-ci.com/user/build-configuration/
+dist: trusty
+sudo: false
+language: python
+cache:
+  - apt
+  - pip
+cache:
+  timeout: 600
+virtualenv:
+  system_site_packages: true
+env:
+  matrix:
+    #- DISTRIB="conda" PYTHON_VERSION="2.7" COVERAGE="false"   # TODO: Fix conda tests
+  - DISTRIB="ubuntu" PYTHON_VERSION="2.7" COVERAGE="true"
+addons:
+  apt:
+    packages:
+    - git
+    - python-pip
+install:
+- source tests/travis_install.sh
+- pip install -r requirements.txt
+before_script:
+- git config --global user.email "info@theQRL.org"
+- git config --global user.name "QRL"
+script:
+- python setup.py test
+after_success:
+- if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
+deploy:
+- provider: script
+  script: sh $TRAVIS_BUILD_DIR/scripts/deploy_pypi.sh
+  skip_cleanup: true
+  all_branches: true
+  on:
+    tags: true

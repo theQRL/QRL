@@ -1,6 +1,11 @@
-jsonpickle
-leveldb
-statistics
-ntplib
+# Fixing sphinx version due to https://github.com/sphinx-doc/sphinx/issues/3976
+jsonpickle>=0.9.5
+leveldb==0.20
+statistics>=1.0.3.5
+ntplib>=0.3.3
 Twisted==16.0.0
-simplejson
+colorlog>=3.0.1
+simplejson>=3.11.1
+recommonmark>=0.4.0
+sphinx==1.5.6
+sphinx_rtd_theme>=0.2.4
