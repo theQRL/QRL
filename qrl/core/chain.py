@@ -498,7 +498,7 @@ class Chain:
 
         tmp_transactions = []
         for tx in self.transaction_pool:
-            if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+            if tx.subtype not in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
                 continue
             if tx.txto == address or tx.txfrom == address:
                 logger.info('%s found in transaction pool', address)
@@ -529,7 +529,7 @@ class Chain:
             txn_metadata = self.state.db.get(txn_hash)
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
-                logger.info('%s found in block %s', address, str(txn_metadata[1]), '..')
+                logger.info('%s found in block %s', address, str(txn_metadata[1]))
 
                 tmp_txn = {'txhash': tx.txhash,
                            'block': txn_metadata[1],
@@ -796,12 +796,12 @@ class Chain:
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
-                logger.info((txcontains, 'found in transaction pool..'))
+                logger.info('%s found in transaction pool..', txcontains)
                 if islong == 1: json_print(tx)
         for block in self.m_blockchain:
             for tx in block.transactions:
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
-                    logger.info((txcontains, 'found in block', str(block.blockheader.blocknumber), '..'))
+                    logger.info('%s found in block %s', txcontains, str(block.blockheader.blocknumber))
                     if islong == 0: logger.info(('<tx:txhash> ' + tx.txhash))
                     if islong == 1: json_print(tx)
         return

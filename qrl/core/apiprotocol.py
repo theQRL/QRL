@@ -152,7 +152,7 @@ class ApiProtocol(Protocol):
             'method': 'block_data',
             'parameter': data
         }
-        logger.info(('<<< API block data call', data))
+        logger.info('<<< API block data call %s', data)
         if not data:
             data = self.factory.chain.m_get_last_block()
             data1 = copy.deepcopy(data)
@@ -214,15 +214,15 @@ class ApiProtocol(Protocol):
         return json_print_telnet(net_stats)
 
     def txhash(self, data=None):
-        logger.info(('<<< API tx/hash call', data))
+        logger.info('<<< API tx/hash call %s', data)
         return self.factory.chain.search_txhash(data)
 
     def balance(self, data=None):
-        logger.info(('<<< API address call', data))
+        logger.info('<<< API balance call %s', data)
         return self.factory.chain.basic_info(data)
 
     def address(self, data=None):
-        logger.info(('<<< API address call', data))
+        logger.info('<<< API address call %s', data)
         return self.factory.chain.search_address(data)
 
     def dataReceived(self, data=None):
