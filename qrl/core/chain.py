@@ -14,7 +14,7 @@ from qrl.core import config, logger, transaction
 from qrl.core.CreateGenesisBlock import CreateGenesisBlock
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print, json_encode_complex
-from qrl.core.transaction import SimpleTransaction
+from qrl.core.transaction import SimpleTransaction, CoinBase
 from qrl.core.wallet import Wallet
 from qrl.crypto.hmac_drbg import GEN_range_bin
 from qrl.crypto.misc import sha256, merkle_tx_hash, closest_number
@@ -527,7 +527,12 @@ class Chain:
 
         for txn_hash in my_txn:
             txn_metadata = self.state.db.get(txn_hash)
-            tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+            dict_txn_metadata = json.loads(txn_metadata[0])
+            if dict_txn_metadata['subtype'] == transaction.TX_SUBTYPE_TX:
+                tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+            elif dict_txn_metadata['subtype'] == transaction.TX_SUBTYPE_COINBASE:
+                tx = CoinBase().json_to_transaction(txn_metadata[0])
+
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 logger.info('%s found in block %s', address, str(txn_metadata[1]))
 
@@ -535,11 +540,13 @@ class Chain:
                            'block': txn_metadata[1],
                            'timestamp': txn_metadata[2],
                            'amount': tx.amount / 100000000.000000000,
-                           'fee': tx.fee / 100000000.000000000,
                            'nonce': tx.nonce,
                            'ots_key': tx.ots_key,
                            'txto': tx.txto,
                            'txfrom': tx.txfrom}
+
+                if tx.subtype == transaction.TX_SUBTYPE_TX:
+                    tmp_txn['fee'] = tx.fee / 100000000.000000000
 
                 addr['transactions'].append(tmp_txn)
                 txnhash_added.add(tx.txhash)
@@ -899,11 +906,12 @@ class Chain:
             return
 
         for txn in block.transactions:
-            if txn.subtype == transaction.TX_SUBTYPE_TX:
+            if txn.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
                 self.state.db.put(txn.txhash,
                                   [txn.transaction_to_json(), block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
-                self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
+                if txn.subtype == transaction.TX_SUBTYPE_TX:
+                    self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
                 self.update_wallet_tx_metadata(txn.txto, txn.txhash)
                 self.update_txn_count(txn.txto, txn.txfrom)
 
