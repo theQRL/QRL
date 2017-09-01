@@ -11,6 +11,7 @@ from core.node import NodeState
 from core.p2pfactory import P2PFactory
 from core.state import State
 from core.walletfactory import WalletFactory
+from qrl.core import logger_twisted
 
 LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
 
@@ -57,6 +58,7 @@ def main():
 
     logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
     logger.set_unhandled_exception_handler()
+    logger_twisted.enable_twisted_log_observer()
 
     logger.debug("=====================================================================================")
 
