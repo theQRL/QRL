@@ -54,7 +54,9 @@ def main():
     file_handler = logger.log_to_file()
     file_handler.addFilter(custom_filter)
     file_handler.setLevel(logging.DEBUG)
+
     logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
+    logger.set_unhandled_exception_handler()
 
     logger.debug("=====================================================================================")
 

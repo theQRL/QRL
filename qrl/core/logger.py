@@ -42,6 +42,16 @@ def log_to_file(filename=LOG_FILENAME_DEFAULT):
     logger.addHandler(handler)
     return handler
 
+
+def _unhandled_exception(etype, value, tb):
+    tmp = ['Unhandled exception!\n']
+    tmp.extend(traceback.format_exception(etype, value, tb))
+    logger.fatal(''.join(tmp))
+
+def set_unhandled_exception_handler():
+    sys.excepthook = _unhandled_exception
+
+
 def get_colors(format_string):
     return ColoredFormatter(
         "%(log_color)s" + format_string,
