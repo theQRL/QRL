@@ -703,7 +703,7 @@ class Chain:
                          'block_reward': block.blockheader.block_reward / 100000000.00000000,
                          'blockhash': block.blockheader.prev_blockheaderhash,
                          'timestamp': block.blockheader.timestamp,
-                         'block_interval': block.blockheader.timestamp - lb[i - 1].blockheader.timestamp,
+                         'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
                          'number_transactions': len(block.transactions)}
 
             last_blocks['blocks'].append(tmp_block)
