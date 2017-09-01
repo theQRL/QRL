@@ -440,14 +440,19 @@ class Chain:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return json_print_telnet(err)
 
-        tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+        json_tx = json.loads(txn_metadata[0])
+        if json_tx['subtype'] == transaction.TX_SUBTYPE_TX:
+            tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+        elif json_tx['subtype'] == transaction.TX_SUBTYPE_COINBASE:
+            tx = CoinBase().json_to_transaction(txn_metadata[0])
         tx_new = copy.deepcopy(tx)
         tx_new.block = txn_metadata[1]
         tx_new.timestamp = txn_metadata[2]
         tx_new.confirmations = self.m_blockheight() - txn_metadata[1]
         tx_new.hexsize = len(json_bytestream(tx_new))
         tx_new.amount = tx_new.amount / 100000000.000000000
-        tx_new.fee = tx_new.fee / 100000000.000000000
+        if json_tx['subtype'] == transaction.TX_SUBTYPE_TX:
+            tx_new.fee = tx_new.fee / 100000000.000000000
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
         tx_new.status = 'ok'
         return json_print_telnet(tx_new)
@@ -507,12 +512,15 @@ class Chain:
                            'txhash': tx.txhash,
                            'block': 'unconfirmed',
                            'amount': tx.amount / 100000000.000000000,
-                           'fee': tx.fee / 100000000.000000000,
                            'nonce': tx.nonce,
                            'ots_key': tx.ots_key,
                            'txto': tx.txto,
                            'txfrom': tx.txfrom,
                            'timestamp': 'unconfirmed'}
+
+                if tx.subtype == transaction.TX_SUBTYPE_TX:
+                    tmp_txn['fee'] = tx.fee / 100000000.000000000
+
 
                 tmp_transactions.append(tmp_txn)
                 txnhash_added.add(tx.txhash)
@@ -536,7 +544,8 @@ class Chain:
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 logger.info('%s found in block %s', address, str(txn_metadata[1]))
 
-                tmp_txn = {'txhash': tx.txhash,
+                tmp_txn = {'subtype': tx.subtype,
+                           'txhash': tx.txhash,
                            'block': txn_metadata[1],
                            'timestamp': txn_metadata[2],
                            'amount': tx.amount / 100000000.000000000,
