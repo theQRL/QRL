@@ -9,6 +9,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 from qrl.core import helper, config, logger, fork
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.nstate import NState
 from qrl.core.transaction import StakeTransaction, SimpleTransaction
 from qrl.crypto.misc import sha256
 
@@ -93,21 +94,21 @@ class P2PProtocol(Protocol):
         logger.info('Initiating Reboot Sequence..... #%s', blocknumber)
         if blocknumber != 0:
             if blocknumber <= self.factory.chain.height():
-                self.factory.pos.update_node_state('unsynced')
+                self.factory.pos.update_node_state(NState.unsynced)
                 del self.factory.chain.m_blockchain[blocknumber:]
                 self.factory.chain.f_write_m_blockchain()
                 self.factory.chain.m_load_chain()
-                self.factory.pos.update_node_state('synced')
+                self.factory.pos.update_node_state(NState.synced)
 
     def MR(self, data):
         data = json.loads(data)
         if data['type'] not in MessageReceipt.allowed_types:
             return
 
-        if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != 'synced':
+        if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
             return
 
-        if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != 'synced':
+        if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
         if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):
@@ -257,7 +258,7 @@ class P2PProtocol(Protocol):
                 reactor.download_monitor.cancel()
             except:
                 pass
-            self.factory.pos.update_node_state('synced')
+            self.factory.pos.update_node_state(NState.synced)
             return True
         return False
 
@@ -333,7 +334,7 @@ class P2PProtocol(Protocol):
         return
 
     def PH(self, data):
-        if self.factory.nodeState.state == 'forked':
+        if self.factory.nodeState.state == NState.forked:
             fork.verify(data, self.identity, self.chain, self.randomize_headerhash_fetch)
         else:
             mini_block = json.loads(data)
@@ -348,7 +349,7 @@ class P2PProtocol(Protocol):
         return
 
     def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
-        if self.factory.pos.nodeState.state != 'synced':
+        if self.factory.pos.nodeState.state != NState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
         data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
@@ -386,7 +387,7 @@ class P2PProtocol(Protocol):
         self.factory.peers_blockheight[self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)] = z[
             'block_number']
 
-        if self.factory.nodeState.state == 'syncing': return
+        if self.factory.nodeState.state == NState.syncing: return
 
         if block_number == self.factory.chain.m_blockheight():
             # if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
@@ -520,7 +521,7 @@ class P2PProtocol(Protocol):
 
     # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
     def R1(self, data):
-        if self.factory.nodeState.state != 'synced':
+        if self.factory.nodeState.state != NState.synced:
             return
         z = json.loads(data, parse_float=Decimal)
         if not z:
@@ -615,7 +616,7 @@ class P2PProtocol(Protocol):
         self.factory.chain.stake_reveal_one.append(
             [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
         self.factory.master_mr.register(z['vote_hash'], data, 'R1')
-        if self.factory.nodeState.state == 'synced':
+        if self.factory.nodeState.state == NState.synced:
             self.broadcast(z['vote_hash'], 'R1')
             # for peer in self.factory.peers:
             #    if peer != self:

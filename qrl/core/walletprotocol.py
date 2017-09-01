@@ -314,7 +314,7 @@ class WalletProtocol(Protocol):
 
                     if json_hash:
                         self.factory.p2pFactory.send_reboot(json_hash)
-                        # self.factory.state.update('synced')
+                        # self.factory.state.update(NState.synced)
                     self.output['message'].write(status)
 
         else:

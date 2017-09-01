@@ -22,7 +22,7 @@ class ContextFilter(logging.Filter):
         self.node_state = node_state
 
     def filter(self, record):
-        record.node_state = self.node_state.state
+        record.node_state = self.node_state.state.name
         return True
 
 
