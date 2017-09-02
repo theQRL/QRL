@@ -138,10 +138,7 @@ class ApiProtocol(Protocol):
         error = {
             'status': 'error',
             'error': 'no method supplied',
-            'methods available':
-                'block_data, stats, txhash, address, last_tx, \
-                last_block, richlist, ping, stake_commits, stake_reveals, stakers, \
-                next_stakers'
+            'methods available': self.api_list
         }
         return json_print_telnet(error)
 
