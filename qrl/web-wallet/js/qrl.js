@@ -109,20 +109,29 @@ function recover() {
 
 
 // Draw a row in transactions table
-function drawTransRow(a, b, c, d, e, f, g, h) {
-    var x = moment.unix(a);
-    var z = "";
-
-    if (h === e) {
-        z = '<div style=\"text-align: center\"><i class=\"sign out icon\"></i></div>';
+function drawTransRow(timestamp, amount, txHashLink, block, txfrom, txto, fee, address, txnsubtype) {
+    
+    // Detect txn direction
+    var txnDirection = "";
+    if (address === txfrom) {
+        // Sent from this wallet
+        txnDirection = '<div style=\"text-align: center\"><i class=\"sign out icon\"></i></div>';
     } else {
-        z = '<div style=\"text-align: center\"><i class=\"sign in icon\"></i></td></div>';
+        // Sent to this wallet
+        txnDirection = '<div style=\"text-align: center\"><i class=\"sign in icon\"></i></td></div>';
     }
 
-    var t  = moment(x).format("HH:mm D MMM YYYY");
+    // Override txnDirection is txnsubtype is COINBASE
+    if(txnsubtype == "COINBASE") {
+        txnDirection = '<div style=\"text-align: center\"><i class=\"yellow lightning icon\"></i></td></div>';
+    }
 
-    //var TransT = $("#TransT").DataTable();
-    TransT.row.add([c, d, t, e, z, f, b, g, c, e, f]);
+    // Generate timestamp string
+    var thisMoment = moment.unix(timestamp);
+    var timeString  = moment(thisMoment).format("HH:mm D MMM YYYY");
+
+    // Add row
+    TransT.row.add([txHashLink, block, timeString, txfrom, txnDirection, txto, amount, fee]);
 }
 
 // Gets detail about the running node
@@ -302,11 +311,6 @@ function createNewAddress() {
 }
 
 
-
-
-
-
-
 // Draws address detail to page
 function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
     // Change view state
@@ -322,7 +326,6 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
     var sigSplit;
     var pendingBalance;
     $.each(addresses, function() {
-
         if(addressIndex === showAddressId) {
             currentDetailAddress = showAddressId;
 
@@ -348,7 +351,6 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
         addressIndex += 1;
     });
 
-
     // Show address
     $('#addressHeading').text(thisAddress);
 
@@ -363,9 +365,24 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
         TransT.clear();
         _.each(addressDetail.transactions, function(object) {
 
-            var txHashLink = '<a target="_blank" href="http://qrlexplorer.info/search.html#'+object.txhash+'">'+object.txhash+'</a>';
+            // Grab values from API
+            var thisTimestamp = (object.timestamp === undefined) ? "Unknown" : object.timestamp;
+            var thisAmount = (object.amount === undefined) ? "Unknown" : object.amount;
+            var thisBlock = (object.block === undefined) ? "Unknown" : object.block;
+            var thisTxHash = (object.txhash === undefined) ? "Unknown" : object.txhash;
+            var thisTxFrom = (object.txfrom === undefined) ? "Unknown" : object.txfrom;
+            var thisTxTo =  (object.txto === undefined) ? "Unknown" : object.txto;
+            var thisFee = (object.fee === undefined) ? 0 : object.fee;
+            var thisAddress = addressDetail.state.address;
+            var thisSubType = (object.subtype === undefined) ? "Unknown" : object.subtype;
 
-            drawTransRow(object.timestamp, object.amount, txHashLink, object.block, object.txfrom, object.txto, object.fee, addressDetail.state.address);
+            // Generate links
+            thisBlock = '<a target="_blank" href="http://qrlexplorer.info/block/'+thisBlock+'">'+thisBlock+'</a>';
+            txHashLink = '<a target="_blank" href="http://qrlexplorer.info/tx/'+thisTxHash+'">'+thisTxHash+'</a>';
+            thisTxFrom = '<a target="_blank" href="http://qrlexplorer.info/a/'+thisTxFrom+'">'+thisTxFrom+'</a>';
+            thisTxTo = '<a target="_blank" href="http://qrlexplorer.info/a/'+thisTxTo+'">'+thisTxTo+'</a>';
+
+            drawTransRow(thisTimestamp, thisAmount, txHashLink, thisBlock, thisTxFrom, thisTxTo, thisFee, thisAddress, thisSubType);
         });
         TransT.columns.adjust().draw(true);
 
@@ -378,7 +395,6 @@ function drawAddress(addresses, showAddressId, addressDetail, usdvalue) {
                 $('#usdvalue').text("$" + folioNinjaReply.response.quote);
             }
         });
-
     } else {
         TransT.clear();
         TransT.columns.adjust().draw(true);
