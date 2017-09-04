@@ -1,11 +1,8 @@
 from binascii import hexlify
 
-import time
-
 from qrl.core import logger, config
 from qrl.crypto.hmac_drbg import new_keys, GEN, GEN_range
-from qrl.crypto.misc import xmss_tree, sha256, xmss_route, verify_auth, verify_auth_SEED, sign_wpkey, verify_wpkey, \
-    xmss_verify_long, xmss_verify
+from qrl.crypto.misc import xmss_tree, sha256, xmss_route, verify_auth, verify_auth_SEED, sign_wpkey, verify_wpkey
 from qrl.crypto.mnemonic import seed_to_mnemonic
 
 
@@ -246,7 +243,8 @@ class XMSS(object):
             logger.error('xmss index above address derivation i')
             return False
 
-        logger.info(('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
+        logger.info(
+            ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
         s = self.sign(msg, i)
         auth_route, i_bms = xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
         self.index += 1
@@ -326,3 +324,47 @@ class XMSS(object):
             tmp_hc_terminator.append(hash_chain[-1])
 
         return tmp_hc_terminator
+
+
+def xmss_verify_long(msg, SIG):
+    """
+    verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
+    SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
+    :param msg:
+    :param SIG:
+    :return:
+    """
+    if not verify_wpkey(SIG[1], msg, SIG[4]):
+        return False
+
+    if not verify_auth(SIG[2], SIG[3], SIG[4], SIG[5]):
+        return False
+
+    return True
+
+
+def xmss_verify(message, signature):
+    """
+    same function but verifies using shorter signature where PK: {root, hex(public_SEED)}
+    # main verification function..
+    :param message:
+    :param signature:
+    :return:
+    """
+    if not verify_wpkey(signature[1], message, signature[4]):
+        return False
+
+    if not verify_auth_SEED(signature[2], signature[3], signature[4], signature[5]):
+        return False
+
+    return True
+
+
+def xmss_rootoaddr(PK_short):
+    sha_r1 = sha256(PK_short[0] + PK_short[1])
+    sha_r2 = sha256(sha_r1)
+    return 'Q' + sha_r1 + sha_r2[:4]
+
+
+def xmss_checkaddress(PK_short, address):
+    return xmss_rootoaddr(PK_short) == address

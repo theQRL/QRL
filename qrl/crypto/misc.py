@@ -249,41 +249,6 @@ def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
 
     return verify_auth(auth_route, i_bms, pub, PK)
 
-
-def xmss_verify_long(msg, SIG):
-    """
-    verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, x_bms, l_bms)}
-    SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
-    :param msg:
-    :param SIG:
-    :return:
-    """
-    if not verify_wpkey(SIG[1], msg, SIG[4]):
-        return False
-
-    if not verify_auth(SIG[2], SIG[3], SIG[4], SIG[5]):
-        return False
-
-    return True
-
-
-def xmss_verify(message, signature):
-    """
-    same function but verifies using shorter signature where PK: {root, hex(public_SEED)}
-    # main verification function..
-    :param message:
-    :param signature:
-    :return:
-    """
-    if not verify_wpkey(signature[1], message, signature[4]):
-        return False
-
-    if not verify_auth_SEED(signature[2], signature[3], signature[4], signature[5]):
-        return False
-
-    return True
-
-
 def l_bm():
     """
     l_tree is composed of l pieces of pk (pk_1,..,pk_l) and uses the first (2 *ceil( log(l) )) bitmasks from the

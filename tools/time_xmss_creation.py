@@ -1,7 +1,6 @@
 import time
 
-from qrl.crypto.misc import xmss_verify
-from qrl.crypto.xmss import XMSS
+from qrl.crypto.xmss import XMSS, xmss_verify
 
 
 # Code moved from xmss.py

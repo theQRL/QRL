@@ -6,7 +6,8 @@ from StringIO import StringIO
 import simplejson as json
 
 from qrl.core import logger, helper, config
-from qrl.crypto.misc import sha256, xmss_verify
+from qrl.crypto.misc import sha256
+from qrl.crypto.xmss import xmss_verify, xmss_checkaddress
 
 TX_SUBTYPE_TX = 'TX'
 TX_SUBTYPE_STAKE = 'STAKE'
@@ -93,7 +94,7 @@ class Transaction(object):
             logger.info('xmss_verify failed')
             return False
 
-        if helper.xmss_checkaddress(self.PK, self.txfrom) is False:
+        if xmss_checkaddress(self.PK, self.txfrom) is False:
             logger.info('Public key verification failed')
             return False
 
