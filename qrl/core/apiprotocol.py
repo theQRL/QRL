@@ -167,6 +167,11 @@ class ApiProtocol(Protocol):
             js_bk1.number_transactions = len(js_bk1.transactions)
             js_bk1.status = 'ok'
             js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward / 100000000.000000000
+            i = 0
+            for txn in js_bk1.transactions[0:]:
+                js_bk1.transactions[i].amount = txn.amount / 100000000.000000000
+                i += 1
+
             return json_print_telnet(js_bk1)
 
     def stats(self, data=None):
