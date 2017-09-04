@@ -12,13 +12,14 @@ from qrl.core import logger, transaction, config, fork
 from qrl.core.CreateGenesisBlock import genesis_info
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.nstate import NState
 from qrl.core.transaction import StakeTransaction
 from qrl.crypto.misc import sha256
 
 
 class NodeState:
     def __init__(self):
-        self.state = 'unsynced'
+        self.state = NState.unsynced
         self.epoch_diff = -1
 
 
@@ -46,16 +47,16 @@ class POS:
     def update_node_state(self, state):
         self.nodeState.state = state
         logger.info('Status changed to %s', self.nodeState.state)
-        if self.nodeState.state == 'synced':
+        if self.nodeState.state == NState.synced:
             self.nodeState.epoch_diff = 0
             self.last_pos_cycle = time.time()
             self.restart_post_block_logic()
-        elif self.nodeState.state == 'unsynced':
+        elif self.nodeState.state == NState.unsynced:
             self.last_bk_time = time.time()
             self.restart_unsynced_logic()
-        elif self.nodeState.state == 'forked':
+        elif self.nodeState.state == NState.forked:
             self.stop_post_block_logic()
-        elif self.nodeState.state == 'syncing':
+        elif self.nodeState.state == NState.syncing:
             self.last_pb_time = time.time()
 
     def stop_monitor_bk(self):
@@ -70,21 +71,21 @@ class POS:
 
     def monitor_bk(self):
         time_diff = time.time() - self.last_pos_cycle
-        if (self.nodeState.state == 'synced' or self.nodeState.state == 'unsynced') and 90 < time_diff:
-            if self.nodeState.state == 'synced':
+        if (self.nodeState.state == NState.synced or self.nodeState.state == NState.unsynced) and 90 < time_diff:
+            if self.nodeState.state == NState.synced:
                 self.stop_post_block_logic()
                 self.reset_everything()
-                self.update_node_state('unsynced')
+                self.update_node_state(NState.unsynced)
                 self.epoch_diff = -1
             elif time.time() - self.last_bk_time > 120:
                 self.last_pos_cycle = time.time()
                 logger.info(' POS cycle activated by monitor_bk() ')
-                self.update_node_state('synced')
+                self.update_node_state(NState.synced)
 
-        if self.nodeState.state == 'syncing' and time.time() - self.last_pb_time > 60:
+        if self.nodeState.state == NState.syncing and time.time() - self.last_pb_time > 60:
             self.stop_post_block_logic()
             self.reset_everything()
-            self.update_node_state('unsynced')
+            self.update_node_state(NState.unsynced)
             self.epoch_diff = -1
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
@@ -112,7 +113,7 @@ class POS:
         return
 
     def peers_blockheight(self):
-        if self.nodeState.state == 'syncing':
+        if self.nodeState.state == NState.syncing:
             return
         if self.check_fork_status():
             return
@@ -133,7 +134,7 @@ class POS:
             logger.info('Calling downloader from peers_blockheight due to no POS CYCLE %s', blocknumber)
             logger.info('Download block from %s to %s', self.chain.height() + 1, blocknumber)
             self.last_pb_time = time.time()
-            self.update_node_state('syncing')
+            self.update_node_state(NState.syncing)
             self.randomize_block_fetch(self.chain.height() + 1)
         return
 
@@ -318,7 +319,7 @@ class POS:
         reactor.unsynced_logic = reactor.callLater(delay, self.unsynced_logic)
 
     def unsynced_logic(self):
-        if self.nodeState.state == 'synced':
+        if self.nodeState.state == NState.synced:
             return
 
         self.fmbh_blockhash_peers = {}
@@ -331,7 +332,7 @@ class POS:
     def start_download(self):
         # add peers and their identity to requested list
         # FMBH
-        if self.nodeState.state == 'synced':
+        if self.nodeState.state == NState.synced:
             return
         logger.info('Checking Download..')
         '''
@@ -347,10 +348,10 @@ class POS:
             f.target_peers[peer.identity] = peer
         
         if max_height == None or max_height<=chain.height():
-            chain.state.update('synced')
+            chain.state.update(NState.synced)
             return
         
-        chain.state.update('syncing')
+        chain.state.update(NState.syncing)
         pending_blocks['start_block'] = chain.m_blockchain[-1].blockheader.blocknumber
         pending_blocks['target'] = fmbh_blockhash_peers[selected_blockhash]['blocknumber']
         pending_blocks['headerhash'] = selected_blockhash
@@ -372,7 +373,7 @@ class POS:
             return
         for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
             self.p2pFactory.target_peers[peer.identity] = peer
-        self.update_node_state('syncing')
+        self.update_node_state(NState.syncing)
         self.randomize_block_fetch(self.chain.height() + 1)
 
     def pre_block_logic(self, block, peer_identity=None):
@@ -385,7 +386,7 @@ class POS:
         if blocknumber <= self.chain.height():
             return False
 
-        if self.nodeState.state == 'synced':
+        if self.nodeState.state == NState.synced:
             if self.chain.block_chain_buffer.add_block(block):
                 self.p2pFactory.send_block_to_peers(block, peer_identity)
         else:
@@ -394,11 +395,11 @@ class POS:
                     self.p2pFactory.send_block_to_peers(block, peer_identity)
                 elif blocknumber == 1 and self.chain.block_chain_buffer.add_block_mainchain(block):
                     self.p2pFactory.send_block_to_peers(block, peer_identity)
-                self.update_node_state('synced')
+                self.update_node_state(NState.synced)
             else:
                 self.chain.block_chain_buffer.add_pending_block(block)
 
-        if self.nodeState.state == 'synced':
+        if self.nodeState.state == NState.synced:
             if chain_buffer_height + 1 == blocknumber:
                 self.last_pos_cycle = time.time()
                 block_timestamp = int(block.blockheader.timestamp)
@@ -511,7 +512,7 @@ class POS:
             last_block_number=last_block_number)
 
     def prepare_winners(self, our_reveal, last_block_number):
-        if not self.nodeState.state == 'synced':
+        if not self.nodeState.state == NState.synced:
             return
         filtered_reveal_one = []
         reveals = []
@@ -554,7 +555,7 @@ class POS:
                 self.process_transactions(5)
 
     def randomize_block_fetch(self, blocknumber):
-        if self.nodeState.state != 'syncing' or blocknumber <= self.chain.height():
+        if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():
             return
 
         if len(self.p2pFactory.target_peers.keys()) == 0:
@@ -568,7 +569,7 @@ class POS:
         random_peer.fetch_block_n(blocknumber)
 
     def randomize_headerhash_fetch(self, block_number):
-        if self.nodeState.state != 'forked':
+        if self.nodeState.state != NState.forked:
             return
         if block_number not in fork.pending_blocks or fork.pending_blocks[block_number][1] <= 10:  # retry only 11 times
             headerhash_monitor = reactor.callLater(15, self.randomize_headerhash_fetch, block_number)
@@ -595,7 +596,7 @@ class POS:
             else:
                 logger.info('No peers connected.. Will try again... randomize_headerhash_fetch: %s', block_number)
         else:
-            self.update_node_state('unsynced')
+            self.update_node_state(NState.unsynced)
 
     def blockheight_map(self):
         """
