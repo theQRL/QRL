@@ -1,9 +1,14 @@
-from binascii import hexlify
+from binascii import hexlify, unhexlify
+from math import ceil, log
+
+import time
 
 from qrl.core import logger, config
 from qrl.crypto.hmac_drbg import new_keys, GEN, GEN_range
-from qrl.crypto.misc import xmss_tree, sha256, xmss_route, verify_auth, verify_auth_SEED, sign_wpkey, verify_wpkey
+from qrl.crypto.misc import sha256, sign_wpkey, verify_wpkey, get_lengths, chain_fn
 from qrl.crypto.mnemonic import seed_to_mnemonic
+
+# creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
 
 
 class XMSS(object):
@@ -368,3 +373,234 @@ def xmss_rootoaddr(PK_short):
 
 def xmss_checkaddress(PK_short, address):
     return xmss_rootoaddr(PK_short) == address
+
+
+def xmss_tree(n, private_SEED, public_SEED):
+    # FIXME: Most other methods use pub/priv. Refactor?
+    # no.leaves = 2^h
+    h = ceil(log(n, 2))
+
+    # generate the OTS keys, bitmasks and l_trees randomly (change to SEED+KEY PRF)
+
+    leafs = []
+    pubs = []
+    privs = []
+
+    # for random key generation: public_SEED: 14 = l_bm, 2n-2 - 2n+h = x_bm (see comment below)
+
+    rand_keys = GEN_range(public_SEED, 1, 14 + 2 * n + int(h), 32)
+
+    l_bms = rand_keys[:14]
+    x_bms = rand_keys[14:]
+
+    # generate n hexlified private key seeds from PRF
+
+    sk_keys = GEN_range(private_SEED, 1, n, 32)
+
+    for x in range(n):
+        priv, pub = random_wpkey_xmss(seed=sk_keys[x])
+        leaf = l_tree(pub, l_bms)
+        leafs.append(leaf)
+        pubs.append(pub)
+        privs.append(priv)
+
+    # create xmss tree with 2^n leaves, need 2 bitmasks per parent node (excluding layer 0), therefore for a perfect binary tree total nodes = 2*n_leaves-1
+    # Given even an odd number we just create a bm for each node but dont use it for ease (the extra moves up to just below root) n_bm = 2*n-2 - 2n+h
+
+    xmss_array = [leafs]
+
+    p = 0
+    for x in range(int(h)):
+        next_layer = []
+        i = len(xmss_array[x]) % 2 + len(xmss_array[x]) / 2
+        z = 0
+        for y in range(i):
+            if len(xmss_array[
+                       x]) == z + 1:  # only one left, therefore odd leaf, just add to next layer until below the root
+                next_layer.append(xmss_array[x][z])
+                p += 1
+            else:
+                next_layer.append(sha256(hex(int(xmss_array[x][z], 16) ^ int(x_bms[p], 16))[2:-1] + hex(
+                    int(xmss_array[x][z + 1], 16) ^ int(x_bms[p + 1], 16))[2:-1]))
+                p += 2
+            z += 2
+        xmss_array.append(next_layer)
+
+    return xmss_array, x_bms, l_bms, privs, pubs
+
+
+def xmss_route(x_bms, x_tree, i=0):
+    """
+    generate the xmss tree merkle auth route for a given ots key (starts at 0)
+    :param x_bms:
+    :param x_tree:
+    :param i:
+    :return:
+    """
+    auth_route = []
+    i_bms = []
+    nodehash_list = [item for sublist in x_tree for item in sublist]
+    h = len(x_tree)
+    leaf = x_tree[0][i]
+    for x in range(h):
+
+        if len(x_tree[x]) == 1:  # must be at root layer
+            if node == ''.join(x_tree[x]):
+                auth_route.append(''.join(x_tree[x]))
+            else:
+                logger.info('Failed..root')
+                return
+
+        elif i == len(x_tree[x]) - 1 and leaf in x_tree[
+                    x + 1]:  # for an odd node it goes up a level each time until it branches..
+            i = x_tree[x + 1].index(leaf)
+            n = nodehash_list.index(leaf)
+            nodehash_list[n] = None  # stops at first duplicate in list..need next so wipe..
+
+        else:
+            n = nodehash_list.index(leaf)  # position in the list == bitmask..
+            if i % 2 == 0:  # left leaf, go right..
+                # logger.info((  'left'
+                node = sha256(hex(int(leaf, 16) ^ int(x_bms[n], 16))[2:-1] + hex(
+                    int(nodehash_list[n + 1], 16) ^ int(x_bms[n + 1], 16))[2:-1])
+                pair = nodehash_list[n + 1]
+                auth_route.append(pair)
+                i_bms.append(('L', n, n + 1))
+
+
+            elif i % 2 == 1:  # right leaf go left..
+                node = sha256(hex(int(nodehash_list[n - 1], 16) ^ int(x_bms[n - 1], 16))[2:-1] + hex(
+                    int(leaf, 16) ^ int(x_bms[n], 16))[2:-1])
+                pair = nodehash_list[n - 1]
+                auth_route.append(pair)
+                i_bms.append((n - 1, n))
+
+            try:
+                x_tree[x + 1].index(node)  # confirm node matches a hash in next layer up?
+            except:
+                logger.info(('Failed at height', str(x)))
+                return
+            leaf = node
+            i = x_tree[x + 1].index(leaf)
+
+    return auth_route, i_bms
+
+
+def verify_auth(auth_route, i_bms, pub, PK):
+    """
+    verify an XMSS auth root path..requires the xmss authentication route,
+    OTS public key and XMSS public key (containing merkle root, x and l bitmasks) and i
+    regenerate leaf from pub[i] and l_bm, use auth route to navigate up
+    merkle tree to regenerate the root and compare with PK[0]
+    :param auth_route:
+    :param i_bms:
+    :param pub:
+    :param PK:
+    :return:
+    """
+    root = PK[0]
+    x_bms = PK[1]
+    l_bms = PK[2]
+
+    leaf = l_tree(pub, l_bms)
+
+    h = len(auth_route)
+
+    node = None
+    for x in range(h - 1):  # last check is simply to confirm root = pair, no need for sha xor..
+        if i_bms[x][0] == 'L':
+            node = sha256(hex(int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1] + hex(
+                int(auth_route[x], 16) ^ int(x_bms[i_bms[x][2]], 16))[2:-1])
+        else:
+            node = sha256(hex(int(auth_route[x], 16) ^ int(x_bms[i_bms[x][0]], 16))[2:-1] + hex(
+                int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1])
+
+        leaf = node
+
+    if node == root:
+        return True
+
+    return False
+
+
+def verify_auth_SEED(auth_route, i_bms, pub, PK_short):
+    """
+    same as verify_auth but using the shorter PK which is {root, hex(public_SEED)} to reconstitute the long PK
+    with bitmasks then call above..
+    :param auth_route:
+    :param i_bms:
+    :param pub:
+    :param PK_short:
+    :return:
+    """
+    PK = []
+    root = PK_short[0]
+    public_SEED = unhexlify(PK_short[1])
+
+    rand_keys = GEN_range(public_SEED, 1, 14 + i_bms[-1][-1] + 1,
+                          32)  # i_bms[-1][-1] is the last bitmask in the tree. +1 because it counts from 0.
+
+    PK.append(root)
+    PK.append(rand_keys[14:])  # x_bms
+    PK.append(rand_keys[:14])  # l_bms
+
+    return verify_auth(auth_route, i_bms, pub, PK)
+
+
+def l_tree(pub, bm, l=67):
+    if l == 67:
+        j = 7
+    else:
+        j = ceil(log(l, 2))
+
+    l_array = [pub[1:]]  # pk_0 = (r,k) - given with the OTS pk but not in the xmss tree..
+
+    for x in range(j):
+        next_layer = []
+        i = len(l_array[x]) % 2 + len(l_array[x]) / 2
+        z = 0
+        for y in range(i):
+            if len(l_array[x]) == z + 1:
+                next_layer.append(l_array[x][z])
+            else:
+                # logger.info((  str(l_array[x][z])
+                next_layer.append(sha256(hex(int(l_array[x][z], 16) ^ int(bm[2 * x], 16))[2:-1] + hex(
+                    int(l_array[x][z + 1], 16) ^ int(bm[2 * x + 1], 16))[2:-1]))
+            z += 2
+        l_array.append(next_layer)
+    return ''.join(l_array[-1])
+
+
+def random_wpkey_xmss(seed, w=16, verbose=False):
+    """
+    first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
+    if using SHA-256 then m and n = 256
+    :param seed:
+    :param w:
+    :param verbose:
+    :return:
+    """
+    start_time = time.time()
+    l, l_1, l_2 = get_lengths(w)
+
+    pub = []
+
+    # first create l+w-1 256 bit secret key fragments from PRF seed (derived from PRF on private_SEED)
+    # l n-bits will be private key, remaining w-1 will be r, the randomisation elements for the chaining function
+    # finally generate k the key for the chaining function..
+
+    sk = GEN_range(seed, 1, l + w - 1 + 1, 32)
+
+    priv = sk[:l]
+    r = sk[l:l + w - 1]
+    k = sk[-1]
+
+    pub.append((r, k))  # pk_0 = (r,k) ..where r is a list of w-1 randomisation elements
+
+    for sk_ in priv:
+        pub.append(chain_fn(sk_, r, w - 1, k))
+
+    if verbose:
+        logger.info(str(time.time() - start_time))
+
+    return priv, pub

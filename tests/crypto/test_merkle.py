@@ -6,8 +6,7 @@ from timeout_decorator import timeout_decorator
 
 from qrl.core import logger
 from qrl.crypto.hmac_drbg import new_keys
-from qrl.crypto.misc import xmss_tree
-from qrl.crypto.xmss import XMSS
+from qrl.crypto.xmss import XMSS, xmss_tree
 from tests.crypto.known_values import S1, S1_root, S1_addrlong, S1_catPKsh, S1_catPK, S1_PKsh, \
     S1_PK, S1_addr
 
