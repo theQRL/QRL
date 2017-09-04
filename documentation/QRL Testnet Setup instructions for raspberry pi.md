@@ -49,36 +49,41 @@ sudo ufw status verbose
 
 ```sudo apt-get install python-dev```
 
-- Install dependencies :
-
-```sudo pip install -r requirements.txt```
-  
 - Type the following command to clone the repository :
 
 ```git clone https://github.com/theQRL/QRL.git```
+
+
+- Install dependencies :
+
+```
+cd /home/pi/QRL
+sudo pip install -r requirements.txt
+```
+  
   
 ## Running the node
 - In the terminal, type the following commands :
 ```
 cd /home/pi/QRL
-python main.py
+python start_qrl.py
 ```
 
 - If you've set it up correctly, it should start to output the following:
 ```
-Creating new wallet file..this could take up to a minute
-QRL blockchain ledger  alpha/0.xx
-loading db
-loading wallet
-Error: likely no wallet.info found, creating..
-Fast saving wallet recovery details to wallet.info..
+|unsynced| DEBUG : =====================================================================================
+|unsynced| INFO : Data Path: /home/pi/.qrl/data
+|unsynced| INFO : Wallet Path: /home/pi/.qrl/wallet
+|unsynced| INFO : Initializing chain..
+|unsynced| INFO : DB path: /home/pi/.qrl/data/state
+|unsynced| INFO : Creating new wallet file... (this could take up to a minute)
 ```
 After the wallet is created it will start syncronizing the chain.
 This might take a while, leave it running untill the chain is sync
 
 - If you want to keep QRL running after disconnecting terminal, you have to launch it in background :
 
-```nohup python main.py &```
+```nohup python start_qrl.py &```
 
 ## Check Sync process
 
@@ -137,7 +142,7 @@ git pull
 
 ```
 cd /home/pi/QRL
-python main.py
+python start_qrl.py
 ```
 
 ## Accessing the wallet
@@ -147,7 +152,7 @@ python main.py
 
 - Run the following command to start the node :
 
-`python main.py`
+`python start_qrl.py`
 
 - Once it starts the synchronisation process, you can telnet into the node. Type the following command in the terminal :
 
@@ -158,7 +163,7 @@ python main.py
 ## Launch the node automatically at startup
 - In the system settings (Start - Preferences - Raspberry Pi Configuration), make sure the "Boot" option is set to "To Desktop". In GUI distributions this is already pre-configured.
 
-- Make sure you have the `/home/pi/autostartQRL.sh` script with executable right
+- Make sure you have the `/home/pi/QRL/autostartQRL.sh` script with executable right
 
 `ls -l /home/pi/QRL/autostartQRL.sh/home/pi/autostartQRL.sh`
 
@@ -182,7 +187,7 @@ Press ctrl+x to close, press y to save and press enter
 
 - Make sure you have the `/home/pi/QRL/autostartQRL.sh` script with executable right
 
-`ls -l /home/pi/autostartQRL.sh/home/pi/QRL/autostartQRL.sh`
+`ls -l /home/pi/QRL/autostartQRL.sh`
 
 - Edit the crontab to restart QRL automatically
 
