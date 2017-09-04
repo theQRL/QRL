@@ -30,11 +30,11 @@ class LDOTS(object):
         return
 
 
-def random_ldmss(signatures=4, verbose=False):
+def random_ldmss(number_signatures=4, verbose=False):
     """
         lamport-diffie merkle signature scheme
-    :param signatures:
+    :param number_signatures:
     :param verbose:
     :return:
     """
-    return random_generic(LDOTS, signatures, verbose)
+    return random_generic(LDOTS, number_signatures, verbose)

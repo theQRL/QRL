@@ -36,16 +36,6 @@ def wlt():
     return numlist(wallet.list_addresses())
 
 
-def roottoaddr(merkle_root):
-    return 'Q' + sha256(merkle_root) + sha256(sha256(merkle_root))[:4]
-
-
-def checkaddress(merkle_root, address):
-    if 'Q' + sha256(merkle_root) + sha256(sha256(merkle_root))[:4] == address:
-        return True
-    return False
-
-
 def json_encode(obj):
     return json.dumps(obj)
 

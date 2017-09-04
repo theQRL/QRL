@@ -12,6 +12,7 @@ genesis_info['Qc0f401290da148f421eac9ed7f1992f3f581dd89a77b00da895b24c85b09a3afc
 genesis_info['Qccf9bcbc30b2c125d4d36ad8888517874d28ccdc4a17c3bdd7b67743d103317b6342'] = 1000000
 genesis_info['Q54610ec804e32e8cacfcc5786f89381816d0dbbe0145b26511b22d37347e641ab3e2'] = 1000000
 
+
 class CreateGenesisBlock(object):  # first block has no previous header to reference..
     def __init__(self, chain):
         self.blockheader = BlockHeader()

@@ -81,7 +81,7 @@ def l_bm():
     :return:
     """
     bm = []
-    for x in range(14):
+    for _ in range(14):
         bm.append(random_key())
     return bm
 
@@ -96,11 +96,9 @@ def fn_k(x, k):
 def chain_fn(x, r, i, k):
     if i == 0:
         return x
-    else:
-        for y in range(i):
-            x = fn_k(hex(int(x, 16) ^ int(r[y], 16))[2:-1], k)
+    for y in range(i):
+        x = fn_k(hex(int(x, 16) ^ int(r[y], 16))[2:-1], k)
     return x
-
 
 def chain_fn2(x, r, i, k):
     for y in range(i, 15):
@@ -131,7 +129,7 @@ def random_wpkey(w=16, verbose=False):
     :return:
     """
     start_time = time.time()
-    l, l_1, l_2 = get_lengths(w)
+    l, _, __ = get_lengths(w)
 
     sk = []
     pub = []
@@ -140,7 +138,7 @@ def random_wpkey(w=16, verbose=False):
     # l n-bits will be private key, remaining w-1 will be r, the randomisation elements for the chaining function
     # finally generate k the key for the chaining function..
 
-    for x in range(l + w - 1):
+    for _ in range(l + w - 1):
         sk.append(random_key())
 
     priv = sk[:-(w - 1)]
@@ -214,6 +212,7 @@ def verify_wpkey(signature, message, pub, w=16):
     pub2 = []
 
     for x in range(int(l)):  # merkle.chain_fn(priv[0],pub[0][0],15,pub[0][1])
+        # NOTE: Why is this using chain_fn2???
         pub2.append(chain_fn2(signature[x], pub[0][0], s[x], pub[0][1]))
 
     if pub2 == pub[1:]:
@@ -238,10 +237,10 @@ def random_wkey(w=8, verbose=False):
     pub = []
 
     start_time = time.time()
-    for x in range(256 / w):
+    for _ in range(256 / w):
         a = random_key()
         priv.append(a)
-        for y in range(2 ** w - 1):  # F
+        for __ in range(2 ** w - 1):  # F
             a = sha256(a)
         pub.append(sha256(a))  # G (just in case we have a different f from g).
 
@@ -256,7 +255,7 @@ def random_wkey(w=8, verbose=False):
 def temp():
     priv = random_key()
     pub = priv
-    for x in range(256):
+    for _ in range(256):
         pub = sha256(pub)
     message = 'h'
 
@@ -270,7 +269,7 @@ def sign_wkey(priv, message):  # only works with 8 at present. havent separated 
 
     for y in range(len(priv)):
         s = priv[y]
-        for x in range(256 - ord(bin_msg[y:y + 1])):
+        for _ in range(256 - ord(bin_msg[y:y + 1])):
             s = sha256(s)
         signature.append(s)
     return signature
@@ -283,7 +282,7 @@ def verify_wkey(signature, message, pub):
     for x in range(len(signature)):
         a = signature[x]
         # f is all but last hash..
-        for z in range(ord(bin_msg[x:x + 1])):
+        for _ in range(ord(bin_msg[x:x + 1])):
             a = sha256(a)
         # a = sha256(a)                               #g is the final hash, separate so can be changed..
         verify.append(a)
@@ -309,7 +308,7 @@ def sign_lkey(priv, message):  # perform lamport signature
         while len(l_byte) < 8:  # pad the zero's up to 8
             l_byte = '0' + l_byte
 
-        for y in range(0, 8):
+        for _ in range(0, 8):
             if l_byte[-1:] == '0':
                 signature.append(priv[z][0])
                 l_byte = l_byte[:-1]
@@ -357,7 +356,7 @@ def random_lkey(numbers=256):  # create random lamport signature scheme keypair
     priv = []
     pub = []
 
-    for x in range(numbers):
+    for _ in range(numbers):
         a, b = random_key(), random_key()
         priv.append((a, b))
         pub.append((sha256(a), sha256(b)))
