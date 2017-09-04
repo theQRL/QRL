@@ -13,7 +13,7 @@ from twisted.web.static import File
 
 from qrl.core import wallet, helper
 from qrl.crypto.hmac_drbg import hexseed_to_seed
-from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.mnemonic import mnemonic_to_seed, validate_mnemonic
 
 __author__ = 'scottdonaldau'
 
@@ -91,10 +91,11 @@ class recoverAddress(Resource):
                 self.result["message"] = "You must provide your mnemonic phrase!"
                 return helper.json_encode(self.result)
 
+            # FIXME: Validation should not be here, it should be part of mnemonic
             mnemonicphrase = jsQ["words"]
-            words = mnemonicphrase.split()
-            if len(words) != 32:
-                self.result["message"] = "Invalid mnemonic phrase! It must be 32 words exactly"
+
+            if not validate_mnemonic(mnemonicphrase):
+                self.result["message"] = "Invalid mnemonic phrase! It must contain exactly 32 valid words"
                 return helper.json_encode(self.result)
 
             # Try to recover
@@ -113,7 +114,9 @@ class recoverAddress(Resource):
                             self.result["mnemonic"] = x[1].mnemonic
             except:
                 self.result[
-                    "message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
+                    "message"] = "There was a problem restoring your address. " \
+                                 "If you believe this is in error, please raise it with the QRL team."
+
                 return helper.json_encode(self.result)
 
         # Recover address from hexseed
@@ -263,7 +266,11 @@ class sendQuanta(Resource):
             return helper.json_encode(self.txnResult)
 
         if tx.validate_tx():
-            if not tx.state_validate_tx(state=self.state, transaction_pool=self.chain.transaction_pool):
+            block_chain_buffer = self.chain.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
+                                                         addr=tx.txfrom)
+            if not tx.state_validate_tx(tx_state=tx_state,
+                                        transaction_pool=self.chain.transaction_pool):
                 self.txnResult["message"] = "OTS key reused"
                 return helper.json_encode(self.txnResult)
         else:

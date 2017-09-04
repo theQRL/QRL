@@ -138,10 +138,7 @@ class ApiProtocol(Protocol):
         error = {
             'status': 'error',
             'error': 'no method supplied',
-            'methods available':
-                'block_data, stats, txhash, address, last_tx, \
-                last_block, richlist, ping, stake_commits, stake_reveals, stakers, \
-                next_stakers'
+            'methods available': self.api_list
         }
         return json_print_telnet(error)
 
@@ -152,7 +149,7 @@ class ApiProtocol(Protocol):
             'method': 'block_data',
             'parameter': data
         }
-        logger.info(('<<< API block data call', data))
+        logger.info('<<< API block data call %s', data)
         if not data:
             data = self.factory.chain.m_get_last_block()
             data1 = copy.deepcopy(data)
@@ -170,6 +167,11 @@ class ApiProtocol(Protocol):
             js_bk1.number_transactions = len(js_bk1.transactions)
             js_bk1.status = 'ok'
             js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward / 100000000.000000000
+            i = 0
+            for txn in js_bk1.transactions[0:]:
+                js_bk1.transactions[i].amount = txn.amount / 100000000.000000000
+                i += 1
+
             return json_print_telnet(js_bk1)
 
     def stats(self, data=None):
@@ -214,15 +216,15 @@ class ApiProtocol(Protocol):
         return json_print_telnet(net_stats)
 
     def txhash(self, data=None):
-        logger.info(('<<< API tx/hash call', data))
+        logger.info('<<< API tx/hash call %s', data)
         return self.factory.chain.search_txhash(data)
 
     def balance(self, data=None):
-        logger.info(('<<< API address call', data))
+        logger.info('<<< API balance call %s', data)
         return self.factory.chain.basic_info(data)
 
     def address(self, data=None):
-        logger.info(('<<< API address call', data))
+        logger.info('<<< API address call %s', data)
         return self.factory.chain.search_address(data)
 
     def dataReceived(self, data=None):
