@@ -138,47 +138,6 @@ class XMSS(object):
         """
         return self._verify_auth_SEED(auth_route, i_bms, self.pk(i), self.PK_short)
 
-    def sign(self, msg, i=0):
-        """
-        Sign with OTS private key at position i
-        :param msg:
-        :param i:
-        :return:
-        """
-        return sign_wpkey(self.privs[i], msg, self.pubs[i])
-
-    def verify(self, msg, signature, i=0):
-        """
-        Verify OTS signature
-        :param msg:
-        :param signature:
-        :param i:
-        :return:
-        """
-        return verify_wpkey(signature, msg, self.pubs[i])
-
-    def SIGN_long(self, msg, i=0):
-        s = self.sign(msg, i)
-        auth_route, i_bms = XMSS._xmss_route(self.x_bms, self.tree, i)
-        return i, s, auth_route, i_bms, self.pk(i), self.PK  # SIG
-
-    def SIGN_short(self, msg, i=0):
-        s = self.sign(msg, i)
-        auth_route, i_bms = XMSS._xmss_route(self.x_bms, self.tree, i)
-        return i, s, auth_route, i_bms, self.pk(i), self.PK_short  # shorter SIG due to SEED rather than bitmasks
-
-    def SIGN(self, msg):
-        i = self.index
-
-        # formal sign and increment the index to the next OTS to be used..
-        logger.info('xmss signing with OTS n = %s', str(self.index))
-        s = self.sign(msg, i)
-        auth_route, i_bms = XMSS._xmss_route(self.x_bms, self.tree, i)
-        self.index += 1
-        self.remaining -= 1
-
-        return i, s, auth_route, i_bms, self.pk(i), self.PK_short
-
     @staticmethod
     def VERIFY_long(msg, SIG):
         """
@@ -213,6 +172,140 @@ class XMSS(object):
             return False
 
         return True
+
+    def verify(self, msg, signature, i=0):
+        """
+        Verify OTS signature
+        :param msg:
+        :param signature:
+        :param i:
+        :return:
+        """
+        return verify_wpkey(signature, msg, self.pubs[i])
+
+    @staticmethod
+    def _verify_auth(auth_route, i_bms, pub, PK):
+        """
+        verify an XMSS auth root path..requires the xmss authentication route,
+        OTS public key and XMSS public key (containing merkle root, x and l bitmasks) and i
+        regenerate leaf from pub[i] and l_bm, use auth route to navigate up
+        merkle tree to regenerate the root and compare with PK[0]
+        :param auth_route:
+        :param i_bms:
+        :param pub:
+        :param PK:
+        :return:
+        """
+        root = PK[0]
+        x_bms = PK[1]
+        l_bms = PK[2]
+
+        leaf = XMSS._l_tree(pub, l_bms)
+
+        h = len(auth_route)
+
+        node = None
+        for x in range(h - 1):  # last check is simply to confirm root = pair, no need for sha xor..
+            if i_bms[x][0] == 'L':
+                node = sha256(hex(int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1] + hex(
+                    int(auth_route[x], 16) ^ int(x_bms[i_bms[x][2]], 16))[2:-1])
+            else:
+                node = sha256(hex(int(auth_route[x], 16) ^ int(x_bms[i_bms[x][0]], 16))[2:-1] + hex(
+                    int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1])
+
+            leaf = node
+
+        if node == root:
+            return True
+
+        return False
+
+    @staticmethod
+    def _verify_auth_SEED(auth_route, i_bms, pub, PK_short):
+        """
+        same as verify_auth but using the shorter PK which is {root, hex(public_SEED)} to reconstitute the long PK
+        with bitmasks then call above..
+        :param auth_route:
+        :param i_bms:
+        :param pub:
+        :param PK_short:
+        :return:
+        """
+        PK = []
+        root = PK_short[0]
+        public_SEED = unhexlify(PK_short[1])
+
+        rand_keys = GEN_range(public_SEED, 1, 14 + i_bms[-1][-1] + 1,
+                              32)  # i_bms[-1][-1] is the last bitmask in the tree. +1 because it counts from 0.
+
+        PK.append(root)
+        PK.append(rand_keys[14:])  # x_bms
+        PK.append(rand_keys[:14])  # l_bms
+
+        return XMSS._verify_auth(auth_route, i_bms, pub, PK)
+
+    def sign(self, msg, i=0):
+        """
+        Sign with OTS private key at position i
+        :param msg:
+        :param i:
+        :return:
+        """
+        return sign_wpkey(self.privs[i], msg, self.pubs[i])
+
+    def SIGN_long(self, msg, i=0):
+        s = self.sign(msg, i)
+        auth_route, i_bms = XMSS._xmss_route(self.x_bms, self.tree, i)
+        return i, s, auth_route, i_bms, self.pk(i), self.PK  # SIG
+
+    def SIGN_short(self, msg, i=0):
+        s = self.sign(msg, i)
+        auth_route, i_bms = XMSS._xmss_route(self.x_bms, self.tree, i)
+        return i, s, auth_route, i_bms, self.pk(i), self.PK_short  # shorter SIG due to SEED rather than bitmasks
+
+    def SIGN(self, msg):
+        i = self.index
+
+        # formal sign and increment the index to the next OTS to be used..
+        logger.info('xmss signing with OTS n = %s', str(self.index))
+        s = self.sign(msg, i)
+        auth_route, i_bms = XMSS._xmss_route(self.x_bms, self.tree, i)
+        self.index += 1
+        self.remaining -= 1
+
+        return i, s, auth_route, i_bms, self.pk(i), self.PK_short
+
+    def SIGN_subtree(self, msg, t=0):
+        """
+        Default to full xmss tree with max sigs
+        :param msg:
+        :param t:
+        :return:
+        """
+        if len(self.addresses) < t + 1:
+            logger.error('self.addresses new address does not exist')
+            return False
+
+        i = self.index
+        if self.addresses[t][2] < i:
+            logger.error('xmss index above address derivation i')
+            return False
+
+        logger.info(
+            ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
+        s = self.sign(msg, i)
+        auth_route, i_bms = XMSS._xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
+        self.index += 1
+        self.remaining -= 1
+
+        return i, s, auth_route, i_bms, self.pk(i), self.subtrees[t][4]
+
+    @staticmethod
+    def checkaddress(PK_short, address):
+        sha_r1 = sha256(PK_short[0] + PK_short[1])
+        sha_r2 = sha256(sha_r1)
+        rootoaddr = 'Q' + sha_r1 + sha_r2[:4]
+        return rootoaddr == address
 
     def address_add(self, i=None):
         """
@@ -257,31 +350,6 @@ class XMSS(object):
 
         for i in range(start_i, stop_i):
             self.address_add(i)
-
-    def SIGN_subtree(self, msg, t=0):
-        """
-        Default to full xmss tree with max sigs
-        :param msg:
-        :param t:
-        :return:
-        """
-        if len(self.addresses) < t + 1:
-            logger.error('self.addresses new address does not exist')
-            return False
-
-        i = self.index
-        if self.addresses[t][2] < i:
-            logger.error('xmss index above address derivation i')
-            return False
-
-        logger.info(
-            ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self.index)))
-        s = self.sign(msg, i)
-        auth_route, i_bms = XMSS._xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
-        self.index += 1
-        self.remaining -= 1
-
-        return i, s, auth_route, i_bms, self.pk(i), self.subtrees[t][4]
 
     def list_addresses(self):
         """
@@ -410,12 +478,6 @@ class XMSS(object):
 
         return xmss_array, x_bms, l_bms, privs, pubs
 
-    @staticmethod
-    def checkaddress(PK_short, address):
-        sha_r1 = sha256(PK_short[0] + PK_short[1])
-        sha_r2 = sha256(sha_r1)
-        rootoaddr = 'Q' + sha_r1 + sha_r2[:4]
-        return rootoaddr == address
 
     @staticmethod
     def _xmss_route(x_bms, x_tree, i=0):
@@ -466,73 +528,12 @@ class XMSS(object):
                 try:
                     x_tree[x + 1].index(node)  # confirm node matches a hash in next layer up?
                 except:
-                    logger.info(('Failed at height', str(x)))
+                    logger.warning(('Failed at height', str(x)))
                     return
                 leaf = node
                 i = x_tree[x + 1].index(leaf)
 
         return auth_route, i_bms
-
-    @staticmethod
-    def _verify_auth(auth_route, i_bms, pub, PK):
-        """
-        verify an XMSS auth root path..requires the xmss authentication route,
-        OTS public key and XMSS public key (containing merkle root, x and l bitmasks) and i
-        regenerate leaf from pub[i] and l_bm, use auth route to navigate up
-        merkle tree to regenerate the root and compare with PK[0]
-        :param auth_route:
-        :param i_bms:
-        :param pub:
-        :param PK:
-        :return:
-        """
-        root = PK[0]
-        x_bms = PK[1]
-        l_bms = PK[2]
-
-        leaf = XMSS._l_tree(pub, l_bms)
-
-        h = len(auth_route)
-
-        node = None
-        for x in range(h - 1):  # last check is simply to confirm root = pair, no need for sha xor..
-            if i_bms[x][0] == 'L':
-                node = sha256(hex(int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1] + hex(
-                    int(auth_route[x], 16) ^ int(x_bms[i_bms[x][2]], 16))[2:-1])
-            else:
-                node = sha256(hex(int(auth_route[x], 16) ^ int(x_bms[i_bms[x][0]], 16))[2:-1] + hex(
-                    int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1])
-
-            leaf = node
-
-        if node == root:
-            return True
-
-        return False
-
-    @staticmethod
-    def _verify_auth_SEED(auth_route, i_bms, pub, PK_short):
-        """
-        same as verify_auth but using the shorter PK which is {root, hex(public_SEED)} to reconstitute the long PK
-        with bitmasks then call above..
-        :param auth_route:
-        :param i_bms:
-        :param pub:
-        :param PK_short:
-        :return:
-        """
-        PK = []
-        root = PK_short[0]
-        public_SEED = unhexlify(PK_short[1])
-
-        rand_keys = GEN_range(public_SEED, 1, 14 + i_bms[-1][-1] + 1,
-                              32)  # i_bms[-1][-1] is the last bitmask in the tree. +1 because it counts from 0.
-
-        PK.append(root)
-        PK.append(rand_keys[14:])  # x_bms
-        PK.append(rand_keys[:14])  # l_bms
-
-        return XMSS._verify_auth(auth_route, i_bms, pub, PK)
 
     @staticmethod
     def _l_tree(pub, bm, l=67):
