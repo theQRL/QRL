@@ -1,6 +1,6 @@
 import time
 
-from qrl.crypto.xmss import XMSS, xmss_verify
+from qrl.crypto.xmss import XMSS
 
 
 # Code moved from xmss.py
@@ -15,7 +15,7 @@ def measure_xmss_creation_time(n):
 # Code moved from merkle.py
 def measure_xmss_verification_time(s, m):
     start_time = time.time()
-    answer = xmss_verify(m, s)
+    answer = XMSS.VERIFY(m, s)
     total_time = time.time() - start_time
     return answer, total_time
 

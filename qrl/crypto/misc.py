@@ -1,13 +1,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
 # creates merkle trees for the MSS incorporating either lamport or winternitz OTS.
-
-# creates winternitz OTS key pairs, signs and verifies a winternitz one time signature. 
+# creates winternitz OTS key pairs, signs and verifies a winternitz one time signature.
 # creates lamport-diffie OTS key pairs, signs and verifies a lamport one time signature.
 # creates winternitz OTS+ key pairs, signs and verifies the OTS.
-#
-
 # TODO: think about how can keep strings in hex..but need to go through and edit code such that we are passing sha256 binary strings rather than hex to avoid problems with specs..
 # look at winternitz-ots fn_k to see if we need to pad it..
 

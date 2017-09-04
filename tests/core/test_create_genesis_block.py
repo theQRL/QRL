@@ -3,7 +3,6 @@
 from unittest import TestCase
 
 from qrl.core import logger
-from qrl.core.CreateGenesisBlock import CreateGenesisBlock
 
 logger.initialize_default(force_console_output=True)
 

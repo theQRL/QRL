@@ -6,7 +6,7 @@ from timeout_decorator import timeout_decorator
 
 from qrl.core import logger
 from qrl.crypto.hmac_drbg import new_keys
-from qrl.crypto.xmss import XMSS, xmss_tree
+from qrl.crypto.xmss import XMSS
 from tests.crypto.known_values import S1, S1_root, S1_addrlong, S1_catPKsh, S1_catPK, S1_PKsh, \
     S1_PK, S1_addr
 
@@ -22,7 +22,7 @@ class TestMerkle(TestCase):
     def test_xmss_tree(self):
         # Create seeds from public/private keys
         seed1, pub1, priv1 = new_keys(S1)
-        xmss_array, x_bms, l_bms, privs, pubs = xmss_tree(2, public_SEED=pub1, private_SEED=priv1)
+        xmss_array, x_bms, l_bms, privs, pubs = XMSS._xmss_tree(2, public_SEED=pub1, private_SEED=priv1)
 
         # Verify sizes
         self.assertEqual(len(xmss_array), 2)
