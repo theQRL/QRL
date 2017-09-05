@@ -216,9 +216,9 @@ class WalletProtocol(Protocol):
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
                     self.factory.p2pFactory.send_st_to_peers(
-                        StakeTransaction().create(self.factory.chain.mining_address,
-                                                  self.factory.chain.block_chain_buffer.height() + 1,
+                        StakeTransaction().create(self.factory.chain.block_chain_buffer.height() + 1,
                                                   self.factory.chain.my[0][1],
+                                                  first_hash=None,
                                                   balance=self.factory.chain.state.state_balance(
                                                       self.factory.chain.mining_address)))
 
@@ -261,14 +261,14 @@ class WalletProtocol(Protocol):
                     self.output['message'].write(
                         '>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peer_connections)) + '\r\n')
                     self.output['message'].write('>>> Staking set to: ' + str(self.factory.p2pFactory.stake) + '\r\n')
-                    self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state + '\r\n')
+                    self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state.name + '\r\n')
 
                     self.output['keys'] += ['version', 'uptime', 'nodes_connected', 'staking_status', 'sync_status']
                     self.output['version'] = self.factory.chain.version_number
                     self.output['uptime'] = str(time.time() - self.factory.start_time)
                     self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peer_connections))
                     self.output['staking_status'] = str(self.factory.p2pFactory.stake)
-                    self.output['sync_status'] = self.factory.p2pFactory.nodeState.state
+                    self.output['sync_status'] = self.factory.p2pFactory.nodeState.state.name
 
 
                 elif command == 'blockheight':
