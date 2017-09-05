@@ -39,29 +39,30 @@ def mnemonic_to_seed(mnemonic):
         raise ValueError("Mnemonic is not valid")
 
     words = mnemonic.lower().split()
-    seed = ''
+    seed_hexstring = ''
     y = 0
     for x in range(16):
         # TODO: Use a look up to improve efficiency
         n = format(wordlist.index(words[y]), '012b') + format(wordlist.index(words[y + 1]), '012b')
-        seed += chr(int(n[:8], 2)) + chr(int(n[8:16], 2)) + chr(int(n[16:], 2))
+        seed_hexstring += chr(int(n[:8], 2)) + chr(int(n[8:16], 2)) + chr(int(n[16:], 2))
         y += 2
-    return seed
+    return seed_hexstring
 
 
-def seed_to_mnemonic(seed):
+def seed_to_mnemonic(seed_hexstring):
+    # FIXME: the seed is expected as a hex string
     """
     seed to mnemonic
-    :param seed:
+    :param seed_hexstring:
     :return:
     """
-    if len(seed) != 48:
+    if len(seed_hexstring) != 48:
         logger.error('SEED is not 48 bytes in length..')
         return False
     words = []
     y = 0
     for x in range(16):
-        three_bytes = format(ord(seed[y]), '08b') + format(ord(seed[y + 1]), '08b') + format(ord(seed[y + 2]), '08b')
+        three_bytes = format(ord(seed_hexstring[y]), '08b') + format(ord(seed_hexstring[y + 1]), '08b') + format(ord(seed_hexstring[y + 2]), '08b')
         words.append(wordlist[int(three_bytes[:12], 2)])
         words.append(wordlist[int(three_bytes[12:], 2)])
         y += 3

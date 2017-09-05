@@ -29,11 +29,11 @@ class WOTS(object):
         return
 
 
-def random_wmss(signatures=4, verbose=False):
+def random_wmss(number_signatures=4, verbose=False):
     """
         Create a w-ots mms with multiple signatures..
-    :param signatures:
+    :param number_signatures:
     :param verbose:
     :return:
     """
-    return random_generic(WOTS, signatures, verbose)
+    return random_generic(WOTS, number_signatures, verbose)

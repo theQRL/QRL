@@ -14,22 +14,22 @@ class TestNTP(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestNTP, self).__init__(*args, **kwargs)
 
-    # def test_getNTP(self):
-    #     ntp = getNTP()
-    #     self.assertIsNotNone(ntp)
-    #     self.assertNotEqual(0, ntp)
-    #
-    # def test_get_ntp_response(self):
-    #     response = get_ntp_response()
-    #     self.assertTrue(isinstance(response, ntplib.NTPStats))
-    #
-    # def test_set_drift(self):
-    #     ntp.drift = 0
-    #     setDrift()
-    #     print(ntp.drift)
-    #     self.assertNotEqual(0, ntp.drift)
-    #
-    # def test_getTime(self):
-    #     setDrift()
-    #     time = getTime()
-    #     self.assertIsNotNone(time)
+    def test_getNTP(self):
+        ntp = getNTP()
+        self.assertIsNotNone(ntp)
+        self.assertNotEqual(0, ntp)
+
+    def test_get_ntp_response(self):
+        response = get_ntp_response()
+        self.assertTrue(isinstance(response, ntplib.NTPStats))
+
+    def test_set_drift(self):
+        ntp.drift = 0
+        setDrift()
+        print(ntp.drift)
+        self.assertNotEqual(0, ntp.drift)
+
+    def test_getTime(self):
+        setDrift()
+        time = getTime()
+        self.assertIsNotNone(time)

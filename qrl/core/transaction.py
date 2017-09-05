@@ -6,7 +6,8 @@ from StringIO import StringIO
 import simplejson as json
 
 from qrl.core import logger, helper, config
-from qrl.crypto.misc import sha256, xmss_verify
+from qrl.crypto.misc import sha256
+from qrl.crypto.xmss import XMSS, hashchain_reveal
 
 TX_SUBTYPE_TX = 'TX'
 TX_SUBTYPE_STAKE = 'STAKE'
@@ -88,12 +89,12 @@ class Transaction(object):
         return True
 
     def validate_signed_hash(self):
-        if xmss_verify(self.txhash,
+        if XMSS.VERIFY(self.txhash,
                        [self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]) is False:
             logger.info('xmss_verify failed')
             return False
 
-        if helper.xmss_checkaddress(self.PK, self.txfrom) is False:
+        if XMSS.checkaddress(self.PK, self.txfrom) is False:
             logger.info('Public key verification failed')
             return False
 
@@ -171,7 +172,7 @@ class StakeTransaction(Transaction):
         self.balance = balance
 
         if hashchain_terminator is None:
-            self.hash = xmss.hashchain_reveal(epoch=self.epoch + 1)  # my[0][1].hc_terminator
+            self.hash = hashchain_reveal(xmss, epoch=self.epoch + 1)  # my[0][1].hc_terminator
         else:
             self.hash = hashchain_terminator
         self.txhash = ''.join(self.hash) + str(self.first_hash)

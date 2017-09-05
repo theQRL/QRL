@@ -36,26 +36,6 @@ def wlt():
     return numlist(wallet.list_addresses())
 
 
-def xmss_rootoaddr(PK_short):
-    return 'Q' + sha256(PK_short[0] + PK_short[1]) + sha256(sha256(PK_short[0] + PK_short[1]))[:4]
-
-
-def xmss_checkaddress(PK_short, address):
-    if 'Q' + sha256(PK_short[0] + PK_short[1]) + sha256(sha256(PK_short[0] + PK_short[1]))[:4] == address:
-        return True
-    return False
-
-
-def roottoaddr(merkle_root):
-    return 'Q' + sha256(merkle_root) + sha256(sha256(merkle_root))[:4]
-
-
-def checkaddress(merkle_root, address):
-    if 'Q' + sha256(merkle_root) + sha256(sha256(merkle_root))[:4] == address:
-        return True
-    return False
-
-
 def json_encode(obj):
     return json.dumps(obj)
 

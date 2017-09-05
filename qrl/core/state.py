@@ -5,6 +5,7 @@ from operator import itemgetter
 
 from qrl.core import db, logger, transaction, config
 from qrl.crypto.misc import sha256
+from qrl.crypto.xmss import hashchain
 
 
 class State:
@@ -250,7 +251,7 @@ class State:
                 logger.info('stake selector wrong..')
                 return
 
-            chain.my[0][1].hashchain(epoch=0)
+            hashchain(chain.my[0][1], epoch=0)
             chain.hash_chain = chain.my[0][1].hc
             chain.wallet.f_save_wallet()
 
@@ -354,7 +355,7 @@ class State:
             del next_sl[:]
             self.next_stake_list_put(next_sl)
 
-            chain.my[0][1].hashchain(epoch=block.blockheader.epoch + 1)
+            hashchain(chain.my[0][1], epoch=block.blockheader.epoch + 1)
             chain.hash_chain = chain.my[0][1].hc
             chain.wallet.f_save_wallet()
 

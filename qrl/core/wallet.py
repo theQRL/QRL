@@ -255,16 +255,16 @@ class Wallet:
         """
         addr = []
         if addrtype == Wallet.ADDRESS_TYPE_XMSS:
-            new = XMSS(signatures=signatures, SEED=SEED)
+            new = XMSS(number_signatures=signatures, SEED=SEED)
             addr.append(new.address)
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_WOTS:
-            new = random_wmss(signatures=signatures)
-            addr.append(self.chain.roottoaddr(new[0].merkle_root))
+            new = random_wmss(number_signatures=signatures)
+            addr.append(XMSS.create_address_from_key(new[0].merkle_root))
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_LDOTS:
-            new = random_ldmss(signatures=signatures)
-            addr.append(self.chain.roottoaddr(new[0].merkle_root))
+            new = random_ldmss(number_signatures=signatures)
+            addr.append(XMSS.create_address_from_key(new[0].merkle_root))
             addr.append(new)
         else:
             raise Exception('OTS type not recognised')

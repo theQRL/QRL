@@ -11,6 +11,9 @@ from copy import deepcopy
 
 import gc
 
+from qrl.crypto.xmss import hashchain
+
+
 class ChainBuffer:
     def __init__(self, chain):
         self.chain = chain
@@ -93,7 +96,7 @@ class ChainBuffer:
         epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
         logger.info('Created new hash chain')
         new_my = deepcopy(self.my[epoch - 1])
-        new_my[0][1].hashchain(epoch=epoch)
+        hashchain(new_my[0][1], epoch=epoch)
         self.my[epoch] = new_my
         self.hash_chain[epoch] = new_my[0][1].hc
         gc.collect()

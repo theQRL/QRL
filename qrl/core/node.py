@@ -15,6 +15,7 @@ from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.transaction import StakeTransaction
 from qrl.crypto.misc import sha256
+from qrl.crypto.xmss import hashchain
 
 
 class NodeState:
@@ -163,7 +164,7 @@ class POS:
         if self.chain.mining_address in self.chain.m_blockchain[0].stake_list:
             logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
 
-            self.chain.my[0][1].hashchain(epoch=0)
+            hashchain(self.chain.my[0][1], epoch=0)
             self.chain.hash_chain = self.chain.my[0][1].hc
             self.chain.block_chain_buffer.hash_chain[0] = self.chain.my[0][1].hc
 
@@ -469,7 +470,7 @@ class POS:
                             (max_threshold_blocknum - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                         if random.randint(1, diff) == 1:
                             my = deepcopy(self.chain.my[0][1])
-                            my.hashchain(epoch=epoch + 1)
+                            hashchain(my, epoch=epoch + 1)
                             self.make_st_tx(blocknumber, my.hc[-1][-2])
 
         return

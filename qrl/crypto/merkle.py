@@ -77,7 +77,7 @@ class Merkle(object):
             cycles = len(hashlayer) % 2 + len(hashlayer) / 2
             y = 0
             # FIXME: Same variable as outer loop??
-            for x in range(cycles):
+            for _ in range(cycles):
                 if y + 1 == len(hashlayer):
                     temp_array.append(str(hashlayer[y]))
                 else:
