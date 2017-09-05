@@ -272,6 +272,8 @@ class SimpleTransaction(Transaction):
         self.amount = int(amount)
         self.fee = int(fee)
 
+        self.amount = self.amount - self.fee  # this is a simple transaction from one party to the other, the fee must be subtracted
+
         self.txhash = sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)))
         self.merkle_root = xmss.root
         if not self.pre_condition(tx_state):
