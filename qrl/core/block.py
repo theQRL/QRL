@@ -48,7 +48,6 @@ class Block(object):
 
         for tx in chain.transaction_pool:
             if tx.subtype == transaction.TX_SUBTYPE_TX:
-                tx.amount = tx.amount - tx.fee
                 fee_reward += tx.fee
 
             hashedtransactions.append(tx.txhash)

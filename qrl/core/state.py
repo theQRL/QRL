@@ -329,7 +329,7 @@ class State:
                 address_txn[tx.txfrom][0] += 1
 
                 if tx.subtype == transaction.TX_SUBTYPE_TX:
-                    address_txn[tx.txfrom][1] -= tx.amount - tx.fee
+                    address_txn[tx.txfrom][1] -= tx.amount + tx.fee
 
                 if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
                     address_txn[tx.txto][1] += tx.amount
