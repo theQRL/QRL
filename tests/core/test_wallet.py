@@ -49,7 +49,7 @@ class TestWallet(TestCase):
 
         @timeout_decorator.timeout(100)
         @pytest.mark.skip(reason="no way of currently testing this")
-        def test_getnewaddress(self):
+        def test_getnewaddress2(self):
             wallet = Wallet(None, None)
             address = wallet.getnewaddress(SEED=TestWallet.S1)
             self.assertEqual(address[0], 'Q04402be77fb7df9c755883b066f1f33254a19d244c4dbae41b94f88a32b88a5921c7')
