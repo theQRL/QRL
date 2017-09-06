@@ -14,7 +14,7 @@ class RequireChecker():
         try:
             pkg_resources.require(self.requirements)
         except:
-            sys.exit("dependencies not satisfied, run [pip install -r requirements] first.")
+            sys.exit("dependencies not satisfied, run [pip install -r requirements.txt] first.")
 
     def get_requirements(self, rq_path):
         requirements = []
