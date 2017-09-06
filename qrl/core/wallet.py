@@ -108,9 +108,13 @@ class Wallet:
             if type(tree[1]) == list:
                 pass
             else:
-                if tree[1].type == 'XMSS':
+                if tree[1].get_type() == 'XMSS':
                     data.append(
-                        [tree[1].mnemonic, tree[1].get_hexseed(), tree[1].signatures, tree[1]._index, tree[1].remaining])
+                        [tree[1].get_mnemonic(),
+                         tree[1].get_hexseed(),
+                         tree[1].get_number_signatures(),
+                         tree[1].get_index(),
+                         tree[1].get_remaining_signatures()])
 
         logger.info('Fast saving wallet recovery details to wallet.info..')
         # stores the recovery phrase, signatures and the index for each tree in the wallet..
@@ -130,12 +134,9 @@ class Wallet:
         for tree in self.chain.my:
             # if any part of self.chain.my which has loaded from f_read_wallet()
             # on startup is lower than winfo then don't load..
-            if type(tree[1]) == list:
-                pass
-            else:
-                if tree[1]._index <= data[x][3]:
-                    tree[1]._index = data[x][3]  # update self.chain.my from winfo then save to main file..
-                    tree[1].remaining = data[x][4]
+            if not isinstance(tree[1], list):
+                if tree[1].get_index() <= data[x][3]:
+                    tree[1].set_index(data[x][3])  # update self.chain.my from winfo then save to main file..
                 else:
                     return False
                 x += 1
@@ -201,9 +202,9 @@ class Wallet:
                 dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
                                      '(' + str(self.state.state_nonce(address[0]) + y) + ')'
                 dict_addr['signatures_left'] = str(
-                    address[1][0].signatures - self.state.state_nonce(address[0])) + ' (' + str(
-                    address[1][0].signatures - self.state.state_nonce(address[0]) - y) + '/' + str(
-                    address[1][0].signatures) + ')'
+                    address[1][0].get_number_signatures() - self.state.state_nonce(address[0])) + ' (' + str(
+                    address[1][0].get_number_signatures() - self.state.state_nonce(address[0]) - y) + '/' + str(
+                    address[1][0].get_number_signatures()) + ')'
                 list_addr.append([address[0], 'type:', address[1][0].type, 'balance: ' + dict_addr['balance'],
                                   'nonce:' + dict_addr['nonce'], 'signatures left: ' + dict_addr['signatures_left']])
             else:  # xmss
@@ -214,11 +215,11 @@ class Wallet:
                     self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')'
                 dict_addr['nonce'] = str(self.state.state_nonce(address[0])) + \
                                      '(' + str(self.state.state_nonce(address[0]) + y) + ')'
-                dict_addr['signatures_left'] = str(address[1].remaining) + \
-                                               ' (' + str(address[1].remaining) + '/' + str(address[1].signatures) + ')'
+                dict_addr['signatures_left'] = str(address[1].get_remaining_signatures()) + \
+                                               ' (' + str(address[1].get_remaining_signatures()) + '/' + str(address[1].get_number_signatures()) + ')'
 
                 list_addr.append([address[0],
-                                  'type:', address[1].type,
+                                  'type:', address[1].get_type(),
                                   'balance: ' + dict_addr['balance'],
                                   'nonce:' + dict_addr['nonce'],
                                   'signatures left: ' + dict_addr['signatures_left']])
@@ -240,30 +241,30 @@ class Wallet:
         for address in addr:
             if address[0] == address_to_check:
                 if type(address[1]) == list:
-                    return address[1][0].signatures - self.state.state_nonce(address[0])
+                    return address[1][0].get_number_signatures() - self.state.state_nonce(address[0])
                 else:  # xmss
-                    return address[1].remaining
+                    return address[1].get_remaining_signatures()
 
-    def getnewaddress(self, signatures=SIGNATURE_SIZE, addrtype=ADDRESS_TYPE_XMSS, SEED=None):
+    def getnewaddress(self, number_signatures=SIGNATURE_SIZE, addrtype=ADDRESS_TYPE_XMSS, SEED=None):
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
-        :param signatures:
+        :param number_signatures:
         :param addrtype:
         :param SEED:
         :return: a wallet address
         """
         addr = []
         if addrtype == Wallet.ADDRESS_TYPE_XMSS:
-            new = XMSS(number_signatures=signatures, SEED=SEED)
+            new = XMSS(number_signatures=number_signatures, SEED=SEED)
             addr.append(new.address)
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_WOTS:
-            new = random_wmss(number_signatures=signatures)
+            new = random_wmss(number_signatures=number_signatures)
             addr.append(XMSS.create_address_from_key(new[0].merkle_root))
             addr.append(new)
         elif addrtype == Wallet.ADDRESS_TYPE_LDOTS:
-            new = random_ldmss(number_signatures=signatures)
+            new = random_ldmss(number_signatures=number_signatures)
             addr.append(XMSS.create_address_from_key(new[0].merkle_root))
             addr.append(new)
         else:
@@ -271,9 +272,9 @@ class Wallet:
 
         return addr
 
-    def xmss_getnewaddress(self, signatures=SIGNATURE_SIZE, SEED=None, addrtype='WOTS+'):
+    def xmss_getnewaddress(self, number_signatures=SIGNATURE_SIZE, SEED=None, addrtype='WOTS+'):
         # new address format returns a stateful XMSS class object
-        return XMSS(signatures, SEED)
+        return XMSS(number_signatures, SEED)
 
-    def savenewaddress(self, signatures=64, addrtype='WOTS', seed=None):
-        self.f_append_wallet(self.getnewaddress(signatures, addrtype, seed))
+    def savenewaddress(self, number_signatures=64, addrtype='WOTS', seed=None):
+        self.f_append_wallet(self.getnewaddress(number_signatures, addrtype, seed))

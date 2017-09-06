@@ -60,7 +60,7 @@ class newAddress(Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        return self.wallet.savenewaddress(signatures=8000, addrtype='XMSS')
+        return self.wallet.savenewaddress(number_signatures=8000, addrtype='XMSS')
 
 
 class recoverAddress(Resource):
@@ -100,7 +100,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS',
+                addr = self.wallet.savenewaddress(number_signatures=8000, addrtype='XMSS',
                                                   seed=mnemonic_to_seed(mnemonicphrase))
 
                 # Find hex/mnemonic for recovered wallet
@@ -108,10 +108,10 @@ class recoverAddress(Resource):
                     if type(x[1]) == list:
                         pass
                     else:
-                        if x[1].type == 'XMSS' and x[1].mnemonic == mnemonicphrase:
-                            self.result["recoveredAddress"] = x[1].address
+                        if x[1].get_type() == 'XMSS' and x[1].get_mnemonic() == mnemonicphrase:
+                            self.result["recoveredAddress"] = x[1].get_address()
                             self.result["hexseed"] = x[1].get_hexseed()
-                            self.result["mnemonic"] = x[1].mnemonic
+                            self.result["mnemonic"] = x[1].get_mnemonic()
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. " \
@@ -127,7 +127,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.wallet.savenewaddress(signatures=8000, addrtype='XMSS',
+                addr = self.wallet.savenewaddress(number_signatures=8000, addrtype='XMSS',
                                                   seed=hexseed_to_seed(jsQ["hexseed"]))
 
                 # Find hex/mnemonic for recovered wallet
@@ -136,9 +136,9 @@ class recoverAddress(Resource):
                         pass
                     else:
                         if x[1].type == 'XMSS' and x[1].get_hexseed() == jsQ["hexseed"]:
-                            self.result["recoveredAddress"] = x[1].address
+                            self.result["recoveredAddress"] = x[1].get_address()
                             self.result["hexseed"] = x[1].get_hexseed()
-                            self.result["mnemonic"] = x[1].mnemonic
+                            self.result["mnemonic"] = x[1].get_mnemonic()
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
