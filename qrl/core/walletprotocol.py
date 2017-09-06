@@ -59,10 +59,10 @@ class WalletProtocol(Protocol):
                             if x[1].type == 'XMSS':
                                 self.output['status'] = 0
                                 self.output['message'].write('Address: ' + x[1].address + '\r\n')
-                                self.output['message'].write('Recovery seed: ' + x[1].hexSEED + '\r\n')
+                                self.output['message'].write('Recovery seed: ' + x[1].get_hexseed() + '\r\n')
                                 self.output['keys'] += ['Address', 'Recovery seed']
                                 self.output['Address'] = x[1].address
-                                self.output['Recovery seed'] = x[1].hexSEED
+                                self.output['Recovery seed'] = x[1].get_hexseed()
 
                 elif command == 'seed':
                     for x in self.factory.chain.my:
@@ -161,13 +161,13 @@ class WalletProtocol(Protocol):
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].address + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].mnemonic + '\r\n')
-                    self.output['message'].write('>>> hexSEED confirm: ' + addr[1].hexSEED + '\r\n')
+                    self.output['message'].write('>>> hexSEED confirm: ' + addr[1].get_hexseed() + '\r\n')
                     self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_seed_phrase', 'hexseed_confirm']
                     self.output['recovery_address'] = addr[1].address
                     self.output['recovery_seed_phrase'] = addr[1].mnemonic
-                    self.output['hexseed_confirm'] = addr[1].hexSEED
+                    self.output['hexseed_confirm'] = addr[1].get_hexseed()
 
                 elif command == 'recoverfromwords':
                     if not args:
@@ -185,13 +185,13 @@ class WalletProtocol(Protocol):
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].address + '\r\n')
-                    self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].hexSEED + '\r\n')
+                    self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].get_hexseed() + '\r\n')
                     self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].mnemonic + '\r\n')
                     self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_hexseed', 'mnemonic_confirm']
                     self.output['recovery_address'] = addr[1].address
-                    self.output['recovery_hexseed'] = addr[1].hexSEED
+                    self.output['recovery_hexseed'] = addr[1].get_hexseed()
                     self.output['mnemonic_confirm'] = addr[1].mnemonic
 
                 elif command == 'stake':

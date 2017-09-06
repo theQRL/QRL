@@ -110,7 +110,7 @@ class recoverAddress(Resource):
                     else:
                         if x[1].type == 'XMSS' and x[1].mnemonic == mnemonicphrase:
                             self.result["recoveredAddress"] = x[1].address
-                            self.result["hexseed"] = x[1].hexSEED
+                            self.result["hexseed"] = x[1].get_hexseed()
                             self.result["mnemonic"] = x[1].mnemonic
             except:
                 self.result[
@@ -135,9 +135,9 @@ class recoverAddress(Resource):
                     if type(x[1]) == list:
                         pass
                     else:
-                        if x[1].type == 'XMSS' and x[1].hexSEED == jsQ["hexseed"]:
+                        if x[1].type == 'XMSS' and x[1].get_hexseed() == jsQ["hexseed"]:
                             self.result["recoveredAddress"] = x[1].address
-                            self.result["hexseed"] = x[1].hexSEED
+                            self.result["hexseed"] = x[1].get_hexseed()
                             self.result["mnemonic"] = x[1].mnemonic
             except:
                 self.result[

@@ -110,7 +110,7 @@ class Wallet:
             else:
                 if tree[1].type == 'XMSS':
                     data.append(
-                        [tree[1].mnemonic, tree[1].hexSEED, tree[1].signatures, tree[1].index, tree[1].remaining])
+                        [tree[1].mnemonic, tree[1].get_hexseed(), tree[1].signatures, tree[1].index, tree[1].remaining])
 
         logger.info('Fast saving wallet recovery details to wallet.info..')
         # stores the recovery phrase, signatures and the index for each tree in the wallet..

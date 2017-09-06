@@ -36,7 +36,7 @@ class Transaction(object):
         return sha256(''.join(pub))
 
     def process_XMSS(self, txfrom, txhash, xmss):
-        self.ots_key = xmss.index
+        self.ots_key = xmss._index
         self.pubhash = self.generate_pubhash(xmss.pk())
         self.txhash = sha256(txhash + self.pubhash)
 
