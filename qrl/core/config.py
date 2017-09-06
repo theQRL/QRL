@@ -4,6 +4,8 @@ from os.path import expanduser
 
 import os
 
+import yaml
+
 
 class UserConfig(object):
     __instance = None
@@ -29,6 +31,9 @@ class UserConfig(object):
         self.max_peers_limit = 40  # Number of allowed peers
         self.data_path = expanduser("~/.qrl/data")
         self.wallet_path = expanduser("~/.qrl/wallet")
+        self.config_path = '~/.qrl/config.yaml'
+
+        self.load_yaml(expanduser(self.config_path))
 
     @staticmethod
     def getInstance():
@@ -36,13 +41,16 @@ class UserConfig(object):
             return UserConfig()
         return UserConfig.__instance
 
-    def from_yaml(self, path):
+    def load_yaml(self, file_path):
         """
         Overrides default configuration using a yaml file
         :param path: The path to the configuration file
         """
-        # TODO: Complete this part
-        pass
+        if os.path.isfile(file_path):
+            with open(file_path) as f:
+                dataMap = yaml.safe_load(f)
+                if dataMap is not None:
+                    self.__dict__.update(**dataMap)
 
 
 def create_path(path):
