@@ -1,3 +1,4 @@
+# coding=utf-8
 import argparse
 import logging
 
@@ -38,6 +39,8 @@ def main():
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
+    parser.add_argument("--get-wallets", dest="get_wallets", action='store_true', default=False,
+                        help="Returns wallet address and stops the node")
 
     args = parser.parse_args()
 
@@ -82,6 +85,12 @@ def main():
     logger.info(str(len(chain_obj.m_blockchain)) + ' blocks')
     logger.info('Verifying chain')
     logger.info('Building state leveldb')
+
+    if args.get_wallets:
+        address_data = chain_obj.wallet.list_addresses()
+        addresses = [ a[0] for a in address_data ]
+        print(addresses)
+        quit()
 
     p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state)
     pos = node.POS(chain=chain_obj, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
