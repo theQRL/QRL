@@ -209,7 +209,7 @@ class Wallet:
                                   'nonce:' + dict_addr['nonce'], 'signatures left: ' + dict_addr['signatures_left']])
             else:  # xmss
                 dict_addr['address'] = address[0]
-                dict_addr['type'] = address[1].type
+                dict_addr['type'] = address[1].get_type()
                 dict_addr['balance'] = str(
                     self.state.state_balance(address[0]) / 100000000.000000000) + '(' + str(
                     self.state.state_balance(address[0]) / 100000000.000000000 + x / 100000000.000000000) + ')'
