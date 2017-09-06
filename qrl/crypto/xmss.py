@@ -165,6 +165,9 @@ class XMSS(object):
     def get_remaining_signatures(self):
         return self.number_signatures - self._index
 
+    def get_hexseed(self):
+        return self.seed_hexstring
+
     # def auth_route(self, i=0):
     #     """
     #     Calculate auth route for keypair i
