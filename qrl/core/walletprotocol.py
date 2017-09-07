@@ -20,7 +20,7 @@ class WalletProtocol(Protocol):
                          'recoverfromwords', 'stakenextepoch', 'stake', 'address',
                          'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit',
                          'search', 'help', 'savenewaddress', 'listaddresses',
-                         'getinfo', 'blockheight', 'json_block', 'reboot', 'peers', 'crash']
+                         'getinfo', 'blockheight', 'json_block', 'reboot', 'peers']
 
         self.output = {'status': 1,
                        'keys': [],
@@ -251,11 +251,6 @@ class WalletProtocol(Protocol):
 
                 elif command == 'wallet':
                     self.wallet()
-
-                elif command == 'crash':
-                    self.output['message'].write('>>> CRASH requested' + '\r\n')
-                    print("==================CRASH REQUESTED OVER TELNET====================")
-                    raise Exception("CRASHING CRASHING CRASHING CRASHING CRASHING CRASHING CRASHING bail now")
 
                 elif command == 'getinfo':
                     self.output['status'] = 0
