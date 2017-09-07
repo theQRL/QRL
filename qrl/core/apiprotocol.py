@@ -202,17 +202,30 @@ class ApiProtocol(Protocol):
             t.append(x)
             z += x
 
+        block_one = self.factory.chain.m_get_block(1)
+        network_uptime = 0
+        if block_one:
+            network_uptime = time.time() - block_one.blockheader.timestamp
+
+        block_time = 0
+        block_time_variance = 0
+        if len(t) > 0:
+            block_time = z / len(t)
+            block_time_variance = max(t) - min(t)   # FIXME: This is not the variance!
+
         net_stats = {'status': 'ok', 'version': self.factory.chain.version_number,
                      'block_reward': self.factory.chain.m_blockchain[-1].blockheader.block_reward / 100000000.00000000,
                      'stake_validators': len(self.factory.chain.m_blockchain[-1].blockheader.reveal_list),
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
                      'staked_percentage_emission': staked, 'network': 'qrl testnet',
-                     'network_uptime': time.time() - self.factory.chain.m_get_block(1).blockheader.timestamp,
-                     'block_time': z / len(t),
-                     'block_time_variance': max(t) - min(t), 'blockheight': self.factory.chain.m_blockheight(),
+                     'network_uptime': network_uptime,
+                     'block_time': block_time,
+                     'block_time_variance': block_time_variance,
+                     'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
                      'emission': self.factory.state.db.total_coin_supply() / 100000000.000000000,
                      'unmined': 21000000 - self.factory.state.db.total_coin_supply() / 100000000.000000000}
+
         return json_print_telnet(net_stats)
 
     def txhash(self, data=None):

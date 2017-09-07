@@ -1000,6 +1000,7 @@ class Chain:
             return block
 
     def m_get_block(self, n):
+        # FIXME: It is bad that this returns two different types
         if len(self.m_blockchain) == 0:
             return False
 

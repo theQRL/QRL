@@ -53,15 +53,13 @@ class WalletProtocol(Protocol):
 
                 elif command == 'hexseed':
                     for x in self.factory.chain.my:
-                        if type(x[1]) == list:
-                            pass
-                        else:
-                            if x[1].type == 'XMSS':
+                        if not isinstance(x[1], list):
+                            if x[1].get_type() == 'XMSS':
                                 self.output['status'] = 0
-                                self.output['message'].write('Address: ' + x[1].address + '\r\n')
+                                self.output['message'].write('Address: ' + x[1].get_address() + '\r\n')
                                 self.output['message'].write('Recovery seed: ' + x[1].get_hexseed() + '\r\n')
                                 self.output['keys'] += ['Address', 'Recovery seed']
-                                self.output['Address'] = x[1].address
+                                self.output['Address'] = x[1].get_address()
                                 self.output['Recovery seed'] = x[1].get_hexseed()
 
                 elif command == 'seed':
@@ -69,9 +67,9 @@ class WalletProtocol(Protocol):
                         if type(x[1]) == list:
                             pass
                         else:
-                            if x[1].type == 'XMSS':
+                            if x[1].get_type() == 'XMSS':
                                 self.output['status'] = 0
-                                self.output['message'].write('Address: ' + x[1].address + '\r\n')
+                                self.output['message'].write('Address: ' + x[1].get_address() + '\r\n')
                                 self.output['message'].write('Recovery seed: ' + x[1].mnemonic + '\r\n')
                                 self.output['keys'] += ['Address', 'Recovery seed']
 
@@ -159,13 +157,13 @@ class WalletProtocol(Protocol):
                     self.output['status'] = 0
                     addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
-                    self.output['message'].write('>>> Recovery address: ' + addr[1].address + '\r\n')
+                    self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].mnemonic + '\r\n')
                     self.output['message'].write('>>> hexSEED confirm: ' + addr[1].get_hexseed() + '\r\n')
                     self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_seed_phrase', 'hexseed_confirm']
-                    self.output['recovery_address'] = addr[1].address
+                    self.output['recovery_address'] = addr[1].get_address()
                     self.output['recovery_seed_phrase'] = addr[1].mnemonic
                     self.output['hexseed_confirm'] = addr[1].get_hexseed()
 
@@ -184,13 +182,13 @@ class WalletProtocol(Protocol):
                     addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=mnemonic_to_seed(args))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
-                    self.output['message'].write('>>> Recovery address: ' + addr[1].address + '\r\n')
+                    self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].get_hexseed() + '\r\n')
                     self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].mnemonic + '\r\n')
                     self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_hexseed', 'mnemonic_confirm']
-                    self.output['recovery_address'] = addr[1].address
+                    self.output['recovery_address'] = addr[1].get_address()
                     self.output['recovery_hexseed'] = addr[1].get_hexseed()
                     self.output['mnemonic_confirm'] = addr[1].mnemonic
 
@@ -471,22 +469,22 @@ class WalletProtocol(Protocol):
 
         addr = self.factory.chain.wallet.getnewaddress(int(args[0]), args[1])
         if type(addr[1]) == list:
-            self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1][0].type + '\r\n'))
+            self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1][0].get_type() + '\r\n'))
             self.output['message'].write('>>> Signatures possible with address: ' + str(len(addr[1])) + '\r\n')
             self.output['message'].write('>>> Address: ' + ''.join(addr[0]) + '\r\n')
 
-            self.output['keypair_type'] = ''.join(addr[1][0].type + '\r\n')
+            self.output['keypair_type'] = ''.join(addr[1][0].get_type() + '\r\n')
             self.output['possible_signatures'] = str(len(addr[1]))
             self.output['address'] = ''.join(addr[0])
 
         else:  # xmss
-            self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1].type + '\r\n'))
+            self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1].get_type() + '\r\n'))
             self.output['message'].write('>>> Signatures possible with address: ' + str(addr[1].signatures) + '\r\n')
-            self.output['message'].write('>>> Address: ' + addr[1].address + '\r\n')
+            self.output['message'].write('>>> Address: ' + addr[1].get_address() + '\r\n')
 
-            self.output['keypair_type'] = ''.join(addr[1].type + '\r\n')
-            self.output['possible_signatures'] = str(addr[1].signatures)
-            self.output['address'] = addr[1].address
+            self.output['keypair_type'] = ''.join(addr[1].get_type() + '\r\n')
+            self.output['possible_signatures'] = str(addr[1].get_number_signatures())
+            self.output['address'] = addr[1].get_address()
 
         # TODO: Would you like to save this address to your wallet file (call savenewaddress)? Y/N
         self.output['message'].write(">>> type 'savenewaddress' to append to wallet file" + '\r\n')

@@ -37,15 +37,15 @@ class TestMerkle(TestCase):
         xmss1 = XMSS(number_signatures=1, SEED=None)
         xmss2 = XMSS(number_signatures=1, SEED=None)
 
-        self.assertEqual(xmss1.number_signatures, 1)
-        self.assertEqual(xmss2.number_signatures, 1)
+        self.assertEqual(xmss1._number_signatures, 1)
+        self.assertEqual(xmss2._number_signatures, 1)
         self.assertNotEqual(xmss1.root, xmss2.root)
         self.assertNotEqual(xmss1.address, xmss2.address)
 
     @timeout_decorator.timeout(5)
     def test_xmss_get_address_known(self):
         xmss1 = XMSS(number_signatures=1, SEED=S1)
-        self.assertEqual(xmss1.number_signatures, 1)
+        self.assertEqual(xmss1._number_signatures, 1)
         self.assertEqual(xmss1.root, S1_root)
         self.assertEqual(xmss1.address, S1_addr)
         self.assertEqual(xmss1.PK, S1_PK)
@@ -56,7 +56,7 @@ class TestMerkle(TestCase):
 
         # Test the same second time to check for independency
         xmss2 = XMSS(number_signatures=1, SEED=S1)
-        self.assertEqual(xmss2.number_signatures, 1)
+        self.assertEqual(xmss2._number_signatures, 1)
         self.assertEqual(xmss2.root, S1_root)
         self.assertEqual(xmss2.address, S1_addr)
         self.assertEqual(xmss2.PK, S1_PK)
@@ -66,7 +66,7 @@ class TestMerkle(TestCase):
         self.assertEqual(xmss2.address_long, S1_addrlong)
 
         xmss3 = XMSS(number_signatures=5, SEED=S1)
-        self.assertEqual(xmss3.number_signatures, 5)
+        self.assertEqual(xmss3._number_signatures, 5)
         self.assertIsNotNone(xmss3.address)
         self.assertEqual(xmss3.root, 'befa9094da96ad69015bebbf63d3ec1d9a0309e714d135f0c1dd3d9a2c9f4a57')
         self.assertEqual(xmss3.address, 'Q54ec65785ae34c4fbe9f33db3b8a1027d5f9c58c4398cfde43060a83dca7b59baf0e')
