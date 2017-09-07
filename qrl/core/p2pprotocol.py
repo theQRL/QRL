@@ -545,27 +545,34 @@ class P2PProtocol(Protocol):
         if len(self.factory.chain.stake_validator_latency) > 20:
             del self.factory.chain.stake_validator_latency[min(self.factory.chain.stake_validator_latency.keys())]
 
-        y = 0
         if self.factory.nodeState.epoch_diff == 0:
-            for s in self.factory.chain.block_chain_buffer.stake_list_get(z['block_number']):
-                if s[0] == stake_address:
-                    y = 1
-                    # +1 as one of the hash is already revealed at start
-                    reveal_one_tmp = self.factory.chain.reveal_to_terminator(reveal_one, block_number, 1)
-                    vote_hash_tmp = self.factory.chain.reveal_to_terminator(vote_hash, block_number)
-                    reveal_hash_terminator, vote_hash_terminator = self.factory.chain.select_hashchain(
-                        last_block_headerhash=self.factory.chain.block_chain_buffer.get_strongest_headerhash(
-                            block_number - 1), stake_address=stake_address, blocknumber=z['block_number'])
-                    if vote_hash_tmp != vote_hash_terminator:
-                        logger.info('%s vote hash doesnt hash to stake terminator vote %s nonce %s vote_hash %s',
-                                    self.identity, vote_hash, s[2], vote_hash_terminator)
-                        return
-                    if reveal_one_tmp != reveal_hash_terminator:
-                        logger.info('%s reveal doesnt hash to stake terminator reveal %s nonce %s reveal_hash %s',
-                                    self.identity, reveal_one, s[2], reveal_hash_terminator)
-                        return
-            if y == 0:
+            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(z['block_number'])
+			
+            if stake_address not in sv_list:
                 logger.info('stake address not in the stake_list')
+                logger.info('len of sv_list %s', len(sv_list))
+                logger.info('len of next_sv_list %s',
+                            len(self.factory.chain.block_chain_buffer.next_stake_list_get(z['block_number'])))
+                return
+
+
+            stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(block_number)
+
+            target_chain = stake_validators_list.select_target(headerhash)
+            if not stake_validators_list.validate_hash(vote_hash,
+                                                   block_number,
+                                                   target_chain=target_chain,
+                                                   stake_address=stake_address):
+                logger.info('%s vote hash doesnt hash to stake terminator vote %s',# nonce %s vote_hash %s',
+                            self.identity, vote_hash)#, s[2], vote_hash_terminator)
+                return
+
+            if not stake_validators_list.validate_hash(reveal_one,
+                                                   block_number,
+                                                   target_chain=config.dev.hashchain_nums-1,
+                                                   stake_address=stake_address):
+                logger.info('%s reveal doesnt hash to stake terminator reveal %s',# nonce %s reveal_hash %s',
+                            self.identity, reveal_one)#, s[2], reveal_hash_terminator)
                 return
 
         if len(self.factory.pos.r1_time_diff) > 2:
@@ -618,9 +625,6 @@ class P2PProtocol(Protocol):
         self.factory.master_mr.register(z['vote_hash'], data, 'R1')
         if self.factory.nodeState.state == NState.synced:
             self.broadcast(z['vote_hash'], 'R1')
-            # for peer in self.factory.peers:
-            #    if peer != self:
-            #        peer.transport.write(self.wrap_message('R1', helper.json_encode(z)))  # relay
 
         return
 

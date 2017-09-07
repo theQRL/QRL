@@ -188,7 +188,7 @@ class State:
             self.commit(chain, block, address_txn)
             return True
 
-        if not self.state_update(block, self.stake_validators_list, address_txn):
+        if not self.state_update(block, self.stake_validators_list, address_txn) and False:  # To be removed before next hard fork
             return
 
         self.commit(chain, block, address_txn)
