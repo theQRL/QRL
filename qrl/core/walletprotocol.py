@@ -233,9 +233,7 @@ class WalletProtocol(Protocol):
                 elif command == 'help':
                     self.output['status'] = 0
                     self.output['message'].write(
-                        '>>> QRL ledger help: try quit, wallet, send, getnewaddress, search, recoverfromhexseed, '
-                        'recoverfromwords, stake, stakenextepoch, mempool, json_block, seed, hexseed, '
-                        'getinfo, peers, or blockheight' + '\r\n')
+                        '>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n')
                 # removed 'hrs, hrs_check,'
                 elif command == 'quit' or command == 'exit':
                     self.transport.loseConnection()
