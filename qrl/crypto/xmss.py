@@ -174,7 +174,7 @@ class XMSS(object):
 
     def get_number_signatures(self):
         # type: () -> int
-        return self._number_signatures - self._index
+        return self._number_signatures
 
     def get_remaining_signatures(self):
         # type: () -> int
