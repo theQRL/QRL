@@ -1,16 +1,14 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import os
+
+import yaml
 
 from blockheader import BlockHeader
 from qrl.crypto.misc import sha256
 from qrl.core import config
 
 genesis_info = dict()
-genesis_info['Qcfdf7d621b49eeb57e7f7cc7b7218d6798e951e32f9c217512970ddac29dda8b7ac9'] = 1000000
-genesis_info['Q809f7db42ac322d082823f1d79c2d95220acaf176c8f31bb53e3c474ccf41034e9be'] = 1000000
-genesis_info['Qc0f401290da148f421eac9ed7f1992f3f581dd89a77b00da895b24c85b09a3afc780'] = 1000000
-genesis_info['Qccf9bcbc30b2c125d4d36ad8888517874d28ccdc4a17c3bdd7b67743d103317b6342'] = 1000000
-genesis_info['Q54610ec804e32e8cacfcc5786f89381816d0dbbe0145b26511b22d37347e641ab3e2'] = 1000000
 
 
 class CreateGenesisBlock(object):  # first block has no previous header to reference..
@@ -26,6 +24,13 @@ class CreateGenesisBlock(object):  # first block has no previous header to refer
         self.transactions = []
         self.stake = []
         self.state = []
+
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        genesis_data_path = os.path.join(package_directory, 'genesis.yml')
+        with open(genesis_data_path) as f:
+            dataMap = yaml.safe_load(f)
+            genesis_info.update(dataMap['genesis_info'])
+
         for key in genesis_info:
             self.state.append([key, [0, genesis_info[key] * 100000000, []]])
 

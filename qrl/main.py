@@ -89,7 +89,7 @@ def main():
     if args.get_wallets:
         address_data = chain_obj.wallet.list_addresses()
         addresses = [ a[0] for a in address_data ]
-        print(addresses)
+        print(addresses[0])
         quit()
 
     p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state)
