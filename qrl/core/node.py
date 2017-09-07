@@ -437,30 +437,27 @@ class POS:
         blocknumber = self.chain.block_chain_buffer.height() + 1
 
         if self.p2pFactory.stake:
-            tmp_stake_list = [
-                s[0] for s in self.chain.block_chain_buffer.stake_list_get(blocknumber)
-            ]
-            if self.chain.mining_address in tmp_stake_list:
+            stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
+
+            if self.chain.mining_address in stake_list:
                 our_reveal = self.p2pFactory.send_stake_reveal_one(blocknumber)
                 self.schedule_prepare_winners(our_reveal, blocknumber - 1, 30)
 
             next_stake_list = self.chain.block_chain_buffer.next_stake_list_get(blocknumber)
-            next_stake_first_hash = {}
-            for s in next_stake_list:
-                next_stake_first_hash[s[0]] = s[3]
 
             epoch = blocknumber // config.dev.blocks_per_epoch
             epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
-            if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_first_hash:
+            if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_list:
                 diff = max(1, (
                     (config.dev.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                 if random.randint(1, diff) == 1:
                     self.make_st_tx(blocknumber, None)
-            elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_first_hash:
-                if next_stake_first_hash[self.chain.mining_address] is None:
-                    threshold_blocknum = self.chain.state.get_staker_threshold_blocknum(next_stake_list,
-                                                                                        self.chain.mining_address)
+
+            elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_list:
+                if next_stake_list[self.chain.mining_address] is None:
+                    threshold_blocknum = self.chain.block_chain_buffer.get_threshold(blocknumber,
+                                                                                     self.chain.mining_address)
                     max_threshold_blocknum = config.dev.blocks_per_epoch
                     if threshold_blocknum == config.dev.low_staker_first_hash_block:
                         max_threshold_blocknum = config.dev.high_staker_first_hash_block

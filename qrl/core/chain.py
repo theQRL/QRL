@@ -210,10 +210,10 @@ class Chain:
 
     def get_stake_validators_hash(self):
         sv_hash = StringIO()
-        stakers = self.state.stake_list_get()
-        for staker in stakers:
-            balance = self.state.state_balance(staker[0])
-            sv_hash.write(staker[0] + str(balance))
+        stake_validators_list = self.state.stake_validators_list
+        for staker in stake_validators_list.sv_list:
+            balance = self.state.state_balance(staker)
+            sv_hash.write(staker + str(balance))
         sv_hash = sha256(sv_hash.getvalue())
         return sv_hash
 
@@ -235,7 +235,7 @@ class Chain:
 
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
-                    continue
+                    return False
 
                 if tx.epoch != curr_epoch:
                     logger.warning('Skipping st as epoch mismatch, CreateBlock()')
@@ -965,7 +965,9 @@ class Chain:
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
-            self.block_chain_buffer.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
+            self.block_chain_buffer.add_block_mainchain(block,
+                                                        verify_block_reveal_list=False,
+                                                        validate=False)
 
         if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
             return self.m_blockchain
@@ -976,9 +978,12 @@ class Chain:
             chains = self.f_read_chain(epoch)
 
             for block in chains:
-                self.block_chain_buffer.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
+                self.block_chain_buffer.add_block_mainchain(block,
+                                                            verify_block_reveal_list=False,
+                                                            validate=False,
+                                                            ignore_save_wallet=True)
             epoch += 1
-
+        self.wallet.f_save_wallet()
         gc.collect()
         return self.m_blockchain
 
@@ -1000,9 +1005,9 @@ class Chain:
             return block
 
     def m_get_block(self, n):
-        # FIXME: It is bad that this returns two different types
+        
         if len(self.m_blockchain) == 0:
-            return False
+            return []
 
         beginning_blocknum = self.m_blockchain[0].blockheader.blocknumber
         diff = n - beginning_blocknum
@@ -1013,7 +1018,7 @@ class Chain:
         if diff < len(self.m_blockchain):
             return self.m_blockchain[diff]
 
-        return False
+        return []
 
     def m_get_last_block(self):
         if len(self.m_blockchain) == 0:

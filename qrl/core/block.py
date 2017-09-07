@@ -151,7 +151,7 @@ class Block(object):
             logger.warning('Block reward incorrect for block: failed validation')
             return False
 
-        if b.epoch != b.blocknumber / config.dev.blocks_per_epoch:
+        if b.epoch != b.blocknumber // config.dev.blocks_per_epoch:
             logger.warning('Epoch incorrect for block: failed validation')
             return False
 
@@ -172,21 +172,15 @@ class Block(object):
                 logger.warning('Stake selector not in block.stake: failed validation')
                 return False
         else:  # we look in stake_list for the hash terminator and hash to it..
-            found = False
-            terminator = sha256(b.hash)
-            for _ in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch) + 1):
-                terminator = sha256(terminator)
-            tmp_stake_list = chain.state.stake_list_get()
-            for st in tmp_stake_list:
-                if st[0] == b.stake_selector:
-                    found = True
-
-                    if terminator != st[1][-1]:
-                        logger.warning('Supplied hash does not iterate to terminator: failed validation')
-                        return False
-
-            if not found:
+            if b.stake_selector not in chain.state.stake_validators_list.sv_list:
                 logger.warning('Stake selector not in stake_list for this epoch..')
+                return False
+
+            if not chain.state.stake_validators_list.validate_hash(b.hash,
+                                                                   b.blocknumber,
+                                                                   config.dev.hashchain_nums-1,
+                                                                   b.stake_selector):
+                logger.warning('Supplied hash does not iterate to terminator: failed validation')
                 return False
 
             if len(b.reveal_list) != len(set(b.reveal_list)):
@@ -196,31 +190,20 @@ class Block(object):
             if verify_block_reveal_list:
                 i = 0
                 for r in b.reveal_list:
-                    t = sha256(r)
-                    for _ in range(b.blocknumber - (
-                                b.epoch * config.dev.blocks_per_epoch) + 1):  # +1 as reveal has 1 extra hash
-                        t = sha256(t)
-                    for s in tmp_stake_list:
-                        if t == s[1][-1]:
-                            i += 1
-
-                if i != len(b.reveal_list):
-                    logger.warning('Not all the reveal_hashes are valid..')
-                    return False
+                    if not chain.state.stake_validators_list.validate_hash(r,
+                                                                           self.blockheader.blocknumber,
+                                                                           config.dev.hashchain_nums - 1):
+                        logger.warning('Not all the reveal_hashes are valid..')
+                        return False
 
                 i = 0
                 target_chain = select_target_hashchain(b.prev_blockheaderhash)
                 for r in b.vote_hashes:
-                    t = sha256(r)
-                    for x in range(b.blocknumber - (b.epoch * config.dev.blocks_per_epoch)):
-                        t = sha256(t)
-                    for s in tmp_stake_list:
-                        if t == s[1][target_chain]:
-                            i += 1
-
-                if i != len(b.vote_hashes):
-                    logger.warning('Not all the reveal_hashes are valid..')
-                    return False
+                    if not chain.state.stake_validators_list.validate_hash(r,
+                                                                           b.blocknumber,
+                                                                           target_chain):
+                        logger.warning('Not all the reveal_hashes are valid..')
+                        return False
 
         if b.generate_headerhash() != b.headerhash:
             logger.warning('Headerhash false for block: failed validation')

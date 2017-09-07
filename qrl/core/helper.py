@@ -91,3 +91,10 @@ def hash_to_terminator(hash_val, times):
 
 def reveal_to_terminator(hash_val, times):
     return hash_to_terminator(hash_val, times + 1)
+
+# Returns the number of blocks left before next epoch
+def get_blocks_left(blocknumber):
+    epoch = blocknumber // config.dev.blocks_per_epoch
+    blocks_left = blocknumber - ( epoch * config.dev.blocks_per_epoch)
+    blocks_left = config.dev.blocks_per_epoch - blocks_left
+    return blocks_left
