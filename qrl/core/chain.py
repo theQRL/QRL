@@ -965,7 +965,9 @@ class Chain:
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
-            self.block_chain_buffer.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
+            self.block_chain_buffer.add_block_mainchain(block,
+                                                        verify_block_reveal_list=False,
+                                                        validate=False)
 
         if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
             return self.m_blockchain
@@ -976,9 +978,12 @@ class Chain:
             chains = self.f_read_chain(epoch)
 
             for block in chains:
-                self.block_chain_buffer.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
+                self.block_chain_buffer.add_block_mainchain(block,
+                                                            verify_block_reveal_list=False,
+                                                            validate=False,
+                                                            ignore_save_wallet=True)
             epoch += 1
-
+        self.wallet.f_save_wallet()
         gc.collect()
         return self.m_blockchain
 

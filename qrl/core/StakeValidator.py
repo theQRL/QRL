@@ -5,6 +5,7 @@ from qrl.core import config
 from qrl.crypto.merkle import sha256
 import simplejson as json
 
+
 class StakeValidator:
     """
     Stake Validator class to represent the each unique Stake Validator.
@@ -31,17 +32,22 @@ class StakeValidator:
         return hash
 
     # Saves the last X validated hash into the memory
-    def update(self, epoch_blocknum, hash, target_chain):
+    def update(self, epoch_blocknum, hash, target_chain, hash_staker):
         self.cache_hash[target_chain][epoch_blocknum] = hash
-        if epoch_blocknum - self.buffer_size in self.cache_hash[target_chain]:
-            del self.cache_hash[target_chain][epoch_blocknum - self.buffer_size]
+        hash_staker[hash] = self.stake_validator
+        if len(self.cache_hash[target_chain]) > self.buffer_size:
+            minimum_epoch_blocknum = min(self.cache_hash[target_chain])
+            remove_hash = self.cache_hash[target_chain][minimum_epoch_blocknum]
+            del hash_staker[remove_hash]
+            del self.cache_hash[target_chain][minimum_epoch_blocknum]
+
 
     @staticmethod
     def get_epoch_blocknum(blocknum):
         epoch = blocknum // config.dev.blocks_per_epoch
         return blocknum - (epoch * config.dev.blocks_per_epoch)
 
-    def validate_hash(self, hash, blocknum, target_chain=config.dev.hashchain_nums-1):
+    def validate_hash(self, hash, blocknum, hash_staker, target_chain=config.dev.hashchain_nums-1):
         epoch_blocknum = self.get_epoch_blocknum(blocknum)
 
         cache_blocknum = max(self.cache_hash[target_chain])
@@ -53,7 +59,7 @@ class StakeValidator:
         if terminator_found != terminator_expected:
             return False
 
-        self.update(epoch_blocknum, hash, target_chain)
+        self.update(epoch_blocknum, hash, target_chain, hash_staker)
 
         return True
 

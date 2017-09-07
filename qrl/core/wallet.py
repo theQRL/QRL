@@ -9,7 +9,6 @@ from qrl.crypto.xmss import XMSS
 __author__ = 'pete'
 
 import cPickle as pickle
-import gc
 import os
 import sys
 
@@ -100,7 +99,6 @@ class Wallet:
         with open(self.wallet_dat_filename,
                   "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
             pickle.dump(self.chain.my, myfile)
-            gc.collect()
 
     def f_save_winfo(self):
         data = []

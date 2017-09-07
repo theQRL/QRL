@@ -115,7 +115,7 @@ class ChainBuffer:
             for tx in block.transactions:
                 self.tx_buffer[blocknum].append(tx.txhash)
 
-    def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True):
+    def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True, ignore_save_wallet=False):
         # TODO : minimum block validation in unsynced state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // config.dev.blocks_per_epoch)
@@ -138,7 +138,7 @@ class ChainBuffer:
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
-            if self.state.state_add_block(self.chain, block) is True:
+            if self.state.state_add_block(self.chain, block, ignore_save_wallet=True) is True:
                 self.chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (

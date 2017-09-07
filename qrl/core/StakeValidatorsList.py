@@ -25,8 +25,12 @@ class StakeValidatorsList:
     def __add__(self, sv_list, txfrom, hash, first_hash, balance):
         sv = StakeValidator(txfrom, hash, first_hash, balance)
         sv_list[txfrom] = sv
-        for h in hash:
-            self.hash_staker[h] = txfrom
+        return sv
+
+    def update_hash_staker(self, sv):
+        for chain_num in range(config.dev.hashchain_nums):
+            hash = sv.cache_hash[chain_num][-1]
+            self.hash_staker[hash] = sv.stake_validator
 
     def calc_seed(self):
         epoch_seed = 0
@@ -40,7 +44,8 @@ class StakeValidatorsList:
         return epoch_seed
 
     def add_sv(self, txfrom, hash, first_hash, balance):
-        self.__add__(self.sv_list, txfrom, hash, first_hash, balance)
+        sv = self.__add__(self.sv_list, txfrom, hash, first_hash, balance)
+        self.update_hash_staker(sv)
 
     def add_next_sv(self, txfrom, hash, first_hash, balance):
         self.__add__(self.next_sv_list, txfrom, hash, first_hash, balance)
@@ -71,11 +76,7 @@ class StakeValidatorsList:
             if stake_address not in self.sv_list:
                 return False
             sv = self.sv_list[stake_address]
-            result = sv.validate_hash(hash, blocknum, target_chain)
-            if result:
-                self.hash_staker[hash] = stake_address
-
-            return result
+            return sv.validate_hash(hash, blocknum, self.hash_staker, target_chain)
 
         tmp = hash
         count = epoch_blocknum
@@ -84,7 +85,7 @@ class StakeValidatorsList:
             if tmp in self.hash_staker:
                 stake_address = self.hash_staker[tmp]
                 sv = self.sv_list[stake_address]
-                sv.update(epoch_blocknum, hash, target_chain)
+                sv.update(epoch_blocknum, hash, target_chain, self.hash_staker)
                 return True
             count -= 1
 
@@ -118,11 +119,17 @@ class StakeValidatorsList:
         self.isOrdered = False
         remove_stakers = []
         for staker in self.sv_list:
-            if self.sv_list[staker].first_hash == None:
+            if not self.sv_list[staker].first_hash:
                 remove_stakers.append(staker)
 
         for staker in remove_stakers:
             del self.sv_list[staker]
+
+        self.hash_staker = OrderedDict()
+        for staker in self.sv_list:
+            self.update_hash_staker(self.sv_list[staker])
+
+        self.threshold = dict()
 
     @staticmethod
     def to_object(json_svl):

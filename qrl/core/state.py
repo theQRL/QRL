@@ -178,20 +178,20 @@ class State:
 
         return result
 
-    def state_add_block(self, chain, block):
+    def state_add_block(self, chain, block, ignore_save_wallet=False):
         address_txn = dict()
         self.load_address_state(chain, block, address_txn)
 
         if block.blockheader.blocknumber == 1:
             if not self.state_update_genesis(chain, block, address_txn):
                 return False
-            self.commit(chain, block, address_txn)
+            self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
             return True
 
-        if not self.state_update(block, self.stake_validators_list, address_txn) and False:  # To be removed before next hard fork
+        if not self.state_update(block, self.stake_validators_list, address_txn):
             return
 
-        self.commit(chain, block, address_txn)
+        self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
 
         return True
 
@@ -264,11 +264,11 @@ class State:
                 score = new_score
                 top_st = staker
 
-        if top_st != block.blockheader.stake_selector:
+        if top_st != block.blockheader.stake_selector and False:  # To be removed before next hard fork
             logger.info('stake selector wrong..')
             return
 
-        chain.my[0][1].hashchain(epoch=0)
+        hashchain(chain.my[0][1], epoch=0)
         chain.hash_chain = chain.my[0][1].hc
         chain.wallet.f_save_wallet()
         return True
@@ -352,7 +352,7 @@ class State:
 
         return True
 
-    def commit(self, chain, block, address_txn):
+    def commit(self, chain, block, address_txn, ignore_save_wallet=False):
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
 
         for address in address_txn:
@@ -367,7 +367,8 @@ class State:
 
             hashchain(chain.my[0][1], epoch=block.blockheader.epoch + 1)
             chain.hash_chain = chain.my[0][1].hc
-            chain.wallet.f_save_wallet()
+            if not ignore_save_wallet:
+                chain.wallet.f_save_wallet()
 
         self.db.put('blockheight', chain.height() + 1)
         logger.info('%s %s tx passed verification.', block.blockheader.headerhash, len(block.transactions))
