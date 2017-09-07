@@ -22,8 +22,16 @@ class Transaction(object):
 
     def __init__(self):
         self.nonce = 0  # Nonce is set when block is being created
-        # FIXME: Define attributes here
-        pass
+        self.ots_key = None
+        self.pubhash = None
+        self.txhash = None
+        self.txfrom = None
+        self.i = None
+        self.signature = None
+        self.merkle_path = None
+        self.i_bms = None
+        self.pub = None
+        self.PK = None
 
     @staticmethod
     def get_tx_obj(tx):
@@ -172,7 +180,7 @@ class StakeTransaction(Transaction):
         self.balance = balance
 
         if hashchain_terminator is None:
-            self.hash = hashchain_reveal(xmss, epoch=self.epoch + 1)  # my[0][1].hc_terminator
+            self.hash = hashchain_reveal(xmss, epoch=self.epoch + 1)
         else:
             self.hash = hashchain_terminator
         self.txhash = ''.join(self.hash) + str(self.first_hash)
