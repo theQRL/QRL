@@ -21,7 +21,8 @@ class CreateGenesisBlock(object):  # first block has no previous header to refer
                                 prev_blockheaderhash=sha256(config.dev.genesis_prev_headerhash),
                                 hashedtransactions=sha256('0'),
                                 reveal_list=[],
-                                vote_hashes=[])
+                                vote_hashes=[],
+                                fee_reward=0)
         self.transactions = []
         self.stake = []
         self.state = []

@@ -20,6 +20,7 @@ class BlockHeader(object):
         self.stake_selector = None
         self.block_reward = None
         self.headerhash = None
+        self.fee_reward = 0
 
     def create(self,
                chain,
@@ -28,7 +29,8 @@ class BlockHeader(object):
                prev_blockheaderhash,
                hashedtransactions,
                reveal_list,
-               vote_hashes):
+               vote_hashes,
+               fee_reward):
         """
         Create a block header based on the parameters
         :param chain:
@@ -38,6 +40,7 @@ class BlockHeader(object):
         :param hashedtransactions:
         :param reveal_list:
         :param vote_hashes:
+        :param fee_reward:
         :return:
         """
 
@@ -56,6 +59,7 @@ class BlockHeader(object):
         self.tx_merkle_root = hashedtransactions
         self.reveal_list = reveal_list
         self.vote_hashes = vote_hashes
+        self.fee_reward = fee_reward
         self.epoch = self.blocknumber // config.dev.blocks_per_epoch
 
         if self.blocknumber == 0:
@@ -91,6 +95,7 @@ class BlockHeader(object):
         self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
         self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
         self.block_reward = json_blockheader['block_reward']
+        self.fee_reward = json_blockheader['fee_reward']
 
     @staticmethod
     def calc_coeff(N_tot, block_tot):
