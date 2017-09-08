@@ -43,8 +43,11 @@ class Block(object):
 
         hashedtransactions = []
         self.transactions = [None]
+        fee_reward = 0
 
         for tx in chain.transaction_pool:
+            if tx.subtype == transaction.TX_SUBTYPE_TX:
+                fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
             self.transactions.append(tx)  # copy memory rather than sym link
 
@@ -60,7 +63,8 @@ class Block(object):
                                 vote_hashes=vote_hashes,
                                 hashchain_link=hashchain_link,
                                 prev_blockheaderhash=prev_blockheaderhash,
-                                hashedtransactions=hashedtransactions)
+                                hashedtransactions=hashedtransactions,
+                                fee_reward=fee_reward)
 
         coinbase_tx = transaction.CoinBase().create(self.blockheader.block_reward, self.blockheader.headerhash,
                                                     chain.my[0][1])
