@@ -1,8 +1,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from qrl.core import config, logger, transaction
-from qrl.crypto.LDOTS import random_ldmss
-from qrl.crypto.WOTS import random_wmss
 from qrl.crypto.mnemonic import mnemonic_to_seed
 from qrl.crypto.xmss import XMSS
 
@@ -18,8 +16,6 @@ SIGNATURE_SIZE = 8000
 
 class Wallet:
     ADDRESS_TYPE_XMSS = 'XMSS'
-    ADDRESS_TYPE_WOTS = 'WOTS'
-    ADDRESS_TYPE_LDOTS = 'LDOTS'
 
     def __init__(self, chain, state):
         # FIXME: state is already part of the chain
@@ -256,14 +252,6 @@ class Wallet:
         if addrtype == Wallet.ADDRESS_TYPE_XMSS:
             new = XMSS(number_signatures=number_signatures, SEED=SEED)
             addr.append(new.address)
-            addr.append(new)
-        elif addrtype == Wallet.ADDRESS_TYPE_WOTS:
-            new = random_wmss(number_signatures=number_signatures)
-            addr.append(XMSS.create_address_from_key(new[0].merkle_root))
-            addr.append(new)
-        elif addrtype == Wallet.ADDRESS_TYPE_LDOTS:
-            new = random_ldmss(number_signatures=number_signatures)
-            addr.append(XMSS.create_address_from_key(new[0].merkle_root))
             addr.append(new)
         else:
             raise Exception('OTS type not recognised')
