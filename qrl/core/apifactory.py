@@ -1,3 +1,4 @@
+# coding=utf-8
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core.apiprotocol import ApiProtocol

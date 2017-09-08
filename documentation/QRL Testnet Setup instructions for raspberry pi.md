@@ -4,7 +4,7 @@
 
 - Download latest Raspberry Pi operating system image : https://www.raspberrypi.org/downloads/raspbian/
 - Install it using official Raspberry instructions :https://www.raspberrypi.org/documentation/installation/installing-images/README.md
-- Change default pi password by openning a terminal and type the following command :
+- Change default pi password by opening a terminal and type the following command :
 
 ```passwd ```  
 > default password is 'raspberry'. Enter a new password (twice)
@@ -13,12 +13,12 @@
 
 ```	sudo raspi-config ``` 
 
-	
+    
 - If required, edit the network config file to set up a static IP address. For more details see : https://raspberrypi.stackexchange.com/questions/37920/how-do-i-set-up-networking-wifi-static-ip-address
 
 ```sudo nano /etc/network/interfaces``` 
 
-		
+        
 - Get last updates :
 
 ```sudo apt update```
@@ -78,8 +78,8 @@ python start_qrl.py
 |unsynced| INFO : DB path: /home/pi/.qrl/data/state
 |unsynced| INFO : Creating new wallet file... (this could take up to a minute)
 ```
-After the wallet is created it will start syncronizing the chain.
-This might take a while, leave it running untill the chain is sync
+After the wallet is created it will start synchronizing the chain.
+This might take a while, leave it running until the chain is sync
 
 - If you want to keep QRL running after disconnecting terminal, you have to launch it in background :
 
@@ -95,7 +95,7 @@ This might take a while, leave it running untill the chain is sync
 
 ```grep -i "Received Block"  /home/pi/QRL/qrl.log | tail -1```
 
-> Another way to get the last received block is to connect localy on the wallet (see below) and use command `blockheight`
+> Another way to get the last received block is to connect locally on the wallet (see below) and use command `blockheight`
 
 
 
@@ -126,7 +126,7 @@ PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
 
 
 ## Stopping the node
-- It can be required to stop the node, specialy during testnet. Type the following to kill python process.
+- It can be required to stop the node, specially during testnet. Type the following to kill python process.
 
 ```pkill python```
 
@@ -146,7 +146,7 @@ python start_qrl.py
 ```
 
 ## Accessing the wallet
-- To acces the wallet, you need telnet. Type the following command to install telnet :
+- To access the wallet, you need telnet. Type the following command to install telnet :
 
 `sudo apt-get install telnet`
 
@@ -183,7 +183,7 @@ Press ctrl+x to close, press y to save and press enter
 - See if it works!
 
 ## Launch the node automatically every night
-- It can be usefull to restart the node on a regular basis, specially during testnet
+- It can be useful to restart the node on a regular basis, specially during testnet
 
 - Make sure you have the `/home/pi/QRL/autostartQRL.sh` script with executable right
 

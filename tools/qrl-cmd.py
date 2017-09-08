@@ -1,4 +1,5 @@
 #!/usr/bin/env
+# coding=utf-8
 # -*- coindg:utf-8 -*-
 
 import pdb

@@ -1,3 +1,4 @@
+# coding=utf-8
 # QRL Web Wallet
 # localhost:8888/
 # Distributed under the MIT software license, see the accompanying

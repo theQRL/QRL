@@ -1,3 +1,4 @@
+# coding=utf-8
 from binascii import unhexlify
 
 # FIXME: These values are based on current implementation. There are known issues and these values are subject to change

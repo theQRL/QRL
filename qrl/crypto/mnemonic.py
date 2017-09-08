@@ -1,3 +1,4 @@
+# coding=utf-8
 """
     48 byte SEED converted to a backup 32 word mnemonic wordlist to allow backup retrieval of keys and addresses.
     SEED parsed 12 bits at a time and a word looked up from a dictionary with 4096 unique words in it..

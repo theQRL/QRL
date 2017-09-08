@@ -1,3 +1,4 @@
+# coding=utf-8
 import decimal
 from math import log
 
