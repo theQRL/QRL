@@ -1,3 +1,4 @@
+# coding=utf-8
 from twisted.logger import LogLevel, globalLogPublisher
 
 from qrl.core import logger
