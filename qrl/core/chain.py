@@ -226,35 +226,39 @@ class Chain:
         del self.transaction_pool[:]
         curr_epoch = int((last_block_number + 1) / config.dev.blocks_per_epoch)
         # recreate the transaction pool as in the tx_hash_list, ordered by txhash..
-        d = defaultdict(int)
+        tx_nonce = defaultdict(int)
 
         for tx in t_pool2:
             if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
                 continue
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
-                epoch_blocknum = last_block_number - (curr_epoch * config.dev.blocks_per_epoch)
+                epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
 
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
                     return False
-
                 if tx.epoch != curr_epoch:
                     logger.warning('Skipping st as epoch mismatch, CreateBlock()')
                     logger.warning('Expected st epoch : %s', curr_epoch)
                     logger.warning('Found st epoch : %s', tx.epoch)
                     continue
                 balance = 0
-                for st in self.block_chain_buffer.next_stake_list_get(last_block_number + 1):
-                    if st[1] == tx.hash:
-                        balance = st[-1]
-                        break
-                # balance>0 only in case 1st st txn without first_hash done
+                next_sv_list = self.block_chain_buffer.next_stake_list_get(last_block_number + 1)
+                if tx.txfrom in next_sv_list:
+                    balance = next_sv_list[tx.txfrom].balance
+                    threshold_blocknum = self.block_chain_buffer.get_threshold(last_block_number + 1, tx.txfrom)
+                    if epoch_blocknum < threshold_blocknum - 1:
+                        logger.warning('Skipping st as ST txn before threshold')
+                        logger.warning('Expected : %s', threshold_blocknum - 1)
+                        logger.warning('Found : %s', epoch_blocknum)
+                        continue
+                # balance>0 only in case 1st st already accepted
                 if not (balance > 0 or last_block_number == 0):
                     if tx.first_hash:
                         continue
             self.add_tx_to_pool(tx)
-            d[tx.txfrom] += 1
-            tx.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + d[tx.txfrom]
+            tx_nonce[tx.txfrom] += 1
+            tx.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + tx_nonce[tx.txfrom]
             if tx.txfrom == self.mining_address:
                 tx.nonce += 1
 
