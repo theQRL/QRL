@@ -55,7 +55,7 @@ function recoverAddress() {
     var hexseed = $('#hexseed').val();
 
     $.ajax({
-        url: 'http://localhost:8888/webwallet-recover',
+        url: './webwallet-recover',
         dataType: 'json',
         contentType: 'application/json',
         type: "POST",
@@ -169,7 +169,7 @@ function getNodeInfo(hideDimmer = false) {
     }
     */
     $.ajax({
-        url: 'http://localhost:8080/api/stats',
+        url: './api/stats',
         dataType: 'json',
         type: "GET",
         success: function(data) {
@@ -205,7 +205,7 @@ function getNodeInfo(hideDimmer = false) {
 
     // Mempool transactions
     $.ajax({
-        url: 'http://localhost:8888/webwallet-mempool',
+        url: './webwallet-mempool',
         dataType: 'text',
         type: "GET",
         success: function(data) {
@@ -218,7 +218,7 @@ function getNodeInfo(hideDimmer = false) {
 
     // Sync status
     $.ajax({
-        url: 'http://localhost:8888/webwallet-sync',
+        url: './webwallet-sync',
         dataType: 'text',
         type: "GET",
         success: function(data) {
@@ -279,7 +279,7 @@ function getAddresses(hideDimmer = false) {
     $('#show-all-wallets').show();
 
     $.ajax({
-        url: 'http://localhost:8888/webwallet-addresses',
+        url: './webwallet-addresses',
         dataType: 'json',
         type: "GET",
         success: function(data) {
@@ -298,7 +298,7 @@ function createNewAddress() {
     $('.dimmer').show();
     $('#dimmerText').text("Please wait ... this can take a while!");
     $.ajax({
-        url: 'http://localhost:8888/webwallet-create-new-address',
+        url: './webwallet-create-new-address',
         dataType: 'json',
         type: "GET",
         success: function(data) {
@@ -423,7 +423,7 @@ function showAddressStep2(addresses, addressIndex) {
     });
 
     $.ajax({
-        url: 'http://localhost:8080/api/address/' + thisAddress,
+        url: './api/address/' + thisAddress,
         success: function(addressDetail) {
             drawAddress(addresses, addressIndex, addressDetail);
         },
@@ -461,7 +461,7 @@ function showAddress(addressIndex, hideDimmer = false) {
     
     // Get addresses then draw
     $.ajax({
-        url: 'http://localhost:8888/webwallet-addresses',
+        url: './webwallet-addresses',
         dataType: 'json',
         type: "GET",
         success: function(addresses) {
@@ -512,7 +512,7 @@ function sendQuanta() {
     var amount = $('#amount').val();
 
     $.ajax({
-        url: 'http://localhost:8888/webwallet-send',
+        url: './webwallet-send',
         dataType: 'json',
         contentType: 'application/json',
         type: "POST",
