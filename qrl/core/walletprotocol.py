@@ -20,8 +20,8 @@ class WalletProtocol(Protocol):
         self.cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed',
                          'recoverfromwords', 'stakenextepoch', 'stake', 'address',
                          'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit',
-                         'search', 'help', 'savenewaddress', 'listaddresses',
-                         'getinfo', 'blockheight', 'json_block', 'reboot', 'peers']
+                         'search', 'help', 'savenewaddress', 'getinfo', 
+                         'blockheight', 'json_block', 'reboot', 'peers']
 
         self.output = {'status': 1,
                        'keys': [],
@@ -479,7 +479,7 @@ class WalletProtocol(Protocol):
 
         else:  # xmss
             self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1].get_type() + '\r\n'))
-            self.output['message'].write('>>> Signatures possible with address: ' + str(addr[1].signatures) + '\r\n')
+            self.output['message'].write('>>> Signatures possible with address: ' + str(addr[1].get_number_signatures()) + '\r\n')
             self.output['message'].write('>>> Address: ' + addr[1].get_address() + '\r\n')
 
             self.output['keypair_type'] = ''.join(addr[1].get_type() + '\r\n')
