@@ -5,6 +5,7 @@
 from operator import itemgetter
 
 from qrl.core import db, logger, transaction, config, helper
+from qrl.core.CreateGenesisBlock import genesis_info
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import hashchain
@@ -229,11 +230,12 @@ class State:
         address_txn[tx.txto][1] += tx.amount
         address_txn[tx.txfrom][2].append(pubhash)
         # Coinbase update end here
-
+        tmp_list = []
         for tx in block.transactions:
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
                 if tx.txfrom == block.blockheader.stake_selector:
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, genesis_info[tx.txfrom]])
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
                         self.stake_validators_list.add_sv(tx.txfrom, tx.hash, tx.first_hash, tx.balance)
                         address_txn[tx.txfrom][0] += 1
@@ -253,19 +255,14 @@ class State:
         chain.block_chain_buffer.epoch_seed = epoch_seed
         self.put_epoch_seed(epoch_seed)
 
-        top_st = None
-        score = sys.maxint
-        for staker in self.stake_validators_list.sv_list:
-            sv = self.stake_validators_list.sv_list[staker]
-            new_score = chain.score(stake_address=staker,
-                                    reveal_one=sha256(str(sv.cache_hash)),
-                                    balance=sv.balance,
-                                    seed=epoch_seed)
-            if new_score < score:
-                score = new_score
-                top_st = staker
+        chain.block_chain_buffer.epoch_seed = chain.state.calc_seed(tmp_list)
+        chain.stake_list = sorted(tmp_list,
+                                  key=lambda staker: chain.score(stake_address=staker[0],
+                                                                 reveal_one=sha256(str(staker[1])),
+                                                                 balance=staker[4],
+                                                                 seed=chain.block_chain_buffer.epoch_seed))
 
-        if top_st != block.blockheader.stake_selector:
+        if chain.stake_list[0][0] != block.blockheader.stake_selector:
             logger.info('stake selector wrong..')
             return
 
