@@ -101,7 +101,16 @@ class P2PProtocol(Protocol):
                 self.factory.chain.m_load_chain()
                 self.factory.pos.update_node_state(NState.synced)
 
+    #Message Recei
     def MR(self, data):
+        """
+        Message Receipt
+        This function accepts message receipt from peer,
+        checks if the message hash already been received or not.
+        In case its a already received message, it is ignored.
+        Otherwise the request is made to get the full message.
+        :return:
+        """
         data = json.loads(data)
         if data['type'] not in MessageReceipt.allowed_types:
             return
@@ -126,6 +135,12 @@ class P2PProtocol(Protocol):
         self.RFM(data)
 
     def RFM(self, data):  # Request full message, Move to factory
+        """
+        Request Full Message
+        This function request for the full message against,
+        the Message Receipt received.
+        :return:
+        """
         msg_hash = data['hash']
         if msg_hash in self.factory.master_mr.hash_msg:
             if msg_hash in self.factory.master_mr.hash_callLater:
@@ -148,6 +163,11 @@ class P2PProtocol(Protocol):
             del self.factory.master_mr.hash_callLater[msg_hash]
 
     def SFM(self, data):  # Send full message
+        """
+        Send Full Message
+        This function serves the request made for the full message.
+        :return:
+        """
         data = json.loads(data)
         msg_hash = data['hash']
         msg_type = data['type']
@@ -166,6 +186,11 @@ class P2PProtocol(Protocol):
         self.factory.master_mr.add_peer(msg_hash, msg_type, self)
 
     def broadcast(self, msg_hash, msg_type):  # Move to factory
+        """
+        Broadcast
+        This function sends the Message Receipt to all connected peers.
+        :return:
+        """
         data = {'hash': sha256(str(msg_hash)),
                 'type': msg_type}
 
@@ -174,10 +199,21 @@ class P2PProtocol(Protocol):
                 peer.transport.write(self.wrap_message('MR', helper.json_encode(data)))
 
     def TX(self, data):  # tx received..
+        """
+        Transaction
+        Executed whenever a new TX type message is received.
+        :return:
+        """
         self.recv_tx(data)
         return
 
     def ST(self, data):
+        """
+        Stake Transaction
+        This function processes whenever a Transaction having
+        subtype ST is received.
+        :return:
+        """
         try:
             st = StakeTransaction().json_to_transaction(data)
         except Exception as e:
@@ -211,6 +247,13 @@ class P2PProtocol(Protocol):
         return
 
     def BM(self, data=None):  # blockheight map for synchronisation and error correction prior to POS cycle resync..
+        """
+        Blockheight Map
+        Simply maps the peer with their respective blockheight.
+        If no data is provided in parameter, the node sends its 
+        own current blockheight. 
+        :return:
+        """
         if not data:
             logger.info('<<< Sending block_map %s', self.transport.getPeer().host)
 
@@ -232,6 +275,10 @@ class P2PProtocol(Protocol):
             return
 
     def BK(self, data):  # block received
+        """Block
+        This function processes any new block received.
+        :return:
+        """
         try:
             block = Block.from_json(data)
         except Exception as e:
@@ -264,6 +311,15 @@ class P2PProtocol(Protocol):
         return False
 
     def PBB(self, data):
+        """
+        Push Block Buffer
+        This function executes while syncing block from other peers.
+        Blocks received by this function, directly added into
+        chain.block_chain_buffer.
+        So it is expected to receive multiple of blocks having
+        same blocknumber.
+        :return:
+        """
         self.factory.pos.last_pb_time = time.time()
         try:
             if self.isNoMoreBlock(data):
@@ -302,9 +358,17 @@ class P2PProtocol(Protocol):
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
-            return
+        return
 
     def PB(self, data):
+        """
+        Push Block
+        This function processes requested blocks received while syncing.
+        Block received under this function are directly added to the main
+        chain i.e. chain.m_blockchain
+        It is expected to receive only one block for a given blocknumber.
+        :return:
+        """
         self.factory.pos.last_pb_time = time.time()
         try:
             if self.isNoMoreBlock(data):
@@ -335,13 +399,23 @@ class P2PProtocol(Protocol):
         return
 
     def PH(self, data):
+        """
+        Push Headerhash
+        :return:
+        """
         if self.factory.nodeState.state == NState.forked:
             fork.verify(data, self.identity, self.chain, self.randomize_headerhash_fetch)
         else:
             mini_block = json.loads(data)
             self.blocknumber_headerhash[mini_block['blocknumber']] = mini_block['headerhash']
+        return
 
     def LB(self):  # request for last block to be sent
+        """
+        Last BLock
+        Sends the last block from the main chain.
+        :return:
+        """
         logger.info('<<<Sending last block %s %s bytes to node %s', self.factory.chain.m_blockheight(),
                     str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))),
                     self.transport.getPeer().host)
@@ -350,14 +424,27 @@ class P2PProtocol(Protocol):
         return
 
     def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
+        """
+        Fetch Maximum Blockheight and HeaderHash
+        Serves the fetch request for maximum blockheight & headerhash
+        Sends the current blockheight and the headerhash of the 
+        last block in mainchain.
+        :return:
+        """
         if self.factory.pos.nodeState.state != NState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
         data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
                 'blocknumber': self.factory.chain.m_blockchain[-1].blockheader.blocknumber}
         self.transport.write(self.wrap_message('PMBH', helper.json_encode(data)))
+        return
 
     def PMBH(self, data):  # Push Maximum Blockheight and Headerhash
+        """
+        Push Maximum Blockheight and Headerhash
+        Function processes, received maximum blockheight and headerhash.
+        :return:
+        """
         data = helper.json_decode(data)
         if not data or 'headerhash' not in data or 'blocknumber' not in data:
             return
@@ -370,11 +457,20 @@ class P2PProtocol(Protocol):
             self.factory.pos.fmbh_blockhash_peers[data['headerhash']]['peers'].append(self)
 
     def MB(self):  # we send with just prefix as request..with CB number and blockhash as answer..
+        """
+        Maximum Blockheight
+        Sends maximum blockheight of the mainchain.
+        :return:
+        """
         logger.info('<<<Sending blockheight to: %s %s', self.transport.getPeer().host, str(time.time()))
         self.send_m_blockheight_to_peer()
         return
 
     def CB(self, data):
+        """
+        Check Blockheight
+        :return:
+        """
         z = helper.json_decode(data)
         block_number = z['block_number']
         headerhash = z['headerhash'].encode('latin1')
@@ -416,23 +512,30 @@ class P2PProtocol(Protocol):
             return
 
     def BN(self, data):  # request for block (n)
+        """Block(n)
+        Sends the nth block from mainchain.
+        :return:
+        """
         if int(data) <= self.factory.chain.m_blockheight():
             logger.info('<<<Sending block number %s %s bytes to node: %s', int(data),
                         len(helper.json_bytestream(self.factory.chain.m_get_block(int(data)))),
                         self.transport.getPeer().host)
             self.transport.write(
                 self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_block(int(data)))))
-            return
         else:
             if int(data) >= self.factory.chain.m_blockheight():
                 logger.info('BN for a blockheight greater than local chain length..')
-                return
             else:
                 logger.info('BN request without valid block number %s - closing connection', str(data))
                 self.transport.loseConnection()
-                return
+        return
 
     def FB(self, data):  # Fetch Request for block
+        """
+        Fetch Block
+        Sends the request for the block.
+        :return:
+        """
         data = int(data)
         logger.info(' Request for %s by %s', data, self.identity)
         if 0 < data <= self.factory.chain.block_chain_buffer.height():
@@ -443,8 +546,14 @@ class P2PProtocol(Protocol):
                 logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
             logger.info(' Send for blocmnumber #%s to %s', data, self.identity)
+        return
 
     def FH(self, data):  # Fetch Block Headerhash
+        """
+        Fetch Block Headerhash
+        Sends the request for the blockheaderhash of a given blocknumber.
+        :return:
+        """
         data = int(data)
         if 0 < data <= self.factory.chain.height():
             mini_block = {}
@@ -456,9 +565,13 @@ class P2PProtocol(Protocol):
         else:
             if data > self.factory.chain.height():
                 logger.info('FH for a blocknumber is greater than the local chain length..')
-                return
+        return
 
     def PO(self, data):
+        """
+        Pong
+        :return:
+        """
         if data[0:2] == 'NG':
             y = 0
             for entry in self.factory.chain.ping_list:
@@ -470,13 +583,21 @@ class P2PProtocol(Protocol):
                                                      'ping (ms)': (time.time() - self.factory.chain.last_ping) * 1000})
 
     def PI(self, data):
+        """
+        Ping
+        :return:
+        """
         if data[0:2] == 'NG':
             self.transport.write(self.wrap_message('PONG'))
         else:
             self.transport.loseConnection()
-            return
+        return
 
     def PL(self, data):  # receiving a list of peers to save into peer list..
+        """
+        Peers List
+        :return:
+        """
         self.recv_peers(data)
 
     def RT(self):
@@ -489,9 +610,22 @@ class P2PProtocol(Protocol):
         return
 
     def PE(self):  # get a list of connected peers..need to add some ddos and type checking proteection here..
+        """
+        Peers
+        Sends the list of all connected peers.
+        :return:
+        """
         self.get_peers()
+        return
 
     def VE(self, data=None):
+        """
+        Version
+        If data is None then sends the version & genesis_prev_headerhash.
+        Otherwise, process the content of data and incase of non matching,
+        genesis_prev_headerhash, it disconnects the odd peer.
+        :return:
+        """
         if not data:
             version_details = {
                 'version': config.dev.version_number,
@@ -522,6 +656,11 @@ class P2PProtocol(Protocol):
 
     # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
     def R1(self, data):
+        """
+        Reveal
+        Process the reveal message received by the peer.
+        :return:
+        """
         if self.factory.nodeState.state != NState.synced:
             return
         z = json.loads(data, parse_float=Decimal)
@@ -630,6 +769,13 @@ class P2PProtocol(Protocol):
         return
 
     def IP(self, data):  # fun feature to allow geo-tagging on qrl explorer of test nodes..reveals IP so optional..
+        """
+        IP
+        If data is None, node sends its own IP.
+        Otherwise, append the received IP into ip_list
+        and also broadcast it to all other connected peers
+        :return:
+        """
         if not data:
             if self.factory.ip_geotag == 1:
                 for peer in self.factory.peers:
@@ -645,6 +791,11 @@ class P2PProtocol(Protocol):
         return
 
     def recv_peers(self, json_data):
+        """
+        Receive Peers
+        Received peers list is saved.
+        :return:
+        """
         if not config.user.enable_peer_discovery:
             return
         data = helper.json_decode(json_data)
@@ -665,16 +816,31 @@ class P2PProtocol(Protocol):
         return
 
     def get_latest_block_from_connection(self):
+        """
+        Get Latest Block
+        Sends the request for the last block in the mainchain.
+        :return:
+        """
         logger.info('<<<Requested last block from %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('LB'))
         return
 
     def get_m_blockheight_from_connection(self):
+        """
+        Get blockheight
+        Sends the request to all peers to send their mainchain max blockheight.
+        :return:
+        """
         logger.info('<<<Requesting blockheight from %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('MB'))
         return
 
     def send_m_blockheight_to_peer(self):
+        """
+        Send mainchain blockheight to peer
+        Sends the mainchain maximum blockheight request.
+        :return:
+        """
         z = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
              'block_number': 0}
 
@@ -684,11 +850,21 @@ class P2PProtocol(Protocol):
         return
 
     def get_version(self):
+        """
+        Get Version
+        Sends request for the version.
+        :return:
+        """
         logger.info('<<<Getting version %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('VE'))
         return
 
     def get_peers(self):
+        """
+        Get Peers
+        Sends the peers list.
+        :return:
+        """
         logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
         peers_list = []
         for peer in self.factory.peer_connections:
@@ -697,11 +873,21 @@ class P2PProtocol(Protocol):
         return
 
     def get_block_n(self, n):
+        """
+        Get Block n
+        Sends request for the block number n.
+        :return:
+        """
         logger.info('<<<Requested block: %s from %s', n, self.transport.getPeer().host)
         self.transport.write(self.wrap_message('BN', str(n)))
         return
 
     def fetch_block_n(self, n):
+        """
+        Fetch Block n
+        Sends request for the block number n.
+        :return:
+        """
         if self.last_requested_blocknum != n:
             self.fetch_tried = 0
         self.fetch_tried += 1  # TODO: remove from target_peers if tried is greater than x
@@ -711,10 +897,20 @@ class P2PProtocol(Protocol):
         return
 
     def fetch_FMBH(self):
+        """
+        Fetch Maximum Block Height
+        Sends request for the maximum blockheight.
+        :return:
+        """
         logger.info('<<<Fetching FMBH from : %s', self.identity)
         self.transport.write(self.wrap_message('FMBH'))
 
     def fetch_headerhash_n(self, n):
+        """
+        Fetch Headerhash n
+        Sends request for the headerhash of blocknumber n.
+        :return:
+        """
         logger.info('<<<Fetching headerhash of block: %s from %s', n, self.identity)
         self.transport.write(self.wrap_message('FH', str(n)))
         return
