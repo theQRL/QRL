@@ -265,7 +265,7 @@ class State:
                 score = new_score
                 top_st = staker
 
-        if top_st != block.blockheader.stake_selector and False:  # To be removed before next hard fork
+        if top_st != block.blockheader.stake_selector:
             logger.info('stake selector wrong..')
             return
 

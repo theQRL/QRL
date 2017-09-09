@@ -457,7 +457,7 @@ class POS:
                     self.make_st_tx(blocknumber, None)
 
             elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_list:
-                if next_stake_list[self.chain.mining_address] is None:
+                if next_stake_list[self.chain.mining_address].first_hash is None:
                     threshold_blocknum = self.chain.block_chain_buffer.get_threshold(blocknumber,
                                                                                      self.chain.mining_address)
                     max_threshold_blocknum = config.dev.blocks_per_epoch
