@@ -17,7 +17,7 @@ from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
 from qrl.core.transaction import SimpleTransaction, CoinBase
-from qrl.core.wallet import Wallet
+from qrl.core.walletmanager import WalletManager
 from qrl.crypto.hmac_drbg import GEN_range_bin
 from qrl.crypto.misc import sha256, merkle_tx_hash, closest_number
 
@@ -45,10 +45,10 @@ class Chain:
         self.txhash_timestamp = []
         self.m_blockchain = []
 
-        self.wallet = Wallet(self, state)
-        self.my = self.wallet.f_read_wallet()
+        self.wallet_manager = WalletManager(self, state)
+        self.address_bundle = self.wallet_manager.f_read_wallet()
 
-        self.mining_address = self.my[0][1].address
+        self.mining_address = self.address_bundle[0].xmss.address
         self.initialize()
         self.ping_list = []
         self.ip_list = []
@@ -71,7 +71,7 @@ class Chain:
         logger.info('loading db')
         logger.info('loading wallet')
 
-        self.wallet.f_load_winfo()
+        self.wallet_manager.f_load_winfo()
 
         logger.info('mining/staking address %s', self.mining_address)
 
@@ -984,7 +984,7 @@ class Chain:
                                                             validate=False,
                                                             ignore_save_wallet=True)
             epoch += 1
-        self.wallet.f_save_wallet()
+        self.wallet_manager.f_save_wallet()
         gc.collect()
         return self.m_blockchain
 
@@ -1131,18 +1131,18 @@ class Chain:
         del self.transaction_pool[:]
 
     def validate_tx_pool(self):  # invalid transactions are auto removed from pool..
-        for transaction in self.transaction_pool:
-            if transaction.validate_tx() is False:
-                self.remove_tx_from_pool(transaction)
-                logger.info(('invalid tx: ', transaction, 'removed from pool'))
+        for tr in self.transaction_pool:
+            if tr.validate_tx() is False:
+                self.remove_tx_from_pool(tr)
+                logger.info(('invalid tx: ', tr, 'removed from pool'))
 
         return True
 
     def create_my_tx(self, txfrom, txto, amount, fee=0):
         if isinstance(txto, int):
-            txto = self.my[txto][0]
+            txto = self.address_bundle[txto].address
 
-        xmss = self.my[txfrom][1]
+        xmss = self.address_bundle[txfrom].xmss
         tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.address)
         tx = SimpleTransaction().create(tx_state=tx_state,
                                         txto=txto,
@@ -1152,7 +1152,9 @@ class Chain:
 
         if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.transaction_pool):
             self.add_tx_to_pool(tx)
-            self.wallet.f_save_winfo()  # need to keep state after tx ..use self.wallet.info to store index..far faster than loading the 55mb self.wallet..
+            # need to keep state after tx ..use self.wallet.info to store index..
+            # far faster than loading the 55mb self.wallet..
+            self.wallet_manager.f_save_winfo()
             return tx
 
         return False

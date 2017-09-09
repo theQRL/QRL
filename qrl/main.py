@@ -87,7 +87,7 @@ def main():
     logger.info('Building state leveldb')
 
     if args.get_wallets:
-        address_data = chain_obj.wallet.list_addresses()
+        address_data = chain_obj.wallet_manager.list_addresses()
         addresses = [ a[0] for a in address_data ]
         print(addresses[0])
         quit()

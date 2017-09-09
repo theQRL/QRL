@@ -1,11 +1,10 @@
 # coding=utf-8
+import time
 from binascii import hexlify, unhexlify
 from math import ceil, log
 
-import time
-
 from qrl.core import logger, config
-from qrl.crypto.hmac_drbg import new_keys, GEN, GEN_range
+from qrl.crypto.hmac_drbg import new_keys, GEN_range, GEN
 from qrl.crypto.misc import sha256, sign_wpkey, verify_wpkey, get_lengths, chain_fn
 from qrl.crypto.mnemonic import seed_to_mnemonic
 
@@ -153,6 +152,7 @@ class XMSS(object):
         hashchain(self)
 
     def sk(self, i=None):
+        # type: (int) -> List[str]
         """
         Return OTS private key at position i
         :param i:
@@ -163,6 +163,7 @@ class XMSS(object):
         return self._privs[i]
 
     def pk(self, i=None):
+        # type: (int) -> List[str]
         """
         Return OTS public key at position i
         :param i:
@@ -181,7 +182,7 @@ class XMSS(object):
         return self._number_signatures - self._index
 
     def get_mnemonic(self):
-        # type: () -> list
+        # type: () -> List[str]
         return self._mnemonic
 
     def get_address(self):
@@ -200,51 +201,6 @@ class XMSS(object):
 
     def get_hexseed(self):
         return self.seed_hexstring
-
-    # def auth_route(self, i=0):
-    #     """
-    #     Calculate auth route for keypair i
-    #     :param i:
-    #     :return:
-    #     """
-    #     return self._xmss_route(self._x_bms, self._tree, i)
-
-    # def verify_auth(self, auth_route, i_bms, i=0):
-    #     """
-    #     Verify auth route using pk's
-    #     :param auth_route:
-    #     :param i_bms:
-    #     :param i:
-    #     :return:
-    #     """
-    #     return self._verify_auth(auth_route, i_bms, self.pk(i), self.PK)
-
-    # def verify_auth_SEED(self, auth_route, i_bms, i=0):
-    #     """
-    #     Verify auth route using ots pk and shorter PK {root, _public_SEED}
-    #     :param auth_route:
-    #     :param i_bms:
-    #     :param i:
-    #     :return:
-    #     """
-    #     return self._verify_auth_SEED(auth_route, i_bms, self.pk(i), self.PK_short)
-
-    # @staticmethod
-    # def VERIFY_long(msg, SIG):
-    #     """
-    #     verify an XMSS signature: {i, s, auth_route, i_bms, pk(i), PK(root, _x_bms, _l_bms)}
-    #     SIG is a list composed of: i, s, auth_route, i_bms, pk[i], PK
-    #     :param msg:
-    #     :param SIG:
-    #     :return:
-    #     """
-    #     if not verify_wpkey(SIG[1], msg, SIG[4]):
-    #         return False
-    #
-    #     if not XMSS._verify_auth(SIG[2], SIG[3], SIG[4], SIG[5]):
-    #         return False
-    #
-    #     return True
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
@@ -266,16 +222,6 @@ class XMSS(object):
             return False
 
         return True
-
-    # def verify(self, msg, signature, i=0):
-    #     """
-    #     Verify OTS signature
-    #     :param msg:
-    #     :param signature:
-    #     :param i:
-    #     :return:
-    #     """
-    #     return verify_wpkey(signature, msg, self._pubs[i])
 
     @staticmethod
     def _verify_auth(auth_route, i_bms, pub, PK):
@@ -338,20 +284,6 @@ class XMSS(object):
 
         return XMSS._verify_auth(auth_route, i_bms, pub, PK)
 
-    # def SIGN_long(self, msg, i=0):
-    #     # FIXME: Obsolete? Not used?
-    #     s = self._sign(msg, i)
-    #     auth_route, i_bms = XMSS._xmss_route(self._x_bms, self._tree, i)
-    #     return i, s, auth_route, i_bms, self.pk(i), self.PK  # SIG
-    #
-    # def SIGN_short(self, msg, i=0):
-    #     # FIXME: Obsolete? Not used?
-    #     s = self._sign(msg, i)
-    #     auth_route, i_bms = XMSS._xmss_route(self._x_bms, self._tree, i)
-    #     return i, s, auth_route, i_bms, self.pk(i), self.PK_short  # shorter SIG due to _SEED rather than bitmasks
-
-    # NOTE: USED EXTERNALLY!!!
-
     def _sign(self, msg, i=0):
         # NOTE common element used by the other sign functions
         """
@@ -380,34 +312,10 @@ class XMSS(object):
 
         return i, s, auth_route, i_bms, self.pk(i), self.PK_short
 
-    # def _SIGN_subtree(self, msg, t=0):
-    #     """
-    #     Default to full xmss tree with max sigs
-    #     :param msg:
-    #     :param t:
-    #     :return:
-    #     """
-    #     if len(self.addresses) < t + 1:
-    #         logger.error('self.addresses new address does not exist')
-    #         return False
-    #
-    #     i = self._index
-    #     if self.addresses[t][2] < i:
-    #         logger.error('xmss index above address derivation i')
-    #         return False
-    #
-    #     logger.info(
-    #         ('xmss signing subtree (', str(self.addresses[t][2]), ' signatures) with OTS n = ', str(self._index)))
-    #     s = self._sign(msg, i)
-    #     auth_route, i_bms = XMSS._xmss_route(self.subtrees[t][3], self.subtrees[t][2], i)
-    #     self._index += 1
-    #
-    #     return i, s, auth_route, i_bms, self.pk(i), self.subtrees[t][4]
-
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
     def create_address_from_key(key):
-        # type: (object) -> object
+        # type: (str) -> str
         sha_r1 = sha256(key)
         sha_r2 = sha256(sha_r1)
         return 'Q' + sha_r1 + sha_r2[:4]
@@ -415,54 +323,8 @@ class XMSS(object):
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
     def checkaddress(PK_short, address):
-        # type: (object, object) -> bool
+        # type: (list, str) -> bool
         return XMSS.create_address_from_key(PK_short[0] + PK_short[1]) == address
-
-    # def _address_add(self, i=None):
-    #     # FIXME: Probably not used (only by address_adds which is not used) and obsolete
-    #     """
-    #     Derive new address from an xmss tree using the same SEED
-    #     but i base leaves..allows deterministic address creation
-    #     :param i:
-    #     :return:
-    #     """
-    #     if i is None:
-    #         i = self._number_signatures - len(self.addresses)
-    #
-    #     if i > self._number_signatures or i < self._index:
-    #         logger.error('i cannot be below signing index or above the pre-calculated signature count for xmss _tree')
-    #         return False
-    #
-    #     xmss_array, _x_bms, _l_bms, _privs, _pubs = self._xmss_tree(i,
-    #                                                             _public_SEED=self._public_SEED,
-    #                                                             _private_SEED=self._private_SEED)
-    #
-    #     i_PK = [''.join(xmss_array[-1]), hexlify(self._public_SEED)]
-    #     new_addr = XMSS.create_address_from_key(''.join(i_PK))
-    #
-    #     self.addresses.append((len(self.addresses), new_addr, i))
-    #     self.subtrees.append((len(self.subtrees), i, xmss_array, _x_bms, i_PK))  # _x_bms could be limited to the length..
-    #
-    #     return new_addr
-
-    # def _address_adds(self, start_i, stop_i):
-    #     # FIXME: Probably not used and obsolete
-    #     """
-    #     Batch creation of multiple addresses..
-    #     :param start_i:
-    #     :param stop_i:
-    #     :return:
-    #     """
-    #         logger.error('i cannot be greater than pre-calculated signature count for xmss tree')
-    #     if start_i > self._number_signatures or stop_i > self._number_signatures:
-    #         return False
-    #
-    #     if start_i >= stop_i:
-    #         logger.error('starting i must be lower than stop_i')
-    #         return False
-    #
-    #     for i in range(start_i, stop_i):
-    #         self._address_add(i)
 
     # NOTE: USED EXTERNALLY!!!
     def list_addresses(self):
@@ -477,16 +339,9 @@ class XMSS(object):
 
         return addr_arr
 
-    # def address_n(self, t):
-    #     if len(self.addresses) < t + 1:
-    #         logger.info('ERROR: self.addresses new address does not exist')
-    #         return False
-    #
-    #     return self.addresses[t][1]
-
     @staticmethod
     def _xmss_tree(number_signatures, private_SEED, public_SEED):
-        # type: (int, object, object) -> tuple
+        # type: (int, str, str) -> List[list, List[str], list, list, list]
         # FIXME: Most other methods use pub/priv. Refactor?
         # no.leaves = 2^h
         h = ceil(log(number_signatures, 2))
@@ -540,8 +395,8 @@ class XMSS(object):
         return xmss_array, x_bms, l_bms, privs, pubs
 
     @staticmethod
-    def _xmss_route(x_bms, x_tree, i=0):
-        # type: (object, object, int) -> tuple
+    def _xmss_route(x_bms, x_tree, i = 0):
+        # type: (list, list, int) -> Union[tuple, None]
         """
         generate the xmss tree merkle auth route for a given ots key (starts at 0)
         :param x_bms:

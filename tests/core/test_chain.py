@@ -27,12 +27,11 @@ class TestChain(TestCase):
 
             chain = Chain(state)
             self.assertIsNotNone(chain)
-            # chain.my
 
             self.assertEqual(chain.mining_address,
                              'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
 
-            self.assertEqual(chain.my[0][0],
+            self.assertEqual(chain.address_bundle[0].address,
                              'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
 
             # TODO: Add more checks for data stability

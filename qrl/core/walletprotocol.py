@@ -53,25 +53,25 @@ class WalletProtocol(Protocol):
                     self.getnewaddress(args)
 
                 elif command == 'hexseed':
-                    for x in self.factory.chain.my:
-                        if not isinstance(x[1], list):
-                            if x[1].get_type() == 'XMSS':
+                    for addr_bundle in self.factory.chain.address_bundle:
+                        if not isinstance(addr_bundle.xmss, list):
+                            if addr_bundle.xmss.get_type() == 'XMSS':
                                 self.output['status'] = 0
-                                self.output['message'].write('Address: ' + x[1].get_address() + '\r\n')
-                                self.output['message'].write('Recovery seed: ' + x[1].get_hexseed() + '\r\n')
+                                self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
+                                self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_hexseed() + '\r\n')
                                 self.output['keys'] += ['Address', 'Recovery seed']
-                                self.output['Address'] = x[1].get_address()
-                                self.output['Recovery seed'] = x[1].get_hexseed()
+                                self.output['Address'] = addr_bundle.xmss.get_address()
+                                self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
 
                 elif command == 'seed':
-                    for x in self.factory.chain.my:
-                        if type(x[1]) == list:
+                    for addr_bundle in self.factory.chain.address_bundle:
+                        if type(addr_bundle.xmss) == list:
                             pass
                         else:
-                            if x[1].get_type() == 'XMSS':
+                            if addr_bundle.xmss.get_type() == 'XMSS':
                                 self.output['status'] = 0
-                                self.output['message'].write('Address: ' + x[1].get_address() + '\r\n')
-                                self.output['message'].write('Recovery seed: ' + x[1].mnemonic + '\r\n')
+                                self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
+                                self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_mnemonic() + '\r\n')
                                 self.output['keys'] += ['Address', 'Recovery seed']
 
                 elif command == 'search':
@@ -156,7 +156,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     self.output['status'] = 0
-                    addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
+                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].mnemonic + '\r\n')
@@ -180,7 +180,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     args = ' '.join(args)
-                    addr = self.factory.chain.wallet.getnewaddress(addrtype='XMSS', SEED=mnemonic_to_seed(args))
+                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(args))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
@@ -214,12 +214,13 @@ class WalletProtocol(Protocol):
                                         -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)' + '\r\n')
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
+
+                    # FIXME: It is not good that the protocol acts directly on the node
                     self.factory.p2pFactory.send_st_to_peers(
-                        StakeTransaction().create(self.factory.chain.block_chain_buffer.height() + 1,
-                                                  self.factory.chain.my[0][1],
+                        StakeTransaction().create(blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
+                                                  xmss=self.factory.chain.address_bundle[0].xmss,
                                                   first_hash=None,
-                                                  balance=self.factory.chain.state.state_balance(
-                                                      self.factory.chain.mining_address)))
+                                                  balance=self.factory.chain.state.state_balance(self.factory.chain.mining_address)))
 
                 elif command == 'send':
                     self.send_tx(args)
@@ -244,9 +245,9 @@ class WalletProtocol(Protocol):
                     self.output['status'] = 0
                     self.output['keys'] += ['addresses']
                     self.output['addresses'] = []
-                    for x in range(len(addresses)):
-                        self.output['message'].write(str(x) + ', ' + addresses[x] + '\r\n')
-                        self.output['addresses'] += [addresses[x]]
+                    for addr_bundle in range(len(addresses)):
+                        self.output['message'].write(str(addr_bundle) + ', ' + addresses[addr_bundle] + '\r\n')
+                        self.output['addresses'] += [addresses[addr_bundle]]
 
                 elif command == 'wallet':
                     self.wallet()
@@ -466,7 +467,7 @@ class WalletProtocol(Protocol):
             '>>> Creating new address, please be patient as this can take some time ...' + '\r\n')
         self.output['keys'] += ['keypair_type', 'possible_signatures', 'address']
 
-        addr = self.factory.chain.wallet.getnewaddress(int(args[0]), args[1])
+        addr = self.factory.chain.wallet.get_new_address(int(args[0]), args[1])
         if type(addr[1]) == list:
             self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1][0].get_type() + '\r\n'))
             self.output['message'].write('>>> Signatures possible with address: ' + str(len(addr[1])) + '\r\n')
@@ -555,7 +556,7 @@ class WalletProtocol(Protocol):
 
         # Check to see if sending amount > amount owned (and reject if so)
         # This is hard to interpret. Break it up?
-        balance = self.factory.state.state_balance(self.factory.chain.my[int(wallet_from)][0])
+        balance = self.factory.state.state_balance(self.factory.chain.address_bundle[int(wallet_from)].address)
         send_amt_arg = args[2]
         try:
             float(send_amt_arg)
@@ -576,7 +577,7 @@ class WalletProtocol(Protocol):
 
         # Stop user from sending less than their entire balance if they've only
         # got one signature remaining.
-        sigsremaining = self.factory.chain.wallet.get_num_signatures(self.factory.chain.my[int(args[0])][0])
+        sigsremaining = self.factory.chain.wallet.get_num_signatures(self.factory.chain.address_bundle[int(args[0])].address)
         if sigsremaining is 1:
             if amount < balance:
                 self.output['message'].write(

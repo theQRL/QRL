@@ -12,7 +12,8 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from qrl.core import wallet, helper
+from qrl.core import helper
+from qrl.core.walletmanager import WalletManager
 from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.mnemonic import mnemonic_to_seed, validate_mnemonic
 
@@ -26,7 +27,7 @@ class WebWallet:
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
-        self.wallet = wallet.Wallet(self.chain, self.state)
+        self.wallet = WalletManager(self.chain, self.state)
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))
@@ -105,14 +106,12 @@ class recoverAddress(Resource):
                                                   seed=mnemonic_to_seed(mnemonicphrase))
 
                 # Find hex/mnemonic for recovered wallet
-                for x in self.chain.my:
-                    if type(x[1]) == list:
-                        pass
-                    else:
-                        if x[1].get_type() == 'XMSS' and x[1].get_mnemonic() == mnemonicphrase:
-                            self.result["recoveredAddress"] = x[1].get_address()
-                            self.result["hexseed"] = x[1].get_hexseed()
-                            self.result["mnemonic"] = x[1].get_mnemonic()
+                for addr_bundle in self.chain.address_bundle:
+                    if not isinstance(addr_bundle.xmss, list):
+                        if addr_bundle.xmss.get_type() == 'XMSS' and addr_bundle.xmss.get_mnemonic() == mnemonicphrase:
+                            self.result["recoveredAddress"] = addr_bundle.xmss.get_address()
+                            self.result["hexseed"] = addr_bundle.xmss.get_hexseed()
+                            self.result["mnemonic"] = addr_bundle.xmss.get_mnemonic()
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. " \
@@ -132,14 +131,12 @@ class recoverAddress(Resource):
                                                   seed=hexseed_to_seed(jsQ["hexseed"]))
 
                 # Find hex/mnemonic for recovered wallet
-                for x in self.chain.my:
-                    if type(x[1]) == list:
-                        pass
-                    else:
-                        if x[1].type == 'XMSS' and x[1].get_hexseed() == jsQ["hexseed"]:
-                            self.result["recoveredAddress"] = x[1].get_address()
-                            self.result["hexseed"] = x[1].get_hexseed()
-                            self.result["mnemonic"] = x[1].get_mnemonic()
+                for addr_bundle in self.chain.address_bundle:
+                    if not isinstance(addr_bundle.xmss, list):
+                        if addr_bundle.xmss.type == 'XMSS' and addr_bundle.xmss.get_hexseed() == jsQ["hexseed"]:
+                            self.result["recoveredAddress"] = addr_bundle.xmss.get_address()
+                            self.result["hexseed"] = addr_bundle.xmss.get_hexseed()
+                            self.result["mnemonic"] = addr_bundle.xmss.get_mnemonic()
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
@@ -210,7 +207,7 @@ class sendQuanta(Resource):
         }
 
         # Check if local wallet number is higher than the number of local wallets that are saved
-        if int(wallet_from) > len(self.chain.wallet.list_addresses()) - 1:
+        if int(wallet_from) > len(self.chain.wallet_manager.list_addresses()) - 1:
             self.txnResult[
                 "message"] = "Invalid sending address. Try a valid number from your wallet - type wallet for details."
             return helper.json_encode(self.txnResult)
@@ -227,7 +224,7 @@ class sendQuanta(Resource):
                 self.txnResult["message"] = "Invalid receiving address - addresses must start with Q."
                 return helper.json_encode(self.txnResult)
 
-            if int(wallet_to) > len(self.chain.wallet.list_addresses()) - 1:
+            if int(wallet_to) > len(self.chain.wallet_manager.list_addresses()) - 1:
                 self.txnResult["message"] = "Invalid receiving address - addresses must start with Q."
                 return helper.json_encode(self.txnResult)
 
@@ -235,7 +232,7 @@ class sendQuanta(Resource):
 
         # Check to see if sending amount > amount owned (and reject if so)
         # This is hard to interpret. Break it up?
-        balance = self.state.state_balance(self.chain.my[int(wallet_from)][0])
+        balance = self.state.state_balance(self.chain.address_bundle[int(wallet_from)].address)
         try:
             float(send_amount)
         except:
@@ -253,7 +250,7 @@ class sendQuanta(Resource):
 
         # Stop user from sending less than their entire balance if they've only
         # got one signature remaining.
-        sigsremaining = self.chain.wallet.get_num_signatures(self.chain.my[int(wallet_from)][0])
+        sigsremaining = self.chain.wallet_manager.get_num_signatures(self.chain.address_bundle[int(wallet_from)].address)
         if sigsremaining is 1:
             if amount < balance:
                 self.txnResult[

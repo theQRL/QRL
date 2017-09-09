@@ -164,11 +164,14 @@ class StakeTransaction(Transaction):
         self.epoch = int(dict_tx['epoch'])
         self.balance = dict_tx['balance']
         self.hash = []
+
         for hash_item in dict_tx['hash']:
             self.hash.append(hash_item.encode('ascii'))
         self.first_hash = dict_tx['first_hash']
+
         if self.first_hash:
             self.first_hash = self.first_hash.encode('ascii')
+
         self.subtype = dict_tx['subtype'].encode('ascii')
         return self
 
@@ -176,6 +179,7 @@ class StakeTransaction(Transaction):
         if not balance:
             logger.info('Invalid Balance %d', balance)
             raise Exception
+
         self.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
         self.first_hash = first_hash
         self.balance = balance
@@ -184,6 +188,7 @@ class StakeTransaction(Transaction):
             self.hash = hashchain_reveal(xmss, epoch=self.epoch + 1)
         else:
             self.hash = hashchain_terminator
+
         self.txhash = ''.join(self.hash) + str(self.first_hash)
         self.process_XMSS(xmss.address, self.txhash, xmss)  # self.hash to be replaced with self.txhash
         return self

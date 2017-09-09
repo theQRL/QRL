@@ -2,9 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core import logger, config, transaction
+from qrl.core import config
 from qrl.crypto.misc import sha256
 from copy import deepcopy
+
 
 class StateBuffer:
     def __init__(self):

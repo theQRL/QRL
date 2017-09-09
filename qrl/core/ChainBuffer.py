@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core import config, logger, transaction
+from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
@@ -19,7 +19,6 @@ class ChainBuffer:
     def __init__(self, chain):
         self.chain = chain
         self.state = self.chain.state
-        self.wallet = self.chain.wallet
         self.blocks = dict()
         self.strongest_chain = dict()
         self.headerhashes = dict()
@@ -27,10 +26,10 @@ class ChainBuffer:
         self.pending_blocks = dict()
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.my = dict()
-        self.my[self.epoch] = deepcopy(self.chain.my)
+        self.my[self.epoch] = deepcopy(self.chain.address_bundle)
         self.epoch_seed = None
         self.hash_chain = dict()
-        self.hash_chain[self.epoch] = self.chain.my[0][1].hc
+        self.hash_chain[self.epoch] = self.chain.address_bundle[0].xmss.hc
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
         if self.chain.height() > 0:
             self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / config.dev.blocks_per_epoch)
@@ -148,8 +147,8 @@ class ChainBuffer:
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
-            self.my[epoch + 1] = self.chain.my
-            self.hash_chain[epoch + 1] = self.chain.my[0][1].hc
+            self.my[epoch + 1] = self.chain.address_bundle
+            self.hash_chain[epoch + 1] = self.chain.address_bundle[0].xmss.hc
             if epoch in self.my:
                 del self.my[epoch]
         else:

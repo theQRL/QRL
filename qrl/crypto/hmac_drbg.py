@@ -32,10 +32,11 @@ def hexseed_to_seed(hex_seed):
 
 
 def GEN(seed, i, l=32):  # generates l: 256 bit PRF hexadecimal string at position i. Takes >= 48 byte SEED..
+    # type: (str, int, int) -> Union[str, None]
     # FIXME: There is no check for the seed size
     if i < 1:
         logger.info('i must be integer greater than 0')
-        return
+        return None
     z = HMAC_DRBG(seed)
     y = z
     for x in range(i):
@@ -44,9 +45,10 @@ def GEN(seed, i, l=32):  # generates l: 256 bit PRF hexadecimal string at positi
 
 
 def GEN_range(seed, start_i, end_i, l=32):  # returns start -> end iteration of hex PRF (inclusive at both ends)
+    # type: (str, int, int) -> Union[List[str], None]
     if start_i < 1:
         logger.info('starting i must be integer greater than 0')
-        return
+        return None
     z = HMAC_DRBG(seed)
     random_arr = []
     for x in range(1, end_i + 1):
@@ -56,12 +58,13 @@ def GEN_range(seed, start_i, end_i, l=32):  # returns start -> end iteration of 
     return random_arr
 
 
-def GEN_range_bin(SEED, start_i, end_i, l=32):  # returns start -> end iteration of bin PRF (inclusive at both ends)
+def GEN_range_bin(seed, start_i, end_i, l=32):  # returns start -> end iteration of bin PRF (inclusive at both ends)
+    # type: (str, int, int) -> Union[List[str], None]
     # FIXME: code repetition
     if start_i < 1:
         logger.info('starting i must be integer greater than 0')
         return
-    z = HMAC_DRBG(SEED)
+    z = HMAC_DRBG(seed)
     random_arr = []
     for x in range(1, end_i + 1):
         y = z.generate(l)
@@ -102,6 +105,7 @@ class HMAC_DRBG:
         return hmac.new(key, data, hashlib.sha256).digest()
 
     def generate(self, num_bytes, requested_security_strength=256):
+        # type: (int, int) -> Union[str, None]
         if (num_bytes * 8) > 7500:
             raise RuntimeError("generate cannot generate more than 7500 bits in a single call.")
 
