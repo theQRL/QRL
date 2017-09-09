@@ -124,19 +124,20 @@ class P2PFactory(ServerFactory):
     # transmit reveal_one hash.. (node cast lottery vote)
 
     def send_stake_reveal_one(self, blocknumber=None):
+        if blocknumber is None:
+            blocknumber = self.chain.block_chain_buffer.height() + 1  # next block..
 
+        # TODO: Convert z into a named tuple?
         z = {'stake_address': self.chain.mining_address,
-             'block_number': blocknumber}
+             'block_number': blocknumber,
+             # demonstrate the hash from last block to prevent building upon invalid block..
+             'headerhash': self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)}
 
-        if not z['block_number']:
-            z['block_number'] = self.chain.block_chain_buffer.height() + 1  # next block..
+        epoch = blocknumber // config.dev.blocks_per_epoch
 
-        z['headerhash'] = self.chain.block_chain_buffer.get_strongest_headerhash(
-            z['block_number'] - 1)  # demonstrate the hash from last block to prevent building upon invalid block..
-        epoch = z['block_number'] // config.dev.blocks_per_epoch
-        hash_chain = self.chain.block_chain_buffer.hash_chain_get(z['block_number'])
+        hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
         # +1 to skip first reveal
-        z['reveal_one'] = hash_chain[-1][:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch) + 1]
+        z['reveal_one'] = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
         z['vote_hash'] = None
         z['weighted_hash'] = None
         epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
@@ -144,34 +145,36 @@ class P2PFactory(ServerFactory):
         z['SV_hash'] = self.chain.get_stake_validators_hash()
 
         _, mhash = self.chain.select_hashchain(
-            last_block_headerhash=self.chain.block_chain_buffer.get_strongest_headerhash(z['block_number'] - 1),
-            stake_address=self.chain.mining_address, blocknumber=z['block_number'])
+            last_block_headerhash=self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1),
+            stake_address=self.chain.mining_address,
+            blocknumber=blocknumber)
 
         for hashes in hash_chain:
             if hashes[-1] == mhash:
-                z['vote_hash'] = hashes[:-1][::-1][z['block_number'] - (epoch * config.dev.blocks_per_epoch)]
+                z['vote_hash'] = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
                 break
 
         if z['reveal_one'] is None or z['vote_hash'] is None:
-            logger.info(
-                ('reveal_one or vote_hash None for stake_address: ', z['stake_address'], ' selected hash:', mhash))
+            logger.info('reveal_one or vote_hash None for stake_address: %s selected hash: %s',
+                        z['stake_address'],
+                        mhash)
             logger.info('reveal_one %s', z['reveal_one'])
             logger.info('vote_hash %s', z['vote_hash'])
             logger.info('hash %s', mhash)
             return
 
-        z['weighted_hash'] = self.chain.score(stake_address=z['stake_address'],
-                                              reveal_one=z['reveal_one'],
-                                              balance=self.chain.block_chain_buffer.get_st_balance(z['stake_address'],
-                                                                                                   blocknumber),
-                                              seed=epoch_seed)
+        z['weighted_hash'] = self.chain.score(
+            stake_address=z['stake_address'],
+            reveal_one=z['reveal_one'],
+            balance=self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber),
+            seed=epoch_seed)
 
         y = False
         tmp_stake_reveal_one = []
         for r in self.chain.stake_reveal_one:  # need to check the reveal list for existence already, if so..reuse..
             if r[0] == self.chain.mining_address:
                 if r[1] == z['headerhash']:
-                    if r[2] == z['block_number']:
+                    if r[2] == blocknumber:
                         if y:
                             continue  # if repetition then remove..
                         else:
@@ -192,7 +195,10 @@ class P2PFactory(ServerFactory):
         #                         balance=self.chain.block_chain_buffer.get_st_balance(self.chain.mining_address, blocknumber),
         #                         seed=epoch_seed)
         if not y:
-            self.chain.stake_reveal_one.append([z['stake_address'], z['headerhash'], z['block_number'], z['reveal_one'],
+            self.chain.stake_reveal_one.append([z['stake_address'],
+                                                z['headerhash'],
+                                                z['block_number'],
+                                                z['reveal_one'],
                                                 z['weighted_hash'],
                                                 z['vote_hash']])  # don't forget to store our reveal in stake_reveal_one
 
