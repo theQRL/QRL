@@ -127,8 +127,7 @@ class P2PFactory(ServerFactory):
         if blocknumber is None:
             blocknumber = self.chain.block_chain_buffer.height() + 1  # next block..
 
-        # TODO: Convert z into a named tuple?
-        z = {'stake_address': self.chain.mining_address,
+        reveal_msg = {'stake_address': self.chain.mining_address,
              'block_number': blocknumber,
              # demonstrate the hash from last block to prevent building upon invalid block..
              'headerhash': self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)}
@@ -137,72 +136,63 @@ class P2PFactory(ServerFactory):
 
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
         # +1 to skip first reveal
-        z['reveal_one'] = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
-        z['vote_hash'] = None
-        z['weighted_hash'] = None
+        reveal_msg['reveal_one'] = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
+        reveal_msg['vote_hash'] = None
+        reveal_msg['weighted_hash'] = None
         epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
-        z['seed'] = epoch_seed
-        z['SV_hash'] = self.chain.get_stake_validators_hash()
+        reveal_msg['seed'] = epoch_seed
+        reveal_msg['SV_hash'] = self.chain.get_stake_validators_hash()
 
-        _, mhash = self.chain.select_hashchain(
-            last_block_headerhash=self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1),
-            stake_address=self.chain.mining_address,
-            blocknumber=blocknumber)
+        stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(blocknumber)
+        target_chain = stake_validators_list.select_target(reveal_msg['headerhash'])
 
-        for hashes in hash_chain:
-            if hashes[-1] == mhash:
-                z['vote_hash'] = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
-                break
+        hashes = hash_chain[target_chain]
+        reveal_msg['vote_hash'] = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
 
-        if z['reveal_one'] is None or z['vote_hash'] is None:
+        if reveal_msg['reveal_one'] is None or reveal_msg['vote_hash'] is None:
             logger.info('reveal_one or vote_hash None for stake_address: %s selected hash: %s',
-                        z['stake_address'],
-                        mhash)
-            logger.info('reveal_one %s', z['reveal_one'])
-            logger.info('vote_hash %s', z['vote_hash'])
-            logger.info('hash %s', mhash)
+                        reveal_msg['stake_address'],
+                        hash_chain[target_chain])
+            logger.info('reveal_one %s', reveal_msg['reveal_one'])
+            logger.info('vote_hash %s', reveal_msg['vote_hash'])
+            logger.info('hash %s', hash_chain[target_chain])
             return
 
-        z['weighted_hash'] = self.chain.score(
-            stake_address=z['stake_address'],
-            reveal_one=z['reveal_one'],
-            balance=self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber),
+        reveal_msg['weighted_hash'] = self.chain.score(
+            stake_address=reveal_msg['stake_address'],
+            reveal_one=reveal_msg['reveal_one'],
+            balance=self.chain.block_chain_buffer.get_st_balance(reveal_msg['stake_address'], blocknumber),
             seed=epoch_seed)
 
         y = False
         tmp_stake_reveal_one = []
         for r in self.chain.stake_reveal_one:  # need to check the reveal list for existence already, if so..reuse..
             if r[0] == self.chain.mining_address:
-                if r[1] == z['headerhash']:
+                if r[1] == reveal_msg['headerhash']:
                     if r[2] == blocknumber:
                         if y:
                             continue  # if repetition then remove..
                         else:
-                            z['reveal_one'] = r[3]
+                            reveal_msg['reveal_one'] = r[3]
                             y = True
             tmp_stake_reveal_one.append(r)
 
         self.chain.stake_reveal_one = tmp_stake_reveal_one
         logger.info('<<<Transmitting POS reveal_one %s %s', blocknumber,
-                    self.chain.block_chain_buffer.get_st_balance(z['stake_address'], blocknumber))
+                    self.chain.block_chain_buffer.get_st_balance(reveal_msg['stake_address'], blocknumber))
 
-        self.last_reveal_one = z
-        self.register_and_broadcast('R1', z['vote_hash'], json_encode(z))
-        # for peer in self.peers:
-        #    peer.transport.write(self.f_wrap_message('R1', helper.json_encode(z)))
-        # score = self.chain.score(stake_address=self.chain.mining_address,
-        #                         reveal_one=z['reveal_one'],
-        #                         balance=self.chain.block_chain_buffer.get_st_balance(self.chain.mining_address, blocknumber),
-        #                         seed=epoch_seed)
+        self.last_reveal_one = reveal_msg
+        self.register_and_broadcast('R1', reveal_msg['vote_hash'], json_encode(reveal_msg))
+        
         if not y:
-            self.chain.stake_reveal_one.append([z['stake_address'],
-                                                z['headerhash'],
-                                                z['block_number'],
-                                                z['reveal_one'],
-                                                z['weighted_hash'],
-                                                z['vote_hash']])  # don't forget to store our reveal in stake_reveal_one
+            self.chain.stake_reveal_one.append([reveal_msg['stake_address'],
+                                                reveal_msg['headerhash'],
+                                                reveal_msg['block_number'],
+                                                reveal_msg['reveal_one'],
+                                                reveal_msg['weighted_hash'],
+                                                reveal_msg['vote_hash']])  # don't forget to store our reveal in stake_reveal_one
 
-        return z['reveal_one']  # , z['block_number']
+        return reveal_msg['reveal_one']
 
     def send_last_stake_reveal_one(self):
         for peer in self.peer_connections:

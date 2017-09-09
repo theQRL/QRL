@@ -105,8 +105,7 @@ class StakeValidatorsList:
                     self.threshold[staker] = config.dev.high_staker_first_hash_block
                 position += 1
 
-        #return self.threshold[staker_address]
-        return config.dev.low_staker_first_hash_block   # To be fixed in next hard fork
+        return self.threshold[staker_address]
 
     def set_first_hash(self, staker_address, first_hash):
         self.next_sv_list[staker_address].first_hash = first_hash
