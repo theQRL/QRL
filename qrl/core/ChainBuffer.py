@@ -265,7 +265,7 @@ class ChainBuffer:
         is_success = self.chain.state.state_update(block, stake_validators_list, address_txn)
         if is_success:
             self.commit(block.blockheader.blocknumber, stake_validators_list)
-
+            logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blockheader.blocknumber, block.blockheader.stake_selector)
         return is_success
 
     def commit(self, blocknumber, stake_validators_list):
