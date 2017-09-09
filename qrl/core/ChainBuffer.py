@@ -12,7 +12,7 @@ from copy import deepcopy
 
 import gc
 
-from qrl.crypto.xmss import hashchain
+from qrl.crypto.hashchain import HashChain
 
 
 class ChainBuffer:
@@ -25,8 +25,8 @@ class ChainBuffer:
         self.size = config.dev.reorg_limit
         self.pending_blocks = dict()
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
-        self.my = dict()
-        self.my[self.epoch] = deepcopy(self.chain.address_bundle)
+        self.address_bundle_clone = dict()
+        self.address_bundle_clone[self.epoch] = deepcopy(self.chain.address_bundle)
         self.epoch_seed = None
         self.hash_chain = dict()
         self.hash_chain[self.epoch] = self.chain.address_bundle[0].xmss.hc
@@ -91,10 +91,13 @@ class ChainBuffer:
     def update_hash_chain(self, blocknumber):
         epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
         logger.info('Created new hash chain')
-        new_my = deepcopy(self.my[epoch - 1])
-        hashchain(new_my[0][1], epoch=epoch)
-        self.my[epoch] = new_my
-        self.hash_chain[epoch] = new_my[0][1].hc
+        tmp_address_bundle = deepcopy(self.address_bundle_clone[epoch - 1])
+
+        xmss = tmp_address_bundle[0].xmss
+        HashChain(xmss._private_SEED).hashchain(xmss, epoch=epoch)
+
+        self.address_bundle_clone[epoch] = tmp_address_bundle
+        self.hash_chain[epoch] = tmp_address_bundle[0].xmss.hc
         gc.collect()
 
     def add_txns_buffer(self):
@@ -147,10 +150,10 @@ class ChainBuffer:
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
-            self.my[epoch + 1] = self.chain.address_bundle
+            self.address_bundle_clone[epoch + 1] = self.chain.address_bundle
             self.hash_chain[epoch + 1] = self.chain.address_bundle[0].xmss.hc
-            if epoch in self.my:
-                del self.my[epoch]
+            if epoch in self.address_bundle_clone:
+                del self.address_bundle_clone[epoch]
         else:
             self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
@@ -408,8 +411,8 @@ class ChainBuffer:
         prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
         self.epoch = int(blocknum // config.dev.blocks_per_epoch)
         if prev_epoch != self.epoch:
-            if prev_epoch in self.my:
-                del self.my[prev_epoch]
+            if prev_epoch in self.address_bundle_clone:
+                del self.address_bundle_clone[prev_epoch]
             if prev_epoch in self.hash_chain:
                 del self.hash_chain[prev_epoch]
 

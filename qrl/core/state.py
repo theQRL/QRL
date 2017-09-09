@@ -8,7 +8,7 @@ from qrl.core import db, logger, transaction, config, helper
 from qrl.core.CreateGenesisBlock import genesis_info
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.misc import sha256
-from qrl.crypto.xmss import hashchain
+from qrl.crypto.hashchain import HashChain
 import sys
 
 class State:
@@ -266,7 +266,9 @@ class State:
             logger.info('stake selector wrong..')
             return
 
-        hashchain(chain.address_bundle[0].xmss, epoch=0)
+        xmss = chain.address_bundle[0].xmss
+        HashChain(xmss._private_SEED).hashchain(xmss, epoch=0)
+
         chain.hash_chain = chain.address_bundle[0].xmss.hc
         chain.wallet_manager.f_save_wallet()
         return True
@@ -363,7 +365,9 @@ class State:
             self.stake_validators_list.move_next_epoch()
             self.stake_list_put(self.stake_validators_list.to_json())
 
-            hashchain(chain.address_bundle[0].xmss, epoch=block.blockheader.epoch + 1)
+            xmss = chain.address_bundle[0].xmss
+            HashChain(xmss._private_SEED).hashchain(epoch=block.blockheader.epoch + 1)
+
             chain.hash_chain = chain.address_bundle[0].xmss.hc
             if not ignore_save_wallet:
                 chain.wallet_manager.f_save_wallet()

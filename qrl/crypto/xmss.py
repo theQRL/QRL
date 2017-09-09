@@ -3,85 +3,14 @@ import time
 from binascii import hexlify, unhexlify
 from math import ceil, log
 
-from qrl.core import logger, config
-from qrl.crypto.hmac_drbg import new_keys, GEN_range, GEN
+from qrl.core import logger
+from qrl.crypto.hashchain import HashChain
+from qrl.crypto.hmac_drbg import new_keys, GEN_range
 from qrl.crypto.misc import sha256, sign_wpkey, verify_wpkey, get_lengths, chain_fn
 from qrl.crypto.mnemonic import seed_to_mnemonic
 
 
 # creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
-
-def hashchain(xmss, n=config.dev.blocks_per_epoch, epoch=0):
-    # type: (XMSS, int, int) -> None
-    """
-    generates a 20,000th hash in iterative sha256 chain..derived from private SEED
-    :param xmss:
-    :type xmss: XMSS
-    :param n:
-    :type n: int
-    :param epoch:
-    :type epoch: int
-    :return:
-    """
-    half = int(config.dev.blocks_per_epoch / 2)
-    x = GEN(xmss._private_SEED, half + epoch, l=32)
-    y = GEN(x, half, l=32)
-    z = GEN(y, half, l=32)
-    z = hexlify(z)  # FIXME: it should not hexlify all the time
-
-    # z = GEN_range(z, 1, 50)
-    z = GEN_range(z, 1, config.dev.hashchain_nums)
-    xmss.hc_seed = z
-
-    hc = []
-    for hash_chain in z:
-        hc.append([hash_chain])
-
-    xmss.hc_terminator = []
-    for hash_chain in hc[:-1]:  # skip last element as it is reveal hash
-        for x in range(n):
-            hash_chain.append(sha256(hash_chain[-1]))
-        xmss.hc_terminator.append(hash_chain[-1])
-
-    for hash_chain in hc[-1:]:  # Reveal hash chain
-        for x in range(n + 1):  # Extra hash to reveal one hash value
-            hash_chain.append(sha256(hash_chain[-1]))
-        xmss.hc_terminator.append(hash_chain[-1])
-
-    xmss.hc = hc
-
-
-def hashchain_reveal(xmss, n=config.dev.blocks_per_epoch, epoch=0):
-    """
-    :param n:
-    :type xmss: XMSS
-    :param epoch:
-    :type epoch: int
-    :return:
-    """
-    half = int(config.dev.blocks_per_epoch / 2)
-    x = GEN(xmss._private_SEED, half + epoch, l=32)
-    y = GEN(x, half, l=32)
-    z = GEN(y, half, l=32)
-    z = hexlify(z)
-
-    z = GEN_range(z, 1, config.dev.hashchain_nums)
-    hc = []
-    for hash_chain in z:
-        hc.append([hash_chain])
-    tmp_hc_terminator = []
-    for hash_chain in hc[:-1]:
-        for x in range(n):
-            hash_chain.append(sha256(hash_chain[-1]))
-        tmp_hc_terminator.append(hash_chain[-1])
-
-    for hash_chain in hc[-1:]:
-        for x in range(n + 1):
-            hash_chain.append(sha256(hash_chain[-1]))
-        tmp_hc_terminator.append(hash_chain[-1])
-
-    return tmp_hc_terminator
-
 
 class XMSS(object):
     NUMBER_SIGNATURES = 8000
@@ -148,8 +77,7 @@ class XMSS(object):
         self.hc = None
         self.hc_terminator = None
         self.hc_seed = None
-
-        hashchain(self)
+        HashChain(self._private_SEED).hashchain(self)
 
     def sk(self, i=None):
         # type: (int) -> List[str]
@@ -395,7 +323,7 @@ class XMSS(object):
         return xmss_array, x_bms, l_bms, privs, pubs
 
     @staticmethod
-    def _xmss_route(x_bms, x_tree, i = 0):
+    def _xmss_route(x_bms, x_tree, i=0):
         # type: (list, list, int) -> Union[tuple, None]
         """
         generate the xmss tree merkle auth route for a given ots key (starts at 0)
