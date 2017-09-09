@@ -10,7 +10,11 @@ from qrl.crypto.misc import sha256
 from qrl.core import config
 
 genesis_info = dict()
-
+package_directory = os.path.dirname(os.path.abspath(__file__))
+genesis_data_path = os.path.join(package_directory, 'genesis.yml')
+with open(genesis_data_path) as f:
+    dataMap = yaml.safe_load(f)
+    genesis_info.update(dataMap['genesis_info'])
 
 class CreateGenesisBlock(object):  # first block has no previous header to reference..
     def __init__(self, chain):
@@ -27,11 +31,6 @@ class CreateGenesisBlock(object):  # first block has no previous header to refer
         self.stake = []
         self.state = []
 
-        package_directory = os.path.dirname(os.path.abspath(__file__))
-        genesis_data_path = os.path.join(package_directory, 'genesis.yml')
-        with open(genesis_data_path) as f:
-            dataMap = yaml.safe_load(f)
-            genesis_info.update(dataMap['genesis_info'])
 
         for key in genesis_info:
             self.state.append([key, [0, genesis_info[key] * 100000000, []]])
