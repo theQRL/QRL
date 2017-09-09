@@ -1,32 +1,35 @@
 from binascii import hexlify
+from collections import namedtuple
 
 from qrl.core import config
 from qrl.crypto.hmac_drbg import GEN, GEN_range
 from qrl.crypto.misc import sha256
 
+HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')
+
 
 class HashChain(object):
-    def __init__(self, seed_private, blocks_per_epoch=config.dev.blocks_per_epoch):
-        self._seed = seed_private
+    def __init__(self, xmss, blocks_per_epoch=config.dev.blocks_per_epoch):
+        self._xmss = xmss
         self.blocks_per_epoch = blocks_per_epoch
 
-    def get_chain(self, epoch):
+    def _get_hc_seed(self, epoch):
         half = int(config.dev.blocks_per_epoch / 2)
-        x = GEN(self._seed, half + epoch, l=32)
+        x = GEN(self._xmss._private_SEED, half + epoch, l=32)
         y = GEN(x, half, l=32)
         z = GEN(y, half, l=32)
         z = hexlify(z)
         z = GEN_range(z, 1, config.dev.hashchain_nums)
         return z
 
-    def calc_hashchain(self, epoch):
+    def _calc_hashchain(self, epoch):
         """
         generates a 20,000th hash in iterative sha256 chain..derived from private SEED
         :param epoch:
         :type epoch: int
         :return:
         """
-        hc_seed = self.get_chain(epoch)
+        hc_seed = self._get_hc_seed(epoch)
 
         hc = []
         for hash_chain in hc_seed:
@@ -47,9 +50,10 @@ class HashChain(object):
 
         return hc_seed, hc, hc_terminator
 
-    def hashchain(self, xmss, epoch=0):
-        xmss.hc_seed, xmss.hc, xmss.hc_terminator = self.calc_hashchain(epoch)
+    def hashchain(self, epoch=0):
+        # type: (int) -> HashChainBundle
+        return HashChainBundle(*self._calc_hashchain(epoch))
 
     def hashchain_reveal(self, epoch=0):
-        hc_seed, hc, hc_terminator = self.calc_hashchain(epoch)
+        hc_seed, hc, hc_terminator = self._calc_hashchain(epoch)
         return hc_terminator

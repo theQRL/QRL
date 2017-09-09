@@ -4,7 +4,6 @@ from binascii import hexlify, unhexlify
 from math import ceil, log
 
 from qrl.core import logger
-from qrl.crypto.hashchain import HashChain
 from qrl.crypto.hmac_drbg import new_keys, GEN_range
 from qrl.crypto.misc import sha256, sign_wpkey, verify_wpkey, get_lengths, chain_fn
 from qrl.crypto.mnemonic import seed_to_mnemonic
@@ -72,12 +71,6 @@ class XMSS(object):
                           self._tree,
                           self._x_bms,
                           self.PK_short)]  # optimise by only storing length of _x_bms..[:x]
-
-        # create hash chain for POS
-        self.hc = None
-        self.hc_terminator = None
-        self.hc_seed = None
-        HashChain(self._private_SEED).hashchain(self)
 
     def sk(self, i=None):
         # type: (int) -> List[str]
