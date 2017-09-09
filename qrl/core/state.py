@@ -190,6 +190,15 @@ class State:
             self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
             return True
 
+        blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
+        nonce = self.stake_validators_list.sv_list[block.blockheader.stake_selector].nonce
+        logger.info('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
+                    block.blockheader.blocknumber,
+                    block.blockheader.epoch,
+                    blocks_left - 1,
+                    nonce,
+                    block.blockheader.stake_selector)
+
         if not self.state_update(block, self.stake_validators_list, address_txn):
             return
 
@@ -279,12 +288,6 @@ class State:
 
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
 
-        logger.info('BLOCK: %s epoch: %s blocks_left: %s stake_selector %s',
-                    block.blockheader.blocknumber,
-                    block.blockheader.epoch,
-                    blocks_left - 1,
-                    block.blockheader.stake_selector)
-
         if block.blockheader.stake_selector not in stake_validators_list.sv_list:
             logger.warning('stake selector not in stake_list_get')
             return
@@ -354,6 +357,9 @@ class State:
 
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
+
+        staker = block.blockheader.stake_selector
+        self.stake_validators_list.sv_list[staker].nonce += 1
 
         for address in address_txn:
             self.db.put(address, address_txn[address])
