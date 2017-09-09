@@ -6,7 +6,6 @@ from unittest import TestCase
 import pytest
 
 from qrl.core import logger
-from qrl.core.CreateGenesisBlock import CreateGenesisBlock
 from qrl.core.chain import Chain
 from qrl.core.state import State
 
@@ -32,6 +31,3 @@ class TestChain(TestCase):
                                  'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
 
                 # TODO: Add more checks for data stability
-
-                # FIXME: Creating a chain is untested
-                genesis_block = CreateGenesisBlock(chain)

@@ -12,8 +12,8 @@
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
 from qrl.core import config, logger, transaction
-from qrl.core.CreateGenesisBlock import CreateGenesisBlock
 from qrl.core.ChainBuffer import ChainBuffer
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
 from qrl.core.transaction import SimpleTransaction, CoinBase
@@ -840,7 +840,7 @@ class Chain:
             if epoch != 0:
                 return []
             logger.info('Creating new chain file')
-            genesis_block = CreateGenesisBlock(self)
+            genesis_block = GenesisBlock().set_chain(self)
             block_list.append(genesis_block)
             return block_list
 
