@@ -9,20 +9,26 @@ from ntplib import NTPClient
 
 from qrl.core import logger
 
-ntp_server = 'pool.ntp.org'
-version = 3
-times = 5
+ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
+NTP_VERSION = 3
+NTP_RETRIES = 6
 drift = None
 
 
 def get_ntp_response():
-    try:
-        ntp_client = NTPClient()
-        response = ntp_client.request(ntp_server, version=version)
-    except Exception as e:
-        logger.exception(e)
-        sys.exit(0)
-    return response
+    for retry in range(NTP_RETRIES):
+        ntp_server = ntp_servers[retry % len(ntp_servers)]
+        try:
+            ntp_client = NTPClient()
+            response = ntp_client.request(ntp_server, version=NTP_VERSION)
+        except Exception as e:
+            logger.warning(e)
+            continue
+        return response
+
+    # FIXME: Provide some proper clean before exiting
+    logger.fatal("Could not contact NTP servers after %d retries", NTP_RETRIES)
+    sys.exit(-1)
 
 
 def getNTP():
