@@ -29,10 +29,7 @@ class ChainBuffer:
         self.address_bundle_clone[self.epoch] = deepcopy(self.chain.address_bundle)
         self.epoch_seed = None
         self.hash_chain = dict()
-
-        tmphc = HashChain(self.chain.address_bundle[0].xmss).hashchain()
-        self.hash_chain[self.epoch] = tmphc.hashchain
-
+        self.hash_chain[self.epoch] = self.chain.address_bundle[0].xmss.hc
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
         if self.chain.height() > 0:
             self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / config.dev.blocks_per_epoch)
@@ -94,14 +91,13 @@ class ChainBuffer:
     def update_hash_chain(self, blocknumber):
         epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
         logger.info('Created new hash chain')
-
         tmp_address_bundle = deepcopy(self.address_bundle_clone[epoch - 1])
-        self.address_bundle_clone[epoch] = tmp_address_bundle
 
         xmss = tmp_address_bundle[0].xmss
-        tmp = HashChain(xmss).hashchain(epoch=epoch)
-        self.hash_chain[epoch] = tmp.hashchain
+        HashChain(xmss._private_SEED).hashchain(xmss, epoch=epoch)
 
+        self.address_bundle_clone[epoch] = tmp_address_bundle
+        self.hash_chain[epoch] = tmp_address_bundle[0].xmss.hc
         gc.collect()
 
     def add_txns_buffer(self):
@@ -155,10 +151,7 @@ class ChainBuffer:
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
             self.address_bundle_clone[epoch + 1] = self.chain.address_bundle
-
-            tmphc = HashChain(self.chain.address_bundle[0].xmss)
-            self.hash_chain[epoch + 1] = tmphc.hashchain
-
+            self.hash_chain[epoch + 1] = self.chain.address_bundle[0].xmss.hc
             if epoch in self.address_bundle_clone:
                 del self.address_bundle_clone[epoch]
         else:
