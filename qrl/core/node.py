@@ -197,7 +197,7 @@ class POS:
 
         for tx in self.chain.transaction_pool:
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
-                if tx.txfrom in self.chain.m_blockchain[0].stake_list:
+                if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
                     tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, genesis_info[tx.txfrom]])
 
         # required as doing chain.stake_list.index(s) which will result into different number on different server
