@@ -548,7 +548,7 @@ class P2PProtocol(Protocol):
 
         if self.factory.nodeState.epoch_diff == 0:
             sv_list = self.factory.chain.block_chain_buffer.stake_list_get(z['block_number'])
-			
+
             if stake_address not in sv_list:
                 logger.info('stake address not in the stake_list')
                 logger.info('len of sv_list %s', len(sv_list))

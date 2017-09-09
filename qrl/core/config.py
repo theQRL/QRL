@@ -45,7 +45,7 @@ class UserConfig(object):
     def load_yaml(self, file_path):
         """
         Overrides default configuration using a yaml file
-        :param path: The path to the configuration file
+        :param file_path: The path to the configuration file
         """
         if os.path.isfile(file_path):
             with open(file_path) as f:

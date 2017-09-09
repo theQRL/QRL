@@ -16,9 +16,9 @@ class TestNTP(TestCase):
         super(TestNTP, self).__init__(*args, **kwargs)
 
     def test_getNTP(self):
-        ntp = getNTP()
-        self.assertIsNotNone(ntp)
-        self.assertNotEqual(0, ntp)
+        tmp_ntp = getNTP()
+        self.assertIsNotNone(tmp_ntp)
+        self.assertNotEqual(0, tmp_ntp)
 
     def test_get_ntp_response(self):
         response = get_ntp_response()

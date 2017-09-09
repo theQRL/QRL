@@ -10,7 +10,7 @@ from timeout_decorator import timeout_decorator
 from qrl.core import logger
 from qrl.core.chain import Chain
 from qrl.core.state import State
-from qrl.core.wallet import Wallet
+from qrl.core.walletmanager import WalletManager
 
 logger.initialize_default(force_console_output=True)
 
@@ -30,7 +30,7 @@ class TestWallet(TestCase):
             chain = Chain(state)
             self.assertIsNotNone(state)
 
-            wallet = Wallet(chain, state)
+            wallet = WalletManager(chain, state)
             self.assertIsNotNone(state)
 
         @timeout_decorator.timeout(1)
@@ -39,18 +39,18 @@ class TestWallet(TestCase):
             state = State()
             self.assertIsNotNone(state)
 
-            wallet = Wallet(None, None)
-            address = wallet.getnewaddress()
+            wallet = WalletManager(None, None)
+            address = wallet.get_new_address()
 
             chain = Chain(state)
             self.assertIsNotNone(state)
 
-            wallet = Wallet(chain, state)
+            wallet = WalletManager(chain, state)
             self.assertIsNotNone(state)
 
         @timeout_decorator.timeout(100)
         @pytest.mark.skip(reason="no way of currently testing this")
         def test_getnewaddress2(self):
-            wallet = Wallet(None, None)
-            address = wallet.getnewaddress(SEED=TestWallet.S1)
+            wallet = WalletManager(None, None)
+            address = wallet.get_new_address(SEED=TestWallet.S1)
             self.assertEqual(address[0], 'Q04402be77fb7df9c755883b066f1f33254a19d244c4dbae41b94f88a32b88a5921c7')

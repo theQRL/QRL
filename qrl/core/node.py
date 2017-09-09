@@ -165,17 +165,18 @@ class POS:
         if self.chain.mining_address in self.chain.m_blockchain[0].stake_list:
             logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
 
-            hashchain(self.chain.my[0][1], epoch=0)
-            self.chain.hash_chain = self.chain.my[0][1].hc
-            self.chain.block_chain_buffer.hash_chain[0] = self.chain.my[0][1].hc
+            hashchain(self.chain.address_bundle[0].xmss, epoch=0)
+            self.chain.hash_chain = self.chain.address_bundle[0].xmss.hc
+            self.chain.block_chain_buffer.hash_chain[0] = self.chain.address_bundle[0].xmss.hc
 
-            logger.info('hashchain terminator: %s', self.chain.my[0][1].hc_terminator)
+            logger.info('hashchain terminator: %s', self.chain.address_bundle[0].xmss.hc_terminator)
             st = StakeTransaction().create(blocknumber=0,
-                                           xmss=self.chain.my[0][1],
-                                           hashchain_terminator=self.chain.my[0][1].hc_terminator,
-                                           first_hash=self.chain.my[0][1].hc[-1][-2],
+                                           xmss=self.chain.address_bundle[0].xmss,
+                                           hashchain_terminator=self.chain.address_bundle[0].xmss.hc_terminator,
+                                           first_hash=self.chain.address_bundle[0].xmss.hc[-1][-2],
                                            balance=self.chain.state.state_balance(self.chain.mining_address))
-            self.chain.wallet.f_save_winfo()
+
+            self.chain.wallet_manager.f_save_winfo()
             self.chain.add_tx_to_pool(st)
             # send the stake tx to generate hashchain terminators for the staker addresses..
             self.p2pFactory.send_st_to_peers(st)
@@ -221,7 +222,7 @@ class POS:
 
             # create the genesis block 2 here..
             my_hash_chain, _ = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
-                                                           self.chain.mining_address, self.chain.my[0][1].hc,
+                                                           self.chain.mining_address, self.chain.address_bundle[0].xmss.hc,
                                                            blocknumber=1)
             b = self.chain.m_create_block(my_hash_chain[-2])
             self.pre_block_logic(b)
@@ -467,9 +468,9 @@ class POS:
                         diff = max(1, (
                             (max_threshold_blocknum - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                         if random.randint(1, diff) == 1:
-                            my = deepcopy(self.chain.my[0][1])
-                            hashchain(my, epoch=epoch + 1)
-                            self.make_st_tx(blocknumber, my.hc[-1][-2])
+                            xmss = deepcopy(self.chain.address_bundle[0].xmss)
+                            hashchain(xmss, epoch=epoch + 1)
+                            self.make_st_tx(blocknumber, xmss.hc[-1][-2])
 
         return
 
@@ -481,13 +482,13 @@ class POS:
             return
 
         st = StakeTransaction().create(
-            blocknumber,
-            self.chain.my[0][1],
+            blocknumber=blocknumber,
+            xmss=self.chain.address_bundle[0].xmss,
             first_hash=first_hash,
             balance=balance
         )
         self.p2pFactory.send_st_to_peers(st)
-        self.chain.wallet.f_save_winfo()
+        self.chain.wallet_manager.f_save_winfo()
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
             if t.subtype == transaction.TX_SUBTYPE_STAKE and st.hash == t.hash:

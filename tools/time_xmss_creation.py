@@ -8,9 +8,9 @@ from qrl.crypto.xmss import XMSS
 def measure_xmss_creation_time(n):
     # TODO: Remove this timing helper?
     start_time = time.time()
-    z = XMSS(n)
+    tmp_xmss = XMSS(n)
     total_time = time.time() - start_time
-    return z, total_time
+    return tmp_xmss, total_time
 
 
 # Code moved from merkle.py

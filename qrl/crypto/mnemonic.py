@@ -9,6 +9,7 @@ from qrl.crypto.words import wordlist
 
 
 def validate_mnemonic(mnemonic):
+    # type: () -> bool
     """
     validates a mnemonic
     :param mnemonic:
@@ -29,6 +30,7 @@ def validate_mnemonic(mnemonic):
 
 
 def mnemonic_to_seed(mnemonic):
+    # type: (str) -> str
     """
     mnemonic to seed
     takes a string..could use type or isinstance here..must be space not comma delimited..
@@ -51,6 +53,7 @@ def mnemonic_to_seed(mnemonic):
 
 
 def seed_to_mnemonic(seed_hexstring):
+    # type: (str) -> Union[str, None]
     # FIXME: the seed is expected as a hex string
     """
     seed to mnemonic
@@ -59,7 +62,8 @@ def seed_to_mnemonic(seed_hexstring):
     """
     if len(seed_hexstring) != 48:
         logger.error('SEED is not 48 bytes in length..')
-        return False
+        return None
+
     words = []
     y = 0
     for x in range(16):
