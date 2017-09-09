@@ -739,11 +739,12 @@ class Chain:
         stakers = {'status': 'ok',
                    'stake_list': []}
 
-        for s in self.state.stake_list_get():
-            tmp_stakers = {'address': s[0],
-                           'balance': self.state.state_balance(s[0]) / 100000000.00000000,
-                           'hash_terminator': s[1],
-                           'nonce': s[2]}
+        for staker in self.state.stake_validators_list.sv_list:
+            sv = self.state.stake_validators_list.sv_list[staker]
+            tmp_stakers = {'address': sv.stake_validator,
+                           'balance': sv.balance / 100000000.00000000,
+                           'hash_terminator': sv.hashchain_terminators,
+                           'nonce': sv.nonce}
 
             stakers['stake_list'].append(tmp_stakers)
 
@@ -754,11 +755,12 @@ class Chain:
         next_stakers = {'status': 'ok',
                         'stake_list': []}
 
-        for s in self.state.next_stake_list_get():
-            tmp_stakers = {'address': s[0],
-                           'balance': self.state.state_balance(s[0]) / 100000000.00000000,
-                           'hash_terminator': s[1],
-                           'nonce': s[2]}
+        for staker in self.state.stake_validators_list.next_sv_list:
+            sv = self.state.stake_validators_list.next_sv_list[staker]
+            tmp_stakers = {'address': sv.stake_validator,
+                           'balance': sv.balance / 100000000.00000000,
+                           'hash_terminator': sv.hashchain_terminators,
+                           'nonce': sv.nonce}
 
             next_stakers['stake_list'].append(tmp_stakers)
 

@@ -19,6 +19,8 @@ class StakeValidator:
         self.stake_validator = stake_validator
         self.balance = balance
         self.first_hash = first_hash
+        self.hashchain_terminators = hashchain_terminators
+        self.nonce = 0
         if hashchain_terminators:
             self.cache_hash = dict()
             for chain_num in range(config.dev.hashchain_nums):

@@ -180,8 +180,8 @@ class ApiProtocol(Protocol):
 
         # calculate staked/emission %
         b = 0
-        for s in self.factory.state.stake_list_get():
-            b += self.factory.state.state_balance(s[0])
+        for staker in self.factory.state.stake_validators_list.sv_list:
+            b += self.factory.state.state_balance(staker)
         staked = decimal.Decimal((b / 100000000.000000000) / (
         self.factory.state.db.total_coin_supply() / 100000000.000000000) * 100).quantize(
             decimal.Decimal('1.00'))  # /100000000.000000000)
