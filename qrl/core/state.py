@@ -366,7 +366,7 @@ class State:
             self.stake_list_put(self.stake_validators_list.to_json())
 
             xmss = chain.address_bundle[0].xmss
-            HashChain(xmss._private_SEED).hashchain(epoch=block.blockheader.epoch + 1)
+            HashChain(xmss._private_SEED).hashchain(xmss, epoch=block.blockheader.epoch + 1)
 
             chain.hash_chain = chain.address_bundle[0].xmss.hc
             if not ignore_save_wallet:
