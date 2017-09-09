@@ -644,8 +644,8 @@ class P2PProtocol(Protocol):
                 if data['genesis_prev_headerhash'] == config.dev.genesis_prev_headerhash:
                     return
                 logger.warning('%s genesis_prev_headerhash mismatch', self.identity)
-                logger.warning('Expected: ', config.dev.genesis_prev_headerhash)
-                logger.warning('Found: ', data['genesis_prev_headerhash'])
+                logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
+                logger.warning('Found: %s', data['genesis_prev_headerhash'])
             except Exception as e:
                 logger.error('Peer Caused Exception %s', self.identity)
                 logger.exception(e)
