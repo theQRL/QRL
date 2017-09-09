@@ -8,7 +8,8 @@ import simplejson as json
 
 from qrl.core import logger, helper, config
 from qrl.crypto.misc import sha256
-from qrl.crypto.xmss import XMSS, hashchain_reveal
+from qrl.crypto.xmss import XMSS
+from qrl.crypto.hashchain import HashChain
 
 TX_SUBTYPE_TX = 'TX'
 TX_SUBTYPE_STAKE = 'STAKE'
@@ -185,7 +186,7 @@ class StakeTransaction(Transaction):
         self.balance = balance
 
         if hashchain_terminator is None:
-            self.hash = hashchain_reveal(xmss, epoch=self.epoch + 1)
+            self.hash = HashChain(xmss._private_SEED).hashchain_reveal(epoch=self.epoch + 1)
         else:
             self.hash = hashchain_terminator
 
