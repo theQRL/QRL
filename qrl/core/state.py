@@ -5,7 +5,7 @@
 from operator import itemgetter
 
 from qrl.core import db, logger, transaction, config, helper
-from qrl.core.CreateGenesisBlock import genesis_info
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.misc import sha256
 from qrl.crypto.hashchain import HashChain
@@ -235,7 +235,7 @@ class State:
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
                 if tx.txfrom == block.blockheader.stake_selector:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, genesis_info[tx.txfrom]])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom]])
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
                         self.stake_validators_list.add_sv(tx.txfrom, tx.hash, tx.first_hash, tx.balance)
                         address_txn[tx.txfrom][0] += 1

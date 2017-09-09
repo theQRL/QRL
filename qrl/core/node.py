@@ -10,7 +10,7 @@ from copy import deepcopy
 from twisted.internet import reactor
 
 from qrl.core import logger, transaction, config, fork
-from qrl.core.CreateGenesisBlock import genesis_info
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
@@ -199,7 +199,7 @@ class POS:
         for tx in self.chain.transaction_pool:
             if tx.subtype == transaction.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, genesis_info[tx.txfrom]])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom]])
 
         # required as doing chain.stake_list.index(s) which will result into different number on different server
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
