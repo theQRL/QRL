@@ -11,6 +11,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 
 from qrl.core import logger
 from qrl.core.helper import json_print_telnet
+from qrl.core.transaction import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
 
 
 class ApiProtocol(Protocol):
@@ -170,7 +171,8 @@ class ApiProtocol(Protocol):
             js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward / 100000000.000000000
             i = 0
             for txn in js_bk1.transactions[0:]:
-                js_bk1.transactions[i].amount = txn.amount / 100000000.000000000
+                if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                    js_bk1.transactions[i].amount = txn.amount / 100000000.000000000
                 i += 1
 
             return json_print_telnet(js_bk1)
