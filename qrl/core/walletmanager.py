@@ -242,7 +242,7 @@ class WalletManager:
         :return: a wallet address
         """
         if addrtype == WalletManager.ADDRESS_TYPE_XMSS:
-            xmss = XMSS(number_signatures=signature_tree_height, SEED=SEED)
+            xmss = XMSS(tree_height=signature_tree_height, SEED=SEED)
             return AddressBundle(xmss.address, xmss)
 
         raise Exception('OTS type not recognised')
