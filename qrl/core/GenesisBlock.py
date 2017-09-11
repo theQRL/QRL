@@ -22,6 +22,10 @@ class Singleton(type):
 class GenesisBlock(object):
     """
     # first block has no previous header to reference..
+    >>> GenesisBlock().stake_seed == '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
+    True
+    >>> len(GenesisBlock().stake_list)
+    5
     """
     __metaclass__ = Singleton
 
@@ -49,6 +53,29 @@ class GenesisBlock(object):
         self.stake_seed = '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
 
     def set_chain(self, chain):
+        # FIXME: It is odd that we have a hash equal to 'genesis'
+        """
+        :param chain:
+        :type chain:
+        :return:
+        :rtype:
+        >>> GenesisBlock().set_chain(None) is not None
+        True
+        >>> GenesisBlock().set_chain(None).blockheader.epoch
+        0
+        >>> GenesisBlock().set_chain(None).blockheader.block_reward
+        0
+        >>> GenesisBlock().set_chain(None).blockheader.blocknumber
+        0
+        >>> GenesisBlock().set_chain(None).blockheader.fee_reward
+        0
+        >>> GenesisBlock().set_chain(None).blockheader.hash
+        'genesis'
+        >>> GenesisBlock().set_chain(None).blockheader.headerhash
+        '5760c9f524b609187f2c9d02e2d854d0623bb7e110b60efb84c769d49ea4e64e'
+        >>> GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash
+        '8e33279bdb3eca490efa4b33897039df48d7121cf1aec7a922f619dd035a08b2'
+        """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
                                 hashchain_link='genesis',
@@ -60,4 +87,10 @@ class GenesisBlock(object):
         return self
 
     def get_info(self):
+        """
+        :return:
+        :rtype:
+        >>> GenesisBlock().get_info() is not None
+        True
+        """
         return self._genesis_info
