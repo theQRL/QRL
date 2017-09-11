@@ -122,7 +122,7 @@ function drawTransRow(timestamp, amount, txHashLink, block, txfrom, txto, fee, a
     }
 
     // Override txnDirection is txnsubtype is COINBASE
-    if(txnsubtype == "COINBASE") {
+    if(txnsubtype === "COINBASE") {
         txnDirection = '<div style=\"text-align: center\"><i class=\"yellow lightning icon\"></i></td></div>';
     }
 

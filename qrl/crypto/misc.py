@@ -4,13 +4,6 @@
 
 import hashlib
 from math import ceil, log
-from qrl.core import logger
-
-
-def numlist(array):
-    for a, b in enumerate(array):
-        logger.info((a, b))
-    return
 
 
 def sha256(message):
@@ -25,17 +18,6 @@ def sha256(message):
     '81e7826a5821395470e5a2fed0277b6a40c26257512319875e1d70106dcb1ca0'
     """
     return hashlib.sha256(message).hexdigest()
-
-
-def closest_number(one, many):
-    """
-    return closest number in a list..
-    :param one:
-    :param many:
-    :return:
-    """
-    return min(many, key=lambda x: abs(x - one))
-
 
 def merkle_tx_hash(hashes):
     """

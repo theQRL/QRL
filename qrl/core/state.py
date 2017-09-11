@@ -9,7 +9,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.misc import sha256
 from qrl.crypto.hashchain import HashChain
-import sys
+
 
 class State:
     """

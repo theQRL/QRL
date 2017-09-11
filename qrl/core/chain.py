@@ -19,7 +19,7 @@ from qrl.core.helper import json_print_telnet, json_bytestream, json_print
 from qrl.core.transaction import SimpleTransaction, CoinBase
 from qrl.core.walletmanager import WalletManager
 from qrl.crypto.hmac_drbg import GEN_range_bin
-from qrl.crypto.misc import sha256, merkle_tx_hash, closest_number
+from qrl.crypto.misc import sha256, merkle_tx_hash
 
 __author__ = 'pete'
 
@@ -288,33 +288,6 @@ class Chain:
             return False
 
         return trimmed_pool
-
-    @staticmethod
-    def closest_hash(list_hash):
-        """
-        returns the closest hash in numerical terms to merkle root hash of all the supplied hashes..
-        :param list_hash:
-        :return:
-        """
-
-        if isinstance(list_hash, list):
-            if len(list_hash) == 1:
-                return False, False
-        if isinstance(list_hash, str):
-            if len(list_hash) == 64:
-                return False, False
-
-        list_hash.sort()
-
-        root = merkle_tx_hash(list_hash)
-
-        p = []
-        for l in list_hash:
-            p.append(int(l, 16))
-
-        closest = closest_number(int(root, 16), p)
-
-        return ''.join(list_hash[p.index(closest)]), root
 
     def is_stake_banned(self, stake_address):
         if stake_address in self.stake_ban_list:

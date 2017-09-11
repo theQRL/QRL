@@ -6,7 +6,7 @@ import jsonpickle
 import simplejson as json
 
 from qrl.core import config, logger
-from qrl.crypto.misc import numlist, sha256
+from qrl.crypto.misc import sha256
 
 
 def isValidAddress(addr):
@@ -30,12 +30,6 @@ def select_target_hashchain(last_block_headerhash):
     target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
     return target_chain
-
-
-def wlt():
-    # FIXME: unresolved reference here
-    return numlist(wallet.list_addresses())
-
 
 def json_encode(obj):
     return json.dumps(obj)

@@ -71,12 +71,6 @@ class XMSS(object):
                            self.address,
                            self.get_number_signatures())]
 
-        self.subtrees = [(0,
-                          self.get_number_signatures(),
-                          self._tree,
-                          self._x_bms,
-                          self.PK_short)]  # optimise by only storing length of _x_bms..[:x]
-
     def sk(self, i=None):
         # type: (int) -> List[str]
         """

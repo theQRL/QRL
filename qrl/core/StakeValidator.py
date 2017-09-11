@@ -3,8 +3,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from qrl.core import config
-from qrl.crypto.merkle import sha256
 import simplejson as json
+
+from qrl.crypto.misc import sha256
 
 
 class StakeValidator:

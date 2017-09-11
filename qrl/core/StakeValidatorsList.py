@@ -4,9 +4,11 @@
 
 from qrl.core import config, helper
 from qrl.core.StakeValidator import StakeValidator
-from qrl.crypto.merkle import sha256
 import simplejson as json
 from collections import OrderedDict
+
+from qrl.crypto.misc import sha256
+
 
 class StakeValidatorsList:
     """
