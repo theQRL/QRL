@@ -128,8 +128,13 @@ class WalletManager:
     def f_load_winfo(self):
         # type: () -> bool
         try:
-            with open(self.wallet_info_filename, 'r') as myfile:
-                data = pickle.load(myfile)
+            if os.path.isfile(self.wallet_info_filename):
+                with open(self.wallet_info_filename, 'r') as myfile:
+                    data = pickle.load(myfile)
+            else:
+                logger.info('Likely no wallet.info found, creating..')
+                self.f_save_winfo()
+                return False
         except Exception as e:
             logger.exception(e)
             logger.info('Likely no wallet.info found, creating..')
