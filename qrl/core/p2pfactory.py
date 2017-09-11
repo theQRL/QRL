@@ -136,7 +136,7 @@ class P2PFactory(ServerFactory):
 
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
         # +1 to skip first reveal
-        reveal_msg['reveal_one'] = hash_chain[-1][:-1].reverse()[blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
+        reveal_msg['reveal_one'] = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
         reveal_msg['vote_hash'] = None
         reveal_msg['weighted_hash'] = None
         epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
@@ -147,7 +147,7 @@ class P2PFactory(ServerFactory):
         target_chain = stake_validators_list.select_target(reveal_msg['headerhash'])
 
         hashes = hash_chain[target_chain]
-        reveal_msg['vote_hash'] = hashes[:-1].reverse()[blocknumber - (epoch * config.dev.blocks_per_epoch)]
+        reveal_msg['vote_hash'] = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
 
         if reveal_msg['reveal_one'] is None or reveal_msg['vote_hash'] is None:
             logger.info('reveal_one or vote_hash None for stake_address: %s selected hash: %s',
