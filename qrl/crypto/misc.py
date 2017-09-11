@@ -14,6 +14,16 @@ def numlist(array):
 
 
 def sha256(message):
+    """
+    :param message:
+    :type message: Union[str, unicode]
+    :return:
+    :rtype: str
+    >>> sha256("test")
+    '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
+    >>> sha256("another string")
+    '81e7826a5821395470e5a2fed0277b6a40c26257512319875e1d70106dcb1ca0'
+    """
     return hashlib.sha256(message).hexdigest()
 
 
