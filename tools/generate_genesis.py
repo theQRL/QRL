@@ -11,7 +11,7 @@ file_name = "aws_wallet"
 wallets = {}
 for i in range(num_accounts):
     print("Generating (", i + 1, "/", num_accounts, ")")
-    wallet = qrl.crypto.xmss.XMSS(number_signatures=4096, SEED=None)
+    wallet = qrl.crypto.xmss.XMSS(tree_height=12, SEED=None)
     wallets[wallet.address] = wallet.get_mnemonic()
 
 with open(file_name, 'w') as f:

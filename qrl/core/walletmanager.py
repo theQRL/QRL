@@ -11,8 +11,7 @@ import cPickle as pickle
 import os
 import sys
 
-# SIGNATURE_SIZE = 4096
-SIGNATURE_SIZE = 8000
+SIGNATURE_TREE_HEIGHT = 13
 
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
 
@@ -74,9 +73,10 @@ class WalletManager:
             # For AWS test only
             tmp_seed = self.retrieve_seed_from_mnemonic()
             if tmp_seed is not None:
+                logger.info('Using mnemonic')
                 seed = tmp_seed
 
-            addr_bundle = self.get_new_address(SIGNATURE_SIZE,
+            addr_bundle = self.get_new_address(SIGNATURE_TREE_HEIGHT,
                                                addrtype=WalletManager.ADDRESS_TYPE_XMSS,
                                                SEED=seed)
             addr_bundle_list.append(addr_bundle)
@@ -111,14 +111,13 @@ class WalletManager:
         data = []
         for addr_bundle in self.chain.address_bundle:
             # FIXME original code was odd, maintaining functionaly. Review
-            if not isinstance(addr_bundle.xmss, list):
-                if addr_bundle.xmss.get_type() == 'XMSS':
-                    data.append(
-                        [addr_bundle.xmss.get_mnemonic(),
-                         addr_bundle.xmss.get_hexseed(),
-                         addr_bundle.xmss.get_number_signatures(),
-                         addr_bundle.xmss.get_index(),
-                         addr_bundle.xmss.get_remaining_signatures()])
+            if isinstance(addr_bundle.xmss, XMSS):
+                data.append(
+                    [addr_bundle.xmss.get_mnemonic(),
+                     addr_bundle.xmss.get_hexseed(),
+                     addr_bundle.xmss.get_number_signatures(),
+                     addr_bundle.xmss.get_index(),
+                     addr_bundle.xmss.get_remaining_signatures()])
 
         logger.info('Fast saving wallet recovery details to wallet.info..')
         # stores the recovery phrase, signatures and the index for each tree in the wallet..
@@ -230,20 +229,20 @@ class WalletManager:
                 return addr_bundle.xmss.get_remaining_signatures()
 
     def get_new_address(self,
-                        number_signatures=SIGNATURE_SIZE,
+                        signature_tree_height=SIGNATURE_TREE_HEIGHT,
                         addrtype=ADDRESS_TYPE_XMSS,
                         SEED=None):
         # type: (int, str, str) -> AddressBundle
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
-        :param number_signatures:
+        :param signature_tree_height:
         :param addrtype:
         :param SEED:
         :return: a wallet address
         """
         if addrtype == WalletManager.ADDRESS_TYPE_XMSS:
-            xmss = XMSS(number_signatures=number_signatures, SEED=SEED)
+            xmss = XMSS(number_signatures=signature_tree_height, SEED=SEED)
             return AddressBundle(xmss.address, xmss)
 
         raise Exception('OTS type not recognised')

@@ -13,7 +13,9 @@ from qrl.core import helper, logger, config
 from qrl.core.transaction import StakeTransaction
 from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.xmss import XMSS
 
+#FIXME: Clean this up
 
 class WalletProtocol(Protocol):
     def __init__(self):
@@ -54,30 +56,26 @@ class WalletProtocol(Protocol):
 
                 elif command == 'hexseed':
                     for addr_bundle in self.factory.chain.address_bundle:
-                        if not isinstance(addr_bundle.xmss, list):
-                            if addr_bundle.xmss.get_type() == 'XMSS':
-                                self.output['status'] = 0
-                                self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
-                                self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_hexseed() + '\r\n')
-                                self.output['keys'] += ['Address', 'Recovery seed']
-                                self.output['Address'] = addr_bundle.xmss.get_address()
-                                self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
+                        if isinstance(addr_bundle.xmss, XMSS):
+                            self.output['status'] = 0
+                            self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
+                            self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_hexseed() + '\r\n')
+                            self.output['keys'] += ['Address', 'Recovery seed']
+                            self.output['Address'] = addr_bundle.xmss.get_address()
+                            self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
 
                 elif command == 'seed':
                     for addr_bundle in self.factory.chain.address_bundle:
-                        if type(addr_bundle.xmss) == list:
-                            pass
-                        else:
-                            if addr_bundle.xmss.get_type() == 'XMSS':
-                                self.output['status'] = 0
-                                self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
-                                self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_mnemonic() + '\r\n')
-                                self.output['keys'] += ['Address', 'Recovery seed']
+                        if isinstance(addr_bundle.xmss, XMSS):
+                            self.output['status'] = 0
+                            self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
+                            self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_mnemonic() + '\r\n')
+                            self.output['keys'] += ['Address', 'Recovery seed']
 
                 elif command == 'search':
                     if not args:
                         self.output['status'] = 1
-                        self.output['message'].write('>>> Usage: search <txhash or Q-address>' + '\r\n')
+                        self.output['message'].write('>>> Usage: search <txhash or Q-address>\r\n')
                         return
 
                     tmp_output = None
@@ -135,11 +133,11 @@ class WalletProtocol(Protocol):
                     try:
                         int(args[0])
                     except:
-                        self.output['message'].write('>>> Try "json_block <block number>" ' + '\r\n')
+                        self.output['message'].write('>>> Try "json_block <block number>" \r\n')
                         return True
 
                     if int(args[0]) > self.factory.chain.m_blockheight():
-                        self.output['message'].write('>>> Block > Blockheight' + '\r\n')
+                        self.output['message'].write('>>> Block > Blockheight\r\n')
                         return True
                     self.output['status'] = 0
                     self.output['message'].write(
@@ -150,9 +148,9 @@ class WalletProtocol(Protocol):
 
                 elif command == 'recoverfromhexseed':
                     if not args or not hexseed_to_seed(args[0]):
-                        self.output['message'].write('>>> Usage: recoverfromhexseed <paste in hexseed>' + '\r\n')
-                        self.output['message'].write('>>> Could take up to a minute..' + '\r\n')
-                        self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
+                        self.output['message'].write('>>> Usage: recoverfromhexseed <paste in hexseed>\r\n')
+                        self.output['message'].write('>>> Could take up to a minute..\r\n')
+                        self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
                         return True
 
                     self.output['status'] = 0
@@ -161,7 +159,7 @@ class WalletProtocol(Protocol):
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].mnemonic + '\r\n')
                     self.output['message'].write('>>> hexSEED confirm: ' + addr[1].get_hexseed() + '\r\n')
-                    self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
+                    self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_seed_phrase', 'hexseed_confirm']
                     self.output['recovery_address'] = addr[1].get_address()
@@ -171,12 +169,12 @@ class WalletProtocol(Protocol):
                 elif command == 'recoverfromwords':
                     if not args:
                         self.output['message'].write(
-                            '>>> Usage: recoverfromwords <paste in 32 mnemonic words>' + '\r\n')
+                            '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
                         return True
-                    self.output['message'].write('>>> trying..this could take up to a minute..' + '\r\n')
+                    self.output['message'].write('>>> trying..this could take up to a minute..\r\n')
                     if len(args) != 32:
                         self.output['message'].write(
-                            '>>> Usage: recoverfromwords <paste in 32 mnemonic words>' + '\r\n')
+                            '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
                         return True
 
                     args = ' '.join(args)
@@ -186,7 +184,7 @@ class WalletProtocol(Protocol):
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].get_hexseed() + '\r\n')
                     self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].mnemonic + '\r\n')
-                    self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..' + '\r\n')
+                    self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_hexseed', 'mnemonic_confirm']
                     self.output['recovery_address'] = addr[1].get_address()
@@ -211,7 +209,7 @@ class WalletProtocol(Protocol):
                             config.dev.blocks_per_epoch - (
                                 self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
                                     self.factory.chain.m_blockchain[
-                                        -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)' + '\r\n')
+                                        -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)\r\n')
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
 
@@ -393,18 +391,18 @@ class WalletProtocol(Protocol):
 
         # is chain up to date? If not, fail/inform user
         if self.factory.state.state_uptodate(self.factory.chain.height()) is False:
-            self.output['message'].write('>>> LevelDB not up to date..' + '\r\n')
+            self.output['message'].write('>>> LevelDB not up to date..\r\n')
             # add "force" argument to bring it up to date and get balance?
             return
 
         # is address null/void? If it is, fail/print usage instructions
         if not addr:
-            self.output['message'].write('>>> Usage: getbalance <address> (Addresses begin with Q)' + '\r\n')
+            self.output['message'].write('>>> Usage: getbalance <address> (Addresses begin with Q)\r\n')
             return
 
         # is the first letter of the address Q? If not, fail/print usage instructions
         if addr[0][0] != 'Q':
-            self.output['message'].write('>>> Usage: getbalance <address> (Addresses begin with Q)' + '\r\n')
+            self.output['message'].write('>>> Usage: getbalance <address> (Addresses begin with Q)\r\n')
             return
 
         # is the address in use? If not, fail/inform user
@@ -431,10 +429,10 @@ class WalletProtocol(Protocol):
     def getnewaddress(self, args):
         self.output['status'] = 1
         if not args or len(args) > 2:
-            self.output['message'].write('>>> Command not recognised' + '\r\n')
-            self.output['message'].write('>>> Usage: getnewaddress <n bits> <type (XMSS, WOTS or LDOTS)>' + '\r\n')
-            self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS' + '\r\n')
-            self.output['message'].write('>>> or: getnewaddress 128 LDOTS' + '\r\n')
+            self.output['message'].write('>>> Command not recognised\r\n')
+            self.output['message'].write('>>> Usage: getnewaddress <n bits> <type (XMSS, WOTS or LDOTS)>\r\n')
+            self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS\r\n')
+            self.output['message'].write('>>> or: getnewaddress 128 LDOTS\r\n')
             return
         else:
             try:
@@ -442,16 +440,15 @@ class WalletProtocol(Protocol):
                 int(args[0])
             except:
                 self.output['message'].write(
-                    '>>> Invalid number of signatures. Usage: getnewaddress <n signatures> <type (XMSS, WOTS or LDOTS)>' + '\r\n')
-                self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS' + '\r\n')
+                    '>>> Invalid number of signatures. Usage: getnewaddress <n signatures> <type (XMSS, WOTS or LDOTS)>\r\n')
+                self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS\r\n')
                 return
 
         # signature type to use
         sig_type = args[1].upper()
-        if sig_type != 'XMSS' and sig_type != 'WOTS' and sig_type != 'LDOTS' and sig_type != 'LD':
-            self.output['message'].write(
-                '>>> Invalid signature address type. Usage: getnewaddress <n> <type (XMSS, WOTS or LDOTS)>' + '\r\n')
-            self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS' + '\r\n')
+        if sig_type != 'XMSS':
+            self.output['message'].write('>>> Invalid signature address type. Usage: getnewaddress <n> <type (XMSS)>\r\n')
+            self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS\r\n')
             return
 
         if int(args[0]) > 256 and args[1] != 'XMSS':
@@ -459,36 +456,26 @@ class WalletProtocol(Protocol):
             # You are trying to generate an extremely large number of signatures. Are you sure about this?
             # Y/N
             self.output['message'].write(
-                '>>> Try a lower number of signatures or you may be waiting a very long time...' + '\r\n')
+                '>>> Try a lower number of signatures or you may be waiting a very long time...\r\n')
             return
 
         self.output['status'] = 0
-        self.output['message'].write(
-            '>>> Creating new address, please be patient as this can take some time ...' + '\r\n')
+        self.output['message'].write('>>> Creating new address, please be patient as this can take some time ...\r\n')
         self.output['keys'] += ['keypair_type', 'possible_signatures', 'address']
 
-        addr = self.factory.chain.wallet_manager.get_new_address(int(args[0]), args[1])
-        if type(addr[1]) == list:
-            self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1][0].get_type() + '\r\n'))
-            self.output['message'].write('>>> Signatures possible with address: ' + str(len(addr[1])) + '\r\n')
-            self.output['message'].write('>>> Address: ' + ''.join(addr[0]) + '\r\n')
+        addr_bundle = self.factory.chain.wallet_manager.get_new_address(int(args[0]), args[1])
 
-            self.output['keypair_type'] = ''.join(addr[1][0].get_type() + '\r\n')
-            self.output['possible_signatures'] = str(len(addr[1]))
-            self.output['address'] = ''.join(addr[0])
+        self.output['message'].write('>>> Keypair type: ' + ''.join(addr_bundle[1].get_type() + '\r\n'))
+        self.output['message'].write('>>> Signatures possible with address: ' + str(addr_bundle[1].get_number_signatures()) + '\r\n')
+        self.output['message'].write('>>> Address: ' + addr_bundle[1].get_address() + '\r\n')
 
-        else:  # xmss
-            self.output['message'].write('>>> Keypair type: ' + ''.join(addr[1].get_type() + '\r\n'))
-            self.output['message'].write('>>> Signatures possible with address: ' + str(addr[1].get_number_signatures()) + '\r\n')
-            self.output['message'].write('>>> Address: ' + addr[1].get_address() + '\r\n')
-
-            self.output['keypair_type'] = ''.join(addr[1].get_type() + '\r\n')
-            self.output['possible_signatures'] = str(addr[1].get_number_signatures())
-            self.output['address'] = addr[1].get_address()
+        self.output['keypair_type'] = ''.join(addr_bundle[1].get_type() + '\r\n')
+        self.output['possible_signatures'] = str(addr_bundle[1].get_number_signatures())
+        self.output['address'] = addr_bundle[1].get_address()
 
         # TODO: Would you like to save this address to your wallet file (call savenewaddress)? Y/N
         self.output['message'].write(">>> type 'savenewaddress' to append to wallet file" + '\r\n')
-        self.factory.newaddress = addr
+        self.factory.newaddress = addr_bundle
 
         return
 
@@ -500,7 +487,7 @@ class WalletProtocol(Protocol):
             return
         self.output['status'] = 0
         self.factory.chain.wallet_manager.f_append_wallet(self.factory.newaddress)
-        self.output['message'].write('>>> new address saved in self.factory.chain.wallet.' + '\r\n')
+        self.output['message'].write('>>> new address saved in self.factory.chain.wallet.\r\n')
         return
 
     # This method is for sending between local wallets as well as network wallets
@@ -508,10 +495,10 @@ class WalletProtocol(Protocol):
         self.output['status'] = 1
         # Check if method was used correctly
         if not args or len(args) < 3:
-            self.output['message'].write('>>> Usage: send <from> <to> <amount>' + '\r\n')
-            self.output['message'].write('>>> i.e. send 0 4 100' + '\r\n')
-            self.output['message'].write('>>> ^ will send 100 coins from address 0 to 4 from the wallet' + '\r\n')
-            self.output['message'].write('>>> <to> can be a pasted address (starts with Q)' + '\r\n')
+            self.output['message'].write('>>> Usage: send <from> <to> <amount>\r\n')
+            self.output['message'].write('>>> i.e. send 0 4 100\r\n')
+            self.output['message'].write('>>> ^ will send 100 coins from address 0 to 4 from the wallet\r\n')
+            self.output['message'].write('>>> <to> can be a pasted address (starts with Q)\r\n')
             return
 
         wallet_from = args[0]
@@ -522,13 +509,13 @@ class WalletProtocol(Protocol):
             int(wallet_from)
         except:
             self.output['message'].write(
-                '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.' + '\r\n')
+                '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
             return
 
         # Check if local wallet number is higher than the number of local wallets that are saved
         if int(wallet_from) > len(self.factory.chain.wallet_manager.list_addresses()) - 1:
             self.output['message'].write(
-                '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.' + '\r\n')
+                '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
             return
 
         # perhaps make a "wallet_precondition(wallet)" method
@@ -546,11 +533,11 @@ class WalletProtocol(Protocol):
                 int(wallet_to)
             except:
                 self.output['message'].write(
-                    '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.' + '\r\n')
+                    '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
                 return
             if int(wallet_to) > len(self.factory.chain.wallet_manager.list_addresses()) - 1:
                 self.output['message'].write(
-                    '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.' + '\r\n')
+                    '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
                 return
             wallet_to = int(wallet_to)
 
@@ -562,7 +549,7 @@ class WalletProtocol(Protocol):
             float(send_amt_arg)
         except:
             self.output['message'].write(
-                '>>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)' + '\r\n')
+                '>>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)\r\n')
             return
 
         amount = decimal.Decimal(decimal.Decimal(send_amt_arg) * 100000000).quantize(decimal.Decimal('1'),
@@ -570,9 +557,9 @@ class WalletProtocol(Protocol):
 
         if balance < amount:
             self.output['message'].write(
-                '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address' + '\r\n')
+                '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address\r\n')
             self.output['message'].write(
-                '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address' + '\r\n')
+                '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address\r\n')
             return
 
         # Stop user from sending less than their entire balance if they've only
@@ -581,7 +568,7 @@ class WalletProtocol(Protocol):
         if sigsremaining is 1:
             if amount < balance:
                 self.output['message'].write(
-                    '>>> Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!' + '\r\n')
+                    '>>> Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!\r\n')
                 return
         txto = args[1]
         if txto.isdigit():
@@ -610,7 +597,7 @@ class WalletProtocol(Protocol):
         self.output['status'] = 0
         self.output['message'].write('>>> ' + str(tx.txhash))
         self.output['message'].write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
-            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network' + '\r\n')
+            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network\r\n')
         return
 
     def wallet(self):
@@ -618,7 +605,7 @@ class WalletProtocol(Protocol):
             self.factory.state.state_read_chain(self.factory.chain)
 
         self.output['status'] = 0
-        self.output['message'].write('>>> Wallet contents:' + '\r\n')
+        self.output['message'].write('>>> Wallet contents:\r\n')
         self.output['keys'] += ['list_addresses']
         self.output['list_addresses'] = {}
 

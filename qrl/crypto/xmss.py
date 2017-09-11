@@ -1,19 +1,19 @@
 # coding=utf-8
 import time
 from binascii import hexlify, unhexlify
-from math import ceil, log
+from math import ceil, log, floor
 
 from qrl.core import logger
 from qrl.crypto.hmac_drbg import new_keys, GEN_range
-from qrl.crypto.misc import sha256, sign_wpkey, verify_wpkey, get_lengths, chain_fn
+from qrl.crypto.misc import sha256
 from qrl.crypto.mnemonic import seed_to_mnemonic
+
+#from pyqrllib.pyqrllib import Xmss
 
 
 # creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
 
 class XMSS(object):
-    NUMBER_SIGNATURES = 8000
-
     """
     xmss python implementation
     An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used
@@ -22,38 +22,40 @@ class XMSS(object):
     a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures.
     """
 
-    def __init__(self, number_signatures, SEED=None):
+    def __init__(self, tree_height, SEED=None):
+        # type: (int, Union[str, None]) -> None
         """
-        :param number_signatures: number of OTS keypairs in tree to generate:
-        n=512 2.7s, n=1024 5.6s, n=2048 11.3s, n=4096 22.1s, n=8192 44.4s, n=16384 89.2s
+        :param
+        tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
         :param SEED:
         """
-        # FIXME: no error handling for invalid seeds
 
+        self._number_signatures = 2**tree_height
+
+        # # FIXME: Ignoring seed for now
+        # self._xmss = Xmss(number_signatures, seed)
+
+        # FIXME: no error handling for invalid seeds
         self._type = 'XMSS'
         self._index = 0
-        self._number_signatures = min(number_signatures, XMSS.NUMBER_SIGNATURES)
 
         # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
         self._SEED, self._public_SEED, self._private_SEED = new_keys(SEED)
 
         # create the mnemonic..
-        # create the tree
         self.hexpublic_SEED = hexlify(self._public_SEED)
         self.hexprivate_SEED = hexlify(self._private_SEED)
-        self.seed_hexstring = hexlify(self._SEED)
-
+        self._seed_hexstring = hexlify(self._SEED)
         self._mnemonic = seed_to_mnemonic(self._SEED)
 
+        # create the tree
         self._tree, self._x_bms, self._l_bms, self._privs, self._pubs = self._xmss_tree(
-            number_signatures=self._number_signatures,
+            tree_height=tree_height,
             public_SEED=self._public_SEED,
             private_SEED=self._private_SEED)
 
         self.root = ''.join(self._tree[-1])
         self.PK = [self.root, self._x_bms, self._l_bms]
-        self.catPK = [''.join(self.root), ''.join(self._x_bms), ''.join(self._l_bms)]
-        self.address_long = XMSS.create_address_from_key(''.join(self.catPK))
 
         # derived from SEED
         self.PK_short = [self.root, hexlify(self._public_SEED)]
@@ -64,10 +66,10 @@ class XMSS(object):
         # position in wallet denoted by first number and address/tree by signatures
         self.addresses = [(0,
                            self.address,
-                           self._number_signatures)]
+                           self.get_number_signatures())]
 
         self.subtrees = [(0,
-                          self._number_signatures,
+                          self.get_number_signatures(),
                           self._tree,
                           self._x_bms,
                           self.PK_short)]  # optimise by only storing length of _x_bms..[:x]
@@ -100,7 +102,7 @@ class XMSS(object):
 
     def get_remaining_signatures(self):
         # type: () -> int
-        return self._number_signatures - self._index
+        return self.get_number_signatures() - self._index
 
     def get_mnemonic(self):
         # type: () -> List[str]
@@ -121,7 +123,7 @@ class XMSS(object):
         self._index = new_index
 
     def get_hexseed(self):
-        return self.seed_hexstring
+        return self._seed_hexstring
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
@@ -136,7 +138,7 @@ class XMSS(object):
         :param signature:
         :return:
         """
-        if not verify_wpkey(signature[1], message, signature[4]):
+        if not XMSS.verify_wpkey(signature[1], message, signature[4]):
             return False
 
         if not XMSS._verify_auth_SEED(signature[2], signature[3], signature[4], signature[5]):
@@ -213,7 +215,7 @@ class XMSS(object):
         :param i:
         :return:
         """
-        return sign_wpkey(self._privs[i], msg, self._pubs[i])
+        return XMSS.sign_wpkey(self._privs[i], msg, self._pubs[i])
 
     def SIGN(self, msg):
         # type: (bytearray) -> tuple
@@ -261,11 +263,30 @@ class XMSS(object):
         return addr_arr
 
     @staticmethod
-    def _xmss_tree(number_signatures, private_SEED, public_SEED):
+    def fn_k(x, k):
+        return sha256(k + x)
+
+    @staticmethod
+    def chain_fn(x, r, i, k):
+        if i == 0:
+            return x
+        for y in range(i):
+            x = XMSS.fn_k(hex(int(x, 16) ^ int(r[y], 16))[2:-1], k)
+        return x
+
+    @staticmethod
+    def chain_fn2(x, r, i, k):
+        for y in range(i, 15):
+            x = XMSS.fn_k(hex(int(x, 16) ^ int(r[y], 16))[2:-1], k)
+        return x
+
+    @staticmethod
+    def _xmss_tree(tree_height, private_SEED, public_SEED):
         # type: (int, str, str) -> List[list, List[str], list, list, list]
         # FIXME: Most other methods use pub/priv. Refactor?
         # no.leaves = 2^h
-        h = ceil(log(number_signatures, 2))
+
+        number_signatures = 2**tree_height
 
         # generate the OTS keys, bitmasks and l_trees randomly (change to SEED+KEY PRF)
 
@@ -275,7 +296,7 @@ class XMSS(object):
 
         # for random key generation: public_SEED: 14 = l_bm, 2n-2 - 2n+h = x_bm (see comment below)
 
-        rand_keys = GEN_range(public_SEED, 1, 14 + 2 * number_signatures + int(h), 32)
+        rand_keys = GEN_range(public_SEED, 1, 14 + 2 * number_signatures + int(tree_height), 32)
 
         l_bms = rand_keys[:14]
         x_bms = rand_keys[14:]
@@ -297,7 +318,7 @@ class XMSS(object):
         xmss_array = [leafs]
 
         p = 0
-        for x in range(int(h)):
+        for x in range(int(tree_height)):
             next_layer = []
             i = len(xmss_array[x]) % 2 + len(xmss_array[x]) / 2
             z = 0
@@ -397,6 +418,19 @@ class XMSS(object):
         return ''.join(l_array[-1])
 
     @staticmethod
+    def get_lengths(w):
+        # TODO: describe the meaning of these values
+        m = 256
+        if w == 16:
+            l_1 = 64
+            l_2 = 3
+        else:
+            l_1 = ceil(m / log(w, 2))
+            l_2 = floor(log((l_1 * (w - 1)), 2) / log(w, 2)) + 1
+        l = int(l_1 + l_2)
+        return l, l_1, l_2
+
+    @staticmethod
     def _xmss_random_wpkey(seed, w=16, verbose=False):
         # type: (bytearray, int, bool) -> tuple
         """
@@ -408,7 +442,7 @@ class XMSS(object):
         :return:
         """
         start_time = time.time()
-        l, l_1, l_2 = get_lengths(w)
+        l, l_1, l_2 = XMSS.get_lengths(w)
 
         pub = []
 
@@ -425,9 +459,53 @@ class XMSS(object):
         pub.append((r, k))  # pk_0 = (r,k) ..where r is a list of w-1 randomisation elements
 
         for sk_ in priv:
-            pub.append(chain_fn(sk_, r, w - 1, k))
+            pub.append(XMSS.chain_fn(sk_, r, w - 1, k))
 
         if verbose:
             logger.info(str(time.time() - start_time))
 
         return priv, pub
+
+    @staticmethod
+    def get_s(message, w):
+        l, l_1, l_2 = XMSS.get_lengths(w)
+        message = sha256(message)  # outputs 256 bit -> 64 hexadecimals. each hex digit is therefore 4 bits..
+        s = []
+        checksum = 0
+        for x in range(int(l_1)):
+            y = int(message[x], 16)
+            s.append(y)
+            checksum += w - 1 - y
+        c = (hex(checksum))[2:]
+        if len(c) < 3:
+            c = '0' + c
+        for x in range(int(l_2)):
+            y = int(c[x], 16)
+            s.append(y)
+        return l, s
+
+    @staticmethod
+    def sign_wpkey(priv, message, pub, w=16):
+        l, s = XMSS.get_s(message, w)
+
+        signature = []
+
+        for x in range(int(l)):
+            signature.append(XMSS.chain_fn(priv[x], pub[0][0], s[x], pub[0][1]))
+
+        return signature
+
+    @staticmethod
+    def verify_wpkey(signature, message, pub, w=16):
+        l, s = XMSS.get_s(message, w)
+
+        pub2 = []
+
+        for x in range(int(l)):  # merkle.chain_fn(priv[0],pub[0][0],15,pub[0][1])
+            # NOTE: Why is this using chain_fn2???
+            pub2.append(XMSS.chain_fn2(signature[x], pub[0][0], s[x], pub[0][1]))
+
+        if pub2 == pub[1:]:
+            return True
+
+        return False
