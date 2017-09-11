@@ -43,27 +43,22 @@ class XMSS(object):
         self._index = 0
 
         # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
-        self._SEED, self._public_SEED, self._private_SEED = new_keys(SEED)
-
-        # create the mnemonic..
-        self.hexpublic_SEED = hexlify(self._public_SEED)
-        self.hexprivate_SEED = hexlify(self._private_SEED)
-        self._seed_hexstring = hexlify(self._SEED)
-        self._mnemonic = seed_to_mnemonic(self._SEED)
+        self._seed, self._seed_public, self._seed_private = new_keys(SEED)
 
         # create the tree
         self._tree, self._x_bms, self._l_bms, self._privs, self._pubs = self._xmss_tree(
             tree_height=tree_height,
-            public_SEED=self._public_SEED,
-            private_SEED=self._private_SEED)
+            public_SEED=self._seed_public,
+            private_SEED=self._seed_private)
 
         self.root = ''.join(self._tree[-1])
         self.PK = [self.root, self._x_bms, self._l_bms]
 
         # derived from SEED
-        self.PK_short = [self.root, hexlify(self._public_SEED)]
-        self.catPK_short = self.root + hexlify(self._public_SEED)
-        self.address = XMSS.create_address_from_key(self.catPK_short)
+        self.PK_short = [self.root, hexlify(self._seed_public)]
+
+        catPK_short = self.root + hexlify(self._seed_public)
+        self.address = XMSS.create_address_from_key(catPK_short)
 
         # data to allow signing of smaller xmss trees/different addresses derived from same SEED..
         # position in wallet denoted by first number and address/tree by signatures
@@ -123,7 +118,7 @@ class XMSS(object):
 
     def get_mnemonic(self):
         # type: () -> List[str]
-        return self._mnemonic
+        return seed_to_mnemonic(self._seed)
 
     def get_address(self):
         return self.address
@@ -140,7 +135,7 @@ class XMSS(object):
         self._index = new_index
 
     def get_hexseed(self):
-        return self._seed_hexstring
+        return hexlify(self._seed)
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!

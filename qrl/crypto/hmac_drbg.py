@@ -79,9 +79,12 @@ def new_keys(seed=None, n=9999):
     :param seed:
     :param n:
     :return:
+    >>> from qrl.crypto.doctest_data import *; new_keys(xmss_test_seed1) == new_keys_expected
+    True
     """
     if not seed:
         seed = SEED(48)
+
     private_seed = GEN(seed, 1, l=48)
     public_seed = GEN(seed, n, l=48)
     return seed, public_seed, private_seed
