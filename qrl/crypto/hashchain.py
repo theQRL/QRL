@@ -15,7 +15,7 @@ class HashChain(object):
 
     def _get_hc_seed(self, epoch):
         half = int(config.dev.blocks_per_epoch / 2)
-        x = GEN(self._xmss._private_SEED, half + epoch, l=32)
+        x = GEN(self._xmss._seed_private, half + epoch, l=32)
         y = GEN(x, half, l=32)
         z = GEN(y, half, l=32)
         z = hexlify(z)
