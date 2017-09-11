@@ -169,7 +169,7 @@ function getNodeInfo(hideDimmer = false) {
     }
     */
     $.ajax({
-        url: './api/stats',
+        url: 'http://127.0.0.1:8080/api/stats',
         dataType: 'json',
         type: "GET",
         success: function(data) {
@@ -423,7 +423,7 @@ function showAddressStep2(addresses, addressIndex) {
     });
 
     $.ajax({
-        url: './api/address/' + thisAddress,
+        url: 'http://127.0.0.1:8080/api/address/' + thisAddress,
         success: function(addressDetail) {
             drawAddress(addresses, addressIndex, addressDetail);
         },
