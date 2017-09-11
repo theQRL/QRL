@@ -98,7 +98,7 @@ def main():
 
     api_factory = ApiFactory(pos, chain_obj, state_obj, p2p_factory.peer_connections)
 
-    welcome = 'QRL node connection established. Try starting with "help"' + '\r\n'
+    welcome = 'QRL node connection established. Try starting with "help"\r\n'
     wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory)
 
     logger.info('>>>Listening..')

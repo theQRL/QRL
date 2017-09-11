@@ -74,6 +74,7 @@ class WalletManager:
             # For AWS test only
             tmp_seed = self.retrieve_seed_from_mnemonic()
             if tmp_seed is not None:
+                logger.info('Using mnemonic')
                 seed = tmp_seed
 
             addr_bundle = self.get_new_address(SIGNATURE_SIZE,
@@ -111,14 +112,13 @@ class WalletManager:
         data = []
         for addr_bundle in self.chain.address_bundle:
             # FIXME original code was odd, maintaining functionaly. Review
-            if not isinstance(addr_bundle.xmss, list):
-                if addr_bundle.xmss.get_type() == 'XMSS':
-                    data.append(
-                        [addr_bundle.xmss.get_mnemonic(),
-                         addr_bundle.xmss.get_hexseed(),
-                         addr_bundle.xmss.get_number_signatures(),
-                         addr_bundle.xmss.get_index(),
-                         addr_bundle.xmss.get_remaining_signatures()])
+            if isinstance(addr_bundle.xmss, XMSS):
+                data.append(
+                    [addr_bundle.xmss.get_mnemonic(),
+                     addr_bundle.xmss.get_hexseed(),
+                     addr_bundle.xmss.get_number_signatures(),
+                     addr_bundle.xmss.get_index(),
+                     addr_bundle.xmss.get_remaining_signatures()])
 
         logger.info('Fast saving wallet recovery details to wallet.info..')
         # stores the recovery phrase, signatures and the index for each tree in the wallet..

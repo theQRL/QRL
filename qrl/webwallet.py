@@ -16,6 +16,7 @@ from qrl.core import helper
 from qrl.core.walletmanager import WalletManager
 from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.mnemonic import mnemonic_to_seed, validate_mnemonic
+from qrl.crypto.xmss import XMSS
 
 __author__ = 'scottdonaldau'
 
@@ -108,7 +109,7 @@ class recoverAddress(Resource):
                 # Find hex/mnemonic for recovered wallet
                 for addr_bundle in self.chain.address_bundle:
                     if not isinstance(addr_bundle.xmss, list):
-                        if addr_bundle.xmss.get_type() == 'XMSS' and addr_bundle.xmss.get_mnemonic() == mnemonicphrase:
+                        if isinstance(addr_bundle.xmss, XMSS) and addr_bundle.xmss.get_mnemonic() == mnemonicphrase:
                             self.result["recoveredAddress"] = addr_bundle.xmss.get_address()
                             self.result["hexseed"] = addr_bundle.xmss.get_hexseed()
                             self.result["mnemonic"] = addr_bundle.xmss.get_mnemonic()

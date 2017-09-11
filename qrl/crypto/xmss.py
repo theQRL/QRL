@@ -13,7 +13,6 @@ from qrl.crypto.mnemonic import seed_to_mnemonic
 
 class XMSS(object):
     NUMBER_SIGNATURES = 8000
-
     """
     xmss python implementation
     An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used
@@ -38,13 +37,12 @@ class XMSS(object):
         self._SEED, self._public_SEED, self._private_SEED = new_keys(SEED)
 
         # create the mnemonic..
-        # create the tree
         self.hexpublic_SEED = hexlify(self._public_SEED)
         self.hexprivate_SEED = hexlify(self._private_SEED)
-        self.seed_hexstring = hexlify(self._SEED)
-
+        self._seed_hexstring = hexlify(self._SEED)
         self._mnemonic = seed_to_mnemonic(self._SEED)
 
+        # create the tree
         self._tree, self._x_bms, self._l_bms, self._privs, self._pubs = self._xmss_tree(
             number_signatures=self._number_signatures,
             public_SEED=self._public_SEED,
@@ -52,8 +50,6 @@ class XMSS(object):
 
         self.root = ''.join(self._tree[-1])
         self.PK = [self.root, self._x_bms, self._l_bms]
-        self.catPK = [''.join(self.root), ''.join(self._x_bms), ''.join(self._l_bms)]
-        self.address_long = XMSS.create_address_from_key(''.join(self.catPK))
 
         # derived from SEED
         self.PK_short = [self.root, hexlify(self._public_SEED)]
@@ -65,12 +61,6 @@ class XMSS(object):
         self.addresses = [(0,
                            self.address,
                            self._number_signatures)]
-
-        self.subtrees = [(0,
-                          self._number_signatures,
-                          self._tree,
-                          self._x_bms,
-                          self.PK_short)]  # optimise by only storing length of _x_bms..[:x]
 
     def sk(self, i=None):
         # type: (int) -> List[str]
@@ -121,7 +111,7 @@ class XMSS(object):
         self._index = new_index
 
     def get_hexseed(self):
-        return self.seed_hexstring
+        return self._seed_hexstring
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
