@@ -603,6 +603,119 @@ class ucharVector(_object):
 ucharVector_swigregister = _pyqrllib.ucharVector_swigregister
 ucharVector_swigregister(ucharVector)
 
+class charVector(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, charVector, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, charVector, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _pyqrllib.charVector_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _pyqrllib.charVector___nonzero__(self)
+
+    def __bool__(self):
+        return _pyqrllib.charVector___bool__(self)
+
+    def __len__(self):
+        return _pyqrllib.charVector___len__(self)
+
+    def __getslice__(self, i, j):
+        return _pyqrllib.charVector___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _pyqrllib.charVector___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _pyqrllib.charVector___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _pyqrllib.charVector___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _pyqrllib.charVector___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _pyqrllib.charVector___setitem__(self, *args)
+
+    def pop(self):
+        return _pyqrllib.charVector_pop(self)
+
+    def append(self, x):
+        return _pyqrllib.charVector_append(self, x)
+
+    def empty(self):
+        return _pyqrllib.charVector_empty(self)
+
+    def size(self):
+        return _pyqrllib.charVector_size(self)
+
+    def swap(self, v):
+        return _pyqrllib.charVector_swap(self, v)
+
+    def begin(self):
+        return _pyqrllib.charVector_begin(self)
+
+    def end(self):
+        return _pyqrllib.charVector_end(self)
+
+    def rbegin(self):
+        return _pyqrllib.charVector_rbegin(self)
+
+    def rend(self):
+        return _pyqrllib.charVector_rend(self)
+
+    def clear(self):
+        return _pyqrllib.charVector_clear(self)
+
+    def get_allocator(self):
+        return _pyqrllib.charVector_get_allocator(self)
+
+    def pop_back(self):
+        return _pyqrllib.charVector_pop_back(self)
+
+    def erase(self, *args):
+        return _pyqrllib.charVector_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _pyqrllib.new_charVector(*args)
+        try:
+            self.this.append(this)
+        except Exception:
+            self.this = this
+
+    def push_back(self, x):
+        return _pyqrllib.charVector_push_back(self, x)
+
+    def front(self):
+        return _pyqrllib.charVector_front(self)
+
+    def back(self):
+        return _pyqrllib.charVector_back(self)
+
+    def assign(self, n, x):
+        return _pyqrllib.charVector_assign(self, n, x)
+
+    def resize(self, *args):
+        return _pyqrllib.charVector_resize(self, *args)
+
+    def insert(self, *args):
+        return _pyqrllib.charVector_insert(self, *args)
+
+    def reserve(self, n):
+        return _pyqrllib.charVector_reserve(self, n)
+
+    def capacity(self):
+        return _pyqrllib.charVector_capacity(self)
+    __swig_destroy__ = _pyqrllib.delete_charVector
+    __del__ = lambda self: None
+charVector_swigregister = _pyqrllib.charVector_swigregister
+charVector_swigregister(charVector)
+
 class doubleVector(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, doubleVector, name, value)
@@ -745,11 +858,29 @@ class Xmss(_object):
     def getSeed(self):
         return _pyqrllib.Xmss_getSeed(self)
 
+    def getRoot(self):
+        return _pyqrllib.Xmss_getRoot(self)
+
+    def getIndex(self):
+        return _pyqrllib.Xmss_getIndex(self)
+
+    def getPKSeed(self):
+        return _pyqrllib.Xmss_getPKSeed(self)
+
+    def getSKSeed(self):
+        return _pyqrllib.Xmss_getSKSeed(self)
+
+    def getSKPRF(self):
+        return _pyqrllib.Xmss_getSKPRF(self)
+
     def getSignatureSize(self):
         return _pyqrllib.Xmss_getSignatureSize(self)
 
     def getSecretKeySize(self):
         return _pyqrllib.Xmss_getSecretKeySize(self)
+
+    def getPublicKeySize(self):
+        return _pyqrllib.Xmss_getPublicKeySize(self)
     __swig_destroy__ = _pyqrllib.delete_Xmss
     __del__ = lambda self: None
 Xmss_swigregister = _pyqrllib.Xmss_swigregister
@@ -760,8 +891,8 @@ def verify(message, signature, pk, height):
     return _pyqrllib.verify(message, signature, pk, height)
 verify = _pyqrllib.verify
 
-def vec2hexstr(vec, wrap):
-    return _pyqrllib.vec2hexstr(vec, wrap)
+def vec2hexstr(*args):
+    return _pyqrllib.vec2hexstr(*args)
 vec2hexstr = _pyqrllib.vec2hexstr
 
 _pyqrllib.SHAKE128_RATE_swigconstant(_pyqrllib)
