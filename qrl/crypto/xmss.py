@@ -72,6 +72,10 @@ class XMSS(object):
         Return OTS private key at position i
         :param i:
         :return:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).sk() == xmss_sk_expected1
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).sk() == xmss_sk_expected2
+        True
         """
         if i is None:
             i = self._index
@@ -117,6 +121,14 @@ class XMSS(object):
         return self.get_number_signatures() - self._index
 
     def get_mnemonic(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).get_mnemonic() == xmss_mnemonic_expected1
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).get_mnemonic() == xmss_mnemonic_expected2
+        True
+        """
         # type: () -> List[str]
         return seed_to_mnemonic(self._seed)
 
@@ -128,6 +140,14 @@ class XMSS(object):
         return self._type
 
     def get_index(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).get_index()
+        0
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_index()
+        0
+        """
         # type: () -> int
         return self._index
 
@@ -135,6 +155,14 @@ class XMSS(object):
         self._index = new_index
 
     def get_hexseed(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).get_hexseed()
+        '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_hexseed()
+        '333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331'
+        """
         return hexlify(self._seed)
 
     @staticmethod
@@ -149,6 +177,14 @@ class XMSS(object):
         :param message:
         :param signature:
         :return:
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_message", xmss_sign_expected1)
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_messagex", xmss_sign_expected1)
+        False
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_message", xmss_sign_expected2)
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_messagex", xmss_sign_expected2)
+        False
         """
         if not XMSS.verify_wpkey(signature[1], message, signature[4]):
             return False
@@ -236,6 +272,10 @@ class XMSS(object):
 
         :param msg:
         :return:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).SIGN("test_message") == xmss_sign_expected1
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).SIGN("test_message") == xmss_sign_expected2
+        True
         """
         i = self._index
 

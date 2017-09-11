@@ -24,9 +24,16 @@ def merkle_tx_hash(hashes):
     merkle tree root hash of tx from pool for next POS block
     :param hashes:
     :return:
+    >>> merkle_tx_hash(['0', '1'])  # FIXME: This input is not realistic
+    '938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'
+    >>> merkle_tx_hash(['938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'])
+    '938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'
+    >>> merkle_tx_hash(['0', '938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'])  # FIXME: This input is not realistic
+    '40243e694d9c015d5097590bcc9df82683d8ba4006d58c6abb5e1a6bee5ec6dc'
     """
     if len(hashes) == 64:  # if len = 64 then it is a single hash string rather than a list..
         return hashes
+
     j = int(ceil(log(len(hashes), 2)))
     l_array = [hashes]
     for x in range(j):
