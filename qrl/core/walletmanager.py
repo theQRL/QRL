@@ -11,8 +11,7 @@ import cPickle as pickle
 import os
 import sys
 
-# SIGNATURE_SIZE = 4096
-SIGNATURE_SIZE = 8000
+SIGNATURE_TREE_HEIGHT = 13
 
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
 
@@ -77,7 +76,7 @@ class WalletManager:
                 logger.info('Using mnemonic')
                 seed = tmp_seed
 
-            addr_bundle = self.get_new_address(SIGNATURE_SIZE,
+            addr_bundle = self.get_new_address(SIGNATURE_TREE_HEIGHT,
                                                addrtype=WalletManager.ADDRESS_TYPE_XMSS,
                                                SEED=seed)
             addr_bundle_list.append(addr_bundle)
@@ -230,20 +229,20 @@ class WalletManager:
                 return addr_bundle.xmss.get_remaining_signatures()
 
     def get_new_address(self,
-                        number_signatures=SIGNATURE_SIZE,
+                        signature_tree_height=SIGNATURE_TREE_HEIGHT,
                         addrtype=ADDRESS_TYPE_XMSS,
                         SEED=None):
         # type: (int, str, str) -> AddressBundle
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
-        :param number_signatures:
+        :param signature_tree_height:
         :param addrtype:
         :param SEED:
         :return: a wallet address
         """
         if addrtype == WalletManager.ADDRESS_TYPE_XMSS:
-            xmss = XMSS(number_signatures=number_signatures, SEED=SEED)
+            xmss = XMSS(number_signatures=signature_tree_height, SEED=SEED)
             return AddressBundle(xmss.address, xmss)
 
         raise Exception('OTS type not recognised')
