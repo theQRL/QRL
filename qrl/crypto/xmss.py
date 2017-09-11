@@ -1,4 +1,6 @@
 # coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import time
 from binascii import hexlify, unhexlify
 from math import ceil, log, floor
@@ -8,7 +10,8 @@ from qrl.crypto.hmac_drbg import new_keys, GEN_range
 from qrl.crypto.misc import sha256
 from qrl.crypto.mnemonic import seed_to_mnemonic
 
-#from pyqrllib.pyqrllib import Xmss
+
+# from pyqrllib.pyqrllib import Xmss
 
 
 # creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
@@ -30,7 +33,7 @@ class XMSS(object):
         :param SEED:
         """
 
-        self._number_signatures = 2**tree_height
+        self._number_signatures = 2 ** tree_height
 
         # # FIXME: Ignoring seed for now
         # self._xmss = Xmss(number_signatures, seed)
@@ -91,16 +94,36 @@ class XMSS(object):
         Return OTS public key at position i
         :param i:
         :return:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).pk() == xmss_pk_expected1
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).pk() == xmss_pk_expected2
+        True
         """
         if i is None:
             i = self._index
         return self._pubs[i]
 
     def get_number_signatures(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).get_number_signatures()
+        8
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_number_signatures()
+        16
+        """
         # type: () -> int
         return self._number_signatures
 
     def get_remaining_signatures(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).get_remaining_signatures()
+        8
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_remaining_signatures()
+        16
+        """
         # type: () -> int
         return self.get_number_signatures() - self._index
 
@@ -286,7 +309,7 @@ class XMSS(object):
         # FIXME: Most other methods use pub/priv. Refactor?
         # no.leaves = 2^h
 
-        number_signatures = 2**tree_height
+        number_signatures = 2 ** tree_height
 
         # generate the OTS keys, bitmasks and l_trees randomly (change to SEED+KEY PRF)
 
@@ -509,3 +532,9 @@ class XMSS(object):
             return True
 
         return False
+
+
+if __name__ == "__main__":
+    import doctest
+
+    doctest.testmod()
