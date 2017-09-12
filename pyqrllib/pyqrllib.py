@@ -906,6 +906,10 @@ def tobin(s):
     return _pyqrllib.tobin(s)
 tobin = _pyqrllib.tobin
 
+def getRandomSeed(seed_size):
+    return _pyqrllib.getRandomSeed(seed_size)
+getRandomSeed = _pyqrllib.getRandomSeed
+
 _pyqrllib.SHAKE128_RATE_swigconstant(_pyqrllib)
 SHAKE128_RATE = _pyqrllib.SHAKE128_RATE
 
