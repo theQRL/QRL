@@ -5627,6 +5627,37 @@ SWIG_From_std_string  (const std::string& s)
 
 
 SWIGINTERN int
+SWIG_AsPtr_std_string (PyObject * obj, std::string **val) 
+{
+  char* buf = 0 ; size_t size = 0; int alloc = SWIG_OLDOBJ;
+  if (SWIG_IsOK((SWIG_AsCharPtrAndSize(obj, &buf, &size, &alloc)))) {
+    if (buf) {
+      if (val) *val = new std::string(buf, size - 1);
+      if (alloc == SWIG_NEWOBJ) delete[] buf;
+      return SWIG_NEWOBJ;
+    } else {
+      if (val) *val = 0;
+      return SWIG_OLDOBJ;
+    }
+  } else {
+    static int init = 0;
+    static swig_type_info* descriptor = 0;
+    if (!init) {
+      descriptor = SWIG_TypeQuery("std::string" " *");
+      init = 1;
+    }
+    if (descriptor) {
+      std::string *vptr;
+      int res = SWIG_ConvertPtr(obj, (void**)&vptr, descriptor, 0);
+      if (SWIG_IsOK(res) && val) *val = vptr;
+      return res;
+    }
+  }
+  return SWIG_ERROR;
+}
+
+
+SWIGINTERN int
 SWIG_AsVal_unsigned_SS_long_SS_long (PyObject *obj, unsigned long long *val)
 {
   int res = SWIG_TypeError;
@@ -17106,6 +17137,17 @@ fail:
 }
 
 
+SWIGINTERN PyObject *ADDRESS_HASH_SIZE_swigconstant(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *module;
+  PyObject *d;
+  if (!PyArg_ParseTuple(args,(char*)"O:swigconstant", &module)) return NULL;
+  d = PyModule_GetDict(module);
+  if (!d) return NULL;
+  SWIG_Python_SetConstant(d, "ADDRESS_HASH_SIZE",SWIG_From_int(static_cast< int >(32)));
+  return SWIG_Py_Void();
+}
+
+
 SWIGINTERN PyObject *_wrap_vec2hexstr__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   std::vector< unsigned char,std::allocator< unsigned char > > *arg1 = 0 ;
@@ -17305,6 +17347,52 @@ fail:
     "    vec2hexstr(std::vector< char,std::allocator< char > > const &,int)\n"
     "    vec2hexstr(std::vector< char,std::allocator< char > > const &)\n");
   return 0;
+}
+
+
+SWIGINTERN PyObject *_wrap_getAddress(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  std::string *arg1 = 0 ;
+  SwigValueWrapper< Xmss > arg2 ;
+  int res1 = SWIG_OLDOBJ ;
+  void *argp2 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  std::string result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:getAddress",&obj0,&obj1)) SWIG_fail;
+  {
+    std::string *ptr = (std::string *)0;
+    res1 = SWIG_AsPtr_std_string(obj0, &ptr);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "getAddress" "', argument " "1"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "getAddress" "', argument " "1"" of type '" "std::string const &""'"); 
+    }
+    arg1 = ptr;
+  }
+  {
+    res2 = SWIG_ConvertPtr(obj1, &argp2, SWIGTYPE_p_Xmss,  0  | 0);
+    if (!SWIG_IsOK(res2)) {
+      SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "getAddress" "', argument " "2"" of type '" "Xmss""'"); 
+    }  
+    if (!argp2) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "getAddress" "', argument " "2"" of type '" "Xmss""'");
+    } else {
+      Xmss * temp = reinterpret_cast< Xmss * >(argp2);
+      arg2 = *temp;
+      if (SWIG_IsNewObj(res2)) delete temp;
+    }
+  }
+  result = getAddress((std::string const &)*arg1,arg2);
+  resultobj = SWIG_From_std_string(static_cast< std::string >(result));
+  if (SWIG_IsNewObj(res1)) delete arg1;
+  return resultobj;
+fail:
+  if (SWIG_IsNewObj(res1)) delete arg1;
+  return NULL;
 }
 
 
@@ -17930,7 +18018,9 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"delete_Xmss", _wrap_delete_Xmss, METH_VARARGS, NULL},
 	 { (char *)"Xmss_swigregister", Xmss_swigregister, METH_VARARGS, NULL},
 	 { (char *)"verify", _wrap_verify, METH_VARARGS, NULL},
+	 { (char *)"ADDRESS_HASH_SIZE_swigconstant", ADDRESS_HASH_SIZE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"vec2hexstr", _wrap_vec2hexstr, METH_VARARGS, NULL},
+	 { (char *)"getAddress", _wrap_getAddress, METH_VARARGS, NULL},
 	 { (char *)"SHAKE128_RATE_swigconstant", SHAKE128_RATE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"SHAKE256_RATE_swigconstant", SHAKE256_RATE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"shake128", _wrap_shake128, METH_VARARGS, NULL},

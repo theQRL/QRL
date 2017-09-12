@@ -11,8 +11,7 @@ from qrl.crypto.hmac_drbg import new_keys, GEN_range
 from qrl.crypto.misc import sha256
 from qrl.crypto.mnemonic import seed_to_mnemonic
 
-from pyqrllib.pyqrllib import Xmss, vec2hexstr
-from pyqrllib.misc import get_seed
+from pyqrllib.pyqrllib import Xmss, vec2hexstr, getAddress, ucharVector
 
 
 # creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
@@ -62,7 +61,6 @@ class XMSS(object):
 
         >>> from qrl.crypto.doctest_data import *; vec2hexstr( XMSS(3, xmss_test_seed1)._xmss.getPK() )
         'e2dd84011e409a79ad9e7fead9a455436e36838d966a73d5947b3710b36d625ae00b3f9d338de90488973787b0916a4a9ae8bebf4e2bc07a7bc18f1a62215182'
-
         >>> from qrl.crypto.doctest_data import *; vec2hexstr( XMSS(3, xmss_test_seed1)._xmss.getSK() )
         '00000000f5977c8283546a63723bc31d2619124f11db4658643336741df81757d5ad3062221e124311ec7f7181568de7938df805d894f5fded465001a04e260a49482cf5e00b3f9d338de90488973787b0916a4a9ae8bebf4e2bc07a7bc18f1a62215182e2dd84011e409a79ad9e7fead9a455436e36838d966a73d5947b3710b36d625a'
 
@@ -78,6 +76,11 @@ class XMSS(object):
         '221e124311ec7f7181568de7938df805d894f5fded465001a04e260a49482cf5'
         >>> from qrl.crypto.doctest_data import *; vec2hexstr( XMSS(3, xmss_test_seed1)._xmss.getSKPRF() )
         '221e124311ec7f7181568de7938df805d894f5fded465001a04e260a49482cf5'
+        >>> from qrl.crypto.doctest_data import *; getAddress('Q', XMSS(3, xmss_test_seed1)._xmss)
+        'Qece392e8ad8da96e8022142c4235934ee0ba58c9b223dbf6465c445378e942dec4e19800'
+
+        >>> from qrl.crypto.doctest_data import *; vec2hexstr( XMSS(3, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
+        ''
         """
 
         self._number_signatures = 2 ** tree_height
@@ -90,8 +93,8 @@ class XMSS(object):
         self._seed, self._seed_public, self._seed_private = new_keys(SEED)
 
         # TODO: #####################
-        # FIXME
-        self._new_seed, self._new_seed_public, self._new_seed_private = get_seed()
+        # FIXME Seed is fixed!!!!!!!!!!!!!!!!!!!!
+        self._new_seed = ucharVector(32, 0)
         self._xmss = Xmss(self._new_seed, tree_height)
         # TODO: #####################
 

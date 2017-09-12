@@ -29,13 +29,12 @@ class Transaction(object):
         self.pubhash = None
         self.txhash = None
         self.txfrom = None
-
-        self.i = None
-        self.signature = None
-        self.merkle_path = None
-        self.i_bms = None
-        self.pub = None
-        self.PK = None
+        self.sig_i = None
+        self.sig_signature = None
+        self.sig_merkle_path = None
+        self.sig_i_bms = None
+        self.sig_pub = None
+        self.sig_PK = None
 
     @staticmethod
     def from_txdict(txdict):
@@ -87,6 +86,11 @@ class Transaction(object):
 
         return tx_list
 
+    @staticmethod
+    def _checkaddress(sig_PK, address):
+        # type: (list, str) -> bool
+        return XMSS.create_address_from_key(sig_PK[0] + sig_PK[1]) == address
+
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss._index
         self.pubhash = self.generate_pubhash(xmss.pk())
@@ -97,22 +101,27 @@ class Transaction(object):
         signature_components = xmss.SIGN(str(self.txhash))
 
         # signature_components = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
-        self.i = signature_components[0]
-        self.signature = signature_components[1]
-        self.merkle_path = signature_components[2]
-        self.i_bms = signature_components[3]
-        self.pub = signature_components[4]
-        self.PK = signature_components[5]
+        self.sig_i = signature_components[0]
+        self.sig_signature = signature_components[1]
+        self.sig_merkle_path = signature_components[2]
+        self.sig_i_bms = signature_components[3]
+        self.sig_pub = signature_components[4]
+        self.sig_PK = signature_components[5]
 
     def _validate_signed_hash(self):
-        if not XMSS.VERIFY(message=self.txhash,
-                           signature=[self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]):
-            logger.info('xmss_verify failed')
+        if self.subtype != TX_SUBTYPE_COINBASE and not Transaction._checkaddress(self.sig_PK, self.txfrom):
+            logger.info('Public key verification failed')
             return False
 
-        # Ignore for COINBASE TX as it authorizes a slave
-        if self.subtype != TX_SUBTYPE_COINBASE and not XMSS.checkaddress(self.PK, self.txfrom):
-            logger.info('Public key verification failed')
+        if not XMSS.VERIFY(message=self.txhash,
+                           signature=[self.sig_i,
+                                      self.sig_signature,
+                                      self.sig_merkle_path,
+                                      self.sig_i_bms,
+                                      self.sig_pub,
+                                      self.sig_PK]):
+
+            logger.info('xmss_verify failed')
             return False
 
         return True
@@ -128,12 +137,12 @@ class Transaction(object):
         self.pubhash = dict_tx['pubhash'].encode('ascii')
         self.txhash = self._reformat(dict_tx['txhash'])
 
-        self.i = int(dict_tx['i'])
-        self.signature = self._reformat(dict_tx['signature'])
-        self.merkle_path = self._reformat(dict_tx['merkle_path'])
-        self.i_bms = self._reformat(dict_tx['i_bms'])
-        self.pub = self._reformat(dict_tx['pub'])
-        self.PK = self._reformat(dict_tx['PK'])
+        self.sig_i = int(dict_tx['i'])
+        self.sig_signature = self._reformat(dict_tx['signature'])
+        self.sig_merkle_path = self._reformat(dict_tx['merkle_path'])
+        self.sig_i_bms = self._reformat(dict_tx['i_bms'])
+        self.sig_pub = self._reformat(dict_tx['pub'])
+        self.sig_PK = self._reformat(dict_tx['PK'])
         return self
 
     def _reformat(self, srcList):
@@ -265,7 +274,7 @@ class SimpleTransaction(Transaction):
         if not self.pre_condition(tx_state):
             return False
 
-        pubhash = self.generate_pubhash(self.pub)
+        pubhash = self.generate_pubhash(self.sig_pub)
 
         tx_pubhashes = tx_state[2]
         if pubhash in tx_pubhashes:
@@ -364,7 +373,7 @@ class StakeTransaction(Transaction):
     def state_validate_tx(self, tx_state):
         if self.subtype != TX_SUBTYPE_STAKE:
             return False
-        pub = self.pub
+        pub = self.sig_pub
         pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
         pubhash = sha256(''.join(pub))
 
