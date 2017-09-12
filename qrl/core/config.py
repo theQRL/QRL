@@ -103,6 +103,8 @@ class DevConfig(object):
         self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
         self.timestamp_error = 5 # Error in second
 
+        self.xmss_tree_height = 10
+
         self.db_name = 'state'
         self.peers_filename = 'peers.dat'
         self.wallet_dat_filename = 'wallet.json'

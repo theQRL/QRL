@@ -16891,7 +16891,7 @@ SWIGINTERN PyObject *_wrap_Xmss_getIndex(PyObject *SWIGUNUSEDPARM(self), PyObjec
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  std::vector< unsigned char,std::allocator< unsigned char > > result;
+  uint32_t result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:Xmss_getIndex",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_Xmss, 0 |  0 );
@@ -16899,8 +16899,8 @@ SWIGINTERN PyObject *_wrap_Xmss_getIndex(PyObject *SWIGUNUSEDPARM(self), PyObjec
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "Xmss_getIndex" "', argument " "1"" of type '" "Xmss *""'"); 
   }
   arg1 = reinterpret_cast< Xmss * >(argp1);
-  result = (arg1)->getIndex();
-  resultobj = swig::from(static_cast< std::vector< unsigned char,std::allocator< unsigned char > > >(result));
+  result = (uint32_t)(arg1)->getIndex();
+  resultobj = SWIG_From_unsigned_SS_int(static_cast< unsigned int >(result));
   return resultobj;
 fail:
   return NULL;
@@ -17072,11 +17072,11 @@ SWIGINTERN PyObject *_wrap_verify(PyObject *SWIGUNUSEDPARM(self), PyObject *args
   std::vector< unsigned char,std::allocator< unsigned char > > *arg1 = 0 ;
   std::vector< unsigned char,std::allocator< unsigned char > > *arg2 = 0 ;
   std::vector< unsigned char,std::allocator< unsigned char > > *arg3 = 0 ;
-  unsigned char arg4 ;
+  int arg4 ;
   int res1 = SWIG_OLDOBJ ;
   int res2 = SWIG_OLDOBJ ;
   int res3 = SWIG_OLDOBJ ;
-  unsigned char val4 ;
+  int val4 ;
   int ecode4 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -17118,11 +17118,11 @@ SWIGINTERN PyObject *_wrap_verify(PyObject *SWIGUNUSEDPARM(self), PyObject *args
     }
     arg3 = ptr;
   }
-  ecode4 = SWIG_AsVal_unsigned_SS_char(obj3, &val4);
+  ecode4 = SWIG_AsVal_int(obj3, &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "verify" "', argument " "4"" of type '" "unsigned char""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "verify" "', argument " "4"" of type '" "int""'");
   } 
-  arg4 = static_cast< unsigned char >(val4);
+  arg4 = static_cast< int >(val4);
   result = (bool)verify((std::vector< unsigned char,std::allocator< unsigned char > > const &)*arg1,(std::vector< unsigned char,std::allocator< unsigned char > > const &)*arg2,(std::vector< unsigned char,std::allocator< unsigned char > > const &)*arg3,arg4);
   resultobj = SWIG_From_bool(static_cast< bool >(result));
   if (SWIG_IsNewObj(res1)) delete arg1;
@@ -17350,7 +17350,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_getAddress(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_getAddress__SWIG_0(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   std::string *arg1 = 0 ;
   SwigValueWrapper< Xmss > arg2 ;
@@ -17388,6 +17388,121 @@ SWIGINTERN PyObject *_wrap_getAddress(PyObject *SWIGUNUSEDPARM(self), PyObject *
   }
   result = getAddress((std::string const &)*arg1,arg2);
   resultobj = SWIG_From_std_string(static_cast< std::string >(result));
+  if (SWIG_IsNewObj(res1)) delete arg1;
+  return resultobj;
+fail:
+  if (SWIG_IsNewObj(res1)) delete arg1;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_getAddress__SWIG_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  std::string *arg1 = 0 ;
+  std::vector< unsigned char,std::allocator< unsigned char > > arg2 ;
+  int res1 = SWIG_OLDOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  std::string result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:getAddress",&obj0,&obj1)) SWIG_fail;
+  {
+    std::string *ptr = (std::string *)0;
+    res1 = SWIG_AsPtr_std_string(obj0, &ptr);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "getAddress" "', argument " "1"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "getAddress" "', argument " "1"" of type '" "std::string const &""'"); 
+    }
+    arg1 = ptr;
+  }
+  {
+    std::vector< unsigned char,std::allocator< unsigned char > > *ptr = (std::vector< unsigned char,std::allocator< unsigned char > > *)0;
+    int res = swig::asptr(obj1, &ptr);
+    if (!SWIG_IsOK(res) || !ptr) {
+      SWIG_exception_fail(SWIG_ArgError((ptr ? res : SWIG_TypeError)), "in method '" "getAddress" "', argument " "2"" of type '" "std::vector< unsigned char,std::allocator< unsigned char > >""'"); 
+    }
+    arg2 = *ptr;
+    if (SWIG_IsNewObj(res)) delete ptr;
+  }
+  result = getAddress((std::string const &)*arg1,arg2);
+  resultobj = SWIG_From_std_string(static_cast< std::string >(result));
+  if (SWIG_IsNewObj(res1)) delete arg1;
+  return resultobj;
+fail:
+  if (SWIG_IsNewObj(res1)) delete arg1;
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_getAddress(PyObject *self, PyObject *args) {
+  Py_ssize_t argc;
+  PyObject *argv[3] = {
+    0
+  };
+  Py_ssize_t ii;
+  
+  if (!PyTuple_Check(args)) SWIG_fail;
+  argc = args ? PyObject_Length(args) : 0;
+  for (ii = 0; (ii < 2) && (ii < argc); ii++) {
+    argv[ii] = PyTuple_GET_ITEM(args,ii);
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_AsPtr_std_string(argv[0], (std::string**)(0));
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      int res = SWIG_ConvertPtr(argv[1], 0, SWIGTYPE_p_Xmss, 0);
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        return _wrap_getAddress__SWIG_0(self, args);
+      }
+    }
+  }
+  if (argc == 2) {
+    int _v;
+    int res = SWIG_AsPtr_std_string(argv[0], (std::string**)(0));
+    _v = SWIG_CheckState(res);
+    if (_v) {
+      int res = swig::asptr(argv[1], (std::vector< unsigned char,std::allocator< unsigned char > >**)(0));
+      _v = SWIG_CheckState(res);
+      if (_v) {
+        return _wrap_getAddress__SWIG_1(self, args);
+      }
+    }
+  }
+  
+fail:
+  SWIG_SetErrorMsg(PyExc_NotImplementedError,"Wrong number or type of arguments for overloaded function 'getAddress'.\n"
+    "  Possible C/C++ prototypes are:\n"
+    "    getAddress(std::string const &,Xmss)\n"
+    "    getAddress(std::string const &,std::vector< unsigned char,std::allocator< unsigned char > >)\n");
+  return 0;
+}
+
+
+SWIGINTERN PyObject *_wrap_tobin(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  std::string *arg1 = 0 ;
+  int res1 = SWIG_OLDOBJ ;
+  PyObject * obj0 = 0 ;
+  std::vector< unsigned char,std::allocator< unsigned char > > result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:tobin",&obj0)) SWIG_fail;
+  {
+    std::string *ptr = (std::string *)0;
+    res1 = SWIG_AsPtr_std_string(obj0, &ptr);
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "tobin" "', argument " "1"" of type '" "std::string const &""'"); 
+    }
+    if (!ptr) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "tobin" "', argument " "1"" of type '" "std::string const &""'"); 
+    }
+    arg1 = ptr;
+  }
+  result = tobin((std::string const &)*arg1);
+  resultobj = swig::from(static_cast< std::vector< unsigned char,std::allocator< unsigned char > > >(result));
   if (SWIG_IsNewObj(res1)) delete arg1;
   return resultobj;
 fail:
@@ -18021,6 +18136,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"ADDRESS_HASH_SIZE_swigconstant", ADDRESS_HASH_SIZE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"vec2hexstr", _wrap_vec2hexstr, METH_VARARGS, NULL},
 	 { (char *)"getAddress", _wrap_getAddress, METH_VARARGS, NULL},
+	 { (char *)"tobin", _wrap_tobin, METH_VARARGS, NULL},
 	 { (char *)"SHAKE128_RATE_swigconstant", SHAKE128_RATE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"SHAKE256_RATE_swigconstant", SHAKE256_RATE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"shake128", _wrap_shake128, METH_VARARGS, NULL},

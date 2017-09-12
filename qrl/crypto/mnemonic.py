@@ -72,8 +72,9 @@ def seed_to_mnemonic(seed_hexstring):
     >>> seed_to_mnemonic("ss") is None
     True
     """
-    if len(seed_hexstring) != 48:
-        logger.error('SEED is not 48 bytes in length..')
+    # FIXME: Seed is 32??
+    if len(seed_hexstring) != 32:
+        logger.error('SEED is not 32 bytes in length..')
         return None
 
     words = []
