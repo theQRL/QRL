@@ -92,7 +92,7 @@ class Transaction(object):
         return XMSS.create_address_from_key(sig_PK[0] + sig_PK[1]) == address
 
     def _process_XMSS(self, txfrom, txhash, xmss):
-        self.ots_key = xmss._index
+        self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
         self.txhash = sha256(txhash + self.pubhash)
 

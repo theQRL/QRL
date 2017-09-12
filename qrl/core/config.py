@@ -105,8 +105,7 @@ class DevConfig(object):
 
         self.db_name = 'state'
         self.peers_filename = 'peers.dat'
-        self.wallet_dat_filename = 'wallet.dat'
-        self.wallet_info_filename = 'wallet.info'
+        self.wallet_dat_filename = 'wallet.json'
         self.mnemonic_filename = 'mnemonic'
         self.genesis_prev_headerhash = 'Cryptonium'
 

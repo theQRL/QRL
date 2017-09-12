@@ -63,7 +63,6 @@ class newAddress(Resource):
     def render_GET(self, request):
         addr = self.chain.wallet.get_new_address()
         self.chain.wallet.append_wallet(addr)
-        return True
 
 
 class recoverAddress(Resource):

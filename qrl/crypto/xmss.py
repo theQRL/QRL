@@ -27,7 +27,6 @@ class XMSS(object):
     #FIXME: Getters are only temporarily. Delete everything or use properties
 
     def __init__(self, tree_height, SEED=None):
-        # type: (int, Union[str, None]) -> None
         """
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
