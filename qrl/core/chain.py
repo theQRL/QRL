@@ -2,27 +2,16 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-# QRL main blockchain, state, stake, transaction functions.
-
-# todo:
-# pos_block_pool() should return all combinations, not just the order received then sorted by txhash - removes edge cases for block selection failure..
-# add stake list check to the state check - addresses which are staking cannot make transactions..
-# block-reward calculation to be altered based upon block-time and stake_list_get() balances..proportion of entire coin supply..
-# fees
-# occasionally the ots index gets behind..find reason..
-# add salt/key xor to hash chains..
 import qrl.core.Transaction_subtypes
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
 from qrl.core.Transaction import SimpleTransaction, CoinBase
-from qrl.core.walletmanager import WalletManager
 from qrl.crypto.hmac_drbg import GEN_range_bin
 from qrl.crypto.misc import sha256, merkle_tx_hash
-
-__author__ = 'pete'
 
 import gc
 
@@ -46,10 +35,9 @@ class Chain:
         self.txhash_timestamp = []
         self.m_blockchain = []
 
-        self.wallet_manager = WalletManager(self, state)
-        self.address_bundle = self.wallet_manager.f_read_wallet()
+        self.wallet = Wallet()
+        self.mining_address = self.wallet.address_bundle[0].xmss.address
 
-        self.mining_address = self.address_bundle[0].xmss.address
         self.initialize()
         self.ping_list = []
         self.ip_list = []
@@ -72,7 +60,7 @@ class Chain:
         logger.info('loading db')
         logger.info('loading wallet')
 
-        self.wallet_manager.f_load_winfo()
+        self.wallet.load_winfo()
 
         logger.info('mining/staking address %s', self.mining_address)
 
@@ -966,7 +954,7 @@ class Chain:
                                                             validate=False,
                                                             ignore_save_wallet=True)
             epoch += 1
-        self.wallet_manager.f_save_wallet()
+        self.wallet.save_wallet()
         gc.collect()
         return self.m_blockchain
 
@@ -1102,9 +1090,9 @@ class Chain:
 
     def create_my_tx(self, txfrom, txto, amount, fee=0):
         if isinstance(txto, int):
-            txto = self.address_bundle[txto].address
+            txto = self.wallet.address_bundle[txto].address
 
-        xmss = self.address_bundle[txfrom].xmss
+        xmss = self.wallet.address_bundle[txfrom].xmss
         tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.address)
         tx = SimpleTransaction().create(tx_state=tx_state,
                                         txto=txto,
@@ -1116,7 +1104,7 @@ class Chain:
             self.add_tx_to_pool(tx)
             # need to keep state after tx ..use self.wallet.info to store index..
             # far faster than loading the 55mb self.wallet..
-            self.wallet_manager.f_save_winfo()
+            self.wallet.save_winfo()
             return tx
 
         return False

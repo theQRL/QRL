@@ -59,16 +59,16 @@ class HashChain(object):
         return hc_seed, hc, hc_terminator
 
     def hashchain(self, epoch=0):
+        # type: (int) -> HashChainBundle
         """
 
         :param epoch:
         :type epoch:
         :return:
         :rtype:
-        >>> from qrl.crypto.doctest_data import *; from binascii import unhexlify; isinstance(HashChain( unhexlify('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e') ).hashchain(), HashChainBundle)
+        >>> from binascii import unhexlify; isinstance(HashChain( unhexlify('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e') ).hashchain(), HashChainBundle)
         True
         """
-        # type: (int) -> HashChainBundle
         return HashChainBundle(*self._calc_hashchain(epoch))
 
     def hashchain_reveal(self, epoch=0):

@@ -70,7 +70,7 @@ class Block(object):
 
         coinbase_tx = CoinBase().create(self.blockheader.block_reward,
                                                     self.blockheader.headerhash,
-                                                    chain.address_bundle[0].xmss)
+                                                    chain.wallet.address_bundle[0].xmss)
         self.transactions[0] = coinbase_tx
         coinbase_tx.nonce = chain.block_chain_buffer.get_stxn_state(last_block_number + 1, chain.mining_address)[0] + 1
 

@@ -26,11 +26,11 @@ class ChainBuffer:
         self.pending_blocks = dict()
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.address_bundle_clone = dict()
-        self.address_bundle_clone[self.epoch] = deepcopy(self.chain.address_bundle)
+        self.address_bundle_clone[self.epoch] = deepcopy(self.chain.wallet.address_bundle)
         self.epoch_seed = None
         self.hash_chain = dict()
 
-        tmphc = HashChain(self.chain.address_bundle[0].xmss.get_seed_private()).hashchain()
+        tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain()
         self.hash_chain[self.epoch] = tmphc.hashchain
 
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer

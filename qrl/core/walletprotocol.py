@@ -55,7 +55,7 @@ class WalletProtocol(Protocol):
                     self.getnewaddress(args)
 
                 elif command == 'hexseed':
-                    for addr_bundle in self.factory.chain.address_bundle:
+                    for addr_bundle in self.factory.chain.wallet.address_bundle:
                         if isinstance(addr_bundle.xmss, XMSS):
                             self.output['status'] = 0
                             self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
@@ -65,7 +65,7 @@ class WalletProtocol(Protocol):
                             self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
 
                 elif command == 'seed':
-                    for addr_bundle in self.factory.chain.address_bundle:
+                    for addr_bundle in self.factory.chain.wallet.address_bundle:
                         if isinstance(addr_bundle.xmss, XMSS):
                             self.output['status'] = 0
                             self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
@@ -154,7 +154,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     self.output['status'] = 0
-                    addr = self.factory.chain.wallet_manager.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
+                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
@@ -178,7 +178,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     args = ' '.join(args)
-                    addr = self.factory.chain.wallet_manager.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(args))
+                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(args))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
@@ -216,7 +216,7 @@ class WalletProtocol(Protocol):
                     # FIXME: It is not good that the protocol acts directly on the node
                     self.factory.p2pFactory.send_st_to_peers(
                         StakeTransaction().create(blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
-                                                  xmss=self.factory.chain.address_bundle[0].xmss,
+                                                  xmss=self.factory.chain.wallet.address_bundle[0].xmss,
                                                   first_hash=None,
                                                   balance=self.factory.chain.state.state_balance(self.factory.chain.mining_address)))
 
@@ -239,7 +239,7 @@ class WalletProtocol(Protocol):
                     self.transport.loseConnection()
 
                 elif command == 'listaddresses':
-                    addresses, num_sigs, types = self.factory.chain.wallet_manager.inspect_wallet()
+                    addresses, num_sigs, types = self.factory.chain.wallet.inspect_wallet()
                     self.output['status'] = 0
                     self.output['keys'] += ['addresses']
                     self.output['addresses'] = []
@@ -463,7 +463,7 @@ class WalletProtocol(Protocol):
         self.output['message'].write('>>> Creating new address, please be patient as this can take some time ...\r\n')
         self.output['keys'] += ['keypair_type', 'possible_signatures', 'address']
 
-        addr_bundle = self.factory.chain.wallet_manager.get_new_address(int(args[0]), args[1])
+        addr_bundle = self.factory.chain.wallet.get_new_address(int(args[0]), args[1])
 
         self.output['message'].write('>>> Keypair type: ' + ''.join(addr_bundle[1].get_type() + '\r\n'))
         self.output['message'].write('>>> Signatures possible with address: ' + str(addr_bundle[1].get_number_signatures()) + '\r\n')
@@ -486,7 +486,7 @@ class WalletProtocol(Protocol):
             self.output['message'].write(">>> No new addresses created, yet. Try 'getnewaddress'" + '\r\n')
             return
         self.output['status'] = 0
-        self.factory.chain.wallet_manager.f_append_wallet(self.factory.newaddress)
+        self.factory.chain.wallet.append_wallet(self.factory.newaddress)
         self.output['message'].write('>>> new address saved in self.factory.chain.wallet.\r\n')
         return
 
@@ -513,7 +513,7 @@ class WalletProtocol(Protocol):
             return
 
         # Check if local wallet number is higher than the number of local wallets that are saved
-        if int(wallet_from) > len(self.factory.chain.wallet_manager.list_addresses()) - 1:
+        if int(wallet_from) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.chain.transaction_pool)) - 1:
             self.output['message'].write(
                 '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
             return
@@ -535,7 +535,7 @@ class WalletProtocol(Protocol):
                 self.output['message'].write(
                     '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
                 return
-            if int(wallet_to) > len(self.factory.chain.wallet_manager.list_addresses()) - 1:
+            if int(wallet_to) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.chain.transaction_pool)) - 1:
                 self.output['message'].write(
                     '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
                 return
@@ -564,7 +564,7 @@ class WalletProtocol(Protocol):
 
         # Stop user from sending less than their entire balance if they've only
         # got one signature remaining.
-        sigsremaining = self.factory.chain.wallet_manager.get_num_signatures(self.factory.chain.address_bundle[int(args[0])].address)
+        sigsremaining = self.factory.chain.wallet.get_num_signatures(self.factory.chain.address_bundle[int(args[0])].address)
         if sigsremaining is 1:
             if amount < balance:
                 self.output['message'].write(
@@ -609,7 +609,7 @@ class WalletProtocol(Protocol):
         self.output['keys'] += ['list_addresses']
         self.output['list_addresses'] = {}
 
-        list_addr, list_addresses = self.factory.chain.wallet_manager.list_addresses(True)
+        list_addr, list_addresses = self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.chain.transaction_pool, True)
         self.output['list_addresses'] = list_addresses
 
         y = 0
