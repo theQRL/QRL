@@ -11,7 +11,7 @@ from qrl.core import helper, config, logger, fork
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
-from qrl.core.transaction import StakeTransaction, SimpleTransaction
+from qrl.core.Transaction import StakeTransaction, SimpleTransaction
 from qrl.crypto.misc import sha256
 from qrl.core.processors.TxnProcessor import TxnProcessor
 

@@ -9,12 +9,13 @@ from copy import deepcopy
 
 from twisted.internet import reactor
 
-from qrl.core import logger, transaction, config, fork
+import qrl.core.Transaction_subtypes
+from qrl.core import logger, config, fork
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
-from qrl.core.transaction import StakeTransaction
+from qrl.core.Transaction import StakeTransaction
 from qrl.crypto.misc import sha256
 from qrl.crypto.hashchain import HashChain
 
@@ -195,7 +196,7 @@ class POS:
         tmp_list = []
 
         for tx in self.chain.transaction_pool:
-            if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
                     tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom]])
 
@@ -493,7 +494,7 @@ class POS:
         self.chain.wallet_manager.f_save_winfo()
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
-            if t.subtype == transaction.TX_SUBTYPE_STAKE and st.hash == t.hash:
+            if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
                 self.chain.remove_tx_from_pool(t)

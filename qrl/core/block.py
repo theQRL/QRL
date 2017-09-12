@@ -4,10 +4,11 @@
 
 import simplejson as json
 
-from qrl.core import transaction, logger, config, ntp
+import qrl.core.Transaction_subtypes
+from qrl.core import Transaction, logger, config, ntp
 from qrl.core.blockheader import BlockHeader
 from qrl.core.helper import select_target_hashchain
-from qrl.core.transaction import Transaction
+from qrl.core.Transaction import Transaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 
@@ -47,7 +48,7 @@ class Block(object):
         fee_reward = 0
 
         for tx in chain.transaction_pool:
-            if tx.subtype == transaction.TX_SUBTYPE_TX:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
             self.transactions.append(tx)  # copy memory rather than sym link
@@ -80,7 +81,7 @@ class Block(object):
         transactions = json_block['transactions']
         self.transactions = []
         for tx in transactions:
-            self.transactions.append(Transaction.get_tx_obj(tx))
+            self.transactions.append(Transaction.from_txdict(tx))
 
         if self.blockheader.blocknumber == 0:
             self.state = json_block['state']
@@ -132,7 +133,7 @@ class Block(object):
         coinbase_tx = self.transactions[0]
 
         try:
-            if coinbase_tx.subtype != transaction.TX_SUBTYPE_COINBASE:
+            if coinbase_tx.subtype != qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
                 return False
         except Exception as e:
@@ -164,7 +165,7 @@ class Block(object):
         if b.blocknumber == 1:
             x = 0
             for tx in self.transactions:
-                if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+                if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                     if tx.txfrom == b.stake_selector:
                         x = 1
                         hash, _ = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash,

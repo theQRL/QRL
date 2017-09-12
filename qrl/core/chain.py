@@ -11,12 +11,13 @@
 # fees
 # occasionally the ots index gets behind..find reason..
 # add salt/key xor to hash chains..
-from qrl.core import config, logger, transaction
+import qrl.core.Transaction_subtypes
+from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
-from qrl.core.transaction import SimpleTransaction, CoinBase
+from qrl.core.Transaction import SimpleTransaction, CoinBase
 from qrl.core.walletmanager import WalletManager
 from qrl.crypto.hmac_drbg import GEN_range_bin
 from qrl.crypto.misc import sha256, merkle_tx_hash
@@ -231,7 +232,7 @@ class Chain:
         for tx in t_pool2:
             if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
                 continue
-            if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
 
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
@@ -419,9 +420,9 @@ class Chain:
             return json_print_telnet(err)
 
         json_tx = json.loads(txn_metadata[0])
-        if json_tx['subtype'] == transaction.TX_SUBTYPE_TX:
+        if json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
             tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-        elif json_tx['subtype'] == transaction.TX_SUBTYPE_COINBASE:
+        elif json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
             tx = CoinBase().json_to_transaction(txn_metadata[0])
         tx_new = copy.deepcopy(tx)
         tx_new.block = txn_metadata[1]
@@ -429,7 +430,7 @@ class Chain:
         tx_new.confirmations = self.m_blockheight() - txn_metadata[1]
         tx_new.hexsize = len(json_bytestream(tx_new))
         tx_new.amount = tx_new.amount / 100000000.000000000
-        if json_tx['subtype'] == transaction.TX_SUBTYPE_TX:
+        if json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
             tx_new.fee = tx_new.fee / 100000000.000000000
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
         tx_new.status = 'ok'
@@ -481,7 +482,8 @@ class Chain:
 
         tmp_transactions = []
         for tx in self.transaction_pool:
-            if tx.subtype not in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+            if tx.subtype not in (
+            qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
                 continue
             if tx.txto == address or tx.txfrom == address:
                 logger.info('%s found in transaction pool', address)
@@ -496,7 +498,7 @@ class Chain:
                            'txfrom': tx.txfrom,
                            'timestamp': 'unconfirmed'}
 
-                if tx.subtype == transaction.TX_SUBTYPE_TX:
+                if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                     tmp_txn['fee'] = tx.fee / 100000000.000000000
 
 
@@ -514,9 +516,9 @@ class Chain:
         for txn_hash in my_txn:
             txn_metadata = self.state.db.get(txn_hash)
             dict_txn_metadata = json.loads(txn_metadata[0])
-            if dict_txn_metadata['subtype'] == transaction.TX_SUBTYPE_TX:
+            if dict_txn_metadata['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            elif dict_txn_metadata['subtype'] == transaction.TX_SUBTYPE_COINBASE:
+            elif dict_txn_metadata['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
                 tx = CoinBase().json_to_transaction(txn_metadata[0])
 
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
@@ -532,7 +534,7 @@ class Chain:
                            'txto': tx.txto,
                            'txfrom': tx.txfrom}
 
-                if tx.subtype == transaction.TX_SUBTYPE_TX:
+                if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                     tmp_txn['fee'] = tx.fee / 100000000.000000000
 
                 addr['transactions'].append(tmp_txn)
@@ -564,7 +566,7 @@ class Chain:
         while tx_num > 0:
             tx_num -= 1
             tx = self.transaction_pool[tx_num]
-            if tx.subtype != transaction.TX_SUBTYPE_TX:
+            if tx.subtype != qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 continue
             tmp_txn = {'txhash': tx.txhash,
                        'block': 'unconfirmed',
@@ -870,7 +872,7 @@ class Chain:
         except:
             pass
         for txn in block.transactions[-20:]:
-            if txn.subtype == transaction.TX_SUBTYPE_TX:
+            if txn.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 last_txn.insert(0,
                                 [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
         del last_txn[20:]
@@ -895,11 +897,12 @@ class Chain:
             return
 
         for txn in block.transactions:
-            if txn.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+            if txn.subtype in (
+            qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
                 self.state.db.put(txn.txhash,
                                   [txn.transaction_to_json(), block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
-                if txn.subtype == transaction.TX_SUBTYPE_TX:
+                if txn.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                     self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
                 self.update_wallet_tx_metadata(txn.txto, txn.txhash)
                 self.update_txn_count(txn.txto, txn.txfrom)

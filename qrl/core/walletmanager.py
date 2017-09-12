@@ -3,7 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import namedtuple
 
-from qrl.core import config, logger, transaction
+import qrl.core.Transaction_subtypes
+from qrl.core import config, logger, Transaction
 from qrl.crypto.mnemonic import mnemonic_to_seed
 from qrl.crypto.xmss import XMSS
 
@@ -178,7 +179,7 @@ class WalletManager:
             x = 0
             y = 0
             for t in self.chain.transaction_pool:
-                if t.subtype == transaction.TX_SUBTYPE_TX:
+                if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                     if t.txfrom == addr_bundle.address:
                         y += 1
                         x -= t.amount
