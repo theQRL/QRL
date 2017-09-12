@@ -61,9 +61,6 @@ class Chain:
         logger.info('QRL blockchain ledger %s', self.version_number)
         logger.info('loading db')
         logger.info('loading wallet')
-
-        self.wallet.load_winfo()
-
         logger.info('mining/staking address %s', self.mining_address)
 
     def validate_reboot(self, mhash, nonce):

@@ -898,9 +898,13 @@ def vec2hexstr(*args):
     return _pyqrllib.vec2hexstr(*args)
 vec2hexstr = _pyqrllib.vec2hexstr
 
-def getAddress(prefix, xmss):
-    return _pyqrllib.getAddress(prefix, xmss)
+def getAddress(*args):
+    return _pyqrllib.getAddress(*args)
 getAddress = _pyqrllib.getAddress
+
+def tobin(s):
+    return _pyqrllib.tobin(s)
+tobin = _pyqrllib.tobin
 
 _pyqrllib.SHAKE128_RATE_swigconstant(_pyqrllib)
 SHAKE128_RATE = _pyqrllib.SHAKE128_RATE

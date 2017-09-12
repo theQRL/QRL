@@ -2,8 +2,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from StringIO import StringIO
 from abc import ABCMeta
+from binascii import unhexlify, hexlify
 
 import simplejson as json
 
@@ -29,12 +29,9 @@ class Transaction(object):
         self.pubhash = None
         self.txhash = None
         self.txfrom = None
-        self.sig_i = None
-        self.sig_signature = None
-        self.sig_merkle_path = None
-        self.sig_i_bms = None
-        self.sig_pub = None
-        self.sig_PK = None
+
+        self.PK = None
+        self.composite_signature = None
 
     @staticmethod
     def from_txdict(txdict):
@@ -87,39 +84,27 @@ class Transaction(object):
         return tx_list
 
     @staticmethod
-    def _checkaddress(sig_PK, address):
-        # type: (list, str) -> bool
-        return XMSS.create_address_from_key(sig_PK[0] + sig_PK[1]) == address
+    def _checkaddress(key, address):
+        return XMSS.create_address_from_key(key) == address
 
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
         self.txhash = sha256(txhash + self.pubhash)
+        self.txfrom = txfrom.encode('ascii')
 
-        self.txfrom = str(txfrom).encode('ascii')
-
-        signature_components = xmss.SIGN(str(self.txhash))
-
-        # signature_components = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
-        self.sig_i = signature_components[0]
-        self.sig_signature = signature_components[1]
-        self.sig_merkle_path = signature_components[2]
-        self.sig_i_bms = signature_components[3]
-        self.sig_pub = signature_components[4]
-        self.sig_PK = signature_components[5]
+        self.PK = hexlify(xmss.pk())
+        self.composite_signature = hexlify(xmss.SIGN(str(self.txhash)))
 
     def _validate_signed_hash(self):
-        if self.subtype != TX_SUBTYPE_COINBASE and not Transaction._checkaddress(self.sig_PK, self.txfrom):
+        if self.subtype != TX_SUBTYPE_COINBASE and not Transaction._checkaddress(self.PK, self.txfrom):
             logger.info('Public key verification failed')
             return False
 
         if not XMSS.VERIFY(message=self.txhash,
-                           signature=[self.sig_i,
-                                      self.sig_signature,
-                                      self.sig_merkle_path,
-                                      self.sig_i_bms,
-                                      self.sig_pub,
-                                      self.sig_PK]):
+                           signature=unhexlify(self.composite_signature),
+                           pk=self.PK,
+                           height=config.dev.xmss_tree_height):
 
             logger.info('xmss_verify failed')
             return False
@@ -137,12 +122,8 @@ class Transaction(object):
         self.pubhash = dict_tx['pubhash'].encode('ascii')
         self.txhash = self._reformat(dict_tx['txhash'])
 
-        self.sig_i = int(dict_tx['i'])
-        self.sig_signature = self._reformat(dict_tx['signature'])
-        self.sig_merkle_path = self._reformat(dict_tx['merkle_path'])
-        self.sig_i_bms = self._reformat(dict_tx['i_bms'])
-        self.sig_pub = self._reformat(dict_tx['pub'])
-        self.sig_PK = self._reformat(dict_tx['PK'])
+        self.PK = dict_tx['composite_signature']
+        self.composite_signature = dict_tx['composite_signature']
         return self
 
     def _reformat(self, srcList):
@@ -165,21 +146,16 @@ class Transaction(object):
         return True
 
     def get_message_hash(self):
-        message = StringIO()
         # FIXME: This looks suspicious
         '''
+        message = StringIO()
         message.write(self.nonce)
         message.write(self.txfrom)
         message.write(self.txhash)
-        message.write(self.i)
-        message.write(self.signature)
-        message.write(self.merkle_path)
-        message.write(self.i_bms)
-        message.write(self.pub)
-        message.write(self.PK)
-        message.write(self.subtype)
-        '''
+        message.write(self.composite_signature)
         return message
+        '''
+        return ""
 
     def transaction_to_json(self):
         return json.dumps(self.__dict__)
@@ -373,7 +349,7 @@ class StakeTransaction(Transaction):
     def state_validate_tx(self, tx_state):
         if self.subtype != TX_SUBTYPE_STAKE:
             return False
-        pub = self.sig_pub
+        pub = self.PK
         pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
         pubhash = sha256(''.join(pub))
 

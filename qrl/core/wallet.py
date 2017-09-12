@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from _ctypes import Union
 from collections import namedtuple
 
 import qrl.core.Transaction_subtypes
@@ -63,7 +62,7 @@ class Wallet:
 
         logger.info('Syncing wallet file')
         with open(self.wallet_dat_filename, "r") as infile:
-            data = json.load(infile )
+            data = json.load(infile)
             self.address_bundle = []
             for a in data:
                 tmpxmss = XMSS(SIGNATURE_TREE_HEIGHT, mnemonic_to_seed(a['mnemonic'].strip()))
@@ -141,7 +140,7 @@ class Wallet:
                 return addr_bundle.xmss.get_remaining_signatures()
 
     def get_new_address(self,
-                        signature_tree_height=SIGNATURE_TREE_HEIGHT,
+                        signature_tree_height=config.dev.xmss_tree_height,
                         addrtype=ADDRESS_TYPE_XMSS,
                         seed=None):
         # type: (int, str, str) -> AddressBundle
@@ -157,4 +156,4 @@ class Wallet:
             raise Exception('OTS type not recognised')
 
         xmss = XMSS(tree_height=signature_tree_height, SEED=seed)
-        return AddressBundle(xmss.address, xmss)
+        return AddressBundle(xmss.get_address(), xmss)
