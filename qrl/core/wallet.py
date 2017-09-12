@@ -17,19 +17,17 @@ SIGNATURE_TREE_HEIGHT = 13
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
 
 
-class WalletManager:
+class Wallet:
     ADDRESS_TYPE_XMSS = 'XMSS'
 
-    def __init__(self, chain, state):
-        # FIXME: state is already part of the chain
-        # FIXME: Probably the wallet should own the chain, not the opposite
-        self.chain = chain
-        self.state = state
+    def __init__(self):
         self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
         self.wallet_info_filename = os.path.join(config.user.wallet_path, config.dev.wallet_info_filename)
         self.mnemonic_filename = os.path.join(config.user.wallet_path, config.dev.mnemonic_filename)
 
-    def recover_wallet(self):
+        self.address_bundle = self._read_wallet()
+
+    def _recover_wallet(self):
         # type: () -> bool
         try:
             with open(self.wallet_info_filename, 'r') as myfile:
@@ -47,14 +45,14 @@ class WalletManager:
             # FIXME: What is this? obsolete code?
             pass
 
-        self.chain.address_bundle = []
+        self.address_bundle = []
         for wallets in data:
             words = wallets[0]
             addr_bundle = self.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(words))
-            self.f_append_wallet(addr_bundle, True)
+            self.append_wallet(addr_bundle, True)
         return True
 
-    def retrieve_seed_from_mnemonic(self):
+    def _retrieve_seed_from_mnemonic(self):
         # type: () -> Union[None, str]
         if os.path.isfile(self.mnemonic_filename):
             with open(self.mnemonic_filename, 'r') as f:
@@ -63,7 +61,7 @@ class WalletManager:
             return seed
         return None
 
-    def f_read_wallet(self):
+    def _read_wallet(self):
         # type: () -> List[AddressBundle]
         addr_bundle_list = []
 
@@ -72,13 +70,13 @@ class WalletManager:
             seed = None
 
             # For AWS test only
-            tmp_seed = self.retrieve_seed_from_mnemonic()
+            tmp_seed = self._retrieve_seed_from_mnemonic()
             if tmp_seed is not None:
                 logger.info('Using mnemonic')
                 seed = tmp_seed
 
             addr_bundle = self.get_new_address(SIGNATURE_TREE_HEIGHT,
-                                               addrtype=WalletManager.ADDRESS_TYPE_XMSS,
+                                               addrtype=Wallet.ADDRESS_TYPE_XMSS,
                                                SEED=seed)
             addr_bundle_list.append(addr_bundle)
 
@@ -94,23 +92,23 @@ class WalletManager:
                 logger.exception(e)
 
                 logger.warning('Trying to recover')
-                if self.recover_wallet():
+                if self._recover_wallet():
                     continue
 
                 logger.error('Failed to Recover Wallet')
                 sys.exit()
 
-    def f_save_wallet(self):
+    def save_wallet(self):
         # type: () -> None
         logger.info('Syncing wallet file')
         with open(self.wallet_dat_filename,
                   "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
-            pickle.dump(self.chain.address_bundle, myfile)
+            pickle.dump(self.address_bundle, myfile)
 
-    def f_save_winfo(self):
+    def save_winfo(self):
         # type: () -> None
         data = []
-        for addr_bundle in self.chain.address_bundle:
+        for addr_bundle in self.address_bundle:
             # FIXME original code was odd, maintaining functionaly. Review
             if isinstance(addr_bundle.xmss, XMSS):
                 data.append(
@@ -125,7 +123,7 @@ class WalletManager:
         with open(self.wallet_info_filename, "w+") as myfile:
             pickle.dump(data, myfile)
 
-    def f_load_winfo(self):
+    def load_winfo(self):
         # type: () -> bool
         try:
             if os.path.isfile(self.wallet_info_filename):
@@ -133,15 +131,15 @@ class WalletManager:
                     data = pickle.load(myfile)
             else:
                 logger.info('Likely no wallet.info found, creating..')
-                self.f_save_winfo()
+                self.save_winfo()
                 return False
         except Exception as e:
             logger.exception(e)
             logger.info('Likely no wallet.info found, creating..')
-            self.f_save_winfo()
+            self.save_winfo()
             return False
         x = 0
-        for addr_bundle in self.chain.address_bundle:
+        for addr_bundle in self.address_bundle:
             # if any part of self.chain.address_bundle which has loaded from f_read_wallet()
             # on startup is lower than winfo then don't load..
             if not isinstance(addr_bundle.xmss, list):
@@ -151,25 +149,26 @@ class WalletManager:
                 else:
                     return False
                 x += 1
-        self.f_save_wallet()
+        self.save_wallet()
         return True
 
-    def f_append_wallet(self, data, ignore_chain=False):
+    def append_wallet(self, data, ignore_chain=False):
         # type: (AddressBundle, bool) -> None
         if not ignore_chain:
-            if not self.chain.address_bundle:
-                self.chain.address_bundle = self.f_read_wallet()
+            if not self.address_bundle:
+                self.address_bundle = self._read_wallet()
         if data is not False:
-            self.chain.address_bundle.append(data)
+            self.address_bundle.append(data)
             logger.info('Appending wallet file..')
             with open(self.wallet_dat_filename, "w+") as f:  # overwrites wallet..
-                pickle.dump(self.chain.address_bundle, f)
-        self.f_save_winfo()
+                pickle.dump(self.address_bundle, f)
+        self.save_winfo()
 
-    def list_addresses(self, dict_format=False):
-        addr_bundle_list = self.chain.address_bundle
+    def list_addresses(self, state, transaction_pool, dict_format=False):
+        # FIXME: This is called from multiple places and requires external info. Refactor?
+        addr_bundle_list = self.address_bundle
         if not addr_bundle_list:
-            addr_bundle_list = self.f_read_wallet()
+            addr_bundle_list = self._read_wallet()
 
         list_addr = []
         list_addresses = []
@@ -178,7 +177,7 @@ class WalletManager:
         for addr_bundle in addr_bundle_list:
             x = 0
             y = 0
-            for t in self.chain.transaction_pool:
+            for t in transaction_pool:
                 if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                     if t.txfrom == addr_bundle.address:
                         y += 1
@@ -196,8 +195,8 @@ class WalletManager:
                 dict_addr['type'] = addr_bundle.xmss.get_type()
 
                 FACTOR = 100000000.000000000
-                tmp_state_balance = self.state.state_balance(addr_bundle.address)
-                tmp_state_nonce = self.state.state_nonce(addr_bundle.address)
+                tmp_state_balance = state.state_balance(addr_bundle.address)
+                tmp_state_nonce = state.state_nonce(addr_bundle.address)
 
                 dict_addr['balance'] = "{} ({})".format(tmp_state_balance / FACTOR, (tmp_state_balance + x) / FACTOR)
                 dict_addr['nonce'] = "{} ({})".format(tmp_state_nonce, tmp_state_nonce + y)
@@ -221,9 +220,9 @@ class WalletManager:
         return list_addr
 
     def get_num_signatures(self, address_to_check):
-        addr_bundle_list = self.chain.address_bundle
+        addr_bundle_list = self.address_bundle
         if not addr_bundle_list:
-            addr_bundle_list = self.f_read_wallet()
+            addr_bundle_list = self._read_wallet()
 
         for addr_bundle in addr_bundle_list:
             if addr_bundle.address == address_to_check:
@@ -242,7 +241,7 @@ class WalletManager:
         :param SEED:
         :return: a wallet address
         """
-        if addrtype == WalletManager.ADDRESS_TYPE_XMSS:
+        if addrtype == Wallet.ADDRESS_TYPE_XMSS:
             xmss = XMSS(tree_height=signature_tree_height, SEED=SEED)
             return AddressBundle(xmss.address, xmss)
 
@@ -250,4 +249,4 @@ class WalletManager:
 
     def savenewaddress(self, number_signatures, addrtype, seed=None):
         # type: (int, str, str) -> None
-        self.f_append_wallet(self.get_new_address(number_signatures, addrtype, seed))
+        self.append_wallet(self.get_new_address(number_signatures, addrtype, seed))

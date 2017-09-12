@@ -282,11 +282,11 @@ class State:
             logger.info('stake selector wrong..')
             return
 
-        xmss = chain.address_bundle[0].xmss
+        xmss = chain.wallet.address_bundle[0].xmss
         tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
 
         chain.hash_chain = tmphc.hashchain
-        chain.wallet_manager.f_save_wallet()
+        chain.wallet.save_wallet()
         return True
 
     def state_update(self, block, stake_validators_list, address_txn):
@@ -379,12 +379,12 @@ class State:
             self.stake_validators_list.move_next_epoch()
             self.stake_list_put(self.stake_validators_list.to_json())
 
-            xmss = chain.address_bundle[0].xmss
+            xmss = chain.wallet.address_bundle[0].xmss
             tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=block.blockheader.epoch + 1)
 
             chain.hash_chain = tmphc.hashchain
             if not ignore_save_wallet:
-                chain.wallet_manager.f_save_wallet()
+                chain.wallet.save_wallet()
 
         self.db.put('blockheight', chain.height() + 1)
         logger.info('%s %s tx passed verification.', block.blockheader.headerhash, len(block.transactions))

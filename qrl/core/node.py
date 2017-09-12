@@ -168,19 +168,19 @@ class POS:
             return
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
-        xmss = self.chain.address_bundle[0].xmss
+        xmss = self.chain.wallet.address_bundle[0].xmss
         tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
         logger.info('hashchain terminator: %s', tmphc.hc_terminator)
         st = StakeTransaction().create(blocknumber=0,
-                                       xmss=self.chain.address_bundle[0].xmss,
+                                       xmss=self.chain.wallet.address_bundle[0].xmss,
                                        hashchain_terminator=tmphc.hc_terminator,
                                        first_hash=tmphc.hashchain[-1][-2],
                                        balance=self.chain.state.state_balance(self.chain.mining_address))
 
-        self.chain.wallet_manager.f_save_winfo()
+        self.chain.wallet.save_winfo()
         self.chain.add_tx_to_pool(st)
         # send the stake tx to generate hashchain terminators for the staker addresses..
         self.p2pFactory.send_st_to_peers(st)
@@ -220,7 +220,7 @@ class POS:
         if self.chain.mining_address == self.chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
-            tmphc = HashChain(self.chain.address_bundle[0].xmss.get_seed_private()).hashchain()
+            tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain()
 
             # create the genesis block 2 here..
             my_hash_chain, _ = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
@@ -471,7 +471,7 @@ class POS:
                         diff = max(1, (
                             (max_threshold_blocknum - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                         if random.randint(1, diff) == 1:
-                            xmss = deepcopy(self.chain.address_bundle[0].xmss)
+                            xmss = deepcopy(self.chain.wallet.address_bundle[0].xmss)
                             tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 
@@ -486,12 +486,12 @@ class POS:
 
         st = StakeTransaction().create(
             blocknumber=blocknumber,
-            xmss=self.chain.address_bundle[0].xmss,
+            xmss=self.chain.wallet.address_bundle[0].xmss,
             first_hash=first_hash,
             balance=balance
         )
         self.p2pFactory.send_st_to_peers(st)
-        self.chain.wallet_manager.f_save_winfo()
+        self.chain.wallet.save_winfo()
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
             if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE and st.hash == t.hash:
