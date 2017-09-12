@@ -31,7 +31,7 @@ class Transaction(object):
         self.txfrom = None
 
         self.PK = None
-        self.composite_signature = None
+        self.signature = None
 
     @staticmethod
     def from_txdict(txdict):
@@ -94,7 +94,7 @@ class Transaction(object):
         self.txfrom = txfrom.encode('ascii')
 
         self.PK = hexlify(xmss.pk())
-        self.composite_signature = hexlify(xmss.SIGN(str(self.txhash)))
+        self.signature = hexlify(xmss.SIGN(str(self.txhash)))
 
     def _validate_signed_hash(self):
         if self.subtype != TX_SUBTYPE_COINBASE and not Transaction._checkaddress(self.PK, self.txfrom):
@@ -102,7 +102,7 @@ class Transaction(object):
             return False
 
         if not XMSS.VERIFY(message=self.txhash,
-                           signature=unhexlify(self.composite_signature),
+                           signature=unhexlify(self.signature),
                            pk=self.PK,
                            height=config.dev.xmss_tree_height):
 
@@ -122,8 +122,8 @@ class Transaction(object):
         self.pubhash = dict_tx['pubhash'].encode('ascii')
         self.txhash = self._reformat(dict_tx['txhash'])
 
-        self.PK = dict_tx['composite_signature']
-        self.composite_signature = dict_tx['composite_signature']
+        self.PK = dict_tx['PK']
+        self.signature = dict_tx['signature']
         return self
 
     def _reformat(self, srcList):
@@ -152,7 +152,7 @@ class Transaction(object):
         message.write(self.nonce)
         message.write(self.txfrom)
         message.write(self.txhash)
-        message.write(self.composite_signature)
+        message.write(self.signature)
         return message
         '''
         return ""
