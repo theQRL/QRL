@@ -4,7 +4,8 @@
 
 from operator import itemgetter
 
-from qrl.core import db, logger, transaction, config, helper
+import qrl.core.Transaction_subtypes
+from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.misc import sha256
@@ -213,7 +214,7 @@ class State:
         for tx in block.transactions:
             if tx.txfrom not in address_txn:
                 address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
-            if tx.subtype == transaction.TX_SUBTYPE_TX:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 if tx.txto not in address_txn:
                     address_txn[tx.txto] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txto)
 
@@ -241,7 +242,7 @@ class State:
         # Coinbase update end here
         tmp_list = []
         for tx in block.transactions:
-            if tx.subtype == transaction.TX_SUBTYPE_STAKE:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
                 if tx.txfrom == block.blockheader.stake_selector:
                     tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom]])
@@ -308,14 +309,14 @@ class State:
                 logger.warning('subtype: %s', tx.subtype)
                 return False
 
-            if tx.subtype == transaction.TX_SUBTYPE_TX:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 if address_txn[tx.txfrom][1] - tx.amount < 0:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
                     return False
 
-            elif tx.subtype == transaction.TX_SUBTYPE_STAKE:
+            elif tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
                     logger.warning('Block rejected #%s due to ST without first_reveal beyond limit',
@@ -345,10 +346,11 @@ class State:
 
             address_txn[tx.txfrom][0] += 1
 
-            if tx.subtype == transaction.TX_SUBTYPE_TX:
+            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 address_txn[tx.txfrom][1] -= tx.amount - tx.fee
 
-            if tx.subtype in (transaction.TX_SUBTYPE_TX, transaction.TX_SUBTYPE_COINBASE):
+            if tx.subtype in (
+            qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
                 address_txn[tx.txto][1] += tx.amount
 
             address_txn[tx.txfrom][2].append(pubhash)

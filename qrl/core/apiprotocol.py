@@ -11,7 +11,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 
 from qrl.core import logger
 from qrl.core.helper import json_print_telnet
-from qrl.core.transaction import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
 
 
 class ApiProtocol(Protocol):
