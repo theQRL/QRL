@@ -69,6 +69,8 @@ def seed_to_mnemonic(seed_hexstring):
     seed to mnemonic
     :param seed_hexstring:
     :return:
+    >>> seed_to_mnemonic("ss") is None
+    True
     """
     if len(seed_hexstring) != 48:
         logger.error('SEED is not 48 bytes in length..')

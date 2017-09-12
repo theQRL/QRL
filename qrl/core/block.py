@@ -98,7 +98,7 @@ class Block(object):
         tmp_block.json_to_block(json.loads(json_block))
         return tmp_block
 
-    def validate_tx_in_block(self):
+    def _validate_tx_in_block(self):
         # Validating coinbase txn
         coinbase_txn = self.transactions[0]
         valid = coinbase_txn.validate_tx(block_headerhash=self.blockheader.headerhash)
@@ -226,7 +226,7 @@ class Block(object):
             logger.warning('Block numbers out of sequence: failed validation')
             return False
 
-        if not self.validate_tx_in_block():
+        if not self._validate_tx_in_block():
             logger.warning('Block validate_tx_in_block error: failed validation')
             return False
 
