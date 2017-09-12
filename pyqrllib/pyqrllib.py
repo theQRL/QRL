@@ -891,9 +891,16 @@ def verify(message, signature, pk, height):
     return _pyqrllib.verify(message, signature, pk, height)
 verify = _pyqrllib.verify
 
+_pyqrllib.ADDRESS_HASH_SIZE_swigconstant(_pyqrllib)
+ADDRESS_HASH_SIZE = _pyqrllib.ADDRESS_HASH_SIZE
+
 def vec2hexstr(*args):
     return _pyqrllib.vec2hexstr(*args)
 vec2hexstr = _pyqrllib.vec2hexstr
+
+def getAddress(prefix, xmss):
+    return _pyqrllib.getAddress(prefix, xmss)
+getAddress = _pyqrllib.getAddress
 
 _pyqrllib.SHAKE128_RATE_swigconstant(_pyqrllib)
 SHAKE128_RATE = _pyqrllib.SHAKE128_RATE
