@@ -14,6 +14,13 @@ class HashChain(object):
         self.blocks_per_epoch = blocks_per_epoch
 
     def _get_hc_seed(self, epoch):
+        """
+
+        :param epoch:
+        :type epoch:
+        :return:
+        :rtype:
+        """
         half = int(config.dev.blocks_per_epoch / 2)
         x = GEN(self._xmss._seed_private, half + epoch, l=32)
         y = GEN(x, half, l=32)
@@ -51,9 +58,27 @@ class HashChain(object):
         return hc_seed, hc, hc_terminator
 
     def hashchain(self, epoch=0):
+        """
+
+        :param epoch:
+        :type epoch:
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.xmss import XMSS; isinstance(HashChain( XMSS(4, xmss_test_seed1) ).hashchain(), HashChainBundle)
+        True
+        """
         # type: (int) -> HashChainBundle
         return HashChainBundle(*self._calc_hashchain(epoch))
 
     def hashchain_reveal(self, epoch=0):
+        """
+
+        :param epoch:
+        :type epoch:
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.xmss import XMSS; HashChain( XMSS(4, xmss_test_seed1) ).hashchain_reveal() == hashchain_reveal_expected1
+        True
+        """
         hc_seed, hc, hc_terminator = self._calc_hashchain(epoch)
         return hc_terminator
