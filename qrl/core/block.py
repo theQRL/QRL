@@ -5,10 +5,10 @@
 import simplejson as json
 
 import qrl.core.Transaction_subtypes
-from qrl.core import Transaction, logger, config, ntp
+from qrl.core import logger, config, ntp
 from qrl.core.blockheader import BlockHeader
 from qrl.core.helper import select_target_hashchain
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 
@@ -68,7 +68,7 @@ class Block(object):
                                 hashedtransactions=hashedtransactions,
                                 fee_reward=fee_reward)
 
-        coinbase_tx = transaction.CoinBase().create(self.blockheader.block_reward,
+        coinbase_tx = CoinBase().create(self.blockheader.block_reward,
                                                     self.blockheader.headerhash,
                                                     chain.address_bundle[0].xmss)
         self.transactions[0] = coinbase_tx

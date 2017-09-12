@@ -4,7 +4,7 @@
 from collections import namedtuple
 
 import qrl.core.Transaction_subtypes
-from qrl.core import config, logger, Transaction
+from qrl.core import config, logger
 from qrl.crypto.mnemonic import mnemonic_to_seed
 from qrl.crypto.xmss import XMSS
 
