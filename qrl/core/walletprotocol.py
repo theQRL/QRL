@@ -19,11 +19,11 @@ from qrl.crypto.xmss import XMSS
 
 class WalletProtocol(Protocol):
     def __init__(self):
-        self.cmd_list = ['balance', 'mining', 'seed', 'hexseed', 'recoverfromhexseed',
-                         'recoverfromwords', 'stakenextepoch', 'stake', 'address',
-                         'wallet', 'send', 'mempool', 'getnewaddress', 'quit', 'exit',
-                         'search', 'help', 'savenewaddress', 'getinfo', 
-                         'blockheight', 'json_block', 'reboot', 'peers']
+        self.cmd_list = ['seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords',
+                         'stakenextepoch', 'stake', 'wallet', 'send', 'mempool', 
+                         'getnewaddress', 'quit', 'exit', 'search', 'help', 
+                         'savenewaddress', 'getinfo', 'blockheight', 'json_block', 
+                         'reboot', 'peers']
 
         self.output = {'status': 1,
                        'keys': [],
