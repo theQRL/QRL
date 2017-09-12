@@ -3,9 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from binascii import unhexlify
 
-from pyqrllib.pyqrllib import Xmss, vec2hexstr, getAddress, ucharVector, verify, tobin
+from pyqrllib.pyqrllib import Xmss, vec2hexstr, getAddress, ucharVector, verify, tobin, getRandomSeed
 from qrl.core import config
 from qrl.crypto.mnemonic import seed_to_mnemonic
+
 
 class XMSS(object):
     """
@@ -18,7 +19,7 @@ class XMSS(object):
 
     # FIXME: Getters are only temporarily. Delete everything or use properties
 
-    def __init__(self, tree_height, SEED=None):
+    def __init__(self, tree_height, seed=None):
         """
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
@@ -72,18 +73,19 @@ class XMSS(object):
         """
         self._number_signatures = 2 ** tree_height
 
-        # FIXME: no error handling for invalid seeds
         self._type = 'XMSS'
+
+        # FIXME: Set index to appropiate value after restoring
         self._index = 0
 
-        if SEED is None:
-            raise Exception("Empty seed not supported")
+        if seed is None:
+            # FIXME: Improve seed generation
+            self._seed = getRandomSeed(32)
+        else:
+            self._seed = tobin(seed)
 
         # TODO: #####################
         # FIXME Seed is fixed!!!!!!!!!!!!!!!!!!!!
-        self._seed = ucharVector(len(SEED), 0)
-        for i, c in enumerate(SEED):
-            self._seed[i] = ord(c)
         self._xmss = Xmss(self._seed, tree_height)
 
         # TODO: Need to set an index
@@ -217,7 +219,7 @@ class XMSS(object):
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
-    def VERIFY(message, signature, pk, height = config.dev):
+    def VERIFY(message, signature, pk, height=config.dev):
         # type: (bytearray, list) -> bool
         # NOTE: used by transaction
         """

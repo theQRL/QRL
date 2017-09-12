@@ -17511,6 +17511,28 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_getRandomSeed(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  uint32_t arg1 ;
+  unsigned int val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  std::vector< unsigned char,std::allocator< unsigned char > > result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:getRandomSeed",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_unsigned_SS_int(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "getRandomSeed" "', argument " "1"" of type '" "uint32_t""'");
+  } 
+  arg1 = static_cast< uint32_t >(val1);
+  result = getRandomSeed(arg1);
+  resultobj = swig::from(static_cast< std::vector< unsigned char,std::allocator< unsigned char > > >(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *SHAKE128_RATE_swigconstant(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *module;
   PyObject *d;
@@ -18137,6 +18159,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"vec2hexstr", _wrap_vec2hexstr, METH_VARARGS, NULL},
 	 { (char *)"getAddress", _wrap_getAddress, METH_VARARGS, NULL},
 	 { (char *)"tobin", _wrap_tobin, METH_VARARGS, NULL},
+	 { (char *)"getRandomSeed", _wrap_getRandomSeed, METH_VARARGS, NULL},
 	 { (char *)"SHAKE128_RATE_swigconstant", SHAKE128_RATE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"SHAKE256_RATE_swigconstant", SHAKE256_RATE_swigconstant, METH_VARARGS, NULL},
 	 { (char *)"shake128", _wrap_shake128, METH_VARARGS, NULL},
