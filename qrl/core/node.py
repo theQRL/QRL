@@ -169,7 +169,7 @@ class POS:
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
         xmss = self.chain.address_bundle[0].xmss
-        tmphc = HashChain(xmss).hashchain(epoch=0)
+        tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
@@ -220,7 +220,7 @@ class POS:
         if self.chain.mining_address == self.chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
-            tmphc = HashChain(self.chain.address_bundle[0].xmss).hashchain()
+            tmphc = HashChain(self.chain.address_bundle[0].xmss.get_seed_private()).hashchain()
 
             # create the genesis block 2 here..
             my_hash_chain, _ = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
@@ -472,7 +472,7 @@ class POS:
                             (max_threshold_blocknum - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
                         if random.randint(1, diff) == 1:
                             xmss = deepcopy(self.chain.address_bundle[0].xmss)
-                            tmphc = HashChain(xmss).hashchain(epoch=epoch + 1)
+                            tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 
         return

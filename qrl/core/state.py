@@ -21,6 +21,12 @@ class State:
     """
 
     def __init__(self):
+        """
+        >>> State().db is not None
+        True
+        >>> State().stake_validators_list is not None
+        True
+        """
         self.db = db.DB()  # generate db object here
         self.stake_validators_list = StakeValidatorsList()
 
@@ -277,7 +283,7 @@ class State:
             return
 
         xmss = chain.address_bundle[0].xmss
-        tmphc = HashChain(xmss).hashchain(epoch=0)
+        tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
 
         chain.hash_chain = tmphc.hashchain
         chain.wallet_manager.f_save_wallet()
@@ -374,7 +380,7 @@ class State:
             self.stake_list_put(self.stake_validators_list.to_json())
 
             xmss = chain.address_bundle[0].xmss
-            tmphc = HashChain(xmss).hashchain(epoch=block.blockheader.epoch + 1)
+            tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=block.blockheader.epoch + 1)
 
             chain.hash_chain = tmphc.hashchain
             if not ignore_save_wallet:

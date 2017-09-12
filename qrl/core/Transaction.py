@@ -324,7 +324,7 @@ class StakeTransaction(Transaction):
         self.balance = balance
 
         if hashchain_terminator is None:
-            self.hash = HashChain(xmss).hashchain_reveal(epoch=self.epoch + 1)
+            self.hash = HashChain(xmss.get_seed_private()).hashchain_reveal(epoch=self.epoch + 1)
         else:
             self.hash = hashchain_terminator
 

@@ -30,7 +30,7 @@ class ChainBuffer:
         self.epoch_seed = None
         self.hash_chain = dict()
 
-        tmphc = HashChain(self.chain.address_bundle[0].xmss).hashchain()
+        tmphc = HashChain(self.chain.address_bundle[0].xmss.get_seed_private()).hashchain()
         self.hash_chain[self.epoch] = tmphc.hashchain
 
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
@@ -99,7 +99,7 @@ class ChainBuffer:
         self.address_bundle_clone[epoch] = tmp_address_bundle
 
         xmss = tmp_address_bundle[0].xmss
-        tmp = HashChain(xmss).hashchain(epoch=epoch)
+        tmp = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch)
         self.hash_chain[epoch] = tmp.hashchain
 
         gc.collect()
@@ -156,7 +156,7 @@ class ChainBuffer:
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
             self.address_bundle_clone[epoch + 1] = self.chain.address_bundle
 
-            tmphc = HashChain(self.chain.address_bundle[0].xmss).hashchain(epoch=epoch+1)
+            tmphc = HashChain(self.chain.address_bundle[0].xmss.get_seed_private()).hashchain(epoch=epoch+1)
             self.hash_chain[epoch + 1] = tmphc.hashchain
 
             if epoch in self.address_bundle_clone:

@@ -24,6 +24,7 @@ class XMSS(object):
     The XMSS public key PK consists of the root of the binary hash tree and the bitmasks from xmss and l-tree.
     a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures.
     """
+    #FIXME: Getters are only temporarily. Delete everything or use properties
 
     def __init__(self, tree_height, SEED=None):
         # type: (int, Union[str, None]) -> None
@@ -172,6 +173,17 @@ class XMSS(object):
         '333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331'
         """
         return hexlify(self._seed)
+
+    def get_seed_private(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; hexlify( XMSS(3, xmss_test_seed1).get_seed_private() )
+        '32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e'
+        >>> from qrl.crypto.doctest_data import *; hexlify( XMSS(4, xmss_test_seed2).get_seed_private() )
+        '529647107c42786b576ac1cfd9b532de2f66d2a8374f1f6293e986009b940864ca80c295092d6217afddf5be0aeb9695'
+        """
+        return self._seed_private
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
