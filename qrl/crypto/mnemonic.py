@@ -4,6 +4,7 @@
     SEED parsed 12 bits at a time and a word looked up from a dictionary with 4096 unique words in it..
     another approach would be a hexseed and QR code or BIP38 style encryption of the SEED with a passphrase..
 """
+
 from qrl.core import logger
 from qrl.crypto.words import wordlist
 
@@ -30,6 +31,15 @@ def validate_mnemonic(mnemonic):
 
 
 def mnemonic_to_seed(mnemonic):
+    """
+
+    :param mnemonic:
+    :type mnemonic: str
+    :return:
+    :rtype: Union[str, None]
+    >>> from binascii import hexlify; hexlify(mnemonic_to_seed("monies hoarse knee socket dock ladder monk abide child junior gill snack gloss bigger pink air spray ponder horrid tube stack luxury recent vein nicely arrive adam short burst keep bright steer"))
+    '8fd6b878fcf13e57a08fe00328776f5d3ce25e9166a5704fd42a946c9ec2d4f854b3af1d9670b4025c7c20a7791d9d6e'
+    """
     # type: (str) -> str
     """
     mnemonic to seed

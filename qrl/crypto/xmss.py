@@ -31,6 +31,14 @@ class XMSS(object):
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
         :param SEED:
+        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test1)).get_address()
+        'Q034125172e37499649efb2df6c2de8d70258c7e87b47d9b40fb866fe54c124ae5a17'
+        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(3, mnemonic_to_seed(xmss_mnemonic_test2)).get_address()
+        'Qe09ca5ad5f566d55c3545dfebe3ee58f4976d6370e83f944212c6159ed1ce08c6891'
+        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test1)).get_mnemonic() == xmss_mnemonic_test1
+        True
+        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test2)).get_mnemonic() == xmss_mnemonic_test2
+        True
         """
 
         self._number_signatures = 2 ** tree_height
