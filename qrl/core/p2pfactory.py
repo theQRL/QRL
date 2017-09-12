@@ -49,6 +49,7 @@ class P2PFactory(ServerFactory):
         self.peer_addresses = []
         self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
         self.load_peer_addresses()
+        self.txn_processor_running = False
 
     # factory network functions
     def setPOS(self, pos):
@@ -290,3 +291,9 @@ class P2PFactory(ServerFactory):
         with open(self.peers_path, "w+") as myfile:
             pickle.dump(self.peer_addresses, myfile)
 
+    def reset_processor_flag(self, _):
+        self.txn_processor_running = False
+
+    def reset_processor_flag_with_err(self, msg):
+        logger.error('Exception in txn task')
+        logger.error('%s', msg)

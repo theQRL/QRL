@@ -164,7 +164,7 @@ class POS:
 
         if self.chain.mining_address not in self.chain.m_blockchain[0].stake_list:
             logger.info('not in stake list..no further pre_pos_x calls')
-
+            return
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
         xmss = self.chain.address_bundle[0].xmss
@@ -533,13 +533,10 @@ class POS:
             logger.info('only received one reveal for this block.. blocknum #%s', next_block_num)
             return
 
-        epoch = next_block_num / config.dev.blocks_per_epoch  # +1 = next block
         seed = self.chain.block_chain_buffer.get_epoch_seed(next_block_num)
         winners = self.chain.select_winners(filtered_reveal_one,
                                             topN=3,
                                             seed=seed)
-
-        # reactor.process_blocks = reactor.callLater(30, process_blocks, winners=winners, our_reveal=our_reveal)
 
         if not (self.p2pFactory.stake and our_reveal):
             return
@@ -550,11 +547,6 @@ class POS:
                                           vote_hashes,
                                           last_block_number)
             self.pre_block_logic(block)  # broadcast this block
-
-        if self.chain.pending_tx_pool:
-            if len(self.chain.transaction_pool) < 10:
-                logger.info('Processing TXNs if any')
-                self.process_transactions(5)
 
     def randomize_block_fetch(self, blocknumber):
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():

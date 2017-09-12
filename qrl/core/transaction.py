@@ -327,21 +327,19 @@ class SimpleTransaction(Transaction):
 
         pubhash = self.generate_pubhash(self.pub)
 
+        tx_pubhashes = tx_state[2]
+        if pubhash in tx_pubhashes:
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            return False
+
         for txn in transaction_pool:
             if txn.txhash == self.txhash:
                 continue
-            if not self.validate_subtype(self.subtype, TX_SUBTYPE_TX):
-                return False
 
             pubhashn = self.generate_pubhash(txn.pub)
             if pubhashn == pubhash:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
-
-        tx_pubhashes = tx_state[2]
-        if pubhash in tx_pubhashes:
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-            return False
 
         return True
 
