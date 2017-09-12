@@ -513,7 +513,7 @@ class WalletProtocol(Protocol):
             return
 
         # Check if local wallet number is higher than the number of local wallets that are saved
-        if int(wallet_from) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.chain.transaction_pool)) - 1:
+        if int(wallet_from) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.factory.chain.transaction_pool)) - 1:
             self.output['message'].write(
                 '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
             return
@@ -535,7 +535,7 @@ class WalletProtocol(Protocol):
                 self.output['message'].write(
                     '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
                 return
-            if int(wallet_to) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.chain.transaction_pool)) - 1:
+            if int(wallet_to) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.factory.chain.transaction_pool)) - 1:
                 self.output['message'].write(
                     '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
                 return
@@ -609,7 +609,7 @@ class WalletProtocol(Protocol):
         self.output['keys'] += ['list_addresses']
         self.output['list_addresses'] = {}
 
-        list_addr, list_addresses = self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.chain.transaction_pool, True)
+        list_addr, list_addresses = self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.factory.chain.transaction_pool, True)
         self.output['list_addresses'] = list_addresses
 
         y = 0
