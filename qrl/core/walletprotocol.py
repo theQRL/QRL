@@ -157,13 +157,13 @@ class WalletProtocol(Protocol):
                     addr = self.factory.chain.wallet_manager.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
-                    self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].mnemonic + '\r\n')
+                    self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
                     self.output['message'].write('>>> hexSEED confirm: ' + addr[1].get_hexseed() + '\r\n')
                     self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_seed_phrase', 'hexseed_confirm']
                     self.output['recovery_address'] = addr[1].get_address()
-                    self.output['recovery_seed_phrase'] = addr[1].mnemonic
+                    self.output['recovery_seed_phrase'] = addr[1].get_mnemonic()
                     self.output['hexseed_confirm'] = addr[1].get_hexseed()
 
                 elif command == 'recoverfromwords':
@@ -183,13 +183,13 @@ class WalletProtocol(Protocol):
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].get_hexseed() + '\r\n')
-                    self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].mnemonic + '\r\n')
+                    self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].get_mnemonic() + '\r\n')
                     self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
 
                     self.output['keys'] += ['recovery_address', 'recovery_hexseed', 'mnemonic_confirm']
                     self.output['recovery_address'] = addr[1].get_address()
                     self.output['recovery_hexseed'] = addr[1].get_hexseed()
-                    self.output['mnemonic_confirm'] = addr[1].mnemonic
+                    self.output['mnemonic_confirm'] = addr[1].get_mnemonic()
 
                 elif command == 'stake':
                     self.output['status'] = 0
