@@ -154,9 +154,9 @@ class ChainBuffer:
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
-            self.address_bundle_clone[epoch + 1] = self.chain.address_bundle
+            self.address_bundle_clone[epoch + 1] = self.chain.wallet.address_bundle
 
-            tmphc = HashChain(self.chain.address_bundle[0].xmss.get_seed_private()).hashchain(epoch=epoch+1)
+            tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain(epoch=epoch+1)
             self.hash_chain[epoch + 1] = tmphc.hashchain
 
             if epoch in self.address_bundle_clone:
