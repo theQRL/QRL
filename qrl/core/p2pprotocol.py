@@ -13,6 +13,7 @@ from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.transaction import StakeTransaction, SimpleTransaction
 from qrl.crypto.misc import sha256
+from qrl.core.processors.TxnProcessor import TxnProcessor
 
 
 class P2PProtocol(Protocol):
@@ -101,7 +102,6 @@ class P2PProtocol(Protocol):
                 self.factory.chain.m_load_chain()
                 self.factory.pos.update_node_state(NState.synced)
 
-    #Message Recei
     def MR(self, data):
         """
         Message Receipt
@@ -116,6 +116,10 @@ class P2PProtocol(Protocol):
             return
 
         if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
+            return
+
+        if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool)>=config.dev.transaction_pool_size:
+            logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', data['hash'])
             return
 
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
@@ -1100,4 +1104,14 @@ class P2PProtocol(Protocol):
         self.factory.master_mr.register(tx.get_message_hash(), json_tx_obj, 'TX')
         self.broadcast(tx.get_message_hash(), 'TX')
 
+        if not self.factory.txn_processor_running:
+            txn_processor = TxnProcessor(block_chain_buffer=self.factory.chain.block_chain_buffer,
+                                         pending_tx_pool=self.factory.chain.pending_tx_pool,
+                                         transaction_pool=self.factory.chain.transaction_pool,
+                                         txhash_timestamp=self.factory.chain.txhash_timestamp)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+            task_defer.addCallback(self.factory.reset_processor_flag)\
+                      .addErrback(self.factory.reset_processor_flag_with_err)
+            self.factory.txn_processor_running = True
         return

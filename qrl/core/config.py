@@ -96,8 +96,9 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = '-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.40a"
+        self.version_number = "alpha/0.41a"
         self.chain_file_directory = 'data'
+        self.transaction_pool_size = 1000
 
         self.db_name = 'state'
         self.peers_filename = 'peers.dat'

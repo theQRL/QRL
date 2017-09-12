@@ -203,7 +203,7 @@ class Chain:
         return score
 
     def update_pending_tx_pool(self, tx, peer):
-        if len(self.pending_tx_pool) >= config.dev.blocks_per_epoch:
+        if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
             del self.pending_tx_pool[0]
             del self.pending_tx_pool_hash[0]
         self.pending_tx_pool.append([tx, peer])
