@@ -1,4 +1,4 @@
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 from collections import namedtuple
 
 from qrl.core import config
@@ -65,7 +65,7 @@ class HashChain(object):
         :type epoch:
         :return:
         :rtype:
-        >>> from qrl.crypto.doctest_data import *; isinstance(HashChain( unhexlify('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e') ).hashchain(), HashChainBundle)
+        >>> from qrl.crypto.doctest_data import *; from binascii import unhexlify; isinstance(HashChain( unhexlify('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e') ).hashchain(), HashChainBundle)
         True
         """
         # type: (int) -> HashChainBundle
@@ -78,7 +78,7 @@ class HashChain(object):
         :type epoch:
         :return:
         :rtype:
-        >>> from qrl.crypto.doctest_data import *; HashChain( unhexlify('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e') ).hashchain_reveal() == hashchain_reveal_expected1
+        >>> from qrl.crypto.doctest_data import *; from binascii import unhexlify; HashChain( unhexlify('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e') ).hashchain_reveal() == hashchain_reveal_expected1
         True
         """
         hc_seed, hc, hc_terminator = self._calc_hashchain(epoch)

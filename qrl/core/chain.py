@@ -32,7 +32,7 @@ from time import time
 from operator import itemgetter
 from math import log, ceil
 import heapq
-import os, copy, sys
+import os, copy
 import simplejson as json
 from collections import defaultdict
 from decimal import Decimal
@@ -1062,33 +1062,13 @@ class Chain:
 
     def m_verify_chain(self, verbose=0):
         for block in self.m_read_chain()[1:]:
-            if block.validate_block(self) is False:
+            if not block.validate_block(self):
                 return False
-        return True
-
-    def m_verify_chain_250(self, verbose=0):  # validate the last 250 blocks or len(m_blockchain)-1..
-        n = 0
-        if len(self.m_blockchain) > 250:
-            x = 250
-        else:
-            if len(self.m_blockchain) == 1:
-                return True
-            x = len(self.m_blockchain) - 1
-
-        for block in self.m_read_chain()[-x:]:
-            if self.validate_block(block, verbose=verbose) is False:
-                logger.info(('block failed:', block.blockheader.blocknumber))
-                return False
-            n += 1
-            if verbose is 1:
-                sys.stdout.write('.')
-                sys.stdout.flush()
         return True
 
     # validate and update stake+state for newly appended block.
     # can be streamlined to reduce repetition in the added components..
     # finish next epoch code..
-
 
     def add_tx_to_pool(self, tx_class_obj):
         self.transaction_pool.append(tx_class_obj)
