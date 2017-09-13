@@ -829,6 +829,119 @@ class doubleVector(_object):
 doubleVector_swigregister = _pyqrllib.doubleVector_swigregister
 doubleVector_swigregister(doubleVector)
 
+class _string_list(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, _string_list, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, _string_list, name)
+    __repr__ = _swig_repr
+
+    def iterator(self):
+        return _pyqrllib._string_list_iterator(self)
+    def __iter__(self):
+        return self.iterator()
+
+    def __nonzero__(self):
+        return _pyqrllib._string_list___nonzero__(self)
+
+    def __bool__(self):
+        return _pyqrllib._string_list___bool__(self)
+
+    def __len__(self):
+        return _pyqrllib._string_list___len__(self)
+
+    def __getslice__(self, i, j):
+        return _pyqrllib._string_list___getslice__(self, i, j)
+
+    def __setslice__(self, *args):
+        return _pyqrllib._string_list___setslice__(self, *args)
+
+    def __delslice__(self, i, j):
+        return _pyqrllib._string_list___delslice__(self, i, j)
+
+    def __delitem__(self, *args):
+        return _pyqrllib._string_list___delitem__(self, *args)
+
+    def __getitem__(self, *args):
+        return _pyqrllib._string_list___getitem__(self, *args)
+
+    def __setitem__(self, *args):
+        return _pyqrllib._string_list___setitem__(self, *args)
+
+    def pop(self):
+        return _pyqrllib._string_list_pop(self)
+
+    def append(self, x):
+        return _pyqrllib._string_list_append(self, x)
+
+    def empty(self):
+        return _pyqrllib._string_list_empty(self)
+
+    def size(self):
+        return _pyqrllib._string_list_size(self)
+
+    def swap(self, v):
+        return _pyqrllib._string_list_swap(self, v)
+
+    def begin(self):
+        return _pyqrllib._string_list_begin(self)
+
+    def end(self):
+        return _pyqrllib._string_list_end(self)
+
+    def rbegin(self):
+        return _pyqrllib._string_list_rbegin(self)
+
+    def rend(self):
+        return _pyqrllib._string_list_rend(self)
+
+    def clear(self):
+        return _pyqrllib._string_list_clear(self)
+
+    def get_allocator(self):
+        return _pyqrllib._string_list_get_allocator(self)
+
+    def pop_back(self):
+        return _pyqrllib._string_list_pop_back(self)
+
+    def erase(self, *args):
+        return _pyqrllib._string_list_erase(self, *args)
+
+    def __init__(self, *args):
+        this = _pyqrllib.new__string_list(*args)
+        try:
+            self.this.append(this)
+        except Exception:
+            self.this = this
+
+    def push_back(self, x):
+        return _pyqrllib._string_list_push_back(self, x)
+
+    def front(self):
+        return _pyqrllib._string_list_front(self)
+
+    def back(self):
+        return _pyqrllib._string_list_back(self)
+
+    def assign(self, n, x):
+        return _pyqrllib._string_list_assign(self, n, x)
+
+    def resize(self, *args):
+        return _pyqrllib._string_list_resize(self, *args)
+
+    def insert(self, *args):
+        return _pyqrllib._string_list_insert(self, *args)
+
+    def reserve(self, n):
+        return _pyqrllib._string_list_reserve(self, n)
+
+    def capacity(self):
+        return _pyqrllib._string_list_capacity(self)
+    __swig_destroy__ = _pyqrllib.delete__string_list
+    __del__ = lambda self: None
+_string_list_swigregister = _pyqrllib._string_list_swigregister
+_string_list_swigregister(_string_list)
+
 class Xmss(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, Xmss, name, value)
@@ -845,6 +958,9 @@ class Xmss(_object):
 
     def sign(self, message):
         return _pyqrllib.Xmss_sign(self, message)
+    __swig_getmethods__["verify"] = lambda x: _pyqrllib.Xmss_verify
+    if _newclass:
+        verify = staticmethod(_pyqrllib.Xmss_verify)
 
     def getHeight(self):
         return _pyqrllib.Xmss_getHeight(self)
@@ -873,6 +989,9 @@ class Xmss(_object):
     def getSKPRF(self):
         return _pyqrllib.Xmss_getSKPRF(self)
 
+    def getAddress(self, prefix):
+        return _pyqrllib.Xmss_getAddress(self, prefix)
+
     def getSignatureSize(self):
         return _pyqrllib.Xmss_getSignatureSize(self)
 
@@ -886,66 +1005,49 @@ class Xmss(_object):
 Xmss_swigregister = _pyqrllib.Xmss_swigregister
 Xmss_swigregister(Xmss)
 
+def Xmss_verify(message, signature, pk, height):
+    return _pyqrllib.Xmss_verify(message, signature, pk, height)
+Xmss_verify = _pyqrllib.Xmss_verify
 
-def verify(message, signature, pk, height):
-    return _pyqrllib.verify(message, signature, pk, height)
-verify = _pyqrllib.verify
 
 _pyqrllib.ADDRESS_HASH_SIZE_swigconstant(_pyqrllib)
 ADDRESS_HASH_SIZE = _pyqrllib.ADDRESS_HASH_SIZE
 
-def vec2hexstr(*args):
-    return _pyqrllib.vec2hexstr(*args)
-vec2hexstr = _pyqrllib.vec2hexstr
+def bin2hstr(*args):
+    return _pyqrllib.bin2hstr(*args)
+bin2hstr = _pyqrllib.bin2hstr
 
-def getAddress(*args):
-    return _pyqrllib.getAddress(*args)
-getAddress = _pyqrllib.getAddress
+def str2bin(s):
+    return _pyqrllib.str2bin(s)
+str2bin = _pyqrllib.str2bin
 
-def tobin(s):
-    return _pyqrllib.tobin(s)
-tobin = _pyqrllib.tobin
+def hstr2bin(s):
+    return _pyqrllib.hstr2bin(s)
+hstr2bin = _pyqrllib.hstr2bin
 
-def getRandomSeed(seed_size):
-    return _pyqrllib.getRandomSeed(seed_size)
-getRandomSeed = _pyqrllib.getRandomSeed
+def bin2mnemonic(vec, word_list):
+    return _pyqrllib.bin2mnemonic(vec, word_list)
+bin2mnemonic = _pyqrllib.bin2mnemonic
 
-_pyqrllib.SHAKE128_RATE_swigconstant(_pyqrllib)
-SHAKE128_RATE = _pyqrllib.SHAKE128_RATE
+def mnemonic2bin(mnemonic, word_list):
+    return _pyqrllib.mnemonic2bin(mnemonic, word_list)
+mnemonic2bin = _pyqrllib.mnemonic2bin
 
-_pyqrllib.SHAKE256_RATE_swigconstant(_pyqrllib)
-SHAKE256_RATE = _pyqrllib.SHAKE256_RATE
-
-def shake128(out, outlen, arg3, inlen):
-    return _pyqrllib.shake128(out, outlen, arg3, inlen)
+def shake128(hash_size, input):
+    return _pyqrllib.shake128(hash_size, input)
 shake128 = _pyqrllib.shake128
 
-def shake256(out, outlen, arg3, inlen):
-    return _pyqrllib.shake256(out, outlen, arg3, inlen)
+def shake256(hash_size, data):
+    return _pyqrllib.shake256(hash_size, data)
 shake256 = _pyqrllib.shake256
 
-_pyqrllib.IS_LITTLE_ENDIAN_swigconstant(_pyqrllib)
-IS_LITTLE_ENDIAN = _pyqrllib.IS_LITTLE_ENDIAN
+def getRandomSeed(seed_size, entropy):
+    return _pyqrllib.getRandomSeed(seed_size, entropy)
+getRandomSeed = _pyqrllib.getRandomSeed
 
-def addr_to_byte(bytes, addr):
-    return _pyqrllib.addr_to_byte(bytes, addr)
-addr_to_byte = _pyqrllib.addr_to_byte
-
-def prf(out, arg2, key, keylen):
-    return _pyqrllib.prf(out, arg2, key, keylen)
-prf = _pyqrllib.prf
-
-def h_msg(out, arg2, inlen, key, keylen, n):
-    return _pyqrllib.h_msg(out, arg2, inlen, key, keylen, n)
-h_msg = _pyqrllib.h_msg
-
-def hash_h(out, arg2, pub_seed, addr, n):
-    return _pyqrllib.hash_h(out, arg2, pub_seed, addr, n)
-hash_h = _pyqrllib.hash_h
-
-def hash_f(out, arg2, pub_seed, addr, n):
-    return _pyqrllib.hash_f(out, arg2, pub_seed, addr, n)
-hash_f = _pyqrllib.hash_f
+def getAddress(prefix, key):
+    return _pyqrllib.getAddress(prefix, key)
+getAddress = _pyqrllib.getAddress
 # This file is compatible with both classic and new-style classes.
 
 
