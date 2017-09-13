@@ -543,7 +543,7 @@ class WalletProtocol(Protocol):
 
         # Check to see if sending amount > amount owned (and reject if so)
         # This is hard to interpret. Break it up?
-        balance = self.factory.state.state_balance(self.factory.chain.address_bundle[int(wallet_from)].address)
+        balance = self.factory.state.state_balance(self.factory.chain.wallet.address_bundle[int(wallet_from)].address)
         send_amt_arg = args[2]
         try:
             float(send_amt_arg)
@@ -564,7 +564,7 @@ class WalletProtocol(Protocol):
 
         # Stop user from sending less than their entire balance if they've only
         # got one signature remaining.
-        sigsremaining = self.factory.chain.wallet.get_num_signatures(self.factory.chain.address_bundle[int(args[0])].address)
+        sigsremaining = self.factory.chain.wallet.get_num_signatures(self.factory.chain.wallet.address_bundle[int(args[0])].address)
         if sigsremaining is 1:
             if amount < balance:
                 self.output['message'].write(
