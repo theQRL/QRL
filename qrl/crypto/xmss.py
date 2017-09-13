@@ -25,19 +25,19 @@ class XMSS(object):
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
         :param seed:
         >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1, wordlist)).get_address()
-        'Qf3cd854ea42bb613dd6c1b28408a397fd8e20a7c5a2a311088aa581fda7eb8d110ce9226'
+        'Q572721d2221f1d43b18eecacb945221f1156f1e2f519b71e3def43d761e88f3af72feb52'
         >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_address()
-        'Qcda209053d03178e763590b1f42ed123954d2cc0832e698c6b13b4d95ecbc2de5f2352fe'
+        'Q578230464f0550df33f1bad86b725ce6e6c5e278c5d03a100fb93c1d282daec21b2422f2'
         >>> from qrl.crypto.doctest_data import *; XMSS(3, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_address()
-        'Q1c5cc669b6f7d0d7b82c6619242c16618eb7c91de44626ee7100afea266ffc9c20269ae8'
+        'Q40cc0f0d0e821b958aec4416dbeb1243b9eab7c18b3a789f20a7f3cd328b4d4cb5f26109'
 
         # LEGACY TESTS
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).get_seed())
         '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).get_seed_public())
-        '26751be66abe68ae69f959dd40ea3640c448628153d6eea5dd4f14e1ffb01425'
+        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).get_seed_private())
-        'f8ac70df871851eb09b1096e0f2ef9a07ebb26895ab866ed238db0f42b1438a5'
+        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
 
         # NEW TESTS
         >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getHeight()
@@ -50,23 +50,21 @@ class XMSS(object):
         True
 
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getPK() )
-        '949eaea640537fe3e01fc007119815a55b6e94c7b342fac1ddbbe5698f439ca226751be66abe68ae69f959dd40ea3640c448628153d6eea5dd4f14e1ffb01425'
+        '10ad36acb053f22494767e64edbfeb4202131fe791bcc3fe6d353777ff4b742351ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSK() ) == xmss_sk_expected1
         True
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getRoot() )
-        '949eaea640537fe3e01fc007119815a55b6e94c7b342fac1ddbbe5698f439ca2'
+        '10ad36acb053f22494767e64edbfeb4202131fe791bcc3fe6d353777ff4b7423'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getPKSeed() )
-        '26751be66abe68ae69f959dd40ea3640c448628153d6eea5dd4f14e1ffb01425'
+        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
         >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getIndex()
         0
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSKSeed() )
-        'f8ac70df871851eb09b1096e0f2ef9a07ebb26895ab866ed238db0f42b1438a5'
+        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSKPRF() )
-        'cc8e4fb060095f8366fa6de93ee8a0289d78c23db8afc121725898eb773e5dba'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSKPRF() )
-        'cc8e4fb060095f8366fa6de93ee8a0289d78c23db8afc121725898eb773e5dba'
+        '3aa40c0f99459afe7efe72eb9517ee8ded49ccd51dab72ebf6bc37d73240bb3a'
         >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getAddress('Q')
-        'Qcb5ff6e654a98e8d95699597bc4eeb3e53338efa3b9e29a7d4e0a17f54e150b6581bbff8'
+        'Q535aa98bd64b7a54f0efaa14ba540accf12c84b7385338e586bd32c19590a0f748358240'
 
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
         ''
@@ -80,7 +78,7 @@ class XMSS(object):
 
         if seed is None:
             # FIXME: Improve seed generation
-            self._seed = getRandomSeed(32, '')
+            self._seed = getRandomSeed(48, '')
         else:
             if isinstance(seed, str):
                 self._seed = str2bin(seed)
@@ -146,9 +144,9 @@ class XMSS(object):
         True
         >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).get_mnemonic() == xmss_mnemonic_expected2
         True
-        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test1)).get_mnemonic() == xmss_mnemonic_test1
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1, wordlist)).get_mnemonic() == xmss_mnemonic_test1
         True
-        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test2)).get_mnemonic() == xmss_mnemonic_test2
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_mnemonic() == xmss_mnemonic_test2
         True
         """
         # type: () -> List[str]
@@ -203,9 +201,9 @@ class XMSS(object):
         :return:
         :rtype:
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1).get_seed_private() )
-        'f8ac70df871851eb09b1096e0f2ef9a07ebb26895ab866ed238db0f42b1438a5'
+        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_private() )
-        'd901c63fe5c2e4c1b1f1186a962a35467b0b794fef7ae5692f0030604420e49b'
+        'ad70ef34f316aaadcbf16a64b1b381db731eb53d833745c0d3eaa1e24cf728a2'
         """
         return self._xmss.getPKSeed()
 
@@ -214,9 +212,9 @@ class XMSS(object):
         :return:
         :rtype:
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1).get_seed_public() )
-        '26751be66abe68ae69f959dd40ea3640c448628153d6eea5dd4f14e1ffb01425'
+        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_public() )
-        '24ac443e4af9dc36a6cee1cd2dead818f88b1350fb97a4d8b5b8b7522dbe66b5'
+        'df2355c48096f2351e4d04db57b326c355345552d31b75a65ac18b1f6d7c7875'
         """
         return self._xmss.getSKSeed()
 
