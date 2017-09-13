@@ -168,7 +168,8 @@ class ApiProtocol(Protocol):
             js_bk1 = copy.deepcopy(js_bk)
             js_bk1.number_transactions = len(js_bk1.transactions)
             js_bk1.status = 'ok'
-            js_bk1.blockheader.block_reward = js_bk1.blockheader.block_reward / 100000000.000000000
+            js_bk1.blockheader.block_reward /= 100000000.000000000
+            js_bk1.blockheader.fee_reward /= 100000000.000000000
             i = 0
             for txn in js_bk1.transactions[0:]:
                 if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
