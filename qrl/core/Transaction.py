@@ -29,6 +29,7 @@ class Transaction(object):
         self.pubhash = None
         self.txhash = None
         self.txfrom = None
+
         self.i = None
         self.signature = None
         self.merkle_path = None
@@ -116,12 +117,15 @@ class Transaction(object):
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> Transaction
+        self.subtype = dict_tx['subtype'].encode('ascii')
+
         self.ots_key = int(dict_tx['ots_key'])
         self.nonce = int(dict_tx['nonce'])
         self.txfrom = dict_tx['txfrom'].encode('ascii')
 
         self.pubhash = dict_tx['pubhash'].encode('ascii')
         self.txhash = self._reformat(dict_tx['txhash'])
+
         self.i = int(dict_tx['i'])
         self.signature = self._reformat(dict_tx['signature'])
         self.merkle_path = self._reformat(dict_tx['merkle_path'])
@@ -197,8 +201,6 @@ class SimpleTransaction(Transaction):
         self.txto = dict_tx['txto'].encode('ascii')
         self.amount = int(dict_tx['amount'])
         self.fee = int(dict_tx['fee'])
-        self.txhash = dict_tx['txhash']  # FIXME: Repetition
-        self.subtype = dict_tx['subtype'].encode('ascii')  # FIXME: Repetition
         return self
 
     def pre_condition(self, tx_state):
@@ -310,8 +312,6 @@ class StakeTransaction(Transaction):
 
         if self.first_hash:
             self.first_hash = self.first_hash.encode('ascii')
-
-        self.subtype = dict_tx['subtype'].encode('ascii')  # FIXME: Repetition (done in base class)
         return self
 
     def create(self, blocknumber, xmss, hashchain_terminator=None, first_hash=None, balance=None):
@@ -391,8 +391,6 @@ class CoinBase(Transaction):
         super(CoinBase, self)._dict_to_transaction(dict_tx)
         self.txto = dict_tx['txto'].encode('ascii')
         self.amount = int(dict_tx['amount'])
-        self.txhash = dict_tx['txhash']  # FIXME: Repetition
-        self.subtype = dict_tx['subtype'].encode('ascii')  # FIXME: Repetition
         return self
 
     def create(self, block_reward, block_headerhash, xmss):
@@ -435,8 +433,6 @@ class LatticePublicKey(Transaction):
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> LatticePublicKey
         super(LatticePublicKey, self)._dict_to_transaction(dict_tx)
-        self.txhash = dict_tx['txhash']  # FIXME: Repetition
-        self.subtype = dict_tx['subtype'].encode('ascii')  # FIXME: Repetition
         return self
 
     def create(self, xmss, kyber_pk, tesla_pk):
