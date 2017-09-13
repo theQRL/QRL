@@ -399,7 +399,7 @@ class POS:
             if chain_buffer_height + 1 == blocknumber:
                 if blocknumber > 1 and self.chain.block_chain_buffer.add_block(block):
                     self.p2pFactory.send_block_to_peers(block, peer_identity)
-                elif blocknumber == 1 and self.chain.block_chain_buffer.add_block_mainchain(block):
+                elif blocknumber == 1 and self.chain.add_block_mainchain(block):
                     self.p2pFactory.send_block_to_peers(block, peer_identity)
                 self.update_node_state(NState.synced)
             else:

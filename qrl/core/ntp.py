@@ -48,6 +48,16 @@ def setDrift():
 
 
 def getTime():
+    """
+    :return:
+    :rtype: float
+    >>> getTime() is not None
+    True
+    """
     global drift
+
+    if drift is None:
+        setDrift()
+
     curr_time = drift + int(time())
     return curr_time

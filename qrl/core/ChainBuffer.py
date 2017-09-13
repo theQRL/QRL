@@ -25,15 +25,16 @@ class ChainBuffer:
         self.size = config.dev.reorg_limit
         self.pending_blocks = dict()
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
-        self.address_bundle_clone = dict()
-        self.address_bundle_clone[self.epoch] = deepcopy(self.chain.wallet.address_bundle)
         self.epoch_seed = None
         self.hash_chain = dict()
 
-        tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain()
-        self.hash_chain[self.epoch] = tmphc.hashchain
+        # TODO: For the moment, only the first address is used (discussed with cyyber)
+        private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
+        self._wallet_private_seeds = {self.epoch: private_seed}
+        self.hash_chain[self.epoch] = HashChain(private_seed).hashchain().hashchain
 
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
+
         if self.chain.height() > 0:
             self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / config.dev.blocks_per_epoch)
 
@@ -95,14 +96,9 @@ class ChainBuffer:
         epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
         logger.info('Created new hash chain')
 
-        tmp_address_bundle = deepcopy(self.address_bundle_clone[epoch - 1])
-        self.address_bundle_clone[epoch] = tmp_address_bundle
-
-        xmss = tmp_address_bundle[0].xmss
-        tmp = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch)
-        self.hash_chain[epoch] = tmp.hashchain
-
-        gc.collect()
+        prev_private_seed = self._wallet_private_seeds[epoch - 1]
+        self._wallet_private_seeds[epoch] = prev_private_seed
+        self.hash_chain[epoch] = HashChain(prev_private_seed).hashchain(epoch=epoch).hashchain
 
     def add_txns_buffer(self):
         if len(self.blocks) == 0:
@@ -122,17 +118,17 @@ class ChainBuffer:
             for tx in block.transactions:
                 self.tx_buffer[blocknum].append(tx.txhash)
 
-    def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True, ignore_save_wallet=False):
-        # TODO : minimum block validation in unsynced state
+    def add_block_mainchain(self, chain, block, verify_block_reveal_list=True, validate=True):
+        # TODO : minimum block validation in unsynced _state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // config.dev.blocks_per_epoch)
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
-        if blocknum <= self.chain.height():
+        if blocknum <= chain.height():
             return
 
-        if blocknum - 1 == self.chain.height():
-            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
+        if blocknum - 1 == chain.height():
+            if prev_headerhash != chain.m_blockchain[-1].blockheader.headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
                 return
         elif blocknum - 1 > 0:
@@ -141,12 +137,12 @@ class ChainBuffer:
                 return
 
         if validate:
-            if not self.chain.m_add_block(block, verify_block_reveal_list):
+            if not chain.m_add_block(block, verify_block_reveal_list):
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
-            if self.state.state_add_block(self.chain, block, ignore_save_wallet=True) is True:
-                self.chain.m_blockchain.append(block)
+            if self.state.state_add_block(chain, block, ignore_save_wallet=True) is True:
+                chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
@@ -154,18 +150,18 @@ class ChainBuffer:
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
-            self.address_bundle_clone[epoch + 1] = self.chain.wallet.address_bundle
 
-            tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain(epoch=epoch+1)
-            self.hash_chain[epoch + 1] = tmphc.hashchain
+            private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
+            self._wallet_private_seeds[epoch + 1] = private_seed
+            self.hash_chain[epoch + 1] = HashChain(private_seed).hashchain(epoch=epoch + 1).hashchain
 
-            if epoch in self.address_bundle_clone:
-                del self.address_bundle_clone[epoch]
+            if epoch in self._wallet_private_seeds:
+                del self._wallet_private_seeds[epoch]
         else:
             self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
-        self.chain.update_last_tx(block)
-        self.chain.update_tx_metadata(block)
+        chain.update_last_tx(block)
+        chain.update_tx_metadata(block)
         self.epoch = epoch
         return True
 
@@ -193,7 +189,7 @@ class ChainBuffer:
         if headerhash in self.headerhashes[blocknum]:
             return 0
 
-        if blocknum - self.size in self.strongest_chain:
+        if (blocknum - config.dev.reorg_limit) in self.strongest_chain:
             self.move_to_mainchain()
 
         stake_reward = {}
@@ -265,7 +261,8 @@ class ChainBuffer:
         is_success = self.chain.state.state_update(block, stake_validators_list, address_txn)
         if is_success:
             self.commit(block.blockheader.blocknumber, stake_validators_list)
-            logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blockheader.blocknumber, block.blockheader.stake_selector)
+            logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blockheader.blocknumber,
+                        block.blockheader.stake_selector)
         return is_success
 
     def commit(self, blocknumber, stake_validators_list):
@@ -418,8 +415,8 @@ class ChainBuffer:
         prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
         self.epoch = int(blocknum // config.dev.blocks_per_epoch)
         if prev_epoch != self.epoch:
-            if prev_epoch in self.address_bundle_clone:
-                del self.address_bundle_clone[prev_epoch]
+            if prev_epoch in self._wallet_private_seeds:
+                del self._wallet_private_seeds[prev_epoch]
             if prev_epoch in self.hash_chain:
                 del self.hash_chain[prev_epoch]
 

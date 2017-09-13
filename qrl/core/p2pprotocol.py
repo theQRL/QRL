@@ -386,7 +386,7 @@ class P2PProtocol(Protocol):
                 return
 
             if blocknumber > self.factory.chain.height():
-                if not self.factory.chain.block_chain_buffer.add_block_mainchain(block):
+                if not self.factory.chain.add_block_mainchain(block):
                     logger.warning('PB failed to add block to mainchain')
                     return
 
