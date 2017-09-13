@@ -495,10 +495,11 @@ class WalletProtocol(Protocol):
         self.output['status'] = 1
         # Check if method was used correctly
         if not args or len(args) < 3:
-            self.output['message'].write('>>> Usage: send <from> <to> <amount>\r\n')
-            self.output['message'].write('>>> i.e. send 0 4 100\r\n')
+            self.output['message'].write('>>> Usage: send <from> <to> <amount> [<fee>]\r\n')
+            self.output['message'].write('>>> i.e. send 0 4 100 5\r\n')
             self.output['message'].write('>>> ^ will send 100 coins from address 0 to 4 from the wallet\r\n')
             self.output['message'].write('>>> <to> can be a pasted address (starts with Q)\r\n')
+            self.output['message'].write('>>> 5 is the txn fee\r\n')
             return
 
         wallet_from = args[0]
@@ -554,10 +555,11 @@ class WalletProtocol(Protocol):
 
         amount = decimal.Decimal(decimal.Decimal(send_amt_arg) * 100000000).quantize(decimal.Decimal('1'),
                                                                                      rounding=decimal.ROUND_HALF_UP)
-
-        if balance < amount:
-            self.output['message'].write(
-                '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address\r\n')
+        fee = 0
+        if len(args) == 4:
+            fee = decimal.Decimal(decimal.Decimal(args[3]) * 100000000).quantize(decimal.Decimal('1'),
+                                                                                 rounding=decimal.ROUND_HALF_UP)
+        if balance < amount + fee:
             self.output['message'].write(
                 '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address\r\n')
             return
@@ -573,7 +575,7 @@ class WalletProtocol(Protocol):
         txto = args[1]
         if txto.isdigit():
             txto = int(txto)
-        tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=txto, amount=amount)
+        tx = self.factory.chain.create_my_tx(txfrom=int(args[0]), txto=txto, amount=amount, fee=fee)
 
         if tx is False:
             self.output['message'].write('Failed to Create txn')
@@ -597,7 +599,8 @@ class WalletProtocol(Protocol):
         self.output['status'] = 0
         self.output['message'].write('>>> ' + str(tx.txhash))
         self.output['message'].write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
-            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network\r\n')
+            tx.amount / 100000000.000000000) + ' Fee: ' + str(tx.fee / 100000000.000000000) + '\r\n')
+        self.output['message'].write('>>>created and sent into p2p network\r\n')
         return
 
     def wallet(self):
