@@ -118,17 +118,17 @@ class ChainBuffer:
             for tx in block.transactions:
                 self.tx_buffer[blocknum].append(tx.txhash)
 
-    def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True, ignore_save_wallet=False):
-        # TODO : minimum block validation in unsynced state
+    def add_block_mainchain(self, chain, block, verify_block_reveal_list=True, validate=True):
+        # TODO : minimum block validation in unsynced _state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // config.dev.blocks_per_epoch)
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
-        if blocknum <= self.chain.height():
+        if blocknum <= chain.height():
             return
 
-        if blocknum - 1 == self.chain.height():
-            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
+        if blocknum - 1 == chain.height():
+            if prev_headerhash != chain.m_blockchain[-1].blockheader.headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
                 return
         elif blocknum - 1 > 0:
@@ -137,12 +137,12 @@ class ChainBuffer:
                 return
 
         if validate:
-            if not self.chain.m_add_block(block, verify_block_reveal_list):
+            if not chain.m_add_block(block, verify_block_reveal_list):
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
-            if self.state.state_add_block(self.chain, block, ignore_save_wallet=True) is True:
-                self.chain.m_blockchain.append(block)
+            if self.state.state_add_block(chain, block, ignore_save_wallet=True) is True:
+                chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
@@ -151,7 +151,7 @@ class ChainBuffer:
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
             self.epoch_seed = self.state.stake_validators_list.calc_seed()
 
-            private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
+            private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
             self.hash_chain[epoch + 1] = HashChain(private_seed).hashchain(epoch=epoch + 1).hashchain
 
@@ -160,8 +160,8 @@ class ChainBuffer:
         else:
             self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
 
-        self.chain.update_last_tx(block)
-        self.chain.update_tx_metadata(block)
+        chain.update_last_tx(block)
+        chain.update_tx_metadata(block)
         self.epoch = epoch
         return True
 
@@ -189,7 +189,7 @@ class ChainBuffer:
         if headerhash in self.headerhashes[blocknum]:
             return 0
 
-        if blocknum - self.size in self.strongest_chain:
+        if (blocknum - config.dev.reorg_limit) in self.strongest_chain:
             self.move_to_mainchain()
 
         stake_reward = {}

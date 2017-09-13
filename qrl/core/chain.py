@@ -925,8 +925,14 @@ class Chain:
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
-            self.block_chain_buffer.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
+            self.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
         return self.m_blockchain
+
+    def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True):
+        return self.block_chain_buffer.add_block_mainchain(chain=self,
+                                                           block=block,
+                                                           verify_block_reveal_list=verify_block_reveal_list,
+                                                           validate=validate)
 
     def m_load_chain(self):
 
@@ -938,9 +944,9 @@ class Chain:
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
-            self.block_chain_buffer.add_block_mainchain(block,
-                                                        verify_block_reveal_list=False,
-                                                        validate=False)
+            self.add_block_mainchain(block,
+                                     verify_block_reveal_list=False,
+                                     validate=False)
 
         if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
             return self.m_blockchain
@@ -951,10 +957,9 @@ class Chain:
             chains = self.f_read_chain(epoch)
 
             for block in chains:
-                self.block_chain_buffer.add_block_mainchain(block,
-                                                            verify_block_reveal_list=False,
-                                                            validate=False,
-                                                            ignore_save_wallet=True)
+                self.add_block_mainchain(block,
+                                         verify_block_reveal_list=False,
+                                         validate=False)
             epoch += 1
         self.wallet.save_wallet()
         gc.collect()
