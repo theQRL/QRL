@@ -4,8 +4,9 @@
 from collections import namedtuple
 
 import qrl.core.Transaction_subtypes
+from pyqrllib.pyqrllib import mnemonic2bin
 from qrl.core import config, logger
-from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
 
 import os
@@ -60,14 +61,17 @@ class Wallet:
         if not os.path.isfile(self.wallet_dat_filename):
             return
 
-        logger.info('Syncing wallet file')
-        with open(self.wallet_dat_filename, "r") as infile:
-            data = json.load(infile)
-            self.address_bundle = []
-            for a in data:
-                tmpxmss = XMSS(SIGNATURE_TREE_HEIGHT, mnemonic_to_seed(a['mnemonic'].strip()))
-                tmpxmss.set_index(a['index'])
-                self.address_bundle.append([tmpxmss.get_address(), tmpxmss])
+        try:
+            logger.info('Retrieving wallet file')
+            with open(self.wallet_dat_filename, "r") as infile:
+                data = json.load(infile)
+                self.address_bundle = []
+                for a in data:
+                    tmpxmss = XMSS(SIGNATURE_TREE_HEIGHT, mnemonic2bin(a['mnemonic'].strip(), wordlist))
+                    tmpxmss.set_index(a['index'])
+                    self.address_bundle.append([tmpxmss.get_address(), tmpxmss])
+        except Exception as e:
+            logger.warning("It was not possible to open the wallet: %s", e.message)
 
     def _valid_or_create(self):
         if self.address_bundle is None or len(self.address_bundle) == 0:

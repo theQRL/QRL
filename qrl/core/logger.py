@@ -96,7 +96,6 @@ def warning(msg, *args, **kwargs):
 def error(msg, *args, **kwargs):
     logger.error(msg, *args, **kwargs)
 
-
 def exception(e):
     logger.error(traceback.format_exc(e))
 

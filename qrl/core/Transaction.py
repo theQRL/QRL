@@ -6,6 +6,7 @@ from abc import ABCMeta
 from binascii import unhexlify, hexlify
 
 import simplejson as json
+from StringIO import StringIO
 
 import qrl
 from qrl.core import helper, config
@@ -147,16 +148,16 @@ class Transaction(object):
         return True
 
     def get_message_hash(self):
+        message = StringIO()
         # FIXME: This looks suspicious
         '''
-        message = StringIO()
+        
         message.write(self.nonce)
         message.write(self.txfrom)
         message.write(self.txhash)
         message.write(self.signature)
-        return message
         '''
-        return ""
+        return message
 
     def transaction_to_json(self):
         return json.dumps(self.__dict__)
@@ -251,7 +252,7 @@ class SimpleTransaction(Transaction):
         if not self.pre_condition(tx_state):
             return False
 
-        pubhash = self.generate_pubhash(self.sig_pub)
+        pubhash = self.generate_pubhash(self.PK)
 
         tx_pubhashes = tx_state[2]
         if pubhash in tx_pubhashes:
