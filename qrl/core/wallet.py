@@ -13,8 +13,6 @@ import os
 
 import simplejson as json
 
-SIGNATURE_TREE_HEIGHT = 4
-
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
 AddressSerialized = namedtuple('AddressSerialized', 'address mnemonic index')
 
@@ -32,18 +30,9 @@ class Wallet:
         """
         self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
         self.mnemonic_filename = os.path.join(config.user.wallet_path, config.dev.mnemonic_filename)
+        self.address_bundle = None
         self._read_wallet()
         self._valid_or_create()
-
-    def _retrieve_seed_from_mnemonic(self):
-        # TODO: Remove. This is legacy
-        if not os.path.isfile(self.mnemonic_filename):
-            return None
-
-        with open(self.mnemonic_filename, 'r') as f:
-            seed_mnemonic = f.read()
-            seed = mnemonic_to_seed(seed_mnemonic.strip())
-        return seed
 
     def save_wallet(self):
         logger.info('Syncing wallet file')
@@ -67,7 +56,7 @@ class Wallet:
                 data = json.load(infile)
                 self.address_bundle = []
                 for a in data:
-                    tmpxmss = XMSS(SIGNATURE_TREE_HEIGHT, mnemonic2bin(a['mnemonic'].strip(), wordlist))
+                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip(), wordlist))
                     tmpxmss.set_index(a['index'])
                     self.address_bundle.append([tmpxmss.get_address(), tmpxmss])
         except Exception as e:
@@ -75,7 +64,7 @@ class Wallet:
 
     def _valid_or_create(self):
         if self.address_bundle is None or len(self.address_bundle) == 0:
-            self.address_bundle = [self.get_new_address(SIGNATURE_TREE_HEIGHT)]
+            self.address_bundle = [self.get_new_address()]
             self.save_wallet()
 
     def append_wallet(self, new_addr):
@@ -86,13 +75,11 @@ class Wallet:
     def list_addresses(self, state, transaction_pool, dict_format=False):
         # FIXME: This is called from multiple places and requires external info. Refactor?
         # FIXME: This seems UI related
-        addr_bundle_list = self.address_bundle
-
         list_addr = []
         list_addresses = []
         count = 0
 
-        for addr_bundle in addr_bundle_list:
+        for addr_bundle in self.address_bundle:
             x = 0
             y = 0
             for t in transaction_pool:
@@ -145,18 +132,18 @@ class Wallet:
 
     def get_new_address(self,
                         signature_tree_height=config.dev.xmss_tree_height,
-                        addrtype=ADDRESS_TYPE_XMSS,
+                        address_type=ADDRESS_TYPE_XMSS,
                         seed=None):
         # type: (int, str, str) -> AddressBundle
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
         :param signature_tree_height:
-        :param addrtype:
+        :param address_type:
         :param seed:
         :return: a wallet address
         """
-        if addrtype != Wallet.ADDRESS_TYPE_XMSS:
+        if address_type != Wallet.ADDRESS_TYPE_XMSS:
             raise Exception('OTS type not recognised')
 
         xmss = XMSS(tree_height=signature_tree_height, seed=seed)

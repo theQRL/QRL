@@ -6,13 +6,12 @@ from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
+from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.xmss import XMSS
 from copy import deepcopy
 from math import log, ceil
-
-from qrl.crypto.hashchain import HashChain
 
 
 class ChainBuffer:
@@ -33,7 +32,7 @@ class ChainBuffer:
         # TODO: For the moment, only the first address is used (discussed with cyyber)
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
-        self.hash_chain[self.epoch] = HashChain(private_seed).hashchain().hashchain
+        self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
 
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
 
@@ -119,7 +118,7 @@ class ChainBuffer:
 
         prev_private_seed = self._wallet_private_seeds[epoch - 1]
         self._wallet_private_seeds[epoch] = prev_private_seed
-        self.hash_chain[epoch] = HashChain(prev_private_seed).hashchain(epoch=epoch).hashchain
+        self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
     def add_txns_buffer(self):
         if len(self.blocks) == 0:
@@ -145,6 +144,7 @@ class ChainBuffer:
         epoch = int(blocknum // config.dev.blocks_per_epoch)
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
+        # FIXME: Chain should be checking this. Avoid complex references
         if blocknum <= chain.height():
             return
 
@@ -174,7 +174,7 @@ class ChainBuffer:
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
-            self.hash_chain[epoch + 1] = HashChain(private_seed).hashchain(epoch=epoch + 1).hashchain
+            self.hash_chain[epoch + 1] = hashchain(private_seed, epoch=epoch + 1).hashchain
 
             if epoch in self._wallet_private_seeds:
                 del self._wallet_private_seeds[epoch]

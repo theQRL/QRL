@@ -3,15 +3,15 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from abc import ABCMeta
-from binascii import unhexlify, hexlify
 
 import simplejson as json
 from StringIO import StringIO
 
 import qrl
+from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin
 from qrl.core import logger, helper, config
 from qrl.core.Transaction_subtypes import *
-from qrl.crypto.hashchain import HashChain
+from qrl.crypto.hashchain import hashchain_reveal
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 
@@ -66,6 +66,7 @@ class Transaction(object):
 
     @staticmethod
     def generate_pubhash(pub):
+        # TODO: Check what this is doing
         pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
         return sha256(''.join(pub))
 
@@ -84,29 +85,24 @@ class Transaction(object):
 
         return tx_list
 
-    @staticmethod
-    def _checkaddress(key, address):
-        return XMSS.create_address_from_key(key) == address
-
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
-        self.txhash = sha256(txhash + self.pubhash)
+        self.txhash = sha2_256(32, txhash + self.pubhash)
         self.txfrom = txfrom.encode('ascii')
 
-        self.PK = hexlify(xmss.pk())
-        self.signature = hexlify(xmss.SIGN(str(self.txhash)))
+        self.PK = xmss.pk()
+        self.signature = xmss.SIGN(str(self.txhash))
 
     def _validate_signed_hash(self):
-        if self.subtype != TX_SUBTYPE_COINBASE and not Transaction._checkaddress(self.PK, self.txfrom):
+        if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom:
             logger.info('Public key verification failed')
             return False
 
         if not XMSS.VERIFY(message=self.txhash,
-                           signature=unhexlify(self.signature),
+                           signature=self.signature,
                            pk=self.PK,
                            height=config.dev.xmss_tree_height):
-
             logger.info('xmss_verify failed')
             return False
 
@@ -123,8 +119,8 @@ class Transaction(object):
         self.pubhash = dict_tx['pubhash'].encode('ascii')
         self.txhash = self._reformat(dict_tx['txhash'])
 
-        self.PK = dict_tx['PK']
-        self.signature = dict_tx['signature']
+        self.PK = hstr2bin(dict_tx['PK'])
+        self.signature = hstr2bin(dict_tx['signature'])
         return self
 
     def _reformat(self, srcList):
@@ -214,6 +210,7 @@ class SimpleTransaction(Transaction):
         self.amount = int(amount)
         self.fee = int(fee)
 
+        # FIXME: This is very confusing and can be a security risk
         self.txhash = sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)))
         self.merkle_root = xmss.root
         if not self.pre_condition(tx_state):
@@ -318,7 +315,7 @@ class StakeTransaction(Transaction):
         self.balance = balance
 
         if hashchain_terminator is None:
-            self.hash = HashChain(xmss.get_seed_private()).hashchain_reveal(epoch=self.epoch + 1)
+            self.hash = hashchain_reveal(xmss.get_seed_private(), epoch=self.epoch + 1)
         else:
             self.hash = hashchain_terminator
 

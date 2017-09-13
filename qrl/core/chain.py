@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import qrl.core.Transaction_subtypes
+from pyqrllib.pyqrllib import getHashChainSeed
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
@@ -10,7 +11,6 @@ from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
 from qrl.core.Transaction import SimpleTransaction, CoinBase
-from qrl.crypto.hmac_drbg import GEN_range_bin
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 import gc
@@ -350,13 +350,16 @@ class Chain:
         :param n:
         :return:
         """
-        n_bits = int(ceil(log(n, 2)))
-        prf = GEN_range_bin(seed, 1, 20000, 1)
+        prf = getHashChainSeed(seed, 1, 20000)
+
+        # FIXME: Check with cyyber the purpose of this
         prf_range = []
+        n_bits = int(ceil(log(n, 2)))
         for z in prf:
             x = ord(z) >> 8 - n_bits
             if x < n:
                 prf_range.append(x)
+
         return prf_range
 
     def pos_block_selector_n(self, seed, n, i):

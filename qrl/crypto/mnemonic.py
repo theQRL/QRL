@@ -4,7 +4,6 @@
     SEED parsed 12 bits at a time and a word looked up from a dictionary with 4096 unique words in it..
     another approach would be a hexseed and QR code or BIP38 style encryption of the SEED with a passphrase..
 """
-from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr, hstr2bin, bin2mnemonic
 from qrl.core import logger
 from qrl.crypto.words import wordlist
 

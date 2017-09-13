@@ -9,11 +9,18 @@ from StringIO import StringIO
 import simplejson as json
 from twisted.internet.protocol import Protocol, connectionDone
 
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 from qrl.core import helper, logger, config
 from qrl.core.Transaction import StakeTransaction
-from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.xmss import XMSS
 from qrl.crypto.hashchain import HashChain
+
+
+def hexseed_to_seed(hex_seed):
+    if len(hex_seed) != 96:
+        return False
+    return hstr2bin(hex_seed)
+
 
 #FIXME: Clean this up
 
@@ -154,7 +161,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     self.output['status'] = 0
-                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', seed=hexseed_to_seed(args[0]))
+                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
@@ -178,7 +185,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     args = ' '.join(args)
-                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', seed=mnemonic_to_seed(args))
+                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=mnemonic2bin(args))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')

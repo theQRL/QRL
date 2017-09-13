@@ -1,9 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from binascii import unhexlify
-
-from pyqrllib.pyqrllib import Xmss, bin2hstr, getAddress, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin
+from pyqrllib.pyqrllib import Xmss, bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin, hstr2bin
 from qrl.core import config
 from qrl.crypto.words import wordlist
 
@@ -230,13 +228,13 @@ class XMSS(object):
         :param message:
         :param signature:
         :return:
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), str2bin(unhexlify(xmss_sign_expected1)), str2bin(unhexlify(xmss_pk_expected1)), xmss_sign_expected1_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1), xmss_sign_expected1_h)
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), str2bin(unhexlify(xmss_sign_expected1)), str2bin(unhexlify(xmss_pk_expected1)), xmss_sign_expected1_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1), xmss_sign_expected1_h)
         False
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), str2bin(unhexlify(xmss_sign_expected2)), str2bin(unhexlify(xmss_pk_expected2)), xmss_sign_expected2_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2), xmss_sign_expected2_h)
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), str2bin(unhexlify(xmss_sign_expected2)), str2bin(unhexlify(xmss_pk_expected2)), xmss_sign_expected2_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2), xmss_sign_expected2_h)
         False
         """
         return Xmss.verify(message, signature, pk, height)
@@ -252,11 +250,6 @@ class XMSS(object):
         True
         """
         return self._xmss.sign(message)
-
-    @staticmethod
-    # NOTE: USED EXTERNALLY!!!
-    def create_address_from_key(key):
-        return getAddress('Q', key)
 
     # NOTE: USED EXTERNALLY!!!
     def list_addresses(self):

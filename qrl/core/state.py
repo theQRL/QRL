@@ -7,10 +7,9 @@ from operator import itemgetter
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
+from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
 from qrl.crypto.misc import sha256
-from qrl.crypto.hashchain import HashChain
-
 
 class State:
     """
@@ -295,7 +294,7 @@ class State:
             return
 
         xmss = chain.wallet.address_bundle[0].xmss
-        tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
+        tmphc = hashchain(xmss.get_seed_private(), epoch=0)
 
         chain.hash_chain = tmphc.hashchain
         chain.wallet.save_wallet()

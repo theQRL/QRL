@@ -1,16 +1,11 @@
 # coding=utf-8
-from binascii import unhexlify
 
 # FIXME: These values are based on current implementation. There are known issues and these values are subject to change
+from pyqrllib.pyqrllib import hstr2bin
 
-S1 = unhexlify('7bf1e7c1c84be2c820211572d990c0430e09401053ce2af4'
-               '89ee3e4d030c027464d9cac1fff449a2405b7f3fc63018a4')
-
-S1_Pub = unhexlify('6b424d99242a1a3f40f60bf565b1a63aed94464b26ad022e'
-                   'ed800ec3384f11fe40c46dc60cdf80d60dc75b4c908b4afa')
-
-S1_Pri = unhexlify('2c4147cd5c75622220054bd8923ba565999931634499fc09'
-                   '6c0b9cedf8f4f32daaa7b50f313b3c93743a00f027af0551')
+S1 = hstr2bin('7bf1e7c1c84be2c820211572d990c0430e09401053ce2af489ee3e4d030c027464d9cac1fff449a2405b7f3fc63018a4')
+S1_Pub = hstr2bin('6b424d99242a1a3f40f60bf565b1a63aed94464b26ad022eed800ec3384f11fe40c46dc60cdf80d60dc75b4c908b4afa')
+S1_Pri = hstr2bin('2c4147cd5c75622220054bd8923ba565999931634499fc096c0b9cedf8f4f32daaa7b50f313b3c93743a00f027af0551')
 
 S1_Mne = 'law bruise screen lunar than loft but franc strike asleep dwarf tavern dragon alarm snack queen ' \
          'meadow thing far cotton add emblem strive probe zurich edge peer alight libel won corn medal'
