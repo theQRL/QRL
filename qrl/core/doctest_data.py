@@ -12,7 +12,7 @@ test_txdict_Simple = {
     'pubhash': '1234',
     'txhash': '1234',
     # >> Signature components
-    'signature': 'abc1234',
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
     'txto': '1234',
@@ -29,7 +29,7 @@ test_txdict_Stake = {
     'pubhash': '1234',
     'txhash': '1234',
     # >> Signature components
-    'signature': 'abc1234',
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
     'epoch': 1,
@@ -47,7 +47,7 @@ test_txdict_CoinBase = {
     'pubhash': '1234',
     'txhash': '1234',
     # >> Signature components
-    'signature': 'abc1234',
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
     'txto': '1234',
@@ -63,7 +63,7 @@ test_txdict_Lattice = {
     'pubhash': '1234',
     'txhash': '1234',
     # >> Signature components
-    'signature': 'abc1234',
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
 }

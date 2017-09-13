@@ -12,12 +12,18 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 from qrl.core import helper
-from qrl.crypto.hmac_drbg import hexseed_to_seed
+from qrl.core.wallet import Wallet
 from qrl.crypto.mnemonic import validate_mnemonic
+from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
 
-__author__ = 'scottdonaldau'
+
+def hexseed_to_seed(hex_seed):
+    if len(hex_seed) != 96:
+        return False
+    return hstr2bin(hex_seed)
 
 
 class WebWallet:

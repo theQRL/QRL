@@ -16,8 +16,8 @@ from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction
+from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
-from qrl.crypto.hashchain import HashChain
 
 
 class NodeState:
@@ -171,7 +171,7 @@ class POS:
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
         xmss = self.chain.wallet.address_bundle[0].xmss
-        tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
+        tmphc = hashchain(xmss.get_seed_private(), epoch=0)
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
@@ -228,7 +228,7 @@ class POS:
         if self.chain.mining_address == self.chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
-            tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain()
+            tmphc = hashchain(self.chain.wallet.address_bundle[0].xmss.get_seed_private())
 
             # create the genesis block 2 here..
             reveal_hash, vote_hash = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
@@ -506,7 +506,7 @@ class POS:
                             (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
                         if random.randint(1, diff) == 1:
                             xmss = deepcopy(self.chain.wallet.address_bundle[0].xmss)
-                            tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch + 1)
+                            tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)

@@ -377,6 +377,7 @@ class P2PProtocol(Protocol):
                 return
 
             block = Block.from_json(data)
+
             blocknumber = block.blockheader.blocknumber
             logger.info('>>> Received Block #%d', blocknumber)
             if blocknumber != self.last_requested_blocknum:
@@ -436,8 +437,10 @@ class P2PProtocol(Protocol):
         if self.factory.pos.nodeState.state != NState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
+
         data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
                 'blocknumber': self.factory.chain.m_blockchain[-1].blockheader.blocknumber}
+
         self.transport.write(self.wrap_message('PMBH', helper.json_encode(data)))
         return
 
