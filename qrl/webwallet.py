@@ -14,7 +14,7 @@ from twisted.web.static import File
 
 from qrl.core import helper
 from qrl.crypto.hmac_drbg import hexseed_to_seed
-from qrl.crypto.mnemonic import mnemonic_to_seed, validate_mnemonic
+from qrl.crypto.mnemonic import validate_mnemonic
 from qrl.crypto.xmss import XMSS
 
 __author__ = 'scottdonaldau'

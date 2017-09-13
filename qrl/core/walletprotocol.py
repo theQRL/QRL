@@ -12,7 +12,6 @@ from twisted.internet.protocol import Protocol, connectionDone
 from qrl.core import helper, logger, config
 from qrl.core.Transaction import StakeTransaction
 from qrl.crypto.hmac_drbg import hexseed_to_seed
-from qrl.crypto.mnemonic import mnemonic_to_seed
 from qrl.crypto.xmss import XMSS
 from qrl.crypto.hashchain import HashChain
 
