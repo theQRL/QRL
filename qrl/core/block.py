@@ -15,6 +15,18 @@ from qrl.crypto.misc import sha256, merkle_tx_hash
 class Block(object):
     @staticmethod
     def isHashPresent(txhash, buffer, blocknumber):
+        """
+        :param txhash:
+        :type txhash:
+        :param buffer:
+        :type buffer:
+        :param blocknumber:
+        :type blocknumber:
+        :return:
+        :rtype:
+        >>> Block.isHashPresent(None, None, None)
+        False
+        """
         if not buffer:
             return False
 

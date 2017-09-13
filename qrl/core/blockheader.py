@@ -8,6 +8,10 @@ from qrl.crypto.misc import sha256
 
 class BlockHeader(object):
     def __init__(self):
+        """
+        >>> BlockHeader() is not None
+        True
+        """
         # FIXME: init and create should probably be merged
         self.blocknumber = None
         self.hash = None
@@ -42,6 +46,13 @@ class BlockHeader(object):
         :param vote_hashes:
         :param fee_reward:
         :return:
+
+        >>> BlockHeader().create(None, 0, None, '0', '0', '0', '0', 0.1) is None
+        True
+        >>> b = BlockHeader(); b.create(None, 0, None, '0', '0', '0', '0', 0.1); b.epoch
+        0
+        >>> b = BlockHeader(); b.create(None, 10, None, '0', '0', '0', '0', 0.1); b.epoch # doctest: +SKIP
+        0
         """
 
         self.blocknumber = blocknumber
@@ -100,6 +111,7 @@ class BlockHeader(object):
     @staticmethod
     def calc_coeff(N_tot, block_tot):
         # TODO: This is more related to the way QRL works.. Move to another place
+        # TODO: Verify these values and formula
         """
         block reward calculation
         decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
@@ -107,6 +119,8 @@ class BlockHeader(object):
         :param N_tot:
         :param block_tot:
         :return:
+        >>> BlockHeader.calc_coeff(1, 1)
+        0.0
         """
         return log(N_tot) / block_tot
 
@@ -119,7 +133,11 @@ class BlockHeader(object):
         :param N_tot:
         :param block_n:
         :return:
+
+        >>> BlockHeader.remaining_emission(1, 1)
+        Decimal('0.99999996')
         """
+        # TODO: Verify these values and formula
         coeff = BlockHeader.calc_coeff(21000000, 420480000)
         return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
             .quantize(decimal.Decimal('1.00000000'), rounding=decimal.ROUND_HALF_UP)

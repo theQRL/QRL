@@ -36,7 +36,9 @@ class Chain:
         self.m_blockchain = []
 
         self.wallet = Wallet()
-        self.mining_address = self.wallet.address_bundle[0].xmss.address
+
+        # FIXME: should self.mining_address be self.staking_address
+        self.mining_address = self.wallet.address_bundle[0].xmss.get_address()
 
         self.initialize()
         self.ping_list = []
@@ -1104,7 +1106,6 @@ class Chain:
             self.add_tx_to_pool(tx)
             # need to keep state after tx ..use self.wallet.info to store index..
             # far faster than loading the 55mb self.wallet..
-            self.wallet.save_winfo()
             return tx
 
         return False
