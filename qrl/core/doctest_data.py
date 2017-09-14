@@ -80,3 +80,5 @@ test_txdict_Lattice = {
     'PK': '1234',
     ############## Specific content
 }
+
+wrap_message_expected1 = b'\xff\x00\x00\x00\x00\x00\x1f\x00{"data": 12345, "type": "test"}\x00\x00\xff'

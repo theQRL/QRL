@@ -49,7 +49,7 @@ class P2PProtocol(Protocol):
                         }
         self.buffer = ''
         self.messages = []
-        self.identity = None
+        self.conn_identity = None
         self.blockheight = None
         self.version = ''
         self.blocknumber_headerhash = {}
@@ -290,13 +290,13 @@ class P2PProtocol(Protocol):
             logger.exception(e)
             return
         logger.info('>>>Received block from %s %s %s',
-                    self.identity,
+                    self.conn_identity,
                     block.blockheader.blocknumber,
                     block.blockheader.stake_selector)
         if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self):
             return
 
-        self.factory.pos.pre_block_logic(block, self.identity)
+        self.factory.pos.pre_block_logic(block, self.conn_identity)
         self.factory.master_mr.register(block.blockheader.headerhash, data, 'BK')
         self.broadcast(block.blockheader.headerhash, 'BK')
         return
@@ -333,7 +333,7 @@ class P2PProtocol(Protocol):
             blocknumber = int(data.keys()[0].encode('ascii'))
 
             if blocknumber != self.last_requested_blocknum:
-                logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.identity)
+                logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.conn_identity)
                 return
 
             for jsonBlock in data[unicode(blocknumber)]:
@@ -382,7 +382,7 @@ class P2PProtocol(Protocol):
             blocknumber = block.blockheader.blocknumber
             logger.info('>>> Received Block #%d', blocknumber)
             if blocknumber != self.last_requested_blocknum:
-                logger.warning('Did not match %s %s', self.last_requested_blocknum, self.identity)
+                logger.warning('Did not match %s %s', self.last_requested_blocknum, self.conn_identity)
                 return
 
             if blocknumber > self.factory.chain.height():
@@ -408,7 +408,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         if self.factory.nodeState.state == NState.forked:
-            fork.verify(data, self.identity, self.chain, self.randomize_headerhash_fetch)
+            fork.verify(data, self.conn_identity, self.chain, self.randomize_headerhash_fetch)
         else:
             mini_block = json.loads(data)
             self.blocknumber_headerhash[mini_block['blocknumber']] = mini_block['headerhash']
@@ -453,8 +453,8 @@ class P2PProtocol(Protocol):
         if not data or 'headerhash' not in data or 'blocknumber' not in data:
             return
 
-        if self.identity in self.factory.pos.fmbh_allowed_peers:
-            self.factory.pos.fmbh_allowed_peers[self.identity] = data
+        if self.conn_identity in self.factory.pos.fmbh_allowed_peers:
+            self.factory.pos.fmbh_allowed_peers[self.conn_identity] = data
             if data['headerhash'] not in self.factory.pos.fmbh_blockhash_peers:
                 self.factory.pos.fmbh_blockhash_peers[data['headerhash']] = {'blocknumber': data['blocknumber'],
                                                                              'peers': []}
@@ -541,7 +541,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         data = int(data)
-        logger.info(' Request for %s by %s', data, self.identity)
+        logger.info(' Request for %s by %s', data, self.conn_identity)
         if 0 < data <= self.factory.chain.block_chain_buffer.height():
             self.factory.chain.block_chain_buffer.send_block(data, self.transport, self.wrap_message)
         else:
@@ -549,7 +549,7 @@ class P2PProtocol(Protocol):
             if data > self.factory.chain.height():
                 logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
-            logger.info(' Send for blocmnumber #%s to %s', data, self.identity)
+            logger.info(' Send for blocmnumber #%s to %s', data, self.conn_identity)
         return
 
     def FH(self, data):  # Fetch Block Headerhash
@@ -647,11 +647,11 @@ class P2PProtocol(Protocol):
 
                 if data['genesis_prev_headerhash'] == config.dev.genesis_prev_headerhash:
                     return
-                logger.warning('%s genesis_prev_headerhash mismatch', self.identity)
+                logger.warning('%s genesis_prev_headerhash mismatch', self.conn_identity)
                 logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
                 logger.warning('Found: %s', data['genesis_prev_headerhash'])
             except Exception as e:
-                logger.error('Peer Caused Exception %s', self.identity)
+                logger.error('Peer Caused Exception %s', self.conn_identity)
                 logger.exception(e)
 
             self.transport.loseConnection()
@@ -707,16 +707,16 @@ class P2PProtocol(Protocol):
                                                    block_number,
                                                    target_chain=target_chain,
                                                    stake_address=stake_address):
-                logger.info('%s vote hash doesnt hash to stake terminator vote %s',# nonce %s vote_hash %s',
-                            self.identity, vote_hash)#, s[2], vote_hash_terminator)
+                logger.info('%s vote hash doesnt hash to stake terminator vote %s',  # nonce %s vote_hash %s',
+                            self.conn_identity, vote_hash)#, s[2], vote_hash_terminator)
                 return
 
             if not stake_validators_list.validate_hash(reveal_one,
                                                    block_number,
                                                    target_chain=config.dev.hashchain_nums-1,
                                                    stake_address=stake_address):
-                logger.info('%s reveal doesnt hash to stake terminator reveal %s',# nonce %s reveal_hash %s',
-                            self.identity, reveal_one)#, s[2], reveal_hash_terminator)
+                logger.info('%s reveal doesnt hash to stake terminator reveal %s',  # nonce %s reveal_hash %s',
+                            self.conn_identity, reveal_one)#, s[2], reveal_hash_terminator)
                 return
 
         if len(self.factory.pos.r1_time_diff) > 2:
@@ -896,7 +896,7 @@ class P2PProtocol(Protocol):
             self.fetch_tried = 0
         self.fetch_tried += 1  # TODO: remove from target_peers if tried is greater than x
         self.last_requested_blocknum = n
-        logger.info('<<<Fetching block: %s from %s', n, self.identity)
+        logger.info('<<<Fetching block: %s from %s', n, self.conn_identity)
         self.transport.write(self.wrap_message('FB', str(n)))
         return
 
@@ -906,7 +906,7 @@ class P2PProtocol(Protocol):
         Sends request for the maximum blockheight.
         :return:
         """
-        logger.info('<<<Fetching FMBH from : %s', self.identity)
+        logger.info('<<<Fetching FMBH from : %s', self.conn_identity)
         self.transport.write(self.wrap_message('FMBH'))
 
     def fetch_headerhash_n(self, n):
@@ -915,17 +915,34 @@ class P2PProtocol(Protocol):
         Sends request for the headerhash of blocknumber n.
         :return:
         """
-        logger.info('<<<Fetching headerhash of block: %s from %s', n, self.identity)
+        logger.info('<<<Fetching headerhash of block: %s from %s', n, self.conn_identity)
         self.transport.write(self.wrap_message('FH', str(n)))
         return
 
-    def wrap_message(self, mtype, data=None):
+    MSG_INITIATOR = b"\xff\x00\x00"
+    MSG_TERMINATOR = b"\x00\x00\xff"
+
+    @staticmethod
+    def wrap_message(mtype, data=None):
+        """
+        :param mtype:
+        :type mtype: str
+        :param data:
+        :type data: Union[None, str, None, None, None, None, None, None, None, None, None]
+        :return:
+        :rtype: str
+        >>> from qrl.core.doctest_data import wrap_message_expected1
+        >>> P2PProtocol.wrap_message("test", 12345) == wrap_message_expected1
+        True
+        """
+        # FIXME: Move this to protobuf
         jdata = {'type': mtype}
         if data:
             jdata['data'] = data
-        str_data = json.dumps(jdata)
-        return chr(255) + chr(0) + chr(0) + struct.pack('>L', len(str_data)) + chr(0) + str_data + chr(0) + chr(
-            0) + chr(255)
+        str_data = json.dumps(jdata).encode('ascii')
+        # FIXME: struct.pack may result in endianness problems
+        str_data_len = struct.pack('>L', len(str_data))
+        return P2PProtocol.MSG_INITIATOR + str_data_len + b"\x00" + str_data + P2PProtocol.MSG_TERMINATOR
 
     def clean_buffer(self, reason=None, upto=None):
         if reason:
@@ -936,11 +953,22 @@ class P2PProtocol(Protocol):
             self.buffer = ''  # Clean buffer completely
 
     def parse_buffer(self):
+        """
+        :return:
+        :rtype: bool
+        >>> from qrl.core.doctest_data import wrap_message_expected1
+        >>> p=P2PProtocol()
+        >>> p.buffer = wrap_message_expected1
+        >>> found_message = p.parse_buffer()
+        >>> p.messages
+        ['{"data": 12345, "type": "test"}']
+        """
+        # FIXME
         if len(self.buffer) == 0:
             return False
 
-        d = self.buffer.find(chr(255) + chr(0) + chr(0))  # find the initiator sequence
-        num_d = self.buffer.count(chr(255) + chr(0) + chr(0))  # count the initiator sequences
+        d = self.buffer.find(P2PProtocol.MSG_INITIATOR)  # find the initiator sequence
+        num_d = self.buffer.count(P2PProtocol.MSG_INITIATOR)  # count the initiator sequences
 
         if d == -1:  # if no initiator sequences found then wipe buffer..
             self.clean_buffer(reason='Message data without initiator')
@@ -956,7 +984,7 @@ class P2PProtocol(Protocol):
         except:
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
-                d = self.buffer.find(chr(255) + chr(0) + chr(0))
+                d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                 self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved',
                                   upto=d)  # no
                 return True
@@ -967,20 +995,20 @@ class P2PProtocol(Protocol):
         if m > config.dev.message_buffer_size:  # check if size is more than 500 KB
             if num_d > 1:
                 self.buffer = self.buffer[3:]
-                d = self.buffer.find(chr(255) + chr(0) + chr(0))
+                d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                 self.clean_buffer(reason='Size is more than 500 KB, next msg preserved', upto=d)
                 return True
             else:
                 self.clean_buffer(reason='Size is more than 500 KB')
             return False
 
-        e = self.buffer.find(chr(0) + chr(0) + chr(255))  # find the terminator sequence
+        e = self.buffer.find(P2PProtocol.MSG_TERMINATOR)  # find the terminator sequence
 
         if e == -1:  # no terminator sequence found
             if len(self.buffer) > 8 + m + 3:
                 if num_d > 1:  # if not is this the only initiator sequence?
                     self.buffer = self.buffer[3:]
-                    d = self.buffer.find(chr(255) + chr(0) + chr(0))
+                    d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                     self.clean_buffer(reason='Message without appropriate terminator, next msg preserved', upto=d)  # no
                     return True
                 else:
@@ -990,7 +1018,7 @@ class P2PProtocol(Protocol):
         if e != 3 + 5 + m:  # is terminator sequence located correctly?
             if num_d > 1:  # if not is this the only initiator sequence?
                 self.buffer = self.buffer[3:]
-                d = self.buffer.find(chr(255) + chr(0) + chr(0))
+                d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                 self.clean_buffer(reason='Message terminator incorrectly positioned, next msg preserved', upto=d)  # no
                 return True
             else:
@@ -1002,6 +1030,22 @@ class P2PProtocol(Protocol):
         return True
 
     def dataReceived(self, data):  # adds data received to buffer. then tries to parse the buffer twice..
+        """
+        :param data:
+        :type data: str
+        :return:
+        :rtype: None
+        >>> from qrl.core.doctest_data import wrap_message_expected1
+        >>> p=P2PProtocol()
+        >>> val_received = 0
+        >>> def mockService(x):
+        ...     global val_received
+        ...     val_received = x
+        >>> p.service['test'] = mockService
+        >>> p.dataReceived(wrap_message_expected1)
+        >>> val_received
+        12345
+        """
 
         self.buffer += data
 
@@ -1012,22 +1056,24 @@ class P2PProtocol(Protocol):
                 for msg in self.messages:
                     self.parse_msg(msg)
                 del self.messages[:]
-        return
+
 
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
-        self.identity = peerHost + ":" + str(peerPort)
+        self.conn_identity = peerHost + ":" + str(peerPort)
 
-        # For AWS
+        # FIXME: (For AWS) This could be problematic for other users
         if config.dev.public_ip:
             if self.transport.getPeer().host == config.dev.public_ip:
                 self.transport.loseConnection()
                 return
+
         if len(self.factory.peer_connections) >= config.user.max_peers_limit:
+            # FIXME: Should we stop listening to avoid unnecessary load due to many connections?
             logger.info('Peer limit hit ')
             logger.info('# of Connected peers %s', len(self.factory.peer_connections))
             logger.info('Peer Limit %s', config.user.max_peers_limit)
-            logger.info('Disconnecting client %s', self.identity)
+            logger.info('Disconnecting client %s', self.conn_identity)
             self.transport.loseConnection()
             return
 
@@ -1066,8 +1112,8 @@ class P2PProtocol(Protocol):
             self.factory.peer_connections.remove(self)
             self.factory.connections -= 1
 
-            if self.identity in self.factory.target_peers:
-                del self.factory.target_peers[self.identity]
+            if self.conn_identity in self.factory.target_peers:
+                del self.factory.target_peers[self.conn_identity]
             host_port = self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)
             if host_port in self.factory.peers_blockheight:
                 del self.factory.peers_blockheight[host_port]

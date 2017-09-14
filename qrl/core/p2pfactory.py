@@ -17,11 +17,12 @@ from qrl.crypto.misc import sha256
 
 
 class P2PFactory(ServerFactory):
+    protocol = P2PProtocol
+
     def __init__(self, chain, nodeState, pos=None):
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
-        self.protocol = P2PProtocol
         self.chain = chain
         self.nodeState = nodeState
         self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
@@ -55,6 +56,21 @@ class P2PFactory(ServerFactory):
     def setPOS(self, pos):
         self.pos = pos
         self.master_mr = self.pos.master_mr
+
+    def connect_peers(self):
+        """
+        Will connect to all known peers. This is typically the entry point
+        It does result in:
+        - connectionMade in each protocol (session)
+        - :py:meth:startedConnecting
+        - :py:meth:clientConnectionFailed
+        - :py:meth:clientConnectionLost
+        :return:
+        :rtype: None
+        """
+        logger.info('<<<Reconnecting to peer list:')
+        for peer in self.peer_addresses:
+            reactor.connectTCP(peer, 9000, self)
 
     def get_block_a_to_b(self, a, b):
         logger.info('<<<Requested blocks: %s to %s from peers..', a, b)
@@ -99,7 +115,7 @@ class P2PFactory(ServerFactory):
         return
 
     def f_wrap_message(self, mtype, data=None):
-        jdata = {'type': mtype }
+        jdata = {'type': mtype}
         if data:
             jdata['data'] = data
         str_data = json.dumps(jdata)
@@ -129,9 +145,9 @@ class P2PFactory(ServerFactory):
             blocknumber = self.chain.block_chain_buffer.height() + 1  # next block..
 
         reveal_msg = {'stake_address': self.chain.mining_address,
-             'block_number': blocknumber,
-             # demonstrate the hash from last block to prevent building upon invalid block..
-             'headerhash': self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)}
+                      'block_number': blocknumber,
+                      # demonstrate the hash from last block to prevent building upon invalid block..
+                      'headerhash': self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)}
 
         epoch = blocknumber // config.dev.blocks_per_epoch
 
@@ -184,14 +200,15 @@ class P2PFactory(ServerFactory):
 
         self.last_reveal_one = reveal_msg
         self.register_and_broadcast('R1', reveal_msg['vote_hash'], json_encode(reveal_msg))
-        
+
         if not y:
             self.chain.stake_reveal_one.append([reveal_msg['stake_address'],
                                                 reveal_msg['headerhash'],
                                                 reveal_msg['block_number'],
                                                 reveal_msg['reveal_one'],
                                                 reveal_msg['weighted_hash'],
-                                                reveal_msg['vote_hash']])  # don't forget to store our reveal in stake_reveal_one
+                                                reveal_msg[
+                                                    'vote_hash']])  # don't forget to store our reveal in stake_reveal_one
 
         return reveal_msg['reveal_one']
 
@@ -252,24 +269,6 @@ class P2PFactory(ServerFactory):
 
     # connection functions
 
-    def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list:')
-        for peer in self.peer_addresses:
-            reactor.connectTCP(peer, 9000, self)
-
-    def clientConnectionLost(self, connector, reason):  # try and reconnect
-        # logger.info(( 'connection lost: ', reason, 'trying reconnect'
-        # connector.connect()
-        return
-
-    def clientConnectionFailed(self, connector, reason):
-        # logger.info(( 'connection failed: ', reason
-        return
-
-    def startedConnecting(self, connector):
-        # logger.info(( 'Started to connect.', connector
-        return
-
     # FIXME: Temporarily moving here
     def load_peer_addresses(self):
         if os.path.isfile(self.peers_path) is True:
@@ -297,3 +296,15 @@ class P2PFactory(ServerFactory):
     def reset_processor_flag_with_err(self, msg):
         logger.error('Exception in txn task')
         logger.error('%s', msg)
+
+    # Event handlers
+    def clientConnectionLost(self, connector, reason):
+        logger.debug('connection lost: %s', reason)
+        # TODO: Reconnect has been disabled
+        # connector.connect()
+
+    def clientConnectionFailed(self, connector, reason):
+        logger.debug('connection failed: %s', reason)
+
+    def startedConnecting(self, connector):
+        logger.debug('Started connecting: %s', connector)

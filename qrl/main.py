@@ -92,13 +92,17 @@ def main():
         print(addresses[0])
         quit()
 
+    # FIXME: Again, we have cross-references between node, factory, chain and node_state
     p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state)
     pos = node.POS(chain=chain_obj, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
     p2p_factory.setPOS(pos)
 
+    # FIXME: Again, we have cross-references between node, factory, chain and node_state
     api_factory = ApiFactory(pos, chain_obj, state_obj, p2p_factory.peer_connections)
 
     welcome = 'QRL node connection established. Try starting with "help"\r\n'
+
+    # FIXME: Again, we have cross-references between node, factory, chain and node_state
     wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory)
 
     logger.info('>>>Listening..')

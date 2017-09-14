@@ -284,11 +284,11 @@ class WalletProtocol(Protocol):
                     self.output['peers'] = {}
                     for peer in self.factory.p2pFactory.peer_connections:
                         self.output['message'].write(
-                            '>>> ' + peer.identity + " [" + peer.version + "]  blockheight: " + str(
+                            '>>> ' + peer.conn_identity + " [" + peer.version + "]  blockheight: " + str(
                                 peer.blockheight) + '\r\n')
-                        self.output['peers'][peer.identity] = {}
-                        self.output['peers'][peer.identity]['version'] = peer.version
-                        self.output['peers'][peer.identity]['blockheight'] = peer.blockheight
+                        self.output['peers'][peer.conn_identity] = {}
+                        self.output['peers'][peer.conn_identity]['version'] = peer.version
+                        self.output['peers'][peer.conn_identity]['blockheight'] = peer.blockheight
 
 
                 elif command == 'reboot':
