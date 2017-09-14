@@ -7,8 +7,10 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin, str2bin
 from qrl.core import helper, config, logger, fork
 from qrl.core.block import Block
+from qrl.core.doctest_data import wrap_message_expected1
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, SimpleTransaction
@@ -117,7 +119,7 @@ class P2PProtocol(Protocol):
         if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
             return
 
-        if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool)>=config.dev.transaction_pool_size:
+        if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', data['hash'])
             return
 
@@ -328,13 +330,13 @@ class P2PProtocol(Protocol):
                 return
 
             data = helper.json_decode(data)
-            blocknumber = int(data.keys()[0].encode('ascii'))
+            blocknumber = int(list(data.keys())[0].encode('ascii'))
 
             if blocknumber != self.last_requested_blocknum:
                 logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.conn_identity)
                 return
 
-            for jsonBlock in data[unicode(blocknumber)]:
+            for jsonBlock in data[str(blocknumber)]:
                 block = Block.from_json(json.dumps(jsonBlock))
                 logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
 
@@ -700,24 +702,23 @@ class P2PProtocol(Protocol):
                             len(self.factory.chain.block_chain_buffer.next_stake_list_get(z['block_number'])))
                 return
 
-
             stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(block_number)
 
             target_chain = stake_validators_list.select_target(headerhash)
             if not stake_validators_list.validate_hash(vote_hash,
-                                                   block_number,
-                                                   target_chain=target_chain,
-                                                   stake_address=stake_address):
+                                                       block_number,
+                                                       target_chain=target_chain,
+                                                       stake_address=stake_address):
                 logger.info('%s vote hash doesnt hash to stake terminator vote %s',  # nonce %s vote_hash %s',
-                            self.conn_identity, vote_hash)#, s[2], vote_hash_terminator)
+                            self.conn_identity, vote_hash)  # , s[2], vote_hash_terminator)
                 return
 
             if not stake_validators_list.validate_hash(reveal_one,
-                                                   block_number,
-                                                   target_chain=config.dev.hashchain_nums-1,
-                                                   stake_address=stake_address):
+                                                       block_number,
+                                                       target_chain=config.dev.hashchain_nums - 1,
+                                                       stake_address=stake_address):
                 logger.info('%s reveal doesnt hash to stake terminator reveal %s',  # nonce %s reveal_hash %s',
-                            self.conn_identity, reveal_one)#, s[2], reveal_hash_terminator)
+                            self.conn_identity, reveal_one)  # , s[2], reveal_hash_terminator)
                 return
 
         if len(self.factory.pos.r1_time_diff) > 2:
@@ -920,8 +921,8 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('FH', str(n)))
         return
 
-    MSG_INITIATOR = b"\xff\x00\x00"
-    MSG_TERMINATOR = b"\x00\x00\xff"
+    MSG_INITIATOR = "\xff\x00\x00"
+    MSG_TERMINATOR = "\x00\x00\xff"
 
     @staticmethod
     def wrap_message(mtype, data=None):
@@ -932,18 +933,22 @@ class P2PProtocol(Protocol):
         :type data: Union[None, str, None, None, None, None, None, None, None, None, None]
         :return:
         :rtype: str
-        >>> from qrl.core.doctest_data import wrap_message_expected1
-        >>> P2PProtocol.wrap_message("test", 12345) == wrap_message_expected1
+        >>> from qrl.core.doctest_data import wrap_message_expected1, wrap_message_expected1b
+        >>> answer = bin2hstr( bytearray(P2PProtocol.wrap_message('TESTKEY_1234', 12345), encoding='latin1') )
+        >>> answer == 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff' or answer == 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
         True
         """
         # FIXME: Move this to protobuf
         jdata = {'type': mtype}
         if data:
             jdata['data'] = data
-        str_data = json.dumps(jdata).encode('ascii')
+
+        str_data = json.dumps(jdata)
+
         # FIXME: struct.pack may result in endianness problems
-        str_data_len = struct.pack('>L', len(str_data))
-        return P2PProtocol.MSG_INITIATOR + str_data_len + b"\x00" + str_data + P2PProtocol.MSG_TERMINATOR
+        str_data_len = bin2hstr(struct.pack('>L', len(str_data)))
+
+        return P2PProtocol.MSG_INITIATOR + str_data_len + "\x00" + str_data + P2PProtocol.MSG_TERMINATOR
 
     def clean_buffer(self, reason=None, upto=None):
         if reason:
@@ -962,7 +967,7 @@ class P2PProtocol(Protocol):
         >>> p.buffer = wrap_message_expected1
         >>> found_message = p.parse_buffer()
         >>> p.messages
-        ['{"data": 12345, "type": "test"}']
+        ['{"data": 12345, "type": "TESTKEY_1234"}']
         """
         # FIXME
         if len(self.buffer) == 0:
@@ -981,7 +986,7 @@ class P2PProtocol(Protocol):
             return False
 
         try:
-            m = struct.unpack('>L', self.buffer[3:7])[0]  # is m length encoded correctly?
+            m = struct.unpack('>L', bytearray(hstr2bin(self.buffer[3:11])))[0]  # is m length encoded correctly?
         except:
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
@@ -1006,7 +1011,7 @@ class P2PProtocol(Protocol):
         e = self.buffer.find(P2PProtocol.MSG_TERMINATOR)  # find the terminator sequence
 
         if e == -1:  # no terminator sequence found
-            if len(self.buffer) > 8 + m + 3:
+            if len(self.buffer) > 12 + m + 3:
                 if num_d > 1:  # if not is this the only initiator sequence?
                     self.buffer = self.buffer[3:]
                     d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
@@ -1016,7 +1021,7 @@ class P2PProtocol(Protocol):
                     self.clean_buffer(reason='Message without initiator and terminator')  # yes
             return False
 
-        if e != 3 + 5 + m:  # is terminator sequence located correctly?
+        if e != 3 + 9 + m:  # is terminator sequence located correctly?
             if num_d > 1:  # if not is this the only initiator sequence?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
@@ -1026,7 +1031,7 @@ class P2PProtocol(Protocol):
                 self.clean_buffer(reason='Message terminator incorrectly positioned')  # yes
             return False
 
-        self.messages.append(self.buffer[8:8 + m])  # if survived the above then save the msg into the self.messages
+        self.messages.append(self.buffer[12:12 + m])  # if survived the above then save the msg into the self.messages
         self.buffer = self.buffer[8 + m + 3:]  # reset the buffer to after the msg
         return True
 
@@ -1042,7 +1047,7 @@ class P2PProtocol(Protocol):
         >>> def mockService(x):
         ...     global val_received
         ...     val_received = x
-        >>> p.service['test'] = mockService
+        >>> p.service['TESTKEY_1234'] = mockService
         >>> p.dataReceived(wrap_message_expected1)
         >>> val_received
         12345
@@ -1057,7 +1062,6 @@ class P2PProtocol(Protocol):
                 for msg in self.messages:
                     self.parse_msg(msg)
                 del self.messages[:]
-
 
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
@@ -1158,7 +1162,7 @@ class P2PProtocol(Protocol):
                                          txhash_timestamp=self.factory.chain.txhash_timestamp)
 
             task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-            task_defer.addCallback(self.factory.reset_processor_flag)\
-                      .addErrback(self.factory.reset_processor_flag_with_err)
+            task_defer.addCallback(self.factory.reset_processor_flag) \
+                .addErrback(self.factory.reset_processor_flag_with_err)
             self.factory.txn_processor_running = True
         return

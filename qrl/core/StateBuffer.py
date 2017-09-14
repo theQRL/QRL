@@ -40,7 +40,7 @@ class StateBuffer:
         self.update_stxn_state(block, state)
 
     def update_stxn_state(self, block, state):
-        stxn_state_keys = self.stxn_state.keys()
+        stxn_state_keys = list(self.stxn_state.keys())
         for addr in stxn_state_keys:
 
             addr_list = state.state_get_address(addr)

@@ -1,5 +1,5 @@
 # coding=utf-8
-import cPickle as pickle
+import pickle as pickle
 import os
 import random
 import struct
@@ -130,7 +130,7 @@ class P2PFactory(ServerFactory):
 
     def get_block_a_to_b(self, a, b):
         logger.info('<<<Requested blocks: %s to %s from peers..', a, b)
-        l = range(a, b)
+        l = list(range(a, b))
         for peer in self.peer_connections:
             if len(l) > 0:
                 peer.transport.write(self.f_wrap_message('BN', str(l.pop(0))))
@@ -343,13 +343,13 @@ class P2PFactory(ServerFactory):
     def load_peer_addresses(self):
         if os.path.isfile(self.peers_path) is True:
             logger.info('Opening peers.dat')
-            with open(self.peers_path, 'r') as my_file:
+            with open(self.peers_path, 'rb') as my_file:
                 self.peer_addresses = pickle.load(my_file)
         else:
             logger.info('Creating peers.dat')
             # Ensure the data path exists
             config.create_path(config.user.data_path)
-            with open(self.peers_path, 'w+') as my_file:
+            with open(self.peers_path, 'wb') as my_file:
                 pickle.dump(config.user.peer_list, my_file)
                 self.peer_addresses = config.user.peer_list
 
@@ -357,7 +357,7 @@ class P2PFactory(ServerFactory):
 
     def update_peer_addresses(self, peer_addresses):
         self.peer_addresses = peer_addresses
-        with open(self.peers_path, "w+") as myfile:
+        with open(self.peers_path, "wb") as myfile:
             pickle.dump(self.peer_addresses, myfile)
 
     def reset_processor_flag(self, _):

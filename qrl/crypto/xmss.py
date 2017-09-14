@@ -167,10 +167,10 @@ class XMSS(object):
         0
         """
         # type: () -> int
-        return self._index
+        return self._xmss.getIndex()
 
     def set_index(self, new_index):
-        raise NotImplementedError()
+        self._xmss.setIndex(new_index)
 
     def get_hexseed(self):
         """

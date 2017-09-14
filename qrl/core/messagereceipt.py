@@ -4,8 +4,8 @@
 
 from collections import OrderedDict, defaultdict
 
+from pyqrllib.pyqrllib import sha2_256
 from qrl.core import config
-from qrl.crypto.misc import sha256
 
 
 class MessageReceipt(object):
@@ -65,13 +65,13 @@ class MessageReceipt(object):
         if len(self.hash_type) >= config.dev.message_q_size:
             self.__remove__()
 
-        msg_hash = sha256(str(msg_hash))
+        msg_hash = sha2_256(msg_hash)
         self.hash_type[msg_hash] = msg_type
         self.hash_msg[msg_hash] = msg_obj
 
     def deregister(self, msg_hash, msg_type):
         # FIXME: Hash is converted to string
-        msg_hash = sha256(str(msg_hash))
+        msg_hash = sha2_256(msg_hash)
 
         if msg_hash in self.hash_msg:
             del self.hash_msg[msg_hash]
@@ -100,9 +100,8 @@ class MessageReceipt(object):
         if data:
             self.hash_params[msg_hash] = data
 
-    def isRequested(self, msg_hash, peer, block=None):
-        msg_hash = sha256(str(msg_hash))
-
+    def isRequested(self, msg_hash, peer):
+        msg_hash = sha2_256(msg_hash)
         if msg_hash in self.requested_hash:
             if peer in self.requested_hash[msg_hash]:
                 return True

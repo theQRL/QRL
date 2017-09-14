@@ -6,14 +6,14 @@ import logging
 
 from twisted.internet import reactor
 
-import webwallet
-from core import logger, ntp, node, config
-from core.apifactory import ApiFactory
-from core.chain import Chain
-from core.node import NodeState
-from core.p2pfactory import P2PFactory
-from core.state import State
-from core.walletfactory import WalletFactory
+from . import webwallet
+from .core import logger, ntp, node, config
+from .core.apifactory import ApiFactory
+from .core.chain import Chain
+from .core.node import NodeState
+from .core.p2pfactory import P2PFactory
+from .core.state import State
+from .core.walletfactory import WalletFactory
 from qrl.core import logger_twisted
 
 LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
@@ -91,7 +91,7 @@ def main():
     if args.get_wallets:
         address_data = chain_obj.wallet.list_addresses(chain_obj.state, chain_obj.transaction_pool)
         addresses = [ a[0] for a in address_data ]
-        print(addresses[0])
+        print((addresses[0]))
         quit()
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state

@@ -258,9 +258,9 @@ class ApiProtocol(Protocol):
     def latency(self, mtype=None):
         output = {}
         if mtype and mtype.lower() in ['mean', 'median', 'last']:
-            for block_num in self.factory.chain.stake_validator_latency.keys():
+            for block_num in list(self.factory.chain.stake_validator_latency.keys()):
                 output[block_num] = {}
-                for stake in self.factory.chain.stake_validator_latency[block_num].keys():
+                for stake in list(self.factory.chain.stake_validator_latency[block_num].keys()):
                     time_list = self.factory.chain.stake_validator_latency[block_num][stake]
                     logger.info(time_list)
                     output[block_num][stake] = {}
