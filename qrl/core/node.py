@@ -331,7 +331,7 @@ class POS:
         self.fmbh_blockhash_peers = {}
         self.fmbh_allowed_peers = {}
         for peer in self.p2pFactory.peer_connections:
-            self.fmbh_allowed_peers[peer.identity] = None
+            self.fmbh_allowed_peers[peer.conn_identity] = None
             peer.fetch_FMBH()
         reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
@@ -351,7 +351,7 @@ class POS:
                 selected_blockhash = blockheaderhash
         for peer in fmbh_blockhash_peers[selected_blockhash]['peers']:
             f.target_peers = {}
-            f.target_peers[peer.identity] = peer
+            f.target_peers[peer.conn_identity] = peer
         
         if max_height == None or max_height<=chain.height():
             chain.state.update(NState.synced)
@@ -378,7 +378,7 @@ class POS:
             logger.info('No peers responded FMBH request')
             return
         for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
-            self.p2pFactory.target_peers[peer.identity] = peer
+            self.p2pFactory.target_peers[peer.conn_identity] = peer
         self.update_node_state(NState.syncing)
         self.randomize_block_fetch(self.chain.height() + 1)
 
@@ -572,7 +572,7 @@ class POS:
                 try:
                     if len(self.p2pFactory.fork_target_peers) == 0:
                         for peer in self.p2pFactory.peers:
-                            self.p2pFactory.fork_target_peers[peer.identity] = peer
+                            self.p2pFactory.fork_target_peers[peer.conn_identity] = peer
                     if len(self.p2pFactory.fork_target_peers) > 0:
                         random_peer = self.p2pFactory.fork_target_peers[
                             random.choice(
@@ -583,7 +583,7 @@ class POS:
                         if block_number in fork.pending_blocks:
                             count = fork.pending_blocks[block_number][1] + 1
                         fork.pending_blocks[block_number] = [
-                            random_peer.identity, count, None, headerhash_monitor
+                            random_peer.conn_identity, count, None, headerhash_monitor
                         ]
                         random_peer.fetch_headerhash_n(block_number)
                 except Exception as e:
