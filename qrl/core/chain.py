@@ -16,7 +16,7 @@ from qrl.crypto.misc import sha256, merkle_tx_hash
 import gc
 
 import bz2
-from StringIO import StringIO
+from io import StringIO
 from time import time
 from operator import itemgetter
 from math import log, ceil

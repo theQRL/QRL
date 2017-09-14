@@ -102,7 +102,7 @@ class POS:
         current_height = self.chain.m_blockheight()
         block_hash_counter = Counter()
         for peer in self.p2pFactory.peers:
-            if current_height in peer.blocknumber_headerhash.keys():
+            if current_height in list(peer.blocknumber_headerhash.keys()):
                 block_hash_counter[peer.blocknumber_headerhash[current_height]] += 1
 
         blockhash = block_hash_counter.most_common(1)
@@ -297,8 +297,7 @@ class POS:
         if not blocknumber:
             blocknumber = self.chain.m_blockchain[-1].blockheader.blocknumber
 
-        self.chain.stake_reveal_one = filter(lambda s: s[2] > blocknumber,
-                                             self.chain.stake_reveal_one)
+        self.chain.stake_reveal_one = [s for s in self.chain.stake_reveal_one if s[2] > blocknumber]
 
         return
 
@@ -560,14 +559,14 @@ class POS:
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():
             return
 
-        if len(self.p2pFactory.target_peers.keys()) == 0:
+        if len(list(self.p2pFactory.target_peers.keys())) == 0:
             logger.info(' No target peers found.. stopping download')
             return
 
         reactor.download_monitor = reactor.callLater(20,
                                                      self.randomize_block_fetch, blocknumber)
 
-        random_peer = self.p2pFactory.target_peers[random.choice(self.p2pFactory.target_peers.keys())]
+        random_peer = self.p2pFactory.target_peers[random.choice(list(self.p2pFactory.target_peers.keys()))]
         random_peer.fetch_block_n(blocknumber)
 
     def randomize_headerhash_fetch(self, block_number):
@@ -583,7 +582,7 @@ class POS:
                     if len(self.p2pFactory.fork_target_peers) > 0:
                         random_peer = self.p2pFactory.fork_target_peers[
                             random.choice(
-                                self.p2pFactory.fork_target_peers.keys()
+                                list(self.p2pFactory.fork_target_peers.keys())
                             )
                         ]
                         count = 0
@@ -613,10 +612,7 @@ class POS:
         logger.info(self.chain.blockheight_map)
 
         # first strip out any laggards..
-        self.chain.blockheight_map = filter(
-            lambda q: q[0] >= self.chain.m_blockheight(),
-            self.chain.blockheight_map
-        )
+        self.chain.blockheight_map = [q for q in self.chain.blockheight_map if q[0] >= self.chain.m_blockheight()]
 
         result = True
 

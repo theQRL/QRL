@@ -279,8 +279,8 @@ class sendQuanta(Resource):
         # send the transaction to peers (ie send it to the network - we are done)
         self.p2pFactory.send_tx_to_peers(tx)
 
-        print('>>> TXN Hash: ' + str(tx.txhash) + ', From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
-            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network')
+        print(('>>> TXN Hash: ' + str(tx.txhash) + ', From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
+            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network'))
 
         self.txnResult["status"] = "success"
         self.txnResult["txnhash"] = str(tx.txhash)

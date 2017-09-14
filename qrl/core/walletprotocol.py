@@ -4,7 +4,7 @@
 
 import decimal
 import time
-from StringIO import StringIO
+from io import StringIO
 
 import simplejson as json
 from twisted.internet.protocol import Protocol, connectionDone
@@ -124,7 +124,7 @@ class WalletProtocol(Protocol):
                         self.output['message'].write('>>> No Information available')
                         return True
 
-                    for key in tmp_output.keys():
+                    for key in list(tmp_output.keys()):
                         self.output['keys'] += [str(key)]
                         self.output[key] = tmp_output[key]
 

@@ -8,33 +8,42 @@ cache:
   - pip
 cache:
   timeout: 600
-virtualenv:
-  system_site_packages: true
 env:
   matrix:
-    #- DISTRIB="conda" PYTHON_VERSION="2.7" COVERAGE="false"   # TODO: Fix conda tests
-  - DISTRIB="ubuntu" PYTHON_VERSION="2.7" COVERAGE="true"
+    #- DISTRIB="conda" PYTHON_VERSION="3.5" COVERAGE="false"   # TODO: Fix conda tests
+  - DISTRIB="ubuntu" PYTHON_VERSION="3.5" COVERAGE="true"
 addons:
   apt:
     packages:
     - git
-    - python-pip
+    - python3
+    - python3-dev
+    - swig3.0
+    - build-essential
+    - pkg-config
+
 install:
 - source tests/travis_install.sh
-- pip install -r requirements.txt
-- pip install codacy-coverage
+- pip3 install -r requirements.txt
+- pip3 install codacy-coverage
+
 before_script:
 - git config --global user.email "info@theQRL.org"
 - git config --global user.name "QRL"
+
 script:
-- python setup.py test
+- python3 setup.py test
+
 after_success:
 - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
 - if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+
 deploy:
-- provider: script
-  script: sh $TRAVIS_BUILD_DIR/scripts/deploy_pypi.sh
+  provider: pypi
   skip_cleanup: true
-  all_branches: true
+  user: jleni
+  password:
+    secure: LEHilAb+FXCKVvd1/AEmVlUPyf8sOVYt/rMLZPr3bMEiwgK//lFJWlBPli9+G9ed4HjDpq/YFGpTKsRs9Etl4MWSnEJwYJPL0qBTWRCvEn1Py1kTI68dqRKR6oLpssj2BsLpuZvLt+2kE9PVvLSTGbwUGrnvob2AX2suUZcxnZD2q25TOnbZS2/M2F7SOy/0rVn6jlvGPwhMbdsmiLBStsx4rdiu84e1aryUDELSNTP7GtX61dmZs3et2Tpfz7uHXF++mxuT4hzjRe6mUKbtBekCy5EuAzI8vUTmys/m0llmB++gORSLeM22jfpGyfT7AxlkAxO3vlX3XLIythPIYcAEEjBA2xdt8GRlLWH3XLJJYWVEQgdA21sQLuQEGBepc44oKsdUH5t1Ok7kBYjvtQWJCa1/gv+GowKnU5159iJe6MBL9iJqzaz+tbGqKbQHpCvkPlNmipEBKVUANIx7IoXc/tHruCJtjp/vX4hbbOcT4674UaCcHtWpM3ME6EafC2r/nHNNA7rLoX1CP0RCrbSZJOGzhTZlyY9lB0qAmJe+3NDVSiY+6wO2qDFDN7nSl7BUBppPWHkhCVdXq3647RJB31djCguNfnjJLT7hoKkFTMFrrpkpvYUdPkJUAPqh3VZdl+esfMQnHctqBk0D8B+0lX6IJ9v8I5R/kyBs7/g=
   on:
     tags: true
+    all_branches: true

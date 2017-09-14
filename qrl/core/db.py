@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-import cPickle as pickle
+import pickle as pickle
 import leveldb
 import os
 import simplejson as json

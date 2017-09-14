@@ -7,6 +7,8 @@ import os
 
 import yaml
 
+from pyqrllib.pyqrllib import str2bin
+
 
 class UserConfig(object):
     __instance = None

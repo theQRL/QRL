@@ -5,7 +5,7 @@
 from abc import ABCMeta
 
 import simplejson as json
-from StringIO import StringIO
+from io import StringIO
 
 import qrl
 from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin
@@ -16,11 +16,10 @@ from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 
 
-class Transaction(object):
+class Transaction(object, metaclass=ABCMeta):
     """
     Abstract Base class to be derived by all other transactions
     """
-    __metaclass__ = ABCMeta
 
     # FIXME: Use metaclass and make this class abstract. Enforce same API in derived classes
 
@@ -61,7 +60,7 @@ class Transaction(object):
             TX_SUBTYPE_LATTICE: LatticePublicKey
         }
 
-        subtype = txdict['subtype'].encode('ascii')
+        subtype = txdict['subtype']
         return type_to_txn[subtype]()._dict_to_transaction(txdict)
 
     @staticmethod
@@ -88,7 +87,7 @@ class Transaction(object):
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
-        self.txhash = sha2_256(32, txhash + self.pubhash)
+        self.txhash = sha2_256(txhash + self.pubhash)
         self.txfrom = txfrom.encode('ascii')
 
         self.PK = xmss.pk()
@@ -110,7 +109,7 @@ class Transaction(object):
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> Transaction
-        self.subtype = dict_tx['subtype'].encode('ascii')
+        self.subtype = dict_tx['subtype']
 
         self.ots_key = int(dict_tx['ots_key'])
         self.nonce = int(dict_tx['nonce'])
@@ -129,7 +128,7 @@ class Transaction(object):
             for item in srcList:
                 destList.append(self._reformat(item))
             return destList
-        elif isinstance(srcList, unicode):
+        elif isinstance(srcList, str):
             return srcList.encode('ascii')
 
         return srcList

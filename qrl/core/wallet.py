@@ -28,8 +28,8 @@ class Wallet:
         >>> Wallet().address_bundle is not None
         True
         """
+        config.create_path(config.user.wallet_path)
         self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
-        self.mnemonic_filename = os.path.join(config.user.wallet_path, config.dev.mnemonic_filename)
         self.address_bundle = None
         self._read_wallet()
         self._valid_or_create()
@@ -58,7 +58,7 @@ class Wallet:
                 for a in data:
                     tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip(), wordlist))
                     tmpxmss.set_index(a['index'])
-                    self.address_bundle.append([tmpxmss.get_address(), tmpxmss])
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e.message)
 
