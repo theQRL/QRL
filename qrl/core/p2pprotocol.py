@@ -48,7 +48,7 @@ class P2PProtocol(Protocol):
                         'R1': self.R1,
                         'IP': self.IP,
                         }
-        self.buffer = ''
+        self.buffer = b''
         self.messages = []
         self.conn_identity = None
         self.blockheight = None
@@ -60,7 +60,7 @@ class P2PProtocol(Protocol):
 
     def parse_msg(self, data):
         try:
-            jdata = json.loads(data)
+            jdata = json.loads(data.decode())
         except Exception as e:
             logger.warning("parse_msg [json] %s", e)
             return
@@ -838,7 +838,8 @@ class P2PProtocol(Protocol):
         :return:
         """
         logger.info('<<<Requesting blockheight from %s', self.transport.getPeer().host)
-        self.transport.write(self.wrap_message('MB'))
+        msg = self.wrap_message('MB')
+        self.transport.write(msg)
         return
 
     def send_m_blockheight_to_peer(self):
@@ -921,8 +922,8 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('FH', str(n)))
         return
 
-    MSG_INITIATOR = "\xff\x00\x00"
-    MSG_TERMINATOR = "\x00\x00\xff"
+    MSG_INITIATOR = bytearray(b'\xff\x00\x00')
+    MSG_TERMINATOR = bytearray(b'\x00\x00\xff')
 
     @staticmethod
     def wrap_message(mtype, data=None):
@@ -934,7 +935,7 @@ class P2PProtocol(Protocol):
         :return:
         :rtype: str
         >>> from qrl.core.doctest_data import wrap_message_expected1, wrap_message_expected1b
-        >>> answer = bin2hstr( bytearray(P2PProtocol.wrap_message('TESTKEY_1234', 12345), encoding='latin1') )
+        >>> answer = bin2hstr(P2PProtocol.wrap_message('TESTKEY_1234', 12345))
         >>> answer == 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff' or answer == 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
         True
         """
@@ -948,7 +949,14 @@ class P2PProtocol(Protocol):
         # FIXME: struct.pack may result in endianness problems
         str_data_len = bin2hstr(struct.pack('>L', len(str_data)))
 
-        return P2PProtocol.MSG_INITIATOR + str_data_len + "\x00" + str_data + P2PProtocol.MSG_TERMINATOR
+        tmp = b''
+        tmp += P2PProtocol.MSG_INITIATOR
+        tmp += str_data_len.encode()
+        tmp += bytearray(b'\x00')
+        tmp += str_data.encode()
+        tmp += P2PProtocol.MSG_TERMINATOR
+
+        return tmp
 
     def clean_buffer(self, reason=None, upto=None):
         if reason:
@@ -956,7 +964,7 @@ class P2PProtocol(Protocol):
         if upto:
             self.buffer = self.buffer[upto:]  # Clean buffer till the value provided in upto
         else:
-            self.buffer = ''  # Clean buffer completely
+            self.buffer = b''  # Clean buffer completely
 
     def parse_buffer(self):
         """
@@ -967,7 +975,7 @@ class P2PProtocol(Protocol):
         >>> p.buffer = wrap_message_expected1
         >>> found_message = p.parse_buffer()
         >>> p.messages
-        ['{"data": 12345, "type": "TESTKEY_1234"}']
+        [bytearray(b'{"data": 12345, "type": "TESTKEY_1234"}')]
         """
         # FIXME
         if len(self.buffer) == 0:
@@ -986,7 +994,10 @@ class P2PProtocol(Protocol):
             return False
 
         try:
-            m = struct.unpack('>L', bytearray(hstr2bin(self.buffer[3:11])))[0]  # is m length encoded correctly?
+            tmp = self.buffer[3:11]
+            tmp2 = hstr2bin(tmp.decode())
+            tmp3 = bytearray(tmp2)
+            m = struct.unpack('>L', tmp3)[0]  # is m length encoded correctly?
         except:
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
@@ -1037,7 +1048,7 @@ class P2PProtocol(Protocol):
 
     def dataReceived(self, data):  # adds data received to buffer. then tries to parse the buffer twice..
         """
-        :param data:
+        :param data:Message data without initiator
         :type data: str
         :return:
         :rtype: None
