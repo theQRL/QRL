@@ -68,5 +68,5 @@ test_txdict_Lattice = {
     ############## Specific content
 }
 
-wrap_message_expected1 = 'ÿ\x00\x0000000027\x00{"data": 12345, "type": "TESTKEY_1234"}\x00\x00ÿ'
+wrap_message_expected1 = bytearray(b'\xff\x00\x0000000027\x00{"data": 12345, "type": "TESTKEY_1234"}\x00\x00\xff')
 wrap_message_expected1b = bytearray(b'\xff\x00\x0000000027\x00{"type": "TESTKEY_1234", "data": 12345}\x00\x00\xff')

@@ -33,6 +33,7 @@ class WebWallet:
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
+        self.wallet = chain.wallet
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))

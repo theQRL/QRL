@@ -39,7 +39,7 @@ class State:
 
     def stake_list_get(self):
         try:
-            return self.db.get('stake_list')
+            return self.db.get('stake_list'.encode())
         except KeyError:
             logger.warning('stake_list empty returning empty list')
         except Exception as e:
@@ -57,7 +57,7 @@ class State:
 
     def next_stake_list_get(self):
         try:
-            return self.db.get('next_stake_list')
+            return self.db.get('next_stake_list'.encode())
         except KeyError:
             logger.warning('next_stake_list empty returning empty list')
         except Exception as e:
@@ -82,22 +82,22 @@ class State:
 
     def get_epoch_seed(self):
         try:
-            return self.db.get('epoch_seed')
+            return self.db.get('epoch_seed'.encode())
         except Exception as e:
             logger.warning("get_epoch_seed: %s %s", type(e), e.message)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
-        if height == self.db.get('blockheight'):
+        if height == self.db.get('blockheight'.encode()):
             return True
         return False
 
     def state_blockheight(self):
-        return self.db.get('blockheight')
+        return self.db.get('blockheight'.encode())
 
     def state_get_txn_count(self, addr):
         try:
-            return self.db.get('txn_count_' + addr)
+            return self.db.get( ('txn_count_' + addr).encode())
         except KeyError:
             logger.warning('No txn count for %s', addr)
         except Exception as e:
@@ -108,7 +108,7 @@ class State:
 
     def state_get_address(self, addr):
         try:
-            return self.db.get(addr)
+            return self.db.get(addr.encode())
         except KeyError:
             logger.warning('state_get_address: No state found for %s', addr)
         except Exception as e:
@@ -119,7 +119,7 @@ class State:
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
-            return self.db.get(addr)
+            return self.db.get(addr.encode())
         except KeyError:
             logger.warning('state_address_used: address not found %s', addr)
         except Exception as e:
@@ -130,7 +130,7 @@ class State:
 
     def state_balance(self, addr):
         try:
-            return self.db.get(addr)[1]
+            return self.db.get(addr.encode())[1]
         except KeyError:
             logger.warning("state_balance: state not found for %s", addr)
         except Exception as e:
@@ -141,7 +141,7 @@ class State:
 
     def state_nonce(self, addr):
         try:
-            return self.db.get(addr)[0]
+            return self.db.get(addr.encode())[0]
         except KeyError:
             logger.warning("state_nonce: state not found for %s", addr)
         except Exception as e:
@@ -152,7 +152,7 @@ class State:
 
     def state_pubhash(self, addr):
         try:
-            return self.db.get(addr)[2]
+            return self.db.get(addr.encode())[2]
         except KeyError:
             logger.warning("state_pubhash: state not found for %s", addr)
         except Exception as e:
@@ -163,7 +163,7 @@ class State:
 
     def state_hrs(self, hrs):
         try:
-            return self.db.get('hrs' + hrs)
+            return self.db.get('hrs{}'.format(hrs).encode())
         except KeyError:
             logger.warning("state_hrs: state not found for %s", hrs)
         except Exception as e:
