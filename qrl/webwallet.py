@@ -105,16 +105,14 @@ class recoverAddress(Resource):
             # Try to recover
             try:
                 # FIXME: Parameterization spread in multiple places and in view/interfaces. Unify
-                addr = self.wallet.savenewaddress(number_signatures=8000, addrtype='XMSS',
-                                                  seed=mnemonic_to_seed(mnemonicphrase))
-
+                addr = self.chain.wallet.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(mnemonicphrase))
+                self.chain.wallet.append_wallet(addr)
+                
                 # Find hex/mnemonic for recovered wallet
-                for addr_bundle in self.chain.wallet.address_bundle:
-                    if not isinstance(addr_bundle.xmss, list):
-                        if isinstance(addr_bundle.xmss, XMSS) and addr_bundle.xmss.get_mnemonic() == mnemonicphrase:
-                            self.result["recoveredAddress"] = addr_bundle.xmss.get_address()
-                            self.result["hexseed"] = addr_bundle.xmss.get_hexseed()
-                            self.result["mnemonic"] = addr_bundle.xmss.get_mnemonic()
+                self.result["recoveredAddress"] = addr[1].get_address()
+                self.result["hexseed"] = addr[1].get_hexseed()
+                self.result["mnemonic"] = addr[1].get_mnemonic()
+
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. " \
@@ -131,16 +129,14 @@ class recoverAddress(Resource):
             # Try to recover
             try:
                 # FIXME: Parameterization spread in multiple places and in view/interfaces. Unify
-                addr = self.wallet.savenewaddress(number_signatures=8000, addrtype='XMSS',
-                                                  seed=hexseed_to_seed(jsQ["hexseed"]))
-
+                addr = self.chain.wallet.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(jsQ["hexseed"]))
+                self.chain.wallet.append_wallet(addr)
+                
                 # Find hex/mnemonic for recovered wallet
-                for addr_bundle in self.chain.wallet.address_bundle:
-                    if not isinstance(addr_bundle.xmss, list):
-                        if addr_bundle.xmss.type == 'XMSS' and addr_bundle.xmss.get_hexseed() == jsQ["hexseed"]:
-                            self.result["recoveredAddress"] = addr_bundle.xmss.get_address()
-                            self.result["hexseed"] = addr_bundle.xmss.get_hexseed()
-                            self.result["mnemonic"] = addr_bundle.xmss.get_mnemonic()
+                self.result["recoveredAddress"] = addr[1].get_address()
+                self.result["hexseed"] = addr[1].get_hexseed()
+                self.result["mnemonic"] = addr[1].get_mnemonic()
+
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
