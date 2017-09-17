@@ -13,7 +13,6 @@ from twisted.web.server import Site
 from twisted.web.static import File
 
 from qrl.core import helper
-from qrl.core.wallet import Wallet
 from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.mnemonic import mnemonic_to_seed, validate_mnemonic
 from qrl.crypto.xmss import XMSS
@@ -28,16 +27,15 @@ class WebWallet:
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
-        self.wallet = Wallet()
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))
         resource.putChild("webwallet-addresses", showAddresses(self.chain))
-        resource.putChild("webwallet-create-new-address", newAddress(self.wallet))
+        resource.putChild("webwallet-create-new-address", newAddress(self.chain))
         resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
         resource.putChild("webwallet-mempool", memPoolSize(self.chain))
         resource.putChild("webwallet-sync", syncStatus(self.p2pFactory))
-        resource.putChild("webwallet-recover", recoverAddress(self.wallet, self.chain))
+        resource.putChild("webwallet-recover", recoverAddress(self.chain))
 
         factory = Site(resource)
         endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888, interface='127.0.0.1')
@@ -56,21 +54,21 @@ class showAddresses(Resource):
 
 
 class newAddress(Resource):
-    def __init__(self, wallet):
+    def __init__(self, chain):
         Resource.__init__(self)
-        self.wallet = wallet
+        self.chain = chain
 
     isLeaf = True
 
     def render_GET(self, request):
-        # FIXME: Parameterization spread in multiple places and in view/interfaces. Unify
-        return self.wallet.savenewaddress(number_signatures=8000, addrtype='XMSS')
+        addr = self.chain.wallet.get_new_address()
+        self.chain.wallet.append_wallet(addr)
+        return True
 
 
 class recoverAddress(Resource):
-    def __init__(self, wallet, Chain):
+    def __init__(self, Chain):
         Resource.__init__(self)
-        self.wallet = wallet
         self.chain = Chain
         self.result = {}
 
@@ -104,8 +102,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                # FIXME: Parameterization spread in multiple places and in view/interfaces. Unify
-                addr = self.chain.wallet.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(mnemonicphrase))
+                addr = self.chain.wallet.get_new_address(SEED=mnemonic_to_seed(mnemonicphrase))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet
@@ -128,8 +125,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                # FIXME: Parameterization spread in multiple places and in view/interfaces. Unify
-                addr = self.chain.wallet.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(jsQ["hexseed"]))
+                addr = self.chain.wallet.get_new_address(SEED=hexseed_to_seed(jsQ["hexseed"]))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet

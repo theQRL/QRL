@@ -246,7 +246,3 @@ class Wallet:
             return AddressBundle(xmss.address, xmss)
 
         raise Exception('OTS type not recognised')
-
-    def savenewaddress(self, signature_tree_height, addrtype, seed=None):
-        # type: (int, str, str) -> None
-        self.append_wallet(self.get_new_address(signature_tree_height, addrtype, seed))
