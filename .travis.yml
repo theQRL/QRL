@@ -1,42 +1,39 @@
-# Travis configuration file using the build matrix feature
-# Read more under http://docs.travis-ci.com/user/build-configuration/
+sudo: required
 dist: trusty
-sudo: false
-language: python
-cache:
-  - apt
-  - pip
-cache:
-  timeout: 600
+services: docker
+language: cpp
+python:
+- '3.5'
 env:
   matrix:
-    #- DISTRIB="conda" PYTHON_VERSION="3.5" COVERAGE="false"   # TODO: Fix conda tests
-  - DISTRIB="ubuntu" PYTHON_VERSION="3.5" COVERAGE="true"
+  - PLATFORM='xenial' COVERAGE="true"
+cache:
+  timeout: 600
+virtualenv:
+  system_site_packages: true
+
 addons:
   apt:
     packages:
     - git
     - python3
-    - python3-dev
-    - swig3.0
-    - build-essential
-    - pkg-config
+    - python3-pip
 
-install:
-- source tests/travis_install.sh
-- pip3 install -r requirements.txt
-- pip3 install codacy-coverage
-
-before_script:
-- git config --global user.email "info@theQRL.org"
-- git config --global user.name "QRL"
+before_install:
+- sudo pip3 install -U pip setuptools twine
+- pip install -U coverage coveralls
+- pip install -U codacy-coverage
+- "./travis/before_install.sh"
 
 script:
-- python3 setup.py test
+- "./travis/build.sh"
 
 after_success:
 - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
 - if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+
+notifications:
+  email: false
 
 deploy:
   provider: pypi
