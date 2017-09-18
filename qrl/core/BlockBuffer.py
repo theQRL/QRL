@@ -11,7 +11,7 @@ class BlockBuffer:
     def block_score(self, chain, seed, balance):
         seed = int(str(seed), 16)
         score_val = chain.score(stake_address=self.block.blockheader.stake_selector,
-                                reveal_one=self.block.blockheader.hash,
+                                reveal_one=self.block.blockheader.reveal_hash,
                                 balance=balance,
                                 seed=seed,
                                 verbose=False)

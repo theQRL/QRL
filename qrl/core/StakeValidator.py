@@ -15,9 +15,12 @@ class StakeValidator:
     Maintains the cache of successfully validated hashes, saves validation
     time by avoiding recalculation of the hash till the hash terminators.
     """
-    def __init__(self, stake_validator, hashchain_terminators=None, first_hash=None, balance=0):
+    def __init__(self, stake_validator, slave_public_key, hashchain_terminators=None, first_hash=None, balance=0):
         self.buffer_size = 4  # Move size to dev configuration
         self.stake_validator = stake_validator
+        self.slave_public_key = []
+        for key in slave_public_key:
+            self.slave_public_key.append(key.encode('ascii'))
         self.balance = balance
         self.first_hash = first_hash
         self.hashchain_terminators = hashchain_terminators
@@ -70,7 +73,7 @@ class StakeValidator:
     @staticmethod
     def to_object(json_sv):
         dict_sv = json.loads(json_sv)
-        sv = StakeValidator(dict_sv['stake_validator'])
+        sv = StakeValidator(dict_sv['stake_validator'], dict_sv['slave_public_key'])
         sv.cache_hash = dict_sv['cache_hash']
         sv.first_hash = dict_sv['first_hash']
         sv.balance = dict_sv['balance']

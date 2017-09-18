@@ -33,6 +33,7 @@ test_txdict_Stake = {
     'pubhash': '1234',
     'txhash': '1234',
     'i': '1',
+    'slave_public_key' : ['1234', '1234'],
     'signature': '1234',
     'merkle_path': '1234',
     'i_bms': '1234',

@@ -210,28 +210,39 @@ class Chain:
         return sv_hash
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
-    def create_stake_block(self, hashchain_hash, reveal_list, vote_hashes, last_block_number):
+    def create_stake_block(self, reveal_hash, vote_hash, last_block_number):
 
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
-        curr_epoch = int((last_block_number + 1) / config.dev.blocks_per_epoch)
+        curr_epoch = (last_block_number + 1) // config.dev.blocks_per_epoch
         # recreate the transaction pool as in the tx_hash_list, ordered by txhash..
         tx_nonce = defaultdict(int)
-
-        for tx in t_pool2:
+        total_txn = len(t_pool2)
+        txnum = 0
+        while txnum < total_txn:
+            tx = t_pool2[txnum]
             if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
+                del t_pool2[txnum]
+                total_txn -= 1
                 continue
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
 
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
-                    return False
+                    logger.warning('Skipping st as blocknumber beyond stake limit , CreateBlock()')
+                    logger.warning('Expected ST txn before epoch_blocknumber : %s', config.dev.stake_before_x_blocks)
+                    logger.warning('Found ST txn after epoch_blocknumber : %s', epoch_blocknum)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
                 if tx.epoch != curr_epoch:
                     logger.warning('Skipping st as epoch mismatch, CreateBlock()')
                     logger.warning('Expected st epoch : %s', curr_epoch)
                     logger.warning('Found st epoch : %s', tx.epoch)
+                    del t_pool2[txnum]
+                    total_txn -= 1
                     continue
                 balance = 0
                 next_sv_list = self.block_chain_buffer.next_stake_list_get(last_block_number + 1)
@@ -242,19 +253,22 @@ class Chain:
                         logger.warning('Skipping st as ST txn before threshold')
                         logger.warning('Expected : %s', threshold_blocknum - 1)
                         logger.warning('Found : %s', epoch_blocknum)
+                        del t_pool2[txnum]
+                        total_txn -= 1
                         continue
                 # balance>0 only in case 1st st already accepted
                 if not (balance > 0 or last_block_number == 0):
                     if tx.first_hash:
+                        del t_pool2[txnum]
+                        total_txn -= 1
                         continue
             self.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
             tx.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + tx_nonce[tx.txfrom]
-            if tx.txfrom == self.mining_address:
-                tx.nonce += 1
+            txnum += 1
 
         # create the block..
-        block_obj = self.m_create_block(hashchain_hash, reveal_list, vote_hashes, last_block_number)
+        block_obj = self.m_create_block(reveal_hash, vote_hash, last_block_number)
 
         # reset the pool back
         self.transaction_pool = copy.deepcopy(t_pool2)
@@ -925,13 +939,12 @@ class Chain:
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
-            self.add_block_mainchain(block, verify_block_reveal_list=False, validate=False)
+            self.add_block_mainchain(block, validate=False)
         return self.m_blockchain
 
-    def add_block_mainchain(self, block, verify_block_reveal_list=True, validate=True):
+    def add_block_mainchain(self, block, validate=True):
         return self.block_chain_buffer.add_block_mainchain(chain=self,
                                                            block=block,
-                                                           verify_block_reveal_list=verify_block_reveal_list,
                                                            validate=validate)
 
     def m_load_chain(self):
@@ -945,7 +958,6 @@ class Chain:
 
         for block in chains[1:]:
             self.add_block_mainchain(block,
-                                     verify_block_reveal_list=False,
                                      validate=False)
 
         if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
@@ -958,7 +970,6 @@ class Chain:
 
             for block in chains:
                 self.add_block_mainchain(block,
-                                         verify_block_reveal_list=False,
                                          validate=False)
             epoch += 1
         self.wallet.save_wallet()
@@ -1003,16 +1014,16 @@ class Chain:
             return False
         return self.m_blockchain[-1]
 
-    def m_create_block(self, nonce, reveal_list=None, vote_hashes=None, last_block_number=-1):
+    def m_create_block(self, reveal_hash, vote_hash, last_block_number=-1):
         myBlock = Block()
-        myBlock.create(self, nonce, reveal_list, vote_hashes, last_block_number)
+        myBlock.create(self, reveal_hash, vote_hash, last_block_number)
         return myBlock
 
-    def m_add_block(self, block_obj, verify_block_reveal_list=True):
+    def m_add_block(self, block_obj):
         if len(self.m_blockchain) == 0:
             self.m_read_chain()
 
-        if block_obj.validate_block(chain=self, verify_block_reveal_list=verify_block_reveal_list) is True:
+        if block_obj.validate_block(chain=self) is True:
             if self.state.state_add_block(self, block_obj) is True:
                 self.m_blockchain.append(block_obj)
                 self.remove_tx_in_block_from_pool(block_obj)

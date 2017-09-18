@@ -5,6 +5,7 @@
 from qrl.core import config, helper
 from qrl.core.StakeValidator import StakeValidator
 import simplejson as json
+import logger
 from collections import OrderedDict
 
 from qrl.crypto.misc import sha256
@@ -23,10 +24,10 @@ class StakeValidatorsList:
         self.next_sv_list = OrderedDict()
         self.hash_staker = OrderedDict()
         self.threshold = dict()
-        self.isOrdered = False
+        self.isOrderedLength = 0
 
-    def __add__(self, sv_list, txfrom, hash, first_hash, balance):
-        sv = StakeValidator(txfrom, hash, first_hash, balance)
+    def __add__(self, sv_list, txfrom, slave_public_key, hash, first_hash, balance):
+        sv = StakeValidator(txfrom, slave_public_key, hash, first_hash, balance)
         sv_list[txfrom] = sv
         return sv
 
@@ -46,12 +47,12 @@ class StakeValidatorsList:
 
         return epoch_seed
 
-    def add_sv(self, txfrom, hash, first_hash, balance):
-        sv = self.__add__(self.sv_list, txfrom, hash, first_hash, balance)
+    def add_sv(self, txfrom, slave_public_key, hash, first_hash, balance):
+        sv = self.__add__(self.sv_list, txfrom, slave_public_key, hash, first_hash, balance)
         self.update_hash_staker(sv)
 
-    def add_next_sv(self, txfrom, hash, first_hash, balance):
-        self.__add__(self.next_sv_list, txfrom, hash, first_hash, balance)
+    def add_next_sv(self, txfrom, slave_public_key, hash, first_hash, balance):
+        self.__add__(self.next_sv_list, txfrom, slave_public_key, hash, first_hash, balance)
 
     def get_sv_list(self, txfrom):
         if txfrom not in self.sv_list:
@@ -95,9 +96,9 @@ class StakeValidatorsList:
         return False
 
     def get_threshold(self, staker_address):
-        if not self.isOrdered:
+        if self.isOrderedLength != len(self.next_sv_list):
             self.next_sv_list = OrderedDict(sorted(self.next_sv_list.iteritems(), key=lambda sv: sv[1].balance))
-            self.isOrdered = True
+            self.isOrderedLength = len(self.next_sv_list)
             mid_stakers = len(self.next_sv_list) // 2
             position = 0
             for staker in self.next_sv_list:
@@ -118,7 +119,7 @@ class StakeValidatorsList:
         del self.sv_list
         self.sv_list = self.next_sv_list
         self.next_sv_list = OrderedDict()
-        self.isOrdered = False
+        self.isOrderedLength = 0
         remove_stakers = []
         for staker in self.sv_list:
             if not self.sv_list[staker].first_hash:

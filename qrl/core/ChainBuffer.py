@@ -7,10 +7,10 @@ from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
 from qrl.crypto.misc import sha256
-
+from qrl.crypto.hmac_drbg import hexseed_to_seed
+from qrl.crypto.xmss import XMSS
 from copy import deepcopy
-
-import gc
+from math import log, ceil
 
 from qrl.crypto.hashchain import HashChain
 
@@ -20,13 +20,15 @@ class ChainBuffer:
         self.chain = chain
         self.state = self.chain.state
         self.blocks = dict()
-        self.strongest_chain = dict()
-        self.headerhashes = dict()
         self.size = config.dev.reorg_limit
         self.pending_blocks = dict()
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
         self.hash_chain = dict()
+
+        self.slave_xmss = dict()
+        self.slave_xmss[self.epoch] = self.generate_slave_xmss(self.epoch)  # Slave Address for staking purpose only
+
 
         # TODO: For the moment, only the first address is used (discussed with cyyber)
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
@@ -36,57 +38,74 @@ class ChainBuffer:
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
 
         if self.chain.height() > 0:
-            self.epoch = int(self.chain.m_blockchain[-1].blockheader.blocknumber / config.dev.blocks_per_epoch)
+            self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
+
+    def generate_slave_xmss(self, epoch):
+        xmss = self.chain.wallet.address_bundle[0].xmss
+        stake_seed = hexseed_to_seed((sha256(xmss.get_hexseed() + str(epoch + 1)) * 2)[:96])
+        height = int(ceil(log(config.dev.blocks_per_epoch * 3, 2)))
+        return XMSS(tree_height=height, SEED=stake_seed)
+
+    def get_slave_xmss(self, blocknumber):
+        epoch = blocknumber // config.dev.blocks_per_epoch
+        return self.slave_xmss[epoch]
+
+    def get_next_slave_xmss(self, blocknumber):
+        epoch = blocknumber // config.dev.blocks_per_epoch
+        if epoch + 1 not in self.slave_xmss:
+            self.slave_xmss[epoch + 1] = self.generate_slave_xmss(epoch + 1)
+        return self.slave_xmss[epoch + 1]
 
     def get_st_balance(self, stake_address, blocknumber):
         if stake_address is None:
-            logger.info('stake address should not be none')
-            raise Exception
-
-        if blocknumber - 1 == self.chain.height():
-            if stake_address in self.state.stake_validators_list.sv_list:
-                return self.state.stake_validators_list.sv_list[stake_address].balance
-            logger.info('Blocknumber not found')
+            logger.error('stake address should not be none, returning None')
             return None
 
-        if blocknumber - 1 not in self.strongest_chain:
-            logger.info('Blocknumber not in strongest chain')
-            return None
+        try:
+            if blocknumber - 1 == self.chain.height():
+                if stake_address in self.state.stake_validators_list.sv_list:
+                    return self.state.stake_validators_list.sv_list[stake_address].balance
+                logger.info('Blocknumber not found')
+                return None
 
-        return self.strongest_chain[blocknumber - 1][1].stake_validators_list.sv_list[stake_address].balance
+            return self.blocks[blocknumber - 1][1].stake_validators_list.sv_list[stake_address].balance
+        except KeyError:
+            self.error_msg('get_st_balance', blocknumber)
+        except Exception as e:
+            self.error_msg('get_st_balance', blocknumber, e)
 
+        return None
+    
     def add_pending_block(self, block):
         # TODO : minimum block validation in unsynced state
-
+        
         blocknum = block.blockheader.blocknumber
-        headerhash = block.blockheader.headerhash
 
-        if blocknum not in self.pending_blocks:
-            self.pending_blocks[blocknum] = []
-
-        if headerhash in self.pending_blocks[blocknum]:
-            return
-
-        self.pending_blocks[blocknum].append(block)
+        self.pending_blocks[blocknum] = block
 
         return True
 
     def get_last_block(self):
-        if len(self.strongest_chain) == 0:
+        if len(self.blocks) == 0:
             return self.chain.m_get_last_block()
-        last_blocknum = max(self.strongest_chain)
-        return self.strongest_chain[last_blocknum][0].block
+        last_blocknum = max(self.blocks)
+        return self.blocks[last_blocknum][0].block
 
-    def get_block_n(self, blocknum):
-        if self.chain.height() == -1:
-            self.chain.m_read_chain()
+    def get_block_n(self, blocknumber):
+        try:
+            if self.chain.height() == -1:
+                self.chain.m_read_chain()
 
-        if blocknum <= self.chain.height():
-            return self.chain.m_get_block(blocknum)
+            if blocknumber <= self.chain.height():
+                return self.chain.m_get_block(blocknumber)
 
-        if blocknum not in self.strongest_chain:
-            return None
-        return self.strongest_chain[blocknum][0].block
+            return self.blocks[blocknumber][0].block
+        except KeyError:
+            self.error_msg('get_epoch_seed', blocknumber)
+        except Exception as e:
+            self.error_msg('get_epoch_seed', blocknumber, e)
+
+        return None
 
     def hash_chain_get(self, blocknumber):
         epoch = int(blocknumber // config.dev.blocks_per_epoch)
@@ -107,10 +126,10 @@ class ChainBuffer:
         self.tx_buffer = {}
 
         min_blocknum = self.chain.height() + 1
-        max_blocknum = max(self.strongest_chain.keys())
+        max_blocknum = max(self.blocks.keys())
 
         for blocknum in range(min_blocknum, max_blocknum + 1):
-            block_state_buffer = self.strongest_chain[blocknum]
+            block_state_buffer = self.blocks[blocknum]
             block = block_state_buffer[0].block
 
             self.tx_buffer[blocknum] = []
@@ -118,7 +137,7 @@ class ChainBuffer:
             for tx in block.transactions:
                 self.tx_buffer[blocknum].append(tx.txhash)
 
-    def add_block_mainchain(self, chain, block, verify_block_reveal_list=True, validate=True):
+    def add_block_mainchain(self, chain, block, validate=True):
         # TODO : minimum block validation in unsynced _state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // config.dev.blocks_per_epoch)
@@ -132,12 +151,12 @@ class ChainBuffer:
                 logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
                 return
         elif blocknum - 1 > 0:
-            if blocknum - 1 not in self.blocks or prev_headerhash not in self.headerhashes[blocknum - 1]:
+            if blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
                 logger.info('No block found in buffer that matches with the prev_headerhash of received block')
                 return
 
         if validate:
-            if not chain.m_add_block(block, verify_block_reveal_list):
+            if not chain.m_add_block(block):
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
@@ -157,8 +176,10 @@ class ChainBuffer:
 
             if epoch in self._wallet_private_seeds:
                 del self._wallet_private_seeds[epoch]
+            if epoch in self.slave_xmss:
+                del self.slave_xmss[epoch]
         else:
-            self.epoch_seed = sha256(block.blockheader.hash + str(self.epoch_seed))
+            self.epoch_seed = sha256(block.blockheader.reveal_hash + str(self.epoch_seed))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -166,31 +187,32 @@ class ChainBuffer:
         return True
 
     def add_block(self, block):
+        if not block.validate_block(self.chain):
+            logger.info('Block validation failed')
+            logger.info('Block #%s', block.blockheader.blocknumber)
+            logger.info('Stake_selector %s', block.blockheader.stake_selector)
+            return False
+
         blocknum = block.blockheader.blocknumber
         headerhash = block.blockheader.headerhash
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
         if blocknum <= self.chain.height():
-            return True
+            return False
 
         if blocknum - 1 == self.chain.height():
             if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return
-        else:
-            if blocknum - 1 not in self.blocks or prev_headerhash not in self.headerhashes[blocknum - 1]:
-                logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
-                return
+        elif blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
+            logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
+            return
 
-        if blocknum not in self.blocks:
-            self.blocks[blocknum] = []
-            self.headerhashes[blocknum] = []
-
-        if headerhash in self.headerhashes[blocknum]:
+        if blocknum in self.blocks and headerhash == self.blocks[blocknum][0].block.blockheader.headerhash:
             return 0
 
-        if (blocknum - config.dev.reorg_limit) in self.strongest_chain:
-            self.move_to_mainchain()
+        if (blocknum - config.dev.reorg_limit) in self.blocks:
+            self.move_to_mainchain(blocknum - config.dev.reorg_limit)
 
         stake_reward = {}
 
@@ -205,180 +227,181 @@ class ChainBuffer:
                 return
 
             block_buffer = BlockBuffer(block, stake_reward, self.chain, self.epoch_seed,
-                                       self.get_st_balance(block.blockheader.stake_selector,
+                                       self.get_st_balance(block.transactions[0].txto,
                                                            block.blockheader.blocknumber))
 
-            state_buffer.set_next_seed(block.blockheader.hash, self.epoch_seed)
+            state_buffer.set_next_seed(block.blockheader.reveal_hash, self.epoch_seed)
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
             state_buffer.update_stxn_state(block, self.state)
         else:
-            parent_state_buffer = None
-            parent_seed = None
-            for block_state_buffer in self.blocks[blocknum - 1]:
-                prev_block = block_state_buffer[0].block
-                if prev_block.blockheader.headerhash == prev_headerhash:
-                    parent_state_buffer = block_state_buffer[1]
-                    parent_seed = block_state_buffer[1].next_seed
-                    break
+            block_state_buffer = self.blocks[blocknum - 1]
+            parent_state_buffer = block_state_buffer[1]
+            parent_seed = block_state_buffer[1].next_seed
+
             stake_validators_list = deepcopy(parent_state_buffer.stake_validators_list)
             stxn_state = deepcopy(parent_state_buffer.stxn_state)
             if not self.state_add_block_buffer(block, stake_validators_list, stxn_state):
-                logger.warning('State_validate_block failed inside chainbuffer #%d', block.blockheader.blocknumber)
+                logger.warning('State_validate_block failed inside chainbuffer #%s', block.blockheader.blocknumber)
                 return
             block_buffer = BlockBuffer(block, stake_reward, self.chain, parent_seed,
-                                       self.get_st_balance(block.blockheader.stake_selector,
+                                       self.get_st_balance(block.transactions[0].txto,
                                                            block.blockheader.blocknumber))
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
             state_buffer.update(self.state, parent_state_buffer, block)
 
-        self.blocks[blocknum].append([block_buffer, state_buffer])
+        if blocknum not in self.blocks:
+            self.blocks[blocknum] = [block_buffer, state_buffer]
+        else:
+            old_block_buffer = self.blocks[blocknum][0]
 
-        if len(self.strongest_chain) == 0 and self.chain.m_blockchain[-1].blockheader.headerhash == prev_headerhash:
-            self.strongest_chain[blocknum] = [block_buffer, state_buffer]
-            self.chain.update_tx_metadata(block)
-        elif blocknum not in self.strongest_chain and self.strongest_chain[blocknum - 1][
-            0].block.blockheader.headerhash == prev_headerhash:
-            self.strongest_chain[blocknum] = [block_buffer, state_buffer]
-            self.chain.update_tx_metadata(block)
-        elif blocknum in self.strongest_chain:
-            old_block_buffer = self.strongest_chain[blocknum][0]
-            if old_block_buffer.block.blockheader.prev_blockheaderhash == block_buffer.block.blockheader.prev_blockheaderhash:
-                if block_buffer.score < old_block_buffer.score:
-                    self.strongest_chain[blocknum] = [block_buffer, state_buffer]
-                    if blocknum + 1 in self.strongest_chain:
-                        self.recalculate_strongest_chain(blocknum)
-
-        self.headerhashes[blocknum].append(block.blockheader.headerhash)
+            if block_buffer.score < old_block_buffer.score:
+                self.blocks[blocknum] = [block_buffer, state_buffer]
+                if blocknum + 1 in self.blocks:
+                    self.remove_blocks(blocknum + 1)
 
         self.add_txns_buffer()
 
         return True
 
+    def remove_blocks(self, blocknumber):
+        if blocknumber not in self.blocks:
+            return
+
+        while blocknumber in self.blocks:
+            del self.blocks[blocknumber]
+            blocknumber += 1
+
     def state_add_block_buffer(self, block, stake_validators_list, address_txn):
         self.chain.state.load_address_state(self.chain, block, address_txn)
         is_success = self.chain.state.state_update(block, stake_validators_list, address_txn)
         if is_success:
-            self.commit(block.blockheader.blocknumber, stake_validators_list)
+            self.commit(block, stake_validators_list)
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blockheader.blocknumber,
                         block.blockheader.stake_selector)
         return is_success
 
-    def commit(self, blocknumber, stake_validators_list):
+    def commit(self, block, stake_validators_list):
+        blocknumber = block.blockheader.blocknumber
         blocks_left = get_blocks_left(blocknumber)
-
+        stake_validators_list.sv_list[block.blockheader.stake_selector].nonce += 1
         if blocks_left == 1:
             stake_validators_list.move_next_epoch()
             self.update_hash_chain(blocknumber)
 
-    def recalculate_strongest_chain(self, blocknum):
-        if blocknum + 1 not in self.strongest_chain:
-            return
+    def get_strongest_block(self, blocknumber):
+        try:
+            if blocknumber <= self.chain.height():
+                return self.chain.m_get_block(blocknumber)
 
-        for i in range(blocknum + 1, max(self.strongest_chain) + 1):
-            del self.strongest_chain[i]
+            return self.blocks[blocknumber][0].block
+        except KeyError:
+            self.error_msg('get_strongest_block', blocknumber)
+        except Exception as e:
+            self.error_msg('get_strongest_block', blocknumber, e)
 
-        block = self.strongest_chain[blocknum][0].block
-        prev_headerhash = block.blockheader.headerhash
-        blocknum += 1
-        block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
+        return None
 
-        while block_state_buffer is not None:
-            self.strongest_chain[blocknum] = block_state_buffer
+    def get_strongest_headerhash(self, blocknumber):
+        try:
+            if blocknumber <= self.chain.height():
+                return self.chain.m_get_block(blocknumber).blockheader.headerhash
 
-            block_buffer = block_state_buffer[0]
-            block = block_buffer.block
+            return self.blocks[blocknumber][0].block.blockheader.headerhash
+        except KeyError:
+            self.error_msg('get_strongest_headerhash', blocknumber)
+        except Exception as e:
+            self.error_msg('get_strongest_headerhash', blocknumber, e)
 
-            prev_headerhash = block.blockheader.headerhash
-            blocknum += 1
-            block_state_buffer = self.get_strongest_block(blocknum, prev_headerhash)
-
-    def get_strongest_block(self, blocknum, prev_headerhash):
-        if blocknum not in self.blocks:
-            return None
-        strongest_blockBuffer = None
-
-        for blockStateBuffer in self.blocks[blocknum]:
-            block = blockStateBuffer[0].block
-            if prev_headerhash == block.blockheader.prev_blockheaderhash:
-                if strongest_blockBuffer and strongest_blockBuffer[0].score < blockStateBuffer[0].score:
-                    continue
-                strongest_blockBuffer = blockStateBuffer
-
-        if not strongest_blockBuffer:
-            return None
-
-        return strongest_blockBuffer
-
-    def get_strongest_headerhash(self, blocknum):
-        if blocknum <= self.chain.height():
-            return self.chain.m_get_block(blocknum).blockheader.headerhash
-
-        if blocknum not in self.strongest_chain:
-            logger.info(('Blocknum : ', str(blocknum), ' not found in buffer'))
-            return None
-
-        return self.strongest_chain[blocknum][0].block.blockheader.headerhash
+        return None
 
     def get_epoch_seed(self, blocknumber):
-        if blocknumber - 1 == self.chain.height():
-            return int(str(self.epoch_seed), 16)
-        if blocknumber - 1 not in self.strongest_chain:
-            return None
-        return int(str(self.strongest_chain[blocknumber - 1][1].next_seed), 16)
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return int(str(self.epoch_seed), 16)
+
+            return int(str(self.blocks[blocknumber - 1][1].next_seed), 16)
+        except KeyError:
+            self.error_msg('get_epoch_seed', blocknumber)
+        except Exception as e:
+            self.error_msg('get_epoch_seed', blocknumber, e)
+
+        return None
 
     def get_stxn_state(self, blocknumber, addr):
-        if blocknumber - 1 == self.chain.height():
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return self.state.state_get_address(addr)
+
+            stateBuffer = self.blocks[blocknumber - 1][1]
+
+            if addr in stateBuffer.stxn_state:
+                return deepcopy(stateBuffer.stxn_state[addr])
+
             return self.state.state_get_address(addr)
+        except KeyError:
+            self.error_msg('get_stxn_state', blocknumber)
+        except Exception as e:
+            self.error_msg('get_stxn_state', blocknumber, e)
 
-        if blocknumber - 1 not in self.strongest_chain:
-            return None
-
-        stateBuffer = self.strongest_chain[blocknumber - 1][1]
-
-        if addr in stateBuffer.stxn_state:
-            return deepcopy(stateBuffer.stxn_state[addr])
-
-        return self.state.state_get_address(addr)
+        return None
 
     def stake_list_get(self, blocknumber):
-        if blocknumber - 1 == self.chain.height():
-            return self.state.stake_validators_list.sv_list
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return self.state.stake_validators_list.sv_list
 
-        if blocknumber - 1 not in self.strongest_chain:
-            logger.info('Stake list None')
-            logger.info(('blocknumber #', blocknumber - 1, 'not found in strongest_chain'))
-            return None
+            stateBuffer = self.blocks[blocknumber - 1][1]
 
-        stateBuffer = self.strongest_chain[blocknumber - 1][1]
+            return stateBuffer.stake_validators_list.sv_list
+        except KeyError:
+            self.error_msg('stake_list_get', blocknumber)
+        except Exception as e:
+            self.error_msg('stake_list_get', blocknumber, e)
 
-        return stateBuffer.stake_validators_list.sv_list
+        return None
 
     def next_stake_list_get(self, blocknumber):
-        if blocknumber - 1 == self.chain.height():
-            return self.state.stake_validators_list.next_sv_list
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return self.state.stake_validators_list.next_sv_list
 
-        return self.strongest_chain[blocknumber - 1][1].stake_validators_list.next_sv_list
+            return self.blocks[blocknumber - 1][1].stake_validators_list.next_sv_list
+        except KeyError:
+            self.error_msg('next_stake_list_get', blocknumber)
+        except Exception as e:
+            self.error_msg('next_stake_list_get', blocknumber, e)
+
+        return None
 
     def get_stake_validators_list(self, blocknumber):
-        if blocknumber - 1 == self.chain.height():
-            return self.state.stake_validators_list
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return self.state.stake_validators_list
 
-        return self.strongest_chain[blocknumber - 1][1].stake_validators_list
+            return self.blocks[blocknumber - 1][1].stake_validators_list
+        except KeyError:
+            self.error_msg('get_stake_validators_list', blocknumber)
+        except Exception as e:
+            self.error_msg('get_stake_validators_list', blocknumber, e)
+
+        return None
 
     def get_threshold(self, blocknumber, staker_address):
-        if blocknumber - 1 == self.chain.height():
-            return self.state.stake_validators_list.get_threshold(staker_address)
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return self.state.stake_validators_list.get_threshold(staker_address)
 
-        if blocknumber - 1 not in self.strongest_chain:
-            logger.info('Stake list None')
-            logger.info(('blocknumber #', blocknumber - 1, 'not found in strongest_chain'))
-            return None
+            stateBuffer = self.blocks[blocknumber - 1][1]
 
-        stateBuffer = self.strongest_chain[blocknumber - 1][1]
+            return stateBuffer.stake_validators_list.get_threshold(staker_address)
+        except KeyError:
+            self.error_msg('get_threshold', blocknumber)
+        except Exception as e:
+            self.error_msg('get_threshold', blocknumber, e)
 
-        return stateBuffer.stake_validators_list.get_threshold(staker_address)
+        return None
 
     def describe(self):
         if len(self.blocks) == 0:
@@ -388,17 +411,15 @@ class ChainBuffer:
         logger.info(('=' * 40))
         for blocknum in range(min_block, max_block + 1):
             logger.info('Block number #%d', blocknum)
-            for block_state_buffer in self.blocks[blocknum]:
-                blockBuffer = block_state_buffer[0]
-                block = blockBuffer.block
-                logger.info((block.blockheader.headerhash, ' ', str(blockBuffer.score), ' ',
-                             str(block.blockheader.block_reward)))
-                logger.info((block.blockheader.hash, ' ', block.blockheader.stake_selector))
+            blockBuffer = self.blocks[blocknum][0]
+            block = blockBuffer.block
+            logger.info((block.blockheader.headerhash, ' ', str(blockBuffer.score), ' ',
+                         str(block.blockheader.block_reward)))
+            logger.info((block.blockheader.reveal_hash, ' ', block.blockheader.stake_selector))
         logger.info(('=' * 40))
 
-    def move_to_mainchain(self):
-        blocknum = self.chain.height() + 1
-        block = self.strongest_chain[blocknum][0].block
+    def move_to_mainchain(self, blocknum):
+        block = self.blocks[blocknum][0].block
         if not self.state.state_add_block(self.chain, block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
@@ -407,11 +428,9 @@ class ChainBuffer:
         self.chain.remove_tx_in_block_from_pool(block)  # modify fn to keep transaction in memory till reorg
         self.chain.m_f_sync_chain()
 
-        self.epoch_seed = self.strongest_chain[blocknum][1].next_seed
+        self.epoch_seed = self.blocks[blocknum][1].next_seed
 
         del (self.blocks[blocknum])
-        del (self.headerhashes[blocknum])
-        del self.strongest_chain[blocknum]
         prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
         self.epoch = int(blocknum // config.dev.blocks_per_epoch)
         if prev_epoch != self.epoch:
@@ -422,21 +441,20 @@ class ChainBuffer:
 
         self.chain.update_last_tx(block)
         self.chain.update_tx_metadata(block)
-        gc.collect()
         return True
 
     def height(self):
-        if len(self.strongest_chain) == 0:
+        if len(self.blocks) == 0:
             return self.chain.height()
-        return max(self.strongest_chain)
+        return max(self.blocks)
 
     def send_block(self, blocknumber, transport, wrap_message):
         if blocknumber <= self.chain.height():
             transport.write(wrap_message('PB', json_bytestream(self.chain.m_get_block(blocknumber))))
         elif blocknumber in self.blocks:
             tmp = {blocknumber: []}
-            for blockStateBuffer in self.blocks[blocknumber]:
-                tmp[blocknumber].append(blockStateBuffer[0].block)
+            blockStateBuffer = self.blocks[blocknumber]
+            tmp[blocknumber].append(blockStateBuffer[0].block)
             transport.write(wrap_message('PBB', json_encode_complex(tmp)))
 
     def process_pending_blocks(self):
@@ -444,8 +462,7 @@ class ChainBuffer:
         max_blocknum = max(self.pending_blocks.keys())
         logger.info(('Processing pending blocks', min_blocknum, max_blocknum))
         for blocknum in range(min_blocknum, max_blocknum + 1):
-            for block in self.pending_blocks[blocknum]:
-                self.add_block(block)
+            self.add_block(self.pending_blocks[blocknum])
             del self.pending_blocks[blocknum]
 
     def pubhashExists(self, addr, pubhash, blocknumber):
@@ -459,3 +476,80 @@ class ChainBuffer:
             return True
 
         return False
+
+    def verify_BK_hash(self, data, conn_identity):
+
+        blocknum = data['blocknumber']
+        stake_selector = data['stake_selector']
+
+        prev_headerhash = data['prev_headerhash']
+
+        if blocknum <= self.chain.height():
+            return False
+
+        if blocknum - 1 == self.chain.height():
+            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
+                logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
+                return
+            return True
+        elif blocknum - 1 not in self.blocks or prev_headerhash not in self.blocks[blocknum - 1][0].block.blockheader.headerhash:
+            logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
+            return
+
+        sv_list = self.stake_list_get(blocknum)
+
+        if stake_selector not in sv_list:
+            return
+
+        reveal_hash = data['reveal_hash']
+        vote_hash = data['vote_hash']
+
+        stake_validators_list = self.get_stake_validators_list(blocknum)
+        target_chain = stake_validators_list.select_target(prev_headerhash)
+
+        if not stake_validators_list.validate_hash(vote_hash,
+                                                   blocknum,
+                                                   target_chain=target_chain,
+                                                   stake_address=stake_selector):
+            logger.info('%s vote hash doesnt hash to stake terminator vote %s',
+                        conn_identity, vote_hash)
+            return
+
+        if not stake_validators_list.validate_hash(reveal_hash,
+                                                   blocknum,
+                                                   target_chain=config.dev.hashchain_nums - 1,
+                                                   stake_address=stake_selector):
+            logger.info('%s reveal doesnt hash to stake terminator reveal %s',
+                        conn_identity, reveal_hash)
+            return
+
+        seed = self.chain.block_chain_buffer.get_epoch_seed(blocknum)
+        score = self.chain.score(stake_address=stake_selector,
+                                 reveal_one=reveal_hash,
+                                 balance=self.get_st_balance(stake_selector, blocknum),
+                                 seed=seed)
+
+        if blocknum == self.height() + 1:
+            return True
+
+        oldblock = self.get_strongest_block(blocknum)
+        oldscore = self.chain.score(stake_address=oldblock.transactions[0].txto,
+                                    reveal_one=oldblock.blockheader.reveal_hash,
+                                    balance=self.get_st_balance(oldblock.transactions[0].txto, blocknum),
+                                    seed=seed)
+
+        if score > oldscore:
+            return False
+
+        return True
+
+    def error_msg(self, func_name, blocknum, error=None):
+        if error:
+            logger.error(func_name+' Unknown exception at blocknum: %s', blocknum)
+            logger.error('%s', error)
+            return
+
+        logger.error('%s blocknum not found in blocks %s', func_name, blocknum)
+        logger.error('Min block num %s', min(self.blocks))
+        logger.error('Max block num %s', max(self.blocks))
+        return

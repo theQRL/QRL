@@ -19,8 +19,8 @@ class ApiProtocol(Protocol):
         self.api_list = [
             'block_data', 'stats', 'ip_geotag', 'exp_win', 'txhash', 'address',
             'empty', 'last_tx', 'last_unconfirmed_tx', 'stake_reveal_ones', 'last_block', 
-            'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stake_list', 'stakers',
-            'next_stakers', 'latency', 'balance'
+            'richlist', 'ping', 'stake_commits', 'stake_reveals', 'stakers', 'next_stakers',
+            'latency', 'balance'
         ]
 
     def parse_cmd(self, data):
@@ -219,7 +219,7 @@ class ApiProtocol(Protocol):
 
         net_stats = {'status': 'ok', 'version': self.factory.chain.version_number,
                      'block_reward': self.factory.chain.m_blockchain[-1].blockheader.block_reward / 100000000.00000000,
-                     'stake_validators': len(self.factory.chain.m_blockchain[-1].blockheader.reveal_list),
+                     'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list),
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
                      'staked_percentage_emission': staked, 'network': 'qrl testnet',
                      'network_uptime': network_uptime,

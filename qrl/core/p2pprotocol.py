@@ -136,9 +136,14 @@ class P2PProtocol(Protocol):
         if self.factory.master_mr.contains(data['hash'], data['type']):
             return
 
+        if data['type'] == 'BK':
+            if not self.factory.chain.block_chain_buffer.verify_BK_hash(data, self.conn_identity):
+                self.factory.master_mr.deregister(data['hash'], data['type'])
+                return
+
         self.RFM(data)
 
-    def RFM(self, data):  # Request full message, Move to factory
+    def RFM(self, data):
         """
         Request Full Message
         This function request for the full message against,
@@ -153,6 +158,9 @@ class P2PProtocol(Protocol):
         for peer in self.factory.master_mr.hash_peer[msg_hash]:
             if peer not in self.factory.master_mr.requested_hash[msg_hash]:
                 self.factory.master_mr.requested_hash[msg_hash].append(peer)
+                # Storing MR params, so the received full message could be checked against
+                # the MR receipt provided.
+                self.factory.master_mr.hash_params[msg_hash] = data
                 peer.transport.write(self.wrap_message('SFM', helper.json_encode(data)))
                 call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                    self.RFM,
@@ -279,7 +287,8 @@ class P2PProtocol(Protocol):
             return
 
     def BK(self, data):  # block received
-        """Block
+        """
+        Block
         This function processes any new block received.
         :return:
         """
@@ -293,10 +302,10 @@ class P2PProtocol(Protocol):
                     self.conn_identity,
                     block.blockheader.blocknumber,
                     block.blockheader.stake_selector)
-        if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self):
+        if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self, block):
             return
 
-        self.factory.pos.pre_block_logic(block, self.conn_identity)
+        self.factory.pos.pre_block_logic(block)
         self.factory.master_mr.register(block.blockheader.headerhash, data, 'BK')
         self.broadcast(block.blockheader.headerhash, 'BK')
         return

@@ -4,7 +4,7 @@
 
 import simplejson as json
 
-import qrl.core.Transaction_subtypes
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
 from qrl.core import logger, config, ntp
 from qrl.core.blockheader import BlockHeader
 from qrl.core.helper import select_target_hashchain
@@ -39,12 +39,10 @@ class Block(object):
 
         return False
 
-    def create(self, chain, hashchain_link, reveal_list=None, vote_hashes=None, last_block_number=-1):
+    def create(self, chain, reveal_hash, vote_hash, last_block_number=-1):
         # FIXME: probably this should turn into a constructor
-        if not reveal_list:
-            reveal_list = []
-        if not vote_hashes:
-            vote_hashes = []
+        reveal_hash = reveal_hash
+        vote_hash = vote_hash
 
         data = None
         if last_block_number == -1:
@@ -60,7 +58,7 @@ class Block(object):
         fee_reward = 0
 
         for tx in chain.transaction_pool:
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+            if tx.subtype == TX_SUBTYPE_TX:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
             self.transactions.append(tx)  # copy memory rather than sym link
@@ -73,18 +71,20 @@ class Block(object):
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain,
                                 blocknumber=last_block_number + 1,
-                                reveal_list=reveal_list,
-                                vote_hashes=vote_hashes,
-                                hashchain_link=hashchain_link,
+                                reveal_hash=reveal_hash,
+                                vote_hash=vote_hash,
                                 prev_blockheaderhash=prev_blockheaderhash,
                                 hashedtransactions=hashedtransactions,
                                 fee_reward=fee_reward)
 
-        coinbase_tx = CoinBase().create(self.blockheader.block_reward,
+        coinbase_tx = CoinBase().create(self.blockheader.block_reward + self.blockheader.fee_reward,
                                                     self.blockheader.headerhash,
-                                                    chain.wallet.address_bundle[0].xmss)
+                                                    chain.wallet.address_bundle[0].xmss.get_address(),
+                                                    chain.block_chain_buffer.get_slave_xmss(last_block_number + 1))
+
         self.transactions[0] = coinbase_tx
-        coinbase_tx.nonce = chain.block_chain_buffer.get_stxn_state(last_block_number + 1, chain.mining_address)[0] + 1
+        sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
+        coinbase_tx.nonce = sv_list[chain.mining_address].nonce + 1
 
     def json_to_block(self, json_block):
         self.blockheader = BlockHeader()
@@ -110,10 +110,12 @@ class Block(object):
         tmp_block.json_to_block(json.loads(json_block))
         return tmp_block
 
-    def _validate_tx_in_block(self):
+    def _validate_tx_in_block(self, chain):
         # Validating coinbase txn
         coinbase_txn = self.transactions[0]
-        valid = coinbase_txn.validate_tx(block_headerhash=self.blockheader.headerhash)
+        valid = coinbase_txn.validate_tx(chain=chain,
+                                         block_headerhash=self.blockheader.headerhash,
+                                         blocknumber=self.blockheader.blocknumber)
 
         if not valid:
             logger.warning('coinbase txn in block failed')
@@ -128,15 +130,44 @@ class Block(object):
 
         return True
 
-    def validate_block(self, chain, verify_block_reveal_list=True):  # check validity of new block..
+    def validate_block(self, chain):  # check validity of new block..
         """
         block validation
         :param chain:
-        :param verify_block_reveal_list:
         :return:
         """
         b = self.blockheader
         last_blocknum = b.blocknumber - 1
+
+        curr_timestamp = ntp.getTime()
+
+        if b.timestamp > curr_timestamp + config.dev.timestamp_error:
+            logger.warning('BLOCK timestamp is greater than the current time')
+            logger.warning('block timestamp %s ', b.timestamp)
+            logger.warning('curr_timestamp %s ', curr_timestamp)
+            logger.warning('must be greater than %s', (curr_timestamp + config.dev.timestamp_error))
+            return False
+
+
+        if b.generate_headerhash() != b.headerhash:
+            logger.warning('Headerhash false for block: failed validation')
+            return False
+
+        tmp_last_block = chain.block_chain_buffer.get_block_n(last_blocknum)
+
+        if tmp_last_block.blockheader.timestamp + config.dev.minimum_minting_delay > b.timestamp:
+            logger.warning('BLOCK created without waiting for minimum minting delay')
+            logger.warning('prev_block timestamp %s ', tmp_last_block.blockheader.timestamp)
+            logger.warning('current_block timestamp %s ', b.timestamp)
+            return False
+
+        if tmp_last_block.blockheader.headerhash != b.prev_blockheaderhash:
+            logger.warning('Headerhash not in sequence: failed validation')
+            return False
+
+        if tmp_last_block.blockheader.blocknumber != b.blocknumber - 1:
+            logger.warning('Block numbers out of sequence: failed validation')
+            return False
 
         if len(self.transactions) == 0:
             logger.warning('BLOCK : There must be atleast 1 txn')
@@ -145,21 +176,26 @@ class Block(object):
         coinbase_tx = self.transactions[0]
 
         try:
-            if coinbase_tx.subtype != qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
+            if coinbase_tx.subtype != TX_SUBTYPE_COINBASE:
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
                 return False
         except Exception as e:
             logger.exception(e)
             return False
 
-        if coinbase_tx.txfrom != self.blockheader.stake_selector:
+        sv_list = chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
+
+        if coinbase_tx.txto != self.blockheader.stake_selector:
             logger.info('Non matching txto and stake_selector')
             logger.info('txto: %s stake_selector %s', coinbase_tx.txfrom, self.blockheader.stake_selector)
             return False
 
-        if coinbase_tx.amount != self.blockheader.block_reward:
+        if coinbase_tx.amount != self.blockheader.block_reward + self.blockheader.fee_reward:
             logger.info('Block_reward doesnt match')
-            logger.info('Found: %d Expected: %d', coinbase_tx.amount, self.blockheader.block_reward)
+            logger.info('Found: %s', coinbase_tx.amount)
+            logger.info('Expected: %s', self.blockheader.block_reward + self.blockheader.fee_reward)
+            logger.info('block_reward: %s', self.blockheader.block_reward)
+            logger.info('fee_reward: %s', self.blockheader.fee_reward)
             return False
 
         if b.timestamp == 0 and b.blocknumber > 0:
@@ -177,86 +213,54 @@ class Block(object):
         if b.blocknumber == 1:
             x = 0
             for tx in self.transactions:
-                if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
+                if tx.subtype == TX_SUBTYPE_STAKE:
                     if tx.txfrom == b.stake_selector:
                         x = 1
-                        hash, _ = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash,
-                                                         b.stake_selector,
-                                                         tx.hash, blocknumber=1)
+                        reveal_hash, vote_hash = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash,
+                                                                        self.transactions[0].txto,
+                                                                        tx.hash, blocknumber=1)
 
-                        if sha256(b.hash) != hash or hash not in tx.hash:
-                            logger.warning('Hashchain_link does not hash correctly to terminator: failed validation')
+                        if sha256(b.reveal_hash) != reveal_hash:
+                            logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
+                            return False
+
+                        if sha256(b.vote_hash) != vote_hash:
+                            logger.warning('vote_hash does not hash correctly to terminator: failed validation')
                             return False
             if x != 1:
                 logger.warning('Stake selector not in block.stake: failed validation')
                 return False
         else:  # we look in stake_list for the hash terminator and hash to it..
-            if b.stake_selector not in chain.state.stake_validators_list.sv_list:
+            stake_validators_list = chain.block_chain_buffer.get_stake_validators_list(self.blockheader.blocknumber)
+            if self.transactions[0].txto not in stake_validators_list.sv_list:
                 logger.warning('Stake selector not in stake_list for this epoch..')
                 return False
 
-            if not chain.state.stake_validators_list.validate_hash(b.hash,
-                                                                   b.blocknumber,
-                                                                   config.dev.hashchain_nums-1,
-                                                                   b.stake_selector):
+            if not stake_validators_list.validate_hash(b.reveal_hash,
+                                                       b.blocknumber,
+                                                       config.dev.hashchain_nums-1,
+                                                       self.transactions[0].txto):
                 logger.warning('Supplied hash does not iterate to terminator: failed validation')
                 return False
 
-            if len(b.reveal_list) != len(set(b.reveal_list)):
-                logger.warning('Repetition in reveal_list')
+            target_chain = select_target_hashchain(b.prev_blockheaderhash)
+
+            if not stake_validators_list.validate_hash(b.vote_hash,
+                                                       b.blocknumber,
+                                                       target_chain,
+                                                       self.transactions[0].txto):
+                logger.warning('Not all the reveal_hashes are valid..')
                 return False
 
-            if verify_block_reveal_list:
-                i = 0
-                for r in b.reveal_list:
-                    if not chain.state.stake_validators_list.validate_hash(r,
-                                                                           self.blockheader.blocknumber,
-                                                                           config.dev.hashchain_nums - 1):
-                        logger.warning('Not all the reveal_hashes are valid..')
-                        return False
 
-                i = 0
-                target_chain = select_target_hashchain(b.prev_blockheaderhash)
-                for r in b.vote_hashes:
-                    if not chain.state.stake_validators_list.validate_hash(r,
-                                                                           b.blocknumber,
-                                                                           target_chain):
-                        logger.warning('Not all the reveal_hashes are valid..')
-                        return False
-
-        if b.generate_headerhash() != b.headerhash:
-            logger.warning('Headerhash false for block: failed validation')
-            return False
-
-        tmp_last_block = chain.block_chain_buffer.get_block_n(last_blocknum)
-
-        if tmp_last_block.blockheader.headerhash != b.prev_blockheaderhash:
-            logger.warning('Headerhash not in sequence: failed validation')
-            return False
-
-        if tmp_last_block.blockheader.blocknumber != b.blocknumber - 1:
-            logger.warning('Block numbers out of sequence: failed validation')
-            return False
-
-        if not self._validate_tx_in_block():
+        if not self._validate_tx_in_block(chain):
             logger.warning('Block validate_tx_in_block error: failed validation')
-            return False
-
-        if len(self.transactions) == 1:
-            txhashes = sha256('')
-        else:
-            txhashes = []
-            for tx_num in range(1, len(self.transactions)):
-                tx = self.transactions[tx_num]
-                txhashes.append(tx.txhash)
-
-        if merkle_tx_hash(txhashes) != b.tx_merkle_root:
-            logger.warning('Block hashedtransactions error: failed validation')
             return False
 
         return True
 
     def validate_block_timestamp(self, last_block_timestamp):
+        # TODO: Add minimum minting delay
         if last_block_timestamp >= self.blockheader.timestamp:
             return False
         curr_time = ntp.getTime()

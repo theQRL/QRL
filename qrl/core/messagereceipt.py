@@ -46,6 +46,7 @@ class MessageReceipt(object):
         self.hash_msg = dict()
         self.hash_type = OrderedDict()
         self.hash_peer = defaultdict(list)
+        self.hash_params = dict()
 
         self.requested_hash = defaultdict(list)
         self.hash_callLater = dict()
@@ -78,8 +79,10 @@ class MessageReceipt(object):
             del self.hash_type[msg_hash]
         if msg_hash in self.hash_peer:
             del self.hash_peer[msg_hash]
+        if msg_hash in self.hash_params:
+            del self.hash_params[msg_hash]
 
-    def add_peer(self, msg_hash, msg_type, peer):
+    def add_peer(self, msg_hash, msg_type, peer, data=None):
         # Filter
         if msg_type not in self.allowed_types:
             return
@@ -94,24 +97,59 @@ class MessageReceipt(object):
 
         self.hash_peer[msg_hash].append(peer)
 
-    def isRequested(self, msg_hash, peer):
+        if data:
+            self.hash_params[msg_hash] = data
+
+    def isRequested(self, msg_hash, peer, block=None):
         msg_hash = sha256(str(msg_hash))
+
         if msg_hash in self.requested_hash:
             if peer in self.requested_hash[msg_hash]:
                 return True
+
+        if block:
+            if self.block_params(msg_hash, block):
+               return True
+
+        self.remove_hash(msg_hash, peer)
         return False
+
+    def block_params(self, msg_hash, block):
+        if msg_hash not in self.hash_params:
+            return False
+
+        data = self.hash_params[msg_hash]
+
+        if block.transactions[0].txto != data['stake_selector']:
+            return False
+
+        if block.blockheader.blocknumber != data['blocknumber']:
+            return False
+
+        if block.blockheader.prev_blockheaderhash != data['prev_headerhash']:
+            return False
+
+        if block.blockheader.reveal_hash != data['reveal_hash']:
+            return False
+
+        if block.blockheader.vote_hash != data['vote_hash']:
+            return False
+
+        return True
 
     def add_to_master(self, msg_hash, msg_type):
         self.hash_type[msg_hash] = msg_type
 
     def __remove__(self):
         msg_hash, msg_type = self.hash_type.popitem(last=False)
-
-        if msg_hash in self.hash_peer:
-            del self.hash_peer[msg_hash]
-
         if msg_hash in self.hash_msg:
             del self.hash_msg[msg_hash]
+        if msg_hash in self.hash_type:
+            del self.hash_type[msg_hash]
+        if msg_hash in self.hash_peer:
+            del self.hash_peer[msg_hash]
+        if msg_hash in self.hash_params:
+            del self.hash_params[msg_hash]
 
     def remove_hash(self, msg_hash, peer):
         if msg_hash in self.hash_peer:

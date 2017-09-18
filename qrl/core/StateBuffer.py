@@ -31,7 +31,7 @@ class StateBuffer:
         # epoch mod, helps you to know if its the new epoch
         epoch_mod = block.blockheader.blocknumber % config.dev.blocks_per_epoch
 
-        self.set_next_seed(block.blockheader.hash, parent_state_buffer.next_seed)
+        self.set_next_seed(block.blockheader.reveal_hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
 
         if epoch_mod == config.dev.blocks_per_epoch - 1:
