@@ -147,7 +147,6 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_mnemonic() == xmss_mnemonic_test2
         True
         """
-        # type: () -> List[str]
         return bin2mnemonic(self._seed, wordlist)
 
     def get_address(self):
@@ -225,6 +224,10 @@ class XMSS(object):
         Verify an xmss sig with shorter PK
         same function but verifies using shorter signature where PK: {root, hex(_public_SEED)}
         # main verification function..
+        :param height:
+        :type height:
+        :param pk:
+        :type pk:
         :param message:
         :param signature:
         :return:

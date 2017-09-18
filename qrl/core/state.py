@@ -52,7 +52,7 @@ class State:
         try:
             self.db.put('stake_list', self.stake_validators_list.to_json())
         except Exception as e:
-            logger.warning("stake_list_put: %s %s", type(e), e.message)
+            logger.warning("stake_list_put: %s %s", type(e), e)
             return False
 
     def next_stake_list_get(self):
@@ -70,7 +70,7 @@ class State:
         try:
             self.db.put('next_stake_list', next_sl)
         except Exception as e:
-            logger.warning("next_stake_list_put: %s %s", type(e), e.message)
+            logger.warning("next_stake_list_put: %s %s", type(e), e)
             return False
 
     def put_epoch_seed(self, epoch_seed):
@@ -84,7 +84,7 @@ class State:
         try:
             return self.db.get('epoch_seed'.encode())
         except Exception as e:
-            logger.warning("get_epoch_seed: %s %s", type(e), e.message)
+            logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
@@ -395,7 +395,7 @@ class State:
             self.stake_list_put(self.stake_validators_list.to_json())
 
             xmss = chain.wallet.address_bundle[0].xmss
-            tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=block.blockheader.epoch + 1)
+            tmphc = hashchain(xmss.get_seed_private(), epoch=block.blockheader.epoch + 1)
 
             chain.hash_chain = tmphc.hashchain
             if not ignore_save_wallet:

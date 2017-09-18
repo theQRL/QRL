@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from pyqrllib.pyqrllib import hstr2bin, str2bin
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
@@ -8,7 +9,6 @@ from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
-from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.xmss import XMSS
 from copy import deepcopy
 from math import log, ceil
@@ -41,9 +41,12 @@ class ChainBuffer:
 
     def generate_slave_xmss(self, epoch):
         xmss = self.chain.wallet.address_bundle[0].xmss
-        stake_seed = hexseed_to_seed((sha256(xmss.get_hexseed() + str(epoch + 1)) * 2)[:96])
+        # FIXME: REVIEW THIS WITH LEON/CYYBER
+        tmp = xmss.get_hexseed() + str(epoch + 1)
+        tmp2 = sha256(str2bin(tmp)) * 2
+        stake_seed = tmp2[:48]
         height = int(ceil(log(config.dev.blocks_per_epoch * 3, 2)))
-        return XMSS(tree_height=height, SEED=stake_seed)
+        return XMSS(tree_height=height, seed=stake_seed)
 
     def get_slave_xmss(self, blocknumber):
         epoch = blocknumber // config.dev.blocks_per_epoch

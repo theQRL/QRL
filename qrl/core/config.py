@@ -7,7 +7,7 @@ import os
 
 import yaml
 
-from pyqrllib.pyqrllib import str2bin
+from qrl.core import logger
 
 
 class UserConfig(object):
@@ -34,7 +34,7 @@ class UserConfig(object):
         self.max_peers_limit = 40  # Number of allowed peers
         self.data_path = expanduser("~/.qrl/data")
         self.wallet_path = expanduser("~/.qrl/wallet")
-        self.config_path = '~/.qrl/config.yaml'
+        self.config_path = '~/.qrl/config.yml'
 
         self.load_yaml(expanduser(self.config_path))
 
@@ -53,6 +53,7 @@ class UserConfig(object):
             with open(file_path) as f:
                 dataMap = yaml.safe_load(f)
                 if dataMap is not None:
+                    logger.info("Using user custom configuration")
                     self.__dict__.update(**dataMap)
 
 

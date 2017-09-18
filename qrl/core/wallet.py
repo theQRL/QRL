@@ -60,7 +60,7 @@ class Wallet:
                     tmpxmss.set_index(a['index'])
                     self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
         except Exception as e:
-            logger.warning("It was not possible to open the wallet: %s", e.message)
+            logger.warning("It was not possible to open the wallet: %s", e)
 
     def _valid_or_create(self):
         if self.address_bundle is None or len(self.address_bundle) == 0:

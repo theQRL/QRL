@@ -7,17 +7,15 @@ import decimal
 import json
 import os
 
+from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
 from twisted.internet import reactor, endpoints
 from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 from qrl.core import helper
-from qrl.core.wallet import Wallet
 from qrl.crypto.mnemonic import validate_mnemonic
 from qrl.crypto.words import wordlist
-from qrl.crypto.xmss import XMSS
 
 
 def hexseed_to_seed(hex_seed):
@@ -108,7 +106,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.chain.wallet.get_new_address(SEED=mnemonic_to_seed(mnemonicphrase))
+                addr = self.chain.wallet.get_new_address(SEED=mnemonic2bin(mnemonicphrase, wordlist))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet
