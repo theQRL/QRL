@@ -14,6 +14,7 @@ from qrl.core.Transaction import StakeTransaction
 from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.mnemonic import mnemonic_to_seed
 from qrl.crypto.xmss import XMSS
+from qrl.crypto.hashchain import HashChain
 
 #FIXME: Clean this up
 
@@ -213,13 +214,9 @@ class WalletProtocol(Protocol):
 
                     logger.info(('STAKE for address:', self.factory.chain.mining_address))
 
-                    # FIXME: It is not good that the protocol acts directly on the node
-                    self.factory.p2pFactory.send_st_to_peers(
-                        StakeTransaction().create(blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
-                                                  xmss=self.factory.chain.wallet.address_bundle[0].xmss,
-                                                  slave_address=self.factory.chain.slave_xmss.PK_short,
-                                                  first_hash=None,
-                                                  balance=self.factory.chain.state.state_balance(self.factory.chain.mining_address)))
+
+                    blocknumber = self.factory.chain.block_chain_buffer.height() + 1
+                    self.factory.p2pFactory.pos.make_st_tx(blocknumber=blocknumber, first_hash=None)
 
                 elif command == 'send':
                     self.send_tx(args)

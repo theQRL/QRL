@@ -48,6 +48,8 @@ class ChainBuffer:
 
     def get_slave_xmss(self, blocknumber):
         epoch = blocknumber // config.dev.blocks_per_epoch
+        if epoch not in self.slave_xmss:
+            self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
         return self.slave_xmss[epoch]
 
     def get_next_slave_xmss(self, blocknumber):
