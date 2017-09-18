@@ -492,7 +492,7 @@ class ChainBuffer:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return
             return True
-        elif blocknum - 1 not in self.blocks or prev_headerhash not in self.blocks[blocknum - 1][0].block.blockheader.headerhash:
+        elif blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
             logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return
 
