@@ -69,12 +69,12 @@ class GenesisBlock(object):
         0
         >>> GenesisBlock().set_chain(None).blockheader.fee_reward
         0
-        >>> GenesisBlock().set_chain(None).blockheader.hash
+        >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         'genesis'
         >>> GenesisBlock().set_chain(None).blockheader.headerhash
         '5760c9f524b609187f2c9d02e2d854d0623bb7e110b60efb84c769d49ea4e64e'
         >>> GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash
-        '8e33279bdb3eca490efa4b33897039df48d7121cf1aec7a922f619dd035a08b2'
+        '2b47d12f00182206e19bb22388a20d469c5c904a602a81a4e990c40c208d799f'
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
