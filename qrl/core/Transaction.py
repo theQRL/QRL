@@ -9,7 +9,7 @@ from io import StringIO
 
 import qrl
 from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin
-from qrl.core import logger, helper, config
+from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal
 from qrl.crypto.misc import sha256
@@ -394,9 +394,9 @@ class CoinBase(Transaction):
     def validate_tx(self, chain, block_headerhash, blocknumber):
         sv_list = chain.block_chain_buffer.stake_list_get(blocknumber)
         if blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
-            logger.warn('Stake validator doesnt own the Public key')
-            logger.warn('Expected public key %s', sv_list[self.txto].slave_public_key)
-            logger.warn('Found public key %s', self.PK)
+            logger.warning('Stake validator doesnt own the Public key')
+            logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
+            logger.warning('Found public key %s', self.PK)
             return False
 
         if self.txto != self.txfrom:
@@ -408,8 +408,8 @@ class CoinBase(Transaction):
         txhash = sha256(txhash + self.pubhash)
 
         if self.txhash != txhash:
-            logger.warn('Block_headerhash doesnt match')
-            logger.warn('Found: %s Expected: %s', self.txhash, block_headerhash)
+            logger.warning('Block_headerhash doesnt match')
+            logger.warning('Found: %s Expected: %s', self.txhash, block_headerhash)
             return False
 
         if not self._validate_signed_hash():

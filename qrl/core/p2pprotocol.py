@@ -7,10 +7,9 @@ from decimal import Decimal
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin, str2bin
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import helper, config, logger, fork
 from qrl.core.block import Block
-from qrl.core.doctest_data import wrap_message_expected1
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, SimpleTransaction
@@ -934,7 +933,6 @@ class P2PProtocol(Protocol):
         :type data: Union[None, str, None, None, None, None, None, None, None, None, None]
         :return:
         :rtype: str
-        >>> from qrl.core.doctest_data import wrap_message_expected1, wrap_message_expected1b
         >>> answer = bin2hstr(P2PProtocol.wrap_message('TESTKEY_1234', 12345))
         >>> answer == 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff' or answer == 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
         True
@@ -1076,7 +1074,7 @@ class P2PProtocol(Protocol):
 
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
-        self.conn_identity = peerHost + ":" + str(peerPort)
+        self.conn_identity = "{}:{}".format(peerHost, peerPort)
 
         # FIXME: (For AWS) This could be problematic for other users
         if config.dev.public_ip:

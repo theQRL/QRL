@@ -34,6 +34,7 @@ test_txdict_Stake = {
     ############## Specific content
     'epoch': 1,
     'balance': 1,
+    'slave_public_key' : '1234',
     'hash': '1234',
     'first_hash': '1234',
 }

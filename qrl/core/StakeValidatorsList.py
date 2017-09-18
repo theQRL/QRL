@@ -5,7 +5,6 @@
 from qrl.core import config, helper
 from qrl.core.StakeValidator import StakeValidator
 import simplejson as json
-import logger
 from collections import OrderedDict
 
 from qrl.crypto.misc import sha256
@@ -97,7 +96,7 @@ class StakeValidatorsList:
 
     def get_threshold(self, staker_address):
         if self.isOrderedLength != len(self.next_sv_list):
-            self.next_sv_list = OrderedDict(sorted(self.next_sv_list.iteritems(), key=lambda sv: sv[1].balance))
+            self.next_sv_list = OrderedDict(sorted(iter(self.next_sv_list.items()), key=lambda sv: sv[1].balance))
             self.isOrderedLength = len(self.next_sv_list)
             mid_stakers = len(self.next_sv_list) // 2
             position = 0

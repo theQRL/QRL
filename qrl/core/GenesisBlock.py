@@ -7,7 +7,6 @@ import yaml
 
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
 from .blockheader import BlockHeader
-from qrl.crypto.misc import sha256
 from qrl.core import config
 
 
@@ -72,14 +71,14 @@ class GenesisBlock(object, metaclass=Singleton):
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         'genesis'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
-        'f16eb270d0880a2807ecc4d36de431e3b2c09538bfa3115b2935091d8c038041'
+        '3582a839b7d778b2d11ec2dfdd3a487c3e946e5113bd1bf3da57d9cbc6615413'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
         '2b47d12f00182206e19bb22388a20d469c5c904a602a81a4e990c40c208d799f'
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash),
-                                hashedtransactions=sha2_256('0'),
+                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
+                                hashedtransactions=sha2_256(b'0'),
                                 reveal_hash='genesis',
                                 vote_hash='genesis',
                                 fee_reward=0)
