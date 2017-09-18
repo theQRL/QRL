@@ -28,7 +28,7 @@ class TestBlockHeader(TestCase):
     def test_remaining_emission(self):
         # TODO: Verify value and required precision
         print(BlockHeader.remaining_emission(100, 2))
-        self.assertEqual(BlockHeader.remaining_emission(100, 2), Decimal('99.99999198'))
+        self.assertEqual(BlockHeader.remaining_emission(100, 2), Decimal('99.99999122'))
         # TODO: Test more values
 
 

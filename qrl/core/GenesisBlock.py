@@ -72,7 +72,7 @@ class GenesisBlock(object):
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         'genesis'
         >>> GenesisBlock().set_chain(None).blockheader.headerhash
-        '5760c9f524b609187f2c9d02e2d854d0623bb7e110b60efb84c769d49ea4e64e'
+        'f16eb270d0880a2807ecc4d36de431e3b2c09538bfa3115b2935091d8c038041'
         >>> GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash
         '2b47d12f00182206e19bb22388a20d469c5c904a602a81a4e990c40c208d799f'
         """
