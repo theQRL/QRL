@@ -425,43 +425,11 @@ class WalletProtocol(Protocol):
     #	inform user of address information
     #	tell them how to save the address to wallet file
     def getnewaddress(self, args):
-        self.output['status'] = 1
-        if not args or len(args) > 2:
-            self.output['message'].write('>>> Command not recognised\r\n')
-            self.output['message'].write('>>> Usage: getnewaddress <n bits> <type (XMSS, WOTS or LDOTS)>\r\n')
-            self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS\r\n')
-            self.output['message'].write('>>> or: getnewaddress 128 LDOTS\r\n')
-            return
-        else:
-            try:
-                # Check to see if args[0] is an integer string
-                int(args[0])
-            except:
-                self.output['message'].write(
-                    '>>> Invalid number of signatures. Usage: getnewaddress <n signatures> <type (XMSS, WOTS or LDOTS)>\r\n')
-                self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS\r\n')
-                return
-
-        # signature type to use
-        sig_type = args[1].upper()
-        if sig_type != 'XMSS':
-            self.output['message'].write('>>> Invalid signature address type. Usage: getnewaddress <n> <type (XMSS)>\r\n')
-            self.output['message'].write('>>> i.e. getnewaddress 4096 XMSS\r\n')
-            return
-
-        if int(args[0]) > 256 and args[1] != 'XMSS':
-            # TODO:
-            # You are trying to generate an extremely large number of signatures. Are you sure about this?
-            # Y/N
-            self.output['message'].write(
-                '>>> Try a lower number of signatures or you may be waiting a very long time...\r\n')
-            return
-
         self.output['status'] = 0
         self.output['message'].write('>>> Creating new address, please be patient as this can take some time ...\r\n')
         self.output['keys'] += ['keypair_type', 'possible_signatures', 'address']
 
-        addr_bundle = self.factory.chain.wallet.get_new_address(int(args[0]), args[1])
+        addr_bundle = self.factory.chain.wallet.get_new_address()
 
         self.output['message'].write('>>> Keypair type: ' + ''.join(addr_bundle[1].get_type() + '\r\n'))
         self.output['message'].write('>>> Signatures possible with address: ' + str(addr_bundle[1].get_number_signatures()) + '\r\n')
