@@ -92,7 +92,8 @@ class Transaction(object):
         self.pubhash = self.generate_pubhash(xmss.pk())
         self.txhash = sha256(txhash + self.pubhash)
 
-        self.txfrom = txfrom.encode('ascii')
+        self.txfrom = str(txfrom).encode('ascii')
+
         signature_components = xmss.SIGN(str(self.txhash))
 
         # signature_components = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
@@ -109,7 +110,8 @@ class Transaction(object):
             logger.info('xmss_verify failed')
             return False
 
-        if not XMSS.checkaddress(self.PK, self.txfrom):
+        # Ignore for COINBASE TX as it authorizes a slave
+        if self.subtype != TX_SUBTYPE_COINBASE and not XMSS.checkaddress(self.PK, self.txfrom):
             logger.info('Public key verification failed')
             return False
 
@@ -304,6 +306,11 @@ class StakeTransaction(Transaction):
         super(StakeTransaction, self)._dict_to_transaction(dict_tx)
         self.epoch = int(dict_tx['epoch'])
         self.balance = dict_tx['balance']
+
+        self.slave_public_key = []
+        for key in dict_tx['slave_public_key']:
+            self.slave_public_key.append(key.encode('ascii'))
+
         self.hash = []
 
         for hash_item in dict_tx['hash']:
@@ -314,11 +321,12 @@ class StakeTransaction(Transaction):
             self.first_hash = self.first_hash.encode('ascii')
         return self
 
-    def create(self, blocknumber, xmss, hashchain_terminator=None, first_hash=None, balance=None):
+    def create(self, blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
         if not balance:
             logger.info('Invalid Balance %d', balance)
             raise Exception
 
+        self.slave_public_key = slave_public_key
         self.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
         self.first_hash = first_hash
         self.balance = balance
@@ -328,7 +336,7 @@ class StakeTransaction(Transaction):
         else:
             self.hash = hashchain_terminator
 
-        self.txhash = ''.join(self.hash) + str(self.first_hash)
+        self.txhash = ''.join(self.hash) + str(self.first_hash) + str(self.slave_public_key)
         self._process_XMSS(xmss.address, self.txhash, xmss)  # self.hash to be replaced with self.txhash
         return self
 
@@ -393,14 +401,22 @@ class CoinBase(Transaction):
         self.amount = int(dict_tx['amount'])
         return self
 
-    def create(self, block_reward, block_headerhash, xmss):
-        self.txto = self.txfrom = xmss.address
+    def create(self, block_reward, block_headerhash, stake_owner, xmss):
+        self.txfrom = stake_owner
+        self.txto = stake_owner
         self.amount = block_reward
         self.txhash = block_headerhash
         self._process_XMSS(self.txfrom, self.txhash, xmss)
         return self
 
-    def validate_tx(self, block_headerhash):
+    def validate_tx(self, chain, block_headerhash, blocknumber):
+        sv_list = chain.block_chain_buffer.stake_list_get(blocknumber)
+        if blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
+            logger.warn('Stake validator doesnt own the Public key')
+            logger.warn('Expected public key %s', sv_list[self.txto].slave_public_key)
+            logger.warn('Found public key %s', self.PK)
+            return False
+
         if self.txto != self.txfrom:
             logger.info('Non matching txto and txfrom')
             logger.info('txto: %s txfrom: %s', self.txto, self.txfrom)
@@ -410,8 +426,8 @@ class CoinBase(Transaction):
         txhash = sha256(txhash + self.pubhash)
 
         if self.txhash != txhash:
-            logger.info('Block_headerhash doesnt match')
-            logger.info('Found: %s Expected: %s', self.txhash, block_headerhash)
+            logger.warn('Block_headerhash doesnt match')
+            logger.warn('Found: %s Expected: %s', self.txhash, block_headerhash)
             return False
 
         if not self._validate_signed_hash():

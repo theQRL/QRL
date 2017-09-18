@@ -4,10 +4,10 @@
 
 from operator import itemgetter
 
-import qrl.core.Transaction_subtypes
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
 from qrl.crypto.misc import sha256
 from qrl.crypto.hashchain import HashChain
 
@@ -116,7 +116,7 @@ class State:
             logger.error('Exception in state_get_address')
             logger.exception(e)
 
-        return [0, 0, []]
+        return [0, 100 * (10**8), []]
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
@@ -138,7 +138,7 @@ class State:
             logger.error('Exception in state_balance')
             logger.exception(e)
 
-        return 0
+        return 100 * (10**8)
 
     def state_nonce(self, addr):
         try:
@@ -198,7 +198,7 @@ class State:
             return True
 
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
-        nonce = self.stake_validators_list.sv_list[block.blockheader.stake_selector].nonce
+        nonce = self.stake_validators_list.sv_list[block.transactions[0].txto].nonce
         logger.info('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
                     block.blockheader.blocknumber,
                     block.blockheader.epoch,
@@ -220,7 +220,7 @@ class State:
         for tx in block.transactions:
             if tx.txfrom not in address_txn:
                 address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 if tx.txto not in address_txn:
                     address_txn[tx.txto] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txto)
 
@@ -231,7 +231,7 @@ class State:
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
         pubhash = tx.generate_pubhash(tx.pub)
 
-        if tx.nonce != address_txn[tx.txfrom][0] + 1:
+        if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
             logger.warning('subtype: %s', tx.subtype)
             logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
@@ -242,27 +242,39 @@ class State:
             logger.warning('subtype: %s', tx.subtype)
             return False
 
-        address_txn[tx.txfrom][0] += 1
         address_txn[tx.txto][1] += tx.amount
         address_txn[tx.txfrom][2].append(pubhash)
+
         # Coinbase update end here
         tmp_list = []
         for tx in block.transactions:
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
+            if tx.subtype == TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
                 if tx.txfrom == block.blockheader.stake_selector:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom]])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx.txfrom, tx.hash, tx.first_hash, tx.balance)
-                        address_txn[tx.txfrom][0] += 1
+                        self.stake_validators_list.add_sv(tx.txfrom,
+                                                          tx.slave_public_key,
+                                                          tx.hash,
+                                                          tx.first_hash,
+                                                          tx.balance)
+                        self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
                     else:
                         logger.warning('designated staker not in genesis..')
                         return False
                 else:
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx.txfrom, tx.hash, tx.first_hash, tx.balance)
+                        self.stake_validators_list.add_sv(tx.txfrom,
+                                                          tx.slave_public_key,
+                                                          tx.hash,
+                                                          tx.first_hash,
+                                                          tx.balance)
                     else:
-                        self.stake_validators_list.add_sv(tx.txfrom, tx.hash, tx.first_hash, tx.balance)
+                        self.stake_validators_list.add_next_sv(tx.txfrom,
+                                                               tx.slave_public_key,
+                                                               tx.hash,
+                                                               tx.first_hash,
+                                                               tx.balance)
 
                 pubhash = tx.generate_pubhash(tx.pub)
                 address_txn[tx.txfrom][2].append(pubhash)
@@ -304,10 +316,14 @@ class State:
 
             pubhash = tx.generate_pubhash(tx.pub)
 
-            if tx.nonce != address_txn[tx.txfrom][0] + 1:
+            if tx.subtype == TX_SUBTYPE_COINBASE:
+                expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
+            else:
+                expected_nonce = address_txn[tx.txfrom][0] + 1
+            if tx.nonce != expected_nonce:
                 logger.warning('nonce incorrect, invalid tx')
                 logger.warning('subtype: %s', tx.subtype)
-                logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
+                logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
 
             if pubhash in address_txn[tx.txfrom][2]:
@@ -315,14 +331,14 @@ class State:
                 logger.warning('subtype: %s', tx.subtype)
                 return False
 
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+            if tx.subtype == TX_SUBTYPE_TX:
                 if address_txn[tx.txfrom][1] - tx.amount < 0:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
                     return False
 
-            elif tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
+            elif tx.subtype == TX_SUBTYPE_STAKE:
                 epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
                     logger.warning('Block rejected #%s due to ST without first_reveal beyond limit',
@@ -348,15 +364,15 @@ class State:
                             return False
                         stake_validators_list.set_first_hash(tx.txfrom, tx.first_hash)
                 else:
-                    stake_validators_list.add_next_sv(tx.txfrom, tx.hash, tx.first_hash, tx.balance)
+                    stake_validators_list.add_next_sv(tx.txfrom, tx.slave_public_key, tx.hash, tx.first_hash, tx.balance)
 
-            address_txn[tx.txfrom][0] += 1
+            if tx.subtype != TX_SUBTYPE_COINBASE:
+                address_txn[tx.txfrom][0] += 1
 
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+            if tx.subtype == TX_SUBTYPE_TX:
                 address_txn[tx.txfrom][1] -= tx.amount - tx.fee
 
-            if tx.subtype in (
-            qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
+            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 address_txn[tx.txto][1] += tx.amount
 
             address_txn[tx.txfrom][2].append(pubhash)
@@ -436,9 +452,9 @@ class State:
         for block in c:
 
             # update coinbase address state
-            stake_selector = self.state_get_address(block.blockheader.stake_selector)
-            stake_selector[1] += block.blockheader.block_reward
-            self.db.put(block.blockheader.stake_selector, stake_selector)
+            stake_master = self.state_get_address(block.blockheader.stake_selector)
+            stake_master[1] += block.transactions[0].amount
+            self.db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
                 pub = tx.pub

@@ -34,6 +34,8 @@ class POS:
         self.chain = chain
         self.r1_time_diff = defaultdict(list)
         self.r2_time_diff = defaultdict(list)
+        self.pos_blocknum = 0
+        self.pos_callLater = None
 
         self.incoming_blocks = {}
         self.last_pos_cycle = 0
@@ -176,6 +178,7 @@ class POS:
         logger.info('hashchain terminator: %s', tmphc.hc_terminator)
         st = StakeTransaction().create(blocknumber=0,
                                        xmss=self.chain.wallet.address_bundle[0].xmss,
+                                       slave_public_key=self.chain.block_chain_buffer.get_slave_xmss(0).PK_short,
                                        hashchain_terminator=tmphc.hc_terminator,
                                        first_hash=tmphc.hashchain[-1][-2],
                                        balance=self.chain.state.state_balance(self.chain.mining_address))
@@ -198,7 +201,12 @@ class POS:
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom]])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
+                    self.chain.state.stake_validators_list.add_sv(tx.txfrom,
+                                                                  tx.slave_public_key,
+                                                                  tx.hash,
+                                                                  tx.first_hash,
+                                                                  GenesisBlock().get_info()[tx.txfrom])
 
         # required as doing chain.stake_list.index(s) which will result into different number on different server
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
@@ -223,11 +231,11 @@ class POS:
             tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain()
 
             # create the genesis block 2 here..
-            my_hash_chain, _ = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
+            reveal_hash, vote_hash = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
                                                            self.chain.mining_address,
                                                            tmphc.hashchain,
                                                            blocknumber=1)
-            b = self.chain.m_create_block(my_hash_chain[-2])
+            b = self.chain.m_create_block(reveal_hash[-2], vote_hash[-2])
             self.pre_block_logic(b)
         else:
             logger.info('await block creation by stake validator: %s', self.chain.stake_list[0][0])
@@ -270,9 +278,9 @@ class POS:
 
     # create new block..
 
-    def create_new_block(self, winner, reveals, vote_hashes, last_block_number):
+    def create_new_block(self, reveal_hash, vote_hash, last_block_number):
         logger.info('create_new_block #%s', (last_block_number + 1))
-        block_obj = self.chain.create_stake_block(winner, reveals, vote_hashes, last_block_number)
+        block_obj = self.chain.create_stake_block(reveal_hash, vote_hash, last_block_number)
 
         return block_obj
 
@@ -382,7 +390,7 @@ class POS:
         self.update_node_state(NState.syncing)
         self.randomize_block_fetch(self.chain.height() + 1)
 
-    def pre_block_logic(self, block, peer_identity=None):
+    def pre_block_logic(self, block):
         if len(self.chain.m_blockchain) == 0:
             self.chain.m_read_chain()
 
@@ -393,69 +401,92 @@ class POS:
             return False
 
         if self.nodeState.state == NState.synced:
-            if self.chain.block_chain_buffer.add_block(block):
-                self.p2pFactory.send_block_to_peers(block, peer_identity)
+            if not self.chain.block_chain_buffer.add_block(block):
+                return
+        elif chain_buffer_height + 1 == blocknumber:
+            if blocknumber > 1:
+                if not self.chain.block_chain_buffer.add_block(block):
+                    return
+            elif blocknumber == 1:
+                if not self.chain.add_block_mainchain(block):
+                    return
+            self.update_node_state(NState.synced)
         else:
-            if chain_buffer_height + 1 == blocknumber:
-                if blocknumber > 1 and self.chain.block_chain_buffer.add_block(block):
-                    self.p2pFactory.send_block_to_peers(block, peer_identity)
-                elif blocknumber == 1 and self.chain.add_block_mainchain(block):
-                    self.p2pFactory.send_block_to_peers(block, peer_identity)
-                self.update_node_state(NState.synced)
-            else:
-                self.chain.block_chain_buffer.add_pending_block(block)
+            self.chain.block_chain_buffer.add_pending_block(block)
 
         if self.nodeState.state == NState.synced:
-            if chain_buffer_height + 1 == blocknumber:
-                self.last_pos_cycle = time.time()
-                block_timestamp = int(block.blockheader.timestamp)
-                curr_time = int(self.ntp.getTime())
-                delay = config.dev.POS_delay_after_block - min(config.dev.POS_delay_after_block,
-                                                               max(0, curr_time - block_timestamp))
-
-                self.restart_post_block_logic(delay)
+            self.last_pos_cycle = time.time()
+            self.p2pFactory.send_block_to_peers(block)
+            self.schedule_pos(blocknumber + 1)
 
         return True
 
-    def stop_post_block_logic(self, delay=0):
+    def schedule_pos(self, blocknumber):
+        if self.nodeState.state == NState.synced:
+            if self.pos_callLater and self.pos_callLater.active:
+                if blocknumber > self.pos_blocknum:
+                    return
+
+            self.restart_post_block_logic(blocknumber)
+
+    def stop_post_block_logic(self):
         try:
-            reactor.post_block_logic.cancel()
-            reactor.prepare_winners.cancel()
+            self.pos_callLater.cancel()
         except Exception:  # No need to log this exception
             pass
 
-    def restart_post_block_logic(self, delay=0):
-        self.stop_post_block_logic()
-        reactor.post_block_logic = reactor.callLater(delay,
-                                                     self.post_block_logic)
+    def restart_post_block_logic(self, blocknumber=-1, delay=None):
+        if blocknumber == -1:
+            blocknumber = self.chain.block_chain_buffer.height() + 1
 
-    def post_block_logic(self):
+        if not delay:
+            last_block = self.chain.block_chain_buffer.get_block_n(blocknumber - 1)
+            last_block_timestamp = last_block.blockheader.timestamp
+            curr_timestamp = int(self.ntp.getTime())
+
+            delay = max(0, last_block_timestamp + config.dev.minimum_minting_delay - curr_timestamp)
+
+        self.stop_post_block_logic()
+        self.pos_callLater = reactor.callLater(delay,
+                                               self.post_block_logic,
+                                               blocknumber=blocknumber)
+        self.pos_blocknum = blocknumber
+
+    def create_next_block(self, blocknumber):
+        hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
+        epoch = blocknumber // config.dev.blocks_per_epoch
+
+        my_reveal = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
+
+        prev_headerhash = self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)
+        stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(blocknumber)
+
+        target_chain = stake_validators_list.select_target(prev_headerhash)
+        hashes = hash_chain[target_chain]
+        vote_hash = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
+
+        block = self.create_new_block(my_reveal,
+                                      vote_hash,
+                                      blocknumber - 1)
+        self.pre_block_logic(block)  # broadcast this block
+
+    def post_block_logic(self, blocknumber):
         """
             post block logic we initiate the next POS cycle
             send R1, send ST, reset POS flags and remove unnecessary
             messages in chain.stake_reveal_one and _two..
         :return:
         """
-        self.filter_reveal_one_two()
-
-        our_reveal = None
-        blocknumber = self.chain.block_chain_buffer.height() + 1
 
         if self.p2pFactory.stake:
-            stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
-
-            if self.chain.mining_address in stake_list:
-                our_reveal = self.p2pFactory.send_stake_reveal_one(blocknumber)
-                self.schedule_prepare_winners(our_reveal, blocknumber - 1, 30)
-
             next_stake_list = self.chain.block_chain_buffer.next_stake_list_get(blocknumber)
 
             epoch = blocknumber // config.dev.blocks_per_epoch
             epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
             if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_list:
-                diff = max(1, (
-                    (config.dev.stake_before_x_blocks - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
+                diff = max(1, int(
+                    (config.dev.stake_before_x_blocks * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
                 if random.randint(1, diff) == 1:
                     self.make_st_tx(blocknumber, None)
 
@@ -468,17 +499,27 @@ class POS:
                         max_threshold_blocknum = config.dev.high_staker_first_hash_block
 
                     if threshold_blocknum - 1 <= epoch_blocknum < max_threshold_blocknum - 1:
-                        diff = max(1, (
-                            (max_threshold_blocknum - epoch_blocknum + 1) * int(1 - config.dev.st_txn_safety_margin)))
+                        diff = max(1, int(
+                            (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
                         if random.randint(1, diff) == 1:
                             xmss = deepcopy(self.chain.wallet.address_bundle[0].xmss)
                             tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 
+            stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
+
+            delay = config.dev.minimum_minting_delay
+            if self.chain.mining_address in stake_list:
+                self.create_next_block(blocknumber)
+                delay = None
+
+            last_blocknum = self.chain.block_chain_buffer.height()
+            self.restart_post_block_logic(last_blocknum + 1, delay)
+
         return
 
     def make_st_tx(self, blocknumber, first_hash):
-        balance = self.chain.state.state_balance(self.chain.mining_address)
+        balance = self.chain.block_chain_buffer.get_stxn_state(blocknumber, self.chain.mining_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
@@ -487,6 +528,7 @@ class POS:
         st = StakeTransaction().create(
             blocknumber=blocknumber,
             xmss=self.chain.wallet.address_bundle[0].xmss,
+            slave_public_key=self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber).PK_short,
             first_hash=first_hash,
             balance=balance
         )
@@ -513,41 +555,6 @@ class POS:
             self.prepare_winners,
             our_reveal=our_reveal,
             last_block_number=last_block_number)
-
-    def prepare_winners(self, our_reveal, last_block_number):
-        if not self.nodeState.state == NState.synced:
-            return
-        filtered_reveal_one = []
-        reveals = []
-        vote_hashes = []
-        next_block_num = last_block_number + 1
-        for s in self.chain.stake_reveal_one:
-            tmp_strongest_headerhash = self.chain.block_chain_buffer.get_strongest_headerhash(last_block_number)
-            if s[1] == tmp_strongest_headerhash and s[2] == next_block_num:
-                filtered_reveal_one.append(s)
-                reveals.append(s[3])
-                vote_hashes.append(s[5])
-
-        self.restart_post_block_logic(30)
-
-        if len(filtered_reveal_one) <= 1:
-            logger.info('only received one reveal for this block.. blocknum #%s', next_block_num)
-            return
-
-        seed = self.chain.block_chain_buffer.get_epoch_seed(next_block_num)
-        winners = self.chain.select_winners(filtered_reveal_one,
-                                            topN=3,
-                                            seed=seed)
-
-        if not (self.p2pFactory.stake and our_reveal):
-            return
-
-        if our_reveal in winners:
-            block = self.create_new_block(our_reveal,
-                                          reveals,
-                                          vote_hashes,
-                                          last_block_number)
-            self.pre_block_logic(block)  # broadcast this block
 
     def randomize_block_fetch(self, blocknumber):
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():

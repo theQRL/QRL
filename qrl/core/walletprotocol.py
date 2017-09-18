@@ -217,6 +217,7 @@ class WalletProtocol(Protocol):
                     self.factory.p2pFactory.send_st_to_peers(
                         StakeTransaction().create(blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
                                                   xmss=self.factory.chain.wallet.address_bundle[0].xmss,
+                                                  slave_address=self.factory.chain.slave_xmss.PK_short,
                                                   first_hash=None,
                                                   balance=self.factory.chain.state.state_balance(self.factory.chain.mining_address)))
 

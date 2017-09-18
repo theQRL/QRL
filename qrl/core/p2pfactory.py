@@ -207,8 +207,7 @@ class P2PFactory(ServerFactory):
                                                 reveal_msg['block_number'],
                                                 reveal_msg['reveal_one'],
                                                 reveal_msg['weighted_hash'],
-                                                reveal_msg[
-                                                    'vote_hash']])  # don't forget to store our reveal in stake_reveal_one
+                                                reveal_msg['vote_hash']])
 
         return reveal_msg['reveal_one']
 
@@ -240,18 +239,33 @@ class P2PFactory(ServerFactory):
 
     # send/relay block to peers
 
-    def send_block_to_peers(self, block, peer_identity=None):
-        # logger.info(('<<<Transmitting block: ', block.blockheader.headerhash))
-        self.register_and_broadcast('BK', block.blockheader.headerhash, json_bytestream_bk(block))
+    def send_block_to_peers(self, block):
+        # logger.info('<<<Transmitting block: ', block.blockheader.headerhash)
+        extra_data = {'stake_selector': block.transactions[0].txto,
+                      'blocknumber': block.blockheader.blocknumber,
+                      'prev_headerhash': block.blockheader.prev_blockheaderhash}
+
+        if block.blockheader.blocknumber > 1:
+            extra_data['reveal_hash'] = block.blockheader.reveal_hash
+            extra_data['vote_hash'] = block.blockheader.vote_hash
+
+        self.register_and_broadcast('BK',
+                                    block.blockheader.headerhash,
+                                    json_bytestream_bk(block),
+                                    extra_data)
         return
 
-    def register_and_broadcast(self, msg_type, msg_hash, msg_json):
+    def register_and_broadcast(self, msg_type, msg_hash, msg_json, extra_data=None):
         # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
 
         msg_hash = sha256(str(msg_hash))
         data = {'hash': msg_hash,
                 'type': msg_type}
+
+        if extra_data:
+            for key in extra_data:
+                data[key] = extra_data[key]
 
         for peer in self.peer_connections:
             if msg_hash in self.master_mr.hash_peer:

@@ -14,12 +14,11 @@ class BlockHeader(object):
         """
         # FIXME: init and create should probably be merged
         self.blocknumber = None
-        self.hash = None
         self.timestamp = None
         self.prev_blockheaderhash = None
         self.tx_merkle_root = None
-        self.reveal_list = None
-        self.vote_hashes = None
+        self.reveal_hash = None
+        self.vote_hash = None
         self.epoch = None
         self.stake_selector = None
         self.block_reward = None
@@ -29,47 +28,44 @@ class BlockHeader(object):
     def create(self,
                chain,
                blocknumber,
-               hashchain_link,
                prev_blockheaderhash,
                hashedtransactions,
-               reveal_list,
-               vote_hashes,
+               reveal_hash,
+               vote_hash,
                fee_reward):
         """
         Create a block header based on the parameters
         :param chain:
         :param blocknumber:
-        :param hashchain_link:
         :param prev_blockheaderhash:
         :param hashedtransactions:
-        :param reveal_list:
-        :param vote_hashes:
+        :param reveal_hash:
+        :param vote_hash:
         :param fee_reward:
         :return:
 
-        >>> BlockHeader().create(None, 0, None, '0', '0', '0', '0', 0.1) is None
+        >>> BlockHeader().create(None, 0, '0', '0', '0', '0', 0.1) is None
         True
-        >>> b = BlockHeader(); b.create(None, 0, None, '0', '0', '0', '0', 0.1); b.epoch
+        >>> b = BlockHeader(); b.create(None, 0, '0', '0', '0', '0', 0.1); b.epoch
         0
-        >>> b = BlockHeader(); b.create(None, 10, None, '0', '0', '0', '0', 0.1); b.epoch # doctest: +SKIP
+        >>> b = BlockHeader(); b.create(None, 10, '0', '0', '0', '0', 0.1); b.epoch # doctest: +SKIP
         0
         """
 
         self.blocknumber = blocknumber
-        self.hash = hashchain_link
 
         if self.blocknumber == 0:
             self.timestamp = 0
         else:
-            self.timestamp = ntp.getTime()
+            self.timestamp = int(ntp.getTime())
             if self.timestamp == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
 
         self.prev_blockheaderhash = prev_blockheaderhash
         self.tx_merkle_root = hashedtransactions
-        self.reveal_list = reveal_list
-        self.vote_hashes = vote_hashes
+        self.reveal_hash = reveal_hash
+        self.vote_hash = vote_hash
         self.fee_reward = fee_reward
         self.epoch = self.blocknumber // config.dev.blocks_per_epoch
 
@@ -89,17 +85,10 @@ class BlockHeader(object):
 
     def json_to_blockheader(self, json_blockheader):
         # TODO: Moving to protobuf?
-        rl = json_blockheader['reveal_list']
-        self.reveal_list = []
-        for r in rl:
-            self.reveal_list.append(r.encode('latin1'))
-        v1 = json_blockheader['vote_hashes']
-        self.vote_hashes = []
-        for v in v1:
-            self.vote_hashes.append(v.encode('latin1'))
+        self.reveal_hash = json_blockheader['reveal_hash'].encode('latin1')
+        self.vote_hash = json_blockheader['vote_hash'].encode('latin1')
         self.epoch = json_blockheader['epoch']
         self.headerhash = json_blockheader['headerhash'].encode('latin1')
-        self.hash = json_blockheader['hash'].encode('latin1')
         self.timestamp = json_blockheader['timestamp']
         self.tx_merkle_root = json_blockheader['tx_merkle_root'].encode('latin1')
         self.blocknumber = json_blockheader['blocknumber']
@@ -138,7 +127,7 @@ class BlockHeader(object):
         Decimal('0.99999996')
         """
         # TODO: Verify these values and formula
-        coeff = BlockHeader.calc_coeff(21000000, 420480000)
+        coeff = BlockHeader.calc_coeff(config.dev.total_coin_supply, 420480000)
         return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
             .quantize(decimal.Decimal('1.00000000'), rounding=decimal.ROUND_HALF_UP)
 
@@ -147,18 +136,18 @@ class BlockHeader(object):
         return block reward for the block_n
         :return:
         """
-        return int((BlockHeader.remaining_emission(21000000, self.blocknumber - 1)
-                    - self.remaining_emission(21000000, self.blocknumber)) * 100000000)
+        return int((BlockHeader.remaining_emission(config.dev.total_coin_supply, self.blocknumber - 1)
+                    - self.remaining_emission(config.dev.total_coin_supply, self.blocknumber)) * 100000000)
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
-        return sha256(self.stake_selector +
+        return sha256(str(self.stake_selector) +
                       str(self.epoch) +
                       str(self.block_reward) +
+                      str(self.fee_reward) +
                       str(self.timestamp) +
-                      str(self.hash) +
                       str(self.blocknumber) +
                       self.prev_blockheaderhash +
                       self.tx_merkle_root +
-                      str(self.vote_hashes) +
-                      str(self.reveal_list))
+                      str(self.vote_hash) +
+                      str(self.reveal_hash))

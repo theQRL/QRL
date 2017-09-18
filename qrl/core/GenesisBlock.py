@@ -78,11 +78,10 @@ class GenesisBlock(object):
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                hashchain_link='genesis',
                                 prev_blockheaderhash=sha256(config.dev.genesis_prev_headerhash),
                                 hashedtransactions=sha256('0'),
-                                reveal_list=[],
-                                vote_hashes=[],
+                                reveal_hash='genesis',
+                                vote_hash='genesis',
                                 fee_reward=0)
         return self
 
