@@ -7,6 +7,7 @@ import time
 from collections import Counter, defaultdict
 from copy import deepcopy
 
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
 import qrl.core.Transaction_subtypes
@@ -176,12 +177,15 @@ class POS:
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
         logger.info('hashchain terminator: %s', tmphc.hc_terminator)
+
+        tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
+
         st = StakeTransaction().create(blocknumber=0,
                                        xmss=self.chain.wallet.address_bundle[0].xmss,
-                                       slave_public_key=self.chain.block_chain_buffer.get_slave_xmss(0).PK_short,
+                                       slave_public_key=self.chain.block_chain_buffer.get_slave_xmss(0).pk(),
                                        hashchain_terminator=tmphc.hc_terminator,
                                        first_hash=tmphc.hashchain[-1][-2],
-                                       balance=self.chain.state.state_balance(self.chain.mining_address))
+                                       balance=tmpbalance)
 
         self.chain.wallet.save_winfo()
         self.chain.add_tx_to_pool(st)
@@ -530,7 +534,7 @@ class POS:
         st = StakeTransaction().create(
             blocknumber=blocknumber,
             xmss=self.chain.wallet.address_bundle[0].xmss,
-            slave_public_key=self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber).PK_short,
+            slave_public_key=self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber).pk(),
             first_hash=first_hash,
             balance=balance
         )

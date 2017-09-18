@@ -8,7 +8,7 @@ import simplejson as json
 from io import StringIO
 
 import qrl
-from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin
+from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin, bin2hstr
 from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal
@@ -65,9 +65,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def generate_pubhash(pub):
-        # TODO: Check what this is doing
-        pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
-        return sha256(''.join(pub))
+        return sha256(pub)
 
     @staticmethod
     def nonce_allocator(self, tx_list, block_chain_buffer, blocknumber=-1):
@@ -87,11 +85,11 @@ class Transaction(object, metaclass=ABCMeta):
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
-        self.txhash = sha2_256(txhash + self.pubhash)
+        self.txhash = sha2_256( hstr2bin(txhash) + self.pubhash)
         self.txfrom = txfrom.encode('ascii')
 
         self.PK = xmss.pk()
-        self.signature = xmss.SIGN(str(self.txhash))
+        self.signature = xmss.SIGN(self.txhash)
 
     def _validate_signed_hash(self):
         if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom:
@@ -304,6 +302,26 @@ class StakeTransaction(Transaction):
         return self
 
     def create(self, blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
+        """
+        :param blocknumber:
+        :type blocknumber:
+        :param xmss:
+        :type xmss:
+        :param slave_public_key:
+        :type slave_public_key:
+        :param hashchain_terminator:
+        :type hashchain_terminator:
+        :param first_hash:
+        :type first_hash:
+        :param balance:
+        :type balance:
+        :return:
+        :rtype:
+        >>> s = StakeTransaction()
+        >>> slave = XMSS(4)
+        >>> isinstance(s.create(0, XMSS(4), slave.pk(), None, slave.pk(), 10), StakeTransaction)
+        True
+        """
         if not balance:
             logger.info('Invalid Balance %d', balance)
             raise Exception
@@ -318,8 +336,10 @@ class StakeTransaction(Transaction):
         else:
             self.hash = hashchain_terminator
 
-        self.txhash = ''.join(self.hash) + str(self.first_hash) + str(self.slave_public_key)
-        self._process_XMSS(xmss.address, self.txhash, xmss)  # self.hash to be replaced with self.txhash
+        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+
+        self.txhash = tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key)
+        self._process_XMSS(xmss.get_address(), self.txhash, xmss)  # self.hash to be replaced with self.txhash
         return self
 
     def validate_tx(self):

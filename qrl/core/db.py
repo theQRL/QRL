@@ -73,7 +73,7 @@ class DB:
     def get(self, key_obj):
         value_obj = self.db.Get(key_obj)
         try:
-            return json.loads(value_obj)['value']
+            return json.loads(value_obj.decode())['value']
         except KeyError as e:
             logger.error("Key not found %s", key_obj)
             logger.exception(e)

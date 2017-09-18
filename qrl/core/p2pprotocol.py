@@ -62,21 +62,23 @@ class P2PProtocol(Protocol):
             jdata = json.loads(data.decode())
         except Exception as e:
             logger.warning("parse_msg [json] %s", e)
+            logger.exception(e)
             return
 
-        func = jdata['type']
+        func_name = jdata['type']
 
-        if func not in self.service:
+        if func_name not in self.service:
             return
 
-        func = self.service[func]
+        func = self.service[func_name]
         try:
             if 'data' in jdata:
                 func(jdata['data'])
             else:
                 func()
         except Exception as e:
-            logger.error("parse_msg [%s] \n%s", func, e)
+            logger.error("executing [%s]", func_name)
+            logger.fatal(e)
 
     def reboot(self, data):
         hash_dict = json.loads(data)
@@ -476,31 +478,43 @@ class P2PProtocol(Protocol):
         """
         Check Blockheight
         :return:
+        >>> from collections import namedtuple
+        >>> p=P2PProtocol()
+        >>> Transport = namedtuple("Transport", "getPeer write")
+        >>> Peer = namedtuple("Peer", "host port")
+        >>> def getPeer():
+        ...     return Peer("host", 1234)
+        >>> message = None
+        >>> def write(msg):
+        ...     global message
+        ...     message = msg
+        >>> p.transport = Transport(getPeer, write)
+        >>> p.CB('{"block_number": 0, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}')
+        None
         """
         z = helper.json_decode(data)
         block_number = z['block_number']
-        headerhash = z['headerhash'].encode('latin1')
+        headerhash = tuple(z['headerhash'])
+
+        tmp = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
+        self.factory.peers_blockheight[tmp] = z['block_number']
 
         self.blockheight = block_number
-
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
                     self.transport.getPeer().host, block_number,
                     self.factory.chain.m_blockheight(), str(time.time()))
 
-        self.factory.peers_blockheight[self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)] = z[
-            'block_number']
-
-        if self.factory.nodeState.state == NState.syncing: return
+        if self.factory.nodeState.state == NState.syncing:
+            return
 
         if block_number == self.factory.chain.m_blockheight():
             # if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
             if self.factory.chain.m_get_block(block_number).blockheader.headerhash != headerhash:
-                logger.info('>>> WARNING: headerhash mismatch from %s', self.transport.getPeer().host)
+                logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
 
                 # initiate fork recovery and protection code here..
                 # call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
                 # again need to think this one through in detail..
-
                 return
 
         if block_number > self.factory.chain.m_blockheight():
@@ -835,11 +849,24 @@ class P2PProtocol(Protocol):
         Get blockheight
         Sends the request to all peers to send their mainchain max blockheight.
         :return:
+        >>> from collections import namedtuple
+        >>> p=P2PProtocol()
+        >>> Transport = namedtuple("Transport", "getPeer write")
+        >>> Peer = namedtuple("Peer", "host")
+        >>> def getPeer():
+        ...     return Peer("host")
+        >>> message = None
+        >>> def write(msg):
+        ...     global message
+        ...     message = msg
+        >>> p.transport = Transport(getPeer, write)
+        >>> p.get_m_blockheight_from_connection()
+        >>> bin2hstr(message)
+        'ff00003030303030303065007b2274797065223a20224d42227d0000ff'
         """
         logger.info('<<<Requesting blockheight from %s', self.transport.getPeer().host)
         msg = self.wrap_message('MB')
         self.transport.write(msg)
-        return
 
     def send_m_blockheight_to_peer(self):
         """
@@ -965,6 +992,7 @@ class P2PProtocol(Protocol):
             self.buffer = b''  # Clean buffer completely
 
     def parse_buffer(self):
+        # FIXME: This parsing/wire protocol needs to be replaced
         """
         :return:
         :rtype: bool
@@ -983,6 +1011,7 @@ class P2PProtocol(Protocol):
         num_d = self.buffer.count(P2PProtocol.MSG_INITIATOR)  # count the initiator sequences
 
         if d == -1:  # if no initiator sequences found then wipe buffer..
+            logger.warning('Message data without initiator')
             self.clean_buffer(reason='Message data without initiator')
             return False
 
@@ -996,7 +1025,8 @@ class P2PProtocol(Protocol):
             tmp2 = hstr2bin(tmp.decode())
             tmp3 = bytearray(tmp2)
             m = struct.unpack('>L', tmp3)[0]  # is m length encoded correctly?
-        except:
+        except Exception as e:
+            logger.exception(e)
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
@@ -1041,13 +1071,12 @@ class P2PProtocol(Protocol):
             return False
 
         self.messages.append(self.buffer[12:12 + m])  # if survived the above then save the msg into the self.messages
-        self.buffer = self.buffer[8 + m + 3:]  # reset the buffer to after the msg
+        self.buffer = self.buffer[12 + m + 3:]  # reset the buffer to after the msg
         return True
 
-    def dataReceived(self, data):  # adds data received to buffer. then tries to parse the buffer twice..
+    def dataReceived(self, data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
         """
         :param data:Message data without initiator
-        :type data: str
         :return:
         :rtype: None
         >>> from qrl.core.doctest_data import wrap_message_expected1
@@ -1060,8 +1089,42 @@ class P2PProtocol(Protocol):
         >>> p.dataReceived(wrap_message_expected1)
         >>> val_received
         12345
+        >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2264617461223a20225b5c223137322e31382e302e325c225d222c202274797065223a2022504c227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ff'))
+        >>> p=P2PProtocol()
+        >>> val_received = False
+        >>> def mockService():
+        ...     global val_received
+        ...     val_received = True
+        >>> p.service['MB'] = mockService
+        >>> p.dataReceived(data)
+        >>> val_received
+        True
+        >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2274797065223a2022504c222c202264617461223a20225b5c223137322e31382e302e365c225d227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ffff00003030303030306434007b2274797065223a20224342222c202264617461223a20227b5c22626c6f636b5f6e756d6265725c223a20302c205c22686561646572686173685c223a205b35332c203133302c203136382c2035372c203138332c203231352c203132302c203137382c203230392c2033302c203139342c203232332c203232312c2035382c2037322c203132342c2036322c203134382c203131302c2038312c2031392c203138392c2032372c203234332c203231382c2038372c203231372c203230332c203139382c2039372c2038342c2031395d7d227d0000ffff00003030303030303635007b2274797065223a20225645222c202264617461223a20227b5c2267656e657369735f707265765f686561646572686173685c223a205c2243727970746f6e69756d5c222c205c2276657273696f6e5c223a205c22616c7068612f302e3435615c227d227d0000ff'))
+        >>> p=P2PProtocol()
+        >>> valid_count = 0
+        >>> def mockServiceMB():
+        ...     global valid_count
+        ...     valid_count += 1
+        >>> def mockServicePL(data):
+        ...     global valid_count
+        ...     if data == '["172.18.0.6"]':
+        ...         valid_count+=1
+        >>> def mockServiceVE(data=None):
+        ...     global valid_count
+        ...     if data is None or data == '{"genesis_prev_headerhash": "Cryptonium", "version": "alpha/0.45a"}':
+        ...         valid_count += 1
+        >>> def mockServiceCB(data):
+        ...     global valid_count
+        ...     if data == '{"block_number": 0, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}':
+        ...         valid_count+=1
+        >>> p.service['MB'] = mockServiceMB
+        >>> p.service['PL'] = mockServicePL
+        >>> p.service['VE'] = mockServiceVE
+        >>> p.service['CB'] = mockServiceCB
+        >>> p.dataReceived(data)
+        >>> valid_count
+        5
         """
-
         self.buffer += data
 
         for x in range(50):
