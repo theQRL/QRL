@@ -68,7 +68,7 @@ class P2PFactory(ServerFactory):
         :return:
         :rtype: None
         """
-        logger.info('<<<Reconnecting to peer list:')
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
         for peer in self.peer_addresses:
             reactor.connectTCP(peer, 9000, self)
 

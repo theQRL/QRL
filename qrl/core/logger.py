@@ -49,6 +49,7 @@ def _unhandled_exception(etype, value, tb):
     tmp.extend(traceback.format_exception(etype, value, tb))
     logger.fatal(''.join(tmp))
 
+
 def set_unhandled_exception_handler():
     sys.excepthook = _unhandled_exception
 
@@ -96,8 +97,10 @@ def warning(msg, *args, **kwargs):
 def error(msg, *args, **kwargs):
     logger.error(msg, *args, **kwargs)
 
+
 def exception(e):
-    logger.error(traceback.format_exc(e))
+    error_str = traceback.format_exception(None, e, e.__traceback__)
+    logger.error(''.join(error_str))
 
 
 def fatal(msg, *args, **kwargs):

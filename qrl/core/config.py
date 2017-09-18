@@ -7,8 +7,6 @@ import os
 
 import yaml
 
-from qrl.core import logger
-
 
 class UserConfig(object):
     __instance = None
@@ -53,7 +51,6 @@ class UserConfig(object):
             with open(file_path) as f:
                 dataMap = yaml.safe_load(f)
                 if dataMap is not None:
-                    logger.info("Using user custom configuration")
                     self.__dict__.update(**dataMap)
 
 
