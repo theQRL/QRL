@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-import pytest
 from timeout_decorator import timeout_decorator
 
 from qrl.core import logger
@@ -20,7 +19,6 @@ class TestChain(TestCase):
         # config.user.wallet_path = os.path.join(test_dir, 'known_data/testcase1')
 
     @timeout_decorator.timeout(60)
-    @pytest.mark.skip(reason="no way of currently testing this")
     def test_check_chain(self):
         with State() as state:
             self.assertIsNotNone(state)
@@ -29,7 +27,7 @@ class TestChain(TestCase):
             self.assertIsNotNone(chain)
 
             self.assertEqual(chain.mining_address,
-                             'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
+                             'Q77400de16219522c37e622ce82723eb68e481b07af0b5f0825f95207b3f807027aa9b022')
 
             self.assertEqual(chain.wallet.address_bundle[0].address,
-                             'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
+                             'Q77400de16219522c37e622ce82723eb68e481b07af0b5f0825f95207b3f807027aa9b022')

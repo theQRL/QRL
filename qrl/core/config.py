@@ -32,7 +32,7 @@ class UserConfig(object):
         self.max_peers_limit = 40  # Number of allowed peers
         self.data_path = expanduser("~/.qrl/data")
         self.wallet_path = expanduser("~/.qrl/wallet")
-        self.config_path = '~/.qrl/config.yaml'
+        self.config_path = '~/.qrl/config.yml'
 
         self.load_yaml(expanduser(self.config_path))
 
@@ -103,10 +103,11 @@ class DevConfig(object):
         self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
         self.timestamp_error = 5 # Error in second
 
+        self.xmss_tree_height = 10
+
         self.db_name = 'state'
         self.peers_filename = 'peers.dat'
-        self.wallet_dat_filename = 'wallet.dat'
-        self.wallet_info_filename = 'wallet.info'
+        self.wallet_dat_filename = 'wallet.json'
         self.mnemonic_filename = 'mnemonic'
         self.genesis_prev_headerhash = 'Cryptonium'
 

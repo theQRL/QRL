@@ -4,17 +4,22 @@
 
 import decimal
 import time
-from StringIO import StringIO
+from io import StringIO
 
 import simplejson as json
 from twisted.internet.protocol import Protocol, connectionDone
 
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 from qrl.core import helper, logger, config
-from qrl.core.Transaction import StakeTransaction
-from qrl.crypto.hmac_drbg import hexseed_to_seed
-from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
-from qrl.crypto.hashchain import HashChain
+
+
+def hexseed_to_seed(hex_seed):
+    if len(hex_seed) != 96:
+        return False
+    return hstr2bin(hex_seed)
+
 
 #FIXME: Clean this up
 
@@ -118,7 +123,7 @@ class WalletProtocol(Protocol):
                         self.output['message'].write('>>> No Information available')
                         return True
 
-                    for key in tmp_output.keys():
+                    for key in list(tmp_output.keys()):
                         self.output['keys'] += [str(key)]
                         self.output[key] = tmp_output[key]
 
@@ -155,7 +160,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     self.output['status'] = 0
-                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
+                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
@@ -179,7 +184,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     args = ' '.join(args)
-                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(args))
+                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=mnemonic2bin(args, wordlist))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')

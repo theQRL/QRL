@@ -6,15 +6,15 @@ import pkg_resources
 from qrl.core.path import Paths
 
 
-class RequireChecker():
+class RequirementsChecker():
     def __init__(self):
         self.requirements = []
         self.paths = Paths()
         self.requirements = self.get_requirements(self.paths.REQUIREMENTS)
         try:
             pkg_resources.require(self.requirements)
-        except:
-            sys.exit("dependencies not satisfied, run [pip install -r requirements.txt] first.")
+        except Exception as e:
+            sys.exit("dependencies not satisfied, run [pip install -r requirements.txt] first. \n {}".format(e))
 
     def get_requirements(self, rq_path):
         requirements = []
@@ -27,6 +27,3 @@ class RequireChecker():
                 else:
                     requirements.append(line.strip("\n"))
         return requirements
-
-
-RequireChecker()

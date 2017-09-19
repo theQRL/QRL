@@ -4,8 +4,8 @@
 
 from collections import OrderedDict, defaultdict
 
+from pyqrllib.pyqrllib import sha2_256, bin2hstr
 from qrl.core import config
-from qrl.crypto.misc import sha256
 
 
 class MessageReceipt(object):
@@ -65,13 +65,13 @@ class MessageReceipt(object):
         if len(self.hash_type) >= config.dev.message_q_size:
             self.__remove__()
 
-        msg_hash = sha256(str(msg_hash))
+        msg_hash = sha2_256(msg_hash)
         self.hash_type[msg_hash] = msg_type
         self.hash_msg[msg_hash] = msg_obj
 
     def deregister(self, msg_hash, msg_type):
         # FIXME: Hash is converted to string
-        msg_hash = sha256(str(msg_hash))
+        msg_hash = sha2_256(msg_hash)
 
         if msg_hash in self.hash_msg:
             del self.hash_msg[msg_hash]
@@ -92,17 +92,18 @@ class MessageReceipt(object):
             self.__remove__()
 
         # Register type
-        if msg_hash not in self.hash_type:
-            self.hash_type[msg_hash] = msg_type
+        msg_hash_str = bin2hstr(msg_hash)
 
-        self.hash_peer[msg_hash].append(peer)
+        if msg_hash_str not in self.hash_type:
+            self.hash_type[msg_hash_str] = msg_type
+
+        self.hash_peer[msg_hash_str].append(peer)
 
         if data:
-            self.hash_params[msg_hash] = data
+            self.hash_params[msg_hash_str] = data
 
-    def isRequested(self, msg_hash, peer, block=None):
-        msg_hash = sha256(str(msg_hash))
-
+    def isRequested(self, msg_hash, peer):
+        msg_hash = sha2_256(msg_hash)
         if msg_hash in self.requested_hash:
             if peer in self.requested_hash[msg_hash]:
                 return True
@@ -168,17 +169,21 @@ class MessageReceipt(object):
         :param msg_type: The type of msg to match
         :return: True is the msg_obj is known and matches the msg_type
         """
-        if msg_hash in self.hash_msg:
-            if msg_hash in self.hash_type:
-                if self.hash_type[msg_hash] == msg_type:
+        msg_hash_str = bin2hstr(msg_hash)
+
+        if msg_hash_str in self.hash_msg:
+            if msg_hash_str in self.hash_type:
+                if self.hash_type[msg_hash_str] == msg_type:
                     return True
 
         return False
 
     def peer_contains_hash(self, msg_hash, msg_type, peer):
-        if msg_hash in self.hash_peer:
-            if peer in self.hash_peer[msg_hash]:
-                if self.hash_type[msg_hash] == msg_type:
+        msg_hash_str = bin2hstr(msg_hash)
+
+        if msg_hash_str in self.hash_peer:
+            if peer in self.hash_peer[msg_hash_str]:
+                if self.hash_type[msg_hash_str] == msg_type:
                     return True
 
         return False

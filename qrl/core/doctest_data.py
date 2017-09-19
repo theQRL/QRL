@@ -12,11 +12,7 @@ test_txdict_Simple = {
     'pubhash': '1234',
     'txhash': '1234',
     # >> Signature components
-    'i': '1',
-    'signature': '1234',
-    'merkle_path': '1234',
-    'i_bms': '1234',
-    'pub': '1234',
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
     'txto': '1234',
@@ -32,16 +28,13 @@ test_txdict_Stake = {
     'txfrom': '1234',
     'pubhash': '1234',
     'txhash': '1234',
-    'i': '1',
-    'slave_public_key' : ['1234', '1234'],
-    'signature': '1234',
-    'merkle_path': '1234',
-    'i_bms': '1234',
-    'pub': '1234',
+    # >> Signature components
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
     'epoch': 1,
     'balance': 1,
+    'slave_public_key' : '1234',
     'hash': '1234',
     'first_hash': '1234',
 }
@@ -54,11 +47,8 @@ test_txdict_CoinBase = {
     'txfrom': '1234',
     'pubhash': '1234',
     'txhash': '1234',
-    'i': '1',
-    'signature': '1234',
-    'merkle_path': '1234',
-    'i_bms': '1234',
-    'pub': '1234',
+    # >> Signature components
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
     'txto': '1234',
@@ -73,13 +63,11 @@ test_txdict_Lattice = {
     'txfrom': '1234',
     'pubhash': '1234',
     'txhash': '1234',
-    'i': '1',
-    'signature': '1234',
-    'merkle_path': '1234',
-    'i_bms': '1234',
-    'pub': '1234',
+    # >> Signature components
+    'signature': 'abc12341',
     'PK': '1234',
     ############## Specific content
 }
 
-wrap_message_expected1 = b'\xff\x00\x00\x00\x00\x00\x1f\x00{"data": 12345, "type": "test"}\x00\x00\xff'
+wrap_message_expected1 = bytearray(b'\xff\x00\x0000000027\x00{"data": 12345, "type": "TESTKEY_1234"}\x00\x00\xff')
+wrap_message_expected1b = bytearray(b'\xff\x00\x0000000027\x00{"type": "TESTKEY_1234", "data": 12345}\x00\x00\xff')

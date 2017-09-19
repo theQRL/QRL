@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-import cPickle as pickle
+import pickle as pickle
 import leveldb
 import os
 import simplejson as json
@@ -32,7 +32,7 @@ class DB:
     def return_all_addresses(self):
         # FIXME: Separate concerns (db / logic)
         addresses = []
-        for k, v in self.db.RangeIter('Q'):
+        for k, v in self.db.RangeIter('Q'.encode()):
             if k[0] == 'Q':
                 v = json.loads(v)['value']
                 addresses.append([k, v[1]])
@@ -41,7 +41,7 @@ class DB:
     def total_coin_supply(self):
         # FIXME: Separate concerns (db / logic)
         coins = 0
-        for k, v in self.db.RangeIter('Q'):
+        for k, v in self.db.RangeIter('Q'.encode()):
             if k[0] == 'Q':
                 value = json.loads(v)['value']
                 coins = coins + value[1]
@@ -50,7 +50,7 @@ class DB:
     def zero_all_addresses(self):
         # FIXME: Separate concerns (db / logic)
         addresses = []
-        for k, v in self.db.RangeIter('Q'):
+        for k, v in self.db.RangeIter('Q'.encode()):
             addresses.append(k)
         for address in addresses:
             self.put(address, [0, 0, []])
@@ -62,18 +62,18 @@ class DB:
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
         dictObj = {'value': value_obj}
-        self.db.Put(key_obj, json.dumps(dictObj))
+        self.db.Put(key_obj.encode(), json.dumps(dictObj).encode())
         return
 
     def put_batch(self, key_obj, value_obj, batch):  # serialise with pickle into a string
         value_obj = pickle.dumps(value_obj)
-        batch.Put(key_obj, value_obj)
+        batch.Put(key_obj.encode(), value_obj.encode())
         return
 
     def get(self, key_obj):
         value_obj = self.db.Get(key_obj)
         try:
-            return json.loads(value_obj)['value']
+            return json.loads(value_obj.decode())['value']
         except KeyError as e:
             logger.error("Key not found %s", key_obj)
             logger.exception(e)

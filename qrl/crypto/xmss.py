@@ -1,20 +1,10 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import time
-from binascii import hexlify, unhexlify
-from math import ceil, log, floor
+from pyqrllib.pyqrllib import Xmss, bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin, hstr2bin
+from qrl.core import config
+from qrl.crypto.words import wordlist
 
-from qrl.core import logger
-from qrl.crypto.hmac_drbg import new_keys, GEN_range
-from qrl.crypto.misc import sha256
-from qrl.crypto.mnemonic import seed_to_mnemonic
-
-
-# from pyqrllib.pyqrllib import Xmss
-
-
-# creates XMSS trees with W-OTS+ using PRF (hmac_drbg)
 
 class XMSS(object):
     """
@@ -24,86 +14,102 @@ class XMSS(object):
     The XMSS public key PK consists of the root of the binary hash tree and the bitmasks from xmss and l-tree.
     a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures.
     """
-    #FIXME: Getters are only temporarily. Delete everything or use properties
 
-    def __init__(self, tree_height, SEED=None):
-        # type: (int, Union[str, None]) -> None
+    # FIXME: Getters are only temporarily. Delete everything or use properties
+
+    def __init__(self, tree_height, seed=None):
         """
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
-        :param SEED:
-        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test1)).get_address()
-        'Q034125172e37499649efb2df6c2de8d70258c7e87b47d9b40fb866fe54c124ae5a17'
-        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(3, mnemonic_to_seed(xmss_mnemonic_test2)).get_address()
-        'Qe09ca5ad5f566d55c3545dfebe3ee58f4976d6370e83f944212c6159ed1ce08c6891'
-        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test1)).get_mnemonic() == xmss_mnemonic_test1
-        True
-        >>> from qrl.crypto.doctest_data import *; from qrl.crypto.mnemonic import mnemonic_to_seed; XMSS(4, mnemonic_to_seed(xmss_mnemonic_test2)).get_mnemonic() == xmss_mnemonic_test2
-        True
-        """
+        :param seed:
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1, wordlist)).get_address()
+        'Q572721d2221f1d43b18eecacb945221f1156f1e2f519b71e3def43d761e88f3af72feb52'
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_address()
+        'Q578230464f0550df33f1bad86b725ce6e6c5e278c5d03a100fb93c1d282daec21b2422f2'
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_address()
+        'Q40cc0f0d0e821b958aec4416dbeb1243b9eab7c18b3a789f20a7f3cd328b4d4cb5f26109'
 
+        # LEGACY TESTS
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).get_seed())
+        '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).get_seed_public())
+        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).get_seed_private())
+        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
+
+        # NEW TESTS
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getHeight()
+        3
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getSecretKeySize()
+        132
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getSignatureSize()
+        2276
+        >>> from qrl.crypto.doctest_data import *; len(XMSS(3, xmss_test_seed1)._xmss.getSK()) == XMSS(3, xmss_test_seed1)._xmss.getSecretKeySize()
+        True
+
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getPK() )
+        '10ad36acb053f22494767e64edbfeb4202131fe791bcc3fe6d353777ff4b742351ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSK() ) == xmss_sk_expected1
+        True
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getRoot() )
+        '10ad36acb053f22494767e64edbfeb4202131fe791bcc3fe6d353777ff4b7423'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getPKSeed() )
+        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getIndex()
+        0
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSKSeed() )
+        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1)._xmss.getSKPRF() )
+        '3aa40c0f99459afe7efe72eb9517ee8ded49ccd51dab72ebf6bc37d73240bb3a'
+        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1)._xmss.getAddress('Q')
+        'Q535aa98bd64b7a54f0efaa14ba540accf12c84b7385338e586bd32c19590a0f748358240'
+
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
+        ''
+        """
         self._number_signatures = 2 ** tree_height
 
-        # # FIXME: Ignoring seed for now
-        # self._xmss = Xmss(number_signatures, seed)
-
-        # FIXME: no error handling for invalid seeds
         self._type = 'XMSS'
+
+        # FIXME: Set index to appropiate value after restoring
         self._index = 0
 
-        # use supplied 48 byte SEED, else create randomly from os to generate private and public seeds..
-        self._seed, self._seed_public, self._seed_private = new_keys(SEED)
+        if seed is None:
+            # FIXME: Improve seed generation
+            self._seed = getRandomSeed(48, '')
+        else:
+            if isinstance(seed, str):
+                self._seed = str2bin(seed)
+            else:
+                self._seed = seed
 
-        # create the tree
-        self._tree, self._x_bms, self._l_bms, self._privs, self._pubs = self._xmss_tree(
-            tree_height=tree_height,
-            public_SEED=self._seed_public,
-            private_SEED=self._seed_private)
+        # TODO: #####################
+        # FIXME Seed is fixed!!!!!!!!!!!!!!!!!!!!
+        self._xmss = Xmss(self._seed, tree_height)
 
-        self.root = ''.join(self._tree[-1])
-        self.PK = [self.root, self._x_bms, self._l_bms]
-
-        # derived from SEED
-        self.PK_short = [self.root, hexlify(self._seed_public)]
-
-        catPK_short = self.root + hexlify(self._seed_public)
-        self.address = XMSS.create_address_from_key(catPK_short)
+        # TODO: Need to set an index
 
         # data to allow signing of smaller xmss trees/different addresses derived from same SEED..
         # position in wallet denoted by first number and address/tree by signatures
-        self.addresses = [(0,
-                           self.address,
-                           self.get_number_signatures())]
+        self.addresses = [(0, self.get_address(), self.get_number_signatures())]
 
-    def sk(self, i=None):
-        # type: (int) -> List[str]
+    def _sk(self):
         """
-        Return OTS private key at position i
-        :param i:
-        :return:
-        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).sk() == xmss_sk_expected1
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1)._sk()) == xmss_sk_expected1
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).sk() == xmss_sk_expected2
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed2)._sk()) == xmss_sk_expected2
         True
         """
-        if i is None:
-            i = self._index
-        return self._privs[i]
+        return self._xmss.getSK()
 
     def pk(self, i=None):
-        # type: (int) -> List[str]
         """
-        Return OTS public key at position i
-        :param i:
-        :return:
-        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).pk() == xmss_pk_expected1
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).pk()) == xmss_pk_expected1
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).pk() == xmss_pk_expected2
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed2).pk()) == xmss_pk_expected2
         True
         """
-        if i is None:
-            i = self._index
-        return self._pubs[i]
+        return self._xmss.getPK()
 
     def get_number_signatures(self):
         """
@@ -126,8 +132,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_remaining_signatures()
         16
         """
-        # type: () -> int
-        return self.get_number_signatures() - self._index
+        return self.get_number_signatures() - self._xmss.getIndex()
 
     def get_mnemonic(self):
         """
@@ -137,12 +142,15 @@ class XMSS(object):
         True
         >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).get_mnemonic() == xmss_mnemonic_expected2
         True
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1, wordlist)).get_mnemonic() == xmss_mnemonic_test1
+        True
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_mnemonic() == xmss_mnemonic_test2
+        True
         """
-        # type: () -> List[str]
-        return seed_to_mnemonic(self._seed)
+        return bin2mnemonic(self._seed, wordlist)
 
     def get_address(self):
-        return self.address
+        return self._xmss.getAddress('Q')
 
     def get_type(self):
         # type: () -> str
@@ -158,10 +166,10 @@ class XMSS(object):
         0
         """
         # type: () -> int
-        return self._index
+        return self._xmss.getIndex()
 
     def set_index(self, new_index):
-        self._index = new_index
+        self._xmss.setIndex(new_index)
 
     def get_hexseed(self):
         """
@@ -172,154 +180,79 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_hexseed()
         '333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331'
         """
-        return hexlify(self._seed)
+        return bin2hstr(self._seed)
+
+    def get_seed(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1).get_seed() )
+        '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed() )
+        '333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331'
+        """
+        return self._seed
+
+    def get_seed_public(self):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1).get_seed_private() )
+        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_private() )
+        'ad70ef34f316aaadcbf16a64b1b381db731eb53d833745c0d3eaa1e24cf728a2'
+        """
+        return self._xmss.getPKSeed()
 
     def get_seed_private(self):
         """
         :return:
         :rtype:
-        >>> from qrl.crypto.doctest_data import *; hexlify( XMSS(3, xmss_test_seed1).get_seed_private() )
-        '32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e'
-        >>> from qrl.crypto.doctest_data import *; hexlify( XMSS(4, xmss_test_seed2).get_seed_private() )
-        '529647107c42786b576ac1cfd9b532de2f66d2a8374f1f6293e986009b940864ca80c295092d6217afddf5be0aeb9695'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(3, xmss_test_seed1).get_seed_public() )
+        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_public() )
+        'df2355c48096f2351e4d04db57b326c355345552d31b75a65ac18b1f6d7c7875'
         """
-        return self._seed_private
+        return self._xmss.getSKSeed()
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
-    def VERIFY(message, signature):
+    def VERIFY(message, signature, pk, height=config.dev):
         # type: (bytearray, list) -> bool
         # NOTE: used by transaction
         """
         Verify an xmss sig with shorter PK
         same function but verifies using shorter signature where PK: {root, hex(_public_SEED)}
         # main verification function..
+        :param height:
+        :type height:
+        :param pk:
+        :type pk:
         :param message:
         :param signature:
         :return:
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_message", xmss_sign_expected1)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1), xmss_sign_expected1_h)
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_messagex", xmss_sign_expected1)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1), xmss_sign_expected1_h)
         False
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_message", xmss_sign_expected2)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2), xmss_sign_expected2_h)
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY("test_messagex", xmss_sign_expected2)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2), xmss_sign_expected2_h)
         False
         """
-        if not XMSS.verify_wpkey(signature[1], message, signature[4]):
-            return False
+        return Xmss.verify(message, signature, pk, height)
 
-        if not XMSS._verify_auth_SEED(signature[2], signature[3], signature[4], signature[5]):
-            return False
-
-        return True
-
-    @staticmethod
-    def _verify_auth(auth_route, i_bms, pub, PK):
-        """
-        verify an XMSS auth root path..requires the xmss authentication route,
-        OTS public key and XMSS public key (containing merkle root, x and l bitmasks) and i
-        regenerate leaf from pub[i] and l_bm, use auth route to navigate up
-        merkle tree to regenerate the root and compare with PK[0]
-        :param auth_route:
-        :param i_bms:
-        :param pub:
-        :param PK:
-        :return:
-        """
-        root = PK[0]
-        x_bms = PK[1]
-        l_bms = PK[2]
-
-        leaf = XMSS._l_tree(pub, l_bms)
-
-        h = len(auth_route)
-
-        node = None
-        for x in range(h - 1):  # last check is simply to confirm root = pair, no need for sha xor..
-            if i_bms[x][0] == 'L':
-                node = sha256(hex(int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1] + hex(
-                    int(auth_route[x], 16) ^ int(x_bms[i_bms[x][2]], 16))[2:-1])
-            else:
-                node = sha256(hex(int(auth_route[x], 16) ^ int(x_bms[i_bms[x][0]], 16))[2:-1] + hex(
-                    int(leaf, 16) ^ int(x_bms[i_bms[x][1]], 16))[2:-1])
-
-            leaf = node
-
-        if node == root:
-            return True
-
-        return False
-
-    @staticmethod
-    def _verify_auth_SEED(auth_route, i_bms, pub, PK_short):
-        """
-        same as verify_auth but using the shorter PK which is {root, hex(_public_SEED)} to reconstitute the long PK
-        with bitmasks then call above..
-        :param auth_route:
-        :param i_bms:
-        :param pub:
-        :param PK_short:
-        :return:
-        """
-        PK = []
-        root = PK_short[0]
-        public_SEED = unhexlify(PK_short[1])
-
-        rand_keys = GEN_range(public_SEED, 1, 14 + i_bms[-1][-1] + 1,
-                              32)  # i_bms[-1][-1] is the last bitmask in the tree. +1 because it counts from 0.
-
-        PK.append(root)
-        PK.append(rand_keys[14:])  # _x_bms
-        PK.append(rand_keys[:14])  # _l_bms
-
-        return XMSS._verify_auth(auth_route, i_bms, pub, PK)
-
-    def _sign(self, msg, i=0):
-        # NOTE common element used by the other sign functions
-        """
-        Sign with OTS private key at position i
-        :param msg:
-        :param i:
-        :return:
-        """
-        return XMSS.sign_wpkey(self._privs[i], msg, self._pubs[i])
-
-    def SIGN(self, msg):
+    def SIGN(self, message):
         # type: (bytearray) -> tuple
-        # NOTE: Used by transaction
         """
-
-        :param msg:
+        :param message:
         :return:
-        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed1).SIGN("test_message") == xmss_sign_expected1
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed1).SIGN(str2bin("test_message"))) == xmss_sign_expected1
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS(3, xmss_test_seed2).SIGN("test_message") == xmss_sign_expected2
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(3, xmss_test_seed2).SIGN(str2bin("test_message"))) == xmss_sign_expected2
         True
         """
-        i = self._index
-
-        # formal sign and increment the index to the next OTS to be used..
-        logger.info('xmss signing with OTS n = %s', str(self._index))
-        s = self._sign(msg, i)
-        auth_route, i_bms = XMSS._xmss_route(self._x_bms, self._tree, i)
-        self._index += 1
-
-        return i, s, auth_route, i_bms, self.pk(i), self.PK_short
-
-    @staticmethod
-    # NOTE: USED EXTERNALLY!!!
-    def create_address_from_key(key):
-        # type: (str) -> str
-        sha_r1 = sha256(key)
-        sha_r2 = sha256(sha_r1)
-        return 'Q' + sha_r1 + sha_r2[:4]
-
-    @staticmethod
-    # NOTE: USED EXTERNALLY!!!
-    def checkaddress(PK_short, address):
-        # type: (list, str) -> bool
-        return XMSS.create_address_from_key(PK_short[0] + PK_short[1]) == address
+        return self._xmss.sign(message)
 
     # NOTE: USED EXTERNALLY!!!
     def list_addresses(self):
@@ -333,254 +266,6 @@ class XMSS(object):
             addr_arr.append(addr[1])
 
         return addr_arr
-
-    @staticmethod
-    def fn_k(x, k):
-        return sha256(k + x)
-
-    @staticmethod
-    def chain_fn(x, r, i, k):
-        if i == 0:
-            return x
-        for y in range(i):
-            x = XMSS.fn_k(hex(int(x, 16) ^ int(r[y], 16))[2:-1], k)
-        return x
-
-    @staticmethod
-    def chain_fn2(x, r, i, k):
-        for y in range(i, 15):
-            x = XMSS.fn_k(hex(int(x, 16) ^ int(r[y], 16))[2:-1], k)
-        return x
-
-    @staticmethod
-    def _xmss_tree(tree_height, private_SEED, public_SEED):
-        # type: (int, str, str) -> List[list, List[str], list, list, list]
-        # FIXME: Most other methods use pub/priv. Refactor?
-        # no.leaves = 2^h
-
-        number_signatures = 2 ** tree_height
-
-        # generate the OTS keys, bitmasks and l_trees randomly (change to SEED+KEY PRF)
-
-        leafs = []
-        pubs = []
-        privs = []
-
-        # for random key generation: public_SEED: 14 = l_bm, 2n-2 - 2n+h = x_bm (see comment below)
-
-        rand_keys = GEN_range(public_SEED, 1, 14 + 2 * number_signatures + int(tree_height), 32)
-
-        l_bms = rand_keys[:14]
-        x_bms = rand_keys[14:]
-
-        # generate n hexlified private key seeds from PRF
-
-        sk_keys = GEN_range(private_SEED, 1, number_signatures, 32)
-
-        for x in range(number_signatures):
-            priv, pub = XMSS._xmss_random_wpkey(seed=sk_keys[x])
-            leaf = XMSS._l_tree(pub, l_bms)
-            leafs.append(leaf)
-            pubs.append(pub)
-            privs.append(priv)
-
-        # create xmss tree with 2^n leaves, need 2 bitmasks per parent node (excluding layer 0), therefore for a perfect binary tree total nodes = 2*n_leaves-1
-        # Given even an odd number we just create a bm for each node but dont use it for ease (the extra moves up to just below root) n_bm = 2*n-2 - 2n+h
-
-        xmss_array = [leafs]
-
-        p = 0
-        for x in range(int(tree_height)):
-            next_layer = []
-            i = len(xmss_array[x]) % 2 + len(xmss_array[x]) / 2
-            z = 0
-            for y in range(i):
-                if len(xmss_array[
-                           x]) == z + 1:  # only one left, therefore odd leaf, just add to next layer until below the root
-                    next_layer.append(xmss_array[x][z])
-                    p += 1
-                else:
-                    next_layer.append(sha256(hex(int(xmss_array[x][z], 16) ^ int(x_bms[p], 16))[2:-1] + hex(
-                        int(xmss_array[x][z + 1], 16) ^ int(x_bms[p + 1], 16))[2:-1]))
-                    p += 2
-                z += 2
-            xmss_array.append(next_layer)
-
-        return xmss_array, x_bms, l_bms, privs, pubs
-
-    @staticmethod
-    def _xmss_route(x_bms, x_tree, i=0):
-        # type: (list, list, int) -> Union[tuple, None]
-        """
-        generate the xmss tree merkle auth route for a given ots key (starts at 0)
-        :param x_bms:
-        :param x_tree:
-        :param i:
-        :return:
-        """
-        auth_route = []
-        i_bms = []
-        nodehash_list = [item for sublist in x_tree for item in sublist]
-        h = len(x_tree)
-        leaf = x_tree[0][i]
-        for x in range(h):
-
-            if len(x_tree[x]) == 1:  # must be at root layer
-                if node == ''.join(x_tree[x]):
-                    auth_route.append(''.join(x_tree[x]))
-                else:
-                    logger.info('Failed..root')
-                    return
-
-            elif i == len(x_tree[x]) - 1 and leaf in x_tree[
-                        x + 1]:  # for an odd node it goes up a level each time until it branches..
-                i = x_tree[x + 1].index(leaf)
-                n = nodehash_list.index(leaf)
-                nodehash_list[n] = None  # stops at first duplicate in list..need next so wipe..
-
-            else:
-                n = nodehash_list.index(leaf)  # position in the list == bitmask..
-                if i % 2 == 0:  # left leaf, go right..
-                    # logger.info((  'left'
-                    node = sha256(hex(int(leaf, 16) ^ int(x_bms[n], 16))[2:-1] + hex(
-                        int(nodehash_list[n + 1], 16) ^ int(x_bms[n + 1], 16))[2:-1])
-                    pair = nodehash_list[n + 1]
-                    auth_route.append(pair)
-                    i_bms.append(('L', n, n + 1))
-
-                elif i % 2 == 1:  # right leaf go left..
-                    node = sha256(hex(int(nodehash_list[n - 1], 16) ^ int(x_bms[n - 1], 16))[2:-1] + hex(
-                        int(leaf, 16) ^ int(x_bms[n], 16))[2:-1])
-                    pair = nodehash_list[n - 1]
-                    auth_route.append(pair)
-                    i_bms.append((n - 1, n))
-
-                try:
-                    x_tree[x + 1].index(node)  # confirm node matches a hash in next layer up?
-                except:
-                    logger.warning(('Failed at height', str(x)))
-                    return
-                leaf = node
-                i = x_tree[x + 1].index(leaf)
-
-        return auth_route, i_bms
-
-    @staticmethod
-    def _l_tree(pub, bm, l=67):
-        if l == 67:
-            j = 7
-        else:
-            j = ceil(log(l, 2))
-
-        l_array = [pub[1:]]  # pk_0 = (r,k) - given with the OTS pk but not in the xmss tree..
-
-        for x in range(j):
-            next_layer = []
-            i = len(l_array[x]) % 2 + len(l_array[x]) / 2
-            z = 0
-            for y in range(i):
-                if len(l_array[x]) == z + 1:
-                    next_layer.append(l_array[x][z])
-                else:
-                    # logger.info((  str(l_array[x][z])
-                    next_layer.append(sha256(hex(int(l_array[x][z], 16) ^ int(bm[2 * x], 16))[2:-1] + hex(
-                        int(l_array[x][z + 1], 16) ^ int(bm[2 * x + 1], 16))[2:-1]))
-                z += 2
-            l_array.append(next_layer)
-        return ''.join(l_array[-1])
-
-    @staticmethod
-    def get_lengths(w):
-        # TODO: describe the meaning of these values
-        m = 256
-        if w == 16:
-            l_1 = 64
-            l_2 = 3
-        else:
-            l_1 = ceil(m / log(w, 2))
-            l_2 = floor(log((l_1 * (w - 1)), 2) / log(w, 2)) + 1
-        l = int(l_1 + l_2)
-        return l, l_1, l_2
-
-    @staticmethod
-    def _xmss_random_wpkey(seed, w=16, verbose=False):
-        # type: (bytearray, int, bool) -> tuple
-        """
-        first calculate l_1 + l_2 = l .. see whitepaper http://theqrl.org/whitepaper/QRL_whitepaper.pdf
-        if using SHA-256 then m and n = 256
-        :param seed:
-        :param w:
-        :param verbose:
-        :return:
-        """
-        start_time = time.time()
-        l, l_1, l_2 = XMSS.get_lengths(w)
-
-        pub = []
-
-        # first create l+w-1 256 bit secret key fragments from PRF seed (derived from PRF on private_SEED)
-        # l n-bits will be private key, remaining w-1 will be r, the randomisation elements for the chaining function
-        # finally generate k the key for the chaining function..
-
-        sk = GEN_range(seed, 1, l + w - 1 + 1, 32)
-
-        priv = sk[:l]
-        r = sk[l:l + w - 1]
-        k = sk[-1]
-
-        pub.append((r, k))  # pk_0 = (r,k) ..where r is a list of w-1 randomisation elements
-
-        for sk_ in priv:
-            pub.append(XMSS.chain_fn(sk_, r, w - 1, k))
-
-        if verbose:
-            logger.info(str(time.time() - start_time))
-
-        return priv, pub
-
-    @staticmethod
-    def get_s(message, w):
-        l, l_1, l_2 = XMSS.get_lengths(w)
-        message = sha256(message)  # outputs 256 bit -> 64 hexadecimals. each hex digit is therefore 4 bits..
-        s = []
-        checksum = 0
-        for x in range(int(l_1)):
-            y = int(message[x], 16)
-            s.append(y)
-            checksum += w - 1 - y
-        c = (hex(checksum))[2:]
-        if len(c) < 3:
-            c = '0' + c
-        for x in range(int(l_2)):
-            y = int(c[x], 16)
-            s.append(y)
-        return l, s
-
-    @staticmethod
-    def sign_wpkey(priv, message, pub, w=16):
-        l, s = XMSS.get_s(message, w)
-
-        signature = []
-
-        for x in range(int(l)):
-            signature.append(XMSS.chain_fn(priv[x], pub[0][0], s[x], pub[0][1]))
-
-        return signature
-
-    @staticmethod
-    def verify_wpkey(signature, message, pub, w=16):
-        l, s = XMSS.get_s(message, w)
-
-        pub2 = []
-
-        for x in range(int(l)):  # merkle.chain_fn(priv[0],pub[0][0],15,pub[0][1])
-            # NOTE: Why is this using chain_fn2???
-            pub2.append(XMSS.chain_fn2(signature[x], pub[0][0], s[x], pub[0][1]))
-
-        if pub2 == pub[1:]:
-            return True
-
-        return False
 
 
 if __name__ == "__main__":

@@ -2,24 +2,24 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from StringIO import StringIO
 from abc import ABCMeta
 
 import simplejson as json
+from io import StringIO
 
 import qrl
-from qrl.core import logger, helper, config
+from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin, bin2hstr, str2bin
+from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
-from qrl.crypto.hashchain import HashChain
+from qrl.crypto.hashchain import hashchain_reveal
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 
 
-class Transaction(object):
+class Transaction(object, metaclass=ABCMeta):
     """
     Abstract Base class to be derived by all other transactions
     """
-    __metaclass__ = ABCMeta
 
     # FIXME: Use metaclass and make this class abstract. Enforce same API in derived classes
 
@@ -30,12 +30,8 @@ class Transaction(object):
         self.txhash = None
         self.txfrom = None
 
-        self.i = None
-        self.signature = None
-        self.merkle_path = None
-        self.i_bms = None
-        self.pub = None
         self.PK = None
+        self.signature = None
 
     @staticmethod
     def from_txdict(txdict):
@@ -64,13 +60,12 @@ class Transaction(object):
             TX_SUBTYPE_LATTICE: LatticePublicKey
         }
 
-        subtype = txdict['subtype'].encode('ascii')
+        subtype = txdict['subtype']
         return type_to_txn[subtype]()._dict_to_transaction(txdict)
 
     @staticmethod
     def generate_pubhash(pub):
-        pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
-        return sha256(''.join(pub))
+        return sha256(pub)
 
     @staticmethod
     def nonce_allocator(self, tx_list, block_chain_buffer, blocknumber=-1):
@@ -88,38 +83,31 @@ class Transaction(object):
         return tx_list
 
     def _process_XMSS(self, txfrom, txhash, xmss):
-        self.ots_key = xmss._index
+        self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
-        self.txhash = sha256(txhash + self.pubhash)
+        self.txhash = sha2_256( hstr2bin(txhash) + self.pubhash)
+        self.txfrom = txfrom.encode('ascii')
 
-        self.txfrom = str(txfrom).encode('ascii')
-
-        signature_components = xmss.SIGN(str(self.txhash))
-
-        # signature_components = {i, s, auth_route, i_bms, self.pk(i), self.PK_short}
-        self.i = signature_components[0]
-        self.signature = signature_components[1]
-        self.merkle_path = signature_components[2]
-        self.i_bms = signature_components[3]
-        self.pub = signature_components[4]
-        self.PK = signature_components[5]
+        self.PK = xmss.pk()
+        self.signature = xmss.SIGN(self.txhash)
 
     def _validate_signed_hash(self):
-        if not XMSS.VERIFY(message=self.txhash,
-                           signature=[self.i, self.signature, self.merkle_path, self.i_bms, self.pub, self.PK]):
-            logger.info('xmss_verify failed')
+        if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom:
+            logger.info('Public key verification failed')
             return False
 
-        # Ignore for COINBASE TX as it authorizes a slave
-        if self.subtype != TX_SUBTYPE_COINBASE and not XMSS.checkaddress(self.PK, self.txfrom):
-            logger.info('Public key verification failed')
+        if not XMSS.VERIFY(message=self.txhash,
+                           signature=self.signature,
+                           pk=self.PK,
+                           height=config.dev.xmss_tree_height):
+            logger.info('xmss_verify failed')
             return False
 
         return True
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> Transaction
-        self.subtype = dict_tx['subtype'].encode('ascii')
+        self.subtype = dict_tx['subtype']
 
         self.ots_key = int(dict_tx['ots_key'])
         self.nonce = int(dict_tx['nonce'])
@@ -128,12 +116,8 @@ class Transaction(object):
         self.pubhash = dict_tx['pubhash'].encode('ascii')
         self.txhash = self._reformat(dict_tx['txhash'])
 
-        self.i = int(dict_tx['i'])
-        self.signature = self._reformat(dict_tx['signature'])
-        self.merkle_path = self._reformat(dict_tx['merkle_path'])
-        self.i_bms = self._reformat(dict_tx['i_bms'])
-        self.pub = self._reformat(dict_tx['pub'])
-        self.PK = self._reformat(dict_tx['PK'])
+        self.PK = hstr2bin(dict_tx['PK'])
+        self.signature = hstr2bin(dict_tx['signature'])
         return self
 
     def _reformat(self, srcList):
@@ -142,7 +126,7 @@ class Transaction(object):
             for item in srcList:
                 destList.append(self._reformat(item))
             return destList
-        elif isinstance(srcList, unicode):
+        elif isinstance(srcList, str):
             return srcList.encode('ascii')
 
         return srcList
@@ -159,16 +143,11 @@ class Transaction(object):
         message = StringIO()
         # FIXME: This looks suspicious
         '''
+        
         message.write(self.nonce)
         message.write(self.txfrom)
         message.write(self.txhash)
-        message.write(self.i)
         message.write(self.signature)
-        message.write(self.merkle_path)
-        message.write(self.i_bms)
-        message.write(self.pub)
-        message.write(self.PK)
-        message.write(self.subtype)
         '''
         return message
 
@@ -228,6 +207,7 @@ class SimpleTransaction(Transaction):
         self.amount = int(amount)
         self.fee = int(fee)
 
+        # FIXME: This is very confusing and can be a security risk
         self.txhash = sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)))
         self.merkle_root = xmss.root
         if not self.pre_condition(tx_state):
@@ -265,7 +245,7 @@ class SimpleTransaction(Transaction):
         if not self.pre_condition(tx_state):
             return False
 
-        pubhash = self.generate_pubhash(self.pub)
+        pubhash = self.generate_pubhash(self.PK)
 
         tx_pubhashes = tx_state[2]
         if pubhash in tx_pubhashes:
@@ -295,11 +275,24 @@ class StakeTransaction(Transaction):
         self.subtype = TX_SUBTYPE_STAKE
 
     def get_message_hash(self):
+        """
+        :return:
+        :rtype:
+        >>> s = StakeTransaction()
+        >>> seed = [i for i in range(48)]
+        >>> slave = XMSS(4, seed)
+        >>> t = s.create(0, XMSS(4, seed), slave.pk(), None, slave.pk(), 10)
+        >>> t.get_message_hash()
+        (190, 216, 197, 106, 146, 168, 148, 15, 12, 106, 8, 196, 43, 74, 14, 144, 215, 198, 251, 97, 148, 8, 182, 151, 10, 227, 212, 134, 25, 11, 228, 245)
+        """
         message = super(StakeTransaction, self).get_message_hash()
         # message.write(self.epoch)
-        message.write(self.hash)
-        message.write(str(self.first_hash))
-        return sha256(message.getvalue())
+        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+        message.write(tmphash)
+        message.write(bin2hstr(self.first_hash))
+        messagestr = message.getvalue()
+        result = sha256(str2bin(messagestr))
+        return result
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> qrl.core.transaction.StakeTransaction
@@ -322,6 +315,26 @@ class StakeTransaction(Transaction):
         return self
 
     def create(self, blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
+        """
+        :param blocknumber:
+        :type blocknumber:
+        :param xmss:
+        :type xmss:
+        :param slave_public_key:
+        :type slave_public_key:
+        :param hashchain_terminator:
+        :type hashchain_terminator:
+        :param first_hash:
+        :type first_hash:
+        :param balance:
+        :type balance:
+        :return:
+        :rtype:
+        >>> s = StakeTransaction()
+        >>> slave = XMSS(4)
+        >>> isinstance(s.create(0, XMSS(4), slave.pk(), None, slave.pk(), 10), StakeTransaction)
+        True
+        """
         if not balance:
             logger.info('Invalid Balance %d', balance)
             raise Exception
@@ -332,12 +345,14 @@ class StakeTransaction(Transaction):
         self.balance = balance
 
         if hashchain_terminator is None:
-            self.hash = HashChain(xmss.get_seed_private()).hashchain_reveal(epoch=self.epoch + 1)
+            self.hash = hashchain_reveal(xmss.get_seed_private(), epoch=self.epoch + 1)
         else:
             self.hash = hashchain_terminator
 
-        self.txhash = ''.join(self.hash) + str(self.first_hash) + str(self.slave_public_key)
-        self._process_XMSS(xmss.address, self.txhash, xmss)  # self.hash to be replaced with self.txhash
+        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+
+        self.txhash = tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key)
+        self._process_XMSS(xmss.get_address(), self.txhash, xmss)  # self.hash to be replaced with self.txhash
         return self
 
     def validate_tx(self):
@@ -364,7 +379,7 @@ class StakeTransaction(Transaction):
     def state_validate_tx(self, tx_state):
         if self.subtype != TX_SUBTYPE_STAKE:
             return False
-        pub = self.pub
+        pub = self.PK
         pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
         pubhash = sha256(''.join(pub))
 
@@ -412,9 +427,9 @@ class CoinBase(Transaction):
     def validate_tx(self, chain, block_headerhash, blocknumber):
         sv_list = chain.block_chain_buffer.stake_list_get(blocknumber)
         if blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
-            logger.warn('Stake validator doesnt own the Public key')
-            logger.warn('Expected public key %s', sv_list[self.txto].slave_public_key)
-            logger.warn('Found public key %s', self.PK)
+            logger.warning('Stake validator doesnt own the Public key')
+            logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
+            logger.warning('Found public key %s', self.PK)
             return False
 
         if self.txto != self.txfrom:
@@ -426,8 +441,8 @@ class CoinBase(Transaction):
         txhash = sha256(txhash + self.pubhash)
 
         if self.txhash != txhash:
-            logger.warn('Block_headerhash doesnt match')
-            logger.warn('Found: %s Expected: %s', self.txhash, block_headerhash)
+            logger.warning('Block_headerhash doesnt match')
+            logger.warning('Found: %s Expected: %s', self.txhash, block_headerhash)
             return False
 
         if not self._validate_signed_hash():

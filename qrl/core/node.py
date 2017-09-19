@@ -7,6 +7,7 @@ import time
 from collections import Counter, defaultdict
 from copy import deepcopy
 
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
 import qrl.core.Transaction_subtypes
@@ -16,8 +17,8 @@ from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction
+from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
-from qrl.crypto.hashchain import HashChain
 
 
 class NodeState:
@@ -102,7 +103,7 @@ class POS:
         current_height = self.chain.m_blockheight()
         block_hash_counter = Counter()
         for peer in self.p2pFactory.peers:
-            if current_height in peer.blocknumber_headerhash.keys():
+            if current_height in list(peer.blocknumber_headerhash.keys()):
                 block_hash_counter[peer.blocknumber_headerhash[current_height]] += 1
 
         blockhash = block_hash_counter.most_common(1)
@@ -171,19 +172,22 @@ class POS:
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
         xmss = self.chain.wallet.address_bundle[0].xmss
-        tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
+        tmphc = hashchain(xmss.get_seed_private(), epoch=0)
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
-        logger.info('hashchain terminator: %s', tmphc.hc_terminator)
+        tmphash = ''.join([bin2hstr(b) for b in tmphc.hc_terminator])
+        logger.info('hashchain terminator: %s', tmphash)
+
+        tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
+
         st = StakeTransaction().create(blocknumber=0,
                                        xmss=self.chain.wallet.address_bundle[0].xmss,
-                                       slave_public_key=self.chain.block_chain_buffer.get_slave_xmss(0).PK_short,
+                                       slave_public_key=self.chain.block_chain_buffer.get_slave_xmss(0).pk(),
                                        hashchain_terminator=tmphc.hc_terminator,
                                        first_hash=tmphc.hashchain[-1][-2],
-                                       balance=self.chain.state.state_balance(self.chain.mining_address))
+                                       balance=tmpbalance)
 
-        self.chain.wallet.save_winfo()
         self.chain.add_tx_to_pool(st)
         # send the stake tx to generate hashchain terminators for the staker addresses..
         self.p2pFactory.send_st_to_peers(st)
@@ -228,7 +232,7 @@ class POS:
         if self.chain.mining_address == self.chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
-            tmphc = HashChain(self.chain.wallet.address_bundle[0].xmss.get_seed_private()).hashchain()
+            tmphc = hashchain(self.chain.wallet.address_bundle[0].xmss.get_seed_private())
 
             # create the genesis block 2 here..
             reveal_hash, vote_hash = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
@@ -297,8 +301,7 @@ class POS:
         if not blocknumber:
             blocknumber = self.chain.m_blockchain[-1].blockheader.blocknumber
 
-        self.chain.stake_reveal_one = filter(lambda s: s[2] > blocknumber,
-                                             self.chain.stake_reveal_one)
+        self.chain.stake_reveal_one = [s for s in self.chain.stake_reveal_one if s[2] > blocknumber]
 
         return
 
@@ -503,7 +506,7 @@ class POS:
                             (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
                         if random.randint(1, diff) == 1:
                             xmss = deepcopy(self.chain.wallet.address_bundle[0].xmss)
-                            tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=epoch + 1)
+                            tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
@@ -528,12 +531,11 @@ class POS:
         st = StakeTransaction().create(
             blocknumber=blocknumber,
             xmss=self.chain.wallet.address_bundle[0].xmss,
-            slave_public_key=self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber).PK_short,
+            slave_public_key=self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber).pk(),
             first_hash=first_hash,
             balance=balance
         )
         self.p2pFactory.send_st_to_peers(st)
-        self.chain.wallet.save_winfo()
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
             if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE and st.hash == t.hash:
@@ -560,14 +562,14 @@ class POS:
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():
             return
 
-        if len(self.p2pFactory.target_peers.keys()) == 0:
+        if len(list(self.p2pFactory.target_peers.keys())) == 0:
             logger.info(' No target peers found.. stopping download')
             return
 
         reactor.download_monitor = reactor.callLater(20,
                                                      self.randomize_block_fetch, blocknumber)
 
-        random_peer = self.p2pFactory.target_peers[random.choice(self.p2pFactory.target_peers.keys())]
+        random_peer = self.p2pFactory.target_peers[random.choice(list(self.p2pFactory.target_peers.keys()))]
         random_peer.fetch_block_n(blocknumber)
 
     def randomize_headerhash_fetch(self, block_number):
@@ -583,7 +585,7 @@ class POS:
                     if len(self.p2pFactory.fork_target_peers) > 0:
                         random_peer = self.p2pFactory.fork_target_peers[
                             random.choice(
-                                self.p2pFactory.fork_target_peers.keys()
+                                list(self.p2pFactory.fork_target_peers.keys())
                             )
                         ]
                         count = 0
@@ -613,10 +615,7 @@ class POS:
         logger.info(self.chain.blockheight_map)
 
         # first strip out any laggards..
-        self.chain.blockheight_map = filter(
-            lambda q: q[0] >= self.chain.m_blockheight(),
-            self.chain.blockheight_map
-        )
+        self.chain.blockheight_map = [q for q in self.chain.blockheight_map if q[0] >= self.chain.m_blockheight()]
 
         result = True
 

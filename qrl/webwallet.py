@@ -1,23 +1,27 @@
 # coding=utf-8
-# QRL Web Wallet
-# localhost:8888/
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+# QRL Web Wallet
+# localhost:8888/
 import decimal
 import json
 import os
 
+from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
 from twisted.internet import reactor, endpoints
 from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 
 from qrl.core import helper
-from qrl.crypto.hmac_drbg import hexseed_to_seed
-from qrl.crypto.mnemonic import mnemonic_to_seed, validate_mnemonic
-from qrl.crypto.xmss import XMSS
+from qrl.crypto.mnemonic import validate_mnemonic
+from qrl.crypto.words import wordlist
 
-__author__ = 'scottdonaldau'
+
+def hexseed_to_seed(hex_seed):
+    if len(hex_seed) != 96:
+        return False
+    return hstr2bin(hex_seed)
 
 
 class WebWallet:
@@ -27,6 +31,7 @@ class WebWallet:
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
+        self.wallet = chain.wallet
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))
@@ -63,7 +68,6 @@ class newAddress(Resource):
     def render_GET(self, request):
         addr = self.chain.wallet.get_new_address()
         self.chain.wallet.append_wallet(addr)
-        return True
 
 
 class recoverAddress(Resource):
@@ -102,7 +106,7 @@ class recoverAddress(Resource):
 
             # Try to recover
             try:
-                addr = self.chain.wallet.get_new_address(SEED=mnemonic_to_seed(mnemonicphrase))
+                addr = self.chain.wallet.get_new_address(SEED=mnemonic2bin(mnemonicphrase, wordlist))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet
@@ -274,8 +278,8 @@ class sendQuanta(Resource):
         # send the transaction to peers (ie send it to the network - we are done)
         self.p2pFactory.send_tx_to_peers(tx)
 
-        print('>>> TXN Hash: ' + str(tx.txhash) + ', From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
-            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network')
+        print(('>>> TXN Hash: ' + str(tx.txhash) + ', From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
+            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network'))
 
         self.txnResult["status"] = "success"
         self.txnResult["txnhash"] = str(tx.txhash)

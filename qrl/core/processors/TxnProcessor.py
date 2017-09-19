@@ -23,7 +23,7 @@ class TxnProcessor:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         if not self.pending_tx_pool:
             raise StopIteration
 
