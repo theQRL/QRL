@@ -176,7 +176,8 @@ class POS:
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
-        logger.info('hashchain terminator: %s', tmphc.hc_terminator)
+        tmphash = ''.join([bin2hstr(b) for b in tmphc.hc_terminator])
+        logger.info('hashchain terminator: %s', tmphash)
 
         tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
 
