@@ -440,6 +440,8 @@ class ChainBuffer:
                 del self._wallet_private_seeds[prev_epoch]
             if prev_epoch in self.hash_chain:
                 del self.hash_chain[prev_epoch]
+            if prev_epoch in self.slave_xmss:
+                del self.slave_xmss[prev_epoch]
 
         self.chain.update_last_tx(block)
         self.chain.update_tx_metadata(block)
