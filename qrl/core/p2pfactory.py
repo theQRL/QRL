@@ -77,7 +77,7 @@ class P2PFactory(ServerFactory):
         l = list(range(a, b))
         for peer in self.peer_connections:
             if len(l) > 0:
-                peer.transport.write(self.f_wrap_message('BN', str(l.pop(0))))
+                peer.transport.write(self.protocol.wrap_message('BN', str(l.pop(0))))
             else:
                 return
 
@@ -89,7 +89,7 @@ class P2PFactory(ServerFactory):
     def get_block_n(self, n):
         logger.info('<<<Requested block: %s from peers.', n)
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('BN', str(n)))
+            peer.transport.write(self.protocol.wrap_message('BN', str(n)))
         return
 
     def get_m_blockheight_from_random_peer(self):
@@ -100,7 +100,7 @@ class P2PFactory(ServerFactory):
     def get_blockheight_map_from_peers(self):
         logger.info('<<<Requested blockheight_map from peers.')
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('BM'))
+            peer.transport.write(self.protocol.wrap_message('BM'))
         return
 
     def get_m_blockheight_from_peers(self):
@@ -113,14 +113,6 @@ class P2PFactory(ServerFactory):
         for peer in self.peer_connections:
             peer.send_m_blockheight_to_peer()
         return
-
-    def f_wrap_message(self, mtype, data=None):
-        jdata = {'type': mtype}
-        if data:
-            jdata['data'] = data
-        str_data = json.dumps(jdata)
-        return chr(255) + chr(0) + chr(0) + struct.pack('>L', len(str_data)) + chr(0) + str_data + chr(0) + chr(
-            0) + chr(255)
 
     def send_st_to_peers(self, st):
         logger.info('<<<Transmitting ST: %s', st.epoch)
@@ -135,7 +127,7 @@ class P2PFactory(ServerFactory):
     def send_reboot(self, json_hash):
         logger.info('<<<Transmitting Reboot Command')
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('reboot', json_hash))
+            peer.transport.write(self.protocol.wrap_message('reboot', json_hash))
         return
 
     # transmit reveal_one hash.. (node cast lottery vote)
@@ -213,19 +205,19 @@ class P2PFactory(ServerFactory):
 
     def send_last_stake_reveal_one(self):
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('R1', json_encode(self.last_reveal_one)))
+            peer.transport.write(self.protocol.wrap_message('R1', json_encode(self.last_reveal_one)))
 
     def ip_geotag_peers(self):
         logger.info('<<<IP geotag broadcast')
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('IP'))
+            peer.transport.write(self.protocol.wrap_message('IP'))
         return
 
     def ping_peers(self):
         logger.info('<<<Transmitting network PING')
         self.chain.last_ping = time.time()
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('PING'))
+            peer.transport.write(self.protocol.wrap_message('PING'))
         return
 
     # send POS block to peers..
@@ -234,7 +226,7 @@ class P2PFactory(ServerFactory):
         logger.info('<<<Transmitting POS created block %s %s', str(block_obj.blockheader.blocknumber),
                     block_obj.blockheader.headerhash)
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('S4', json_bytestream(block_obj)))
+            peer.transport.write(self.protocol.wrap_message('S4', json_bytestream(block_obj)))
         return
 
     # send/relay block to peers
@@ -271,14 +263,14 @@ class P2PFactory(ServerFactory):
             if msg_hash in self.master_mr.hash_peer:
                 if peer in self.master_mr.hash_peer[msg_hash]:
                     continue
-            peer.transport.write(self.f_wrap_message('MR', json_encode(data)))
+            peer.transport.write(self.protocol.wrap_message('MR', json_encode(data)))
 
     # request transaction_pool from peers
 
     def get_tx_pool_from_peers(self):
         logger.info('<<<Requesting TX pool from peers..')
         for peer in self.peer_connections:
-            peer.transport.write(self.f_wrap_message('RT'))
+            peer.transport.write(self.protocol.wrap_message('RT'))
         return
 
     # connection functions

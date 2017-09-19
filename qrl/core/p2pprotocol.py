@@ -79,7 +79,7 @@ class P2PProtocol(Protocol):
                 func()
         except Exception as e:
             logger.error("executing [%s]", func_name)
-            logger.fatal(e)
+            logger.exception(e)
 
     def reboot(self, data):
         hash_dict = json.loads(data)
@@ -128,7 +128,7 @@ class P2PProtocol(Protocol):
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):
+        if self.factory.master_mr.peer_contains_hash( bin2hstr(data['hash']), data['type'], self):
             return
 
         self.factory.master_mr.add_peer(data['hash'], data['type'], self)
