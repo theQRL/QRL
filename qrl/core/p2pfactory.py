@@ -315,7 +315,7 @@ class P2PFactory(ServerFactory):
         # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
 
-        msg_hash = sha256(str(msg_hash))
+        msg_hash = sha256(msg_hash)
         data = {'hash': msg_hash,
                 'type': msg_type}
 
