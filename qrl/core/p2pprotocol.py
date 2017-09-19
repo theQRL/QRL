@@ -127,15 +127,18 @@ class P2PProtocol(Protocol):
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.peer_contains_hash( bin2hstr(data['hash']), data['type'], self):
+        if self.factory.master_mr.peer_contains_hash( data['hash'], data['type'], self):
             return
 
         self.factory.master_mr.add_peer(data['hash'], data['type'], self)
 
-        if data['hash'] in self.factory.master_mr.hash_callLater:  # Ignore if already requested
+        tmpstr = bin2hstr(data['hash'])
+
+        if tmpstr in self.factory.master_mr.hash_callLater:  # Ignore if already requested
             return
 
-        if self.factory.master_mr.contains(data['hash'], data['type']):
+        # FIXME: This is breaking encapsulation everywhere
+        if self.factory.master_mr.contains(tmpstr, data['type']):
             return
 
         if data['type'] == 'BK':
@@ -146,18 +149,42 @@ class P2PProtocol(Protocol):
 
             blocknumber = data['blocknumber']
 
-            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.pos.ntp)
-            if target_blocknumber != self.factory.bkmr_blocknumber:
-                self.factory.bkmr_blocknumber = target_blocknumber
-                del self.factory.bkmr_priorityq
-                self.factory.bkmr_priorityq = Queue.PriorityQueue()
+    def RFM(self, data):
+        """
+        Request Full Message
+        This function request for the full message against,
+        the Message Receipt received.
+        :return:
+        """
 
-            if blocknumber != target_blocknumber:
-                self.factory.RFM(data)
+        # FIXME: Again, breaking encasulation
+        # FIXME: Huge amount of lookups in dictionaries
+
+        msg_hash = data['hash']
+        msg_hash_str = bin2hstr(msg_hash)
+
+        if msg_hash_str in self.factory.master_mr.hash_msg:
+            if msg_hash_str in self.factory.master_mr.hash_callLater:
+                del self.factory.master_mr.hash_callLater[msg_hash_str]
+            return
+        for peer in self.factory.master_mr.hash_peer[msg_hash_str]:
+            if peer not in self.factory.master_mr.requested_hash[msg_hash_str]:
+                self.factory.master_mr.requested_hash[msg_hash_str].append(peer)
+                # Storing MR params, so the received full message could be checked against
+                # the MR receipt provided.
+                self.factory.master_mr.hash_params[msg_hash_str] = data
+                peer.transport.write(self.wrap_message('SFM', helper.json_encode(data)))
+                call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
+                                                   self.RFM,
+                                                   data)
+                self.factory.master_mr.hash_callLater[msg_hash_str] = call_later_obj
                 return
 
-            score = block_chain_buffer.score_BK_hash(data)
-            self.factory.bkmr_priorityq.put((score, data['hash']))
+        # If executing reach to this line, then it means no peer was able to provide
+        # Full message for this hash thus the hash has to be deleted.
+        # Moreover, negative points could be added to the peers, for this behavior
+        if msg_hash_str in self.factory.master_mr.hash_callLater:
+            del self.factory.master_mr.hash_callLater[msg_hash_str]
 
             if not self.factory.bkmr_processor.active():
                 self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)
