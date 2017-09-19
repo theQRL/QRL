@@ -8,7 +8,7 @@ import simplejson as json
 from io import StringIO
 
 import qrl
-from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin, bin2hstr
+from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin, bin2hstr, str2bin
 from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal
@@ -275,11 +275,24 @@ class StakeTransaction(Transaction):
         self.subtype = TX_SUBTYPE_STAKE
 
     def get_message_hash(self):
+        """
+        :return:
+        :rtype:
+        >>> s = StakeTransaction()
+        >>> seed = [i for i in range(48)]
+        >>> slave = XMSS(4, seed)
+        >>> t = s.create(0, XMSS(4, seed), slave.pk(), None, slave.pk(), 10)
+        >>> t.get_message_hash()
+        (190, 216, 197, 106, 146, 168, 148, 15, 12, 106, 8, 196, 43, 74, 14, 144, 215, 198, 251, 97, 148, 8, 182, 151, 10, 227, 212, 134, 25, 11, 228, 245)
+        """
         message = super(StakeTransaction, self).get_message_hash()
         # message.write(self.epoch)
-        message.write(self.hash)
-        message.write(str(self.first_hash))
-        return sha256(message.getvalue())
+        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+        message.write(tmphash)
+        message.write(bin2hstr(self.first_hash))
+        messagestr = message.getvalue()
+        result = sha256(str2bin(messagestr))
+        return result
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> qrl.core.transaction.StakeTransaction

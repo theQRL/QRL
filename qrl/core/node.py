@@ -187,7 +187,6 @@ class POS:
                                        first_hash=tmphc.hashchain[-1][-2],
                                        balance=tmpbalance)
 
-        self.chain.wallet.save_winfo()
         self.chain.add_tx_to_pool(st)
         # send the stake tx to generate hashchain terminators for the staker addresses..
         self.p2pFactory.send_st_to_peers(st)
@@ -536,7 +535,6 @@ class POS:
             balance=balance
         )
         self.p2pFactory.send_st_to_peers(st)
-        self.chain.wallet.save_winfo()
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
             if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE and st.hash == t.hash:
