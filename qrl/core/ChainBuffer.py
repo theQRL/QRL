@@ -120,7 +120,6 @@ class ChainBuffer:
         prev_private_seed = self._wallet_private_seeds[epoch - 1]
         self._wallet_private_seeds[epoch] = prev_private_seed
         self.hash_chain[epoch] = HashChain(prev_private_seed).hashchain(epoch=epoch).hashchain
-        self.slave_xmss[epoch] = self.generate_slave_xmss(self.epoch)
 
     def add_txns_buffer(self):
         if len(self.blocks) == 0:
@@ -176,7 +175,6 @@ class ChainBuffer:
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
             self.hash_chain[epoch + 1] = HashChain(private_seed).hashchain(epoch=epoch + 1).hashchain
-            self.slave_xmss[epoch + 1] = self.generate_slave_xmss(epoch + 1)
             if epoch in self._wallet_private_seeds:
                 del self._wallet_private_seeds[epoch]
             if epoch in self.slave_xmss:
