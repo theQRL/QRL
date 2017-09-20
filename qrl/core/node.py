@@ -423,7 +423,7 @@ class POS:
 
     def schedule_pos(self, blocknumber):
         if self.nodeState.state == NState.synced:
-            if self.pos_callLater and self.pos_callLater.active:
+            if self.pos_callLater and self.pos_callLater.active():
                 if blocknumber > self.pos_blocknum:
                     return
 
