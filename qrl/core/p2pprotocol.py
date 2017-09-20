@@ -138,7 +138,6 @@ class P2PProtocol(Protocol):
 
         if data['type'] == 'BK':
             if not self.factory.chain.block_chain_buffer.verify_BK_hash(data, self.conn_identity):
-                self.factory.master_mr.deregister(data['hash'], data['type'])
                 return
 
         self.RFM(data)
