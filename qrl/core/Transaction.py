@@ -8,7 +8,8 @@ from abc import ABCMeta
 import simplejson as json
 
 import qrl
-from qrl.core import logger, helper, config
+from qrl.core import helper, config
+from qrl.core.logger import logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import HashChain
 from qrl.crypto.misc import sha256
