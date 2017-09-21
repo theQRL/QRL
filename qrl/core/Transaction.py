@@ -351,6 +351,9 @@ class StakeTransaction(Transaction):
 
         tmphash = ''.join([bin2hstr(b) for b in self.hash])
 
+        if self.first_hash is None:
+            self.first_hash = tuple()
+
         self.txhash = str2bin(tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key))
         self._process_XMSS(xmss.get_address(), self.txhash, xmss)  # self.hash to be replaced with self.txhash
         return self

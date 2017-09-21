@@ -44,7 +44,7 @@ def merkle_tx_hash(hashes):
 
     if isinstance(hashes, list) and len(hashes) == 1:
         # it is a single hash string rather than a list..
-        return hstr2bin(hashes[0])
+        return hashes[0]
 
     j = int(ceil(log(len(hashes), 2)))
     l_array = [hashes]

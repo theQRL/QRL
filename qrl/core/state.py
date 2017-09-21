@@ -405,7 +405,7 @@ class State:
                 chain.wallet.save_wallet()
 
         self.db.put('blockheight', chain.height() + 1)
-        logger.info('%s %s tx passed verification.', block.blockheader.headerhash, len(block.transactions))
+        logger.info('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
     def calc_seed(self, sl, verbose=False):

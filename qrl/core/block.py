@@ -64,10 +64,10 @@ class Block(object):
             self.transactions.append(tx)  # copy memory rather than sym link
 
         if not hashedtransactions:
-            hashedtransactions = sha256('')
+            hashedtransactions = [sha256('')]
 
         hashedtransactions = merkle_tx_hash(hashedtransactions)
-
+        
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain,
                                 blocknumber=last_block_number + 1,
