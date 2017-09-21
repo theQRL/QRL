@@ -107,7 +107,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> Transaction
-        self.subtype = bytes(dict_tx['subtype'], 'utf-8')
+        self.subtype = dict_tx['subtype']
 
         self.ots_key = int(dict_tx['ots_key'])
         self.nonce = int(dict_tx['nonce'])
@@ -350,6 +350,10 @@ class StakeTransaction(Transaction):
             self.hash = hashchain_terminator
 
         tmphash = ''.join([bin2hstr(b) for b in self.hash])
+
+        if self.first_hash is None:
+            logger.warning("First hash is empty")
+            self.first_hash = tuple()
 
         self.txhash = tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key)
         self._process_XMSS(xmss.get_address(), self.txhash, xmss)  # self.hash to be replaced with self.txhash
