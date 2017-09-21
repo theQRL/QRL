@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import str2bin
+from pyqrllib.pyqrllib import str2bin, bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
@@ -45,7 +45,7 @@ class ChainBuffer:
         tmp = xmss.get_hexseed() + str(epoch + 1)
         tmp2 = sha256(str2bin(tmp)) * 2
         stake_seed = tmp2[:48]
-        height = int(ceil(log(config.dev.blocks_per_epoch * 3, 2)))
+        height = config.dev.slave_xmss_height
         return XMSS(tree_height=height, seed=stake_seed)
 
     def get_slave_xmss(self, blocknumber):
@@ -184,7 +184,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
         else:
-            self.epoch_seed = sha256(block.blockheader.reveal_hash + str(self.epoch_seed))
+            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + str2bin(str(self.epoch_seed))))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
