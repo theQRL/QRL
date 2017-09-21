@@ -491,7 +491,7 @@ class P2PProtocol(Protocol):
             self.factory.pos.fmbh_allowed_peers[self.conn_identity] = data
             if tmp not in self.factory.pos.fmbh_blockhash_peers:
                 self.factory.pos.fmbh_blockhash_peers[tmp] = {'blocknumber': data['blocknumber'],
-                                                                             'peers': []}
+                                                              'peers': []}
             self.factory.pos.fmbh_blockhash_peers[tmp]['peers'].append(self)
 
     def MB(self):  # we send with just prefix as request..with CB number and blockhash as answer..
