@@ -7,7 +7,7 @@ import yaml
 
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
 from .blockheader import BlockHeader
-from qrl.core import config
+from qrl.core import config, logger
 
 
 class Singleton(type):
@@ -34,6 +34,7 @@ class GenesisBlock(object, metaclass=Singleton):
         genesis_data_path = os.path.join(package_directory, 'genesis.yml')
 
         with open(genesis_data_path) as f:
+            logger.info("Loading genesis from %s", genesis_data_path)
             dataMap = yaml.safe_load(f)
             self._genesis_info.update(dataMap['genesis_info'])
 
