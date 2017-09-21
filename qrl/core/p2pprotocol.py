@@ -205,7 +205,7 @@ class P2PProtocol(Protocol):
         #    return
 
         self.transport.write(self.wrap_message(msg_type,
-                                               self.factory.master_mr.hash_msg[msg_hash]))
+                                               self.factory.master_mr.hash_msg[bin2hstr(msg_hash)]))
 
         self.factory.master_mr.add_peer(msg_hash, msg_type, self)
 
@@ -215,7 +215,7 @@ class P2PProtocol(Protocol):
         This function sends the Message Receipt to all connected peers.
         :return:
         """
-        data = {'hash': sha256(str(msg_hash)),
+        data = {'hash': sha256(msg_hash),
                 'type': msg_type}
 
         for peer in self.factory.peer_connections:
