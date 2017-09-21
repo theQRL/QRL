@@ -65,7 +65,7 @@ class MessageReceipt(object):
         if len(self.hash_type) >= config.dev.message_q_size:
             self.__remove__()
 
-        msg_hash = sha2_256(msg_hash)
+        msg_hash = bin2hstr(sha2_256(msg_hash))
         self.hash_type[msg_hash] = msg_type
         self.hash_msg[msg_hash] = msg_obj
 
@@ -102,8 +102,8 @@ class MessageReceipt(object):
         if data:
             self.hash_params[msg_hash_str] = data
 
-    def isRequested(self, msg_hash, peer):
-        msg_hash = sha2_256(msg_hash)
+    def isRequested(self, msg_hash, peer, block=None):
+        msg_hash = bin2hstr(sha2_256(msg_hash))
         if msg_hash in self.requested_hash:
             if peer in self.requested_hash[msg_hash]:
                 return True

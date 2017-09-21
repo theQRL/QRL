@@ -5,6 +5,7 @@
 from qrl.core import config
 import simplejson as json
 
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
 
 
@@ -20,9 +21,9 @@ class StakeValidator:
         self.stake_validator = stake_validator
         self.slave_public_key = []
         for key in slave_public_key:
-            self.slave_public_key.append(key.encode('ascii'))
+            self.slave_public_key.append(key)
         self.balance = balance
-        self.first_hash = first_hash
+        self.first_hash = bin2hstr(first_hash)
         self.hashchain_terminators = hashchain_terminators
         self.nonce = 0
         if hashchain_terminators:
