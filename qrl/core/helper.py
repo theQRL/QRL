@@ -12,7 +12,7 @@ from qrl.crypto.misc import sha256
 def isValidAddress(addr):
     if addr.startswith('Q'):
         suffix = addr[1:]
-        if len(suffix) == 68:
+        if len(suffix) == 72:
             try:
                 int(suffix, 16)
                 return True
