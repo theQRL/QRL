@@ -571,10 +571,10 @@ class ChainBuffer:
 
         oldscore = self.blocks[blocknum][0].score
 
-        if score > oldscore:
-            return False
+        if score < oldscore:
+            return True
 
-        return True
+        return False
 
     def error_msg(self, func_name, blocknum, error=None):
         if error:
