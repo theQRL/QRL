@@ -86,7 +86,7 @@ class Transaction(object, metaclass=ABCMeta):
         self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
         self.txhash = sha2_256( hstr2bin(txhash) + self.pubhash)
-        self.txfrom = txfrom.encode('ascii')
+        self.txfrom = txfrom
 
         self.PK = xmss.pk()
         self.signature = xmss.SIGN(self.txhash)
@@ -107,17 +107,17 @@ class Transaction(object, metaclass=ABCMeta):
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> Transaction
-        self.subtype = dict_tx['subtype']
+        self.subtype = bytes(dict_tx['subtype'], 'utf-8')
 
         self.ots_key = int(dict_tx['ots_key'])
         self.nonce = int(dict_tx['nonce'])
-        self.txfrom = dict_tx['txfrom'].encode('ascii')
+        self.txfrom = dict_tx['txfrom']
 
-        self.pubhash = dict_tx['pubhash'].encode('ascii')
-        self.txhash = self._reformat(dict_tx['txhash'])
+        self.pubhash = dict_tx['pubhash']
+        self.txhash = tuple(dict_tx['txhash'])
 
-        self.PK = hstr2bin(dict_tx['PK'])
-        self.signature = hstr2bin(dict_tx['signature'])
+        self.PK = tuple(dict_tx['PK'])
+        self.signature = dict_tx['signature']
         return self
 
     def _reformat(self, srcList):
@@ -127,7 +127,7 @@ class Transaction(object, metaclass=ABCMeta):
                 destList.append(self._reformat(item))
             return destList
         elif isinstance(srcList, str):
-            return srcList.encode('ascii')
+            return srcList
 
         return srcList
 
@@ -179,7 +179,7 @@ class SimpleTransaction(Transaction):
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> qrl.core.transaction.SimpleTransaction
         super(SimpleTransaction, self)._dict_to_transaction(dict_tx)
-        self.txto = dict_tx['txto'].encode('ascii')
+        self.txto = dict_tx['txto']
         self.amount = int(dict_tx['amount'])
         self.fee = int(dict_tx['fee'])
         return self
@@ -208,7 +208,7 @@ class SimpleTransaction(Transaction):
         self.fee = int(fee)
 
         # FIXME: This is very confusing and can be a security risk
-        self.txhash = sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)))
+        self.txhash = str2bin(sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee))))
         self.merkle_root = xmss.root
         if not self.pre_condition(tx_state):
             return False
@@ -287,6 +287,7 @@ class StakeTransaction(Transaction):
         """
         message = super(StakeTransaction, self).get_message_hash()
         # message.write(self.epoch)
+
         tmphash = ''.join([bin2hstr(b) for b in self.hash])
         message.write(tmphash)
         message.write(bin2hstr(self.first_hash))
@@ -302,16 +303,15 @@ class StakeTransaction(Transaction):
 
         self.slave_public_key = []
         for key in dict_tx['slave_public_key']:
-            self.slave_public_key.append(key.encode('ascii'))
+            self.slave_public_key.append(key)
 
         self.hash = []
 
         for hash_item in dict_tx['hash']:
-            self.hash.append(hash_item.encode('ascii'))
+            self.hash.append(tuple(hash_item))
+
         self.first_hash = dict_tx['first_hash']
 
-        if self.first_hash:
-            self.first_hash = self.first_hash.encode('ascii')
         return self
 
     def create(self, blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
@@ -364,12 +364,10 @@ class StakeTransaction(Transaction):
             return False
 
         if self.first_hash:
-            if sha256(self.first_hash) != self.hash[-1]:
+            hashterminator = sha256(self.first_hash)
+            if hashterminator != self.hash[-1]:
                 logger.info('First_hash doesnt stake to hashterminator')
                 return False
-
-        for i in range(len(self.hash)):
-            self.hash[i] = str(self.hash[i])
 
         if not self._validate_signed_hash():
             return False
@@ -392,7 +390,9 @@ class StakeTransaction(Transaction):
             logger.info('Balance found %d', self.balance)
             return False
 
-        if pubhash in state_pubhashes:
+        # TODO no need to transmit pubhash over the network
+        # pubhash has to be calculated by the receiver
+        if self.pubhash in state_pubhashes:
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
             return False
 
@@ -412,7 +412,7 @@ class CoinBase(Transaction):
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> qrl.core.transaction.CoinBase
         super(CoinBase, self)._dict_to_transaction(dict_tx)
-        self.txto = dict_tx['txto'].encode('ascii')
+        self.txto = dict_tx['txto']
         self.amount = int(dict_tx['amount'])
         return self
 
