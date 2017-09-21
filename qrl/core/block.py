@@ -67,7 +67,7 @@ class Block(object):
             hashedtransactions = [sha256('')]
 
         hashedtransactions = merkle_tx_hash(hashedtransactions)
-        
+
         self.blockheader = BlockHeader()
         self.blockheader.create(chain=chain,
                                 blocknumber=last_block_number + 1,

@@ -85,15 +85,15 @@ class BlockHeader(object):
 
     def json_to_blockheader(self, json_blockheader):
         # TODO: Moving to protobuf?
-        self.reveal_hash = json_blockheader['reveal_hash'].encode('latin1')
-        self.vote_hash = json_blockheader['vote_hash'].encode('latin1')
+        self.reveal_hash = tuple(json_blockheader['reveal_hash'])
+        self.vote_hash = tuple(json_blockheader['vote_hash'])
         self.epoch = json_blockheader['epoch']
-        self.headerhash = json_blockheader['headerhash']
+        self.headerhash = tuple(json_blockheader['headerhash'])
         self.timestamp = json_blockheader['timestamp']
-        self.tx_merkle_root = json_blockheader['tx_merkle_root'].encode('latin1')
+        self.tx_merkle_root = tuple(json_blockheader['tx_merkle_root'])
         self.blocknumber = json_blockheader['blocknumber']
-        self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
-        self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
+        self.prev_blockheaderhash = tuple(json_blockheader['prev_blockheaderhash'])
+        self.stake_selector = json_blockheader['stake_selector']
         self.block_reward = json_blockheader['block_reward']
         self.fee_reward = json_blockheader['fee_reward']
 

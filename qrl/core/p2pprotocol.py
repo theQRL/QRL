@@ -264,7 +264,7 @@ class P2PProtocol(Protocol):
         for t in self.factory.chain.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
-        # logger.info('--> %s %s',self.factory.chain.block_chain_buffer.height(), self.factory.chain.height())
+
         tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
             blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
             addr=st.txfrom)
@@ -1182,6 +1182,10 @@ class P2PProtocol(Protocol):
             if self.transport.getPeer().host == config.dev.public_ip:
                 self.transport.loseConnection()
                 return
+
+        if self.transport.getPeer().host not in config.user.peer_list:
+            self.transport.loseConnection()
+            return
 
         if len(self.factory.peer_connections) >= config.user.max_peers_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?

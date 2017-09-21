@@ -2,7 +2,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core import config, helper
+from pyqrllib.pyqrllib import bin2hstr
+from qrl.core import config, helper, logger
 from qrl.core.StakeValidator import StakeValidator
 import simplejson as json
 from collections import OrderedDict
@@ -42,7 +43,10 @@ class StakeValidatorsList:
         # of first_hash of all stake validators
         for staker in self.sv_list:
             sv = self.sv_list[staker]
-            epoch_seed |= int(str(sv.first_hash), 16)
+            if not sv.first_hash:
+                logger.error('sv.first_hash could not be empty %s', sv.first_hash)
+                raise Exception
+            epoch_seed |= int(bin2hstr(sv.first_hash), 16)
 
         return epoch_seed
 
