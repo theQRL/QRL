@@ -88,7 +88,7 @@ class BlockHeader(object):
         self.reveal_hash = json_blockheader['reveal_hash'].encode('latin1')
         self.vote_hash = json_blockheader['vote_hash'].encode('latin1')
         self.epoch = json_blockheader['epoch']
-        self.headerhash = json_blockheader['headerhash'].encode('latin1')
+        self.headerhash = json_blockheader['headerhash'].encode()
         self.timestamp = json_blockheader['timestamp']
         self.tx_merkle_root = json_blockheader['tx_merkle_root'].encode('latin1')
         self.blocknumber = json_blockheader['blocknumber']
