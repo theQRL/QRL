@@ -11,6 +11,7 @@ from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import helper, config, logger, fork
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.node import NodeState
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, SimpleTransaction
 from qrl.crypto.misc import sha256
@@ -505,19 +506,27 @@ class P2PProtocol(Protocol):
         """
         Check Blockheight
         :return:
-        >>> from collections import namedtuple
+        # FIXME: This test grew too much. Convert doctest into unit test using mocks
+        >>> from collections import namedtuple, defaultdict
         >>> p=P2PProtocol()
         >>> Transport = namedtuple("Transport", "getPeer write")
         >>> Peer = namedtuple("Peer", "host port")
+        >>> Factory = namedtuple("Factory", "peers_blockheight chain nodeState")
+        >>> Chain = namedtuple("Chain", "m_blockchain m_blockheight")
         >>> def getPeer():
         ...     return Peer("host", 1234)
         >>> message = None
         >>> def write(msg):
         ...     global message
         ...     message = msg
+        >>> def m_blockheight():
+        ...     return 0
         >>> p.transport = Transport(getPeer, write)
-        >>> p.CB('{"block_number": 0, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}')
-        None
+        >>> p.chain = Chain([], m_blockheight)
+        >>> tmp = NodeState()
+        >>> tmp.state = NState.synced
+        >>> p.factory = Factory(defaultdict(), p.chain, tmp)
+        >>> p.CB('{"block_number": 3, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}')
         """
         z = helper.json_decode(data)
         block_number = z['block_number']
