@@ -396,6 +396,7 @@ class POS:
 
         blocknumber = block.blockheader.blocknumber
         chain_buffer_height = self.chain.block_chain_buffer.height()
+        last_block_before = self.chain.block_chain_buffer.get_last_block()
 
         if blocknumber <= self.chain.height():
             return False
@@ -415,9 +416,11 @@ class POS:
             self.chain.block_chain_buffer.add_pending_block(block)
 
         if self.nodeState.state == NState.synced:
+            last_block_after = self.chain.block_chain_buffer.get_last_block()
             self.last_pos_cycle = time.time()
             self.p2pFactory.send_block_to_peers(block)
-            self.schedule_pos(blocknumber + 1)
+            if last_block_before.blockheader.headerhash != last_block_after.blockheader.headerhash:
+                self.schedule_pos(blocknumber + 1)
 
         return True
 
