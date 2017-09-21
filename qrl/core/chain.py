@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import qrl.core.Transaction_subtypes
-from pyqrllib.pyqrllib import getHashChainSeed
+from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
@@ -904,7 +904,7 @@ class Chain:
         for txn in block.transactions:
             if txn.subtype in (
             qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
-                self.state.db.put(txn.txhash,
+                self.state.db.put(bin2hstr(txn.txhash),
                                   [txn.transaction_to_json(), block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
                 if txn.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
