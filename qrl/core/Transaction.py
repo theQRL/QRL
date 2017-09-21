@@ -85,22 +85,22 @@ class Transaction(object, metaclass=ABCMeta):
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
         self.pubhash = self.generate_pubhash(xmss.pk())
-        self.txhash = sha2_256( hstr2bin(txhash) + self.pubhash)
+        self.txhash = sha2_256( txhash + self.pubhash)
         self.txfrom = txfrom
 
         self.PK = xmss.pk()
         self.signature = xmss.SIGN(self.txhash)
 
-    def _validate_signed_hash(self):
+    def _validate_signed_hash(self, height=config.dev.xmss_tree_height):
         if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom:
-            logger.info('Public key verification failed')
+            logger.warning('Public key verification failed')
             return False
 
         if not XMSS.VERIFY(message=self.txhash,
                            signature=self.signature,
                            pk=self.PK,
-                           height=config.dev.xmss_tree_height):
-            logger.info('xmss_verify failed')
+                           height=height):
+            logger.warning('xmss_verify failed')
             return False
 
         return True
@@ -351,7 +351,7 @@ class StakeTransaction(Transaction):
 
         tmphash = ''.join([bin2hstr(b) for b in self.hash])
 
-        self.txhash = tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key)
+        self.txhash = str2bin(tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key))
         self._process_XMSS(xmss.get_address(), self.txhash, xmss)  # self.hash to be replaced with self.txhash
         return self
 
@@ -377,9 +377,6 @@ class StakeTransaction(Transaction):
     def state_validate_tx(self, tx_state):
         if self.subtype != TX_SUBTYPE_STAKE:
             return False
-        pub = self.PK
-        pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
-        pubhash = sha256(''.join(pub))
 
         state_balance = tx_state[1]
         state_pubhashes = tx_state[2]
@@ -433,8 +430,8 @@ class CoinBase(Transaction):
             return False
 
         if self.txto != self.txfrom:
-            logger.info('Non matching txto and txfrom')
-            logger.info('txto: %s txfrom: %s', self.txto, self.txfrom)
+            logger.warning('Non matching txto and txfrom')
+            logger.warning('txto: %s txfrom: %s', self.txto, self.txfrom)
             return False
 
         txhash = block_headerhash
@@ -445,7 +442,8 @@ class CoinBase(Transaction):
             logger.warning('Found: %s Expected: %s', self.txhash, block_headerhash)
             return False
 
-        if not self._validate_signed_hash():
+        #Slave XMSS is used to sign COINBASE txn having quite low XMSS height
+        if not self._validate_signed_hash(height=config.dev.slave_xmss_height):
             return False
 
         return True

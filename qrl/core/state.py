@@ -9,6 +9,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
 
 class State:
@@ -228,7 +229,7 @@ class State:
     def state_update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        pubhash = tx.generate_pubhash(tx.pub)
+        pubhash = tx.generate_pubhash(tx.PK)
 
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
@@ -275,7 +276,7 @@ class State:
                                                                tx.first_hash,
                                                                tx.balance)
 
-                pubhash = tx.generate_pubhash(tx.pub)
+                pubhash = tx.generate_pubhash(tx.PK)
                 address_txn[tx.txfrom][2].append(pubhash)
 
         epoch_seed = self.stake_validators_list.calc_seed()
@@ -285,7 +286,9 @@ class State:
         chain.block_chain_buffer.epoch_seed = chain.state.calc_seed(tmp_list)
         chain.stake_list = sorted(tmp_list,
                                   key=lambda staker: chain.score(stake_address=staker[0],
-                                                                 reveal_one=sha256(str(staker[1])),
+                                                                 reveal_one=bin2hstr(sha256(bytes(
+                                                                     str(map(lambda set1: bin2hstr(set1), staker[1])),
+                                                                     "utf-8"))),
                                                                  balance=staker[4],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
 
@@ -313,7 +316,7 @@ class State:
         # cycle through every tx in the new block to check state
         for tx in block.transactions:
 
-            pubhash = tx.generate_pubhash(tx.pub)
+            pubhash = tx.generate_pubhash(tx.PK)
 
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
@@ -414,7 +417,7 @@ class State:
         epoch_seed = 0
 
         for staker in sl:
-            epoch_seed |= int(str(staker[3]), 16)
+            epoch_seed |= int(str(bin2hstr(staker[3])), 16)
 
         return epoch_seed
 

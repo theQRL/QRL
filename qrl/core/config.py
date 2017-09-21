@@ -6,7 +6,7 @@ from os.path import expanduser
 import os
 
 import yaml
-
+from math import ceil, log
 
 class UserConfig(object):
     __instance = None
@@ -96,13 +96,13 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = '-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.45a"
+        self.version_number = "alpha/0.50a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000
         self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
         self.timestamp_error = 5 # Error in second
-
+        self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.xmss_tree_height = 10
 
         self.db_name = 'state'
