@@ -25,7 +25,7 @@ def isValidAddress(addr):
 def select_target_hashchain(last_block_headerhash):
     target_chain = 0
     for byte in last_block_headerhash:
-        target_chain += ord(byte)
+        target_chain += byte
 
     target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
