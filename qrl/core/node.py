@@ -6,6 +6,7 @@ import random
 import time
 from collections import Counter, defaultdict
 from copy import deepcopy
+from functools import reduce
 
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
@@ -176,9 +177,6 @@ class POS:
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
-        tmphash = ''.join([bin2hstr(b) for b in tmphc.hc_terminator])
-        logger.info('hashchain terminator: %s', tmphash)
-
         tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
 
         st = StakeTransaction().create(blocknumber=0,
@@ -205,19 +203,18 @@ class POS:
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, bin2hstr(tx.first_hash), GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
                     self.chain.state.stake_validators_list.add_sv(tx.txfrom,
                                                                   tx.slave_public_key,
                                                                   tx.hash,
                                                                   tx.first_hash,
                                                                   GenesisBlock().get_info()[tx.txfrom])
 
-        # required as doing chain.stake_list.index(s) which will result into different number on different server
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
 
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
-                                                                           reveal_one=bin2hstr(sha256(bytes(str(map(lambda set1: bin2hstr(set1), staker[1])),"utf-8"))),
+                                                                           reveal_one=bin2hstr(sha256(reduce(lambda set1, set2: set1 + set2, staker[1]))),
                                                                            balance=staker[4],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 

@@ -113,7 +113,7 @@ class Transaction(object, metaclass=ABCMeta):
         self.nonce = int(dict_tx['nonce'])
         self.txfrom = dict_tx['txfrom']
 
-        self.pubhash = dict_tx['pubhash']
+        self.pubhash = tuple(dict_tx['pubhash'])
         self.txhash = tuple(dict_tx['txhash'])
 
         self.PK = tuple(dict_tx['PK'])
@@ -301,16 +301,14 @@ class StakeTransaction(Transaction):
         self.epoch = int(dict_tx['epoch'])
         self.balance = dict_tx['balance']
 
-        self.slave_public_key = []
-        for key in dict_tx['slave_public_key']:
-            self.slave_public_key.append(key)
+        self.slave_public_key = tuple(dict_tx['slave_public_key'])
 
         self.hash = []
 
         for hash_item in dict_tx['hash']:
             self.hash.append(tuple(hash_item))
 
-        self.first_hash = dict_tx['first_hash']
+        self.first_hash = tuple(dict_tx['first_hash'])
 
         return self
 

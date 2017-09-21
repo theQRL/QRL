@@ -337,7 +337,13 @@ class ChainBuffer:
     def get_stxn_state(self, blocknumber, addr):
         try:
             if blocknumber - 1 == self.chain.height():
-                return self.state.state_get_address(addr)
+                tmp_state = self.state.state_get_address(addr)
+                # FIX ME: Temporary fix, to convert all list into tuple
+                # As state is stored in json format which converts tuple into list
+                for index in range(len(tmp_state[2])):
+                    tmp_state[2][index] = tuple(tmp_state[2][index])
+
+                return tmp_state
 
             stateBuffer = self.blocks[blocknumber - 1][1]
 
@@ -487,7 +493,7 @@ class ChainBuffer:
         blocknum = data['blocknumber']
         stake_selector = data['stake_selector']
 
-        prev_headerhash = data['prev_headerhash']
+        prev_headerhash = tuple(data['prev_headerhash'])
 
         if blocknum <= self.chain.height():
             return False
@@ -506,8 +512,8 @@ class ChainBuffer:
         if stake_selector not in sv_list:
             return
 
-        reveal_hash = data['reveal_hash']
-        vote_hash = data['vote_hash']
+        reveal_hash = tuple(data['reveal_hash'])
+        vote_hash = tuple(data['vote_hash'])
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
         target_chain = stake_validators_list.select_target(prev_headerhash)

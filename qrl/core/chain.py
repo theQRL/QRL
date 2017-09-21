@@ -179,15 +179,16 @@ class Chain:
             logger.info(' stake_address %s', stake_address)
             return None
 
-        reveal_one_number = int(reveal_one, 16)
+        reveal_one_number = int(bin2hstr(reveal_one), 16)
         score = (Decimal(config.dev.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(
             balance)
 
         if verbose:
+            logger.info('=' * 10)
             logger.info('Score - %s', score)
-            logger.info('reveal_one - %ld', reveal_one_number)
-            logger.info('seed - %ld', seed)
-            logger.info('balance - %ld', balance)
+            logger.info('reveal_one - %s', reveal_one_number)
+            logger.info('seed - %s', seed)
+            logger.info('balance - %s', balance)
 
         return score
 

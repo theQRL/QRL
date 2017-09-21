@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 from qrl.core import config
 from qrl.crypto.misc import sha256
 from copy import deepcopy
@@ -15,7 +16,7 @@ class StateBuffer:
         self.hash_chain = None
 
     def set_next_seed(self, winning_reveal, prev_seed):
-        self.next_seed = sha256(winning_reveal + str(prev_seed))
+        self.next_seed = bin2hstr(sha256(winning_reveal + hstr2bin(prev_seed)))
 
     @staticmethod
     def tx_to_list(txn_dict):

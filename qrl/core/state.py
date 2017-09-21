@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from operator import itemgetter
+from functools import reduce
 
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
@@ -11,6 +12,7 @@ from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
+
 
 class State:
     """
@@ -250,8 +252,9 @@ class State:
         for tx in block.transactions:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
+                tmp_list.append(
+                    [tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
                 if tx.txfrom == block.blockheader.stake_selector:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
                         self.stake_validators_list.add_sv(tx.txfrom,
                                                           tx.slave_public_key,
@@ -286,9 +289,8 @@ class State:
         chain.block_chain_buffer.epoch_seed = chain.state.calc_seed(tmp_list)
         chain.stake_list = sorted(tmp_list,
                                   key=lambda staker: chain.score(stake_address=staker[0],
-                                                                 reveal_one=bin2hstr(sha256(bytes(
-                                                                     str(map(lambda set1: bin2hstr(set1), staker[1])),
-                                                                     "utf-8"))),
+                                                                 reveal_one=bin2hstr(sha256(reduce(
+                                                                     lambda set1, set2: set1 + set2, staker[1]))),
                                                                  balance=staker[4],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
 
@@ -331,6 +333,8 @@ class State:
             if pubhash in address_txn[tx.txfrom][2]:
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
+                logger.info(pubhash)
+                logger.info(address_txn[tx.txfrom][2])
                 return False
 
             if tx.subtype == TX_SUBTYPE_TX:
@@ -412,7 +416,7 @@ class State:
         if verbose:
             logger.info('stake_list --> ')
             for s in sl:
-                logger.info((s[0], s[3]))
+                logger.info('%s %s', s[0], s[3])
 
         epoch_seed = 0
 
