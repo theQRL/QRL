@@ -10,5 +10,5 @@ recommonmark>=0.4.0
 sphinx==1.5.6
 sphinx_rtd_theme>=0.2.4
 PyYAML==3.12
-pyqrllib>=0.1.12
+pyqrllib>=0.1.13
 

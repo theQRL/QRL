@@ -164,6 +164,11 @@ class XMSS(object):
         0
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_index()
         0
+        >>> from qrl.crypto.doctest_data import *;
+        >>> xmss = XMSS(4, xmss_test_seed2)
+        >>> s = xmss.SIGN(str2bin("test"))
+        >>> xmss.get_index()
+        1
         """
         # type: () -> int
         return self._xmss.getIndex()
