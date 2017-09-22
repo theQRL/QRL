@@ -174,6 +174,20 @@ class XMSS(object):
         return self._xmss.getIndex()
 
     def set_index(self, new_index):
+        """
+        :return:
+        :rtype:
+        >>> from qrl.crypto.doctest_data import *
+        >>> xmss = XMSS(3, xmss_test_seed1)
+        >>> xmss.set_index(1)
+        >>> xmss.get_index()
+        1
+        >>> from qrl.crypto.doctest_data import *
+        >>> xmss = XMSS(3, xmss_test_seed1)
+        >>> xmss.set_index(10)
+        >>> xmss.get_index();
+        10
+        """
         self._xmss.setIndex(new_index)
 
     def get_hexseed(self):
