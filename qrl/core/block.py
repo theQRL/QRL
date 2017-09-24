@@ -143,16 +143,14 @@ class Block(object):
         curr_timestamp = ntp.getTime()
 
         if b.timestamp <= tmp_last_block.blockheader.timestamp:
-            logger.warning('BLOCK timestamp is less than the prev block timestamp')
+            logger.warning('BLOCK timestamp is less than prev block timestamp')
             logger.warning('block timestamp %s ', b.timestamp)
             logger.warning('must be greater than %s', tmp_last_block.blockheader.timestamp)
             return False
 
-
         if b.generate_headerhash() != b.headerhash:
             logger.warning('Headerhash false for block: failed validation')
             return False
-
 
         if tmp_last_block.blockheader.timestamp + config.dev.minimum_minting_delay > b.timestamp:
             logger.warning('BLOCK created without waiting for minimum minting delay')
