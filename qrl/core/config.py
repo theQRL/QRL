@@ -96,7 +96,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = '-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.46a"
+        self.version_number = "alpha/0.47a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000
