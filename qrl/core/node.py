@@ -495,7 +495,7 @@ class POS:
                     self.make_st_tx(blocknumber, None)
 
             elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_list:
-                if next_stake_list[self.chain.mining_address].first_hash is None:
+                if not next_stake_list[self.chain.mining_address].first_hash:
                     threshold_blocknum = self.chain.block_chain_buffer.get_threshold(blocknumber,
                                                                                      self.chain.mining_address)
                     max_threshold_blocknum = config.dev.blocks_per_epoch
@@ -506,7 +506,7 @@ class POS:
                         diff = max(1, int(
                             (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
                         if random.randint(1, diff) == 1:
-                            xmss = deepcopy(self.chain.wallet.address_bundle[0].xmss)
+                            xmss = self.chain.wallet.address_bundle[0].xmss
                             tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 

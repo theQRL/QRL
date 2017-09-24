@@ -16,7 +16,7 @@ from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, SimpleTransaction
 from qrl.crypto.misc import sha256
 from qrl.core.processors.TxnProcessor import TxnProcessor
-import Queue
+from queue import PriorityQueue
 
 class P2PProtocol(Protocol):
     def __init__(self):
@@ -144,48 +144,30 @@ class P2PProtocol(Protocol):
 
         if data['type'] == 'BK':
             block_chain_buffer = self.factory.chain.block_chain_buffer
+
             if not block_chain_buffer.verify_BK_hash(data, self.conn_identity):
-                #self.factory.master_mr.deregister(data['hash'], data['type'])
                 return
 
             blocknumber = data['blocknumber']
+            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.pos.ntp)
+            if target_blocknumber != self.factory.bkmr_blocknumber:
+                self.factory.bkmr_blocknumber = target_blocknumber
+                del self.factory.bkmr_priorityq
+                self.factory.bkmr_priorityq = PriorityQueue()
 
-    def RFM(self, data):
-        """
-        Request Full Message
-        This function request for the full message against,
-        the Message Receipt received.
-        :return:
-        """
-
-        # FIXME: Again, breaking encasulation
-        # FIXME: Huge amount of lookups in dictionaries
-
-        msg_hash = data['hash']
-        msg_hash_str = bin2hstr(msg_hash)
-
-        if msg_hash_str in self.factory.master_mr.hash_msg:
-            if msg_hash_str in self.factory.master_mr.hash_callLater:
-                del self.factory.master_mr.hash_callLater[msg_hash_str]
-            return
-        for peer in self.factory.master_mr.hash_peer[msg_hash_str]:
-            if peer not in self.factory.master_mr.requested_hash[msg_hash_str]:
-                self.factory.master_mr.requested_hash[msg_hash_str].append(peer)
-                # Storing MR params, so the received full message could be checked against
-                # the MR receipt provided.
-                self.factory.master_mr.hash_params[msg_hash_str] = data
-                peer.transport.write(self.wrap_message('SFM', helper.json_encode(data)))
-                call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
-                                                   self.RFM,
-                                                   data)
-                self.factory.master_mr.hash_callLater[msg_hash_str] = call_later_obj
+            if blocknumber != target_blocknumber or blocknumber == 1:
+                self.factory.RFM(data)
                 return
 
-        # If executing reach to this line, then it means no peer was able to provide
-        # Full message for this hash thus the hash has to be deleted.
-        # Moreover, negative points could be added to the peers, for this behavior
-        if msg_hash_str in self.factory.master_mr.hash_callLater:
-            del self.factory.master_mr.hash_callLater[msg_hash_str]
+            score = block_chain_buffer.score_BK_hash(data)
+            self.factory.bkmr_priorityq.put((score, data['hash']))
+
+            if not self.factory.bkmr_processor.active():
+                self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)
+
+            return
+
+        self.factory.RFM(data)
 
             if not self.factory.bkmr_processor.active():
                 self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)
@@ -1182,10 +1164,6 @@ class P2PProtocol(Protocol):
             if self.transport.getPeer().host == config.dev.public_ip:
                 self.transport.loseConnection()
                 return
-
-        if self.transport.getPeer().host not in config.user.peer_list:
-            self.transport.loseConnection()
-            return
 
         if len(self.factory.peer_connections) >= config.user.max_peers_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?

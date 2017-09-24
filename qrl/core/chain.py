@@ -210,7 +210,6 @@ class Chain:
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
     def create_stake_block(self, reveal_hash, vote_hash, last_block_number):
-
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
@@ -221,10 +220,11 @@ class Chain:
         txnum = 0
         while txnum < total_txn:
             tx = t_pool2[txnum]
-            if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
-                del t_pool2[txnum]
-                total_txn -= 1
-                continue
+            # TODO: To be fixed later
+            #if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
+            #    del t_pool2[txnum]
+            #    total_txn -= 1
+            #    continue
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
 
@@ -232,7 +232,7 @@ class Chain:
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
                     logger.warning('Skipping st as blocknumber beyond stake limit , CreateBlock()')
                     logger.warning('Expected ST txn before epoch_blocknumber : %s', config.dev.stake_before_x_blocks)
-                    logger.warning('Found ST txn after epoch_blocknumber : %s', epoch_blocknum)
+                    logger.warning('Found ST txn in epoch_blocknumber : %s', epoch_blocknum)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -867,7 +867,8 @@ class Chain:
         return block_list
 
     def update_block_metadata(self, blocknumber, blockPos, blockSize):
-        self.state.db.db.Put('block_' + str(blocknumber), str(blockPos) + ',' + str(blockSize))
+        self.state.db.db.Put(bytes('block_'+str(blocknumber), 'utf-8'),
+                             bytes(str(blockPos)+','+str(blockSize), 'utf-8'))
 
     def update_last_tx(self, block):
         if len(block.transactions) == 0:
@@ -921,7 +922,7 @@ class Chain:
 
         with open(self.get_chaindatafile(suffix), 'ab') as myfile:
             for block in writeable:
-                jsonBlock = json_bytestream(block)
+                jsonBlock = bytes(json_bytestream(block), 'utf-8')
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
                 pos = myfile.tell()
                 blockSize = len(compressedBlock)

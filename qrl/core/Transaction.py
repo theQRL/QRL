@@ -248,9 +248,10 @@ class SimpleTransaction(Transaction):
         pubhash = self.generate_pubhash(self.PK)
 
         tx_pubhashes = tx_state[2]
-        if pubhash in tx_pubhashes:
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-            return False
+        # TODO: To be fixed later
+        #if pubhash in tx_pubhashes:
+        #    logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+        #    return False
 
         for txn in transaction_pool:
             if txn.txhash == self.txhash:
@@ -390,9 +391,10 @@ class StakeTransaction(Transaction):
 
         # TODO no need to transmit pubhash over the network
         # pubhash has to be calculated by the receiver
-        if self.pubhash in state_pubhashes:
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
-            return False
+        # TODO: To be fixed later
+        #if self.pubhash in state_pubhashes:
+        #    logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
+        #    return False
 
         return True
 

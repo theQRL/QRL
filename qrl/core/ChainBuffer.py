@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import str2bin, bin2hstr
+from pyqrllib.pyqrllib import hstr2bin, str2bin, bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
@@ -11,7 +11,6 @@ from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from copy import deepcopy
-from math import log, ceil
 
 
 class ChainBuffer:
@@ -173,7 +172,7 @@ class ChainBuffer:
 
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
-            self.epoch_seed = self.state.stake_validators_list.calc_seed()
+            self.epoch_seed = bin2hstr(hex(self.state.stake_validators_list.calc_seed()))
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
@@ -186,7 +185,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
         else:
-            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + str2bin(str(self.epoch_seed))))
+            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(str(self.epoch_seed))))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -269,7 +268,6 @@ class ChainBuffer:
                     self.remove_blocks(blocknum + 1)
 
         self.add_txns_buffer()
-
         return True
 
     def remove_blocks(self, blocknumber):
@@ -564,7 +562,7 @@ class ChainBuffer:
         blocknum = data['blocknumber']
         stake_selector = data['stake_selector']
 
-        reveal_hash = data['reveal_hash']
+        reveal_hash = tuple(data['reveal_hash'])
 
         seed = self.chain.block_chain_buffer.get_epoch_seed(blocknum)
         score = self.chain.score(stake_address=stake_selector,
@@ -573,7 +571,6 @@ class ChainBuffer:
                                  seed=seed)
 
         return score
-
 
     def is_better_block(self, blocknum, score):
         if blocknum not in self.blocks:
