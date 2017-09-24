@@ -153,4 +153,5 @@ class StakeValidatorsList:
         return svl
 
     def to_json(self):
+        logger.info('%s', self.__dict__)
         return helper.json_encode_complex(self)

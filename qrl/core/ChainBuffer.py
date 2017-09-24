@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import str2bin, bin2hstr
+from pyqrllib.pyqrllib import hstr2bin, str2bin, bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
@@ -11,7 +11,6 @@ from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from copy import deepcopy
-from math import log, ceil
 
 
 class ChainBuffer:
@@ -105,9 +104,9 @@ class ChainBuffer:
 
             return self.blocks[blocknumber][0].block
         except KeyError:
-            self.error_msg('get_epoch_seed', blocknumber)
+            self.error_msg('get_block_n', blocknumber)
         except Exception as e:
-            self.error_msg('get_epoch_seed', blocknumber, e)
+            self.error_msg('get_block_n', blocknumber, e)
 
         return None
 
@@ -173,7 +172,7 @@ class ChainBuffer:
 
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
-            self.epoch_seed = self.state.stake_validators_list.calc_seed()
+            self.epoch_seed = bin2hstr(hex(self.state.stake_validators_list.calc_seed()))
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
@@ -184,7 +183,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
         else:
-            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + str2bin(str(self.epoch_seed))))
+            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(str(self.epoch_seed))))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -267,7 +266,6 @@ class ChainBuffer:
                     self.remove_blocks(blocknum + 1)
 
         self.add_txns_buffer()
-
         return True
 
     def remove_blocks(self, blocknumber):
@@ -449,6 +447,8 @@ class ChainBuffer:
                 del self._wallet_private_seeds[prev_epoch]
             if prev_epoch in self.hash_chain:
                 del self.hash_chain[prev_epoch]
+            if prev_epoch in self.slave_xmss:
+                del self.slave_xmss[prev_epoch]
 
         self.chain.update_last_tx(block)
         self.chain.update_tx_metadata(block)
@@ -471,7 +471,7 @@ class ChainBuffer:
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
         max_blocknum = max(self.pending_blocks.keys())
-        logger.info(('Processing pending blocks', min_blocknum, max_blocknum))
+        logger.info('Processing pending blocks %s %s', min_blocknum, max_blocknum)
         for blocknum in range(min_blocknum, max_blocknum + 1):
             self.add_block(self.pending_blocks[blocknum])
             del self.pending_blocks[blocknum]
@@ -487,6 +487,25 @@ class ChainBuffer:
             return True
 
         return False
+
+    def get_block_n_score(self, blocknumber):
+        try:
+            return self.blocks[blocknumber][0].score
+        except KeyError:
+            logger.error('get_block_n_score, blocknumber not in self.blocks #%s', blocknumber)
+        except Exception as e:
+            logger.error('Unexpected Exception')
+            logger.error('%s', e)
+
+    def get_last_blocknumber_timestamp(self):
+        last_block = self.get_last_block()
+        return last_block.blockheader.blocknumber, last_block.blockheader.timestamp
+
+    def bkmr_tracking_blocknumber(self, ntp):
+        blocknumber, timestamp = self.get_last_blocknumber_timestamp()
+        if ntp.getTime() - timestamp >= config.dev.minimum_minting_delay - config.dev.timestamp_error:
+            return blocknumber + 1
+        return blocknumber
 
     def verify_BK_hash(self, data, conn_identity):
 
@@ -534,25 +553,33 @@ class ChainBuffer:
                         conn_identity, reveal_hash)
             return
 
+        score = self.score_BK_hash(data)
+        return self.is_better_block(blocknum, score)
+
+    def score_BK_hash(self, data):
+        blocknum = data['blocknumber']
+        stake_selector = data['stake_selector']
+
+        reveal_hash = tuple(data['reveal_hash'])
+
         seed = self.chain.block_chain_buffer.get_epoch_seed(blocknum)
         score = self.chain.score(stake_address=stake_selector,
                                  reveal_one=reveal_hash,
                                  balance=self.get_st_balance(stake_selector, blocknum),
                                  seed=seed)
 
-        if blocknum == self.height() + 1:
+        return score
+
+    def is_better_block(self, blocknum, score):
+        if blocknum not in self.blocks:
             return True
 
-        oldblock = self.get_strongest_block(blocknum)
-        oldscore = self.chain.score(stake_address=oldblock.transactions[0].txto,
-                                    reveal_one=oldblock.blockheader.reveal_hash,
-                                    balance=self.get_st_balance(oldblock.transactions[0].txto, blocknum),
-                                    seed=seed)
+        oldscore = self.blocks[blocknum][0].score
 
-        if score > oldscore:
-            return False
+        if score < oldscore:
+            return True
 
-        return True
+        return False
 
     def error_msg(self, func_name, blocknum, error=None):
         if error:

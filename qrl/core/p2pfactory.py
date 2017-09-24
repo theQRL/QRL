@@ -10,10 +10,12 @@ import simplejson as json
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from qrl.core import config, logger
+from pyqrllib.pyqrllib import bin2hstr
+from qrl.core import config, logger, helper
 from qrl.core.helper import json_encode, json_bytestream, json_bytestream_bk
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
+import queue
 
 
 class P2PFactory(ServerFactory):
@@ -52,10 +54,72 @@ class P2PFactory(ServerFactory):
         self.load_peer_addresses()
         self.txn_processor_running = False
 
+        self.bkmr_blocknumber = 0  # Blocknumber for which bkmr is being tracked
+        self.bkmr_priorityq = queue.PriorityQueue()
+        # Scheduled and cancel the call, just to initialize with IDelayedCall
+        self.bkmr_processor = reactor.callLater(1, self.setPOS, pos=None)
+        self.bkmr_processor.cancel()
+
     # factory network functions
     def setPOS(self, pos):
         self.pos = pos
         self.master_mr = self.pos.master_mr
+
+    def RFM(self, data):
+        """
+        Request Full Message
+        This function request for the full message against,
+        the Message Receipt received.
+        :return:
+        """
+
+        # FIXME: Again, breaking encasulation
+        # FIXME: Huge amount of lookups in dictionaries
+
+        msg_hash = data['hash']
+        msg_hash_str = bin2hstr(msg_hash)
+
+        if msg_hash_str in self.master_mr.hash_msg:
+            if msg_hash_str in self.master_mr.hash_callLater:
+                del self.master_mr.hash_callLater[msg_hash_str]
+            return
+        for peer in self.master_mr.hash_peer[msg_hash_str]:
+            if peer not in self.master_mr.requested_hash[msg_hash_str]:
+                self.master_mr.requested_hash[msg_hash_str].append(peer)
+                # Storing MR params, so the received full message could be checked against
+                # the MR receipt provided.
+                self.master_mr.hash_params[msg_hash_str] = data
+                peer.transport.write(peer.wrap_message('SFM', helper.json_encode(data)))
+                call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
+                                                   self.RFM,
+                                                   data)
+                self.master_mr.hash_callLater[msg_hash_str] = call_later_obj
+                return
+
+        # If executing reach to this line, then it means no peer was able to provide
+        # Full message for this hash thus the hash has to be deleted.
+        # Moreover, negative points could be added to the peers, for this behavior
+        if msg_hash_str in self.master_mr.hash_callLater:
+            del self.master_mr.hash_callLater[msg_hash_str]
+
+    def select_best_bkmr(self):
+        block_chain_buffer = self.chain.block_chain_buffer
+        blocknumber = self.bkmr_blocknumber
+        try:
+            score, hash = self.bkmr_priorityq.get_nowait()
+            if blocknumber <= block_chain_buffer.height():
+                oldscore = block_chain_buffer.get_block_n_score(blocknumber)
+                if score > oldscore:
+                    del self.bkmr_priorityq
+                    self.bkmr_priorityq = queue.PriorityQueue()
+
+            self.RFM(data={'hash': hash, 'type': 'BK'})
+            self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
+        except queue.Empty:
+            return
+        except Exception as e:
+            logger.error('select_best_bkmr Unexpected Exception')
+            logger.error('%s', e)
 
     def connect_peers(self):
         """

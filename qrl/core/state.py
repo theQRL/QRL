@@ -238,11 +238,11 @@ class State:
             logger.warning('subtype: %s', tx.subtype)
             logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
             return False
-
-        if pubhash in address_txn[tx.txfrom][2]:
-            logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-            logger.warning('subtype: %s', tx.subtype)
-            return False
+        # TODO: To be fixed later
+        #if pubhash in address_txn[tx.txfrom][2]:
+        #    logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+        #    logger.warning('subtype: %s', tx.subtype)
+        #    return False
 
         address_txn[tx.txto][1] += tx.amount
         address_txn[tx.txfrom][2].append(pubhash)
@@ -329,13 +329,13 @@ class State:
                 logger.warning('subtype: %s', tx.subtype)
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
-
-            if pubhash in address_txn[tx.txfrom][2]:
-                logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-                logger.warning('subtype: %s', tx.subtype)
-                logger.info(pubhash)
-                logger.info(address_txn[tx.txfrom][2])
-                return False
+            # TODO: To be fixed later
+            #if pubhash in address_txn[tx.txfrom][2]:
+            #    logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+            #    logger.warning('subtype: %s', tx.subtype)
+            #    logger.info(pubhash)
+            #    logger.info(address_txn[tx.txfrom][2])
+            #    return False
 
             if tx.subtype == TX_SUBTYPE_TX:
                 if address_txn[tx.txfrom][1] - tx.amount < 0:
@@ -358,7 +358,7 @@ class State:
                 address_txn[tx.txfrom][2].append(pubhash)
                 next_sv_list = stake_validators_list.next_sv_list
                 if tx.txfrom in next_sv_list:
-                    if next_sv_list[tx.txfrom].first_hash is None and tx.first_hash is not None:
+                    if not next_sv_list[tx.txfrom].first_hash and tx.first_hash:
                         threshold_blocknum = stake_validators_list.get_threshold(tx.txfrom)
                         if epoch_blocknum < threshold_blocknum - 1:
                             logger.warning('Block rejected #%s due to ST before threshold',
@@ -399,7 +399,8 @@ class State:
                         'seed+entropy updating wallet hashchains..')
 
             self.stake_validators_list.move_next_epoch()
-            self.stake_list_put(self.stake_validators_list.to_json())
+            # TODO: To be fixed later
+            #self.stake_list_put(self.stake_validators_list.to_json())
 
             xmss = chain.wallet.address_bundle[0].xmss
             tmphc = hashchain(xmss.get_seed_private(), epoch=block.blockheader.epoch + 1)
@@ -480,11 +481,11 @@ class State:
                     logger.info(('nonce incorrect, invalid tx', tx.txhash))
                     logger.info((block.blockheader.headerhash, 'failed state checks'))
                     return False
-
-                if pubhash in s1[2]:
-                    logger.info(('public key re-use detected, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
-                    return False
+                # TODO: To be fixed later
+                #if pubhash in s1[2]:
+                #    logger.info(('public key re-use detected, invalid tx', tx.txhash))
+                #    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                #    return False
 
                 s1[0] += 1
                 s1[1] = s1[1] - tx.amount

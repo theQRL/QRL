@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
-from qrl.core import config
+from qrl.core import config, logger
 from qrl.crypto.misc import sha256
 from copy import deepcopy
 
@@ -29,14 +29,14 @@ class StateBuffer:
         return tmp_sl
 
     def update(self, state, parent_state_buffer, block):
-        # epoch mod, helps you to know if its the new epoch
+        # epoch mod to know if its the new epoch
         epoch_mod = block.blockheader.blocknumber % config.dev.blocks_per_epoch
 
         self.set_next_seed(block.blockheader.reveal_hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
 
         if epoch_mod == config.dev.blocks_per_epoch - 1:
-            self.next_seed = self.stake_validators_list.calc_seed()
+            self.next_seed = bin2hstr(hex(self.stake_validators_list.calc_seed()))
 
         self.update_stxn_state(block, state)
 

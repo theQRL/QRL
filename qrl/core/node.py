@@ -397,6 +397,7 @@ class POS:
 
         blocknumber = block.blockheader.blocknumber
         chain_buffer_height = self.chain.block_chain_buffer.height()
+        last_block_before = self.chain.block_chain_buffer.get_last_block()
 
         if blocknumber <= self.chain.height():
             return False
@@ -416,15 +417,17 @@ class POS:
             self.chain.block_chain_buffer.add_pending_block(block)
 
         if self.nodeState.state == NState.synced:
+            last_block_after = self.chain.block_chain_buffer.get_last_block()
             self.last_pos_cycle = time.time()
             self.p2pFactory.send_block_to_peers(block)
-            self.schedule_pos(blocknumber + 1)
+            if last_block_before.blockheader.headerhash != last_block_after.blockheader.headerhash:
+                self.schedule_pos(blocknumber + 1)
 
         return True
 
     def schedule_pos(self, blocknumber):
         if self.nodeState.state == NState.synced:
-            if self.pos_callLater and self.pos_callLater.active:
+            if self.pos_callLater and self.pos_callLater.active():
                 if blocknumber > self.pos_blocknum:
                     return
 
@@ -492,7 +495,7 @@ class POS:
                     self.make_st_tx(blocknumber, None)
 
             elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_list:
-                if next_stake_list[self.chain.mining_address].first_hash is None:
+                if not next_stake_list[self.chain.mining_address].first_hash:
                     threshold_blocknum = self.chain.block_chain_buffer.get_threshold(blocknumber,
                                                                                      self.chain.mining_address)
                     max_threshold_blocknum = config.dev.blocks_per_epoch
@@ -503,7 +506,7 @@ class POS:
                         diff = max(1, int(
                             (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
                         if random.randint(1, diff) == 1:
-                            xmss = deepcopy(self.chain.wallet.address_bundle[0].xmss)
+                            xmss = self.chain.wallet.address_bundle[0].xmss
                             tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
                             self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
 

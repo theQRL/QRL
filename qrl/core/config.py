@@ -94,7 +94,7 @@ class DevConfig(object):
         self.disk_writes_after_x_blocks = 100
         self.blocks_per_chain_file = 1000
         self.chain_read_buffer_size = 1024
-        self.binary_file_delimiter = '-_-_'
+        self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
         self.version_number = "alpha/0.50a"
         self.chain_file_directory = 'data'
