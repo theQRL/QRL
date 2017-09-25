@@ -184,7 +184,7 @@ class P2PFactory(ServerFactory):
         return
 
     def send_tx_to_peers(self, tx):
-        logger.info('<<<Transmitting TX: %s', tx.txhash)
+        logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.transaction_to_json())
         return
 
@@ -366,6 +366,7 @@ class P2PFactory(ServerFactory):
     def reset_processor_flag_with_err(self, msg):
         logger.error('Exception in txn task')
         logger.error('%s', msg)
+        self.txn_processor_running = False
 
     # Event handlers
     def clientConnectionLost(self, connector, reason):

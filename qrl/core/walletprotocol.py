@@ -9,7 +9,7 @@ from io import StringIO
 import simplejson as json
 from twisted.internet.protocol import Protocol, connectionDone
 
-from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 from qrl.core import helper, logger, config
 from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
@@ -348,8 +348,6 @@ class WalletProtocol(Protocol):
             if self.isJSON:
                 self.transport.write('%s' %(str(json.dumps(self.output)),))
             else:
-                logger.info('--> %s', type(self.output['message']))
-                logger.info('--> %s', self.output['message'])
                 self.transport.write(bytes(str(self.output['message']), 'utf-8'))
         except Exception as e:
             logger.error('Walletprotocol unexpected exception while sending msg to client')
@@ -477,7 +475,10 @@ class WalletProtocol(Protocol):
 
         wallet_from = args[0]
         wallet_to = args[1]
-
+        try:
+            wallet_to = wallet_to.decode('ascii')
+        except:
+            pass
         # Check if the wallet entered is a local wallet (should be, since sender should be local - it's you)
         try:
             int(wallet_from)
@@ -498,6 +499,7 @@ class WalletProtocol(Protocol):
         # in case it ever changes
 
         # if wallet_to is not a local wallet, and wallet_to is not prepended by Q and
+
         if len(wallet_to) > 1 and wallet_to[0] != 'Q' and self.factory.state.state_hrs(wallet_to) != False:
             pass
         elif wallet_to[0] == 'Q':
@@ -518,7 +520,7 @@ class WalletProtocol(Protocol):
         # Check to see if sending amount > amount owned (and reject if so)
         # This is hard to interpret. Break it up?
         balance = self.factory.state.state_balance(self.factory.chain.wallet.address_bundle[int(wallet_from)].address)
-        send_amt_arg = args[2]
+        send_amt_arg = args[2].decode('ascii')
         try:
             float(send_amt_arg)
         except:
@@ -570,7 +572,7 @@ class WalletProtocol(Protocol):
         # send the transaction to peers (ie send it to the network - we are done)
         self.factory.p2pFactory.send_tx_to_peers(tx)
         self.output['status'] = 0
-        self.output['message'].write('>>> ' + str(tx.txhash))
+        self.output['message'].write('>>> ' + bin2hstr(tx.txhash))
         self.output['message'].write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
             tx.amount / 100000000.000000000) + ' Fee: ' + str(tx.fee / 100000000.000000000) + '\r\n')
         self.output['message'].write('>>>created and sent into p2p network\r\n')
