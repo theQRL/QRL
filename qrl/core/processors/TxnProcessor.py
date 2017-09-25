@@ -5,7 +5,7 @@
 from qrl.core import logger, config
 from time import time
 from twisted.internet.task import cooperate
-
+from pyqrllib.pyqrllib import bin2hstr
 
 class TxnProcessor:
 
@@ -48,7 +48,7 @@ class TxnProcessor:
             logger.info('>>>TX %s failed state_validate', tx.txhash)
             return False
 
-        logger.info('1 TXN has been Processed %s', tx.txhash)
+        logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
         self.add_tx_to_pool(tx)
 
         return True
