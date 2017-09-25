@@ -220,11 +220,10 @@ class Chain:
         txnum = 0
         while txnum < total_txn:
             tx = t_pool2[txnum]
-            # TODO: To be fixed later
-            #if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
-            #    del t_pool2[txnum]
-            #    total_txn -= 1
-            #    continue
+            if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
+                del t_pool2[txnum]
+                total_txn -= 1
+                continue
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
 
@@ -268,7 +267,6 @@ class Chain:
 
         # create the block..
         block_obj = self.m_create_block(reveal_hash, vote_hash, last_block_number)
-
         # reset the pool back
         self.transaction_pool = copy.deepcopy(t_pool2)
 
@@ -1114,7 +1112,7 @@ class Chain:
             txto = self.wallet.address_bundle[txto].address
 
         xmss = self.wallet.address_bundle[txfrom].xmss
-        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.address)
+        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.get_address())
         tx = SimpleTransaction().create(tx_state=tx_state,
                                         txto=txto,
                                         amount=amount,

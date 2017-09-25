@@ -84,7 +84,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
-        self.pubhash = self.generate_pubhash(xmss.pk())
+        self.pubhash = self.generate_pubhash(xmss.pk() + (self.ots_key,))
         self.txhash = sha2_256( txhash + self.pubhash)
         self.txfrom = txfrom
 
@@ -117,7 +117,7 @@ class Transaction(object, metaclass=ABCMeta):
         self.txhash = tuple(dict_tx['txhash'])
 
         self.PK = tuple(dict_tx['PK'])
-        self.signature = dict_tx['signature']
+        self.signature = tuple(dict_tx['signature'])
         return self
 
     def _reformat(self, srcList):
@@ -173,8 +173,9 @@ class SimpleTransaction(Transaction):
         # message.write(self.txto)
         # message.write(self.amount)
         # message.write(self.fee)
-        message.write(self.txhash)
-        return sha256(message.getvalue())
+        message.write(str(self.signature))
+        message.write(str(self.txhash))
+        return sha256(bytes(message.getvalue(), 'utf-8'))
 
     def _dict_to_transaction(self, dict_tx):
         # type: (dict) -> qrl.core.transaction.SimpleTransaction
@@ -202,14 +203,13 @@ class SimpleTransaction(Transaction):
         return True
 
     def create(self, tx_state, txto, amount, xmss, fee=0):
-        self.txfrom = xmss.address
-        self.txto = txto
+        self.txfrom = xmss.get_address()
+        self.txto = txto.decode('ascii')
         self.amount = int(amount)
         self.fee = int(fee)
 
         # FIXME: This is very confusing and can be a security risk
-        self.txhash = str2bin(sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee))))
-        self.merkle_root = xmss.root
+        self.txhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
         if not self.pre_condition(tx_state):
             return False
 
@@ -227,7 +227,7 @@ class SimpleTransaction(Transaction):
             logger.info('Amount %d', self.amount)
             return False
 
-        txhash = sha256(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)))
+        txhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
         txhash = sha256(txhash + self.pubhash)
 
         # cryptographic checks
@@ -245,21 +245,21 @@ class SimpleTransaction(Transaction):
         if not self.pre_condition(tx_state):
             return False
 
-        pubhash = self.generate_pubhash(self.PK)
+        pubhash = self.generate_pubhash(self.PK  + (self.ots_key,))
 
         tx_pubhashes = tx_state[2]
-        # TODO: To be fixed later
-        #if pubhash in tx_pubhashes:
-        #    logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-        #    return False
+
+        if pubhash in tx_pubhashes:
+            logger.info('1. State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            return False
 
         for txn in transaction_pool:
             if txn.txhash == self.txhash:
                 continue
 
-            pubhashn = self.generate_pubhash(txn.pub)
+            pubhashn = self.generate_pubhash(txn.PK + (txn.ots_key,))
             if pubhashn == pubhash:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                logger.info('2. State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
         return True
@@ -391,10 +391,9 @@ class StakeTransaction(Transaction):
 
         # TODO no need to transmit pubhash over the network
         # pubhash has to be calculated by the receiver
-        # TODO: To be fixed later
-        #if self.pubhash in state_pubhashes:
-        #    logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
-        #    return False
+        if self.pubhash in state_pubhashes:
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
+            return False
 
         return True
 
@@ -468,11 +467,11 @@ class LatticePublicKey(Transaction):
         return self
 
     def create(self, xmss, kyber_pk, tesla_pk):
-        self.txfrom = xmss.address
+        self.txfrom = xmss.get_address()
         self.kyber_pk = kyber_pk
         self.tesla_pk = tesla_pk
         self.txhash = sha256(self.kyber_pk + self.tesla_pk)
-        self._process_XMSS(xmss.address, self.txhash, xmss)
+        self._process_XMSS(xmss.get_address(), self.txhash, xmss)
         return self
 
     def validate_tx(self):

@@ -239,10 +239,10 @@ class State:
             logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
             return False
         # TODO: To be fixed later
-        #if pubhash in address_txn[tx.txfrom][2]:
-        #    logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-        #    logger.warning('subtype: %s', tx.subtype)
-        #    return False
+        if pubhash in address_txn[tx.txfrom][2]:
+            logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+            logger.warning('subtype: %s', tx.subtype)
+            return False
 
         address_txn[tx.txto][1] += tx.amount
         address_txn[tx.txfrom][2].append(pubhash)
@@ -318,7 +318,7 @@ class State:
         # cycle through every tx in the new block to check state
         for tx in block.transactions:
 
-            pubhash = tx.generate_pubhash(tx.PK)
+            pubhash = tx.generate_pubhash(tx.PK + (tx.ots_key,))
 
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
@@ -330,12 +330,12 @@ class State:
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
             # TODO: To be fixed later
-            #if pubhash in address_txn[tx.txfrom][2]:
-            #    logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-            #    logger.warning('subtype: %s', tx.subtype)
-            #    logger.info(pubhash)
-            #    logger.info(address_txn[tx.txfrom][2])
-            #    return False
+            if pubhash in address_txn[tx.txfrom][2]:
+                logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+                logger.warning('subtype: %s', tx.subtype)
+                logger.info(pubhash)
+                logger.info(address_txn[tx.txfrom][2])
+                return False
 
             if tx.subtype == TX_SUBTYPE_TX:
                 if address_txn[tx.txfrom][1] - tx.amount < 0:
@@ -482,10 +482,10 @@ class State:
                     logger.info((block.blockheader.headerhash, 'failed state checks'))
                     return False
                 # TODO: To be fixed later
-                #if pubhash in s1[2]:
-                #    logger.info(('public key re-use detected, invalid tx', tx.txhash))
-                #    logger.info((block.blockheader.headerhash, 'failed state checks'))
-                #    return False
+                if pubhash in s1[2]:
+                    logger.info(('public key re-use detected, invalid tx', tx.txhash))
+                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    return False
 
                 s1[0] += 1
                 s1[1] = s1[1] - tx.amount

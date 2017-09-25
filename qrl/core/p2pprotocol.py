@@ -1220,7 +1220,6 @@ class P2PProtocol(Protocol):
             pass
 
     def recv_tx(self, json_tx_obj):
-
         try:
             tx = SimpleTransaction().json_to_transaction(json_tx_obj)
         except Exception as e:
