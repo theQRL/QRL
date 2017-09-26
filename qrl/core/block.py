@@ -7,6 +7,7 @@ import simplejson as json
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
 from qrl.core import logger, config, ntp
 from qrl.core.blockheader import BlockHeader
+from qrl.core.chain import Chain
 from qrl.core.helper import select_target_hashchain
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.crypto.misc import sha256, merkle_tx_hash
@@ -39,7 +40,7 @@ class Block(object):
 
         return False
 
-    def create(self, chain, reveal_hash, vote_hash, last_block_number=-1):
+    def create(self, chain: Chain, reveal_hash, vote_hash, last_block_number=-1):
         # FIXME: probably this should turn into a constructor
         reveal_hash = reveal_hash
         vote_hash = vote_hash
@@ -130,7 +131,7 @@ class Block(object):
 
         return True
 
-    def validate_block(self, chain):  # check validity of new block..
+    def validate_block(self, chain: Chain):  # check validity of new block..
         """
         block validation
         :param chain:

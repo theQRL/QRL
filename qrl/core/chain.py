@@ -46,7 +46,7 @@ class Chain:
         self.blockheight_map = []
         self.stake_list = []
         self.stake_commit = []
-        self.block_chain_buffer = None  # Initialized by node.py
+        self.block_chain_buffer = None  # type: ChainBuffer
         self.prev_txpool = [None] * 1000  # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
