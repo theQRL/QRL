@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x1b\n\x0bPingRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1c\n\tPongReply\x12\x0f\n\x07message\x18\x01 \x01(\t\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t22\n\x04Node\x12*\n\x04Ping\x12\x10.qrl.PingRequest\x1a\x0e.qrl.PongReply\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x1b\n\x0bPingRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1c\n\tPongReply\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x16\n\x14GetKnownPeersRequest\":\n\x12GetKnownPeersReply\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t2|\n\x07P2PNode\x12*\n\x04Ping\x12\x10.qrl.PingRequest\x1a\x0e.qrl.PongReply\"\x00\x12\x45\n\rGetKnownPeers\x12\x19.qrl.GetKnownPeersRequest\x1a\x17.qrl.GetKnownPeersReply\"\x00\x62\x06proto3')
 )
 
 
@@ -87,6 +87,61 @@ _PONGREPLY = _descriptor.Descriptor(
 )
 
 
+_GETKNOWNPEERSREQUEST = _descriptor.Descriptor(
+  name='GetKnownPeersRequest',
+  full_name='qrl.GetKnownPeersRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=77,
+  serialized_end=99,
+)
+
+
+_GETKNOWNPEERSREPLY = _descriptor.Descriptor(
+  name='GetKnownPeersReply',
+  full_name='qrl.GetKnownPeersReply',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='known_peers', full_name='qrl.GetKnownPeersReply.known_peers', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=101,
+  serialized_end=159,
+)
+
+
 _WALLETSTORE = _descriptor.Descriptor(
   name='WalletStore',
   full_name='qrl.WalletStore',
@@ -113,8 +168,8 @@ _WALLETSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=77,
-  serialized_end=120,
+  serialized_start=161,
+  serialized_end=204,
 )
 
 
@@ -158,8 +213,8 @@ _WALLET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=122,
-  serialized_end=185,
+  serialized_start=206,
+  serialized_end=269,
 )
 
 
@@ -189,8 +244,8 @@ _KNOWNPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=187,
-  serialized_end=225,
+  serialized_start=271,
+  serialized_end=309,
 )
 
 
@@ -220,14 +275,17 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=227,
-  serialized_end=245,
+  serialized_start=311,
+  serialized_end=329,
 )
 
+_GETKNOWNPEERSREPLY.fields_by_name['known_peers'].message_type = _KNOWNPEERS
 _WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
 _KNOWNPEERS.fields_by_name['peers'].message_type = _PEER
 DESCRIPTOR.message_types_by_name['PingRequest'] = _PINGREQUEST
 DESCRIPTOR.message_types_by_name['PongReply'] = _PONGREPLY
+DESCRIPTOR.message_types_by_name['GetKnownPeersRequest'] = _GETKNOWNPEERSREQUEST
+DESCRIPTOR.message_types_by_name['GetKnownPeersReply'] = _GETKNOWNPEERSREPLY
 DESCRIPTOR.message_types_by_name['WalletStore'] = _WALLETSTORE
 DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
 DESCRIPTOR.message_types_by_name['KnownPeers'] = _KNOWNPEERS
@@ -247,6 +305,20 @@ PongReply = _reflection.GeneratedProtocolMessageType('PongReply', (_message.Mess
   # @@protoc_insertion_point(class_scope:qrl.PongReply)
   ))
 _sym_db.RegisterMessage(PongReply)
+
+GetKnownPeersRequest = _reflection.GeneratedProtocolMessageType('GetKnownPeersRequest', (_message.Message,), dict(
+  DESCRIPTOR = _GETKNOWNPEERSREQUEST,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetKnownPeersRequest)
+  ))
+_sym_db.RegisterMessage(GetKnownPeersRequest)
+
+GetKnownPeersReply = _reflection.GeneratedProtocolMessageType('GetKnownPeersReply', (_message.Message,), dict(
+  DESCRIPTOR = _GETKNOWNPEERSREPLY,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetKnownPeersReply)
+  ))
+_sym_db.RegisterMessage(GetKnownPeersReply)
 
 WalletStore = _reflection.GeneratedProtocolMessageType('WalletStore', (_message.Message,), dict(
   DESCRIPTOR = _WALLETSTORE,
@@ -278,28 +350,37 @@ _sym_db.RegisterMessage(Peer)
 
 
 
-_NODE = _descriptor.ServiceDescriptor(
-  name='Node',
-  full_name='qrl.Node',
+_P2PNODE = _descriptor.ServiceDescriptor(
+  name='P2PNode',
+  full_name='qrl.P2PNode',
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=247,
-  serialized_end=297,
+  serialized_start=331,
+  serialized_end=455,
   methods=[
   _descriptor.MethodDescriptor(
     name='Ping',
-    full_name='qrl.Node.Ping',
+    full_name='qrl.P2PNode.Ping',
     index=0,
     containing_service=None,
     input_type=_PINGREQUEST,
     output_type=_PONGREPLY,
     options=None,
   ),
+  _descriptor.MethodDescriptor(
+    name='GetKnownPeers',
+    full_name='qrl.P2PNode.GetKnownPeers',
+    index=1,
+    containing_service=None,
+    input_type=_GETKNOWNPEERSREQUEST,
+    output_type=_GETKNOWNPEERSREPLY,
+    options=None,
+  ),
 ])
-_sym_db.RegisterServiceDescriptor(_NODE)
+_sym_db.RegisterServiceDescriptor(_P2PNODE)
 
-DESCRIPTOR.services_by_name['Node'] = _NODE
+DESCRIPTOR.services_by_name['P2PNode'] = _P2PNODE
 
 try:
   # THESE ELEMENTS WILL BE DEPRECATED.
@@ -311,7 +392,7 @@ try:
   from grpc.framework.interfaces.face import utilities as face_utilities
 
 
-  class NodeStub(object):
+  class P2PNodeStub(object):
     # missing associated documentation comment in .proto file
     pass
 
@@ -322,13 +403,18 @@ try:
         channel: A grpc.Channel.
       """
       self.Ping = channel.unary_unary(
-          '/qrl.Node/Ping',
+          '/qrl.P2PNode/Ping',
           request_serializer=PingRequest.SerializeToString,
           response_deserializer=PongReply.FromString,
           )
+      self.GetKnownPeers = channel.unary_unary(
+          '/qrl.P2PNode/GetKnownPeers',
+          request_serializer=GetKnownPeersRequest.SerializeToString,
+          response_deserializer=GetKnownPeersReply.FromString,
+          )
 
 
-  class NodeServicer(object):
+  class P2PNodeServicer(object):
     # missing associated documentation comment in .proto file
     pass
 
@@ -339,21 +425,33 @@ try:
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
+    def GetKnownPeers(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
 
-  def add_NodeServicer_to_server(servicer, server):
+
+  def add_P2PNodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
         'Ping': grpc.unary_unary_rpc_method_handler(
             servicer.Ping,
             request_deserializer=PingRequest.FromString,
             response_serializer=PongReply.SerializeToString,
         ),
+        'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
+            servicer.GetKnownPeers,
+            request_deserializer=GetKnownPeersRequest.FromString,
+            response_serializer=GetKnownPeersReply.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        'qrl.Node', rpc_method_handlers)
+        'qrl.P2PNode', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
-  class BetaNodeServicer(object):
+  class BetaP2PNodeServicer(object):
     """The Beta API is deprecated for 0.15.0 and later.
 
     It is recommended to use the GA API (classes and functions in this
@@ -365,9 +463,13 @@ try:
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetKnownPeers(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
 
-  class BetaNodeStub(object):
+  class BetaP2PNodeStub(object):
     """The Beta API is deprecated for 0.15.0 and later.
 
     It is recommended to use the GA API (classes and functions in this
@@ -380,44 +482,55 @@ try:
       pass
       raise NotImplementedError()
     Ping.future = None
+    def GetKnownPeers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      # missing associated documentation comment in .proto file
+      pass
+      raise NotImplementedError()
+    GetKnownPeers.future = None
 
 
-  def beta_create_Node_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
+  def beta_create_P2PNode_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
     """The Beta API is deprecated for 0.15.0 and later.
 
     It is recommended to use the GA API (classes and functions in this
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
-      ('qrl.Node', 'Ping'): PingRequest.FromString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersRequest.FromString,
+      ('qrl.P2PNode', 'Ping'): PingRequest.FromString,
     }
     response_serializers = {
-      ('qrl.Node', 'Ping'): PongReply.SerializeToString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersReply.SerializeToString,
+      ('qrl.P2PNode', 'Ping'): PongReply.SerializeToString,
     }
     method_implementations = {
-      ('qrl.Node', 'Ping'): face_utilities.unary_unary_inline(servicer.Ping),
+      ('qrl.P2PNode', 'GetKnownPeers'): face_utilities.unary_unary_inline(servicer.GetKnownPeers),
+      ('qrl.P2PNode', 'Ping'): face_utilities.unary_unary_inline(servicer.Ping),
     }
     server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
     return beta_implementations.server(method_implementations, options=server_options)
 
 
-  def beta_create_Node_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
+  def beta_create_P2PNode_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
     """The Beta API is deprecated for 0.15.0 and later.
 
     It is recommended to use the GA API (classes and functions in this
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
-      ('qrl.Node', 'Ping'): PingRequest.SerializeToString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersRequest.SerializeToString,
+      ('qrl.P2PNode', 'Ping'): PingRequest.SerializeToString,
     }
     response_deserializers = {
-      ('qrl.Node', 'Ping'): PongReply.FromString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersReply.FromString,
+      ('qrl.P2PNode', 'Ping'): PongReply.FromString,
     }
     cardinalities = {
+      'GetKnownPeers': cardinality.Cardinality.UNARY_UNARY,
       'Ping': cardinality.Cardinality.UNARY_UNARY,
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
-    return beta_implementations.dynamic_stub(channel, 'qrl.Node', cardinalities, options=stub_options)
+    return beta_implementations.dynamic_stub(channel, 'qrl.P2PNode', cardinalities, options=stub_options)
 except ImportError:
   pass
 # @@protoc_insertion_point(module_scope)

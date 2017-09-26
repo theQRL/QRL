@@ -964,6 +964,8 @@ class P2PProtocol(Protocol):
             tmp2 = hstr2bin(tmp.decode())
             tmp3 = bytearray(tmp2)
             m = struct.unpack('>L', tmp3)[0]  # is m length encoded correctly?
+        except ValueError as e:
+            return False
         except Exception as e:
             logger.exception(e)
             if num_d > 1:  # if not, is this the only initiator in the buffer?

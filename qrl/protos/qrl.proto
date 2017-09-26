@@ -5,16 +5,15 @@ syntax = "proto3";
 
 package qrl;
 
-service Node {
+service P2PNode {
   rpc Ping (PingRequest) returns (PongReply) {}
-}
-message PingRequest {
-  string name = 1;
+  rpc GetKnownPeers (GetKnownPeersRequest) returns (GetKnownPeersReply) {}
 }
 
-message PongReply {
-  string message = 1;
-}
+message PingRequest {   string name = 1;    }
+message PongReply   {   string message = 1; }
+message GetKnownPeersRequest {}
+message GetKnownPeersReply { KnownPeers known_peers = 1; }
 
 message WalletStore
 {

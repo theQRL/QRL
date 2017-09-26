@@ -6,6 +6,7 @@ import logging
 
 from twisted.internet import reactor
 
+from qrl.p2p.node import start_node
 from . import webwallet
 from .core import logger, ntp, node, config
 from .core.apifactory import ApiFactory
@@ -66,6 +67,10 @@ def main():
     logger_twisted.enable_twisted_log_observer()
 
     logger.debug("=====================================================================================")
+
+    #######
+
+    server = start_node()   # Keep assigned to a variable or it will be collected
 
     #######
 
