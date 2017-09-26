@@ -61,3 +61,45 @@ def add_P2PNodeServicer_to_server(servicer, server):
   generic_handler = grpc.method_handlers_generic_handler(
       'qrl.P2PNode', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))
+
+
+class PublicAPIStub(object):
+  # missing associated documentation comment in .proto file
+  pass
+
+  def __init__(self, channel):
+    """Constructor.
+
+    Args:
+      channel: A grpc.Channel.
+    """
+    self.GetKnownPeers = channel.unary_unary(
+        '/qrl.PublicAPI/GetKnownPeers',
+        request_serializer=qrl__pb2.GetKnownPeersRequest.SerializeToString,
+        response_deserializer=qrl__pb2.GetKnownPeersReply.FromString,
+        )
+
+
+class PublicAPIServicer(object):
+  # missing associated documentation comment in .proto file
+  pass
+
+  def GetKnownPeers(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+
+def add_PublicAPIServicer_to_server(servicer, server):
+  rpc_method_handlers = {
+      'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
+          servicer.GetKnownPeers,
+          request_deserializer=qrl__pb2.GetKnownPeersRequest.FromString,
+          response_serializer=qrl__pb2.GetKnownPeersReply.SerializeToString,
+      ),
+  }
+  generic_handler = grpc.method_handlers_generic_handler(
+      'qrl.PublicAPI', rpc_method_handlers)
+  server.add_generic_rpc_handlers((generic_handler,))

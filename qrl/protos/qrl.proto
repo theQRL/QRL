@@ -10,6 +10,10 @@ service P2PNode {
   rpc GetKnownPeers (GetKnownPeersRequest) returns (GetKnownPeersReply) {}
 }
 
+service PublicAPI {
+  rpc GetKnownPeers (GetKnownPeersRequest) returns (GetKnownPeersReply) {}
+}
+
 message PingRequest {   string name = 1;    }
 message PongReply   {   string message = 1; }
 message GetKnownPeersRequest {}
