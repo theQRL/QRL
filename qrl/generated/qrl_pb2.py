@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x1b\n\x0bPingRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1c\n\tPongReply\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x16\n\x14GetKnownPeersRequest\":\n\x12GetKnownPeersReply\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t2|\n\x07P2PNode\x12*\n\x04Ping\x12\x10.qrl.PingRequest\x1a\x0e.qrl.PongReply\"\x00\x12\x45\n\rGetKnownPeers\x12\x19.qrl.GetKnownPeersRequest\x1a\x17.qrl.GetKnownPeersReply\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x1b\n\x0bPingRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1c\n\tPongReply\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x16\n\x14GetKnownPeersRequest\":\n\x12GetKnownPeersReply\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t2|\n\x07P2PNode\x12*\n\x04Ping\x12\x10.qrl.PingRequest\x1a\x0e.qrl.PongReply\"\x00\x12\x45\n\rGetKnownPeers\x12\x19.qrl.GetKnownPeersRequest\x1a\x17.qrl.GetKnownPeersReply\"\x00\x32R\n\tPublicAPI\x12\x45\n\rGetKnownPeers\x12\x19.qrl.GetKnownPeersRequest\x1a\x17.qrl.GetKnownPeersReply\"\x00\x62\x06proto3')
 )
 
 
@@ -382,6 +382,30 @@ _sym_db.RegisterServiceDescriptor(_P2PNODE)
 
 DESCRIPTOR.services_by_name['P2PNode'] = _P2PNODE
 
+
+_PUBLICAPI = _descriptor.ServiceDescriptor(
+  name='PublicAPI',
+  full_name='qrl.PublicAPI',
+  file=DESCRIPTOR,
+  index=1,
+  options=None,
+  serialized_start=457,
+  serialized_end=539,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='GetKnownPeers',
+    full_name='qrl.PublicAPI.GetKnownPeers',
+    index=0,
+    containing_service=None,
+    input_type=_GETKNOWNPEERSREQUEST,
+    output_type=_GETKNOWNPEERSREPLY,
+    options=None,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_PUBLICAPI)
+
+DESCRIPTOR.services_by_name['PublicAPI'] = _PUBLICAPI
+
 try:
   # THESE ELEMENTS WILL BE DEPRECATED.
   # Please use the generated *_pb2_grpc.py files instead.
@@ -448,6 +472,48 @@ try:
     }
     generic_handler = grpc.method_handlers_generic_handler(
         'qrl.P2PNode', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+
+
+  class PublicAPIStub(object):
+    # missing associated documentation comment in .proto file
+    pass
+
+    def __init__(self, channel):
+      """Constructor.
+
+      Args:
+        channel: A grpc.Channel.
+      """
+      self.GetKnownPeers = channel.unary_unary(
+          '/qrl.PublicAPI/GetKnownPeers',
+          request_serializer=GetKnownPeersRequest.SerializeToString,
+          response_deserializer=GetKnownPeersReply.FromString,
+          )
+
+
+  class PublicAPIServicer(object):
+    # missing associated documentation comment in .proto file
+    pass
+
+    def GetKnownPeers(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+
+  def add_PublicAPIServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+        'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
+            servicer.GetKnownPeers,
+            request_deserializer=GetKnownPeersRequest.FromString,
+            response_serializer=GetKnownPeersReply.SerializeToString,
+        ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+        'qrl.PublicAPI', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
@@ -531,6 +597,73 @@ try:
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
     return beta_implementations.dynamic_stub(channel, 'qrl.P2PNode', cardinalities, options=stub_options)
+
+
+  class BetaPublicAPIServicer(object):
+    """The Beta API is deprecated for 0.15.0 and later.
+
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This class was generated
+    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
+    # missing associated documentation comment in .proto file
+    pass
+    def GetKnownPeers(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+
+
+  class BetaPublicAPIStub(object):
+    """The Beta API is deprecated for 0.15.0 and later.
+
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This class was generated
+    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
+    # missing associated documentation comment in .proto file
+    pass
+    def GetKnownPeers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      # missing associated documentation comment in .proto file
+      pass
+      raise NotImplementedError()
+    GetKnownPeers.future = None
+
+
+  def beta_create_PublicAPI_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
+    """The Beta API is deprecated for 0.15.0 and later.
+
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This function was
+    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
+    request_deserializers = {
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersRequest.FromString,
+    }
+    response_serializers = {
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReply.SerializeToString,
+    }
+    method_implementations = {
+      ('qrl.PublicAPI', 'GetKnownPeers'): face_utilities.unary_unary_inline(servicer.GetKnownPeers),
+    }
+    server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
+    return beta_implementations.server(method_implementations, options=server_options)
+
+
+  def beta_create_PublicAPI_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
+    """The Beta API is deprecated for 0.15.0 and later.
+
+    It is recommended to use the GA API (classes and functions in this
+    file not marked beta) for all further purposes. This function was
+    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
+    request_serializers = {
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersRequest.SerializeToString,
+    }
+    response_deserializers = {
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReply.FromString,
+    }
+    cardinalities = {
+      'GetKnownPeers': cardinality.Cardinality.UNARY_UNARY,
+    }
+    stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
+    return beta_implementations.dynamic_stub(channel, 'qrl.PublicAPI', cardinalities, options=stub_options)
 except ImportError:
   pass
 # @@protoc_insertion_point(module_scope)
