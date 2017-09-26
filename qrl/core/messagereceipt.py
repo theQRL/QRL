@@ -39,7 +39,7 @@ class MessageReceipt(object):
     """
 
     # TODO: Use enumerations instead of strings to reduce data size
-    allowed_types = ['TX', 'ST', 'BK', 'R1']
+    allowed_types = ['TX', 'ST', 'BK']
 
     def __init__(self):
         # Keep three dicts using hash as a key

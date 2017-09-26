@@ -14,6 +14,7 @@ from twisted.internet import reactor
 import qrl.core.Transaction_subtypes
 from qrl.core import logger, config, fork
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.chain import Chain
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
@@ -29,7 +30,7 @@ class NodeState:
 
 
 class POS:
-    def __init__(self, chain, p2pFactory, nodeState, ntp):
+    def __init__(self, chain: Chain, p2pFactory, nodeState, ntp):
         self.master_mr = MessageReceipt()
         self.nodeState = nodeState
         self.ntp = ntp
@@ -96,9 +97,9 @@ class POS:
             self.epoch_diff = -1
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def peers_blockheight_headerhash(self):
-        for peer in self.p2pFactory.peers:
-            peer.fetch_headerhash_n(self.chain.m_blockheight())
+    # def peers_blockheight_headerhash(self):
+    #     for peer in self.p2pFactory.peers:
+    #         peer.fetch_headerhash_n(self.chain.m_blockheight())
 
     def check_fork_status(self):
         current_height = self.chain.m_blockheight()
@@ -145,19 +146,19 @@ class POS:
             self.randomize_block_fetch(self.chain.height() + 1)
         return
 
-    def schedule_peers_blockheight(self, delay=100):
-        try:
-            reactor.peers_blockheight.cancel()
-        except Exception:  # No need to log this exception
-            pass
-
-        reactor.peers_blockheight = reactor.callLater(delay, self.peers_blockheight)
-        try:
-            reactor.peers_blockheight_headerhash.cancel()  # No need to log this exception
-        except Exception as e:
-            pass
-
-        reactor.peers_blockheight_headerhash = reactor.callLater(70, self.peers_blockheight_headerhash)
+    # def schedule_peers_blockheight(self, delay=100):
+    #     try:
+    #         reactor.peers_blockheight.cancel()
+    #     except Exception:  # No need to log this exception
+    #         pass
+    #
+    #     reactor.peers_blockheight = reactor.callLater(delay, self.peers_blockheight)
+    #     try:
+    #         reactor.peers_blockheight_headerhash.cancel()  # No need to log this exception
+    #     except Exception as e:
+    #         pass
+    #
+    #     reactor.peers_blockheight_headerhash = reactor.callLater(70, self.peers_blockheight_headerhash)
 
     # pos functions. an asynchronous loop.
 
@@ -245,38 +246,38 @@ class POS:
             self.restart_unsynced_logic()
         return
 
-    def process_transactions(self, num):
-        tmp_num = num
-        for tx in self.chain.pending_tx_pool:
-            tmp_num -= 1
-            tx_peer = tx[1]
-            tx = tx[0]
-            if not tx.validate_tx():
-                logger.info('>>>TX %s failed validate_tx', tx.txhash)
-                continue
-
-            block_chain_buffer = self.chain.block_chain_buffer
-            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
-                                                         addr=tx.txfrom)
-            isValidState = tx.state_validate_tx(
-                tx_state=tx_state,
-                transaction_pool=self.chain.transaction_pool
-            )
-            if not isValidState:
-                logger.info('>>>TX %s failed state_validate', tx.txhash)
-                continue
-
-            logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
-            self.chain.add_tx_to_pool(tx)
-
-            txn_msg = tx_peer.wrap_message('TX', tx.transaction_to_json())
-            for peer in tx_peer.factory.peer_connections:
-                if peer != tx_peer:
-                    peer.transport.write(txn_msg)
-
-        for i in range(num - tmp_num):
-            del self.chain.pending_tx_pool[0]
-            del self.chain.pending_tx_pool_hash[0]
+    # def process_transactions(self, num):
+    #     tmp_num = num
+    #     for tx in self.chain.pending_tx_pool:
+    #         tmp_num -= 1
+    #         tx_peer = tx[1]
+    #         tx = tx[0]
+    #         if not tx.validate_tx():
+    #             logger.info('>>>TX %s failed validate_tx', tx.txhash)
+    #             continue
+    #
+    #         block_chain_buffer = self.chain.block_chain_buffer
+    #         tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
+    #                                                      addr=tx.txfrom)
+    #         isValidState = tx.state_validate_tx(
+    #             tx_state=tx_state,
+    #             transaction_pool=self.chain.transaction_pool
+    #         )
+    #         if not isValidState:
+    #             logger.info('>>>TX %s failed state_validate', tx.txhash)
+    #             continue
+    #
+    #         logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
+    #         self.chain.add_tx_to_pool(tx)
+    #
+    #         txn_msg = tx_peer.wrap_message('TX', tx.transaction_to_json())
+    #         for peer in tx_peer.factory.peer_connections:
+    #             if peer != tx_peer:
+    #                 peer.transport.write(txn_msg)
+    #
+    #     for i in range(num - tmp_num):
+    #         del self.chain.pending_tx_pool[0]
+    #         del self.chain.pending_tx_pool_hash[0]
 
     # create new block..
 
@@ -290,31 +291,31 @@ class POS:
         logger.info('** resetting loops and emptying chain.stake_reveal_one and chain.expected_winner ')
         for r in self.chain.stake_reveal_one:
             msg_hash = r[5]
-            self.master_mr.deregister(msg_hash, 'R1')
+#            self.master_mr.deregister(msg_hash, 'R1')
 
         del self.chain.stake_reveal_one[:]
         return
 
-    def filter_reveal_one_two(self, blocknumber=None):
-        if not blocknumber:
-            blocknumber = self.chain.m_blockchain[-1].blockheader.blocknumber
+    # def filter_reveal_one_two(self, blocknumber=None):
+    #     if not blocknumber:
+    #         blocknumber = self.chain.m_blockchain[-1].blockheader.blocknumber
+    #
+    #     self.chain.stake_reveal_one = [s for s in self.chain.stake_reveal_one if s[2] > blocknumber]
+    #
+    #     return
 
-        self.chain.stake_reveal_one = [s for s in self.chain.stake_reveal_one if s[2] > blocknumber]
-
-        return
-
-    # TODO: Incomplete fn, use to select the maximum blockheight by consensus
-    def select_blockheight_by_consensus(self):
-        block_height_counter = Counter()
-        # for identity in self.fmbh_allowed_peers:
-        #    block_height_counter[s[2]] += 1
-        target_block_height = block_height_counter.most_common(1)
-
-        if len(target_block_height) == 0:
-            return None
-
-        last_selected_height = target_block_height[0][0]
-        return last_selected_height
+    # # TODO: Incomplete fn, use to select the maximum blockheight by consensus
+    # def select_blockheight_by_consensus(self):
+    #     block_height_counter = Counter()
+    #     # for identity in self.fmbh_allowed_peers:
+    #     #    block_height_counter[s[2]] += 1
+    #     target_block_height = block_height_counter.most_common(1)
+    #
+    #     if len(target_block_height) == 0:
+    #         return None
+    #
+    #     last_selected_height = target_block_height[0][0]
+    #     return last_selected_height
 
     '''
     Unsynced Logic
@@ -477,7 +478,7 @@ class POS:
     def post_block_logic(self, blocknumber):
         """
             post block logic we initiate the next POS cycle
-            send R1, send ST, reset POS flags and remove unnecessary
+            send ST, reset POS flags and remove unnecessary
             messages in chain.stake_reveal_one and _two..
         :return:
         """
@@ -547,17 +548,17 @@ class POS:
 
         self.chain.add_tx_to_pool(st)
 
-    def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
-        try:
-            reactor.prepare_winners.cancel()
-        except Exception:  # No need to log this Exception
-            pass
-
-        reactor.prepare_winners = reactor.callLater(
-            delay,
-            self.prepare_winners,
-            our_reveal=our_reveal,
-            last_block_number=last_block_number)
+    # def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
+    #     try:
+    #         reactor.prepare_winners.cancel()
+    #     except Exception:  # No need to log this Exception
+    #         pass
+    #
+    #     reactor.prepare_winners = reactor.callLater(
+    #         delay,
+    #         self.prepare_winners,
+    #         our_reveal=our_reveal,
+    #         last_block_number=last_block_number)
 
     def randomize_block_fetch(self, blocknumber):
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():

@@ -18,35 +18,36 @@ from qrl.crypto.misc import sha256
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from queue import PriorityQueue
 
+
 class P2PProtocol(Protocol):
     def __init__(self):
         # TODO: Comment with some names the services
         self.service = {'reboot': self.reboot,
-                        'MR': self.MR,
-                        'SFM': self.SFM,
-                        'TX': self.TX,
-                        'ST': self.ST,
-                        'BM': self.BM,
-                        'BK': self.BK,
-                        'PBB': self.PBB,
-                        'PB': self.PB,
-                        'PH': self.PH,
-                        'LB': self.LB,
-                        'FMBH': self.FMBH,
-                        'PMBH': self.PMBH,
-                        'MB': self.MB,
-                        'CB': self.CB,
-                        'BN': self.BN,
-                        'FB': self.FB,
-                        'FH': self.FH,
-                        'PO': self.PO,
-                        'PI': self.PI,
-                        'PL': self.PL,
-                        'RT': self.RT,
-                        'PE': self.PE,
-                        'VE': self.VE,
-                        'R1': self.R1,
-                        'IP': self.IP,
+                        'MR': self.MR,  # Message Receipt
+                        'SFM': self.SFM,  # Send Full Message
+                        'TX': self.TX,  # Transaction
+                        'ST': self.ST,  # Stake Transaction
+                        'BM': self.BM,  # Block Height Map
+                        'BK': self.BK,  # Block
+                        'PBB': self.PBB,  # Push Block Buffer
+                        'PB': self.PB,  # Push Block
+                        'PH': self.PH,  # Push Headerhash
+                        'LB': self.LB,  # Last Block
+                        'FMBH': self.FMBH,  # Fetch maximum block height
+                        'PMBH': self.PMBH,  # Push Maximum Block Height
+                        'MB': self.MB,  # Maximum Block Height
+                        'CB': self.CB,  # Check Block Height
+                        'BN': self.BN,  # Block Number
+                        'FB': self.FB,  # Fetch request for block
+                        'FH': self.FH,  # Fetch block header hash
+                        'PO': self.PO,  # Pong
+                        'PI': self.PI,  # Ping
+                        'PL': self.PL,  # Peers List
+                        'RT': self.RT,  # Transaction pool to peer
+                        'PE': self.PE,  # Peers (get a list of connected peers)
+                        'VE': self.VE,  # Version
+#                        'R1': self.R1,  # Reveal 1
+                        'IP': self.IP,  # Get IP (geotagging?)
                         }
         self.buffer = b''
         self.messages = []
@@ -118,8 +119,9 @@ class P2PProtocol(Protocol):
         if data['type'] not in MessageReceipt.allowed_types:
             return
 
-        if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
-            return
+#        if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
+        if data['type'] in ['TX'] and self.factory.nodeState.state != NState.synced:
+                return
 
         if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', data['hash'])
@@ -128,7 +130,7 @@ class P2PProtocol(Protocol):
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.peer_contains_hash( data['hash'], data['type'], self):
+        if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):
             return
 
         self.factory.master_mr.add_peer(data['hash'], data['type'], self)
@@ -687,118 +689,118 @@ class P2PProtocol(Protocol):
 
         return
 
-    # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
-    def R1(self, data):
-        """
-        Reveal
-        Process the reveal message received by the peer.
-        :return:
-        """
-        if self.factory.nodeState.state != NState.synced:
-            return
-        z = json.loads(data, parse_float=Decimal)
-        if not z:
-            return
-        block_number = z['block_number']
-        headerhash = z['headerhash'].encode('latin1')
-        stake_address = z['stake_address'].encode('latin1')
-        vote_hash = z['vote_hash'].encode('latin1')
-        reveal_one = z['reveal_one'].encode('latin1')
-
-        if not self.factory.master_mr.isRequested(z['vote_hash'], self):
-            return
-
-        if block_number <= self.factory.chain.height():
-            return
-
-        for entry in self.factory.chain.stake_reveal_one:  # already received, do not relay.
-            if entry[3] == reveal_one:
-                return
-
-        if len(self.factory.chain.stake_validator_latency) > 20:
-            del self.factory.chain.stake_validator_latency[min(self.factory.chain.stake_validator_latency.keys())]
-
-        if self.factory.nodeState.epoch_diff == 0:
-            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(z['block_number'])
-
-            if stake_address not in sv_list:
-                logger.info('stake address not in the stake_list')
-                logger.info('len of sv_list %s', len(sv_list))
-                logger.info('len of next_sv_list %s',
-                            len(self.factory.chain.block_chain_buffer.next_stake_list_get(z['block_number'])))
-                return
-
-            stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(block_number)
-
-            target_chain = stake_validators_list.select_target(headerhash)
-            if not stake_validators_list.validate_hash(vote_hash,
-                                                       block_number,
-                                                       target_chain=target_chain,
-                                                       stake_address=stake_address):
-                logger.info('%s vote hash doesnt hash to stake terminator vote %s',  # nonce %s vote_hash %s',
-                            self.conn_identity, vote_hash)  # , s[2], vote_hash_terminator)
-                return
-
-            if not stake_validators_list.validate_hash(reveal_one,
-                                                       block_number,
-                                                       target_chain=config.dev.hashchain_nums - 1,
-                                                       stake_address=stake_address):
-                logger.info('%s reveal doesnt hash to stake terminator reveal %s',  # nonce %s reveal_hash %s',
-                            self.conn_identity, reveal_one)  # , s[2], reveal_hash_terminator)
-                return
-
-        if len(self.factory.pos.r1_time_diff) > 2:
-            del self.factory.pos.r1_time_diff[min(self.factory.pos.r1_time_diff.keys())]
-
-        self.factory.pos.r1_time_diff[block_number].append(int(time.time() * 1000))
-
-        logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number,
-                    reveal_one)
-        score = self.factory.chain.score(stake_address=stake_address,
-                                         reveal_one=reveal_one,
-                                         balance=self.factory.chain.block_chain_buffer.get_st_balance(stake_address,
-                                                                                                      block_number),
-                                         seed=z['seed'])
-
-        if score is None:
-            logger.info('Score None for stake_address %s reveal_one %s', stake_address, reveal_one)
-            return
-
-        if score != z['weighted_hash']:
-            logger.info('Weighted_hash didnt match')
-            logger.info('Expected : %s', score)
-            logger.info('Found : %s', z['weighted_hash'])
-            logger.info('Seed found : %ld', z['seed'])
-            logger.info('Seed Expected : %ld',
-                        self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number']))
-            logger.info('Balance : %ld',
-                        self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number))
-
-            return
-
-        epoch = block_number // config.dev.blocks_per_epoch
-        epoch_seed = self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])
-
-        if epoch_seed != z['seed']:
-            logger.info('Seed didnt match')
-            logger.info('Expected : %ld', epoch_seed)
-            logger.info('Found : %ld', z['seed'])
-            return
-
-        sv_hash = self.factory.chain.get_stake_validators_hash()
-        # if sv_hash != z['SV_hash']:
-        # logger.info(( 'SV_hash didnt match' ))
-        # logger.info(( 'Expected : ', sv_hash ))
-        # logger.info(( 'Found : ', z['SV_hash'] ))
-        # return
-
-        self.factory.chain.stake_reveal_one.append(
-            [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
-        self.factory.master_mr.register(z['vote_hash'], data, 'R1')
-        if self.factory.nodeState.state == NState.synced:
-            self.broadcast(z['vote_hash'], 'R1')
-
-        return
+    # # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
+    # def R1(self, data):
+    #     """
+    #     Reveal
+    #     Process the reveal message received by the peer.
+    #     :return:
+    #     """
+    #     if self.factory.nodeState.state != NState.synced:
+    #         return
+    #     z = json.loads(data, parse_float=Decimal)
+    #     if not z:
+    #         return
+    #     block_number = z['block_number']
+    #     headerhash = z['headerhash'].encode('latin1')
+    #     stake_address = z['stake_address'].encode('latin1')
+    #     vote_hash = z['vote_hash'].encode('latin1')
+    #     reveal_one = z['reveal_one'].encode('latin1')
+    #
+    #     if not self.factory.master_mr.isRequested(z['vote_hash'], self):
+    #         return
+    #
+    #     if block_number <= self.factory.chain.height():
+    #         return
+    #
+    #     for entry in self.factory.chain.stake_reveal_one:  # already received, do not relay.
+    #         if entry[3] == reveal_one:
+    #             return
+    #
+    #     if len(self.factory.chain.stake_validator_latency) > 20:
+    #         del self.factory.chain.stake_validator_latency[min(self.factory.chain.stake_validator_latency.keys())]
+    #
+    #     if self.factory.nodeState.epoch_diff == 0:
+    #         sv_list = self.factory.chain.block_chain_buffer.stake_list_get(z['block_number'])
+    #
+    #         if stake_address not in sv_list:
+    #             logger.info('stake address not in the stake_list')
+    #             logger.info('len of sv_list %s', len(sv_list))
+    #             logger.info('len of next_sv_list %s',
+    #                         len(self.factory.chain.block_chain_buffer.next_stake_list_get(z['block_number'])))
+    #             return
+    #
+    #         stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(block_number)
+    #
+    #         target_chain = stake_validators_list.select_target(headerhash)
+    #         if not stake_validators_list.validate_hash(vote_hash,
+    #                                                    block_number,
+    #                                                    target_chain=target_chain,
+    #                                                    stake_address=stake_address):
+    #             logger.info('%s vote hash doesnt hash to stake terminator vote %s',  # nonce %s vote_hash %s',
+    #                         self.conn_identity, vote_hash)  # , s[2], vote_hash_terminator)
+    #             return
+    #
+    #         if not stake_validators_list.validate_hash(reveal_one,
+    #                                                    block_number,
+    #                                                    target_chain=config.dev.hashchain_nums - 1,
+    #                                                    stake_address=stake_address):
+    #             logger.info('%s reveal doesnt hash to stake terminator reveal %s',  # nonce %s reveal_hash %s',
+    #                         self.conn_identity, reveal_one)  # , s[2], reveal_hash_terminator)
+    #             return
+    #
+    #     if len(self.factory.pos.r1_time_diff) > 2:
+    #         del self.factory.pos.r1_time_diff[min(self.factory.pos.r1_time_diff.keys())]
+    #
+    #     self.factory.pos.r1_time_diff[block_number].append(int(time.time() * 1000))
+    #
+    #     logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number,
+    #                 reveal_one)
+    #     score = self.factory.chain.score(stake_address=stake_address,
+    #                                      reveal_one=reveal_one,
+    #                                      balance=self.factory.chain.block_chain_buffer.get_st_balance(stake_address,
+    #                                                                                                   block_number),
+    #                                      seed=z['seed'])
+    #
+    #     if score is None:
+    #         logger.info('Score None for stake_address %s reveal_one %s', stake_address, reveal_one)
+    #         return
+    #
+    #     if score != z['weighted_hash']:
+    #         logger.info('Weighted_hash didnt match')
+    #         logger.info('Expected : %s', score)
+    #         logger.info('Found : %s', z['weighted_hash'])
+    #         logger.info('Seed found : %ld', z['seed'])
+    #         logger.info('Seed Expected : %ld',
+    #                     self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number']))
+    #         logger.info('Balance : %ld',
+    #                     self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number))
+    #
+    #         return
+    #
+    #     epoch = block_number // config.dev.blocks_per_epoch
+    #     epoch_seed = self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])
+    #
+    #     if epoch_seed != z['seed']:
+    #         logger.info('Seed didnt match')
+    #         logger.info('Expected : %ld', epoch_seed)
+    #         logger.info('Found : %ld', z['seed'])
+    #         return
+    #
+    #     sv_hash = self.factory.chain.get_stake_validators_hash()
+    #     # if sv_hash != z['SV_hash']:
+    #     # logger.info(( 'SV_hash didnt match' ))
+    #     # logger.info(( 'Expected : ', sv_hash ))
+    #     # logger.info(( 'Found : ', z['SV_hash'] ))
+    #     # return
+    #
+    #     self.factory.chain.stake_reveal_one.append(
+    #         [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
+    #     self.factory.master_mr.register(z['vote_hash'], data, 'R1')
+    #     if self.factory.nodeState.state == NState.synced:
+    #         self.broadcast(z['vote_hash'], 'R1')
+    #
+    #     return
 
     def IP(self, data):  # fun feature to allow geo-tagging on qrl explorer of test nodes..reveals IP so optional..
         """
@@ -847,15 +849,15 @@ class P2PProtocol(Protocol):
         self.factory.update_peer_addresses(peer_addresses)
         return
 
-    def get_latest_block_from_connection(self):
-        """
-        Get Latest Block
-        Sends the request for the last block in the mainchain.
-        :return:
-        """
-        logger.info('<<<Requested last block from %s', self.transport.getPeer().host)
-        self.transport.write(self.wrap_message('LB'))
-        return
+    # def get_latest_block_from_connection(self):
+    #     """
+    #     Get Latest Block
+    #     Sends the request for the last block in the mainchain.
+    #     :return:
+    #     """
+    #     logger.info('<<<Requested last block from %s', self.transport.getPeer().host)
+    #     self.transport.write(self.wrap_message('LB'))
+    #     return
 
     def get_m_blockheight_from_connection(self):
         """
@@ -1087,7 +1089,8 @@ class P2PProtocol(Protocol):
         self.buffer = self.buffer[12 + m + 3:]  # reset the buffer to after the msg
         return True
 
-    def dataReceived(self, data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
+    def dataReceived(self,
+                     data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
         """
         :param data:Message data without initiator
         :return:
