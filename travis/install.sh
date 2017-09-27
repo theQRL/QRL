@@ -1,5 +1,11 @@
 #!/bin/sh
 
+if [ -z "${PLATFORM}" ]
+then
+   echo "PLATFORM has not been set"
+   exit 1
+fi
+
 USER_INFO="$( id -u ${USER} ):$( id -g ${USER} )"
 SHARE_USER_INFO="-v /etc/group:/etc/group:ro -v /etc/passwd:/etc/passwd:ro -u ${USER_INFO}"
 USER_INFO=''
