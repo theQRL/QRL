@@ -25,7 +25,6 @@ COPY travis/xenial/build.sh /build.sh
 # TODO: Map to host directory to keep wallets outside
 
 # START SCRIPT - The script is started from travis with the appropriate environment variables
-#CMD ["/root/start.sh"]
 
 # EXPOSE PORTS
 # TODO: Map ports to get access from outside
