@@ -1,3 +1,5 @@
+**WARNING: These instructions are outdated**
+
 # Running a Quantum Resistant Ledger node on a Raspberry Pi
 
 ## Raspberry Pi operating system installation & setup : 
