@@ -1011,51 +1011,30 @@ class P2PProtocol(Protocol):
         :param data:Message data without initiator
         :return:
         :rtype: None
+
+        >>> from unittest.mock import MagicMock
         >>> from qrl.core.doctest_data import wrap_message_expected1
         >>> p=P2PProtocol()
-        >>> val_received = 0
-        >>> def mockService(x):
-        ...     global val_received
-        ...     val_received = x
-        >>> p.service['TESTKEY_1234'] = mockService
+        >>> p.service['TESTKEY_1234'] = MagicMock(side_effect=(lambda x: x))
         >>> p.dataReceived(wrap_message_expected1)
-        >>> val_received
-        12345
+        >>> p.service['TESTKEY_1234'].call_args
+        call(12345)
+        >>> from unittest.mock import MagicMock
         >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2264617461223a20225b5c223137322e31382e302e325c225d222c202274797065223a2022504c227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ff'))
         >>> p=P2PProtocol()
-        >>> val_received = False
-        >>> def mockService():
-        ...     global val_received
-        ...     val_received = True
-        >>> p.service['MB'] = mockService
+        >>> p.service['MB'] = MagicMock()
         >>> p.dataReceived(data)
-        >>> val_received
+        >>> print(p.service['MB'].called)
         True
         >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2274797065223a2022504c222c202264617461223a20225b5c223137322e31382e302e365c225d227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ffff00003030303030306434007b2274797065223a20224342222c202264617461223a20227b5c22626c6f636b5f6e756d6265725c223a20302c205c22686561646572686173685c223a205b35332c203133302c203136382c2035372c203138332c203231352c203132302c203137382c203230392c2033302c203139342c203232332c203232312c2035382c2037322c203132342c2036322c203134382c203131302c2038312c2031392c203138392c2032372c203234332c203231382c2038372c203231372c203230332c203139382c2039372c2038342c2031395d7d227d0000ffff00003030303030303635007b2274797065223a20225645222c202264617461223a20227b5c2267656e657369735f707265765f686561646572686173685c223a205c2243727970746f6e69756d5c222c205c2276657273696f6e5c223a205c22616c7068612f302e3435615c227d227d0000ff'))
         >>> p=P2PProtocol()
-        >>> valid_count = 0
-        >>> def mockServiceMB():
-        ...     global valid_count
-        ...     valid_count += 1
-        >>> def mockServicePL(data):
-        ...     global valid_count
-        ...     if data == '["172.18.0.6"]':
-        ...         valid_count+=1
-        >>> def mockServiceVE(data=None):
-        ...     global valid_count
-        ...     if data is None or data == '{"genesis_prev_headerhash": "Cryptonium", "version": "alpha/0.45a"}':
-        ...         valid_count += 1
-        >>> def mockServiceCB(data):
-        ...     global valid_count
-        ...     if data == '{"block_number": 0, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}':
-        ...         valid_count+=1
-        >>> p.service['MB'] = mockServiceMB
-        >>> p.service['PL'] = mockServicePL
-        >>> p.service['VE'] = mockServiceVE
-        >>> p.service['CB'] = mockServiceCB
+        >>> p.service['MB'] = MagicMock()
+        >>> p.service['PL'] = MagicMock()
+        >>> p.service['VE'] = MagicMock()
+        >>> p.service['CB'] = MagicMock()
         >>> p.dataReceived(data)
-        >>> valid_count
-        5
+        >>> p.service['MB'].call_count == 1 and p.service['PL'].call_count == 1 and p.service['VE'].call_count == 2 and p.service['CB'].call_count == 1
+        True
         """
         self.buffer += data
 
