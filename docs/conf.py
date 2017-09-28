@@ -21,6 +21,10 @@ import sys
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.insert(0, os.path.abspath('.'))
+import sphinx_rtd_theme
+from recommonmark.parser import CommonMarkParser
+from recommonmark.transform import AutoStructify
+
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     import inspect
@@ -57,7 +61,7 @@ extensions = ['sphinx.ext.autodoc',
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -120,15 +124,16 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'bizstyle'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
-# html_theme_path = []
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -201,25 +206,24 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'core-doc'
 
-
 # -- Options for LaTeX output --------------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-# 'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    # 'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-# 'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    # 'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-# 'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    # 'preamble': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, targematplot name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'user_guide.tex', u'QRL Documentation',
-   u'The Quantum Resistant Ledger', 'manual'),
+    ('index', 'user_guide.tex', u'QRL Documentation',
+     u'The Quantum Resistant Ledger', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -247,9 +251,20 @@ python_version = '.'.join(map(str, sys.version_info[0:2]))
 intersphinx_mapping = {
     'sphinx': ('http://sphinx.pocoo.org', None),
     'python': ('http://docs.python.org/' + python_version, None),
-#    'matplotlib': ('http://matplotlib.sourceforge.net', None),
-#    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-#    'sklearn': ('http://scikit-learn.org/stable', None),
-#    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
-#    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    #    'matplotlib': ('http://matplotlib.sourceforge.net', None),
+    #    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+    #    'sklearn': ('http://scikit-learn.org/stable', None),
+    #    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
+    #    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
 }
+
+source_parsers = {
+    '.md': CommonMarkParser,
+}
+
+
+def setup(app):
+    app.add_config_value('recommonmark_config', {
+        'enable_eval_rst': True,
+    }, True)
+    app.add_transform(AutoStructify)
