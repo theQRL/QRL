@@ -23,6 +23,7 @@ class StakeValidator:
         self.first_hash = first_hash
         self.hashchain_terminators = tuple(hashchain_terminators)
         self.nonce = 0
+        self.is_banned = False
         if hashchain_terminators:
             self.cache_hash = dict()
             for chain_num in range(config.dev.hashchain_nums):

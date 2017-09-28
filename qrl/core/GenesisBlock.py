@@ -40,6 +40,7 @@ class GenesisBlock(object, metaclass=Singleton):
 
         self.blockheader = BlockHeader()
         self.transactions = []
+        self.duplicate_transactions = []
         self.stake = []
         self.state = []
 

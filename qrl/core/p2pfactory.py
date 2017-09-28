@@ -79,27 +79,29 @@ class P2PFactory(ServerFactory):
         msg_hash_str = bin2hstr(msg_hash)
 
         if msg_hash_str in self.master_mr.hash_msg:
-            if msg_hash_str in self.master_mr.hash_callLater:
-                del self.master_mr.hash_callLater[msg_hash_str]
+            if msg_hash_str in self.master_mr.requested_hash:
+                del self.master_mr.requested_hash[msg_hash_str]
             return
-        for peer in self.master_mr.hash_peer[msg_hash_str]:
-            if peer not in self.master_mr.requested_hash[msg_hash_str]:
-                self.master_mr.requested_hash[msg_hash_str].append(peer)
-                # Storing MR params, so the received full message could be checked against
-                # the MR receipt provided.
-                self.master_mr.hash_params[msg_hash_str] = data
-                peer.transport.write(peer.wrap_message('SFM', helper.json_encode(data)))
-                call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
-                                                   self.RFM,
-                                                   data)
-                self.master_mr.hash_callLater[msg_hash_str] = call_later_obj
-                return
 
-        # If executing reach to this line, then it means no peer was able to provide
+        peers_list = self.master_mr.requested_hash[msg_hash_str].peers_connection_list
+        message_request = self.master_mr.requested_hash[msg_hash_str]
+        for peer in peers_list:
+            if peer in message_request.already_requested_peers:
+                continue
+            message_request.already_requested_peers.append(peer)
+
+            peer.transport.write(peer.wrap_message('SFM', helper.json_encode(data)))
+            call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
+                                               self.RFM,
+                                               data)
+            message_request.callLater = call_later_obj
+            return
+
+        # If execution reach to this line, then it means no peer was able to provide
         # Full message for this hash thus the hash has to be deleted.
         # Moreover, negative points could be added to the peers, for this behavior
-        if msg_hash_str in self.master_mr.hash_callLater:
-            del self.master_mr.hash_callLater[msg_hash_str]
+        if msg_hash_str in self.master_mr.requested_hash:
+            del self.master_mr.requested_hash[msg_hash_str]
 
     def select_best_bkmr(self):
         block_chain_buffer = self.chain.block_chain_buffer
@@ -133,6 +135,13 @@ class P2PFactory(ServerFactory):
         """
         logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
         for peer in self.peer_addresses:
+            found = False
+            for peer_conn in self.peer_connections:
+                if peer == peer_conn.transport.getPeer().host:
+                    found = True
+                    break
+            if found:
+                continue
             reactor.connectTCP(peer, 9000, self)
 
     def get_block_a_to_b(self, a, b):
@@ -314,7 +323,6 @@ class P2PFactory(ServerFactory):
         # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
 
-        msg_hash = sha256(msg_hash)
         data = {'hash': msg_hash,
                 'type': msg_type}
 
@@ -322,10 +330,14 @@ class P2PFactory(ServerFactory):
             for key in extra_data:
                 data[key] = extra_data[key]
 
+        msg_hash_str = bin2hstr(tuple(msg_hash))
+        ignore_peers = []
+        if msg_hash_str in self.master_mr.requested_hash:
+            ignore_peers = self.master_mr.requested_hash[msg_hash_str].peers_connection_list
+
         for peer in self.peer_connections:
-            if msg_hash in self.master_mr.hash_peer:
-                if peer in self.master_mr.hash_peer[msg_hash]:
-                    continue
+            if peer in ignore_peers:
+                continue
             peer.transport.write(self.protocol.wrap_message('MR', json_encode(data)))
 
     # request transaction_pool from peers

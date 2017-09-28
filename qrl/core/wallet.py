@@ -30,6 +30,8 @@ class Wallet:
         """
         config.create_path(config.user.wallet_path)
         self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
+        self.slave_dat_filename = os.path.join(config.user.wallet_path, config.dev.slave_dat_filename)
+
         self.address_bundle = None
         self._read_wallet()
         self._valid_or_create()
@@ -44,6 +46,23 @@ class Wallet:
                     for a in self.address_bundle]
 
             json.dump(data, outfile)
+
+    def save_slave(self, slave):
+        with open(self.slave_dat_filename, "w") as outfile:
+            data = AddressSerialized(slave.get_address(), slave.get_mnemonic(), slave.get_index())
+            json.dump(data, outfile)
+
+    def read_slave(self):
+        self.address_bundle = None
+        if not os.path.isfile(self.slave_dat_filename):
+            return
+
+        try:
+            with open(self.slave_dat_filename, "r") as infile:
+                data = json.load(infile)
+                return data
+        except Exception as e:
+            logger.warning("It was not possible to open the wallet: %s", e)
 
     def _read_wallet(self):
         self.address_bundle = None

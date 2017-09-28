@@ -5,7 +5,7 @@
 import random
 import time
 from collections import Counter, defaultdict
-from copy import deepcopy
+import simplejson as json
 from functools import reduce
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -514,8 +514,11 @@ class POS:
 
             delay = config.dev.minimum_minting_delay
             if self.chain.mining_address in stake_list:
-                self.create_next_block(blocknumber)
-                delay = None
+                if stake_list[self.chain.mining_address].is_banned:
+                    logger.warning('You have been banned.')
+                else:
+                    self.create_next_block(blocknumber)
+                    delay = None
 
             last_blocknum = self.chain.block_chain_buffer.height()
             self.restart_post_block_logic(last_blocknum + 1, delay)
