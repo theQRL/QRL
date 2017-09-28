@@ -1,5 +1,0 @@
-==========
-Developers
-==========
-
-- listing people here?
