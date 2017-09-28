@@ -60,7 +60,7 @@ sudo ufw status verbose
 
 ```
 cd /home/pi/QRL
-sudo pip install -r requirements.txt
+sudo pip3 install -r requirements.txt
 ```
   
   
