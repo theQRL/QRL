@@ -8,7 +8,7 @@ from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE,
 from qrl.core import logger, config, ntp
 from qrl.core.blockheader import BlockHeader
 from qrl.core.helper import select_target_hashchain
-from qrl.core.Transaction import Transaction, CoinBase
+from qrl.core.Transaction import Transaction, CoinBase, DuplicateTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 
@@ -63,6 +63,11 @@ class Block(object):
             hashedtransactions.append(tx.txhash)
             self.transactions.append(tx)  # copy memory rather than sym link
 
+        self.duplicate_transactions = []
+
+        for tx in chain.duplicate_tx_pool:
+            self.duplicate_transactions.append(chain.duplicate_tx_pool[tx])
+
         if not hashedtransactions:
             hashedtransactions = [sha256('')]
 
@@ -77,10 +82,12 @@ class Block(object):
                                 hashedtransactions=hashedtransactions,
                                 fee_reward=fee_reward)
 
-        coinbase_tx = CoinBase().create(self.blockheader.block_reward + self.blockheader.fee_reward,
-                                                    self.blockheader.headerhash,
-                                                    chain.wallet.address_bundle[0].xmss.get_address(),
-                                                    chain.block_chain_buffer.get_slave_xmss(last_block_number + 1))
+        coinbase_tx = CoinBase().create(self.blockheader,
+                                        chain.block_chain_buffer.get_slave_xmss(last_block_number + 1))
+        #coinbase_tx = CoinBase().create(self.blockheader.block_reward + self.blockheader.fee_reward,
+        #                                            self.blockheader.headerhash,
+        #                                            chain.wallet.address_bundle[0].xmss.get_address(),
+        #                                            chain.block_chain_buffer.get_slave_xmss(last_block_number + 1))
 
         self.transactions[0] = coinbase_tx
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
@@ -94,6 +101,11 @@ class Block(object):
         self.transactions = []
         for tx in transactions:
             self.transactions.append(Transaction.from_txdict(tx))
+
+        duplicate_transactions = json_block['duplicate_transactions']
+        self.duplicate_transactions = []
+        for tx in duplicate_transactions:
+            self.duplicate_transactions.append(DuplicateTransaction().from_txdict(tx))
 
         if self.blockheader.blocknumber == 0:
             self.state = json_block['state']
@@ -114,8 +126,7 @@ class Block(object):
         # Validating coinbase txn
         coinbase_txn = self.transactions[0]
         valid = coinbase_txn.validate_tx(chain=chain,
-                                         block_headerhash=self.blockheader.headerhash,
-                                         blocknumber=self.blockheader.blocknumber)
+                                         blockheader=self.blockheader)
 
         if not valid:
             logger.warning('coinbase txn in block failed')
@@ -123,9 +134,15 @@ class Block(object):
 
         for tx_num in range(1, len(self.transactions)):
             tx = self.transactions[tx_num]
-            if tx.validate_tx() is False:
+            if not tx.validate_tx():
                 logger.warning('invalid tx in block')
                 logger.warning('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
+                return False
+
+        for tx in self.duplicate_transactions:
+            if not tx.validate_tx():
+                logger.warning('invalid duplicate tx in block')
+                logger.warning('txhash: %s tx_stake_selector: %s', tx.get_message_hash(), tx.stake_selector)
                 return False
 
         return True

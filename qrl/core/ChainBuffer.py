@@ -51,6 +51,9 @@ class ChainBuffer:
         epoch = blocknumber // config.dev.blocks_per_epoch
         if epoch not in self.slave_xmss:
             self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
+            data = self.chain.wallet.read_slave()
+            if data and data['address'] == self.slave_xmss[epoch].get_address():
+                self.slave_xmss[epoch].set_index(data['index'])
         return self.slave_xmss[epoch]
 
     def get_next_slave_xmss(self, blocknumber):
@@ -264,6 +267,13 @@ class ChainBuffer:
                 self.blocks[blocknum] = [block_buffer, state_buffer]
                 if blocknum + 1 in self.blocks:
                     self.remove_blocks(blocknum + 1)
+            elif block_buffer.score == old_block_buffer.score:  # When two blocks having equal score
+                oldheaderhash = old_block_buffer.block.blockheader.headerhash
+                newheaderhash = block_buffer.block.blockheader.headerhash
+                if int(bin2hstr(newheaderhash), 16) < int(bin2hstr(oldheaderhash), 16):
+                    self.blocks[blocknum] = [block_buffer, state_buffer]
+                    if blocknum + 1 in self.blocks:
+                        self.remove_blocks(blocknum + 1)
 
         self.add_txns_buffer()
         return True
@@ -289,6 +299,10 @@ class ChainBuffer:
         blocknumber = block.blockheader.blocknumber
         blocks_left = get_blocks_left(blocknumber)
         stake_validators_list.sv_list[block.blockheader.stake_selector].nonce += 1
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in stake_validators_list.sv_list:
+                stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
+
         if blocks_left == 1:
             stake_validators_list.move_next_epoch()
             self.update_hash_chain(blocknumber)
@@ -531,6 +545,10 @@ class ChainBuffer:
         if stake_selector not in sv_list:
             return
 
+        if sv_list[stake_selector].is_banned:
+            logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
+            return
+
         reveal_hash = tuple(data['reveal_hash'])
         vote_hash = tuple(data['vote_hash'])
 
@@ -580,6 +598,27 @@ class ChainBuffer:
             return True
 
         return False
+
+    def is_duplicate_block(self, blocknum, prev_blockheaderhash, stake_selector):
+        """
+        A block is considered as a dirty block, if same stake validator created two different blocks
+        for the same blocknumber having same prev_blockheaderhash.
+        :param data:
+        :return:
+        """
+        if blocknum > self.height():
+            return
+
+        best_block = self.get_block_n(blocknum)
+        best_blockheader = best_block.blockheader
+
+        if best_blockheader.prev_blockheaderhash != prev_blockheaderhash:
+            return
+
+        if best_blockheader.stake_selector != stake_selector:
+            return
+
+        return True
 
     def error_msg(self, func_name, blocknum, error=None):
         if error:

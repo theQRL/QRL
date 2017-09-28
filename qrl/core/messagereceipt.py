@@ -4,9 +4,10 @@
 
 from collections import OrderedDict, defaultdict
 
-from pyqrllib.pyqrllib import sha2_256, bin2hstr
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
-
+from qrl.core.Message import Message
+from qrl.core.MessageRequest import MessageRequest
 
 class MessageReceipt(object):
     """
@@ -39,17 +40,16 @@ class MessageReceipt(object):
     """
 
     # TODO: Use enumerations instead of strings to reduce data size
-    allowed_types = ['TX', 'ST', 'BK', 'R1']
+    allowed_types = ['TX', 'ST', 'BK', 'DT']
 
     def __init__(self):
-        # Keep three dicts using hash as a key
-        self.hash_msg = dict()
-        self.hash_type = OrderedDict()
-        self.hash_peer = defaultdict(list)
-        self.hash_params = dict()
+        self.hash_msg = OrderedDict()
+        self.requested_hash = OrderedDict()
 
-        self.requested_hash = defaultdict(list)
-        self.hash_callLater = dict()
+    def register_duplicate(self, msg_hash):
+        msg_hash_str = bin2hstr(msg_hash)
+
+        self.requested_hash[msg_hash_str].is_duplicate = True
 
     def register(self, msg_hash, msg_obj, msg_type):
         """
@@ -62,25 +62,13 @@ class MessageReceipt(object):
         """
         # FIXME: Hash is converted to string
         # FIXME: No check on the validity of the message type
-        if len(self.hash_type) >= config.dev.message_q_size:
-            self.__remove__()
+        if len(self.hash_msg) >= config.dev.message_q_size:
+            self.__remove__(self.hash_msg)
 
-        msg_hash = bin2hstr(sha2_256(msg_hash))
-        self.hash_type[msg_hash] = msg_type
-        self.hash_msg[msg_hash] = msg_obj
+        msg_hash = bin2hstr(msg_hash)
+        message = Message().create(msg_obj, msg_type)
 
-    def deregister(self, msg_hash, msg_type):
-        # FIXME: Hash is converted to string
-        msg_hash = sha2_256(msg_hash)
-
-        if msg_hash in self.hash_msg:
-            del self.hash_msg[msg_hash]
-        if msg_hash in self.hash_type:
-            del self.hash_type[msg_hash]
-        if msg_hash in self.hash_peer:
-            del self.hash_peer[msg_hash]
-        if msg_hash in self.hash_params:
-            del self.hash_params[msg_hash]
+        self.hash_msg[msg_hash] = message
 
     def add_peer(self, msg_hash, msg_type, peer, data=None):
         # Filter
@@ -88,78 +76,69 @@ class MessageReceipt(object):
             return
 
         # Limit amount
-        if len(self.hash_type) >= config.dev.message_q_size:
-            self.__remove__()
+        if len(self.requested_hash) >= config.dev.message_q_size:
+            self.__remove__(self.requested_hash)
 
-        # Register type
         msg_hash_str = bin2hstr(msg_hash)
 
-        if msg_hash_str not in self.hash_type:
-            self.hash_type[msg_hash_str] = msg_type
+        if msg_hash_str not in self.requested_hash:
+            self.requested_hash[msg_hash_str] = MessageRequest()
 
-        self.hash_peer[msg_hash_str].append(peer)
-
-        if data:
-            self.hash_params[msg_hash_str] = data
+        self.requested_hash[msg_hash_str].add_peer(msg_type, peer, data)
 
     def isRequested(self, msg_hash, peer, block=None):
-        msg_hash = bin2hstr(sha2_256(msg_hash))
-        if msg_hash in self.requested_hash:
-            if peer in self.requested_hash[msg_hash]:
+        msg_hash_str = bin2hstr(msg_hash)
+        if msg_hash_str in self.requested_hash:
+            if peer in self.requested_hash[msg_hash_str].peers_connection_list:
                 return True
 
         if block:
-            if self.block_params(msg_hash, block):
+            if self.block_params(msg_hash_str, block):
                return True
 
-        self.remove_hash(msg_hash, peer)
+        self.remove_hash(msg_hash_str, peer)
         return False
 
-    def block_params(self, msg_hash, block):
-        if msg_hash not in self.hash_params:
+    def block_params(self, msg_hash_str, block):
+        if msg_hash_str not in self.requested_hash:
             return False
 
-        data = self.hash_params[msg_hash]
+        params = self.requested_hash[msg_hash_str].params
 
-        if block.transactions[0].txto != data['stake_selector']:
+        if block.transactions[0].txto != params['stake_selector']:
             return False
 
-        if block.blockheader.blocknumber != data['blocknumber']:
+        if block.blockheader.blocknumber != params['blocknumber']:
             return False
 
-        if block.blockheader.prev_blockheaderhash != data['prev_headerhash']:
+        if block.blockheader.prev_blockheaderhash != params['prev_headerhash']:
             return False
 
-        if block.blockheader.reveal_hash != data['reveal_hash']:
+        if block.blockheader.reveal_hash != params['reveal_hash']:
             return False
 
-        if block.blockheader.vote_hash != data['vote_hash']:
+        if block.blockheader.vote_hash != params['vote_hash']:
             return False
 
         return True
 
-    def add_to_master(self, msg_hash, msg_type):
-        self.hash_type[msg_hash] = msg_type
+    def deregister(self, msg_hash, msg_type):
+        # FIXME: Hash is converted to string
+        msg_hash = bin2hstr(msg_hash)
 
-    def __remove__(self):
-        msg_hash, msg_type = self.hash_type.popitem(last=False)
         if msg_hash in self.hash_msg:
             del self.hash_msg[msg_hash]
-        if msg_hash in self.hash_type:
-            del self.hash_type[msg_hash]
-        if msg_hash in self.hash_peer:
-            del self.hash_peer[msg_hash]
-        if msg_hash in self.hash_params:
-            del self.hash_params[msg_hash]
+
+    def __remove__(self, myObj):
+        myObj.popitem(last=False)
 
     def remove_hash(self, msg_hash, peer):
-        if msg_hash in self.hash_peer:
-            if peer in self.hash_peer[msg_hash]:
-                self.hash_peer[msg_hash].remove(peer)
-                if self.hash_peer[msg_hash]:
-                    return
-                del self.hash_peer[msg_hash]
-                del self.hash_type[msg_hash]
+        if msg_hash in self.hash_msg:
+            message = self.hash_msg[msg_hash]
+            if peer in message.peers_connection_list:
+                message.peers_connection_list.remove(peer)
+                if not message.peers_connection_list:
+                    del self.hash_msg[msg_hash]
 
     def contains(self, msg_hash, msg_type):
         """
@@ -172,18 +151,17 @@ class MessageReceipt(object):
         msg_hash_str = bin2hstr(msg_hash)
 
         if msg_hash_str in self.hash_msg:
-            if msg_hash_str in self.hash_type:
-                if self.hash_type[msg_hash_str] == msg_type:
-                    return True
+            message = self.hash_msg[msg_hash_str]
+            if message.msg_type == msg_type:
+                return True
 
         return False
 
-    def peer_contains_hash(self, msg_hash, msg_type, peer):
+    def is_callLater_active(self, msg_hash):
         msg_hash_str = bin2hstr(msg_hash)
 
-        if msg_hash_str in self.hash_peer:
-            if peer in self.hash_peer[msg_hash_str]:
-                if self.hash_type[msg_hash_str] == msg_type:
-                    return True
+        if msg_hash_str in self.requested_hash:
+            if self.requested_hash[msg_hash_str].callLater:
+                return True
 
         return False

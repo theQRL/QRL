@@ -415,17 +415,18 @@ class CoinBase(Transaction):
         self.amount = int(dict_tx['amount'])
         return self
 
-    def create(self, block_reward, block_headerhash, stake_owner, xmss):
-        self.txfrom = stake_owner
-        self.txto = stake_owner
-        self.amount = block_reward
-        self.txhash = block_headerhash
+    def create(self, blockheader, xmss):
+        self.txfrom = blockheader.stake_selector
+        self.txto = blockheader.stake_selector
+        self.amount = blockheader.block_reward + blockheader.fee_reward
+
+        self.txhash = blockheader.prev_blockheaderhash + (blockheader.blocknumber,) + blockheader.headerhash
         self._process_XMSS(self.txfrom, self.txhash, xmss)
         return self
 
-    def validate_tx(self, chain, block_headerhash, blocknumber):
-        sv_list = chain.block_chain_buffer.stake_list_get(blocknumber)
-        if blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
+    def validate_tx(self, chain, blockheader):
+        sv_list = chain.block_chain_buffer.stake_list_get(blockheader.blocknumber)
+        if blockheader.blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
             logger.warning('Stake validator doesnt own the Public key')
             logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
             logger.warning('Found public key %s', self.PK)
@@ -436,12 +437,13 @@ class CoinBase(Transaction):
             logger.warning('txto: %s txfrom: %s', self.txto, self.txfrom)
             return False
 
-        txhash = block_headerhash
+        txhash = blockheader.prev_blockheaderhash + (blockheader.blocknumber,) + blockheader.headerhash
         txhash = sha256(txhash + self.pubhash)
 
         if self.txhash != txhash:
             logger.warning('Block_headerhash doesnt match')
-            logger.warning('Found: %s Expected: %s', self.txhash, block_headerhash)
+            logger.warning('Found: %s', self.txhash)
+            logger.warning('Expected: %s', txhash)
             return False
 
         #Slave XMSS is used to sign COINBASE txn having quite low XMSS height
@@ -489,3 +491,79 @@ class LatticePublicKey(Transaction):
             return False
 
         return True
+
+class DuplicateTransaction:
+    def __init__(self):
+        self.blocknumber = 0
+        self.prev_blockheaderhash = None
+
+        self.coinbase1 = None
+        self.headerhash1 = None
+
+        self.coinbase2 = None
+        self.headerhash2 = None
+
+        self.subtype = TX_SUBTYPE_DUPLICATE
+
+    def get_message_hash(self):
+        return self.headerhash1 + self.headerhash2
+
+    def create(self, block1, block2):
+        self.blocknumber = block1.blockheader.blocknumber
+        self.prev_blockheaderhash = block1.blockheader.prev_blockheaderhash
+
+        self.coinbase1 = block1.transactions[0]
+        self.headerhash1 = block1.blockheader.headerhash
+        self.coinbase2 = block2.transactions[0]
+        self.headerhash2 = block2.blockheader.headerhash
+
+        return self
+
+    def validate_tx(self):
+        if self.headerhash1 == self.headerhash2 and self.coinbase1.signature == self.coinbase2.signature:
+            logger.info('Invalid DT txn')
+            logger.info('coinbase1 and coinbase2 txn are same')
+            return
+
+        if not self.validate_hash(self.headerhash1, self.coinbase1):
+            return
+
+        if not self.validate_hash(self.headerhash2, self.coinbase2):
+            return
+
+        return True
+
+    def validate_hash(self, headerhash, coinbase):
+        txhash = self.prev_blockheaderhash + (self.blocknumber,) + headerhash
+        txhash = sha256(txhash + coinbase.pubhash)
+
+        if coinbase.txhash != txhash:
+            logger.info('Invalid Txhash')
+            logger.warning('Found: %s Expected: %s', coinbase.txhash, txhash)
+            return False
+
+        if not coinbase._validate_signed_hash(height=config.dev.slave_xmss_height):
+            return False
+
+        return True
+
+    def to_json(self):
+        return helper.json_encode_complex(self)
+
+    def _dict_to_transaction(self, dict_tx):
+        self.blocknumber = dict_tx['blocknumber']
+        self.prev_blockheaderhash = tuple(dict_tx['prev_blockheaderhash'])
+
+        self.coinbase1 = CoinBase()._dict_to_transaction(dict_tx['coinbase1'])
+        self.headerhash1 = tuple(dict_tx['headerhash1'])
+
+        self.coinbase2 = CoinBase()._dict_to_transaction(dict_tx['coinbase2'])
+        self.headerhash2 = tuple(dict_tx['headerhash2'])
+
+        return self
+
+    def json_to_transaction(self, str_tx):
+        return self._dict_to_transaction(json.loads(str_tx))
+
+    def from_txdict(self, dict_tx):
+        return self._dict_to_transaction(dict_tx)

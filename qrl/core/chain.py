@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import qrl.core.Transaction_subtypes
+from collections import OrderedDict
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
@@ -50,12 +51,19 @@ class Chain:
         self.prev_txpool = [None] * 1000  # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
+        self.duplicate_tx_pool = OrderedDict()
         self.stake_reveal_one = []
         self.stake_ban_list = []
         self.stake_ban_block = {}
         self.stake_validator_latency = defaultdict(dict)
 
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
+
+    def add_tx_to_duplicate_pool(self, duplicate_txn):
+        if len(self.duplicate_tx_pool) >= config.dev.transaction_pool_size:
+            self.duplicate_tx_pool.popitem(last=False)
+
+        self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
 
     def initialize(self):
         logger.info('QRL blockchain ledger %s', self.version_number)
@@ -827,8 +835,8 @@ class Chain:
 
         try:
             with open(self.get_chaindatafile(epoch), 'rb') as myfile:
-                jsonBlock = StringIO()
-                tmp = ""
+                jsonBlock = bytearray()
+                tmp = bytearray()
                 count = 0
                 offset = 0
                 while True:
@@ -837,24 +845,23 @@ class Chain:
                         offset += 1
                         if count > 0 and char != delimiter[count]:
                             count = 0
-                            jsonBlock.write(tmp)
-                            tmp = ""
+                            jsonBlock += tmp
+                            tmp = bytearray()
                         if char == delimiter[count]:
-                            tmp += delimiter[count]
+                            tmp.append(delimiter[count])
                             count += 1
                             if count < len(delimiter):
                                 continue
-                            tmp = ""
+                            tmp = bytearray()
                             count = 0
-                            compressedBlock = jsonBlock.getvalue()
-                            pos = offset - len(delimiter) - len(compressedBlock)
-                            jsonBlock = bz2.decompress(compressedBlock)
+                            pos = offset - len(delimiter) - len(jsonBlock)
+                            jsonBlock = bz2.decompress(jsonBlock)
                             block = Block.from_json(jsonBlock)
-                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(compressedBlock))
+                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
                             block_list.append(block)
-                            jsonBlock = StringIO()
+                            jsonBlock = bytearray()
                             continue
-                        jsonBlock.write(char)
+                        jsonBlock.append(char)
                     if len(chars) < config.dev.chain_read_buffer_size:
                         break
         except Exception as e:
@@ -1018,6 +1025,9 @@ class Chain:
     def m_create_block(self, reveal_hash, vote_hash, last_block_number=-1):
         myBlock = Block()
         myBlock.create(self, reveal_hash, vote_hash, last_block_number)
+
+        slave_xmss = self.block_chain_buffer.get_slave_xmss(last_block_number + 1)
+        self.wallet.save_slave(slave_xmss)
         return myBlock
 
     def m_add_block(self, block_obj):

@@ -9,6 +9,7 @@ import time
 import statistics
 from twisted.internet.protocol import Protocol, connectionDone
 
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import logger
 from qrl.core.helper import json_print_telnet
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
@@ -30,10 +31,10 @@ class ApiProtocol(Protocol):
         if len(data) == 0:
             return
 
-        if data[0] != 'GET' and data[0] != 'OPTIONS':
+        if data[0] != b'GET' and data[0] != b'OPTIONS':
             return False
 
-        if data[0] == 'OPTIONS':
+        if data[0] == b'OPTIONS':
             http_header_OPTIONS = ("HTTP/1.1 200 OK\r\n"
                                    "Access-Control-Allow-Origin: *\r\n"
                                    "Access-Control-Allow-Methods: GET\r\n"
@@ -44,7 +45,7 @@ class ApiProtocol(Protocol):
             self.transport.write(http_header_OPTIONS)
             return
 
-        data = data[1][1:].split('/')
+        data = data[1].decode('ascii')[1:].split('/')
 
         if data[0].lower() != 'api':
             return False
@@ -79,7 +80,7 @@ class ApiProtocol(Protocol):
                            "Access-Control-Allow-Methods: GET\r\n"
                            "\r\n") % (str(len(json_txt)))
 
-        self.transport.write(http_header_GET + json_txt)
+        self.transport.write(bytes(http_header_GET + json_txt, 'utf-8'))
         return
 
     def exp_win(self, data=None):
@@ -170,6 +171,8 @@ class ApiProtocol(Protocol):
             js_bk1.status = 'ok'
             js_bk1.blockheader.block_reward /= 100000000.000000000
             js_bk1.blockheader.fee_reward /= 100000000.000000000
+            js_bk1.blockheader.headerhash = bin2hstr(js_bk1.blockheader.headerhash)
+            js_bk1.blockheader.prev_blockheaderhash = bin2hstr(js_bk1.blockheader.prev_blockheaderhash)
             i = 0
             for txn in js_bk1.transactions[0:]:
                 if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
