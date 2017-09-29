@@ -330,7 +330,7 @@ class P2PFactory(ServerFactory):
             for key in extra_data:
                 data[key] = extra_data[key]
 
-        self.broadcast(msg_hash, msg_type)
+        self.broadcast(msg_hash, msg_type, data)
 
     def broadcast(self, msg_hash, msg_type, data=None):  # Move to factory
         """
