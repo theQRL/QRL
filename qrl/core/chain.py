@@ -1131,6 +1131,7 @@ class Chain:
 
         if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.transaction_pool):
             self.add_tx_to_pool(tx)
+            self.wallet.save_wallet()
             # need to keep state after tx ..use self.wallet.info to store index..
             # far faster than loading the 55mb self.wallet..
             return tx
