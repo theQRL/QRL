@@ -156,7 +156,7 @@ class XMSS(object):
         0
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_index()
         0
-        >>> from qrl.crypto.doctest_data import *;
+        >>> from qrl.crypto.doctest_data import *
         >>> xmss = XMSS(4, xmss_test_seed2)
         >>> s = xmss.SIGN(str2bin("test"))
         >>> xmss.get_index()
@@ -169,6 +169,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *
         >>> xmss = XMSS(4, xmss_test_seed1)
         >>> xmss.set_index(1)
@@ -177,7 +178,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *
         >>> xmss = XMSS(4, xmss_test_seed1)
         >>> xmss.set_index(10)
-        >>> xmss.get_index();
+        >>> xmss.get_index()
         10
         """
         self._xmss.setIndex(new_index)
