@@ -225,7 +225,11 @@ class P2PProtocol(Protocol):
         if st.validate_tx() and st.state_validate_tx(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(st)
         else:
-            logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(st.hash))
+            hashes = []
+            for item in st.hash:
+                hashes.append(bin2hstr(item))
+
+            logger.warning('>>>ST %s invalid state validation failed..', hashes)
             return
 
         self.factory.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())

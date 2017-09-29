@@ -306,7 +306,10 @@ class StakeTransaction(Transaction):
 
         self.slave_public_key = tuple(dict_tx['slave_public_key'])
 
-        self.hash = tuple(dict_tx['hash'])
+        self.hash = []
+
+        for hash_item in dict_tx['hash']:
+            self.hash.append(tuple(hash_item))
 
         self.first_hash = tuple(dict_tx['first_hash'])
 
