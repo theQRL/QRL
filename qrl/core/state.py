@@ -231,7 +231,7 @@ class State:
     def state_update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        pubhash = tx.generate_pubhash(tx.PK  + (tx.ots_key,))
+        pubhash = tx.generate_pubhash(tx.PK + (tx.ots_key,))
 
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
@@ -471,11 +471,7 @@ class State:
             self.db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
-                pub = tx.pub
-                if tx.type == 'TX':
-                    pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
-
-                pubhash = sha256(''.join(pub))
+                pubhash = tx.generate_pubhash(tx.PK, (tx.ots_key,))
 
                 s1 = self.state_get_address(tx.txfrom)
 
