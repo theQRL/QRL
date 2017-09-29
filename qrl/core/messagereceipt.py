@@ -133,7 +133,7 @@ class MessageReceipt(object):
         myObj.popitem(last=False)
 
     def remove_hash(self, msg_hash_str, peer):
-        if msg_hash_str in self.hash_msg:
+        if msg_hash_str in self.requested_hash:
             message_request = self.requested_hash[msg_hash_str]
             if peer in message_request.peers_connection_list:
                 message_request.peers_connection_list.remove(peer)
