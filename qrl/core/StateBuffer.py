@@ -45,6 +45,8 @@ class StateBuffer:
         for addr in stxn_state_keys:
 
             addr_list = state.state_get_address(addr)
+            for i in range(0, len(addr_list[2])):
+                addr_list[2][i] = tuple(addr_list[2][i])
 
             if self.stxn_state[addr][1] == addr_list[1] and self.stxn_state[addr][2] == addr_list[2]:
                 del self.stxn_state[addr]

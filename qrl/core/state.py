@@ -231,7 +231,7 @@ class State:
     def state_update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        pubhash = tx.generate_pubhash(tx.PK + (tx.ots_key,))
+        pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
@@ -279,7 +279,7 @@ class State:
                                                                tx.first_hash,
                                                                tx.balance)
 
-                pubhash = tx.generate_pubhash(tx.PK + (tx.ots_key,))
+                pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
                 address_txn[tx.txfrom][2].append(pubhash)
 
         epoch_seed = self.stake_validators_list.calc_seed()
@@ -321,7 +321,7 @@ class State:
         # cycle through every tx in the new block to check state
         for tx in block.transactions:
 
-            pubhash = tx.generate_pubhash(tx.PK + (tx.ots_key,))
+            pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
@@ -471,7 +471,7 @@ class State:
             self.db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
-                pubhash = tx.generate_pubhash(tx.PK, (tx.ots_key,))
+                pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
                 s1 = self.state_get_address(tx.txfrom)
 
