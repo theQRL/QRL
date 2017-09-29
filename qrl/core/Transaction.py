@@ -64,8 +64,8 @@ class Transaction(object, metaclass=ABCMeta):
         return type_to_txn[subtype]()._dict_to_transaction(txdict)
 
     @staticmethod
-    def generate_pubhash(pub):
-        return sha256(pub)
+    def generate_pubhash(pub, ots_key):
+        return sha256(pub + tuple([int(char) for char in str(ots_key)]))
 
     @staticmethod
     def nonce_allocator(self, tx_list, block_chain_buffer, blocknumber=-1):
@@ -84,8 +84,8 @@ class Transaction(object, metaclass=ABCMeta):
 
     def _process_XMSS(self, txfrom, txhash, xmss):
         self.ots_key = xmss.get_index()
-        self.pubhash = self.generate_pubhash(xmss.pk() + (self.ots_key,))
-        self.txhash = sha2_256( txhash + self.pubhash)
+        self.pubhash = self.generate_pubhash(xmss.pk(), self.ots_key)
+        self.txhash = sha2_256(txhash + self.pubhash)
         self.txfrom = txfrom
 
         self.PK = xmss.pk()
@@ -245,7 +245,7 @@ class SimpleTransaction(Transaction):
         if not self.pre_condition(tx_state):
             return False
 
-        pubhash = self.generate_pubhash(self.PK  + (self.ots_key,))
+        pubhash = self.generate_pubhash(self.PK, self.ots_key)
 
         tx_pubhashes = tx_state[2]
 
@@ -257,7 +257,7 @@ class SimpleTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            pubhashn = self.generate_pubhash(txn.PK + (txn.ots_key,))
+            pubhashn = self.generate_pubhash(txn.PK, txn.ots_key)
             if pubhashn == pubhash:
                 logger.info('2. State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False

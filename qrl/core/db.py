@@ -73,6 +73,8 @@ class DB:
         return
 
     def get(self, key_obj):
+        if not isinstance(key_obj, bytes):
+            key_obj = bytes(key_obj, 'utf-8')
         value_obj = self.db.Get(key_obj)
         try:
             return json.loads(value_obj.decode())['value']

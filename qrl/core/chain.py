@@ -584,7 +584,7 @@ class Chain:
                        'block': 'unconfirmed',
                        'timestamp': 'unconfirmed',
                        'amount': tx.amount / 100000000.000000000,
-                       'type': tx.type}
+                       'type': tx.subtype}
 
             addr['transactions'].append(tmp_txn)
 
