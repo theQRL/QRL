@@ -33,7 +33,7 @@ class DB:
         # FIXME: Separate concerns (db / logic)
         addresses = []
         for k, v in self.db.RangeIter('Q'.encode()):
-            if k[0] == 'Q':
+            if k[0] == b'Q':
                 v = json.loads(v)['value']
                 addresses.append([k, v[1]])
         return addresses
@@ -42,8 +42,8 @@ class DB:
         # FIXME: Separate concerns (db / logic)
         coins = 0
         for k, v in self.db.RangeIter('Q'.encode()):
-            if k[0] == 'Q':
-                value = json.loads(v)['value']
+            if k[0] == ord('Q'):
+                value = json.loads(v.decode('utf-8'))['value']
                 coins = coins + value[1]
         return coins
 
