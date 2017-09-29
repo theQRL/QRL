@@ -348,7 +348,7 @@ class ChainBuffer:
 
     def get_stxn_state(self, blocknumber, addr):
         try:
-            if blocknumber - 1 == self.chain.height():
+            if blocknumber - 1 == self.chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
                 tmp_state = self.state.state_get_address(addr)
                 # FIX ME: Temporary fix, to convert all list into tuple
                 # As state is stored in json format which converts tuple into list
