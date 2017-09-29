@@ -331,7 +331,7 @@ class P2PFactory(ServerFactory):
             for key in extra_data:
                 data[key] = extra_data[key]
 
-        self.broadcast(msg_hash, msg_type, data)
+        self.broadcast(msg_hash, msg_type)
 
     def broadcast(self, msg_hash, msg_type, data=None):  # Move to factory
         """
@@ -348,10 +348,10 @@ class P2PFactory(ServerFactory):
             data = {'hash': sha256(msg_hash),
                     'type': msg_type}
 
-        for peer in self.factory.peer_connections:
+        for peer in self.peer_connections:
             if peer in ignore_peers:
                 continue
-            peer.transport.write(self.wrap_message('MR', helper.json_encode(data)))
+            peer.transport.write(self.protocol.wrap_message('MR', json_encode(data)))
 
     # request transaction_pool from peers
 
