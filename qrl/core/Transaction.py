@@ -420,7 +420,7 @@ class CoinBase(Transaction):
         self.txto = blockheader.stake_selector
         self.amount = blockheader.block_reward + blockheader.fee_reward
 
-        self.txhash = blockheader.prev_blockheaderhash + (blockheader.blocknumber,) + blockheader.headerhash
+        self.txhash = blockheader.prev_blockheaderhash + tuple([int(char) for char in str(blockheader.blocknumber)]) + blockheader.headerhash
         self._process_XMSS(self.txfrom, self.txhash, xmss)
         return self
 
@@ -437,7 +437,7 @@ class CoinBase(Transaction):
             logger.warning('txto: %s txfrom: %s', self.txto, self.txfrom)
             return False
 
-        txhash = blockheader.prev_blockheaderhash + (blockheader.blocknumber,) + blockheader.headerhash
+        txhash = blockheader.prev_blockheaderhash + tuple([int(char) for char in str(blockheader.blocknumber)]) + blockheader.headerhash
         txhash = sha256(txhash + self.pubhash)
 
         if self.txhash != txhash:
@@ -534,7 +534,7 @@ class DuplicateTransaction:
         return True
 
     def validate_hash(self, headerhash, coinbase):
-        txhash = self.prev_blockheaderhash + (self.blocknumber,) + headerhash
+        txhash = self.prev_blockheaderhash + tuple([int(char) for char in str(self.blocknumber)]) + headerhash
         txhash = sha256(txhash + coinbase.pubhash)
 
         if coinbase.txhash != txhash:
