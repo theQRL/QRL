@@ -331,6 +331,11 @@ class P2PFactory(ServerFactory):
             for key in extra_data:
                 data[key] = extra_data[key]
 
+        msg_hash_str = bin2hstr(tuple(msg_hash))
+        ignore_peers = []
+        if msg_hash_str in self.master_mr.requested_hash:
+            ignore_peers = self.master_mr.requested_hash[msg_hash_str].peers_connection_list
+
         self.broadcast(msg_hash, msg_type)
 
     def broadcast(self, msg_hash, msg_type, data=None):  # Move to factory
