@@ -51,6 +51,8 @@ class DB:
         # FIXME: Separate concerns (db / logic)
         addresses = []
         for k, v in self.db.RangeIter('Q'.encode()):
+            if k == b'slave_info':
+                continue
             addresses.append(k)
         for address in addresses:
             self.put(address, [0, 0, []])

@@ -29,7 +29,7 @@ class WalletProtocol(Protocol):
                          'stakenextepoch', 'stake', 'wallet', 'send', 'mempool',
                          'getnewaddress', 'quit', 'exit', 'search', 'help',
                          'savenewaddress', 'getinfo', 'blockheight', 'json_block',
-                         'reboot', 'peers']
+                         'reboot', 'peers', 'create']
 
         self.output = {'status': 1,
                        'keys': [],
@@ -57,7 +57,11 @@ class WalletProtocol(Protocol):
             if command.decode('utf-8') in self.cmd_list:
 
                 # Use switch cases when porting to a different language
-                if command == b'getnewaddress':
+                if command == b'create':
+                    self.factory.p2pFactory.pos.create_next_block(int(args[0]))
+                    self.output['status'] = 0
+                    self.output['message'].write('Creating blocknumber #'+str(args[0]))
+                elif command == b'getnewaddress':
                     self.getnewaddress(args)
 
                 elif command == b'hexseed':

@@ -2,7 +2,6 @@
 import json
 import struct
 import time
-from decimal import Decimal
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
@@ -13,7 +12,7 @@ from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState
 from qrl.core.nstate import NState
-from qrl.core.Transaction import StakeTransaction, SimpleTransaction
+from qrl.core.Transaction import StakeTransaction, SimpleTransaction, DuplicateTransaction
 from qrl.crypto.misc import sha256
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from queue import PriorityQueue
@@ -26,6 +25,7 @@ class P2PProtocol(Protocol):
                         'SFM': self.SFM,
                         'TX': self.TX,
                         'ST': self.ST,
+                        'DT': self.DT,
                         'BM': self.BM,
                         'BK': self.BK,
                         'PBB': self.PBB,
@@ -45,7 +45,6 @@ class P2PProtocol(Protocol):
                         'RT': self.RT,
                         'PE': self.PE,
                         'VE': self.VE,
-                        'R1': self.R1,
                         'IP': self.IP,
                         }
         self.buffer = b''
@@ -128,24 +127,22 @@ class P2PProtocol(Protocol):
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.peer_contains_hash( data['hash'], data['type'], self):
+        if self.factory.master_mr.contains(data['hash'], data['type']):
             return
 
         self.factory.master_mr.add_peer(data['hash'], data['type'], self)
 
-        tmpstr = bin2hstr(data['hash'])
-
-        if tmpstr in self.factory.master_mr.hash_callLater:  # Ignore if already requested
-            return
-
-        # FIXME: This is breaking encapsulation everywhere
-        if self.factory.master_mr.contains(tmpstr, data['type']):
+        if self.factory.master_mr.is_callLater_active(data['hash']):  # Ignore if already requested
             return
 
         if data['type'] == 'BK':
             block_chain_buffer = self.factory.chain.block_chain_buffer
 
             if not block_chain_buffer.verify_BK_hash(data, self.conn_identity):
+                if block_chain_buffer.is_duplicate_block(blocknum=data['blocknumber'],
+                                                         prev_blockheaderhash=tuple(data['prev_headerhash']),
+                                                         stake_selector=data['stake_selector']):
+                    self.factory.RFM(data)
                 return
 
             blocknumber = data['blocknumber']
@@ -178,32 +175,14 @@ class P2PProtocol(Protocol):
         data = json.loads(data)
         msg_hash = data['hash']
         msg_type = data['type']
+
         if not self.factory.master_mr.contains(msg_hash, msg_type):
             return
 
         # Sending message from node, doesn't guarantee that peer has received it.
         # Thus requesting peer could re request it, may be ACK would be required
-        # To confirm, if the peer has received, otherwise X number of maximum retry
-        # if self.factory.master_mr.peer_contains_hash(msg_hash, msg_type, self):
-        #    return
-
         self.transport.write(self.wrap_message(msg_type,
-                                               self.factory.master_mr.hash_msg[bin2hstr(msg_hash)]))
-
-        self.factory.master_mr.add_peer(msg_hash, msg_type, self)
-
-    def broadcast(self, msg_hash, msg_type):  # Move to factory
-        """
-        Broadcast
-        This function sends the Message Receipt to all connected peers.
-        :return:
-        """
-        data = {'hash': sha256(msg_hash),
-                'type': msg_type}
-
-        for peer in self.factory.peer_connections:
-            if peer not in self.factory.master_mr.hash_peer[data['hash']]:
-                peer.transport.write(self.wrap_message('MR', helper.json_encode(data)))
+                                               self.factory.master_mr.hash_msg[bin2hstr(msg_hash)].msg))
 
     def TX(self, data):  # tx received..
         """
@@ -246,11 +225,45 @@ class P2PProtocol(Protocol):
         if st.validate_tx() and st.state_validate_tx(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(st)
         else:
-            logger.warning('>>>ST %s invalid state validation failed..', st.hash)
+            logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(st.hash))
             return
 
-        self.factory.master_mr.register(st.get_message_hash(), st.transaction_to_json(), 'ST')
-        self.broadcast(st.get_message_hash(), 'ST')
+        self.factory.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())
+        return
+
+    def DT(self, data):
+        """
+        Duplicate Transaction
+        This function processes whenever a Transaction having
+        subtype DT is received.
+        :return:
+        """
+        try:
+            duplicate_txn = DuplicateTransaction().json_to_transaction(data)
+        except Exception as e:
+            logger.error('DT rejected')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), self):
+            return
+
+        if duplicate_txn.get_message_hash() in self.factory.chain.duplicate_tx_pool:
+            return
+
+        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
+            blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
+            addr=duplicate_txn.coinbase1.txfrom)
+
+        # TODO: State validate for duplicate_txn is pending
+        if duplicate_txn.validate_tx():
+            self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
+        else:
+            logger.warning('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
+            return
+
+        self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
         return
 
     def BM(self, data=None):  # blockheight map for synchronisation and error correction prior to POS cycle resync..
@@ -293,16 +306,36 @@ class P2PProtocol(Protocol):
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
             return
+
         logger.info('>>>Received block from %s %s %s',
                     self.conn_identity,
                     block.blockheader.blocknumber,
                     block.blockheader.stake_selector)
+
         if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self, block):
             return
 
+        block_chain_buffer = self.factory.chain.block_chain_buffer
+
+        if block_chain_buffer.is_duplicate_block(blocknum=block.blockheader.blocknumber,
+                                                 prev_blockheaderhash=block.blockheader.prev_blockheaderhash,
+                                                 stake_selector=block.blockheader.stake_selector):
+            logger.info('Found duplicate block #%s by %s',
+                        block.blockheader.blocknumber,
+                        block.blockheader.stake_selector)
+            coinbase_txn = block.transactions[0]
+
+            if coinbase_txn.validate_tx(chain=self.factory.chain, blockheader=block.blockheader):
+                self.factory.master_mr.register_duplicate(block.blockheader.headerhash)
+                block2 = block_chain_buffer.get_block_n(block.blockheader.blocknumber)
+
+                duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
+
+                self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
+                self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
+
         self.factory.pos.pre_block_logic(block)
         self.factory.master_mr.register(block.blockheader.headerhash, data, 'BK')
-        self.broadcast(block.blockheader.headerhash, 'BK')
         return
 
     def isNoMoreBlock(self, data):
@@ -687,119 +720,6 @@ class P2PProtocol(Protocol):
 
         return
 
-    # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
-    def R1(self, data):
-        """
-        Reveal
-        Process the reveal message received by the peer.
-        :return:
-        """
-        if self.factory.nodeState.state != NState.synced:
-            return
-        z = json.loads(data, parse_float=Decimal)
-        if not z:
-            return
-        block_number = z['block_number']
-        headerhash = z['headerhash'].encode('latin1')
-        stake_address = z['stake_address'].encode('latin1')
-        vote_hash = z['vote_hash'].encode('latin1')
-        reveal_one = z['reveal_one'].encode('latin1')
-
-        if not self.factory.master_mr.isRequested(z['vote_hash'], self):
-            return
-
-        if block_number <= self.factory.chain.height():
-            return
-
-        for entry in self.factory.chain.stake_reveal_one:  # already received, do not relay.
-            if entry[3] == reveal_one:
-                return
-
-        if len(self.factory.chain.stake_validator_latency) > 20:
-            del self.factory.chain.stake_validator_latency[min(self.factory.chain.stake_validator_latency.keys())]
-
-        if self.factory.nodeState.epoch_diff == 0:
-            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(z['block_number'])
-
-            if stake_address not in sv_list:
-                logger.info('stake address not in the stake_list')
-                logger.info('len of sv_list %s', len(sv_list))
-                logger.info('len of next_sv_list %s',
-                            len(self.factory.chain.block_chain_buffer.next_stake_list_get(z['block_number'])))
-                return
-
-            stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(block_number)
-
-            target_chain = stake_validators_list.select_target(headerhash)
-            if not stake_validators_list.validate_hash(vote_hash,
-                                                       block_number,
-                                                       target_chain=target_chain,
-                                                       stake_address=stake_address):
-                logger.info('%s vote hash doesnt hash to stake terminator vote %s',  # nonce %s vote_hash %s',
-                            self.conn_identity, vote_hash)  # , s[2], vote_hash_terminator)
-                return
-
-            if not stake_validators_list.validate_hash(reveal_one,
-                                                       block_number,
-                                                       target_chain=config.dev.hashchain_nums - 1,
-                                                       stake_address=stake_address):
-                logger.info('%s reveal doesnt hash to stake terminator reveal %s',  # nonce %s reveal_hash %s',
-                            self.conn_identity, reveal_one)  # , s[2], reveal_hash_terminator)
-                return
-
-        if len(self.factory.pos.r1_time_diff) > 2:
-            del self.factory.pos.r1_time_diff[min(self.factory.pos.r1_time_diff.keys())]
-
-        self.factory.pos.r1_time_diff[block_number].append(int(time.time() * 1000))
-
-        logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number,
-                    reveal_one)
-        score = self.factory.chain.score(stake_address=stake_address,
-                                         reveal_one=reveal_one,
-                                         balance=self.factory.chain.block_chain_buffer.get_st_balance(stake_address,
-                                                                                                      block_number),
-                                         seed=z['seed'])
-
-        if score is None:
-            logger.info('Score None for stake_address %s reveal_one %s', stake_address, reveal_one)
-            return
-
-        if score != z['weighted_hash']:
-            logger.info('Weighted_hash didnt match')
-            logger.info('Expected : %s', score)
-            logger.info('Found : %s', z['weighted_hash'])
-            logger.info('Seed found : %ld', z['seed'])
-            logger.info('Seed Expected : %ld',
-                        self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number']))
-            logger.info('Balance : %ld',
-                        self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number))
-
-            return
-
-        epoch = block_number // config.dev.blocks_per_epoch
-        epoch_seed = self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])
-
-        if epoch_seed != z['seed']:
-            logger.info('Seed didnt match')
-            logger.info('Expected : %ld', epoch_seed)
-            logger.info('Found : %ld', z['seed'])
-            return
-
-        sv_hash = self.factory.chain.get_stake_validators_hash()
-        # if sv_hash != z['SV_hash']:
-        # logger.info(( 'SV_hash didnt match' ))
-        # logger.info(( 'Expected : ', sv_hash ))
-        # logger.info(( 'Found : ', z['SV_hash'] ))
-        # return
-
-        self.factory.chain.stake_reveal_one.append(
-            [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
-        self.factory.master_mr.register(z['vote_hash'], data, 'R1')
-        if self.factory.nodeState.state == NState.synced:
-            self.broadcast(z['vote_hash'], 'R1')
-
-        return
-
     def IP(self, data):  # fun feature to allow geo-tagging on qrl explorer of test nodes..reveals IP so optional..
         """
         IP
@@ -834,7 +754,7 @@ class P2PProtocol(Protocol):
         new_ips = []
         for ip in data:
             if ip not in new_ips:
-                new_ips.append(ip.encode('latin1'))
+                new_ips.append(ip)
 
         peer_addresses = self.factory.peer_addresses
         logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
@@ -1207,6 +1127,7 @@ class P2PProtocol(Protocol):
             host_port = self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)
             if host_port in self.factory.peers_blockheight:
                 del self.factory.peers_blockheight[host_port]
+
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
         except Exception:

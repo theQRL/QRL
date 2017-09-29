@@ -315,6 +315,9 @@ class State:
             logger.warning('stake selector not in stake_list_get')
             return
 
+        if stake_validators_list.sv_list[block.blockheader.stake_selector].is_banned:
+            logger.warning('stake selector is in banned list')
+            return
         # cycle through every tx in the new block to check state
         for tx in block.transactions:
 
@@ -393,6 +396,10 @@ class State:
 
         for address in address_txn:
             self.db.put(address, address_txn[address])
+
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in self.stake_validators_list.sv_list:
+                self.stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
 
         if blocks_left == 1:
             logger.info('EPOCH change: resetting stake_list, activating next_stake_list, updating PRF with '
@@ -473,18 +480,18 @@ class State:
                 s1 = self.state_get_address(tx.txfrom)
 
                 if s1[1] - tx.amount < 0:
-                    logger.info((tx, tx.txfrom, 'exceeds balance, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    logger.info('%s %s exceeds balance, invalid tx %s', tx, tx.txfrom, tx.txhash)
+                    logger.info('failed state checks %s', bin2hstr(block.blockheader.headerhash))
                     return False
 
                 if tx.nonce != s1[0] + 1:
-                    logger.info(('nonce incorrect, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    logger.info('nonce incorrect, invalid tx %s', bin2hstr(tx.txhash))
+                    logger.info('%s failed state checks', bin2hstr(block.blockheader.headerhash))
                     return False
                 # TODO: To be fixed later
                 if pubhash in s1[2]:
-                    logger.info(('public key re-use detected, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    logger.info('public key re-use detected, invalid tx %s', bin2hstr(tx.txhash))
+                    logger.info('failed state checks %s', bin2hstr(block.blockheader.headerhash))
                     return False
 
                 s1[0] += 1
