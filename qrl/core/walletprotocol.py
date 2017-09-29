@@ -278,11 +278,11 @@ class WalletProtocol(Protocol):
                     self.output['status'] = 0
                     self.output['message'].write('>>> Blockheight: ' + str(self.factory.chain.m_blockheight()) + '\r\n')
                     self.output['message'].write(
-                        '>>> Headerhash: ' + self.factory.chain.m_blockchain[-1].blockheader.headerhash + '\r\n')
+                        '>>> Headerhash: ' + bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash) + '\r\n')
 
                     self.output['keys'] += ['blockheight', 'headerhash']
                     self.output['blockheight'] = self.factory.chain.m_blockheight()
-                    self.output['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
+                    self.output['headerhash'] = bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash)
 
                 elif command == b'peers':
                     self.output['status'] = 0
