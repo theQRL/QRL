@@ -25,8 +25,6 @@ class ChainBuffer:
         self.hash_chain = dict()
 
         self.slave_xmss = dict()
-        self.slave_xmss[self.epoch] = self.generate_slave_xmss(self.epoch)  # Slave Address for staking purpose only
-
 
         # TODO: For the moment, only the first address is used (discussed with cyyber)
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
