@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from pyqrllib.pyqrllib import str2bin, sha2_256
+from pyqrllib.pyqrllib import str2bin, sha2_256, bin2hstr
 from qrl.core import logger, config
 from qrl.core.messagereceipt import MessageReceipt
 
@@ -17,7 +17,8 @@ class TestMessageReceipt(TestCase):
     def test_create(self):
         mr = MessageReceipt()
         self.assertIsNotNone(mr)
-        self.assertEqual(mr.allowed_types, ['TX', 'ST', 'BK', 'R1'])
+        print(mr.allowed_types)
+        self.assertEqual(mr.allowed_types, ['TX', 'ST', 'BK', 'DT'])
 
     def test_register(self):
         mr = MessageReceipt()
@@ -40,10 +41,7 @@ class TestMessageReceipt(TestCase):
         mr.register(msg_hash, msg_obj, msg_type)
         mr.add_peer(msg_hash, msg_type, peer)
 
-        # FIXME: Unexpected API. Contains does not operate on the same registered key
-        msg_hash_key = sha2_256(msg_hash)
-
-        self.assertTrue(mr.contains(msg_hash_key, msg_type))
+        self.assertTrue(mr.contains(msg_hash, msg_type))
         self.assertFalse(mr.contains('hash_invalid', msg_type))
 
     def test_contains(self):
@@ -53,11 +51,8 @@ class TestMessageReceipt(TestCase):
         msg_obj = [1, 2, 3, 4]
         msg_type = mr.allowed_types[0]
 
-        # FIXME: Unexpected API. Contains does not operate on the same registered key
-        msg_hash_key = sha2_256(msg_hash)
-
         mr.register(msg_hash, msg_obj, msg_type)
-        self.assertTrue(mr.contains(msg_hash_key, msg_type))
+        self.assertTrue(mr.contains(msg_hash, msg_type))
 
     def test_register_overflow(self):
         mr = MessageReceipt()
@@ -71,4 +66,4 @@ class TestMessageReceipt(TestCase):
             msg_hash = str2bin(str(i))
             mr.register(msg_hash, msg_obj, msg_type)
 
-        self.assertEqual(len(mr.hash_type), config.dev.message_q_size)
+        self.assertEqual(len(mr.hash_msg), config.dev.message_q_size)
