@@ -83,6 +83,6 @@ python3 start_qrl.py
 
 ## Windows :seedling:
 
-*Windows support in the current version is limited. An alternative is to use a Docker container*
+*Windows support in the current version is limited. An alternative is to use an Ubuntu VM (virtualbox). Docker containers are not working wel in Windows at the moment*
 
 *We are working on a solution to native Windows support*
