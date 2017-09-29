@@ -142,7 +142,7 @@ class Block(object):
         for tx in self.duplicate_transactions:
             if not tx.validate_tx():
                 logger.warning('invalid duplicate tx in block')
-                logger.warning('txhash: %s tx_stake_selector: %s', tx.get_message_hash(), tx.stake_selector)
+                logger.warning('txhash: %s tx_stake_selector: %s', tx.get_message_hash(), tx.coinbase1.txto)
                 return False
 
         return True
