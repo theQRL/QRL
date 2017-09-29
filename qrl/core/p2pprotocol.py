@@ -161,7 +161,8 @@ class P2PProtocol(Protocol):
 
             if not self.factory.bkmr_processor.active():
                 self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)
-                return
+
+            return
 
         self.factory.RFM(data)
 
