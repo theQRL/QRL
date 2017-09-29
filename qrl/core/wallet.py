@@ -53,7 +53,6 @@ class Wallet:
             json.dump(data, outfile)
 
     def read_slave(self):
-        self.address_bundle = None
         if not os.path.isfile(self.slave_dat_filename):
             return
 
