@@ -231,7 +231,7 @@ class State:
     def state_update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        pubhash = tx.generate_pubhash(tx.PK)
+        pubhash = tx.generate_pubhash(tx.PK  + (tx.ots_key,))
 
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
@@ -279,7 +279,7 @@ class State:
                                                                tx.first_hash,
                                                                tx.balance)
 
-                pubhash = tx.generate_pubhash(tx.PK)
+                pubhash = tx.generate_pubhash(tx.PK + (tx.ots_key,))
                 address_txn[tx.txfrom][2].append(pubhash)
 
         epoch_seed = self.stake_validators_list.calc_seed()
