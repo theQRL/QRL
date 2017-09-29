@@ -1165,7 +1165,7 @@ class P2PProtocol(Protocol):
         self.factory.chain.update_pending_tx_pool(tx, self)
 
         self.factory.master_mr.register(tx.get_message_hash(), json_tx_obj, 'TX')
-        self.broadcast(tx.get_message_hash(), 'TX')
+        self.factory.broadcast(tx.get_message_hash(), 'TX')
 
         if not self.factory.txn_processor_running:
             txn_processor = TxnProcessor(block_chain_buffer=self.factory.chain.block_chain_buffer,
