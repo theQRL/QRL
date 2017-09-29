@@ -992,7 +992,7 @@ class Chain:
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
         with open(self.get_chaindatafile(epoch), 'rb') as f:
-            pos_size = self.state.db.db.Get('block_' + str(blocknum))
+            pos_size = self.state.db.db.Get(bytes('block_' + str(blocknum), 'utf-8'))
             pos, size = pos_size.split(',')
             pos = int(pos)
             size = int(size)
