@@ -330,9 +330,9 @@ class P2PProtocol(Protocol):
                 block2 = block_chain_buffer.get_block_n(block.blockheader.blocknumber)
 
                 duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
-
-                self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
-                self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
+                if duplicate_txn.validate_tx():
+                    self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
+                    self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
 
         self.factory.pos.pre_block_logic(block)
         self.factory.master_mr.register(block.blockheader.headerhash, data, 'BK')
