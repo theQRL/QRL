@@ -331,15 +331,27 @@ class P2PFactory(ServerFactory):
             for key in extra_data:
                 data[key] = extra_data[key]
 
+        self.broadcast(msg_hash, msg_type, data)
+
+    def broadcast(self, msg_hash, msg_type, data=None):  # Move to factory
+        """
+        Broadcast
+        This function sends the Message Receipt to all connected peers.
+        :return:
+        """
         msg_hash_str = bin2hstr(tuple(msg_hash))
         ignore_peers = []
         if msg_hash_str in self.master_mr.requested_hash:
             ignore_peers = self.master_mr.requested_hash[msg_hash_str].peers_connection_list
 
-        for peer in self.peer_connections:
+        if not data:
+            data = {'hash': sha256(msg_hash),
+                    'type': msg_type}
+
+        for peer in self.factory.peer_connections:
             if peer in ignore_peers:
                 continue
-            peer.transport.write(self.protocol.wrap_message('MR', json_encode(data)))
+            peer.transport.write(self.wrap_message('MR', helper.json_encode(data)))
 
     # request transaction_pool from peers
 
