@@ -132,13 +132,13 @@ class MessageReceipt(object):
     def __remove__(self, myObj):
         myObj.popitem(last=False)
 
-    def remove_hash(self, msg_hash, peer):
-        if msg_hash in self.hash_msg:
-            message = self.hash_msg[msg_hash]
-            if peer in message.peers_connection_list:
-                message.peers_connection_list.remove(peer)
-                if not message.peers_connection_list:
-                    del self.hash_msg[msg_hash]
+    def remove_hash(self, msg_hash_str, peer):
+        if msg_hash_str in self.hash_msg:
+            message_request = self.requested_hash[msg_hash_str]
+            if peer in message_request.peers_connection_list:
+                message_request.peers_connection_list.remove(peer)
+                if not message_request.peers_connection_list:
+                    del self.requested_hash[msg_hash_str]
 
     def contains(self, msg_hash, msg_type):
         """
