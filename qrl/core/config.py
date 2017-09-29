@@ -103,6 +103,7 @@ class DevConfig(object):
         self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
         self.timestamp_error = 5 # Error in second
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
+        self.slave_xmss_height = self.slave_xmss_height + (self.slave_xmss_height & 0x1)
         self.xmss_tree_height = 10
 
         self.db_name = 'state'
