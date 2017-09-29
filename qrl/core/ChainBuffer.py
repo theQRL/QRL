@@ -183,8 +183,6 @@ class ChainBuffer:
                 del self._wallet_private_seeds[epoch]
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
-            if epoch in self.slave_xmss:
-                del self.slave_xmss[epoch]
         else:
             self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(str(self.epoch_seed))))
 
