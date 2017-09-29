@@ -1,18 +1,16 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from pyqrllib.pyqrllib import hstr2bin, str2bin, bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
+from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
-from qrl.crypto.hmac_drbg import hexseed_to_seed
 from qrl.crypto.xmss import XMSS
 from copy import deepcopy
-from math import log, ceil
-
-from qrl.crypto.hashchain import HashChain
 
 
 class ChainBuffer:
@@ -27,13 +25,11 @@ class ChainBuffer:
         self.hash_chain = dict()
 
         self.slave_xmss = dict()
-        self.slave_xmss[self.epoch] = self.generate_slave_xmss(self.epoch)  # Slave Address for staking purpose only
-
 
         # TODO: For the moment, only the first address is used (discussed with cyyber)
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
-        self.hash_chain[self.epoch] = HashChain(private_seed).hashchain().hashchain
+        self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
 
         self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
 
@@ -42,14 +38,20 @@ class ChainBuffer:
 
     def generate_slave_xmss(self, epoch):
         xmss = self.chain.wallet.address_bundle[0].xmss
-        stake_seed = hexseed_to_seed((sha256(xmss.get_hexseed() + str(epoch + 1)) * 2)[:96])
-        height = int(ceil(log(config.dev.blocks_per_epoch * 3, 2)))
-        return XMSS(tree_height=height, SEED=stake_seed)
+        # FIXME: REVIEW THIS WITH LEON/CYYBER
+        tmp = xmss.get_hexseed() + str(epoch + 1)
+        tmp2 = sha256(str2bin(tmp)) * 2
+        stake_seed = tmp2[:48]
+        height = config.dev.slave_xmss_height
+        return XMSS(tree_height=height, seed=stake_seed)
 
     def get_slave_xmss(self, blocknumber):
         epoch = blocknumber // config.dev.blocks_per_epoch
         if epoch not in self.slave_xmss:
             self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
+            data = self.chain.wallet.read_slave()
+            if data and data['address'] == self.slave_xmss[epoch].get_address():
+                self.slave_xmss[epoch].set_index(data['index'])
         return self.slave_xmss[epoch]
 
     def get_next_slave_xmss(self, blocknumber):
@@ -119,7 +121,7 @@ class ChainBuffer:
 
         prev_private_seed = self._wallet_private_seeds[epoch - 1]
         self._wallet_private_seeds[epoch] = prev_private_seed
-        self.hash_chain[epoch] = HashChain(prev_private_seed).hashchain(epoch=epoch).hashchain
+        self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
     def add_txns_buffer(self):
         if len(self.blocks) == 0:
@@ -145,6 +147,7 @@ class ChainBuffer:
         epoch = int(blocknum // config.dev.blocks_per_epoch)
         prev_headerhash = block.blockheader.prev_blockheaderhash
 
+        # FIXME: Chain should be checking this. Avoid complex references
         if blocknum <= chain.height():
             return
 
@@ -170,11 +173,12 @@ class ChainBuffer:
 
         self.add_txns_buffer()
         if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
-            self.epoch_seed = self.state.stake_validators_list.calc_seed()
+            self.epoch_seed = bin2hstr(hex(self.state.stake_validators_list.calc_seed()))
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
-            self.hash_chain[epoch + 1] = HashChain(private_seed).hashchain(epoch=epoch + 1).hashchain
+            self.hash_chain[epoch + 1] = hashchain(private_seed, epoch=epoch + 1).hashchain
+
             if epoch in self._wallet_private_seeds:
                 del self._wallet_private_seeds[epoch]
             if epoch in self.slave_xmss:
@@ -182,7 +186,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
         else:
-            self.epoch_seed = sha256(block.blockheader.reveal_hash + str(self.epoch_seed))
+            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(str(self.epoch_seed))))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -263,9 +267,15 @@ class ChainBuffer:
                 self.blocks[blocknum] = [block_buffer, state_buffer]
                 if blocknum + 1 in self.blocks:
                     self.remove_blocks(blocknum + 1)
+            elif block_buffer.score == old_block_buffer.score:  # When two blocks having equal score
+                oldheaderhash = old_block_buffer.block.blockheader.headerhash
+                newheaderhash = block_buffer.block.blockheader.headerhash
+                if int(bin2hstr(newheaderhash), 16) < int(bin2hstr(oldheaderhash), 16):
+                    self.blocks[blocknum] = [block_buffer, state_buffer]
+                    if blocknum + 1 in self.blocks:
+                        self.remove_blocks(blocknum + 1)
 
         self.add_txns_buffer()
-
         return True
 
     def remove_blocks(self, blocknumber):
@@ -289,6 +299,10 @@ class ChainBuffer:
         blocknumber = block.blockheader.blocknumber
         blocks_left = get_blocks_left(blocknumber)
         stake_validators_list.sv_list[block.blockheader.stake_selector].nonce += 1
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in stake_validators_list.sv_list:
+                stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
+
         if blocks_left == 1:
             stake_validators_list.move_next_epoch()
             self.update_hash_chain(blocknumber)
@@ -334,8 +348,14 @@ class ChainBuffer:
 
     def get_stxn_state(self, blocknumber, addr):
         try:
-            if blocknumber - 1 == self.chain.height():
-                return self.state.state_get_address(addr)
+            if blocknumber - 1 == self.chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
+                tmp_state = self.state.state_get_address(addr)
+                # FIX ME: Temporary fix, to convert all list into tuple
+                # As state is stored in json format which converts tuple into list
+                for index in range(len(tmp_state[2])):
+                    tmp_state[2][index] = tuple(tmp_state[2][index])
+
+                return tmp_state
 
             stateBuffer = self.blocks[blocknumber - 1][1]
 
@@ -506,7 +526,7 @@ class ChainBuffer:
         blocknum = data['blocknumber']
         stake_selector = data['stake_selector']
 
-        prev_headerhash = data['prev_headerhash']
+        prev_headerhash = tuple(data['prev_headerhash'])
 
         if blocknum <= self.chain.height():
             return False
@@ -525,8 +545,12 @@ class ChainBuffer:
         if stake_selector not in sv_list:
             return
 
-        reveal_hash = data['reveal_hash']
-        vote_hash = data['vote_hash']
+        if sv_list[stake_selector].is_banned:
+            logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
+            return
+
+        reveal_hash = tuple(data['reveal_hash'])
+        vote_hash = tuple(data['vote_hash'])
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
         target_chain = stake_validators_list.select_target(prev_headerhash)
@@ -554,7 +578,7 @@ class ChainBuffer:
         blocknum = data['blocknumber']
         stake_selector = data['stake_selector']
 
-        reveal_hash = data['reveal_hash']
+        reveal_hash = tuple(data['reveal_hash'])
 
         seed = self.chain.block_chain_buffer.get_epoch_seed(blocknum)
         score = self.chain.score(stake_address=stake_selector,
@@ -563,7 +587,6 @@ class ChainBuffer:
                                  seed=seed)
 
         return score
-
 
     def is_better_block(self, blocknum, score):
         if blocknum not in self.blocks:
@@ -575,6 +598,27 @@ class ChainBuffer:
             return True
 
         return False
+
+    def is_duplicate_block(self, blocknum, prev_blockheaderhash, stake_selector):
+        """
+        A block is considered as a dirty block, if same stake validator created two different blocks
+        for the same blocknumber having same prev_blockheaderhash.
+        :param data:
+        :return:
+        """
+        if blocknum > self.height():
+            return
+
+        best_block = self.get_block_n(blocknum)
+        best_blockheader = best_block.blockheader
+
+        if best_blockheader.prev_blockheaderhash != prev_blockheaderhash:
+            return
+
+        if best_blockheader.stake_selector != stake_selector:
+            return
+
+        return True
 
     def error_msg(self, func_name, blocknum, error=None):
         if error:

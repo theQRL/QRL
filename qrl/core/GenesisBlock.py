@@ -5,9 +5,9 @@ import os
 
 import yaml
 
-from blockheader import BlockHeader
-from qrl.crypto.misc import sha256
-from qrl.core import config
+from pyqrllib.pyqrllib import sha2_256, bin2hstr
+from .blockheader import BlockHeader
+from qrl.core import config, logger
 
 
 class Singleton(type):
@@ -19,7 +19,7 @@ class Singleton(type):
         return cls.instance
 
 
-class GenesisBlock(object):
+class GenesisBlock(object, metaclass=Singleton):
     """
     # first block has no previous header to reference..
     >>> GenesisBlock().stake_seed == '1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
@@ -27,7 +27,6 @@ class GenesisBlock(object):
     >>> len(GenesisBlock().stake_list)
     5
     """
-    __metaclass__ = Singleton
 
     def __init__(self):
         self._genesis_info = dict()
@@ -35,11 +34,13 @@ class GenesisBlock(object):
         genesis_data_path = os.path.join(package_directory, 'genesis.yml')
 
         with open(genesis_data_path) as f:
+            logger.info("Loading genesis from %s", genesis_data_path)
             dataMap = yaml.safe_load(f)
             self._genesis_info.update(dataMap['genesis_info'])
 
         self.blockheader = BlockHeader()
         self.transactions = []
+        self.duplicate_transactions = []
         self.stake = []
         self.state = []
 
@@ -71,15 +72,15 @@ class GenesisBlock(object):
         0
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         'genesis'
-        >>> GenesisBlock().set_chain(None).blockheader.headerhash
-        'f16eb270d0880a2807ecc4d36de431e3b2c09538bfa3115b2935091d8c038041'
-        >>> GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash
-        '2b47d12f00182206e19bb22388a20d469c5c904a602a81a4e990c40c208d799f'
+        >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
+        '6e3a32597ab20577f7adf33d77aed79631193419432ec7183fcdbbd470cfcccc'
+        >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
+        'a2cb1574a3e5bc97a441e478a4cb8954901a26e4fe297d72088418db51e2ed6e'
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                prev_blockheaderhash=sha256(config.dev.genesis_prev_headerhash),
-                                hashedtransactions=sha256('0'),
+                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
+                                hashedtransactions=sha2_256(b'0'),
                                 reveal_hash='genesis',
                                 vote_hash='genesis',
                                 fee_reward=0)

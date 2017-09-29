@@ -16,7 +16,7 @@ def measure_xmss_creation_time(n):
 # Code moved from merkle.py
 def measure_xmss_verification_time(s, m):
     start_time = time.time()
-    answer = XMSS.VERIFY(m, s)
+    answer = XMSS.VERIFY(m, s, None)
     total_time = time.time() - start_time
     return answer, total_time
 

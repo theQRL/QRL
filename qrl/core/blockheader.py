@@ -2,8 +2,8 @@
 import decimal
 from math import log
 
+from pyqrllib.pyqrllib import sha2_256, str2bin
 from qrl.core import ntp, logger, config
-from qrl.crypto.misc import sha256
 
 
 class BlockHeader(object):
@@ -44,11 +44,11 @@ class BlockHeader(object):
         :param fee_reward:
         :return:
 
-        >>> BlockHeader().create(None, 0, '0', '0', '0', '0', 0.1) is None
+        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', b'0', 0.1) is None
         True
-        >>> b = BlockHeader(); b.create(None, 0, '0', '0', '0', '0', 0.1); b.epoch
+        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', b'0', 0.1); b.epoch
         0
-        >>> b = BlockHeader(); b.create(None, 10, '0', '0', '0', '0', 0.1); b.epoch # doctest: +SKIP
+        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', b'0', 0.1); b.epoch # doctest: +SKIP
         0
         """
 
@@ -85,15 +85,15 @@ class BlockHeader(object):
 
     def json_to_blockheader(self, json_blockheader):
         # TODO: Moving to protobuf?
-        self.reveal_hash = json_blockheader['reveal_hash'].encode('latin1')
-        self.vote_hash = json_blockheader['vote_hash'].encode('latin1')
+        self.reveal_hash = tuple(json_blockheader['reveal_hash'])
+        self.vote_hash = tuple(json_blockheader['vote_hash'])
         self.epoch = json_blockheader['epoch']
-        self.headerhash = json_blockheader['headerhash'].encode('latin1')
+        self.headerhash = tuple(json_blockheader['headerhash'])
         self.timestamp = json_blockheader['timestamp']
-        self.tx_merkle_root = json_blockheader['tx_merkle_root'].encode('latin1')
+        self.tx_merkle_root = tuple(json_blockheader['tx_merkle_root'])
         self.blocknumber = json_blockheader['blocknumber']
-        self.prev_blockheaderhash = json_blockheader['prev_blockheaderhash'].encode('latin1')
-        self.stake_selector = json_blockheader['stake_selector'].encode('latin1')
+        self.prev_blockheaderhash = tuple(json_blockheader['prev_blockheaderhash'])
+        self.stake_selector = json_blockheader['stake_selector']
         self.block_reward = json_blockheader['block_reward']
         self.fee_reward = json_blockheader['fee_reward']
 
@@ -141,13 +141,14 @@ class BlockHeader(object):
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
-        return sha256(str(self.stake_selector) +
-                      str(self.epoch) +
-                      str(self.block_reward) +
-                      str(self.fee_reward) +
-                      str(self.timestamp) +
-                      str(self.blocknumber) +
-                      self.prev_blockheaderhash +
-                      self.tx_merkle_root +
-                      str(self.vote_hash) +
-                      str(self.reveal_hash))
+        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}".format(self.stake_selector,
+                                                       self.epoch,
+                                                       self.block_reward,
+                                                       self.fee_reward,
+                                                       self.timestamp,
+                                                       self.blocknumber,
+                                                       self.prev_blockheaderhash,
+                                                       self.tx_merkle_root,
+                                                       self.vote_hash,
+                                                       self.reveal_hash)
+        return sha2_256(str2bin(data))

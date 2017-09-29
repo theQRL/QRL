@@ -3,6 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import qrl.core.Transaction_subtypes
+from collections import OrderedDict
+from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
@@ -10,13 +12,12 @@ from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
 from qrl.core.Transaction import SimpleTransaction, CoinBase
-from qrl.crypto.hmac_drbg import GEN_range_bin
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 import gc
 
 import bz2
-from StringIO import StringIO
+from io import StringIO
 from time import time
 from operator import itemgetter
 from math import log, ceil
@@ -50,6 +51,7 @@ class Chain:
         self.prev_txpool = [None] * 1000  # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
+        self.duplicate_tx_pool = OrderedDict()
         self.stake_reveal_one = []
         self.stake_ban_list = []
         self.stake_ban_block = {}
@@ -57,13 +59,16 @@ class Chain:
 
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
+    def add_tx_to_duplicate_pool(self, duplicate_txn):
+        if len(self.duplicate_tx_pool) >= config.dev.transaction_pool_size:
+            self.duplicate_tx_pool.popitem(last=False)
+
+        self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
+
     def initialize(self):
         logger.info('QRL blockchain ledger %s', self.version_number)
         logger.info('loading db')
         logger.info('loading wallet')
-
-        self.wallet.load_winfo()
-
         logger.info('mining/staking address %s', self.mining_address)
 
     def validate_reboot(self, mhash, nonce):
@@ -143,8 +148,9 @@ class Chain:
             return
 
         target_chain = 0
+
         for byte in last_block_headerhash:
-            target_chain += ord(byte)
+            target_chain += byte
 
         target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
@@ -181,15 +187,16 @@ class Chain:
             logger.info(' stake_address %s', stake_address)
             return None
 
-        reveal_one_number = int(reveal_one, 16)
+        reveal_one_number = int(bin2hstr(reveal_one), 16)
         score = (Decimal(config.dev.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(
             balance)
 
         if verbose:
+            logger.info('=' * 10)
             logger.info('Score - %s', score)
-            logger.info('reveal_one - %ld', reveal_one_number)
-            logger.info('seed - %ld', seed)
-            logger.info('balance - %ld', balance)
+            logger.info('reveal_one - %s', reveal_one_number)
+            logger.info('seed - %s', seed)
+            logger.info('balance - %s', balance)
 
         return score
 
@@ -211,7 +218,6 @@ class Chain:
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
     def create_stake_block(self, reveal_hash, vote_hash, last_block_number):
-
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
@@ -233,7 +239,7 @@ class Chain:
                 if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
                     logger.warning('Skipping st as blocknumber beyond stake limit , CreateBlock()')
                     logger.warning('Expected ST txn before epoch_blocknumber : %s', config.dev.stake_before_x_blocks)
-                    logger.warning('Found ST txn after epoch_blocknumber : %s', epoch_blocknum)
+                    logger.warning('Found ST txn in epoch_blocknumber : %s', epoch_blocknum)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -269,7 +275,6 @@ class Chain:
 
         # create the block..
         block_obj = self.m_create_block(reveal_hash, vote_hash, last_block_number)
-
         # reset the pool back
         self.transaction_pool = copy.deepcopy(t_pool2)
 
@@ -353,13 +358,16 @@ class Chain:
         :param n:
         :return:
         """
-        n_bits = int(ceil(log(n, 2)))
-        prf = GEN_range_bin(seed, 1, 20000, 1)
+        prf = getHashChainSeed(seed, 1, 20000)
+
+        # FIXME: Check with cyyber the purpose of this
         prf_range = []
+        n_bits = int(ceil(log(n, 2)))
         for z in prf:
             x = ord(z) >> 8 - n_bits
             if x < n:
                 prf_range.append(x)
+
         return prf_range
 
     def pos_block_selector_n(self, seed, n, i):
@@ -576,7 +584,7 @@ class Chain:
                        'block': 'unconfirmed',
                        'timestamp': 'unconfirmed',
                        'amount': tx.amount / 100000000.000000000,
-                       'type': tx.type}
+                       'type': tx.subtype}
 
             addr['transactions'].append(tmp_txn)
 
@@ -827,8 +835,8 @@ class Chain:
 
         try:
             with open(self.get_chaindatafile(epoch), 'rb') as myfile:
-                jsonBlock = StringIO()
-                tmp = ""
+                jsonBlock = bytearray()
+                tmp = bytearray()
                 count = 0
                 offset = 0
                 while True:
@@ -837,24 +845,23 @@ class Chain:
                         offset += 1
                         if count > 0 and char != delimiter[count]:
                             count = 0
-                            jsonBlock.write(tmp)
-                            tmp = ""
+                            jsonBlock += tmp
+                            tmp = bytearray()
                         if char == delimiter[count]:
-                            tmp += delimiter[count]
+                            tmp.append(delimiter[count])
                             count += 1
                             if count < len(delimiter):
                                 continue
-                            tmp = ""
+                            tmp = bytearray()
                             count = 0
-                            compressedBlock = jsonBlock.getvalue()
-                            pos = offset - len(delimiter) - len(compressedBlock)
-                            jsonBlock = bz2.decompress(compressedBlock)
+                            pos = offset - len(delimiter) - len(jsonBlock)
+                            jsonBlock = bz2.decompress(jsonBlock)
                             block = Block.from_json(jsonBlock)
-                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(compressedBlock))
+                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
                             block_list.append(block)
-                            jsonBlock = StringIO()
+                            jsonBlock = bytearray()
                             continue
-                        jsonBlock.write(char)
+                        jsonBlock.append(char)
                     if len(chars) < config.dev.chain_read_buffer_size:
                         break
         except Exception as e:
@@ -865,7 +872,8 @@ class Chain:
         return block_list
 
     def update_block_metadata(self, blocknumber, blockPos, blockSize):
-        self.state.db.db.Put('block_' + str(blocknumber), str(blockPos) + ',' + str(blockSize))
+        self.state.db.db.Put(bytes('block_'+str(blocknumber), 'utf-8'),
+                             bytes(str(blockPos)+','+str(blockSize), 'utf-8'))
 
     def update_last_tx(self, block):
         if len(block.transactions) == 0:
@@ -903,7 +911,7 @@ class Chain:
         for txn in block.transactions:
             if txn.subtype in (
             qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
-                self.state.db.put(txn.txhash,
+                self.state.db.put(bin2hstr(txn.txhash),
                                   [txn.transaction_to_json(), block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
                 if txn.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
@@ -919,7 +927,7 @@ class Chain:
 
         with open(self.get_chaindatafile(suffix), 'ab') as myfile:
             for block in writeable:
-                jsonBlock = json_bytestream(block)
+                jsonBlock = bytes(json_bytestream(block), 'utf-8')
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
                 pos = myfile.tell()
                 blockSize = len(compressedBlock)
@@ -984,7 +992,7 @@ class Chain:
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
         with open(self.get_chaindatafile(epoch), 'rb') as f:
-            pos_size = self.state.db.db.Get('block_' + str(blocknum))
+            pos_size = self.state.db.db.Get(bytes('block_' + str(blocknum), 'utf-8'))
             pos, size = pos_size.split(',')
             pos = int(pos)
             size = int(size)
@@ -1017,6 +1025,9 @@ class Chain:
     def m_create_block(self, reveal_hash, vote_hash, last_block_number=-1):
         myBlock = Block()
         myBlock.create(self, reveal_hash, vote_hash, last_block_number)
+
+        slave_xmss = self.block_chain_buffer.get_slave_xmss(last_block_number + 1)
+        self.wallet.save_slave(slave_xmss)
         return myBlock
 
     def m_add_block(self, block_obj):
@@ -1111,7 +1122,7 @@ class Chain:
             txto = self.wallet.address_bundle[txto].address
 
         xmss = self.wallet.address_bundle[txfrom].xmss
-        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.address)
+        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.get_address())
         tx = SimpleTransaction().create(tx_state=tx_state,
                                         txto=txto,
                                         amount=amount,

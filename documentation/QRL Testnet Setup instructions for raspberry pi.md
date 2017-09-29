@@ -1,3 +1,5 @@
+**WARNING: These instructions are outdated**
+
 # Running a Quantum Resistant Ledger node on a Raspberry Pi
 
 ## Raspberry Pi operating system installation & setup : 
@@ -58,7 +60,7 @@ sudo ufw status verbose
 
 ```
 cd /home/pi/QRL
-sudo pip install -r requirements.txt
+sudo pip3 install -r requirements.txt
 ```
   
   

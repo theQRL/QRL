@@ -3,13 +3,15 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from operator import itemgetter
+from functools import reduce
 
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
+from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
-from qrl.crypto.hashchain import HashChain
 
 
 class State:
@@ -40,7 +42,7 @@ class State:
 
     def stake_list_get(self):
         try:
-            return self.db.get('stake_list')
+            return self.db.get('stake_list'.encode())
         except KeyError:
             logger.warning('stake_list empty returning empty list')
         except Exception as e:
@@ -53,12 +55,12 @@ class State:
         try:
             self.db.put('stake_list', self.stake_validators_list.to_json())
         except Exception as e:
-            logger.warning("stake_list_put: %s %s", type(e), e.message)
+            logger.warning("stake_list_put: %s %s", type(e), e)
             return False
 
     def next_stake_list_get(self):
         try:
-            return self.db.get('next_stake_list')
+            return self.db.get('next_stake_list'.encode())
         except KeyError:
             logger.warning('next_stake_list empty returning empty list')
         except Exception as e:
@@ -71,7 +73,7 @@ class State:
         try:
             self.db.put('next_stake_list', next_sl)
         except Exception as e:
-            logger.warning("next_stake_list_put: %s %s", type(e), e.message)
+            logger.warning("next_stake_list_put: %s %s", type(e), e)
             return False
 
     def put_epoch_seed(self, epoch_seed):
@@ -83,22 +85,22 @@ class State:
 
     def get_epoch_seed(self):
         try:
-            return self.db.get('epoch_seed')
+            return self.db.get('epoch_seed'.encode())
         except Exception as e:
-            logger.warning("get_epoch_seed: %s %s", type(e), e.message)
+            logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
-        if height == self.db.get('blockheight'):
+        if height == self.db.get('blockheight'.encode()):
             return True
         return False
 
     def state_blockheight(self):
-        return self.db.get('blockheight')
+        return self.db.get('blockheight'.encode())
 
     def state_get_txn_count(self, addr):
         try:
-            return self.db.get('txn_count_' + addr)
+            return self.db.get( ('txn_count_' + addr).encode())
         except KeyError:
             logger.warning('No txn count for %s', addr)
         except Exception as e:
@@ -109,7 +111,7 @@ class State:
 
     def state_get_address(self, addr):
         try:
-            return self.db.get(addr)
+            return self.db.get(addr.encode())
         except KeyError:
             logger.warning('state_get_address: No state found for %s', addr)
         except Exception as e:
@@ -120,7 +122,7 @@ class State:
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
-            return self.db.get(addr)
+            return self.db.get(addr.encode())
         except KeyError:
             logger.warning('state_address_used: address not found %s', addr)
         except Exception as e:
@@ -131,7 +133,7 @@ class State:
 
     def state_balance(self, addr):
         try:
-            return self.db.get(addr)[1]
+            return self.db.get(addr.encode())[1]
         except KeyError:
             logger.warning("state_balance: state not found for %s", addr)
         except Exception as e:
@@ -142,7 +144,7 @@ class State:
 
     def state_nonce(self, addr):
         try:
-            return self.db.get(addr)[0]
+            return self.db.get(addr.encode())[0]
         except KeyError:
             logger.warning("state_nonce: state not found for %s", addr)
         except Exception as e:
@@ -153,7 +155,7 @@ class State:
 
     def state_pubhash(self, addr):
         try:
-            return self.db.get(addr)[2]
+            return self.db.get(addr.encode())[2]
         except KeyError:
             logger.warning("state_pubhash: state not found for %s", addr)
         except Exception as e:
@@ -164,7 +166,7 @@ class State:
 
     def state_hrs(self, hrs):
         try:
-            return self.db.get('hrs' + hrs)
+            return self.db.get('hrs{}'.format(hrs).encode())
         except KeyError:
             logger.warning("state_hrs: state not found for %s", hrs)
         except Exception as e:
@@ -229,14 +231,14 @@ class State:
     def state_update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        pubhash = tx.generate_pubhash(tx.pub)
+        pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
             logger.warning('subtype: %s', tx.subtype)
             logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
             return False
-
+        # TODO: To be fixed later
         if pubhash in address_txn[tx.txfrom][2]:
             logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
             logger.warning('subtype: %s', tx.subtype)
@@ -250,8 +252,9 @@ class State:
         for tx in block.transactions:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
+                tmp_list.append(
+                    [tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
                 if tx.txfrom == block.blockheader.stake_selector:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
                         self.stake_validators_list.add_sv(tx.txfrom,
                                                           tx.slave_public_key,
@@ -276,7 +279,7 @@ class State:
                                                                tx.first_hash,
                                                                tx.balance)
 
-                pubhash = tx.generate_pubhash(tx.pub)
+                pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
                 address_txn[tx.txfrom][2].append(pubhash)
 
         epoch_seed = self.stake_validators_list.calc_seed()
@@ -286,7 +289,8 @@ class State:
         chain.block_chain_buffer.epoch_seed = chain.state.calc_seed(tmp_list)
         chain.stake_list = sorted(tmp_list,
                                   key=lambda staker: chain.score(stake_address=staker[0],
-                                                                 reveal_one=sha256(str(staker[1])),
+                                                                 reveal_one=bin2hstr(sha256(reduce(
+                                                                     lambda set1, set2: set1 + set2, staker[1]))),
                                                                  balance=staker[4],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
 
@@ -295,7 +299,7 @@ class State:
             return
 
         xmss = chain.wallet.address_bundle[0].xmss
-        tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=0)
+        tmphc = hashchain(xmss.get_seed_private(), epoch=0)
 
         chain.hash_chain = tmphc.hashchain
         chain.wallet.save_wallet()
@@ -311,10 +315,13 @@ class State:
             logger.warning('stake selector not in stake_list_get')
             return
 
+        if stake_validators_list.sv_list[block.blockheader.stake_selector].is_banned:
+            logger.warning('stake selector is in banned list')
+            return
         # cycle through every tx in the new block to check state
         for tx in block.transactions:
 
-            pubhash = tx.generate_pubhash(tx.pub)
+            pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
@@ -325,10 +332,12 @@ class State:
                 logger.warning('subtype: %s', tx.subtype)
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
-
+            # TODO: To be fixed later
             if pubhash in address_txn[tx.txfrom][2]:
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
+                logger.info(pubhash)
+                logger.info(address_txn[tx.txfrom][2])
                 return False
 
             if tx.subtype == TX_SUBTYPE_TX:
@@ -352,7 +361,7 @@ class State:
                 address_txn[tx.txfrom][2].append(pubhash)
                 next_sv_list = stake_validators_list.next_sv_list
                 if tx.txfrom in next_sv_list:
-                    if next_sv_list[tx.txfrom].first_hash is None and tx.first_hash is not None:
+                    if not next_sv_list[tx.txfrom].first_hash and tx.first_hash:
                         threshold_blocknum = stake_validators_list.get_threshold(tx.txfrom)
                         if epoch_blocknum < threshold_blocknum - 1:
                             logger.warning('Block rejected #%s due to ST before threshold',
@@ -388,34 +397,39 @@ class State:
         for address in address_txn:
             self.db.put(address, address_txn[address])
 
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in self.stake_validators_list.sv_list:
+                self.stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
+
         if blocks_left == 1:
             logger.info('EPOCH change: resetting stake_list, activating next_stake_list, updating PRF with '
                         'seed+entropy updating wallet hashchains..')
 
             self.stake_validators_list.move_next_epoch()
-            self.stake_list_put(self.stake_validators_list.to_json())
+            # TODO: To be fixed later
+            #self.stake_list_put(self.stake_validators_list.to_json())
 
             xmss = chain.wallet.address_bundle[0].xmss
-            tmphc = HashChain(xmss.get_seed_private()).hashchain(epoch=block.blockheader.epoch + 1)
+            tmphc = hashchain(xmss.get_seed_private(), epoch=block.blockheader.epoch + 1)
 
             chain.hash_chain = tmphc.hashchain
             if not ignore_save_wallet:
                 chain.wallet.save_wallet()
 
         self.db.put('blockheight', chain.height() + 1)
-        logger.info('%s %s tx passed verification.', block.blockheader.headerhash, len(block.transactions))
+        logger.info('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
     def calc_seed(self, sl, verbose=False):
         if verbose:
             logger.info('stake_list --> ')
             for s in sl:
-                logger.info((s[0], s[3]))
+                logger.info('%s %s', s[0], s[3])
 
         epoch_seed = 0
 
         for staker in sl:
-            epoch_seed |= int(str(staker[3]), 16)
+            epoch_seed |= int(str(bin2hstr(staker[3])), 16)
 
         return epoch_seed
 
@@ -457,27 +471,23 @@ class State:
             self.db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
-                pub = tx.pub
-                if tx.type == 'TX':
-                    pub = [''.join(pub[0][0]), pub[0][1], ''.join(pub[2:])]
-
-                pubhash = sha256(''.join(pub))
+                pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
                 s1 = self.state_get_address(tx.txfrom)
 
                 if s1[1] - tx.amount < 0:
-                    logger.info((tx, tx.txfrom, 'exceeds balance, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    logger.info('%s %s exceeds balance, invalid tx %s', tx, tx.txfrom, tx.txhash)
+                    logger.info('failed state checks %s', bin2hstr(block.blockheader.headerhash))
                     return False
 
                 if tx.nonce != s1[0] + 1:
-                    logger.info(('nonce incorrect, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    logger.info('nonce incorrect, invalid tx %s', bin2hstr(tx.txhash))
+                    logger.info('%s failed state checks', bin2hstr(block.blockheader.headerhash))
                     return False
-
+                # TODO: To be fixed later
                 if pubhash in s1[2]:
-                    logger.info(('public key re-use detected, invalid tx', tx.txhash))
-                    logger.info((block.blockheader.headerhash, 'failed state checks'))
+                    logger.info('public key re-use detected, invalid tx %s', bin2hstr(tx.txhash))
+                    logger.info('failed state checks %s', bin2hstr(block.blockheader.headerhash))
                     return False
 
                 s1[0] += 1

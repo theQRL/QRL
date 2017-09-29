@@ -157,6 +157,7 @@ else:
 html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
+# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'
 
@@ -215,7 +216,7 @@ latex_elements = {
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title, author, documentclass [howto/manual]).
+# (source start file, targematplot name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'user_guide.tex', u'QRL Documentation',
    u'The Quantum Resistant Ledger', 'manual'),
@@ -246,9 +247,9 @@ python_version = '.'.join(map(str, sys.version_info[0:2]))
 intersphinx_mapping = {
     'sphinx': ('http://sphinx.pocoo.org', None),
     'python': ('http://docs.python.org/' + python_version, None),
-    'matplotlib': ('http://matplotlib.sourceforge.net', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'sklearn': ('http://scikit-learn.org/stable', None),
-    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+#    'matplotlib': ('http://matplotlib.sourceforge.net', None),
+#    'numpy': ('http://docs.scipy.org/doc/numpy', None),
+#    'sklearn': ('http://scikit-learn.org/stable', None),
+#    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
+#    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
 }

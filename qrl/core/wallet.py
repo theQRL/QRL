@@ -4,177 +4,100 @@
 from collections import namedtuple
 
 import qrl.core.Transaction_subtypes
+from pyqrllib.pyqrllib import mnemonic2bin
 from qrl.core import config, logger
-from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
 
-import cPickle as pickle
 import os
-import sys
 
-SIGNATURE_TREE_HEIGHT = 13
+import simplejson as json
 
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
+AddressSerialized = namedtuple('AddressSerialized', 'address mnemonic index')
 
 
 class Wallet:
+    # TODO: Extremely simple persistance. Upgrade to protobuf / encrypt / etc.
+    # TODO: Allow for wallets to be removed / modified?
+    # TODO: Consider error handling in the new version
     ADDRESS_TYPE_XMSS = 'XMSS'
 
     def __init__(self):
+        """
+        >>> Wallet().address_bundle is not None
+        True
+        """
+        config.create_path(config.user.wallet_path)
         self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
-        self.wallet_info_filename = os.path.join(config.user.wallet_path, config.dev.wallet_info_filename)
-        self.mnemonic_filename = os.path.join(config.user.wallet_path, config.dev.mnemonic_filename)
+        self.slave_dat_filename = os.path.join(config.user.wallet_path, config.dev.slave_dat_filename)
 
-        self.address_bundle = self._read_wallet()
-
-    def _recover_wallet(self):
-        # type: () -> bool
-        try:
-            with open(self.wallet_info_filename, 'r') as myfile:
-                data = pickle.load(myfile)
-
-            if data and len(data[0]) != 5:
-                logger.info('wallet.info is also corrupted, cannot recover')
-                return False
-        except Exception as e:
-            logger.error('Wallet.info is corrupted')
-            logger.exception(e)
-            return False
-
-        with open(self.wallet_dat_filename, "w+") as myfile:
-            # FIXME: What is this? obsolete code?
-            pass
-
-        self.address_bundle = []
-        for wallets in data:
-            words = wallets[0]
-            addr_bundle = self.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(words))
-            self.append_wallet(addr_bundle, True)
-        return True
-
-    def _retrieve_seed_from_mnemonic(self):
-        # type: () -> Union[None, str]
-        if os.path.isfile(self.mnemonic_filename):
-            with open(self.mnemonic_filename, 'r') as f:
-                seed_mnemonic = f.read()
-                seed = mnemonic_to_seed(seed_mnemonic.strip())
-            return seed
-        return None
-
-    def _read_wallet(self):
-        # type: () -> List[AddressBundle]
-        addr_bundle_list = []
-
-        if os.path.isfile(self.wallet_dat_filename) is False:
-            logger.info('Creating new wallet file... (this could take up to a minute)')
-            seed = None
-
-            # For AWS test only
-            tmp_seed = self._retrieve_seed_from_mnemonic()
-            if tmp_seed is not None:
-                logger.info('Using mnemonic')
-                seed = tmp_seed
-
-            addr_bundle = self.get_new_address(SIGNATURE_TREE_HEIGHT,
-                                               addrtype=Wallet.ADDRESS_TYPE_XMSS,
-                                               SEED=seed)
-            addr_bundle_list.append(addr_bundle)
-
-            with open(self.wallet_dat_filename, "a") as f:  # add in a new call to create random_otsmss
-                pickle.dump(addr_bundle_list, f)
-
-        while True:
-            try:
-                with open(self.wallet_dat_filename, 'r') as f:
-                    return pickle.load(f)
-            except Exception as e:
-                logger.warning('Wallet.dat corrupted')
-                logger.exception(e)
-
-                logger.warning('Trying to recover')
-                if self._recover_wallet():
-                    continue
-
-                logger.error('Failed to Recover Wallet')
-                sys.exit()
+        self.address_bundle = None
+        self._read_wallet()
+        self._valid_or_create()
 
     def save_wallet(self):
-        # type: () -> None
         logger.info('Syncing wallet file')
-        with open(self.wallet_dat_filename,
-                  "w+") as myfile:  # overwrites wallet..should add some form of backup to this..seed
-            pickle.dump(self.address_bundle, myfile)
+        with open(self.wallet_dat_filename, "w") as outfile:
+            # map
+            data = [AddressSerialized(a.address,
+                                      a.xmss.get_mnemonic(),
+                                      a.xmss.get_index())
+                    for a in self.address_bundle]
 
-    def save_winfo(self):
-        # type: () -> None
-        data = []
-        for addr_bundle in self.address_bundle:
-            # FIXME original code was odd, maintaining functionaly. Review
-            if isinstance(addr_bundle.xmss, XMSS):
-                data.append(
-                    [addr_bundle.xmss.get_mnemonic(),
-                     addr_bundle.xmss.get_hexseed(),
-                     addr_bundle.xmss.get_number_signatures(),
-                     addr_bundle.xmss.get_index(),
-                     addr_bundle.xmss.get_remaining_signatures()])
+            json.dump(data, outfile)
 
-        logger.info('Fast saving wallet recovery details to wallet.info..')
-        # stores the recovery phrase, signatures and the index for each tree in the wallet..
-        with open(self.wallet_info_filename, "w+") as myfile:
-            pickle.dump(data, myfile)
+    def save_slave(self, slave):
+        with open(self.slave_dat_filename, "w") as outfile:
+            data = AddressSerialized(slave.get_address(), slave.get_mnemonic(), slave.get_index())
+            json.dump(data, outfile)
 
-    def load_winfo(self):
-        # type: () -> bool
+    def read_slave(self):
+        if not os.path.isfile(self.slave_dat_filename):
+            return
+
         try:
-            if os.path.isfile(self.wallet_info_filename):
-                with open(self.wallet_info_filename, 'r') as myfile:
-                    data = pickle.load(myfile)
-            else:
-                logger.info('Likely no wallet.info found, creating..')
-                self.save_winfo()
-                return False
+            with open(self.slave_dat_filename, "r") as infile:
+                data = json.load(infile)
+                return data
         except Exception as e:
-            logger.exception(e)
-            logger.info('Likely no wallet.info found, creating..')
-            self.save_winfo()
-            return False
-        x = 0
-        for addr_bundle in self.address_bundle:
-            # if any part of self.chain.address_bundle which has loaded from f_read_wallet()
-            # on startup is lower than winfo then don't load..
-            if not isinstance(addr_bundle.xmss, list):
-                if addr_bundle.xmss.get_index() <= data[x][3]:
-                    # update self.chain.address_bundle from winfo then save to main file..
-                    addr_bundle.xmss.set_index(data[x][3])
-                else:
-                    return False
-                x += 1
-        self.save_wallet()
-        return True
+            logger.warning("It was not possible to open the wallet: %s", e)
 
-    def append_wallet(self, data, ignore_chain=False):
-        # type: (AddressBundle, bool) -> None
-        if not ignore_chain:
-            if not self.address_bundle:
-                self.address_bundle = self._read_wallet()
-        if data is not False:
-            self.address_bundle.append(data)
-            logger.info('Appending wallet file..')
-            with open(self.wallet_dat_filename, "w+") as f:  # overwrites wallet..
-                pickle.dump(self.address_bundle, f)
-        self.save_winfo()
+    def _read_wallet(self):
+        self.address_bundle = None
+        if not os.path.isfile(self.wallet_dat_filename):
+            return
+
+        try:
+            logger.info('Retrieving wallet file')
+            with open(self.wallet_dat_filename, "r") as infile:
+                data = json.load(infile)
+                self.address_bundle = []
+                for a in data:
+                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip(), wordlist))
+                    tmpxmss.set_index(a['index'])
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
+        except Exception as e:
+            logger.warning("It was not possible to open the wallet: %s", e)
+
+    def _valid_or_create(self):
+        if self.address_bundle is None or len(self.address_bundle) == 0:
+            self.address_bundle = [self.get_new_address()]
+            self.save_wallet()
+
+    def append_wallet(self, new_addr):
+        if new_addr:
+            self.address_bundle.append(new_addr)
+            self.save_wallet()
 
     def list_addresses(self, state, transaction_pool, dict_format=False):
         # FIXME: This is called from multiple places and requires external info. Refactor?
-        addr_bundle_list = self.address_bundle
-        if not addr_bundle_list:
-            addr_bundle_list = self._read_wallet()
-
+        # FIXME: This seems UI related
         list_addr = []
         list_addresses = []
         count = 0
 
-        for addr_bundle in addr_bundle_list:
+        for addr_bundle in self.address_bundle:
             x = 0
             y = 0
             for t in transaction_pool:
@@ -220,29 +143,26 @@ class Wallet:
         return list_addr
 
     def get_num_signatures(self, address_to_check):
-        addr_bundle_list = self.address_bundle
-        if not addr_bundle_list:
-            addr_bundle_list = self._read_wallet()
-
-        for addr_bundle in addr_bundle_list:
+        for addr_bundle in self.address_bundle:
+            # FIXME: Linear search?
             if addr_bundle.address == address_to_check:
                 return addr_bundle.xmss.get_remaining_signatures()
 
     def get_new_address(self,
-                        signature_tree_height=SIGNATURE_TREE_HEIGHT,
-                        addrtype=ADDRESS_TYPE_XMSS,
-                        SEED=None):
+                        signature_tree_height=config.dev.xmss_tree_height,
+                        address_type=ADDRESS_TYPE_XMSS,
+                        seed=None):
         # type: (int, str, str) -> AddressBundle
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
         :param signature_tree_height:
-        :param addrtype:
-        :param SEED:
+        :param address_type:
+        :param seed:
         :return: a wallet address
         """
-        if addrtype == Wallet.ADDRESS_TYPE_XMSS:
-            xmss = XMSS(tree_height=signature_tree_height, SEED=SEED)
-            return AddressBundle(xmss.address, xmss)
+        if address_type != Wallet.ADDRESS_TYPE_XMSS:
+            raise Exception('OTS type not recognised')
 
-        raise Exception('OTS type not recognised')
+        xmss = XMSS(tree_height=signature_tree_height, seed=seed)
+        return AddressBundle(xmss.get_address(), xmss)

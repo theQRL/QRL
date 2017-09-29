@@ -4,27 +4,32 @@
 
 import decimal
 import time
-from StringIO import StringIO
+from io import StringIO
 
 import simplejson as json
 from twisted.internet.protocol import Protocol, connectionDone
 
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 from qrl.core import helper, logger, config
-from qrl.core.Transaction import StakeTransaction
-from qrl.crypto.hmac_drbg import hexseed_to_seed
-from qrl.crypto.mnemonic import mnemonic_to_seed
+from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
-from qrl.crypto.hashchain import HashChain
+
+
+def hexseed_to_seed(hex_seed):
+    if len(hex_seed) != 96:
+        return False
+    return hstr2bin(hex_seed)
+
 
 #FIXME: Clean this up
 
 class WalletProtocol(Protocol):
     def __init__(self):
         self.cmd_list = ['seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords',
-                         'stakenextepoch', 'stake', 'wallet', 'send', 'mempool', 
-                         'getnewaddress', 'quit', 'exit', 'search', 'help', 
-                         'savenewaddress', 'getinfo', 'blockheight', 'json_block', 
-                         'reboot', 'peers']
+                         'stakenextepoch', 'stake', 'wallet', 'send', 'mempool',
+                         'getnewaddress', 'quit', 'exit', 'search', 'help',
+                         'savenewaddress', 'getinfo', 'blockheight', 'json_block',
+                         'reboot', 'peers', 'create']
 
         self.output = {'status': 1,
                        'keys': [],
@@ -49,13 +54,17 @@ class WalletProtocol(Protocol):
             if len(data) > 0:  # args optional
                 args = data[1:]
 
-            if command in self.cmd_list:
+            if command.decode('utf-8') in self.cmd_list:
 
                 # Use switch cases when porting to a different language
-                if command == 'getnewaddress':
+                if command == b'create':
+                    self.factory.p2pFactory.pos.create_next_block(int(args[0]))
+                    self.output['status'] = 0
+                    self.output['message'].write('Creating blocknumber #'+str(args[0]))
+                elif command == b'getnewaddress':
                     self.getnewaddress(args)
 
-                elif command == 'hexseed':
+                elif command == b'hexseed':
                     for addr_bundle in self.factory.chain.wallet.address_bundle:
                         if isinstance(addr_bundle.xmss, XMSS):
                             self.output['status'] = 0
@@ -65,7 +74,7 @@ class WalletProtocol(Protocol):
                             self.output['Address'] = addr_bundle.xmss.get_address()
                             self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
 
-                elif command == 'seed':
+                elif command == b'seed':
                     for addr_bundle in self.factory.chain.wallet.address_bundle:
                         if isinstance(addr_bundle.xmss, XMSS):
                             self.output['status'] = 0
@@ -73,7 +82,7 @@ class WalletProtocol(Protocol):
                             self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_mnemonic() + '\r\n')
                             self.output['keys'] += ['Address', 'Recovery seed']
 
-                elif command == 'search':
+                elif command == b'search':
                     if not args:
                         self.output['status'] = 1
                         self.output['message'].write('>>> Usage: search <txhash or Q-address>\r\n')
@@ -118,14 +127,14 @@ class WalletProtocol(Protocol):
                         self.output['message'].write('>>> No Information available')
                         return True
 
-                    for key in tmp_output.keys():
+                    for key in list(tmp_output.keys()):
                         self.output['keys'] += [str(key)]
                         self.output[key] = tmp_output[key]
 
                     self.output['status'] = 0
                     self.output['message'].write('')
 
-                elif command == 'json_block':
+                elif command == b'json_block':
 
                     if not args:
                         self.output['message'].write(
@@ -144,10 +153,10 @@ class WalletProtocol(Protocol):
                     self.output['message'].write(
                         helper.json_print_telnet(self.factory.chain.m_get_block(int(args[0]))) + '\r\n')
 
-                elif command == 'savenewaddress':
+                elif command == b'savenewaddress':
                     self.savenewaddress()
 
-                elif command == 'recoverfromhexseed':
+                elif command == b'recoverfromhexseed':
                     if not args or not hexseed_to_seed(args[0]):
                         self.output['message'].write('>>> Usage: recoverfromhexseed <paste in hexseed>\r\n')
                         self.output['message'].write('>>> Could take up to a minute..\r\n')
@@ -155,7 +164,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     self.output['status'] = 0
-                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=hexseed_to_seed(args[0]))
+                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=hexseed_to_seed(args[0]))
                     self.factory.newaddress = addr
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
                     self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
@@ -167,7 +176,7 @@ class WalletProtocol(Protocol):
                     self.output['recovery_seed_phrase'] = addr[1].get_mnemonic()
                     self.output['hexseed_confirm'] = addr[1].get_hexseed()
 
-                elif command == 'recoverfromwords':
+                elif command == b'recoverfromwords':
                     if not args:
                         self.output['message'].write(
                             '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
@@ -179,7 +188,7 @@ class WalletProtocol(Protocol):
                         return True
 
                     args = ' '.join(args)
-                    addr = self.factory.chain.wallet.get_new_address(addrtype='XMSS', SEED=mnemonic_to_seed(args))
+                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=mnemonic2bin(args, wordlist))
                     self.factory.newaddress = addr
                     self.output['status'] = 0
                     self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
@@ -192,7 +201,7 @@ class WalletProtocol(Protocol):
                     self.output['recovery_hexseed'] = addr[1].get_hexseed()
                     self.output['mnemonic_confirm'] = addr[1].get_mnemonic()
 
-                elif command == 'stake':
+                elif command == b'stake':
                     self.output['status'] = 0
                     self.output['message'].write(
                         '>> Toggling stake from: ' + str(self.factory.p2pFactory.stake) + ' to: ' + str(
@@ -203,7 +212,7 @@ class WalletProtocol(Protocol):
                     self.output['keys'] += ['stake']
                     self.output['stake'] = self.factory.p2pFactory.stake
 
-                elif command == 'stakenextepoch':
+                elif command == b'stakenextepoch':
                     self.output['status'] = 0
                     self.output['message'].write(
                         '>>> Sending a stake transaction for address: ' + self.factory.chain.mining_address + ' to activate next epoch(' + str(
@@ -218,25 +227,25 @@ class WalletProtocol(Protocol):
                     blocknumber = self.factory.chain.block_chain_buffer.height() + 1
                     self.factory.p2pFactory.pos.make_st_tx(blocknumber=blocknumber, first_hash=None)
 
-                elif command == 'send':
+                elif command == b'send':
                     self.send_tx(args)
 
-                elif command == 'mempool':
+                elif command == b'mempool':
                     self.output['status'] = 0
                     self.output['message'].write('>>> Number of transactions in memory pool: ' + str(
                         len(self.factory.chain.transaction_pool)) + '\r\n')
                     self.output['keys'] += ['txn_nos']
                     self.output['txn_nos'] = len(self.factory.chain.transaction_pool)
 
-                elif command == 'help':
+                elif command == b'help':
                     self.output['status'] = 0
                     self.output['message'].write(
                         '>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n') 
                 # removed 'hrs, hrs_check,'
-                elif command == 'quit' or command == 'exit':
+                elif command == b'quit' or command == b'exit':
                     self.transport.loseConnection()
 
-                elif command == 'listaddresses':
+                elif command == b'listaddresses':
                     addresses, num_sigs, types = self.factory.chain.wallet.inspect_wallet()
                     self.output['status'] = 0
                     self.output['keys'] += ['addresses']
@@ -245,10 +254,10 @@ class WalletProtocol(Protocol):
                         self.output['message'].write(str(addr_bundle) + ', ' + addresses[addr_bundle] + '\r\n')
                         self.output['addresses'] += [addresses[addr_bundle]]
 
-                elif command == 'wallet':
+                elif command == b'wallet':
                     self.wallet()
 
-                elif command == 'getinfo':
+                elif command == b'getinfo':
                     self.output['status'] = 0
                     self.output['message'].write('>>> Version: ' + self.factory.chain.version_number + '\r\n')
                     self.output['message'].write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
@@ -265,7 +274,7 @@ class WalletProtocol(Protocol):
                     self.output['sync_status'] = self.factory.p2pFactory.nodeState.state.name
 
 
-                elif command == 'blockheight':
+                elif command == b'blockheight':
                     self.output['status'] = 0
                     self.output['message'].write('>>> Blockheight: ' + str(self.factory.chain.m_blockheight()) + '\r\n')
                     self.output['message'].write(
@@ -275,7 +284,7 @@ class WalletProtocol(Protocol):
                     self.output['blockheight'] = self.factory.chain.m_blockheight()
                     self.output['headerhash'] = self.factory.chain.m_blockchain[-1].blockheader.headerhash
 
-                elif command == 'peers':
+                elif command == b'peers':
                     self.output['status'] = 0
                     self.output['message'].write('>>> Connected Peers:\r\n')
                     self.output['keys'] += ['peers']
@@ -289,7 +298,7 @@ class WalletProtocol(Protocol):
                         self.output['peers'][peer.conn_identity]['blockheight'] = peer.blockheight
 
 
-                elif command == 'reboot':
+                elif command == b'reboot':
                     if len(args) < 1:
                         self.output['message'].write('>>> reboot <password>\r\n')
                         self.output['message'].write('>>> or\r\n')
@@ -324,14 +333,14 @@ class WalletProtocol(Protocol):
     def dataReceived(self, data):
         self.factory.recn += 1
         self.isJSON = False
-        if data.lower().startswith('json '):
+        if data.lower().startswith(b'json '):
             self.isJSON = True
             data = data[5:]
         try:
             if not self.parse_cmd(self.parse(data)):
                 self.output['status'] = 1
-                self.output['message'].write(">>> Command not recognised. Use 'help' for details" + '\r\n')
-        except Exception as e:
+                self.output['message'].write(">>> Command not recognised. Use 'help' for details \r\n")
+        except KeyboardInterrupt as e:
             self.output['message'] = StringIO()
             self.output['message'].write('Unexpected Error\r\nReport to QRL Developers')
             logger.error('Unexpected Error WalletProtocol\n')
@@ -341,9 +350,9 @@ class WalletProtocol(Protocol):
 
         try:
             if self.isJSON:
-                self.transport.write(json.dumps(self.output))
+                self.transport.write('%s' %(str(json.dumps(self.output)),))
             else:
-                self.transport.write(self.output['message'])
+                self.transport.write(bytes(str(self.output['message']), 'utf-8'))
         except Exception as e:
             logger.error('Walletprotocol unexpected exception while sending msg to client')
             logger.exception(e)
@@ -358,11 +367,11 @@ class WalletProtocol(Protocol):
     # whenever you type telnet 127.0.0.1 2000
     # a connection is made and this function is called to initialize the things.
     def connectionMade(self):
-        self.transport.write('QRL node connection established. Try starting with "help" ')
+        self.transport.write(b'QRL node connection established. Try starting with "help" ')
         self.factory.connections += 1
         if self.factory.connections > 1:
             logger.info('only one local connection allowed')
-            self.transport.write('only one local connection allowed, sorry')
+            self.transport.write(b'only one local connection allowed, sorry')
             self.transport.loseConnection()
         else:
             if self.transport.getPeer().host == '127.0.0.1':
@@ -405,13 +414,13 @@ class WalletProtocol(Protocol):
 
         # is the address in use? If not, fail/inform user
         if self.factory.state.state_address_used(addr[0]) is False:
-            self.output['message'].write('>>> Unused address: ' + addr + '\r\n')
+            self.output['message'].write(bytes('>>> Unused address: ' + addr + '\r\n', 'utf-8'))
             return
 
         # if all of these are met, return the balance
         self.output['status'] = 0
         balance = self.factory.state.state_balance(addr[0])
-        self.output['message'].write('>>> balance:  ' + str(balance) + '\r\n')
+        self.output['message'].write(bytes('>>> balance:  ' + str(balance) + '\r\n', 'utf-8'))
         self.output['keys'] += ['balance']
         self.output['balance'] = balance
         return
@@ -470,7 +479,10 @@ class WalletProtocol(Protocol):
 
         wallet_from = args[0]
         wallet_to = args[1]
-
+        try:
+            wallet_to = wallet_to.decode('ascii')
+        except:
+            pass
         # Check if the wallet entered is a local wallet (should be, since sender should be local - it's you)
         try:
             int(wallet_from)
@@ -491,6 +503,7 @@ class WalletProtocol(Protocol):
         # in case it ever changes
 
         # if wallet_to is not a local wallet, and wallet_to is not prepended by Q and
+
         if len(wallet_to) > 1 and wallet_to[0] != 'Q' and self.factory.state.state_hrs(wallet_to) != False:
             pass
         elif wallet_to[0] == 'Q':
@@ -511,7 +524,7 @@ class WalletProtocol(Protocol):
         # Check to see if sending amount > amount owned (and reject if so)
         # This is hard to interpret. Break it up?
         balance = self.factory.state.state_balance(self.factory.chain.wallet.address_bundle[int(wallet_from)].address)
-        send_amt_arg = args[2]
+        send_amt_arg = args[2].decode('ascii')
         try:
             float(send_amt_arg)
         except:
@@ -563,7 +576,7 @@ class WalletProtocol(Protocol):
         # send the transaction to peers (ie send it to the network - we are done)
         self.factory.p2pFactory.send_tx_to_peers(tx)
         self.output['status'] = 0
-        self.output['message'].write('>>> ' + str(tx.txhash))
+        self.output['message'].write('>>> ' + bin2hstr(tx.txhash))
         self.output['message'].write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
             tx.amount / 100000000.000000000) + ' Fee: ' + str(tx.fee / 100000000.000000000) + '\r\n')
         self.output['message'].write('>>>created and sent into p2p network\r\n')

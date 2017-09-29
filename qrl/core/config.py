@@ -6,7 +6,7 @@ from os.path import expanduser
 import os
 
 import yaml
-
+from math import ceil, log
 
 class UserConfig(object):
     __instance = None
@@ -32,7 +32,7 @@ class UserConfig(object):
         self.max_peers_limit = 40  # Number of allowed peers
         self.data_path = expanduser("~/.qrl/data")
         self.wallet_path = expanduser("~/.qrl/wallet")
-        self.config_path = '~/.qrl/config.yaml'
+        self.config_path = '~/.qrl/config.yml'
 
         self.load_yaml(expanduser(self.config_path))
 
@@ -94,21 +94,23 @@ class DevConfig(object):
         self.disk_writes_after_x_blocks = 100
         self.blocks_per_chain_file = 1000
         self.chain_read_buffer_size = 1024
-        self.binary_file_delimiter = '-_-_'
+        self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.47a"
+        self.version_number = "alpha/0.52a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000
         self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
         self.timestamp_error = 5 # Error in second
+        self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
+        self.xmss_tree_height = 10
 
         self.db_name = 'state'
         self.peers_filename = 'peers.dat'
-        self.wallet_dat_filename = 'wallet.dat'
-        self.wallet_info_filename = 'wallet.info'
+        self.wallet_dat_filename = 'wallet.json'
+        self.slave_dat_filename = 'slave.json'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = 'Cryptonium'
+        self.genesis_prev_headerhash = 'Cross-Breed-Testnet'
 
     @staticmethod
     def getInstance():

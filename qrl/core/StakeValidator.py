@@ -18,19 +18,19 @@ class StakeValidator:
     def __init__(self, stake_validator, slave_public_key, hashchain_terminators=None, first_hash=None, balance=0):
         self.buffer_size = 4  # Move size to dev configuration
         self.stake_validator = stake_validator
-        self.slave_public_key = []
-        for key in slave_public_key:
-            self.slave_public_key.append(key.encode('ascii'))
+        self.slave_public_key = tuple(slave_public_key)
         self.balance = balance
         self.first_hash = first_hash
-        self.hashchain_terminators = hashchain_terminators
+        self.hashchain_terminators = tuple(hashchain_terminators)
         self.nonce = 0
+        self.is_banned = False
         if hashchain_terminators:
             self.cache_hash = dict()
             for chain_num in range(config.dev.hashchain_nums):
                 self.cache_hash[chain_num] = dict()
                 self.cache_hash[chain_num][-1] = hashchain_terminators[chain_num]
             self.cache_hash[config.dev.hashchain_nums-1][-1] = self.first_hash
+
 
     def hash_to_terminator(self, hash, times):
         for _ in range(times):
@@ -59,6 +59,7 @@ class StakeValidator:
 
         cache_blocknum = max(self.cache_hash[target_chain])
         times = epoch_blocknum - cache_blocknum
+
         terminator_expected = self.hash_to_terminator(hash, times)
 
         terminator_found = self.cache_hash[target_chain][cache_blocknum]

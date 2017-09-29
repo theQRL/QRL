@@ -2,10 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core import config, helper
+from pyqrllib.pyqrllib import bin2hstr
+from qrl.core import config, helper, logger
 from qrl.core.StakeValidator import StakeValidator
 import simplejson as json
-import logger
 from collections import OrderedDict
 
 from qrl.crypto.misc import sha256
@@ -43,7 +43,10 @@ class StakeValidatorsList:
         # of first_hash of all stake validators
         for staker in self.sv_list:
             sv = self.sv_list[staker]
-            epoch_seed |= int(str(sv.first_hash), 16)
+            if not sv.first_hash:
+                logger.error('sv.first_hash could not be empty %s', sv.first_hash)
+                raise Exception
+            epoch_seed |= int(bin2hstr(sv.first_hash), 16)
 
         return epoch_seed
 
@@ -63,7 +66,7 @@ class StakeValidatorsList:
     def select_target(last_block_headerhash):
         target_chain = 0
         for byte in last_block_headerhash:
-            target_chain += ord(byte)
+            target_chain += byte
 
         target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
@@ -97,7 +100,7 @@ class StakeValidatorsList:
 
     def get_threshold(self, staker_address):
         if self.isOrderedLength != len(self.next_sv_list):
-            self.next_sv_list = OrderedDict(sorted(self.next_sv_list.iteritems(), key=lambda sv: sv[1].balance))
+            self.next_sv_list = OrderedDict(sorted(iter(self.next_sv_list.items()), key=lambda sv: sv[1].balance))
             self.isOrderedLength = len(self.next_sv_list)
             mid_stakers = len(self.next_sv_list) // 2
             position = 0
@@ -150,4 +153,5 @@ class StakeValidatorsList:
         return svl
 
     def to_json(self):
+        logger.info('%s', self.__dict__)
         return helper.json_encode_complex(self)

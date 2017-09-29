@@ -2,19 +2,20 @@
 import json
 import struct
 import time
-from decimal import Decimal
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import helper, config, logger, fork
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.node import NodeState
 from qrl.core.nstate import NState
-from qrl.core.Transaction import StakeTransaction, SimpleTransaction
+from qrl.core.Transaction import StakeTransaction, SimpleTransaction, DuplicateTransaction
 from qrl.crypto.misc import sha256
 from qrl.core.processors.TxnProcessor import TxnProcessor
-import Queue
+from queue import PriorityQueue
 
 class P2PProtocol(Protocol):
     def __init__(self):
@@ -24,6 +25,7 @@ class P2PProtocol(Protocol):
                         'SFM': self.SFM,
                         'TX': self.TX,
                         'ST': self.ST,
+                        'DT': self.DT,
                         'BM': self.BM,
                         'BK': self.BK,
                         'PBB': self.PBB,
@@ -43,10 +45,9 @@ class P2PProtocol(Protocol):
                         'RT': self.RT,
                         'PE': self.PE,
                         'VE': self.VE,
-                        'R1': self.R1,
                         'IP': self.IP,
                         }
-        self.buffer = ''
+        self.buffer = b''
         self.messages = []
         self.conn_identity = None
         self.blockheight = None
@@ -58,24 +59,26 @@ class P2PProtocol(Protocol):
 
     def parse_msg(self, data):
         try:
-            jdata = json.loads(data)
+            jdata = json.loads(data.decode())
         except Exception as e:
             logger.warning("parse_msg [json] %s", e)
+            logger.exception(e)
             return
 
-        func = jdata['type']
+        func_name = jdata['type']
 
-        if func not in self.service:
+        if func_name not in self.service:
             return
 
-        func = self.service[func]
+        func = self.service[func_name]
         try:
             if 'data' in jdata:
                 func(jdata['data'])
             else:
                 func()
         except Exception as e:
-            logger.error("parse_msg [%s] \n%s", func, e)
+            logger.error("executing [%s]", func_name)
+            logger.exception(e)
 
     def reboot(self, data):
         hash_dict = json.loads(data)
@@ -117,39 +120,39 @@ class P2PProtocol(Protocol):
         if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
             return
 
-        if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool)>=config.dev.transaction_pool_size:
+        if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', data['hash'])
             return
 
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.peer_contains_hash(data['hash'], data['type'], self):
+        if self.factory.master_mr.contains(data['hash'], data['type']):
             return
 
         self.factory.master_mr.add_peer(data['hash'], data['type'], self)
 
-        if data['hash'] in self.factory.master_mr.hash_callLater:  # Ignore if already requested
-            return
-
-        if self.factory.master_mr.contains(data['hash'], data['type']):
+        if self.factory.master_mr.is_callLater_active(data['hash']):  # Ignore if already requested
             return
 
         if data['type'] == 'BK':
             block_chain_buffer = self.factory.chain.block_chain_buffer
+
             if not block_chain_buffer.verify_BK_hash(data, self.conn_identity):
-                #self.factory.master_mr.deregister(data['hash'], data['type'])
+                if block_chain_buffer.is_duplicate_block(blocknum=data['blocknumber'],
+                                                         prev_blockheaderhash=tuple(data['prev_headerhash']),
+                                                         stake_selector=data['stake_selector']):
+                    self.factory.RFM(data)
                 return
 
             blocknumber = data['blocknumber']
-
             target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.pos.ntp)
             if target_blocknumber != self.factory.bkmr_blocknumber:
                 self.factory.bkmr_blocknumber = target_blocknumber
                 del self.factory.bkmr_priorityq
-                self.factory.bkmr_priorityq = Queue.PriorityQueue()
+                self.factory.bkmr_priorityq = PriorityQueue()
 
-            if blocknumber != target_blocknumber:
+            if blocknumber != target_blocknumber or blocknumber == 1:
                 self.factory.RFM(data)
                 return
 
@@ -158,8 +161,7 @@ class P2PProtocol(Protocol):
 
             if not self.factory.bkmr_processor.active():
                 self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)
-
-            return
+                return
 
         self.factory.RFM(data)
 
@@ -172,32 +174,14 @@ class P2PProtocol(Protocol):
         data = json.loads(data)
         msg_hash = data['hash']
         msg_type = data['type']
+
         if not self.factory.master_mr.contains(msg_hash, msg_type):
             return
 
         # Sending message from node, doesn't guarantee that peer has received it.
         # Thus requesting peer could re request it, may be ACK would be required
-        # To confirm, if the peer has received, otherwise X number of maximum retry
-        # if self.factory.master_mr.peer_contains_hash(msg_hash, msg_type, self):
-        #    return
-
         self.transport.write(self.wrap_message(msg_type,
-                                               self.factory.master_mr.hash_msg[msg_hash]))
-
-        self.factory.master_mr.add_peer(msg_hash, msg_type, self)
-
-    def broadcast(self, msg_hash, msg_type):  # Move to factory
-        """
-        Broadcast
-        This function sends the Message Receipt to all connected peers.
-        :return:
-        """
-        data = {'hash': sha256(str(msg_hash)),
-                'type': msg_type}
-
-        for peer in self.factory.peer_connections:
-            if peer not in self.factory.master_mr.hash_peer[data['hash']]:
-                peer.transport.write(self.wrap_message('MR', helper.json_encode(data)))
+                                               self.factory.master_mr.hash_msg[bin2hstr(msg_hash)].msg))
 
     def TX(self, data):  # tx received..
         """
@@ -233,18 +217,52 @@ class P2PProtocol(Protocol):
         for t in self.factory.chain.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
-        # logger.info('--> %s %s',self.factory.chain.block_chain_buffer.height(), self.factory.chain.height())
+
         tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
             blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
             addr=st.txfrom)
         if st.validate_tx() and st.state_validate_tx(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(st)
         else:
-            logger.warning('>>>ST %s invalid state validation failed..', st.hash)
+            logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(st.hash))
             return
 
-        self.factory.master_mr.register(st.get_message_hash(), st.transaction_to_json(), 'ST')
-        self.broadcast(st.get_message_hash(), 'ST')
+        self.factory.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())
+        return
+
+    def DT(self, data):
+        """
+        Duplicate Transaction
+        This function processes whenever a Transaction having
+        subtype DT is received.
+        :return:
+        """
+        try:
+            duplicate_txn = DuplicateTransaction().json_to_transaction(data)
+        except Exception as e:
+            logger.error('DT rejected')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), self):
+            return
+
+        if duplicate_txn.get_message_hash() in self.factory.chain.duplicate_tx_pool:
+            return
+
+        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
+            blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
+            addr=duplicate_txn.coinbase1.txfrom)
+
+        # TODO: State validate for duplicate_txn is pending
+        if duplicate_txn.validate_tx():
+            self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
+        else:
+            logger.warning('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
+            return
+
+        self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
         return
 
     def BM(self, data=None):  # blockheight map for synchronisation and error correction prior to POS cycle resync..
@@ -287,16 +305,36 @@ class P2PProtocol(Protocol):
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
             return
+
         logger.info('>>>Received block from %s %s %s',
                     self.conn_identity,
                     block.blockheader.blocknumber,
                     block.blockheader.stake_selector)
+
         if not self.factory.master_mr.isRequested(block.blockheader.headerhash, self, block):
             return
 
+        block_chain_buffer = self.factory.chain.block_chain_buffer
+
+        if block_chain_buffer.is_duplicate_block(blocknum=block.blockheader.blocknumber,
+                                                 prev_blockheaderhash=block.blockheader.prev_blockheaderhash,
+                                                 stake_selector=block.blockheader.stake_selector):
+            logger.info('Found duplicate block #%s by %s',
+                        block.blockheader.blocknumber,
+                        block.blockheader.stake_selector)
+            coinbase_txn = block.transactions[0]
+
+            if coinbase_txn.validate_tx(chain=self.factory.chain, blockheader=block.blockheader):
+                self.factory.master_mr.register_duplicate(block.blockheader.headerhash)
+                block2 = block_chain_buffer.get_block_n(block.blockheader.blocknumber)
+
+                duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
+                if duplicate_txn.validate_tx():
+                    self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
+                    self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
+
         self.factory.pos.pre_block_logic(block)
         self.factory.master_mr.register(block.blockheader.headerhash, data, 'BK')
-        self.broadcast(block.blockheader.headerhash, 'BK')
         return
 
     def isNoMoreBlock(self, data):
@@ -328,13 +366,13 @@ class P2PProtocol(Protocol):
                 return
 
             data = helper.json_decode(data)
-            blocknumber = int(data.keys()[0].encode('ascii'))
+            blocknumber = int(list(data.keys())[0].encode('ascii'))
 
             if blocknumber != self.last_requested_blocknum:
                 logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.conn_identity)
                 return
 
-            for jsonBlock in data[unicode(blocknumber)]:
+            for jsonBlock in data[str(blocknumber)]:
                 block = Block.from_json(json.dumps(jsonBlock))
                 logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
 
@@ -377,6 +415,7 @@ class P2PProtocol(Protocol):
                 return
 
             block = Block.from_json(data)
+
             blocknumber = block.blockheader.blocknumber
             logger.info('>>> Received Block #%d', blocknumber)
             if blocknumber != self.last_requested_blocknum:
@@ -436,8 +475,10 @@ class P2PProtocol(Protocol):
         if self.factory.pos.nodeState.state != NState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
+
         data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
                 'blocknumber': self.factory.chain.m_blockchain[-1].blockheader.blocknumber}
+
         self.transport.write(self.wrap_message('PMBH', helper.json_encode(data)))
         return
 
@@ -451,12 +492,14 @@ class P2PProtocol(Protocol):
         if not data or 'headerhash' not in data or 'blocknumber' not in data:
             return
 
+        tmp = tuple(data['headerhash'])
+
         if self.conn_identity in self.factory.pos.fmbh_allowed_peers:
             self.factory.pos.fmbh_allowed_peers[self.conn_identity] = data
-            if data['headerhash'] not in self.factory.pos.fmbh_blockhash_peers:
-                self.factory.pos.fmbh_blockhash_peers[data['headerhash']] = {'blocknumber': data['blocknumber'],
-                                                                             'peers': []}
-            self.factory.pos.fmbh_blockhash_peers[data['headerhash']]['peers'].append(self)
+            if tmp not in self.factory.pos.fmbh_blockhash_peers:
+                self.factory.pos.fmbh_blockhash_peers[tmp] = {'blocknumber': data['blocknumber'],
+                                                              'peers': []}
+            self.factory.pos.fmbh_blockhash_peers[tmp]['peers'].append(self)
 
     def MB(self):  # we send with just prefix as request..with CB number and blockhash as answer..
         """
@@ -472,31 +515,51 @@ class P2PProtocol(Protocol):
         """
         Check Blockheight
         :return:
+        # FIXME: This test grew too much. Convert doctest into unit test using mocks
+        >>> from collections import namedtuple, defaultdict
+        >>> p=P2PProtocol()
+        >>> Transport = namedtuple("Transport", "getPeer write")
+        >>> Peer = namedtuple("Peer", "host port")
+        >>> Factory = namedtuple("Factory", "peers_blockheight chain nodeState")
+        >>> Chain = namedtuple("Chain", "m_blockchain m_blockheight")
+        >>> def getPeer():
+        ...     return Peer("host", 1234)
+        >>> message = None
+        >>> def write(msg):
+        ...     global message
+        ...     message = msg
+        >>> def m_blockheight():
+        ...     return 0
+        >>> p.transport = Transport(getPeer, write)
+        >>> p.chain = Chain([], m_blockheight)
+        >>> tmp = NodeState()
+        >>> tmp.state = NState.synced
+        >>> p.factory = Factory(defaultdict(), p.chain, tmp)
+        >>> p.CB('{"block_number": 3, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}')
         """
         z = helper.json_decode(data)
         block_number = z['block_number']
-        headerhash = z['headerhash'].encode('latin1')
+        headerhash = tuple(z['headerhash'])
+
+        tmp = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
+        self.factory.peers_blockheight[tmp] = z['block_number']
 
         self.blockheight = block_number
-
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
                     self.transport.getPeer().host, block_number,
                     self.factory.chain.m_blockheight(), str(time.time()))
 
-        self.factory.peers_blockheight[self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)] = z[
-            'block_number']
-
-        if self.factory.nodeState.state == NState.syncing: return
+        if self.factory.nodeState.state == NState.syncing:
+            return
 
         if block_number == self.factory.chain.m_blockheight():
             # if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
             if self.factory.chain.m_get_block(block_number).blockheader.headerhash != headerhash:
-                logger.info('>>> WARNING: headerhash mismatch from %s', self.transport.getPeer().host)
+                logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
 
                 # initiate fork recovery and protection code here..
                 # call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
                 # again need to think this one through in detail..
-
                 return
 
         if block_number > self.factory.chain.m_blockheight():
@@ -656,120 +719,6 @@ class P2PProtocol(Protocol):
 
         return
 
-    # receive a reveal_one message sent out after block receipt or creation (could be here prior to the block!)
-    def R1(self, data):
-        """
-        Reveal
-        Process the reveal message received by the peer.
-        :return:
-        """
-        if self.factory.nodeState.state != NState.synced:
-            return
-        z = json.loads(data, parse_float=Decimal)
-        if not z:
-            return
-        block_number = z['block_number']
-        headerhash = z['headerhash'].encode('latin1')
-        stake_address = z['stake_address'].encode('latin1')
-        vote_hash = z['vote_hash'].encode('latin1')
-        reveal_one = z['reveal_one'].encode('latin1')
-
-        if not self.factory.master_mr.isRequested(z['vote_hash'], self):
-            return
-
-        if block_number <= self.factory.chain.height():
-            return
-
-        for entry in self.factory.chain.stake_reveal_one:  # already received, do not relay.
-            if entry[3] == reveal_one:
-                return
-
-        if len(self.factory.chain.stake_validator_latency) > 20:
-            del self.factory.chain.stake_validator_latency[min(self.factory.chain.stake_validator_latency.keys())]
-
-        if self.factory.nodeState.epoch_diff == 0:
-            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(z['block_number'])
-
-            if stake_address not in sv_list:
-                logger.info('stake address not in the stake_list')
-                logger.info('len of sv_list %s', len(sv_list))
-                logger.info('len of next_sv_list %s',
-                            len(self.factory.chain.block_chain_buffer.next_stake_list_get(z['block_number'])))
-                return
-
-
-            stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(block_number)
-
-            target_chain = stake_validators_list.select_target(headerhash)
-            if not stake_validators_list.validate_hash(vote_hash,
-                                                   block_number,
-                                                   target_chain=target_chain,
-                                                   stake_address=stake_address):
-                logger.info('%s vote hash doesnt hash to stake terminator vote %s',  # nonce %s vote_hash %s',
-                            self.conn_identity, vote_hash)#, s[2], vote_hash_terminator)
-                return
-
-            if not stake_validators_list.validate_hash(reveal_one,
-                                                   block_number,
-                                                   target_chain=config.dev.hashchain_nums-1,
-                                                   stake_address=stake_address):
-                logger.info('%s reveal doesnt hash to stake terminator reveal %s',  # nonce %s reveal_hash %s',
-                            self.conn_identity, reveal_one)#, s[2], reveal_hash_terminator)
-                return
-
-        if len(self.factory.pos.r1_time_diff) > 2:
-            del self.factory.pos.r1_time_diff[min(self.factory.pos.r1_time_diff.keys())]
-
-        self.factory.pos.r1_time_diff[block_number].append(int(time.time() * 1000))
-
-        logger.info('>>> POS reveal_one: %s %s %s %s', self.transport.getPeer().host, stake_address, block_number,
-                    reveal_one)
-        score = self.factory.chain.score(stake_address=stake_address,
-                                         reveal_one=reveal_one,
-                                         balance=self.factory.chain.block_chain_buffer.get_st_balance(stake_address,
-                                                                                                      block_number),
-                                         seed=z['seed'])
-
-        if score is None:
-            logger.info('Score None for stake_address %s reveal_one %s', stake_address, reveal_one)
-            return
-
-        if score != z['weighted_hash']:
-            logger.info('Weighted_hash didnt match')
-            logger.info('Expected : %s', score)
-            logger.info('Found : %s', z['weighted_hash'])
-            logger.info('Seed found : %ld', z['seed'])
-            logger.info('Seed Expected : %ld',
-                        self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number']))
-            logger.info('Balance : %ld',
-                        self.factory.chain.block_chain_buffer.get_st_balance(stake_address, block_number))
-
-            return
-
-        epoch = block_number // config.dev.blocks_per_epoch
-        epoch_seed = self.factory.chain.block_chain_buffer.get_epoch_seed(z['block_number'])
-
-        if epoch_seed != z['seed']:
-            logger.info('Seed didnt match')
-            logger.info('Expected : %ld', epoch_seed)
-            logger.info('Found : %ld', z['seed'])
-            return
-
-        sv_hash = self.factory.chain.get_stake_validators_hash()
-        # if sv_hash != z['SV_hash']:
-        # logger.info(( 'SV_hash didnt match' ))
-        # logger.info(( 'Expected : ', sv_hash ))
-        # logger.info(( 'Found : ', z['SV_hash'] ))
-        # return
-
-        self.factory.chain.stake_reveal_one.append(
-            [stake_address, headerhash, block_number, reveal_one, score, vote_hash])
-        self.factory.master_mr.register(z['vote_hash'], data, 'R1')
-        if self.factory.nodeState.state == NState.synced:
-            self.broadcast(z['vote_hash'], 'R1')
-
-        return
-
     def IP(self, data):  # fun feature to allow geo-tagging on qrl explorer of test nodes..reveals IP so optional..
         """
         IP
@@ -804,7 +753,7 @@ class P2PProtocol(Protocol):
         new_ips = []
         for ip in data:
             if ip not in new_ips:
-                new_ips.append(ip.encode('latin1'))
+                new_ips.append(ip)
 
         peer_addresses = self.factory.peer_addresses
         logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
@@ -832,10 +781,24 @@ class P2PProtocol(Protocol):
         Get blockheight
         Sends the request to all peers to send their mainchain max blockheight.
         :return:
+        >>> from collections import namedtuple
+        >>> p=P2PProtocol()
+        >>> Transport = namedtuple("Transport", "getPeer write")
+        >>> Peer = namedtuple("Peer", "host")
+        >>> def getPeer():
+        ...     return Peer("host")
+        >>> message = None
+        >>> def write(msg):
+        ...     global message
+        ...     message = msg
+        >>> p.transport = Transport(getPeer, write)
+        >>> p.get_m_blockheight_from_connection()
+        >>> bin2hstr(message)
+        'ff00003030303030303065007b2274797065223a20224d42227d0000ff'
         """
         logger.info('<<<Requesting blockheight from %s', self.transport.getPeer().host)
-        self.transport.write(self.wrap_message('MB'))
-        return
+        msg = self.wrap_message('MB')
+        self.transport.write(msg)
 
     def send_m_blockheight_to_peer(self):
         """
@@ -917,8 +880,8 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('FH', str(n)))
         return
 
-    MSG_INITIATOR = b"\xff\x00\x00"
-    MSG_TERMINATOR = b"\x00\x00\xff"
+    MSG_INITIATOR = bytearray(b'\xff\x00\x00')
+    MSG_TERMINATOR = bytearray(b'\x00\x00\xff')
 
     @staticmethod
     def wrap_message(mtype, data=None):
@@ -929,18 +892,28 @@ class P2PProtocol(Protocol):
         :type data: Union[None, str, None, None, None, None, None, None, None, None, None]
         :return:
         :rtype: str
-        >>> from qrl.core.doctest_data import wrap_message_expected1
-        >>> P2PProtocol.wrap_message("test", 12345) == wrap_message_expected1
+        >>> answer = bin2hstr(P2PProtocol.wrap_message('TESTKEY_1234', 12345))
+        >>> answer == 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff' or answer == 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
         True
         """
         # FIXME: Move this to protobuf
         jdata = {'type': mtype}
         if data:
             jdata['data'] = data
-        str_data = json.dumps(jdata).encode('ascii')
+
+        str_data = json.dumps(jdata)
+
         # FIXME: struct.pack may result in endianness problems
-        str_data_len = struct.pack('>L', len(str_data))
-        return P2PProtocol.MSG_INITIATOR + str_data_len + b"\x00" + str_data + P2PProtocol.MSG_TERMINATOR
+        str_data_len = bin2hstr(struct.pack('>L', len(str_data)))
+
+        tmp = b''
+        tmp += P2PProtocol.MSG_INITIATOR
+        tmp += str_data_len.encode()
+        tmp += bytearray(b'\x00')
+        tmp += str_data.encode()
+        tmp += P2PProtocol.MSG_TERMINATOR
+
+        return tmp
 
     def clean_buffer(self, reason=None, upto=None):
         if reason:
@@ -948,9 +921,10 @@ class P2PProtocol(Protocol):
         if upto:
             self.buffer = self.buffer[upto:]  # Clean buffer till the value provided in upto
         else:
-            self.buffer = ''  # Clean buffer completely
+            self.buffer = b''  # Clean buffer completely
 
     def parse_buffer(self):
+        # FIXME: This parsing/wire protocol needs to be replaced
         """
         :return:
         :rtype: bool
@@ -959,7 +933,7 @@ class P2PProtocol(Protocol):
         >>> p.buffer = wrap_message_expected1
         >>> found_message = p.parse_buffer()
         >>> p.messages
-        ['{"data": 12345, "type": "test"}']
+        [bytearray(b'{"data": 12345, "type": "TESTKEY_1234"}')]
         """
         # FIXME
         if len(self.buffer) == 0:
@@ -969,6 +943,7 @@ class P2PProtocol(Protocol):
         num_d = self.buffer.count(P2PProtocol.MSG_INITIATOR)  # count the initiator sequences
 
         if d == -1:  # if no initiator sequences found then wipe buffer..
+            logger.warning('Message data without initiator')
             self.clean_buffer(reason='Message data without initiator')
             return False
 
@@ -978,8 +953,12 @@ class P2PProtocol(Protocol):
             return False
 
         try:
-            m = struct.unpack('>L', self.buffer[3:7])[0]  # is m length encoded correctly?
-        except:
+            tmp = self.buffer[3:11]
+            tmp2 = hstr2bin(tmp.decode())
+            tmp3 = bytearray(tmp2)
+            m = struct.unpack('>L', tmp3)[0]  # is m length encoded correctly?
+        except Exception as e:
+            logger.exception(e)
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
@@ -1003,7 +982,7 @@ class P2PProtocol(Protocol):
         e = self.buffer.find(P2PProtocol.MSG_TERMINATOR)  # find the terminator sequence
 
         if e == -1:  # no terminator sequence found
-            if len(self.buffer) > 8 + m + 3:
+            if len(self.buffer) > 12 + m + 3:
                 if num_d > 1:  # if not is this the only initiator sequence?
                     self.buffer = self.buffer[3:]
                     d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
@@ -1013,7 +992,7 @@ class P2PProtocol(Protocol):
                     self.clean_buffer(reason='Message without initiator and terminator')  # yes
             return False
 
-        if e != 3 + 5 + m:  # is terminator sequence located correctly?
+        if e != 3 + 9 + m:  # is terminator sequence located correctly?
             if num_d > 1:  # if not is this the only initiator sequence?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
@@ -1023,28 +1002,40 @@ class P2PProtocol(Protocol):
                 self.clean_buffer(reason='Message terminator incorrectly positioned')  # yes
             return False
 
-        self.messages.append(self.buffer[8:8 + m])  # if survived the above then save the msg into the self.messages
-        self.buffer = self.buffer[8 + m + 3:]  # reset the buffer to after the msg
+        self.messages.append(self.buffer[12:12 + m])  # if survived the above then save the msg into the self.messages
+        self.buffer = self.buffer[12 + m + 3:]  # reset the buffer to after the msg
         return True
 
-    def dataReceived(self, data):  # adds data received to buffer. then tries to parse the buffer twice..
+    def dataReceived(self, data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
         """
-        :param data:
-        :type data: str
+        :param data:Message data without initiator
         :return:
         :rtype: None
+
+        >>> from unittest.mock import MagicMock
         >>> from qrl.core.doctest_data import wrap_message_expected1
         >>> p=P2PProtocol()
-        >>> val_received = 0
-        >>> def mockService(x):
-        ...     global val_received
-        ...     val_received = x
-        >>> p.service['test'] = mockService
+        >>> p.service['TESTKEY_1234'] = MagicMock(side_effect=(lambda x: x))
         >>> p.dataReceived(wrap_message_expected1)
-        >>> val_received
-        12345
+        >>> p.service['TESTKEY_1234'].call_args
+        call(12345)
+        >>> from unittest.mock import MagicMock
+        >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2264617461223a20225b5c223137322e31382e302e325c225d222c202274797065223a2022504c227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ff'))
+        >>> p=P2PProtocol()
+        >>> p.service['MB'] = MagicMock()
+        >>> p.dataReceived(data)
+        >>> print(p.service['MB'].called)
+        True
+        >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2274797065223a2022504c222c202264617461223a20225b5c223137322e31382e302e365c225d227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ffff00003030303030306434007b2274797065223a20224342222c202264617461223a20227b5c22626c6f636b5f6e756d6265725c223a20302c205c22686561646572686173685c223a205b35332c203133302c203136382c2035372c203138332c203231352c203132302c203137382c203230392c2033302c203139342c203232332c203232312c2035382c2037322c203132342c2036322c203134382c203131302c2038312c2031392c203138392c2032372c203234332c203231382c2038372c203231372c203230332c203139382c2039372c2038342c2031395d7d227d0000ffff00003030303030303635007b2274797065223a20225645222c202264617461223a20227b5c2267656e657369735f707265765f686561646572686173685c223a205c2243727970746f6e69756d5c222c205c2276657273696f6e5c223a205c22616c7068612f302e3435615c227d227d0000ff'))
+        >>> p=P2PProtocol()
+        >>> p.service['MB'] = MagicMock()
+        >>> p.service['PL'] = MagicMock()
+        >>> p.service['VE'] = MagicMock()
+        >>> p.service['CB'] = MagicMock()
+        >>> p.dataReceived(data)
+        >>> p.service['MB'].call_count == 1 and p.service['PL'].call_count == 1 and p.service['VE'].call_count == 2 and p.service['CB'].call_count == 1
+        True
         """
-
         self.buffer += data
 
         for x in range(50):
@@ -1055,10 +1046,9 @@ class P2PProtocol(Protocol):
                     self.parse_msg(msg)
                 del self.messages[:]
 
-
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
-        self.conn_identity = peerHost + ":" + str(peerPort)
+        self.conn_identity = "{}:{}".format(peerHost, peerPort)
 
         # FIXME: (For AWS) This could be problematic for other users
         if config.dev.public_ip:
@@ -1115,13 +1105,13 @@ class P2PProtocol(Protocol):
             host_port = self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)
             if host_port in self.factory.peers_blockheight:
                 del self.factory.peers_blockheight[host_port]
+
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
         except Exception:
             pass
 
     def recv_tx(self, json_tx_obj):
-
         try:
             tx = SimpleTransaction().json_to_transaction(json_tx_obj)
         except Exception as e:
@@ -1146,7 +1136,7 @@ class P2PProtocol(Protocol):
         self.factory.chain.update_pending_tx_pool(tx, self)
 
         self.factory.master_mr.register(tx.get_message_hash(), json_tx_obj, 'TX')
-        self.broadcast(tx.get_message_hash(), 'TX')
+        self.factory.broadcast(tx.get_message_hash(), 'TX')
 
         if not self.factory.txn_processor_running:
             txn_processor = TxnProcessor(block_chain_buffer=self.factory.chain.block_chain_buffer,
@@ -1155,7 +1145,7 @@ class P2PProtocol(Protocol):
                                          txhash_timestamp=self.factory.chain.txhash_timestamp)
 
             task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-            task_defer.addCallback(self.factory.reset_processor_flag)\
-                      .addErrback(self.factory.reset_processor_flag_with_err)
+            task_defer.addCallback(self.factory.reset_processor_flag) \
+                .addErrback(self.factory.reset_processor_flag_with_err)
             self.factory.txn_processor_running = True
         return
