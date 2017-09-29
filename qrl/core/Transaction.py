@@ -40,6 +40,7 @@ class Transaction(object, metaclass=ABCMeta):
         :type txdict:
         :return:
         :rtype:
+
         >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Simple), SimpleTransaction)
         True
         >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Stake), StakeTransaction)
@@ -279,6 +280,7 @@ class StakeTransaction(Transaction):
         """
         :return:
         :rtype:
+
         >>> s = StakeTransaction()
         >>> seed = [i for i in range(48)]
         >>> slave = XMSS(4, seed)

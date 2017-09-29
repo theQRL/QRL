@@ -12,7 +12,7 @@ from twisted.internet.protocol import ServerFactory
 
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger, helper
-from qrl.core.helper import json_encode, json_bytestream, json_bytestream_bk
+from qrl.core.helper import json_encode, json_bytestream_bk
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
 import queue
@@ -392,13 +392,16 @@ class P2PFactory(ServerFactory):
         self.txn_processor_running = False
 
     # Event handlers
+    # noinspection PyMethodMayBeStatic
     def clientConnectionLost(self, connector, reason):
         logger.debug('connection lost: %s', reason)
         # TODO: Reconnect has been disabled
         # connector.connect()
 
+    # noinspection PyMethodMayBeStatic
     def clientConnectionFailed(self, connector, reason):
         logger.debug('connection failed: %s', reason)
 
+    # noinspection PyMethodMayBeStatic
     def startedConnecting(self, connector):
         logger.debug('Started connecting: %s', connector)

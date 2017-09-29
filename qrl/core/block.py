@@ -24,6 +24,7 @@ class Block(object):
         :type blocknumber:
         :return:
         :rtype:
+
         >>> Block.isHashPresent(None, None, None)
         False
         """

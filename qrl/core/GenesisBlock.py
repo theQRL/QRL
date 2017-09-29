@@ -90,6 +90,7 @@ class GenesisBlock(object, metaclass=Singleton):
         """
         :return:
         :rtype:
+
         >>> GenesisBlock().get_info() is not None
         True
         """
