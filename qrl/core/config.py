@@ -110,7 +110,7 @@ class DevConfig(object):
         self.wallet_dat_filename = 'wallet.json'
         self.slave_dat_filename = 'slave.json'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = 'Cryptonium'
+        self.genesis_prev_headerhash = 'Cross-Breed-Testnet'
 
     @staticmethod
     def getInstance():
