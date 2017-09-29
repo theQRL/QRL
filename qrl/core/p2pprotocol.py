@@ -130,7 +130,7 @@ class P2PProtocol(Protocol):
         if self.factory.master_mr.contains(data['hash'], data['type']):
             return
 
-        self.factory.master_mr.add_peer(data['hash'], data['type'], self)
+        self.factory.master_mr.add_peer(data['hash'], data['type'], self, data)
 
         if self.factory.master_mr.is_callLater_active(data['hash']):  # Ignore if already requested
             return
