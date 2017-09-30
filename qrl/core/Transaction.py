@@ -215,7 +215,7 @@ class SimpleTransaction(Transaction):
 
     def create(self, tx_state, txto, amount, xmss, fee=0):
         self.txfrom = xmss.get_address()
-        self.txto = txto.decode('ascii')
+        self.txto = txto
         self.amount = int(amount)
         self.fee = int(fee)
 
