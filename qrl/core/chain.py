@@ -437,6 +437,7 @@ class Chain:
         elif json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
             tx = CoinBase().json_to_transaction(txn_metadata[0])
         tx_new = copy.deepcopy(tx)
+        tx_new.txhash = bin2hstr(tx_new.txhash)
         tx_new.block = txn_metadata[1]
         tx_new.timestamp = txn_metadata[2]
         tx_new.confirmations = self.m_blockheight() - txn_metadata[1]
@@ -501,7 +502,7 @@ class Chain:
                 logger.info('%s found in transaction pool', address)
 
                 tmp_txn = {'subtype': tx.subtype,
-                           'txhash': tx.txhash,
+                           'txhash': bin2hstr(tx.txhash),
                            'block': 'unconfirmed',
                            'amount': tx.amount / 100000000.000000000,
                            'nonce': tx.nonce,
@@ -537,7 +538,7 @@ class Chain:
                 logger.info('%s found in block %s', address, str(txn_metadata[1]))
 
                 tmp_txn = {'subtype': tx.subtype,
-                           'txhash': tx.txhash,
+                           'txhash': bin2hstr(tx.txhash),
                            'block': txn_metadata[1],
                            'timestamp': txn_metadata[2],
                            'amount': tx.amount / 100000000.000000000,
@@ -580,7 +581,7 @@ class Chain:
             tx = self.transaction_pool[tx_num]
             if tx.subtype != qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
                 continue
-            tmp_txn = {'txhash': tx.txhash,
+            tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': 'unconfirmed',
                        'timestamp': 'unconfirmed',
                        'amount': tx.amount / 100000000.000000000,
@@ -617,7 +618,7 @@ class Chain:
             n -= 1
             tx_meta = last_txn[n]
             tx = SimpleTransaction().json_to_transaction(tx_meta[0])
-            tmp_txn = {'txhash': tx.txhash,
+            tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': tx_meta[1],
                        'timestamp': tx_meta[2],
                        'amount': tx.amount / 100000000.000000000,
@@ -693,7 +694,7 @@ class Chain:
             i += 1
             tmp_block = {'blocknumber': block.blockheader.blocknumber,
                          'block_reward': block.blockheader.block_reward / 100000000.00000000,
-                         'blockhash': block.blockheader.prev_blockheaderhash,
+                         'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
                          'timestamp': block.blockheader.timestamp,
                          'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
                          'number_transactions': len(block.transactions)}
@@ -895,7 +896,7 @@ class Chain:
             txhash = self.state.db.get('txn_' + addr)
         except Exception:
             txhash = []
-        txhash.append(new_txhash)
+        txhash.append(bin2hstr(new_txhash))
         self.state.db.put('txn_' + addr, txhash)
 
     def update_txn_count(self, txto, txfrom):
