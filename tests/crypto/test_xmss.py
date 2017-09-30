@@ -25,6 +25,9 @@ class TestXMSS(TestCase):
 
         pk = xmss.pk()
 
-        signature = xmss.SIGN(message_bin)
+        xmss.set_index(1)
 
-        self.assertTrue(XMSS.VERIFY(message_bin, signature, pk, xmss_height))
+        for i in range(10):
+            self.assertTrue(xmss.get_index() == i+1)
+            signature = xmss.SIGN(message_bin)
+            self.assertTrue(XMSS.VERIFY(message_bin, signature, pk, xmss_height))
