@@ -18,6 +18,8 @@ from qrl.crypto.misc import sha256
 
 class State:
     """
+    QRL's State is the account nonce, balance, the keys used by that account, and the list of stake validators.
+    The actual storage is handled by LevelDB, and this just hides away the intricacies of interacting with it.
         state functions
         first iteration - state data stored in leveldb file
         state holds address balances, the transaction nonce and a list of

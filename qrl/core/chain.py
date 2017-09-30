@@ -28,6 +28,12 @@ from decimal import Decimal
 
 
 class Chain:
+    """
+    The Chain represents the blockchain that you have downloaded, in your running copy of QRL.
+    This is where most of the heavy lifting is done.
+    A Chain() has its own State().
+    """
+
     def __init__(self, state):
         self.state = state
         self.wallet = Wallet()
@@ -389,6 +395,7 @@ class Chain:
                     if islong == 1: json_print(tx)
         return
 
+
     def update_block_metadata(self, blocknumber, blockPos, blockSize):
         # FIXME: Breaking encapsulation
         self.state.db.db.Put(bytes('block_' + str(blocknumber), 'utf-8'),
@@ -464,6 +471,72 @@ class Chain:
                                                            block=block,
                                                            validate=validate)
 
+<<<<<<< HEAD
+||||||| merged common ancestors
+    def m_load_chain(self):
+
+        del self.m_blockchain[:]
+        self.state.db.zero_all_addresses()
+        chains = self.f_read_chain(0)
+        self.m_blockchain.append(chains[0])
+        self.state.state_read_genesis(self.m_get_block(0))
+        self.block_chain_buffer = ChainBuffer(self)
+
+        for block in chains[1:]:
+            self.add_block_mainchain(block,
+                                     validate=False)
+
+        if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
+            return self.m_blockchain
+
+        epoch = 1
+        while os.path.isfile(self.get_chaindatafile(epoch)):
+            del self.m_blockchain[:-1]
+            chains = self.f_read_chain(epoch)
+
+            for block in chains:
+                self.add_block_mainchain(block,
+                                         validate=False)
+            epoch += 1
+        self.wallet.save_wallet()
+        gc.collect()
+        return self.m_blockchain
+
+=======
+    def m_load_chain(self):
+        """
+        loads the blockchain from disk.
+        It uses Chain.add_block_mainchain(), which is just a convenience
+        function around ChainBuffer.add_block_mainchain().
+        """
+        del self.m_blockchain[:]
+        self.state.db.zero_all_addresses()
+        chains = self.f_read_chain(0)
+        self.m_blockchain.append(chains[0])
+        self.state.state_read_genesis(self.m_get_block(0))
+        self.block_chain_buffer = ChainBuffer(self)
+
+        for block in chains[1:]:
+            self.add_block_mainchain(block,
+                                     validate=False)
+
+        if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
+            return self.m_blockchain
+
+        epoch = 1
+        while os.path.isfile(self.get_chaindatafile(epoch)):
+            del self.m_blockchain[:-1]
+            chains = self.f_read_chain(epoch)
+
+            for block in chains:
+                self.add_block_mainchain(block,
+                                         validate=False)
+            epoch += 1
+        self.wallet.save_wallet()
+        gc.collect()
+        return self.m_blockchain
+
+>>>>>>> Comments on ChainBuffer, StateBuffer, apiprotocol, Chain, p2pprotocol, State, walletprotocol to explain their roles
     def m_read_chain(self):
         if not self.m_blockchain:
             self.m_load_chain()
