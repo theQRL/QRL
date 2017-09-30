@@ -18,6 +18,9 @@ from qrl.core.Transaction import SimpleTransaction, CoinBase, Transaction
 
 
 class ApiProtocol(Protocol):
+    """
+    Defines the API interface you can find at http://localhost:8080/api.
+    """
     def __init__(self):
         self.api_list = [
             'block_data',

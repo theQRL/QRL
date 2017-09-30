@@ -9,6 +9,11 @@ from copy import deepcopy
 
 
 class StateBuffer:
+    """
+    Every new block coming in over the network modifies the local State in some way.
+    StateBuffer is meant to be like a delta, storing what's changed.
+    It stores the changes to address balances, nonces, pubhashes (used keys), and the list of stake validators.
+    """
     def __init__(self):
         self.stake_validators_list = None
         self.stxn_state = {}  # key address, value [nonce, balance, pubhash]

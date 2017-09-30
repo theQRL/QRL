@@ -18,6 +18,9 @@ from queue import PriorityQueue
 
 
 class P2PProtocol(Protocol):
+    """
+    Defines the P2P protocol by which QRL nodes talk to each other. All messages are just JSON.
+    """
     def __init__(self):
         # TODO: Comment with some names the services
         self.service = {'reboot': self.reboot,

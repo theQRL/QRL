@@ -24,6 +24,9 @@ def hexseed_to_seed(hex_seed):
 #FIXME: Clean this up
 
 class WalletProtocol(Protocol):
+    """
+    Defines the Telnet interface.
+    """
     def __init__(self):
         self.cmd_mapping = {
             "create": self._create,
