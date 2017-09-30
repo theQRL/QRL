@@ -33,7 +33,7 @@ Ensure your apt sources are up to date
 Install packages
 
 ```
-sudo apt -y install swig3.0 python3-dev build-essential cmake pkg-config
+sudo apt -y install swig3.0 python3-dev build-essential cmake pkg-config libboost-random-dev
 ```
 
 To get the source and start the node, use the following:
@@ -51,7 +51,7 @@ If you dont have brew yet, we think you should :) Install brew following the ins
 Now install some dependencies
 
 ```bash
-brew install cmake python3 swig
+brew install cmake python3 swig boost
 ```
 
 To get the source and start the node, use the following:
@@ -67,7 +67,7 @@ python3 start_qrl.py
 
 Install dependencies
 ```
-sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build
+sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev
 sudo pip3 install -U setuptools
 ```
 
