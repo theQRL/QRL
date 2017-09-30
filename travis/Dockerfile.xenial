@@ -6,7 +6,7 @@ RUN apt-get -y install ca-certificates curl
 RUN apt-get -y install build-essential pkg-config
 
 # Prepare python
-RUN apt-get -y install python3-pip python3-dev git sudo
+RUN apt-get -y install python3-pip python3-dev git sudo libboost-random-dev
 RUN apt-get -y install swig3.0
 
 RUN pip3 install --upgrade pip cmake setuptools twine PyScaffold==2.5.8
