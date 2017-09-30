@@ -29,7 +29,7 @@ class WalletProtocol(Protocol):
                          'stakenextepoch', 'stake', 'wallet', 'send', 'mempool',
                          'getnewaddress', 'quit', 'exit', 'search', 'help',
                          'savenewaddress', 'getinfo', 'blockheight', 'json_block',
-                         'reboot', 'peers', 'create']
+                         'reboot', 'peers', 'create', 'listaddresses']
 
         self.output = {'status': 1,
                        'keys': [],
@@ -279,6 +279,7 @@ class WalletProtocol(Protocol):
                     self.output['message'].write('>>> Blockheight: ' + str(self.factory.chain.m_blockheight()) + '\r\n')
                     self.output['message'].write(
                         '>>> Headerhash: ' + bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash) + '\r\n')
+
 
                     self.output['keys'] += ['blockheight', 'headerhash']
                     self.output['blockheight'] = self.factory.chain.m_blockheight()
