@@ -177,6 +177,8 @@ class ApiProtocol(Protocol):
             for txn in js_bk1.transactions[0:]:
                 if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                     js_bk1.transactions[i].amount = txn.amount / 100000000.000000000
+                    js_bk1.transactions[i].txhash = bin2hstr(txn.txhash)
+                    js_bk1.transactions[i].pubhash = bin2hstr(txn.pubhash)
                 i += 1
 
             return json_print_telnet(js_bk1)

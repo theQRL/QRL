@@ -661,7 +661,7 @@ class Chain:
 
         for rich in richlist[:n]:
             rl['richlist'][richlist.index(rich) + 1] = {}
-            rl['richlist'][richlist.index(rich) + 1]['address'] = rich[0]
+            rl['richlist'][richlist.index(rich) + 1]['address'] = rich[0].decode()
             rl['richlist'][richlist.index(rich) + 1]['balance'] = rich[1] / 100000000.000000000
 
         rl['status'] = 'ok'
@@ -731,8 +731,11 @@ class Chain:
             sv = self.state.stake_validators_list.sv_list[staker]
             tmp_stakers = {'address': sv.stake_validator,
                            'balance': sv.balance / 100000000.00000000,
-                           'hash_terminator': sv.hashchain_terminators,
+                           'hash_terminator': [],
                            'nonce': sv.nonce}
+
+            for i in range(len(sv.hashchain_terminators)):
+                tmp_stakers['hash_terminator'].append(bin2hstr(sv.hashchain_terminators[i]))
 
             stakers['stake_list'].append(tmp_stakers)
 
@@ -747,8 +750,12 @@ class Chain:
             sv = self.state.stake_validators_list.next_sv_list[staker]
             tmp_stakers = {'address': sv.stake_validator,
                            'balance': sv.balance / 100000000.00000000,
-                           'hash_terminator': sv.hashchain_terminators,
+                           'hash_terminator': [],
                            'nonce': sv.nonce}
+
+
+            for i in range(len(sv.hashchain_terminators)):
+                tmp_stakers['hash_terminator'].append(bin2hstr(sv.hashchain_terminators[i]))
 
             next_stakers['stake_list'].append(tmp_stakers)
 

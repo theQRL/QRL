@@ -34,7 +34,7 @@ class DB:
         addresses = []
         for k, v in self.db.RangeIter('Q'.encode()):
             if k[0] == ord('Q'):
-                v = json.loads(v)['value']
+                v = json.loads(v.decode())['value']
                 addresses.append([k, v[1]])
         return addresses
 
