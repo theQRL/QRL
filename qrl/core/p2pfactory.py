@@ -1,21 +1,19 @@
 # coding=utf-8
-import pickle as pickle
 import os
+import queue
 import random
-import struct
 import time
 from collections import defaultdict
 
-import simplejson as json
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger, helper
 from qrl.core.helper import json_encode, json_bytestream_bk
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
-import queue
+from qrl.generated import qrl_pb2
 
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
@@ -366,23 +364,26 @@ class P2PFactory(ServerFactory):
     # FIXME: Temporarily moving here
     def load_peer_addresses(self):
         if os.path.isfile(self.peers_path) is True:
-            logger.info('Opening peers.dat')
-            with open(self.peers_path, 'rb') as my_file:
-                self.peer_addresses = pickle.load(my_file)
+            logger.info('Opening peers.qrl')
+            with open(self.peers_path, 'rb') as infile:
+                known_peers = qrl_pb2.KnownPeers()
+                known_peers.ParseFromString(infile.read())
+                self.peer_addresses = [peer.ip for peer in known_peers.peers]
+            logger.info('Known Peers: %s', self.peer_addresses)
         else:
-            logger.info('Creating peers.dat')
+            logger.info('Creating peers.qrl')
             # Ensure the data path exists
             config.create_path(config.user.data_path)
-            with open(self.peers_path, 'wb') as my_file:
-                pickle.dump(config.user.peer_list, my_file)
-                self.peer_addresses = config.user.peer_list
+            self.update_peer_addresses(config.user.peer_list)
 
         logger.info('Known Peers: %s', self.peer_addresses)
 
     def update_peer_addresses(self, peer_addresses):
         self.peer_addresses = peer_addresses
-        with open(self.peers_path, "wb") as myfile:
-            pickle.dump(self.peer_addresses, myfile)
+        known_peers = qrl_pb2.KnownPeers()
+        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
+        with open(self.peers_path, "wb") as outfile:
+            outfile.write(known_peers.SerializeToString())
 
     def reset_processor_flag(self, _):
         self.txn_processor_running = False
