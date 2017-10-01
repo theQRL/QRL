@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-import qrl.core.Transaction_subtypes
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
 from collections import OrderedDict
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
@@ -11,7 +11,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_print_telnet, json_bytestream, json_print
-from qrl.core.Transaction import SimpleTransaction, CoinBase
+from qrl.core.Transaction import SimpleTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 import gc
@@ -19,7 +19,6 @@ import gc
 import bz2
 from io import StringIO
 from time import time
-from operator import itemgetter
 from math import log, ceil
 import heapq
 import os, copy
@@ -232,7 +231,7 @@ class Chain:
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
+            if tx.subtype == TX_SUBTYPE_STAKE:
                 epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
 
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
@@ -412,405 +411,6 @@ class Chain:
                     if islong == 1: tx_list.append(json_print_telnet(tx))
         return tx_list
 
-    # used for port 80 api - produces JSON output of a specific tx hash, including status of tx, in a block or unconfirmed + timestampe of parent block
-
-    def search_txhash(self, txhash):  # txhash is unique due to nonce.
-        err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
-        for tx in self.transaction_pool:
-            if tx.txhash == txhash:
-                logger.info('%s found in transaction pool..', txhash)
-                tx_new = copy.deepcopy(tx)
-                tx_new.block = 'unconfirmed'
-                tx_new.hexsize = len(json_bytestream(tx_new))
-                tx_new.status = 'ok'
-                return json_print_telnet(tx_new)
-
-        try:
-            txn_metadata = self.state.db.get(txhash)
-        except:
-            logger.info('%s does not exist in memory pool or local blockchain..', txhash)
-            return json_print_telnet(err)
-
-        json_tx = json.loads(txn_metadata[0])
-        if json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
-            tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-        elif json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
-            tx = CoinBase().json_to_transaction(txn_metadata[0])
-        tx_new = copy.deepcopy(tx)
-        tx_new.txhash = bin2hstr(tx_new.txhash)
-        tx_new.block = txn_metadata[1]
-        tx_new.timestamp = txn_metadata[2]
-        tx_new.confirmations = self.m_blockheight() - txn_metadata[1]
-        tx_new.hexsize = len(json_bytestream(tx_new))
-        tx_new.amount = tx_new.amount / 100000000.000000000
-        if json_tx['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
-            tx_new.fee = tx_new.fee / 100000000.000000000
-        logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
-        tx_new.status = 'ok'
-        return json_print_telnet(tx_new)
-
-    def basic_info(self, address):
-        addr = {}
-
-        if not self.state.state_address_used(address):
-            addr['status'] = 'error'
-            addr['error'] = 'Address not found'
-            addr['parameter'] = address
-            return json_print_telnet(addr)
-
-        nonce, balance, _ = self.state.state_get_address(address)
-        addr['state'] = {}
-        addr['state']['address'] = address
-        addr['state']['balance'] = balance / 100000000.000000000
-        addr['state']['nonce'] = nonce
-        addr['state']['transactions'] = self.state.state_get_txn_count(address)
-        addr['status'] = 'ok'
-        return json_print_telnet(addr)
-
-    # used for port 80 api - produces JSON output reporting every transaction for an address, plus final balance..
-
-    def search_address(self, address):
-
-        addr = {'transactions': []}
-
-        txnhash_added = set()
-
-        if not self.state.state_address_used(address):
-            addr['status'] = 'error'
-            addr['error'] = 'Address not found'
-            addr['parameter'] = address
-            return json_print_telnet(addr)
-
-        nonce, balance, pubhash_list = self.state.state_get_address(address)
-        addr['state'] = {}
-        addr['state']['address'] = address
-        addr['state']['balance'] = balance / 100000000.000000000
-        addr['state']['nonce'] = nonce
-
-        for s in self.state.stake_list_get():
-            if address == s[0]:
-                addr['stake'] = {}
-                addr['stake']['selector'] = s[2]
-                # pubhashes used could be put here..
-
-        tmp_transactions = []
-        for tx in self.transaction_pool:
-            if tx.subtype not in (
-            qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
-                continue
-            if tx.txto == address or tx.txfrom == address:
-                logger.info('%s found in transaction pool', address)
-
-                tmp_txn = {'subtype': tx.subtype,
-                           'txhash': bin2hstr(tx.txhash),
-                           'block': 'unconfirmed',
-                           'amount': tx.amount / 100000000.000000000,
-                           'nonce': tx.nonce,
-                           'ots_key': tx.ots_key,
-                           'txto': tx.txto,
-                           'txfrom': tx.txfrom,
-                           'timestamp': 'unconfirmed'}
-
-                if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
-                    tmp_txn['fee'] = tx.fee / 100000000.000000000
-
-
-                tmp_transactions.append(tmp_txn)
-                txnhash_added.add(tx.txhash)
-
-        addr['transactions'] = tmp_transactions
-
-        my_txn = []
-        try:
-            my_txn = self.state.db.get('txn_' + address)
-        except:
-            pass
-
-        for txn_hash in my_txn:
-            txn_metadata = self.state.db.get(txn_hash)
-            dict_txn_metadata = json.loads(txn_metadata[0])
-            if dict_txn_metadata['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
-                tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            elif dict_txn_metadata['subtype'] == qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE:
-                tx = CoinBase().json_to_transaction(txn_metadata[0])
-
-            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
-                logger.info('%s found in block %s', address, str(txn_metadata[1]))
-
-                tmp_txn = {'subtype': tx.subtype,
-                           'txhash': bin2hstr(tx.txhash),
-                           'block': txn_metadata[1],
-                           'timestamp': txn_metadata[2],
-                           'amount': tx.amount / 100000000.000000000,
-                           'nonce': tx.nonce,
-                           'ots_key': tx.ots_key,
-                           'txto': tx.txto,
-                           'txfrom': tx.txfrom}
-
-                if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
-                    tmp_txn['fee'] = tx.fee / 100000000.000000000
-
-                addr['transactions'].append(tmp_txn)
-                txnhash_added.add(tx.txhash)
-
-        if len(addr['transactions']) > 0:
-            addr['state']['transactions'] = len(addr['transactions'])
-
-        if addr == {'transactions': {}}:
-            addr = {'status': 'error', 'error': 'address not found', 'method': 'address', 'parameter': address}
-        else:
-            addr['status'] = 'ok'
-
-        return json_print_telnet(addr)
-
-    def last_unconfirmed_tx(self, n=1):
-        addr = {'transactions': []}
-        error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
-
-        try:
-            n = int(n)
-        except:
-            return json_print_telnet(error)
-
-        if n <= 0 or n > 20:
-            return json_print_telnet(error)
-
-        tx_num = len(self.transaction_pool)
-        while tx_num > 0:
-            tx_num -= 1
-            tx = self.transaction_pool[tx_num]
-            if tx.subtype != qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
-                continue
-            tmp_txn = {'txhash': bin2hstr(tx.txhash),
-                       'block': 'unconfirmed',
-                       'timestamp': 'unconfirmed',
-                       'amount': tx.amount / 100000000.000000000,
-                       'type': tx.subtype}
-
-            addr['transactions'].append(tmp_txn)
-
-        addr['status'] = 'ok'
-        return json_print_telnet(addr)
-
-    # return json info on last n tx in the blockchain
-
-    def last_tx(self, n=1):
-
-        addr = {'transactions': []}
-        error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_tx', 'parameter': n}
-
-        try:
-            n = int(n)
-        except:
-            return json_print_telnet(error)
-
-        if n <= 0 or n > 20:
-            return json_print_telnet(error)
-
-        try:
-            last_txn = self.state.db.get('last_txn')
-        except Exception:
-            error['error'] = 'txnhash not found'
-            return json_print_telnet(error)
-
-        n = min(len(last_txn), n)
-        while n > 0:
-            n -= 1
-            tx_meta = last_txn[n]
-            tx = SimpleTransaction().json_to_transaction(tx_meta[0])
-            tmp_txn = {'txhash': bin2hstr(tx.txhash),
-                       'block': tx_meta[1],
-                       'timestamp': tx_meta[2],
-                       'amount': tx.amount / 100000000.000000000,
-                       'type': tx.subtype}
-
-            addr['transactions'].append(tmp_txn)
-            addr['status'] = 'ok'
-
-        return json_print_telnet(addr)
-
-    def richlist(self, n=None):
-        """
-        only feasible while chain is small..
-        :param n:
-        :return:
-        """
-        if not n:
-            n = 5
-
-        error = {'status': 'error', 'error': 'invalid argument', 'method': 'richlist', 'parameter': n}
-
-        try:
-            n = int(n)
-        except:
-            return json_print_telnet(error)
-
-        if n <= 0 or n > 20:
-            return json_print_telnet(error)
-
-        if not self.state.state_uptodate(self.m_blockheight()):
-            return json_print_telnet({'status': 'error', 'error': 'leveldb failed', 'method': 'richlist'})
-
-        addr = self.state.db.return_all_addresses()
-        richlist = sorted(addr, key=itemgetter(1), reverse=True)
-
-        rl = {'richlist': {}}
-
-        if len(richlist) < n:
-            n = len(richlist)
-
-        for rich in richlist[:n]:
-            rl['richlist'][richlist.index(rich) + 1] = {}
-            rl['richlist'][richlist.index(rich) + 1]['address'] = rich[0].decode()
-            rl['richlist'][richlist.index(rich) + 1]['balance'] = rich[1] / 100000000.000000000
-
-        rl['status'] = 'ok'
-
-        return json_print_telnet(rl)
-
-    # return json info on last n blocks
-
-    def last_block(self, n=1):
-
-        error = {'status': 'error', 'error': 'invalid argument', 'method': 'last_block', 'parameter': n}
-
-        try:
-            n = int(n)
-        except:
-            return json_print_telnet(error)
-
-        if n <= 0 or n > 20:
-            return json_print_telnet(error)
-
-        lb = []
-        beginning = self.height() - n
-        for blocknum in range(self.height(), beginning - 1, -1):
-            block = self.m_get_block(blocknum)
-            lb.append(block)
-
-        last_blocks = {'blocks': []}
-        i = 0
-        for block in lb[1:]:
-            i += 1
-            tmp_block = {'blocknumber': block.blockheader.blocknumber,
-                         'block_reward': block.blockheader.block_reward / 100000000.00000000,
-                         'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
-                         'timestamp': block.blockheader.timestamp,
-                         'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
-                         'number_transactions': len(block.transactions)}
-
-            last_blocks['blocks'].append(tmp_block)
-
-        last_blocks['status'] = 'ok'
-
-        return json_print_telnet(last_blocks)
-
-    # return json info on stake_commit list
-
-    def stake_commits(self, data=None):
-
-        sc = {'status': 'ok',
-              'commits': {}}
-
-        for c in self.stake_commit:
-            # [stake_address, block_number, merkle_hash_tx, commit_hash]
-            sc['commits'][str(c[1]) + '-' + c[3]] = {}
-            sc['commits'][str(c[1]) + '-' + c[3]]['stake_address'] = c[0]
-            sc['commits'][str(c[1]) + '-' + c[3]]['block_number'] = c[1]
-            sc['commits'][str(c[1]) + '-' + c[3]]['merkle_hash_tx'] = c[2]
-            sc['commits'][str(c[1]) + '-' + c[3]]['commit_hash'] = c[3]
-
-        return json_print_telnet(sc)
-
-    def stakers(self, data=None):
-        # (stake -> address, hash_term, nonce)
-        stakers = {'status': 'ok',
-                   'stake_list': []}
-
-        for staker in self.state.stake_validators_list.sv_list:
-            sv = self.state.stake_validators_list.sv_list[staker]
-            tmp_stakers = {'address': sv.stake_validator,
-                           'balance': sv.balance / 100000000.00000000,
-                           'hash_terminator': [],
-                           'nonce': sv.nonce}
-
-            for i in range(len(sv.hashchain_terminators)):
-                tmp_stakers['hash_terminator'].append(bin2hstr(sv.hashchain_terminators[i]))
-
-            stakers['stake_list'].append(tmp_stakers)
-
-        return json_print_telnet(stakers)
-
-    def next_stakers(self, data=None):
-        # (stake -> address, hash_term, nonce)
-        next_stakers = {'status': 'ok',
-                        'stake_list': []}
-
-        for staker in self.state.stake_validators_list.next_sv_list:
-            sv = self.state.stake_validators_list.next_sv_list[staker]
-            tmp_stakers = {'address': sv.stake_validator,
-                           'balance': sv.balance / 100000000.00000000,
-                           'hash_terminator': [],
-                           'nonce': sv.nonce}
-
-
-            for i in range(len(sv.hashchain_terminators)):
-                tmp_stakers['hash_terminator'].append(bin2hstr(sv.hashchain_terminators[i]))
-
-            next_stakers['stake_list'].append(tmp_stakers)
-
-        return json_print_telnet(next_stakers)
-
-    @staticmethod
-    def exp_win(data=None):
-        # TODO: incomplete
-
-        ew = {'status': 'ok',
-              'expected_winner': {}}
-
-        return json_print_telnet(ew)
-
-    def stake_reveal_ones(self, data=None):
-
-        sr = {'status': 'ok',
-              'reveals': {}}
-
-        for c in self.stake_reveal_one:
-            sr['reveals'][str(c[1]) + '-' + str(c[2])] = {}
-            sr['reveals'][str(c[1]) + '-' + str(c[2])]['stake_address'] = c[0]
-            sr['reveals'][str(c[1]) + '-' + str(c[2])]['block_number'] = c[2]
-            sr['reveals'][str(c[1]) + '-' + str(c[2])]['headerhash'] = c[1]
-            sr['reveals'][str(c[1]) + '-' + str(c[2])]['reveal'] = c[3]
-
-        return json_print_telnet(sr)
-
-    def ip_geotag(self, data=None):
-
-        ip = {'status': 'ok',
-              'ip_geotag': self.ip_list}
-
-        x = 0
-        for i in self.ip_list:
-            ip['ip_geotag'][x] = i
-            x += 1
-
-        return json_print_telnet(ip)
-
-    def stake_reveals(self, data=None):
-
-        sr = {'status': 'ok',
-              'reveals': {}}
-
-        # chain.stake_reveal.append([stake_address, block_number, merkle_hash_tx, reveal])
-        for c in self.stake_reveal:
-            sr['reveals'][str(c[1]) + '-' + c[3]] = {}
-            sr['reveals'][str(c[1]) + '-' + c[3]]['stake_address'] = c[0]
-            sr['reveals'][str(c[1]) + '-' + c[3]]['block_number'] = c[1]
-            sr['reveals'][str(c[1]) + '-' + c[3]]['merkle_hash_tx'] = c[2]
-            sr['reveals'][str(c[1]) + '-' + c[3]]['reveal'] = c[3]
-
-        return json_print_telnet(sr)
-
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
@@ -892,7 +492,7 @@ class Chain:
         except:
             pass
         for txn in block.transactions[-20:]:
-            if txn.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+            if txn.subtype == TX_SUBTYPE_TX:
                 last_txn.insert(0,
                                 [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
         del last_txn[20:]
@@ -917,12 +517,11 @@ class Chain:
             return
 
         for txn in block.transactions:
-            if txn.subtype in (
-            qrl.core.Transaction_subtypes.TX_SUBTYPE_TX, qrl.core.Transaction_subtypes.TX_SUBTYPE_COINBASE):
+            if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 self.state.db.put(bin2hstr(txn.txhash),
                                   [txn.transaction_to_json(), block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
-                if txn.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+                if txn.subtype == TX_SUBTYPE_TX:
                     self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
                 self.update_wallet_tx_metadata(txn.txto, txn.txhash)
                 self.update_txn_count(txn.txto, txn.txfrom)
