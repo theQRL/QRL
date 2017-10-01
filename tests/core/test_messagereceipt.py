@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from pyqrllib.pyqrllib import str2bin, sha2_256, bin2hstr
+from pyqrllib.pyqrllib import str2bin
 from qrl.core import logger, config
 from qrl.core.messagereceipt import MessageReceipt
 
@@ -17,7 +17,6 @@ class TestMessageReceipt(TestCase):
     def test_create(self):
         mr = MessageReceipt()
         self.assertIsNotNone(mr)
-        print(mr.allowed_types)
         self.assertEqual(mr.allowed_types, ['TX', 'ST', 'BK', 'DT'])
 
     def test_register(self):

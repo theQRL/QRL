@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config

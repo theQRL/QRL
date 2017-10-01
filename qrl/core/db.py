@@ -47,18 +47,13 @@ class DB:
 
         value_obj = self.db.Get(key_obj)
         try:
+            # FIXME: This is a massive bottleneck as start up.
             return json.loads(value_obj.decode())['value']
         except KeyError as e:
             logger.error("Key not found %s", key_obj)
             logger.exception(e)
         except Exception as e:
             logger.exception(e)
-
-    def get_batch(self):
-        return leveldb.WriteBatch()
-
-    def write_batch(self, batch):
-        self.db.Write(batch, sync=True)
 
     def delete(self, key_obj):
         self.db.Delete(key_obj)

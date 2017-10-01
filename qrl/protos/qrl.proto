@@ -6,18 +6,26 @@ syntax = "proto3";
 package qrl;
 
 service P2PNode {
-  rpc Ping (PingRequest) returns (PongReply) {}
-  rpc GetKnownPeers (GetKnownPeersRequest) returns (GetKnownPeersReply) {}
+  rpc Ping (PingReq) returns (PongResp) {}
+  rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
 }
 
 service PublicAPI {
-  rpc GetKnownPeers (GetKnownPeersRequest) returns (GetKnownPeersReply) {}
+  rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
+  rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {}
 }
 
-message PingRequest {   string name = 1;    }
-message PongReply   {   string message = 1; }
-message GetKnownPeersRequest {}
-message GetKnownPeersReply { KnownPeers known_peers = 1; }
+// API Messages
+
+message PingReq {   string name = 1;    }
+message PongResp {   string message = 1; }
+message GetKnownPeersReq {}
+message GetKnownPeersResp { KnownPeers known_peers = 1; }
+
+message GetAddressStateReq {   string name = 1;    }
+message GetAddressStateResp {   string message = 1; }
+
+// Content
 
 message WalletStore
 {
@@ -40,3 +48,4 @@ message Peer
 {
     string ip = 1;
 }
+

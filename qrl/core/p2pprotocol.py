@@ -13,39 +13,38 @@ from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, SimpleTransaction, DuplicateTransaction
-from qrl.crypto.misc import sha256
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from queue import PriorityQueue
+
 
 class P2PProtocol(Protocol):
     def __init__(self):
         # TODO: Comment with some names the services
         self.service = {'reboot': self.reboot,
-                        'MR': self.MR,
-                        'SFM': self.SFM,
-                        'TX': self.TX,
-                        'ST': self.ST,
-                        'DT': self.DT,
-                        'BM': self.BM,
-                        'BK': self.BK,
-                        'PBB': self.PBB,
-                        'PB': self.PB,
-                        'PH': self.PH,
-                        'LB': self.LB,
-                        'FMBH': self.FMBH,
-                        'PMBH': self.PMBH,
-                        'MB': self.MB,
-                        'CB': self.CB,
-                        'BN': self.BN,
-                        'FB': self.FB,
-                        'FH': self.FH,
-                        'PO': self.PO,
-                        'PI': self.PI,
-                        'PL': self.PL,
-                        'RT': self.RT,
-                        'PE': self.PE,
-                        'VE': self.VE,
-                        'IP': self.IP,
+                        'MR': self.MR,  # Message Receipt
+                        'SFM': self.SFM,  # Send Full Message
+                        'TX': self.TX,  # Transaction
+                        'ST': self.ST,  # Stake Transaction
+                        'BM': self.BM,  # Block Height Map
+                        'BK': self.BK,  # Block
+                        'PBB': self.PBB,  # Push Block Buffer
+                        'PB': self.PB,  # Push Block
+                        'PH': self.PH,  # Push Headerhash
+                        'LB': self.LB,  # Last Block
+                        'FMBH': self.FMBH,  # Fetch maximum block height
+                        'PMBH': self.PMBH,  # Push Maximum Block Height
+                        'MB': self.MB,  # Maximum Block Height
+                        'CB': self.CB,  # Check Block Height
+                        'BN': self.BN,  # Block Number
+                        'FB': self.FB,  # Fetch request for block
+                        'FH': self.FH,  # Fetch block header hash
+                        'PO': self.PO,  # Pong
+                        'PI': self.PI,  # Ping
+                        'PL': self.PL,  # Peers List
+                        'RT': self.RT,  # Transaction pool to peer
+                        'PE': self.PE,  # Peers (get a list of connected peers)
+                        'VE': self.VE,  # Version
+                        'IP': self.IP,  # Get IP (geotagging?)
                         }
         self.buffer = b''
         self.messages = []
@@ -117,7 +116,7 @@ class P2PProtocol(Protocol):
         if data['type'] not in MessageReceipt.allowed_types:
             return
 
-        if data['type'] in ['R1', 'TX'] and self.factory.nodeState.state != NState.synced:
+        if data['type'] in ['TX'] and self.factory.nodeState.state != NState.synced:
             return
 
         if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
@@ -760,7 +759,7 @@ class P2PProtocol(Protocol):
             if ip not in new_ips:
                 new_ips.append(ip)
 
-        peer_addresses = self.factory.peer_addresses
+        peer_addresses = self.factory.node.peer_addresses
         logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
         for node in new_ips:
             if node not in peer_addresses:
@@ -768,7 +767,7 @@ class P2PProtocol(Protocol):
                     peer_addresses.append(node)
                     reactor.connectTCP(node, 9000, self.factory)
 
-        self.factory.update_peer_addresses(peer_addresses)
+        self.factory.node.update_peer_addresses(peer_addresses)
         return
 
     def get_latest_block_from_connection(self):
@@ -1015,7 +1014,8 @@ class P2PProtocol(Protocol):
         self.buffer = self.buffer[12 + m + 3:]  # reset the buffer to after the msg
         return True
 
-    def dataReceived(self, data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
+    def dataReceived(self,
+                     data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
         """
         :param data:Message data without initiator
         :return:
@@ -1076,19 +1076,23 @@ class P2PProtocol(Protocol):
 
         self.factory.connections += 1
         self.factory.peer_connections.append(self)
-        peer_list = self.factory.peer_addresses
+        peer_list = self.factory.node.peer_addresses
+
         if self.transport.getPeer().host == self.transport.getHost().host:
             if self.transport.getPeer().host in peer_list:
                 logger.info('Self in peer_list, removing..')
                 peer_list.remove(self.transport.getPeer().host)
-                self.factory.update_peer_addresses(peer_list)
+                # FIXME
+                self.factory.node.update_peer_addresses(peer_list)
+
             self.transport.loseConnection()
             return
 
         if self.transport.getPeer().host not in peer_list:
             logger.info('Adding to peer_list')
             peer_list.append(self.transport.getPeer().host)
-            self.factory.update_peer_addresses(peer_list)
+            # FIXME
+            self.factory.node.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ',
                     self.transport.getPeer().host,

@@ -19,21 +19,21 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x1b\n\x0bPingRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1c\n\tPongReply\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x16\n\x14GetKnownPeersRequest\":\n\x12GetKnownPeersReply\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t2|\n\x07P2PNode\x12*\n\x04Ping\x12\x10.qrl.PingRequest\x1a\x0e.qrl.PongReply\"\x00\x12\x45\n\rGetKnownPeers\x12\x19.qrl.GetKnownPeersRequest\x1a\x17.qrl.GetKnownPeersReply\"\x00\x32R\n\tPublicAPI\x12\x45\n\rGetKnownPeers\x12\x19.qrl.GetKnownPeersRequest\x1a\x17.qrl.GetKnownPeersReply\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"\x1d\n\rGetBalanceReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"!\n\x0eGetBalanceResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t2r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\x86\x01\n\tPublicAPI\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x37\n\nGetBalance\x12\x12.qrl.GetBalanceReq\x1a\x13.qrl.GetBalanceResp\"\x00\x62\x06proto3')
 )
 
 
 
 
-_PINGREQUEST = _descriptor.Descriptor(
-  name='PingRequest',
-  full_name='qrl.PingRequest',
+_PINGREQ = _descriptor.Descriptor(
+  name='PingReq',
+  full_name='qrl.PingReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='qrl.PingRequest.name', index=0,
+      name='name', full_name='qrl.PingReq.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -52,19 +52,19 @@ _PINGREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=18,
-  serialized_end=45,
+  serialized_end=41,
 )
 
 
-_PONGREPLY = _descriptor.Descriptor(
-  name='PongReply',
-  full_name='qrl.PongReply',
+_PONGRESP = _descriptor.Descriptor(
+  name='PongResp',
+  full_name='qrl.PongResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='message', full_name='qrl.PongReply.message', index=0,
+      name='message', full_name='qrl.PongResp.message', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -82,14 +82,14 @@ _PONGREPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=47,
-  serialized_end=75,
+  serialized_start=43,
+  serialized_end=70,
 )
 
 
-_GETKNOWNPEERSREQUEST = _descriptor.Descriptor(
-  name='GetKnownPeersRequest',
-  full_name='qrl.GetKnownPeersRequest',
+_GETKNOWNPEERSREQ = _descriptor.Descriptor(
+  name='GetKnownPeersReq',
+  full_name='qrl.GetKnownPeersReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
@@ -106,20 +106,20 @@ _GETKNOWNPEERSREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=77,
-  serialized_end=99,
+  serialized_start=72,
+  serialized_end=90,
 )
 
 
-_GETKNOWNPEERSREPLY = _descriptor.Descriptor(
-  name='GetKnownPeersReply',
-  full_name='qrl.GetKnownPeersReply',
+_GETKNOWNPEERSRESP = _descriptor.Descriptor(
+  name='GetKnownPeersResp',
+  full_name='qrl.GetKnownPeersResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='known_peers', full_name='qrl.GetKnownPeersReply.known_peers', index=0,
+      name='known_peers', full_name='qrl.GetKnownPeersResp.known_peers', index=0,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -137,8 +137,70 @@ _GETKNOWNPEERSREPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=101,
-  serialized_end=159,
+  serialized_start=92,
+  serialized_end=149,
+)
+
+
+_GETBALANCEREQ = _descriptor.Descriptor(
+  name='GetBalanceReq',
+  full_name='qrl.GetBalanceReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='qrl.GetBalanceReq.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=151,
+  serialized_end=180,
+)
+
+
+_GETBALANCERESP = _descriptor.Descriptor(
+  name='GetBalanceResp',
+  full_name='qrl.GetBalanceResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='message', full_name='qrl.GetBalanceResp.message', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=182,
+  serialized_end=215,
 )
 
 
@@ -168,8 +230,8 @@ _WALLETSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=161,
-  serialized_end=204,
+  serialized_start=217,
+  serialized_end=260,
 )
 
 
@@ -213,8 +275,8 @@ _WALLET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=206,
-  serialized_end=269,
+  serialized_start=262,
+  serialized_end=325,
 )
 
 
@@ -244,8 +306,8 @@ _KNOWNPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=271,
-  serialized_end=309,
+  serialized_start=327,
+  serialized_end=365,
 )
 
 
@@ -275,50 +337,66 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=311,
-  serialized_end=329,
+  serialized_start=367,
+  serialized_end=385,
 )
 
-_GETKNOWNPEERSREPLY.fields_by_name['known_peers'].message_type = _KNOWNPEERS
+_GETKNOWNPEERSRESP.fields_by_name['known_peers'].message_type = _KNOWNPEERS
 _WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
 _KNOWNPEERS.fields_by_name['peers'].message_type = _PEER
-DESCRIPTOR.message_types_by_name['PingRequest'] = _PINGREQUEST
-DESCRIPTOR.message_types_by_name['PongReply'] = _PONGREPLY
-DESCRIPTOR.message_types_by_name['GetKnownPeersRequest'] = _GETKNOWNPEERSREQUEST
-DESCRIPTOR.message_types_by_name['GetKnownPeersReply'] = _GETKNOWNPEERSREPLY
+DESCRIPTOR.message_types_by_name['PingReq'] = _PINGREQ
+DESCRIPTOR.message_types_by_name['PongResp'] = _PONGRESP
+DESCRIPTOR.message_types_by_name['GetKnownPeersReq'] = _GETKNOWNPEERSREQ
+DESCRIPTOR.message_types_by_name['GetKnownPeersResp'] = _GETKNOWNPEERSRESP
+DESCRIPTOR.message_types_by_name['GetBalanceReq'] = _GETBALANCEREQ
+DESCRIPTOR.message_types_by_name['GetBalanceResp'] = _GETBALANCERESP
 DESCRIPTOR.message_types_by_name['WalletStore'] = _WALLETSTORE
 DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
 DESCRIPTOR.message_types_by_name['KnownPeers'] = _KNOWNPEERS
 DESCRIPTOR.message_types_by_name['Peer'] = _PEER
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-PingRequest = _reflection.GeneratedProtocolMessageType('PingRequest', (_message.Message,), dict(
-  DESCRIPTOR = _PINGREQUEST,
+PingReq = _reflection.GeneratedProtocolMessageType('PingReq', (_message.Message,), dict(
+  DESCRIPTOR = _PINGREQ,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.PingRequest)
+  # @@protoc_insertion_point(class_scope:qrl.PingReq)
   ))
-_sym_db.RegisterMessage(PingRequest)
+_sym_db.RegisterMessage(PingReq)
 
-PongReply = _reflection.GeneratedProtocolMessageType('PongReply', (_message.Message,), dict(
-  DESCRIPTOR = _PONGREPLY,
+PongResp = _reflection.GeneratedProtocolMessageType('PongResp', (_message.Message,), dict(
+  DESCRIPTOR = _PONGRESP,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.PongReply)
+  # @@protoc_insertion_point(class_scope:qrl.PongResp)
   ))
-_sym_db.RegisterMessage(PongReply)
+_sym_db.RegisterMessage(PongResp)
 
-GetKnownPeersRequest = _reflection.GeneratedProtocolMessageType('GetKnownPeersRequest', (_message.Message,), dict(
-  DESCRIPTOR = _GETKNOWNPEERSREQUEST,
+GetKnownPeersReq = _reflection.GeneratedProtocolMessageType('GetKnownPeersReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETKNOWNPEERSREQ,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetKnownPeersRequest)
+  # @@protoc_insertion_point(class_scope:qrl.GetKnownPeersReq)
   ))
-_sym_db.RegisterMessage(GetKnownPeersRequest)
+_sym_db.RegisterMessage(GetKnownPeersReq)
 
-GetKnownPeersReply = _reflection.GeneratedProtocolMessageType('GetKnownPeersReply', (_message.Message,), dict(
-  DESCRIPTOR = _GETKNOWNPEERSREPLY,
+GetKnownPeersResp = _reflection.GeneratedProtocolMessageType('GetKnownPeersResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETKNOWNPEERSRESP,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetKnownPeersReply)
+  # @@protoc_insertion_point(class_scope:qrl.GetKnownPeersResp)
   ))
-_sym_db.RegisterMessage(GetKnownPeersReply)
+_sym_db.RegisterMessage(GetKnownPeersResp)
+
+GetBalanceReq = _reflection.GeneratedProtocolMessageType('GetBalanceReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETBALANCEREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetBalanceReq)
+  ))
+_sym_db.RegisterMessage(GetBalanceReq)
+
+GetBalanceResp = _reflection.GeneratedProtocolMessageType('GetBalanceResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETBALANCERESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetBalanceResp)
+  ))
+_sym_db.RegisterMessage(GetBalanceResp)
 
 WalletStore = _reflection.GeneratedProtocolMessageType('WalletStore', (_message.Message,), dict(
   DESCRIPTOR = _WALLETSTORE,
@@ -356,16 +434,16 @@ _P2PNODE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=331,
-  serialized_end=455,
+  serialized_start=387,
+  serialized_end=501,
   methods=[
   _descriptor.MethodDescriptor(
     name='Ping',
     full_name='qrl.P2PNode.Ping',
     index=0,
     containing_service=None,
-    input_type=_PINGREQUEST,
-    output_type=_PONGREPLY,
+    input_type=_PINGREQ,
+    output_type=_PONGRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
@@ -373,8 +451,8 @@ _P2PNODE = _descriptor.ServiceDescriptor(
     full_name='qrl.P2PNode.GetKnownPeers',
     index=1,
     containing_service=None,
-    input_type=_GETKNOWNPEERSREQUEST,
-    output_type=_GETKNOWNPEERSREPLY,
+    input_type=_GETKNOWNPEERSREQ,
+    output_type=_GETKNOWNPEERSRESP,
     options=None,
   ),
 ])
@@ -389,16 +467,25 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=457,
-  serialized_end=539,
+  serialized_start=504,
+  serialized_end=638,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetKnownPeers',
     full_name='qrl.PublicAPI.GetKnownPeers',
     index=0,
     containing_service=None,
-    input_type=_GETKNOWNPEERSREQUEST,
-    output_type=_GETKNOWNPEERSREPLY,
+    input_type=_GETKNOWNPEERSREQ,
+    output_type=_GETKNOWNPEERSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetBalance',
+    full_name='qrl.PublicAPI.GetBalance',
+    index=1,
+    containing_service=None,
+    input_type=_GETBALANCEREQ,
+    output_type=_GETBALANCERESP,
     options=None,
   ),
 ])
@@ -428,13 +515,13 @@ try:
       """
       self.Ping = channel.unary_unary(
           '/qrl.P2PNode/Ping',
-          request_serializer=PingRequest.SerializeToString,
-          response_deserializer=PongReply.FromString,
+          request_serializer=PingReq.SerializeToString,
+          response_deserializer=PongResp.FromString,
           )
       self.GetKnownPeers = channel.unary_unary(
           '/qrl.P2PNode/GetKnownPeers',
-          request_serializer=GetKnownPeersRequest.SerializeToString,
-          response_deserializer=GetKnownPeersReply.FromString,
+          request_serializer=GetKnownPeersReq.SerializeToString,
+          response_deserializer=GetKnownPeersResp.FromString,
           )
 
 
@@ -461,13 +548,13 @@ try:
     rpc_method_handlers = {
         'Ping': grpc.unary_unary_rpc_method_handler(
             servicer.Ping,
-            request_deserializer=PingRequest.FromString,
-            response_serializer=PongReply.SerializeToString,
+            request_deserializer=PingReq.FromString,
+            response_serializer=PongResp.SerializeToString,
         ),
         'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
             servicer.GetKnownPeers,
-            request_deserializer=GetKnownPeersRequest.FromString,
-            response_serializer=GetKnownPeersReply.SerializeToString,
+            request_deserializer=GetKnownPeersReq.FromString,
+            response_serializer=GetKnownPeersResp.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -487,8 +574,13 @@ try:
       """
       self.GetKnownPeers = channel.unary_unary(
           '/qrl.PublicAPI/GetKnownPeers',
-          request_serializer=GetKnownPeersRequest.SerializeToString,
-          response_deserializer=GetKnownPeersReply.FromString,
+          request_serializer=GetKnownPeersReq.SerializeToString,
+          response_deserializer=GetKnownPeersResp.FromString,
+          )
+      self.GetBalance = channel.unary_unary(
+          '/qrl.PublicAPI/GetBalance',
+          request_serializer=GetBalanceReq.SerializeToString,
+          response_deserializer=GetBalanceResp.FromString,
           )
 
 
@@ -503,13 +595,25 @@ try:
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
+    def GetBalance(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
 
   def add_PublicAPIServicer_to_server(servicer, server):
     rpc_method_handlers = {
         'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
             servicer.GetKnownPeers,
-            request_deserializer=GetKnownPeersRequest.FromString,
-            response_serializer=GetKnownPeersReply.SerializeToString,
+            request_deserializer=GetKnownPeersReq.FromString,
+            response_serializer=GetKnownPeersResp.SerializeToString,
+        ),
+        'GetBalance': grpc.unary_unary_rpc_method_handler(
+            servicer.GetBalance,
+            request_deserializer=GetBalanceReq.FromString,
+            response_serializer=GetBalanceResp.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -562,12 +666,12 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
-      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersRequest.FromString,
-      ('qrl.P2PNode', 'Ping'): PingRequest.FromString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersReq.FromString,
+      ('qrl.P2PNode', 'Ping'): PingReq.FromString,
     }
     response_serializers = {
-      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersReply.SerializeToString,
-      ('qrl.P2PNode', 'Ping'): PongReply.SerializeToString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersResp.SerializeToString,
+      ('qrl.P2PNode', 'Ping'): PongResp.SerializeToString,
     }
     method_implementations = {
       ('qrl.P2PNode', 'GetKnownPeers'): face_utilities.unary_unary_inline(servicer.GetKnownPeers),
@@ -584,12 +688,12 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
-      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersRequest.SerializeToString,
-      ('qrl.P2PNode', 'Ping'): PingRequest.SerializeToString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersReq.SerializeToString,
+      ('qrl.P2PNode', 'Ping'): PingReq.SerializeToString,
     }
     response_deserializers = {
-      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersReply.FromString,
-      ('qrl.P2PNode', 'Ping'): PongReply.FromString,
+      ('qrl.P2PNode', 'GetKnownPeers'): GetKnownPeersResp.FromString,
+      ('qrl.P2PNode', 'Ping'): PongResp.FromString,
     }
     cardinalities = {
       'GetKnownPeers': cardinality.Cardinality.UNARY_UNARY,
@@ -611,6 +715,10 @@ try:
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def GetBalance(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
 
   class BetaPublicAPIStub(object):
@@ -626,6 +734,11 @@ try:
       pass
       raise NotImplementedError()
     GetKnownPeers.future = None
+    def GetBalance(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      # missing associated documentation comment in .proto file
+      pass
+      raise NotImplementedError()
+    GetBalance.future = None
 
 
   def beta_create_PublicAPI_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
@@ -635,12 +748,15 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
-      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersRequest.FromString,
+      ('qrl.PublicAPI', 'GetBalance'): GetBalanceReq.FromString,
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReq.FromString,
     }
     response_serializers = {
-      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReply.SerializeToString,
+      ('qrl.PublicAPI', 'GetBalance'): GetBalanceResp.SerializeToString,
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersResp.SerializeToString,
     }
     method_implementations = {
+      ('qrl.PublicAPI', 'GetBalance'): face_utilities.unary_unary_inline(servicer.GetBalance),
       ('qrl.PublicAPI', 'GetKnownPeers'): face_utilities.unary_unary_inline(servicer.GetKnownPeers),
     }
     server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
@@ -654,12 +770,15 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
-      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersRequest.SerializeToString,
+      ('qrl.PublicAPI', 'GetBalance'): GetBalanceReq.SerializeToString,
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReq.SerializeToString,
     }
     response_deserializers = {
-      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReply.FromString,
+      ('qrl.PublicAPI', 'GetBalance'): GetBalanceResp.FromString,
+      ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersResp.FromString,
     }
     cardinalities = {
+      'GetBalance': cardinality.Cardinality.UNARY_UNARY,
       'GetKnownPeers': cardinality.Cardinality.UNARY_UNARY,
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)

@@ -1,65 +1,35 @@
-from concurrent.futures import ThreadPoolExecutor
-
-import grpc
 import os
 
-from qrl.core import logger, config
+from qrl.core import config, logger
 from qrl.generated import qrl_pb2
-from qrl.generated.qrl_pb2 import PingRequest, PongReply, GetKnownPeersRequest, GetKnownPeersReply
-from qrl.generated.qrl_pb2_grpc import P2PNodeServicer, add_P2PNodeServicer_to_server, PublicAPIServicer, \
-    add_PublicAPIServicer_to_server
 
 
-class P2PNode(P2PNodeServicer):
-    # TODO: Separate the Service from the node model
+class QRLNode:
+    def __init__(self):
+        self.peer_addresses = []
+        self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
+        self.load_peer_addresses()
 
-    def Ping(self, request: PingRequest, context: object) -> PongReply:
-        logger.debug("Ping!")
-        return PongReply(message='Hello, %s!' % request.name)
-
-    def GetKnownPeers(self, request: GetKnownPeersRequest, context) -> GetKnownPeersReply:
-        logger.debug("[QRLNode] GetPeers")
-
-        peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
-
-        known_peers = qrl_pb2.KnownPeers()
-        if os.path.isfile(peers_path) is True:
-            with open(peers_path, 'rb') as infile:
+    def load_peer_addresses(self):
+        if os.path.isfile(self.peers_path):
+            logger.info('Opening peers.qrl')
+            with open(self.peers_path, 'rb') as infile:
+                known_peers = qrl_pb2.KnownPeers()
                 known_peers.ParseFromString(infile.read())
+                self.peer_addresses = [peer.ip for peer in known_peers.peers]
         else:
-            peer_list = config.user.peer_list
-            known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in peer_list])
+            logger.info('Creating peers.qrl')
+            # Ensure the data path exists
+            config.create_path(config.user.data_path)
+            self.update_peer_addresses(config.user.peer_list)
 
-        return GetKnownPeersReply(known_peers=known_peers)
+        logger.info('Known Peers: %s', self.peer_addresses)
 
-
-class PublicAPI(PublicAPIServicer):
-    # TODO: Separate the Service from the node model
-
-    def GetKnownPeers(self, request: GetKnownPeersRequest, context) -> GetKnownPeersReply:
-        logger.debug("[PublicAPI] GetPeers")
-
-        peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
-
+    def update_peer_addresses(self, peer_addresses):
+        # FIXME: Probably will be refactored
+        self.peer_addresses = peer_addresses
         known_peers = qrl_pb2.KnownPeers()
-        if os.path.isfile(peers_path) is True:
-            with open(peers_path, 'rb') as infile:
-                known_peers.ParseFromString(infile.read())
-        else:
-            peer_list = config.user.peer_list
-            known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in peer_list])
+        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
+        with open(self.peers_path, "wb") as outfile:
+            outfile.write(known_peers.SerializeToString())
 
-        return GetKnownPeersReply(known_peers=known_peers)
-
-
-def start_node():
-    server = grpc.server(ThreadPoolExecutor(max_workers=10))
-
-    add_P2PNodeServicer_to_server(P2PNode(), server)
-    add_PublicAPIServicer_to_server(PublicAPI(), server)
-
-    server.add_insecure_port("[::]:9009")
-    server.start()
-    logger.debug("P2P node - started !")
-
-    return server
