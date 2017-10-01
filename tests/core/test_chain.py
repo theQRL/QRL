@@ -28,8 +28,8 @@ class TestChain(TestCase):
             chain = Chain(state)
             self.assertIsNotNone(chain)
 
-            self.assertEqual('Q927e6511e7281df1ad0c70802d064de22631c47545eae68228438de656b92eb0e3bf56bf',
-                             chain.mining_address)
+            self.assertEqual(chain.mining_address,
+                             'Q3784dd21744dcab66754cdaa9c93f1c5302131e33a72ed9e32e43dc2abbb0e4a234612dd')
 
-            self.assertEqual('Q927e6511e7281df1ad0c70802d064de22631c47545eae68228438de656b92eb0e3bf56bf',
-                             chain.wallet.address_bundle[0].address)
+            self.assertEqual(chain.wallet.address_bundle[0].address,
+                             'Q3784dd21744dcab66754cdaa9c93f1c5302131e33a72ed9e32e43dc2abbb0e4a234612dd')

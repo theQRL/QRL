@@ -1,5 +1,4 @@
 # coding=utf-8
-import os
 import queue
 import random
 import time
@@ -13,12 +12,13 @@ from qrl.core import config, logger, helper
 from qrl.core.helper import json_encode, json_bytestream, json_bytestream_bk
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
-from qrl.generated import qrl_pb2
+from qrl.p2p.node import QRLNode
+
 
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
 
-    def __init__(self, chain, nodeState, pos=None):
+    def __init__(self, chain, nodeState, node: QRLNode, pos=None):
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
@@ -46,9 +46,9 @@ class P2PFactory(ServerFactory):
         self.last_reveal_three = None
 
         self.peer_connections = []
-        self.peer_addresses = []
-        self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
-        self.load_peer_addresses()
+
+        self.node = node
+
         self.txn_processor_running = False
 
         self.bkmr_blocknumber = 0  # Blocknumber for which bkmr is being tracked
@@ -132,16 +132,17 @@ class P2PFactory(ServerFactory):
         :return:
         :rtype: None
         """
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer in self.peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self.node.peer_addresses)
+        for peer_address in self.node.peer_addresses:
+            # FIXME: Refactor search
             found = False
             for peer_conn in self.peer_connections:
-                if peer == peer_conn.transport.getPeer().host:
+                if peer_address == peer_conn.transport.getPeer().host:
                     found = True
                     break
             if found:
                 continue
-            reactor.connectTCP(peer, 9000, self)
+            reactor.connectTCP(peer_address, 9000, self)
 
     def get_block_a_to_b(self, a, b):
         logger.info('<<<Requested blocks: %s to %s from peers..', a, b)
@@ -360,30 +361,6 @@ class P2PFactory(ServerFactory):
         return
 
     # connection functions
-
-    # FIXME: Temporarily moving here
-    def load_peer_addresses(self):
-        if os.path.isfile(self.peers_path) is True:
-            logger.info('Opening peers.qrl')
-            with open(self.peers_path, 'rb') as infile:
-                known_peers = qrl_pb2.KnownPeers()
-                known_peers.ParseFromString(infile.read())
-                self.peer_addresses = [peer.ip for peer in known_peers.peers]
-            logger.info('Known Peers: %s', self.peer_addresses)
-        else:
-            logger.info('Creating peers.qrl')
-            # Ensure the data path exists
-            config.create_path(config.user.data_path)
-            self.update_peer_addresses(config.user.peer_list)
-
-        logger.info('Known Peers: %s', self.peer_addresses)
-
-    def update_peer_addresses(self, peer_addresses):
-        self.peer_addresses = peer_addresses
-        known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
-        with open(self.peers_path, "wb") as outfile:
-            outfile.write(known_peers.SerializeToString())
 
     def reset_processor_flag(self, _):
         self.txn_processor_running = False

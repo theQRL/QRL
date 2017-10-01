@@ -16,13 +16,13 @@ class P2PNodeStub(object):
     """
     self.Ping = channel.unary_unary(
         '/qrl.P2PNode/Ping',
-        request_serializer=qrl__pb2.PingRequest.SerializeToString,
-        response_deserializer=qrl__pb2.PongReply.FromString,
+        request_serializer=qrl__pb2.PingReq.SerializeToString,
+        response_deserializer=qrl__pb2.PongResp.FromString,
         )
     self.GetKnownPeers = channel.unary_unary(
         '/qrl.P2PNode/GetKnownPeers',
-        request_serializer=qrl__pb2.GetKnownPeersRequest.SerializeToString,
-        response_deserializer=qrl__pb2.GetKnownPeersReply.FromString,
+        request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
 
 
@@ -49,13 +49,13 @@ def add_P2PNodeServicer_to_server(servicer, server):
   rpc_method_handlers = {
       'Ping': grpc.unary_unary_rpc_method_handler(
           servicer.Ping,
-          request_deserializer=qrl__pb2.PingRequest.FromString,
-          response_serializer=qrl__pb2.PongReply.SerializeToString,
+          request_deserializer=qrl__pb2.PingReq.FromString,
+          response_serializer=qrl__pb2.PongResp.SerializeToString,
       ),
       'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
           servicer.GetKnownPeers,
-          request_deserializer=qrl__pb2.GetKnownPeersRequest.FromString,
-          response_serializer=qrl__pb2.GetKnownPeersReply.SerializeToString,
+          request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
+          response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
@@ -75,8 +75,13 @@ class PublicAPIStub(object):
     """
     self.GetKnownPeers = channel.unary_unary(
         '/qrl.PublicAPI/GetKnownPeers',
-        request_serializer=qrl__pb2.GetKnownPeersRequest.SerializeToString,
-        response_deserializer=qrl__pb2.GetKnownPeersReply.FromString,
+        request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
+        )
+    self.GetBalance = channel.unary_unary(
+        '/qrl.PublicAPI/GetBalance',
+        request_serializer=qrl__pb2.GetBalanceReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetBalanceResp.FromString,
         )
 
 
@@ -91,13 +96,25 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetBalance(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
       'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
           servicer.GetKnownPeers,
-          request_deserializer=qrl__pb2.GetKnownPeersRequest.FromString,
-          response_serializer=qrl__pb2.GetKnownPeersReply.SerializeToString,
+          request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
+          response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
+      ),
+      'GetBalance': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBalance,
+          request_deserializer=qrl__pb2.GetBalanceReq.FromString,
+          response_serializer=qrl__pb2.GetBalanceResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

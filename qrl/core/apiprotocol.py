@@ -20,9 +20,20 @@ from qrl.core.Transaction import SimpleTransaction, CoinBase, Transaction
 class ApiProtocol(Protocol):
     def __init__(self):
         self.api_list = [
-            'block_data', 'stats', 'ip_geotag', 'txhash', 'address',
-            'empty', 'last_tx', 'last_unconfirmed_tx', 'last_block',
-            'richlist', 'ping', 'stakers', 'next_stakers', 'latency',
+            'block_data',
+            'stats',
+            'ip_geotag',
+            'txhash',
+            'address',
+            'empty',
+            'last_tx',
+            'last_unconfirmed_tx',
+            'last_block',
+            'richlist',
+            'ping',
+            'stakers',
+            'next_stakers',
+            'latency',
             'balance'
         ]
 
@@ -463,12 +474,14 @@ class ApiProtocol(Protocol):
 
         addr = {}
 
+        # FIXME: breaking encapsulation and accessing DB/cache directly from API
         if not self.factory.state.state_address_used(address):
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
             addr['parameter'] = address
             return json_print_telnet(addr)
 
+        # FIXME: breaking encapsulation and accessing DB/cache directly from API
         nonce, balance, _ = self.factory.state.state_get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address

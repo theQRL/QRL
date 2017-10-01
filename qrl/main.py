@@ -6,12 +6,13 @@ import logging
 
 from twisted.internet import reactor
 
-from qrl.p2p.node import start_node
+from qrl.p2p.node import QRLNode
+from qrl.p2p.services import start_services
 from . import webwallet
 from .core import logger, ntp, node, config
 from .core.apifactory import ApiFactory
 from .core.chain import Chain
-from .core.node import NodeState
+from .core.node import NodeState, POS
 from .core.p2pfactory import P2PFactory
 from .core.state import State
 from .core.walletfactory import WalletFactory
@@ -70,7 +71,8 @@ def main():
 
     #######
 
-    server = start_node()   # Keep assigned to a variable or it will be collected
+    qrlnode = QRLNode()
+    qrlserver = start_services(qrlnode)                   # Keep assigned to a variable or it will be collected
 
     #######
 
@@ -100,8 +102,8 @@ def main():
         quit()
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state)
-    pos = node.POS(chain=chain_obj, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
+    p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state, node=qrlnode)
+    pos = POS(chain=chain_obj, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
     p2p_factory.setPOS(pos)
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
