@@ -31,16 +31,15 @@ class WebWallet:
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
-        self.wallet = chain.wallet
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))
-        resource.putChild("webwallet-addresses", showAddresses(self.chain))
-        resource.putChild("webwallet-create-new-address", newAddress(self.chain))
-        resource.putChild("webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
-        resource.putChild("webwallet-mempool", memPoolSize(self.chain))
-        resource.putChild("webwallet-sync", syncStatus(self.p2pFactory))
-        resource.putChild("webwallet-recover", recoverAddress(self.chain))
+        resource.putChild(b"webwallet-addresses", showAddresses(self.chain))
+        resource.putChild(b"webwallet-create-new-address", newAddress(self.chain))
+        resource.putChild(b"webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
+        resource.putChild(b"webwallet-mempool", memPoolSize(self.chain))
+        resource.putChild(b"webwallet-sync", syncStatus(self.p2pFactory))
+        resource.putChild(b"webwallet-recover", recoverAddress(self.chain))
 
         factory = Site(resource)
         endpoint = endpoints.TCP4ServerEndpoint(reactor, 8888, interface='127.0.0.1')
@@ -55,7 +54,7 @@ class showAddresses(Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        return helper.json_encode(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool))
+        return bytes(helper.json_encode(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)), 'utf-8')
 
 
 class newAddress(Resource):
@@ -95,18 +94,18 @@ class recoverAddress(Resource):
             # Fail if no words provided
             if not jsQ["words"]:
                 self.result["message"] = "You must provide your mnemonic phrase!"
-                return helper.json_encode(self.result)
+                return bytes(helper.json_encode(self.result), 'utf-8')
 
             # FIXME: Validation should not be here, it should be part of mnemonic
             mnemonicphrase = jsQ["words"]
 
             if not validate_mnemonic(mnemonicphrase):
                 self.result["message"] = "Invalid mnemonic phrase! It must contain exactly 32 valid words"
-                return helper.json_encode(self.result)
+                return bytes(helper.json_encode(self.result), 'utf-8')
 
             # Try to recover
             try:
-                addr = self.chain.wallet.get_new_address(SEED=mnemonic2bin(mnemonicphrase, wordlist))
+                addr = self.chain.wallet.get_new_address(seed=mnemonic2bin(mnemonicphrase, wordlist))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet
@@ -119,17 +118,17 @@ class recoverAddress(Resource):
                     "message"] = "There was a problem restoring your address. " \
                                  "If you believe this is in error, please raise it with the QRL team."
 
-                return helper.json_encode(self.result)
+                return bytes(helper.json_encode(self.result), 'utf-8')
 
         # Recover address from hexseed
         elif jsQ["type"] == "hexseed":
             if not jsQ["hexseed"] or not hexseed_to_seed(jsQ["hexseed"]):
                 self.result["message"] = "Invalid Hex Seed!"
-                return helper.json_encode(self.result)
+                return bytes(helper.json_encode(self.result), 'utf-8')
 
             # Try to recover
             try:
-                addr = self.chain.wallet.get_new_address(SEED=hexseed_to_seed(jsQ["hexseed"]))
+                addr = self.chain.wallet.get_new_address(seed=hexseed_to_seed(jsQ["hexseed"]))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet
@@ -140,18 +139,18 @@ class recoverAddress(Resource):
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
-                return helper.json_encode(self.result)
+                return bytes(helper.json_encode(self.result), 'utf-8')
 
         # Invalid selection
         else:
             self.result[
                 "message"] = "You must select either mnemonic or hexseed recovery options to restore an address!"
-            return helper.json_encode(self.result)
+            return bytes(helper.json_encode(self.result), 'utf-8')
 
         # If we got this far, it must have worked!
         self.result["status"] = "success"
 
-        return helper.json_encode(self.result)
+        return bytes(helper.json_encode(self.result), 'utf-8')
 
 
 class memPoolSize(Resource):
@@ -162,7 +161,7 @@ class memPoolSize(Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        return str(len(self.chain.transaction_pool))
+        return bytes(str(len(self.chain.transaction_pool)), 'utf-8')
 
 
 class syncStatus(Resource):
@@ -173,7 +172,7 @@ class syncStatus(Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        return str(self.p2pFactory.nodeState.state)
+        return bytes(str(self.p2pFactory.nodeState.state), 'utf-8')
 
 
 class sendQuanta(Resource):
@@ -210,7 +209,7 @@ class sendQuanta(Resource):
         if int(wallet_from) > len(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)) - 1:
             self.txnResult[
                 "message"] = "Invalid sending address. Try a valid number from your wallet - type wallet for details."
-            return helper.json_encode(self.txnResult)
+            return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
         # if wallet_to is not a local wallet, and wallet_to is not prepended by Q and
         if len(wallet_to) > 1 and wallet_to[0] != 'Q' and self.state.state_hrs(wallet_to) != False:
@@ -222,11 +221,11 @@ class sendQuanta(Resource):
                 int(wallet_to)
             except:
                 self.txnResult["message"] = "Invalid receiving address - addresses must start with Q."
-                return helper.json_encode(self.txnResult)
+                return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
             if int(wallet_to) > len(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)) - 1:
                 self.txnResult["message"] = "Invalid receiving address - addresses must start with Q."
-                return helper.json_encode(self.txnResult)
+                return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
             wallet_to = int(wallet_to)
 
@@ -238,7 +237,7 @@ class sendQuanta(Resource):
         except:
             self.txnResult[
                 "message"] = "Invalid amount type. Type a number (less than or equal to the balance of the sending address)"
-            return helper.json_encode(self.txnResult)
+            return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
         amount = decimal.Decimal(decimal.Decimal(send_amount) * 100000000).quantize(decimal.Decimal('1'),
                                                                                     rounding=decimal.ROUND_HALF_UP)
@@ -246,7 +245,7 @@ class sendQuanta(Resource):
         if balance < amount:
             self.txnResult[
                 "message"] = "Invalid amount to send. Type a number less than or equal to the balance of the sending address"
-            return helper.json_encode(self.txnResult)
+            return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
         # Stop user from sending less than their entire balance if they've only
         # got one signature remaining.
@@ -255,13 +254,13 @@ class sendQuanta(Resource):
             if amount < balance:
                 self.txnResult[
                     "message"] = "Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!"
-                return helper.json_encode(self.txnResult)
+                return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
-        tx = self.chain.create_my_tx(txfrom=int(wallet_from), txto=wallet_to, amount=amount)
+        tx = self.chain.create_my_tx(txfrom=int(wallet_from), txto=bytes(wallet_to, 'utf-8'), amount=amount)
 
         if tx is False:
             self.txnResult["message"] = "Failed to Create txn"
-            return helper.json_encode(self.txnResult)
+            return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
         if tx.validate_tx():
             block_chain_buffer = self.chain.block_chain_buffer
@@ -270,10 +269,10 @@ class sendQuanta(Resource):
             if not tx.state_validate_tx(tx_state=tx_state,
                                         transaction_pool=self.chain.transaction_pool):
                 self.txnResult["message"] = "OTS key reused"
-                return helper.json_encode(self.txnResult)
+                return bytes(helper.json_encode(self.txnResult), 'utf-8')
         else:
             self.txnResult["message"] = "TXN failed at validate_tx"
-            return helper.json_encode(self.txnResult)
+            return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
         # send the transaction to peers (ie send it to the network - we are done)
         self.p2pFactory.send_tx_to_peers(tx)
@@ -287,4 +286,4 @@ class sendQuanta(Resource):
         self.txnResult["to"] = str(tx.txto)
         self.txnResult["amount"] = str(tx.amount / 100000000.000000000)
 
-        return helper.json_encode(self.txnResult)
+        return bytes(helper.json_encode(self.txnResult), 'utf-8')
