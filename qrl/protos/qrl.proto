@@ -1,0 +1,39 @@
+// Distributed under the MIT software license, see the accompanying
+// file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+syntax = "proto3";
+
+package qrl;
+
+service Node {
+  rpc Ping (PingRequest) returns (PongReply) {}
+}
+message PingRequest {
+  string name = 1;
+}
+
+message PongReply {
+  string message = 1;
+}
+
+message WalletStore
+{
+    repeated Wallet wallets = 1;
+}
+
+message Wallet
+{
+    string address = 1;
+    string mnemonic = 2;
+    int32 xmss_index = 3;
+}
+
+message KnownPeers
+{
+    repeated Peer peers = 1;
+}
+
+message Peer
+{
+    string ip = 1;
+}
