@@ -26,19 +26,16 @@ More information:
 
 ## Ubuntu :white_check_mark:
 
-Ensure your apt sources are up to date
+Ensure your apt sources are up to date and install dependencies
 
-`sudo apt update`
-
-Install packages
-
-```
-sudo apt -y install swig3.0 python3-dev build-essential cmake pkg-config libboost-random-dev
+```bash
+sudo apt update
+sudo apt -y install swig3.0 python3-dev build-essential cmake pkg-config libboost-random-dev libssl-dev libffi-dev
 ```
 
 To get the source and start the node, use the following:
 
-```
+```bash
 git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt
@@ -51,12 +48,13 @@ If you dont have brew yet, we think you should :) Install brew following the ins
 Now install some dependencies
 
 ```bash
+brew update
 brew install cmake python3 swig boost
 ```
 
 To get the source and start the node, use the following:
 
-```
+```bash
 git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt
@@ -66,14 +64,15 @@ python3 start_qrl.py
 ## Raspberry Pi :white_check_mark:
 
 Install dependencies
-```
-sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev
+```bash
+sudo apt update
+sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev libssl-dev libffi-dev
 sudo pip3 install -U setuptools
 ```
 
 To get the source and start the node, use the following:
 
-```
+```bash
 git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt
