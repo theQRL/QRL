@@ -44,7 +44,7 @@ class State:
         try:
             return self.db.get('stake_list'.encode())
         except KeyError:
-            logger.warning('stake_list empty returning empty list')
+            pass
         except Exception as e:
             logger.error('Exception in stake_list_get')
             logger.exception(e)
@@ -62,7 +62,7 @@ class State:
         try:
             return self.db.get('next_stake_list'.encode())
         except KeyError:
-            logger.warning('next_stake_list empty returning empty list')
+            pass
         except Exception as e:
             logger.error('Exception in next_stake_list_get')
             logger.exception(e)
@@ -102,7 +102,7 @@ class State:
         try:
             return self.db.get( ('txn_count_' + addr).encode())
         except KeyError:
-            logger.warning('No txn count for %s', addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_get_txn_count')
             logger.exception(e)
@@ -113,7 +113,7 @@ class State:
         try:
             return self.db.get(addr.encode())
         except KeyError:
-            logger.warning('state_get_address: No state found for %s', addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_get_address')
             logger.exception(e)
@@ -124,7 +124,7 @@ class State:
         try:
             return self.db.get(addr.encode())
         except KeyError:
-            logger.warning('state_address_used: address not found %s', addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_address_used')
             logger.exception(e)
@@ -135,7 +135,7 @@ class State:
         try:
             return self.db.get(addr.encode())[1]
         except KeyError:
-            logger.warning("state_balance: state not found for %s", addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_balance')
             logger.exception(e)
@@ -146,7 +146,7 @@ class State:
         try:
             return self.db.get(addr.encode())[0]
         except KeyError:
-            logger.warning("state_nonce: state not found for %s", addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_nonce')
             logger.exception(e)
@@ -157,7 +157,7 @@ class State:
         try:
             return self.db.get(addr.encode())[2]
         except KeyError:
-            logger.warning("state_pubhash: state not found for %s", addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_pubhash')
             logger.exception(e)
@@ -168,7 +168,7 @@ class State:
         try:
             return self.db.get('hrs{}'.format(hrs).encode())
         except KeyError:
-            logger.warning("state_hrs: state not found for %s", hrs)
+            pass
         except Exception as e:
             logger.error('Exception in state_hrs')
             logger.exception(e)

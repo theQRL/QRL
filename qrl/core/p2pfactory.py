@@ -113,6 +113,7 @@ class P2PFactory(ServerFactory):
                 if score > oldscore:
                     del self.bkmr_priorityq
                     self.bkmr_priorityq = queue.PriorityQueue()
+                    return
 
             self.RFM(data={'hash': hash, 'type': 'BK'})
             self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
