@@ -30,7 +30,7 @@ Ensure your apt sources are up to date and install dependencies
 
 ```bash
 sudo apt update
-sudo apt -y install swig3.0 python3-dev build-essential cmake pkg-config libboost-random-dev libssl-dev libffi-dev
+sudo apt -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libboost-random-dev libssl-dev libffi-dev
 ```
 
 To get the source and start the node, use the following:
