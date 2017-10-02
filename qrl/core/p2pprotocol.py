@@ -570,7 +570,7 @@ class P2PProtocol(Protocol):
         if block_number > self.factory.chain.m_blockheight():
             return
 
-        if len(self.factory.chain.m_blockchain) == 1 and self.factory.genesis == 0:
+        if self.factory.chain.height() == 1 and self.factory.genesis == 0:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
             self.factory.genesis = 1
             logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
@@ -578,7 +578,7 @@ class P2PProtocol(Protocol):
             return
 
         # connected to multiple hosts and already passed through..
-        elif len(self.factory.chain.m_blockchain) == 1 and self.factory.genesis == 1:
+        elif self.factory.chain.height() == 1 and self.factory.genesis == 1:
             return
 
     def BN(self, data):  # request for block (n)
