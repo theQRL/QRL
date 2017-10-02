@@ -1,5 +1,3 @@
-**WARNING: These instructions are outdated**
-
 # Running a Quantum Resistant Ledger node on a Raspberry Pi
 
 ## Raspberry Pi operating system installation & setup : 
@@ -46,34 +44,25 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-## QRL installation & setup
-- Install python packages :
-
-```sudo apt-get install python-dev```
-
-- Type the following command to clone the repository :
-
-```git clone https://github.com/theQRL/QRL.git```
-
-
+## QRL installation & Running the node
 - Install dependencies :
 
 ```
-cd /home/pi/QRL
+sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev libssl-dev libffi-dev
+sudo pip3 install -U setuptools
+```
+
+- To get the source and start the node, use the following: :
+
+```
+git clone https://github.com/theQRL/QRL.git
+cd QRL/
 sudo pip3 install -r requirements.txt
-```
-  
-  
-## Running the node
-- In the terminal, type the following commands :
-```
-cd /home/pi/QRL
-python start_qrl.py
+python3 start_qrl.py
 ```
 
 - If you've set it up correctly, it should start to output the following:
 ```
-|unsynced| DEBUG : =====================================================================================
 |unsynced| INFO : Data Path: /home/pi/.qrl/data
 |unsynced| INFO : Wallet Path: /home/pi/.qrl/wallet
 |unsynced| INFO : Initializing chain..
@@ -85,7 +74,7 @@ This might take a while, leave it running until the chain is sync
 
 - If you want to keep QRL running after disconnecting terminal, you have to launch it in background :
 
-```nohup python start_qrl.py &```
+```nohup python3 start_qrl.py &```
 
 ## Check Sync process
 
@@ -105,46 +94,47 @@ This might take a while, leave it running until the chain is sync
 
 - Find QRL process :
 
-```pgrep python```
+```pgrep python3```
 
 - Check memory usage
 
 ```top -p <python process id>```
 
-- Is this example, memory usage is : 418MB (945512 x 44.9%) :
+- Is this example, memory usage is : 112MB (994232 x 11.2%)
 
 ```
-pi@raspberrypi:$ pgrep python
-23028
-pi@raspberrypi:$ top -p 23028
-top - 11:47:08 up 19:40,  4 users,  load average: 0.82, 0.95, 0.98
+pi@raspberrypi:$ pgrep python3
+5051
+pi@raspberrypi:$ top -p 5051
+top - 21:42:59 up 11 days, 17 min,  3 users,  load average: 1.54, 1.43, 0.99
 Tasks:   1 total,   1 running,   0 sleeping,   0 stopped,   0 zombie
-%Cpu(s): 25.0 us,  0.1 sy,  0.0 ni, 74.9 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
-KiB Mem:    **945512** total,   873320 used,    72192 free,    29036 buffers
-KiB Swap:   102396 total,     9240 used,    93156 free.   213964 cached Mem
-PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
-23028 pi        20   0  441368 424340   3716 R  99.9 **44.9** 600:54.15 python
+%Cpu(s): 32.6 us,  2.0 sy,  0.0 ni, 49.6 id, 15.9 wa,  0.0 hi,  0.0 si,  0.0 st
+KiB Mem :   **994232** total,   183584 free,   239048 used,   571600 buff/cache
+KiB Swap:   524284 total,   482864 free,    41420 used.   625072 avail Mem
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
+ 5051 pi        20   0  129784 111256  11264 R 135.7 **11.2**  15:18.28 python3
 ```
 
 
 ## Stopping the node
 - It can be required to stop the node, specially during testnet. Type the following to kill python process.
 
-```pkill python```
+```pkill python3```
 
 ## Update the node
 
 - First stop the python process (see above) and update the local git repository
 
 ```
-cd /home/pi/QRL
+cd /home/pi/QRL/
 git pull
 ```
 - restart QRL
 
 ```
-cd /home/pi/QRL
-python start_qrl.py
+cd /home/pi/QRL/
+python3 start_qrl.py
 ```
 
 ## Accessing the wallet
@@ -154,7 +144,7 @@ python start_qrl.py
 
 - Run the following command to start the node :
 
-`python start_qrl.py`
+`python3 start_qrl.py`
 
 - Once it starts the synchronisation process, you can telnet into the node. Type the following command in the terminal :
 
