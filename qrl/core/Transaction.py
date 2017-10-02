@@ -33,6 +33,17 @@ class Transaction(object, metaclass=ABCMeta):
         self.PK = None
         self.signature = None
 
+   @staticmethod
+   def tx_id_to_name(id):
+       id_name = {
+           1: 'TX',
+           2: 'STAKE',
+           3: 'COINBASE',
+           4: 'LATTICE'
+       }
+
+       return id_name[id]
+
     @staticmethod
     def from_txdict(txdict):
         """
