@@ -11,7 +11,7 @@ import statistics
 from twisted.internet.protocol import Protocol, connectionDone
 
 from pyqrllib.pyqrllib import bin2hstr
-from qrl.core import logger
+from qrl.core import config, logger
 from qrl.core.helper import json_print_telnet
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_STAKE
 from qrl.core.Transaction import SimpleTransaction, CoinBase, Transaction
@@ -100,7 +100,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_list.sv_list:
             sv = self.factory.state.stake_validators_list.sv_list[staker]
             tmp_stakers = {'address': sv.stake_validator,
-                           'balance': sv.balance / 100000000.00000000,
+                           'balance': self.format_balance(sv.balance),
                            'hash_terminator': [],
                            'nonce': sv.nonce}
 
@@ -120,7 +120,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_list.next_sv_list:
             sv = self.factory.state.stake_validators_list.next_sv_list[staker]
             tmp_stakers = {'address': sv.stake_validator,
-                           'balance': sv.balance / 100000000.00000000,
+                           'balance': self.format_balance(sv.balance),
                            'hash_terminator': [],
                            'nonce': sv.nonce}
 
@@ -167,7 +167,7 @@ class ApiProtocol(Protocol):
         for rich in richlist[:n]:
             rl['richlist'][richlist.index(rich) + 1] = {}
             rl['richlist'][richlist.index(rich) + 1]['address'] = rich[0].decode()
-            rl['richlist'][richlist.index(rich) + 1]['balance'] = rich[1] / 100000000.000000000
+            rl['richlist'][richlist.index(rich) + 1]['balance'] = self.format_balance(rich[1])
 
         rl['status'] = 'ok'
 
@@ -200,7 +200,7 @@ class ApiProtocol(Protocol):
         for block in lb[1:]:
             i += 1
             tmp_block = {'blocknumber': block.blockheader.blocknumber,
-                         'block_reward': block.blockheader.block_reward / 100000000.00000000,
+                         'block_reward': self.format_balance(block.blockheader.block_reward),
                          'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
                          'timestamp': block.blockheader.timestamp,
                          'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
@@ -237,7 +237,7 @@ class ApiProtocol(Protocol):
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': 'unconfirmed',
                        'timestamp': 'unconfirmed',
-                       'amount': tx.amount / 100000000.000000000,
+                       'amount': self.format_balance(tx.amount),
                        'type': tx.subtype}
 
             tmp_txn['type'] = Transaction.tx_id_to_name(tmp_txn['type'])
@@ -278,7 +278,7 @@ class ApiProtocol(Protocol):
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': tx_meta[1],
                        'timestamp': tx_meta[2],
-                       'amount': tx.amount / 100000000.000000000,
+                       'amount': self.format_balance(tx.amount),
                        'type': tx.subtype}
 
             addr['transactions'].append(tmp_txn)
@@ -308,8 +308,8 @@ class ApiProtocol(Protocol):
         return json_print_telnet(error)
 
     def reformat_block(self, block):
-        block.blockheader.block_reward /= 100000000.000000000
-        block.blockheader.fee_reward /= 100000000.000000000
+        block.blockheader.block_reward = self.format_balance(block.blockheader.block_reward)
+        block.blockheader.fee_reward = self.format_balance(block.blockheader.fee_reward)
         block.blockheader.reveal_hash = bin2hstr(block.blockheader.reveal_hash)
         block.blockheader.vote_hash = bin2hstr(block.blockheader.vote_hash)
         block.blockheader.headerhash = bin2hstr(block.blockheader.headerhash)
@@ -323,7 +323,7 @@ class ApiProtocol(Protocol):
 
     def reformat_txn(self, txn):
         if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-            txn.amount = txn.amount / 100000000.000000000
+            txn.amount = self.format_balance(txn.amount)
         txn.txhash = bin2hstr(txn.txhash)
         txn.pubhash = bin2hstr(txn.pubhash)
         txn.signature = bin2hstr(txn.signature)
@@ -407,7 +407,7 @@ class ApiProtocol(Protocol):
             block_time_variance = max(t) - min(t)   # FIXME: This is not the variance!
 
         net_stats = {'status': 'ok', 'version': self.factory.chain.version_number,
-                     'block_reward': self.factory.chain.m_blockchain[-1].blockheader.block_reward / 100000000.00000000,
+                     'block_reward': self.format_balance(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
                      'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list),
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
                      'staked_percentage_emission': staked, 'network': 'qrl testnet',
@@ -416,8 +416,8 @@ class ApiProtocol(Protocol):
                      'block_time_variance': block_time_variance,
                      'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
-                     'emission': self.factory.state.db.total_coin_supply() / 100000000.000000000,
-                     'unmined': 21000000 - self.factory.state.db.total_coin_supply() / 100000000.000000000}
+                     'emission': self.format_balance(self.factory.state.db.total_coin_supply()),
+                     'unmined': config.dev.total_coin_supply - self.factory.state.db.total_coin_supply() / 100000000.000000000}
 
         return json_print_telnet(net_stats)
 
@@ -448,6 +448,9 @@ class ApiProtocol(Protocol):
         logger.info('<<< API tx/hash call %s', data)
         return self.search_txhash(data)
 
+    def format_balance(self, balance):
+        return format(float(balance / 100000000.00000000), '.8f').rstrip('.0')
+
     def balance(self, data=None):
         logger.info('<<< API balance call %s', data)
 
@@ -464,7 +467,7 @@ class ApiProtocol(Protocol):
         nonce, balance, _ = self.factory.state.state_get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = balance / 100000000.000000000
+        addr['state']['balance'] = self.format_balance(balance)
         addr['state']['nonce'] = nonce
         addr['state']['transactions'] = self.factory.state.state_get_txn_count(address)
         addr['status'] = 'ok'
@@ -488,7 +491,7 @@ class ApiProtocol(Protocol):
         nonce, balance, pubhash_list = self.factory.state.state_get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = balance / 100000000.000000000
+        addr['state']['balance'] = self.format_balance(balance)
         addr['state']['nonce'] = nonce
 
         for s in self.factory.state.stake_list_get():
@@ -507,7 +510,7 @@ class ApiProtocol(Protocol):
                 tmp_txn = {'subtype': tx.subtype,
                            'txhash': bin2hstr(tx.txhash),
                            'block': 'unconfirmed',
-                           'amount': tx.amount / 100000000.000000000,
+                           'amount': self.format_balance(tx.amount),
                            'nonce': tx.nonce,
                            'ots_key': tx.ots_key,
                            'txto': tx.txto,
@@ -515,7 +518,7 @@ class ApiProtocol(Protocol):
                            'timestamp': 'unconfirmed'}
 
                 if tx.subtype == TX_SUBTYPE_TX:
-                    tmp_txn['fee'] = tx.fee / 100000000.000000000
+                    tmp_txn['fee'] = self.format_balance(tx.fee)
 
                 tmp_txn.subtype = Transaction.tx_id_to_name(tx.subtype)
 
@@ -545,14 +548,14 @@ class ApiProtocol(Protocol):
                            'txhash': bin2hstr(tx.txhash),
                            'block': txn_metadata[1],
                            'timestamp': txn_metadata[2],
-                           'amount': tx.amount / 100000000.000000000,
+                           'amount': self.format_balance(tx.amount),
                            'nonce': tx.nonce,
                            'ots_key': tx.ots_key,
                            'txto': tx.txto,
                            'txfrom': tx.txfrom}
 
                 if tx.subtype == TX_SUBTYPE_TX:
-                    tmp_txn['fee'] = tx.fee / 100000000.000000000
+                    tmp_txn['fee'] = self.format_balance(tx.fee)
 
                 tmp_txn['subtype'] = Transaction.tx_id_to_name(tmp_txn['subtype'])
 
