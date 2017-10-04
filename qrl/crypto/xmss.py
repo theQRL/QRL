@@ -7,17 +7,8 @@ from qrl.crypto.words import wordlist
 
 
 class XMSS(object):
-    """
-    xmss python implementation
-    An XMSS private key contains N = 2^h WOTS+ private keys, the leaf index idx of the next WOTS+ private key that has not yet been used
-    and SK_PRF, an m-byte key for the PRF.
-    The XMSS public key PK consists of the root of the binary hash tree and the bitmasks from xmss and l-tree.
-    a class which creates an xmss wrapper. allows stateful signing from an xmss tree of signatures.
-    """
-
     # FIXME: Getters are only temporarily. Delete everything or use properties
-
-    def __init__(self, tree_height, seed=None):
+    def __init__(self, tree_height, seed=None, _xmssfast=None):
         """
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
@@ -59,30 +50,25 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
         ''
         """
-        self._number_signatures = 2 ** tree_height
 
         self._type = 'XMSS'
 
-        # FIXME: Set index to appropiate value after restoring
-        self._index = 0
-
-        if seed is None:
-            # FIXME: Improve seed generation
-            self._seed = getRandomSeed(48, '')
+        if _xmssfast is not None:
+            self._xmss = _xmssfast
         else:
-            if isinstance(seed, str):
-                self._seed = str2bin(seed)
+            # TODO: This is the old code, probably it should be removed
+
+            if seed is None:
+                # FIXME: Improve seed generation
+                self._seed = getRandomSeed(48, '')
             else:
-                self._seed = seed
+                if isinstance(seed, str):
+                    self._seed = str2bin(seed)
+                else:
+                    self._seed = seed
 
-        # TODO: #####################
-        # FIXME Seed is fixed!!!!!!!!!!!!!!!!!!!!
-        self._xmss = XmssFast(self._seed, tree_height)
+            self._xmss = XmssFast(self._seed, tree_height)
 
-        # TODO: Need to set an index
-
-        # data to allow signing of smaller xmss trees/different addresses derived from same SEED..
-        # position in wallet denoted by first number and address/tree by signatures
         self.addresses = [(0, self.get_address(), self.get_number_signatures())]
 
     def _sk(self):
@@ -113,7 +99,7 @@ class XMSS(object):
         16
         """
         # type: () -> int
-        return self._number_signatures
+        return 2 ** self._xmss.getHeight()
 
     def get_remaining_signatures(self):
         """
@@ -265,9 +251,7 @@ class XMSS(object):
         """
         return self._xmss.sign(message)
 
-    # NOTE: USED EXTERNALLY!!!
     def list_addresses(self):
-        # FIXME: Probably not used and obsolete
         """
         List the addresses derived in the main tree
         :return:

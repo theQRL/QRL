@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import hstr2bin, str2bin, bin2hstr
+from pyqrllib.pyqrllib import hstr2bin, str2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
@@ -26,6 +26,14 @@ class ChainBuffer:
 
         self.slave_xmss = dict()
 
+        baseseed = self.chain.wallet.address_bundle[0].xmss.get_seed()
+        starting_epoch = 0
+
+        self.slave_xmsspool = XmssPool(baseseed,
+                                       config.dev.slave_xmss_height,
+                                       starting_epoch,
+                                       pool_size = 2)
+
         # TODO: For the moment, only the first address is used (discussed with cyyber)
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
@@ -37,13 +45,9 @@ class ChainBuffer:
             self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
 
     def generate_slave_xmss(self, epoch):
-        xmss = self.chain.wallet.address_bundle[0].xmss
-        # FIXME: REVIEW THIS WITH LEON/CYYBER
-        tmp = xmss.get_hexseed() + str(epoch + 1)
-        tmp2 = sha256(str2bin(tmp)) * 2
-        stake_seed = tmp2[:48]
-        height = config.dev.slave_xmss_height
-        return XMSS(tree_height=height, seed=stake_seed)
+        assert(epoch == self.slave_xmsspool.getCurrentIndex())    # Verify we are not skipping trees
+        tmp_xmss = self.slave_xmsspool.getNextTree()
+        return XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
 
     def get_slave_xmss(self, blocknumber):
         epoch = blocknumber // config.dev.blocks_per_epoch

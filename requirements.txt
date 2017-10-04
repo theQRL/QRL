@@ -9,5 +9,6 @@ simplejson>=3.11.1
 PyYAML==3.12
 service_identity
 pyopenssl>=17.3.0
-pyqrllib>=0.1.20
+pyqrllib>=0.1.21
+
 
