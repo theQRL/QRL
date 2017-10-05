@@ -19,10 +19,40 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"\x1d\n\rGetBalanceReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"!\n\x0eGetBalanceResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t2r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\x86\x01\n\tPublicAPI\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x37\n\nGetBalance\x12\x12.qrl.GetBalanceReq\x1a\x13.qrl.GetBalanceResp\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"9\n\x10TransferCoinsReq\x12%\n\x0btransaction\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"5\n\x11TransferCoinsResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"g\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\t\x12\r\n\x05nonce\x18\x03 \x01(\r\x12&\n\x0ctransactions\x18\x04 \x03(\x0b\x32\x10.qrl.Transaction\"\xc5\x02\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\t\x12\x0c\n\x04hash\x18\x05 \x01(\x0c\x12\x13\n\x0bpublic_hash\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x06 \x01(\x0c\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x08 \x01(\t\x12\x0e\n\x06\x61mount\x18\t \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\n \x01(\t\x12\r\n\x05\x65poch\x18\x0b \x01(\x04\x12\x18\n\x10public_key_slave\x18\x0c \x01(\x0c\x12\x12\n\nstake_hash\x18\r \x01(\x0c\":\n\x04Type\x12\x0c\n\x08TRANSFER\x10\x00\x12\t\n\x05STAKE\x10\x01\x12\x0c\n\x08\x43OINBASE\x10\x02\x12\x0b\n\x07LATTICE\x10\x03\x32r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\xd7\x01\n\tPublicAPI\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x46\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\"\x00\x12@\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\"\x00\x62\x06proto3')
 )
 
 
+
+_TRANSACTION_TYPE = _descriptor.EnumDescriptor(
+  name='Type',
+  full_name='qrl.Transaction.Type',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='TRANSFER', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='STAKE', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='COINBASE', index=2, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='LATTICE', index=3, number=3,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=904,
+  serialized_end=962,
+)
+_sym_db.RegisterEnumDescriptor(_TRANSACTION_TYPE)
 
 
 _PINGREQ = _descriptor.Descriptor(
@@ -142,15 +172,15 @@ _GETKNOWNPEERSRESP = _descriptor.Descriptor(
 )
 
 
-_GETBALANCEREQ = _descriptor.Descriptor(
-  name='GetBalanceReq',
-  full_name='qrl.GetBalanceReq',
+_GETADDRESSSTATEREQ = _descriptor.Descriptor(
+  name='GetAddressStateReq',
+  full_name='qrl.GetAddressStateReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='qrl.GetBalanceReq.name', index=0,
+      name='address', full_name='qrl.GetAddressStateReq.address', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -169,21 +199,21 @@ _GETBALANCEREQ = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=151,
-  serialized_end=180,
+  serialized_end=188,
 )
 
 
-_GETBALANCERESP = _descriptor.Descriptor(
-  name='GetBalanceResp',
-  full_name='qrl.GetBalanceResp',
+_GETADDRESSSTATERESP = _descriptor.Descriptor(
+  name='GetAddressStateResp',
+  full_name='qrl.GetAddressStateResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='message', full_name='qrl.GetBalanceResp.message', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      name='state', full_name='qrl.GetAddressStateResp.state', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -199,8 +229,70 @@ _GETBALANCERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=182,
-  serialized_end=215,
+  serialized_start=190,
+  serialized_end=245,
+)
+
+
+_TRANSFERCOINSREQ = _descriptor.Descriptor(
+  name='TransferCoinsReq',
+  full_name='qrl.TransferCoinsReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='transaction', full_name='qrl.TransferCoinsReq.transaction', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=247,
+  serialized_end=304,
+)
+
+
+_TRANSFERCOINSRESP = _descriptor.Descriptor(
+  name='TransferCoinsResp',
+  full_name='qrl.TransferCoinsResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='state', full_name='qrl.TransferCoinsResp.state', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=306,
+  serialized_end=359,
 )
 
 
@@ -230,8 +322,8 @@ _WALLETSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=217,
-  serialized_end=260,
+  serialized_start=361,
+  serialized_end=404,
 )
 
 
@@ -275,8 +367,8 @@ _WALLET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=262,
-  serialized_end=325,
+  serialized_start=406,
+  serialized_end=469,
 )
 
 
@@ -306,8 +398,8 @@ _KNOWNPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=327,
-  serialized_end=365,
+  serialized_start=471,
+  serialized_end=509,
 )
 
 
@@ -337,23 +429,201 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=367,
-  serialized_end=385,
+  serialized_start=511,
+  serialized_end=529,
+)
+
+
+_ADDRESSSTATE = _descriptor.Descriptor(
+  name='AddressState',
+  full_name='qrl.AddressState',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.AddressState.address', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.AddressState.balance', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='nonce', full_name='qrl.AddressState.nonce', index=2,
+      number=3, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='transactions', full_name='qrl.AddressState.transactions', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=531,
+  serialized_end=634,
+)
+
+
+_TRANSACTION = _descriptor.Descriptor(
+  name='Transaction',
+  full_name='qrl.Transaction',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='type', full_name='qrl.Transaction.type', index=0,
+      number=1, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='nonce', full_name='qrl.Transaction.nonce', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='addr_from', full_name='qrl.Transaction.addr_from', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='hash', full_name='qrl.Transaction.hash', index=3,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='public_hash', full_name='qrl.Transaction.public_hash', index=4,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='public_key', full_name='qrl.Transaction.public_key', index=5,
+      number=6, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='signature', full_name='qrl.Transaction.signature', index=6,
+      number=7, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='addr_to', full_name='qrl.Transaction.addr_to', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='amount', full_name='qrl.Transaction.amount', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.Transaction.fee', index=9,
+      number=10, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='epoch', full_name='qrl.Transaction.epoch', index=10,
+      number=11, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='public_key_slave', full_name='qrl.Transaction.public_key_slave', index=11,
+      number=12, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='stake_hash', full_name='qrl.Transaction.stake_hash', index=12,
+      number=13, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _TRANSACTION_TYPE,
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=637,
+  serialized_end=962,
 )
 
 _GETKNOWNPEERSRESP.fields_by_name['known_peers'].message_type = _KNOWNPEERS
+_GETADDRESSSTATERESP.fields_by_name['state'].message_type = _ADDRESSSTATE
+_TRANSFERCOINSREQ.fields_by_name['transaction'].message_type = _TRANSACTION
+_TRANSFERCOINSRESP.fields_by_name['state'].message_type = _ADDRESSSTATE
 _WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
 _KNOWNPEERS.fields_by_name['peers'].message_type = _PEER
+_ADDRESSSTATE.fields_by_name['transactions'].message_type = _TRANSACTION
+_TRANSACTION.fields_by_name['type'].enum_type = _TRANSACTION_TYPE
+_TRANSACTION_TYPE.containing_type = _TRANSACTION
 DESCRIPTOR.message_types_by_name['PingReq'] = _PINGREQ
 DESCRIPTOR.message_types_by_name['PongResp'] = _PONGRESP
 DESCRIPTOR.message_types_by_name['GetKnownPeersReq'] = _GETKNOWNPEERSREQ
 DESCRIPTOR.message_types_by_name['GetKnownPeersResp'] = _GETKNOWNPEERSRESP
-DESCRIPTOR.message_types_by_name['GetBalanceReq'] = _GETBALANCEREQ
-DESCRIPTOR.message_types_by_name['GetBalanceResp'] = _GETBALANCERESP
+DESCRIPTOR.message_types_by_name['GetAddressStateReq'] = _GETADDRESSSTATEREQ
+DESCRIPTOR.message_types_by_name['GetAddressStateResp'] = _GETADDRESSSTATERESP
+DESCRIPTOR.message_types_by_name['TransferCoinsReq'] = _TRANSFERCOINSREQ
+DESCRIPTOR.message_types_by_name['TransferCoinsResp'] = _TRANSFERCOINSRESP
 DESCRIPTOR.message_types_by_name['WalletStore'] = _WALLETSTORE
 DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
 DESCRIPTOR.message_types_by_name['KnownPeers'] = _KNOWNPEERS
 DESCRIPTOR.message_types_by_name['Peer'] = _PEER
+DESCRIPTOR.message_types_by_name['AddressState'] = _ADDRESSSTATE
+DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 PingReq = _reflection.GeneratedProtocolMessageType('PingReq', (_message.Message,), dict(
@@ -384,19 +654,33 @@ GetKnownPeersResp = _reflection.GeneratedProtocolMessageType('GetKnownPeersResp'
   ))
 _sym_db.RegisterMessage(GetKnownPeersResp)
 
-GetBalanceReq = _reflection.GeneratedProtocolMessageType('GetBalanceReq', (_message.Message,), dict(
-  DESCRIPTOR = _GETBALANCEREQ,
+GetAddressStateReq = _reflection.GeneratedProtocolMessageType('GetAddressStateReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETADDRESSSTATEREQ,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetBalanceReq)
+  # @@protoc_insertion_point(class_scope:qrl.GetAddressStateReq)
   ))
-_sym_db.RegisterMessage(GetBalanceReq)
+_sym_db.RegisterMessage(GetAddressStateReq)
 
-GetBalanceResp = _reflection.GeneratedProtocolMessageType('GetBalanceResp', (_message.Message,), dict(
-  DESCRIPTOR = _GETBALANCERESP,
+GetAddressStateResp = _reflection.GeneratedProtocolMessageType('GetAddressStateResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETADDRESSSTATERESP,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetBalanceResp)
+  # @@protoc_insertion_point(class_scope:qrl.GetAddressStateResp)
   ))
-_sym_db.RegisterMessage(GetBalanceResp)
+_sym_db.RegisterMessage(GetAddressStateResp)
+
+TransferCoinsReq = _reflection.GeneratedProtocolMessageType('TransferCoinsReq', (_message.Message,), dict(
+  DESCRIPTOR = _TRANSFERCOINSREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.TransferCoinsReq)
+  ))
+_sym_db.RegisterMessage(TransferCoinsReq)
+
+TransferCoinsResp = _reflection.GeneratedProtocolMessageType('TransferCoinsResp', (_message.Message,), dict(
+  DESCRIPTOR = _TRANSFERCOINSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.TransferCoinsResp)
+  ))
+_sym_db.RegisterMessage(TransferCoinsResp)
 
 WalletStore = _reflection.GeneratedProtocolMessageType('WalletStore', (_message.Message,), dict(
   DESCRIPTOR = _WALLETSTORE,
@@ -426,6 +710,20 @@ Peer = _reflection.GeneratedProtocolMessageType('Peer', (_message.Message,), dic
   ))
 _sym_db.RegisterMessage(Peer)
 
+AddressState = _reflection.GeneratedProtocolMessageType('AddressState', (_message.Message,), dict(
+  DESCRIPTOR = _ADDRESSSTATE,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.AddressState)
+  ))
+_sym_db.RegisterMessage(AddressState)
+
+Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.Message,), dict(
+  DESCRIPTOR = _TRANSACTION,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.Transaction)
+  ))
+_sym_db.RegisterMessage(Transaction)
+
 
 
 _P2PNODE = _descriptor.ServiceDescriptor(
@@ -434,8 +732,8 @@ _P2PNODE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=387,
-  serialized_end=501,
+  serialized_start=964,
+  serialized_end=1078,
   methods=[
   _descriptor.MethodDescriptor(
     name='Ping',
@@ -467,8 +765,8 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=504,
-  serialized_end=638,
+  serialized_start=1081,
+  serialized_end=1296,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetKnownPeers',
@@ -480,12 +778,21 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='GetBalance',
-    full_name='qrl.PublicAPI.GetBalance',
+    name='GetAddressState',
+    full_name='qrl.PublicAPI.GetAddressState',
     index=1,
     containing_service=None,
-    input_type=_GETBALANCEREQ,
-    output_type=_GETBALANCERESP,
+    input_type=_GETADDRESSSTATEREQ,
+    output_type=_GETADDRESSSTATERESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='TransferCoins',
+    full_name='qrl.PublicAPI.TransferCoins',
+    index=2,
+    containing_service=None,
+    input_type=_TRANSFERCOINSREQ,
+    output_type=_TRANSFERCOINSRESP,
     options=None,
   ),
 ])
@@ -577,10 +884,15 @@ try:
           request_serializer=GetKnownPeersReq.SerializeToString,
           response_deserializer=GetKnownPeersResp.FromString,
           )
-      self.GetBalance = channel.unary_unary(
-          '/qrl.PublicAPI/GetBalance',
-          request_serializer=GetBalanceReq.SerializeToString,
-          response_deserializer=GetBalanceResp.FromString,
+      self.GetAddressState = channel.unary_unary(
+          '/qrl.PublicAPI/GetAddressState',
+          request_serializer=GetAddressStateReq.SerializeToString,
+          response_deserializer=GetAddressStateResp.FromString,
+          )
+      self.TransferCoins = channel.unary_unary(
+          '/qrl.PublicAPI/TransferCoins',
+          request_serializer=TransferCoinsReq.SerializeToString,
+          response_deserializer=TransferCoinsResp.FromString,
           )
 
 
@@ -595,7 +907,14 @@ try:
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
-    def GetBalance(self, request, context):
+    def GetAddressState(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+      context.set_details('Method not implemented!')
+      raise NotImplementedError('Method not implemented!')
+
+    def TransferCoins(self, request, context):
       # missing associated documentation comment in .proto file
       pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -610,10 +929,15 @@ try:
             request_deserializer=GetKnownPeersReq.FromString,
             response_serializer=GetKnownPeersResp.SerializeToString,
         ),
-        'GetBalance': grpc.unary_unary_rpc_method_handler(
-            servicer.GetBalance,
-            request_deserializer=GetBalanceReq.FromString,
-            response_serializer=GetBalanceResp.SerializeToString,
+        'GetAddressState': grpc.unary_unary_rpc_method_handler(
+            servicer.GetAddressState,
+            request_deserializer=GetAddressStateReq.FromString,
+            response_serializer=GetAddressStateResp.SerializeToString,
+        ),
+        'TransferCoins': grpc.unary_unary_rpc_method_handler(
+            servicer.TransferCoins,
+            request_deserializer=TransferCoinsReq.FromString,
+            response_serializer=TransferCoinsResp.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -715,7 +1039,11 @@ try:
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def GetBalance(self, request, context):
+    def GetAddressState(self, request, context):
+      # missing associated documentation comment in .proto file
+      pass
+      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
+    def TransferCoins(self, request, context):
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
@@ -734,11 +1062,16 @@ try:
       pass
       raise NotImplementedError()
     GetKnownPeers.future = None
-    def GetBalance(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    def GetAddressState(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
       pass
       raise NotImplementedError()
-    GetBalance.future = None
+    GetAddressState.future = None
+    def TransferCoins(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+      # missing associated documentation comment in .proto file
+      pass
+      raise NotImplementedError()
+    TransferCoins.future = None
 
 
   def beta_create_PublicAPI_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
@@ -748,16 +1081,19 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_deserializers = {
-      ('qrl.PublicAPI', 'GetBalance'): GetBalanceReq.FromString,
+      ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateReq.FromString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReq.FromString,
+      ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsReq.FromString,
     }
     response_serializers = {
-      ('qrl.PublicAPI', 'GetBalance'): GetBalanceResp.SerializeToString,
+      ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateResp.SerializeToString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersResp.SerializeToString,
+      ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsResp.SerializeToString,
     }
     method_implementations = {
-      ('qrl.PublicAPI', 'GetBalance'): face_utilities.unary_unary_inline(servicer.GetBalance),
+      ('qrl.PublicAPI', 'GetAddressState'): face_utilities.unary_unary_inline(servicer.GetAddressState),
       ('qrl.PublicAPI', 'GetKnownPeers'): face_utilities.unary_unary_inline(servicer.GetKnownPeers),
+      ('qrl.PublicAPI', 'TransferCoins'): face_utilities.unary_unary_inline(servicer.TransferCoins),
     }
     server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
     return beta_implementations.server(method_implementations, options=server_options)
@@ -770,16 +1106,19 @@ try:
     file not marked beta) for all further purposes. This function was
     generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
     request_serializers = {
-      ('qrl.PublicAPI', 'GetBalance'): GetBalanceReq.SerializeToString,
+      ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateReq.SerializeToString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReq.SerializeToString,
+      ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsReq.SerializeToString,
     }
     response_deserializers = {
-      ('qrl.PublicAPI', 'GetBalance'): GetBalanceResp.FromString,
+      ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateResp.FromString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersResp.FromString,
+      ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsResp.FromString,
     }
     cardinalities = {
-      'GetBalance': cardinality.Cardinality.UNARY_UNARY,
+      'GetAddressState': cardinality.Cardinality.UNARY_UNARY,
       'GetKnownPeers': cardinality.Cardinality.UNARY_UNARY,
+      'TransferCoins': cardinality.Cardinality.UNARY_UNARY,
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
     return beta_implementations.dynamic_stub(channel, 'qrl.PublicAPI', cardinalities, options=stub_options)

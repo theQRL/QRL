@@ -224,6 +224,8 @@ class WalletProtocol(Protocol):
 
     # This method is for sending between local wallets as well as network wallets
     def _send(self, args):
+        # FIXME: Refactor the logic should not be part of the API
+
         self.output['status'] = 1
         # Check if method was used correctly
         if not args or len(args) < 3:
@@ -246,7 +248,8 @@ class WalletProtocol(Protocol):
             return
 
         # Check if local wallet number is higher than the number of local wallets that are saved
-        if int(wallet_from) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state, self.factory.chain.transaction_pool)) - 1:
+        if int(wallet_from) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state,
+                                                                           self.factory.chain.transaction_pool)) - 1:
             self.output['message'].write(
                 '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
             return
