@@ -13,6 +13,7 @@ service P2PNode {
 service PublicAPI {
   rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
   rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {}
+  rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {}
 }
 
 // API Messages
@@ -22,8 +23,11 @@ message PongResp {   string message = 1; }
 message GetKnownPeersReq {}
 message GetKnownPeersResp { KnownPeers known_peers = 1; }
 
-message GetAddressStateReq {   string name = 1;    }
-message GetAddressStateResp {   string message = 1; }
+message GetAddressStateReq {   string address = 1;  }
+message GetAddressStateResp {   AddressState state = 1; }
+
+message TransferCoinsReq {   Transaction transaction = 1;  }
+message TransferCoinsResp {   AddressState state = 1; }  // FIXME: What to return here?
 
 // Content
 
@@ -49,3 +53,39 @@ message Peer
     string ip = 1;
 }
 
+message AddressState
+{
+    string address = 1;
+    string balance = 2;     // FIXME: We need a better solution for decimals. Serializing as string for now.
+    uint32 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
+    repeated Transaction transactions = 4;
+}
+
+message Transaction
+{
+    enum Type
+    {
+        TRANSFER = 0;
+        STAKE = 1;
+        COINBASE = 2;
+        LATTICE = 3;
+    }
+
+    Type type = 1;
+
+    uint64 nonce = 2;
+    string addr_from = 3;
+    bytes hash = 5;
+    bytes public_hash = 4;
+
+    bytes public_key = 6;               // Required for Signed Transfer
+    bytes signature = 7;                // Required for Signed Transfer
+
+    string addr_to = 8;                 // Required for Transfer
+    string amount = 9;                  // Required for Transfer        // FIXME: Review quantities
+    string fee = 10;                    // Required for Transfer        // FIXME: Review quantities
+
+    uint64 epoch = 11;                  // Required for Stake
+    bytes public_key_slave = 12;        // Required for Stake
+    bytes stake_hash = 13;              // Required for Stake
+}

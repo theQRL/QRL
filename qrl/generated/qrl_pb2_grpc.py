@@ -78,10 +78,15 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
-    self.GetBalance = channel.unary_unary(
-        '/qrl.PublicAPI/GetBalance',
-        request_serializer=qrl__pb2.GetBalanceReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetBalanceResp.FromString,
+    self.GetAddressState = channel.unary_unary(
+        '/qrl.PublicAPI/GetAddressState',
+        request_serializer=qrl__pb2.GetAddressStateReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetAddressStateResp.FromString,
+        )
+    self.TransferCoins = channel.unary_unary(
+        '/qrl.PublicAPI/TransferCoins',
+        request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
+        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
         )
 
 
@@ -96,7 +101,14 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetBalance(self, request, context):
+  def GetAddressState(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def TransferCoins(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -111,10 +123,15 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
           response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
       ),
-      'GetBalance': grpc.unary_unary_rpc_method_handler(
-          servicer.GetBalance,
-          request_deserializer=qrl__pb2.GetBalanceReq.FromString,
-          response_serializer=qrl__pb2.GetBalanceResp.SerializeToString,
+      'GetAddressState': grpc.unary_unary_rpc_method_handler(
+          servicer.GetAddressState,
+          request_deserializer=qrl__pb2.GetAddressStateReq.FromString,
+          response_serializer=qrl__pb2.GetAddressStateResp.SerializeToString,
+      ),
+      'TransferCoins': grpc.unary_unary_rpc_method_handler(
+          servicer.TransferCoins,
+          request_deserializer=qrl__pb2.TransferCoinsReq.FromString,
+          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

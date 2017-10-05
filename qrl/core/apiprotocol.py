@@ -111,7 +111,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_list.sv_list:
             sv = self.factory.state.stake_validators_list.sv_list[staker]
             tmp_stakers = {'address': sv.stake_validator,
-                           'balance': self.format_balance(sv.balance),
+                           'balance': self._format_qrlamount(sv.balance),
                            'hash_terminator': [],
                            'nonce': sv.nonce}
 
@@ -131,7 +131,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_list.next_sv_list:
             sv = self.factory.state.stake_validators_list.next_sv_list[staker]
             tmp_stakers = {'address': sv.stake_validator,
-                           'balance': self.format_balance(sv.balance),
+                           'balance': self._format_qrlamount(sv.balance),
                            'hash_terminator': [],
                            'nonce': sv.nonce}
 
@@ -183,7 +183,7 @@ class ApiProtocol(Protocol):
         for rich in richlist[:n]:
             rl['richlist'][richlist.index(rich) + 1] = {}
             rl['richlist'][richlist.index(rich) + 1]['address'] = rich[0].decode()
-            rl['richlist'][richlist.index(rich) + 1]['balance'] = self.format_balance(rich[1])
+            rl['richlist'][richlist.index(rich) + 1]['balance'] = self._format_qrlamount(rich[1])
 
         rl['status'] = 'ok'
 
@@ -216,7 +216,7 @@ class ApiProtocol(Protocol):
         for block in lb[1:]:
             i += 1
             tmp_block = {'blocknumber': block.blockheader.blocknumber,
-                         'block_reward': self.format_balance(block.blockheader.block_reward),
+                         'block_reward': self._format_qrlamount(block.blockheader.block_reward),
                          'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
                          'timestamp': block.blockheader.timestamp,
                          'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
@@ -253,7 +253,7 @@ class ApiProtocol(Protocol):
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': 'unconfirmed',
                        'timestamp': 'unconfirmed',
-                       'amount': self.format_balance(tx.amount),
+                       'amount': self._format_qrlamount(tx.amount),
                        'type': tx.subtype}
 
             tmp_txn['type'] = Transaction.tx_id_to_name(tmp_txn['type'])
@@ -294,7 +294,7 @@ class ApiProtocol(Protocol):
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': tx_meta[1],
                        'timestamp': tx_meta[2],
-                       'amount': self.format_balance(tx.amount),
+                       'amount': self._format_qrlamount(tx.amount),
                        'type': tx.subtype}
 
             addr['transactions'].append(tmp_txn)
@@ -324,8 +324,8 @@ class ApiProtocol(Protocol):
         return json_print_telnet(error)
 
     def reformat_block(self, block):
-        block.blockheader.block_reward = self.format_balance(block.blockheader.block_reward)
-        block.blockheader.fee_reward = self.format_balance(block.blockheader.fee_reward)
+        block.blockheader.block_reward = self._format_qrlamount(block.blockheader.block_reward)
+        block.blockheader.fee_reward = self._format_qrlamount(block.blockheader.fee_reward)
         block.blockheader.reveal_hash = bin2hstr(block.blockheader.reveal_hash)
         block.blockheader.vote_hash = bin2hstr(block.blockheader.vote_hash)
         block.blockheader.headerhash = bin2hstr(block.blockheader.headerhash)
@@ -339,7 +339,7 @@ class ApiProtocol(Protocol):
 
     def reformat_txn(self, txn):
         if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-            txn.amount = self.format_balance(txn.amount)
+            txn.amount = self._format_qrlamount(txn.amount)
         txn.txhash = bin2hstr(txn.txhash)
         txn.pubhash = bin2hstr(txn.pubhash)
         txn.signature = bin2hstr(txn.signature)
@@ -423,7 +423,7 @@ class ApiProtocol(Protocol):
             block_time_variance = max(t) - min(t)   # FIXME: This is not the variance!
 
         net_stats = {'status': 'ok', 'version': self.factory.chain.version_number,
-                     'block_reward': self.format_balance(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
+                     'block_reward': self._format_qrlamount(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
                      'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list),
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
                      'staked_percentage_emission': staked, 'network': 'qrl testnet',
@@ -432,7 +432,7 @@ class ApiProtocol(Protocol):
                      'block_time_variance': block_time_variance,
                      'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
-                     'emission': self.format_balance(self.factory.state.db.total_coin_supply()),
+                     'emission': self._format_qrlamount(self.factory.state.db.total_coin_supply()),
                      'unmined': config.dev.total_coin_supply - self.factory.state.db.total_coin_supply() / 100000000.000000000}
 
         return json_print_telnet(net_stats)
@@ -464,10 +464,8 @@ class ApiProtocol(Protocol):
         logger.info('<<< API tx/hash call %s', data)
         return self.search_txhash(data)
 
-    def format_balance(self, balance):
-        return format(float(balance / 100000000.00000000), '.8f').rstrip('.0')
-
     def balance(self, data=None):
+        # NOTE: GRPC ALTERNATIVE READY
         logger.info('<<< API balance call %s', data)
 
         address = data
@@ -485,7 +483,7 @@ class ApiProtocol(Protocol):
         nonce, balance, _ = self.factory.state.state_get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = self.format_balance(balance)
+        addr['state']['balance'] = self._format_qrlamount(balance)
         addr['state']['nonce'] = nonce
         addr['state']['transactions'] = self.factory.state.state_get_txn_count(address)
         addr['status'] = 'ok'
@@ -494,105 +492,9 @@ class ApiProtocol(Protocol):
 
     # used for port 80 api - produces JSON output reporting every transaction for an address, plus final balance..
 
-    def search_address(self, address):
-
-        addr = {'transactions': []}
-
-        txnhash_added = set()
-
-        if not self.factory.state.state_address_used(address):
-            addr['status'] = 'error'
-            addr['error'] = 'Address not found'
-            addr['parameter'] = address
-            return json_print_telnet(addr)
-
-        nonce, balance, pubhash_list = self.factory.state.state_get_address(address)
-        addr['state'] = {}
-        addr['state']['address'] = address
-        addr['state']['balance'] = self.format_balance(balance)
-        addr['state']['nonce'] = nonce
-
-        for s in self.factory.state.stake_list_get():
-            if address == s[0]:
-                addr['stake'] = {}
-                addr['stake']['selector'] = s[2]
-                # pubhashes used could be put here..
-
-        tmp_transactions = []
-        for tx in self.factory.chain.transaction_pool:
-            if tx.subtype not in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                continue
-            if tx.txto == address or tx.txfrom == address:
-                logger.info('%s found in transaction pool', address)
-
-                tmp_txn = {'subtype': tx.subtype,
-                           'txhash': bin2hstr(tx.txhash),
-                           'block': 'unconfirmed',
-                           'amount': self.format_balance(tx.amount),
-                           'nonce': tx.nonce,
-                           'ots_key': tx.ots_key,
-                           'txto': tx.txto,
-                           'txfrom': tx.txfrom,
-                           'timestamp': 'unconfirmed'}
-
-                if tx.subtype == TX_SUBTYPE_TX:
-                    tmp_txn['fee'] = self.format_balance(tx.fee)
-
-                tmp_txn.subtype = Transaction.tx_id_to_name(tx.subtype)
-
-                tmp_transactions.append(tmp_txn)
-                txnhash_added.add(tx.txhash)
-
-        addr['transactions'] = tmp_transactions
-
-        my_txn = []
-        try:
-            my_txn = self.factory.state.db.get('txn_' + address)
-        except:
-            pass
-
-        for txn_hash in my_txn:
-            txn_metadata = self.factory.state.db.get(txn_hash)
-            dict_txn_metadata = json.loads(txn_metadata[0])
-            if dict_txn_metadata['subtype'] == TX_SUBTYPE_TX:
-                tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            elif dict_txn_metadata['subtype'] == TX_SUBTYPE_COINBASE:
-                tx = CoinBase().json_to_transaction(txn_metadata[0])
-
-            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
-                logger.info('%s found in block %s', address, str(txn_metadata[1]))
-
-                tmp_txn = {'subtype': tx.subtype,
-                           'txhash': bin2hstr(tx.txhash),
-                           'block': txn_metadata[1],
-                           'timestamp': txn_metadata[2],
-                           'amount': self.format_balance(tx.amount),
-                           'nonce': tx.nonce,
-                           'ots_key': tx.ots_key,
-                           'txto': tx.txto,
-                           'txfrom': tx.txfrom}
-
-                if tx.subtype == TX_SUBTYPE_TX:
-                    tmp_txn['fee'] = self.format_balance(tx.fee)
-
-                tmp_txn['subtype'] = Transaction.tx_id_to_name(tmp_txn['subtype'])
-
-                addr['transactions'].append(tmp_txn)
-                txnhash_added.add(tx.txhash)
-
-        if len(addr['transactions']) > 0:
-            addr['state']['transactions'] = len(addr['transactions'])
-
-        if addr == {'transactions': {}}:
-            addr = {'status': 'error', 'error': 'address not found', 'method': 'address', 'parameter': address}
-        else:
-            addr['status'] = 'ok'
-
-        return json_print_telnet(addr)
-
     def address(self, data=None):
         logger.info('<<< API address call %s', data)
-        return self.search_address(data)
+        return self._search_address(data)
 
     def dataReceived(self, data=None):
         self.parse_cmd(data)
@@ -634,4 +536,107 @@ class ApiProtocol(Protocol):
         output = json.dumps(output)
         return output
 
+    ##########################
+
+    def _format_qrlamount(self, balance):
+        return format(float(balance / 100000000.00000000), '.8f').rstrip('.0')
+
+    def _search_address(self, address):
+
+        addr = {'transactions': []}
+
+        txnhash_added = set()
+
+        # FIXME: breaking encapsulation and accessing DB/cache directly from API
+        if not self.factory.state.state_address_used(address):
+            addr['status'] = 'error'
+            addr['error'] = 'Address not found'
+            addr['parameter'] = address
+            return json_print_telnet(addr)
+
+        # FIXME: This is a duplicate of balance
+        # FIXME: breaking encapsulation and accessing DB/cache directly from API
+        nonce, balance, pubhash_list = self.factory.state.state_get_address(address)
+        addr['state'] = {}
+        addr['state']['address'] = address
+        addr['state']['balance'] = self._format_qrlamount(balance)
+        addr['state']['nonce'] = nonce
+
+        for s in self.factory.state.stake_list_get():
+            if address == s[0]:
+                addr['stake'] = {}
+                addr['stake']['selector'] = s[2]
+                # pubhashes used could be put here..
+
+        tmp_transactions = []
+        for tx in self.factory.chain.transaction_pool:
+            if tx.subtype not in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                continue
+            if tx.txto == address or tx.txfrom == address:
+                logger.info('%s found in transaction pool', address)
+
+                tmp_txn = {'subtype': tx.subtype,
+                           'txhash': bin2hstr(tx.txhash),
+                           'block': 'unconfirmed',
+                           'amount': self._format_qrlamount(tx.amount),
+                           'nonce': tx.nonce,
+                           'ots_key': tx.ots_key,
+                           'txto': tx.txto,
+                           'txfrom': tx.txfrom,
+                           'timestamp': 'unconfirmed'}
+
+                if tx.subtype == TX_SUBTYPE_TX:
+                    tmp_txn['fee'] = self._format_qrlamount(tx.fee)
+
+                tmp_txn.subtype = Transaction.tx_id_to_name(tx.subtype)
+
+                tmp_transactions.append(tmp_txn)
+                txnhash_added.add(tx.txhash)
+
+        addr['transactions'] = tmp_transactions
+
+        my_txn = []
+        try:
+            my_txn = self.factory.state.db.get('txn_' + address)
+        except:
+            pass
+
+        for txn_hash in my_txn:
+            txn_metadata = self.factory.state.db.get(txn_hash)
+            dict_txn_metadata = json.loads(txn_metadata[0])
+            if dict_txn_metadata['subtype'] == TX_SUBTYPE_TX:
+                tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
+            elif dict_txn_metadata['subtype'] == TX_SUBTYPE_COINBASE:
+                tx = CoinBase().json_to_transaction(txn_metadata[0])
+
+            if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
+                logger.info('%s found in block %s', address, str(txn_metadata[1]))
+
+                tmp_txn = {'subtype': tx.subtype,
+                           'txhash': bin2hstr(tx.txhash),
+                           'block': txn_metadata[1],
+                           'timestamp': txn_metadata[2],
+                           'amount': self._format_qrlamount(tx.amount),
+                           'nonce': tx.nonce,
+                           'ots_key': tx.ots_key,
+                           'txto': tx.txto,
+                           'txfrom': tx.txfrom}
+
+                if tx.subtype == TX_SUBTYPE_TX:
+                    tmp_txn['fee'] = self._format_qrlamount(tx.fee)
+
+                tmp_txn['subtype'] = Transaction.tx_id_to_name(tmp_txn['subtype'])
+
+                addr['transactions'].append(tmp_txn)
+                txnhash_added.add(tx.txhash)
+
+        if len(addr['transactions']) > 0:
+            addr['state']['transactions'] = len(addr['transactions'])
+
+        if addr == {'transactions': {}}:
+            addr = {'status': 'error', 'error': 'address not found', 'method': 'address', 'parameter': address}
+        else:
+            addr['status'] = 'ok'
+
+        return json_print_telnet(addr)
 
