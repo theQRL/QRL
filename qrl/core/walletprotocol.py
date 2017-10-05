@@ -25,11 +25,31 @@ def hexseed_to_seed(hex_seed):
 
 class WalletProtocol(Protocol):
     def __init__(self):
-        self.cmd_list = ['seed', 'hexseed', 'recoverfromhexseed', 'recoverfromwords',
-                         'stakenextepoch', 'stake', 'wallet', 'send', 'mempool',
-                         'getnewaddress', 'quit', 'exit', 'search', 'help',
-                         'savenewaddress', 'getinfo', 'blockheight', 'json_block',
-                         'reboot', 'peers', 'create']
+        self.cmd_mapping = {
+            "create": self._create,
+            "getnewaddress": self._getnewaddress,
+            "hexseed": self._hexseed,
+            "seed": self._seed,
+            "search": self._search,
+            "json_block": self._json_block,
+            "savenewaddress": self._savenewaddress,
+            "recoverfromhexseed": self._recoverfromhexseed,
+            "recoverfromwords": self._recoverfromwords,
+            "stake": self._stake,
+            "stakenextepoch": self._stakenextepoch,
+            "send": self._send,
+            "mempool": self._mempool,
+            "help": self._help,
+            "quit": self._quit,
+            "exit": self._quit,
+            "listaddresses": self._listaddresses,
+            "wallet": self._wallet,
+            "getinfo": self._getinfo,
+            "blockheight": self._blockheight,
+            "peers": self._peers,
+            "reboot": self._reboot,
+        }
+        self.cmd_list = list(self.cmd_mapping.keys())
 
         self.output = {'status': 1,
                        'keys': [],
@@ -37,10 +57,10 @@ class WalletProtocol(Protocol):
 
         self.isJSON = False
 
-    # Parse out passed in argument to get:
-    # 1. Command ([0])
-    # 1. 0-Many arguments ([1:])
     def parse_cmd(self, data):
+        # Parse out passed in argument to get:
+        # 1. Command ([0])
+        # 1. 0-Many arguments ([1:])
 
         # Get entered line as an array of strings delimited by "space."
         # Will chomp away any extra spaces
@@ -54,290 +74,27 @@ class WalletProtocol(Protocol):
             if len(data) > 0:  # args optional
                 args = data[1:]
 
-            if command.decode('utf-8') in self.cmd_list:
-
-                # Use switch cases when porting to a different language
-                if command == b'create':
-                    self.factory.p2pFactory.pos.create_next_block(int(args[0]))
-                    self.output['status'] = 0
-                    self.output['message'].write('Creating blocknumber #'+str(args[0]))
-                elif command == b'getnewaddress':
-                    self.getnewaddress(args)
-
-                elif command == b'hexseed':
-                    for addr_bundle in self.factory.chain.wallet.address_bundle:
-                        if isinstance(addr_bundle.xmss, XMSS):
-                            self.output['status'] = 0
-                            self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
-                            self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_hexseed() + '\r\n')
-                            self.output['keys'] += ['Address', 'Recovery seed']
-                            self.output['Address'] = addr_bundle.xmss.get_address()
-                            self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
-
-                elif command == b'seed':
-                    for addr_bundle in self.factory.chain.wallet.address_bundle:
-                        if isinstance(addr_bundle.xmss, XMSS):
-                            self.output['status'] = 0
-                            self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
-                            self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_mnemonic() + '\r\n')
-                            self.output['keys'] += ['Address', 'Recovery seed']
-
-                elif command == b'search':
-                    if not args:
-                        self.output['status'] = 1
-                        self.output['message'].write('>>> Usage: search <txhash or Q-address>\r\n')
-                        return
-
-                    tmp_output = None
-                    if args[0][0] == 'Q':
-                        tmp_output = json.loads(self.factory.chain.search_address(args[0]))
-                        self.output['message'].write('Address: ' + str(args[0]))
-                        self.output['message'].write('\r\nBalance: ' + str(tmp_output['state']['balance']))
-                        self.output['message'].write('\r\nTransactions: ' + str(tmp_output['state']['transactions']))
-                        for tx in tmp_output['transactions']:
-                            self.output['message'].write(str(tx['txhash']))
-                            self.output['message'].write(' ')
-                            self.output['message'].write(str(tx['txfrom']))
-                            self.output['message'].write(' ')
-                            self.output['message'].write(str(tx['txto']))
-                            self.output['message'].write(' ')
-                            self.output['message'].write(str(tx['amount']))
-                            self.output['message'].write('\r\n')
-                    else:
-                        tmp_output = json.loads(self.factory.chain.search_txhash(args[0]))
-                        self.output['message'].write('Txnhash: ')
-                        self.output['message'].write(args[0])
-                        if tmp_output['status'] == 'Error':
-                            self.output['message'].write('\r\n')
-                            self.output['message'].write(str(tmp_output['error']))
-                            self.output['message'].write('\r\n')
-                            return True
-                        self.output['message'].write('\r\nTimestamp: ')
-                        self.output['message'].write(tmp_output['timestamp'])
-                        self.output['message'].write('\r\nBlockNumber: ')
-                        self.output['message'].write(tmp_output['block'])
-                        self.output['message'].write('\r\nConfirmations: ')
-                        self.output['message'].write(tmp_output['confirmations'])
-                        self.output['message'].write('\r\nAmount: ')
-                        self.output['message'].write(tmp_output['amount'])
-                        self.output['message'].write('\r\n')
-
-                    if not tmp_output:
-                        self.output['status'] = 1
-                        self.output['message'].write('>>> No Information available')
-                        return True
-
-                    for key in list(tmp_output.keys()):
-                        self.output['keys'] += [str(key)]
-                        self.output[key] = tmp_output[key]
-
-                    self.output['status'] = 0
-                    self.output['message'].write('')
-
-                elif command == b'json_block':
-
-                    if not args:
-                        self.output['message'].write(
-                            helper.json_print_telnet(self.factory.chain.m_get_last_block()) + '\r\n')
-                        return True
-                    try:
-                        int(args[0])
-                    except:
-                        self.output['message'].write('>>> Try "json_block <block number>" \r\n')
-                        return True
-
-                    if int(args[0]) > self.factory.chain.m_blockheight():
-                        self.output['message'].write('>>> Block > Blockheight\r\n')
-                        return True
-                    self.output['status'] = 0
-                    self.output['message'].write(
-                        helper.json_print_telnet(self.factory.chain.m_get_block(int(args[0]))) + '\r\n')
-
-                elif command == b'savenewaddress':
-                    self.savenewaddress()
-
-                elif command == b'recoverfromhexseed':
-                    if not args or not hexseed_to_seed(args[0]):
-                        self.output['message'].write('>>> Usage: recoverfromhexseed <paste in hexseed>\r\n')
-                        self.output['message'].write('>>> Could take up to a minute..\r\n')
-                        self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
-                        return True
-
-                    self.output['status'] = 0
-                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=hexseed_to_seed(args[0]))
-                    self.factory.newaddress = addr
-                    self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
-                    self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
-                    self.output['message'].write('>>> hexSEED confirm: ' + addr[1].get_hexseed() + '\r\n')
-                    self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
-
-                    self.output['keys'] += ['recovery_address', 'recovery_seed_phrase', 'hexseed_confirm']
-                    self.output['recovery_address'] = addr[1].get_address()
-                    self.output['recovery_seed_phrase'] = addr[1].get_mnemonic()
-                    self.output['hexseed_confirm'] = addr[1].get_hexseed()
-
-                elif command == b'recoverfromwords':
-                    if not args:
-                        self.output['message'].write(
-                            '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
-                        return True
-                    self.output['message'].write('>>> trying..this could take up to a minute..\r\n')
-                    if len(args) != 32:
-                        self.output['message'].write(
-                            '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
-                        return True
-
-                    args = ' '.join(args)
-                    addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=mnemonic2bin(args, wordlist))
-                    self.factory.newaddress = addr
-                    self.output['status'] = 0
-                    self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
-                    self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].get_hexseed() + '\r\n')
-                    self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].get_mnemonic() + '\r\n')
-                    self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
-
-                    self.output['keys'] += ['recovery_address', 'recovery_hexseed', 'mnemonic_confirm']
-                    self.output['recovery_address'] = addr[1].get_address()
-                    self.output['recovery_hexseed'] = addr[1].get_hexseed()
-                    self.output['mnemonic_confirm'] = addr[1].get_mnemonic()
-
-                elif command == b'stake':
-                    self.output['status'] = 0
-                    self.output['message'].write(
-                        '>> Toggling stake from: ' + str(self.factory.p2pFactory.stake) + ' to: ' + str(
-                            not self.factory.p2pFactory.stake) + '\r\n')
-
-                    self.factory.p2pFactory.stake = not self.factory.p2pFactory.stake
-                    logger.info(('STAKING set to: ', self.factory.p2pFactory.stake))
-                    self.output['keys'] += ['stake']
-                    self.output['stake'] = self.factory.p2pFactory.stake
-
-                elif command == b'stakenextepoch':
-                    self.output['status'] = 0
-                    self.output['message'].write(
-                        '>>> Sending a stake transaction for address: ' + self.factory.chain.mining_address + ' to activate next epoch(' + str(
-                            config.dev.blocks_per_epoch - (
-                                self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
-                                    self.factory.chain.m_blockchain[
-                                        -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)\r\n')
-
-                    logger.info(('STAKE for address:', self.factory.chain.mining_address))
-
-
-                    blocknumber = self.factory.chain.block_chain_buffer.height() + 1
-                    self.factory.p2pFactory.pos.make_st_tx(blocknumber=blocknumber, first_hash=None)
-
-                elif command == b'send':
-                    self.send_tx(args)
-
-                elif command == b'mempool':
-                    self.output['status'] = 0
-                    self.output['message'].write('>>> Number of transactions in memory pool: ' + str(
-                        len(self.factory.chain.transaction_pool)) + '\r\n')
-                    self.output['keys'] += ['txn_nos']
-                    self.output['txn_nos'] = len(self.factory.chain.transaction_pool)
-
-                elif command == b'help':
-                    self.output['status'] = 0
-                    self.output['message'].write(
-                        '>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n') 
-                # removed 'hrs, hrs_check,'
-                elif command == b'quit' or command == b'exit':
-                    self.transport.loseConnection()
-
-                elif command == b'listaddresses':
-                    addresses, num_sigs, types = self.factory.chain.wallet.inspect_wallet()
-                    self.output['status'] = 0
-                    self.output['keys'] += ['addresses']
-                    self.output['addresses'] = []
-                    for addr_bundle in range(len(addresses)):
-                        self.output['message'].write(str(addr_bundle) + ', ' + addresses[addr_bundle] + '\r\n')
-                        self.output['addresses'] += [addresses[addr_bundle]]
-
-                elif command == b'wallet':
-                    self.wallet()
-
-                elif command == b'getinfo':
-                    self.output['status'] = 0
-                    self.output['message'].write('>>> Version: ' + self.factory.chain.version_number + '\r\n')
-                    self.output['message'].write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
-                    self.output['message'].write(
-                        '>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peer_connections)) + '\r\n')
-                    self.output['message'].write('>>> Staking set to: ' + str(self.factory.p2pFactory.stake) + '\r\n')
-                    self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state.name + '\r\n')
-
-                    self.output['keys'] += ['version', 'uptime', 'nodes_connected', 'staking_status', 'sync_status']
-                    self.output['version'] = self.factory.chain.version_number
-                    self.output['uptime'] = str(time.time() - self.factory.start_time)
-                    self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peer_connections))
-                    self.output['staking_status'] = str(self.factory.p2pFactory.stake)
-                    self.output['sync_status'] = self.factory.p2pFactory.nodeState.state.name
-
-
-                elif command == b'blockheight':
-                    self.output['status'] = 0
-                    self.output['message'].write('>>> Blockheight: ' + str(self.factory.chain.m_blockheight()) + '\r\n')
-                    self.output['message'].write(
-                        '>>> Headerhash: ' + bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash) + '\r\n')
-
-                    self.output['keys'] += ['blockheight', 'headerhash']
-                    self.output['blockheight'] = self.factory.chain.m_blockheight()
-                    self.output['headerhash'] = bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash)
-
-                elif command == b'peers':
-                    self.output['status'] = 0
-                    self.output['message'].write('>>> Connected Peers:\r\n')
-                    self.output['keys'] += ['peers']
-                    self.output['peers'] = {}
-                    for peer in self.factory.p2pFactory.peer_connections:
-                        self.output['message'].write(
-                            '>>> ' + peer.conn_identity + " [" + peer.version + "]  blockheight: " + str(
-                                peer.blockheight) + '\r\n')
-                        self.output['peers'][peer.conn_identity] = {}
-                        self.output['peers'][peer.conn_identity]['version'] = peer.version
-                        self.output['peers'][peer.conn_identity]['blockheight'] = peer.blockheight
-
-
-                elif command == b'reboot':
-                    if len(args) < 1:
-                        self.output['message'].write('>>> reboot <password>\r\n')
-                        self.output['message'].write('>>> or\r\n')
-                        self.output['message'].write('>>> reboot <password> <nonce>\r\n')
-                        self.output['message'].write('>>> or\r\n')
-                        self.output['message'].write('>>> reboot <password> <nonce> <trim_blocknum>\r\n')
-                        return True
-                    json_hash, err = None, None
-                    if len(args) == 3:
-                        json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1], args[2])
-                        self.output['message'].write(str(args[0]) + str(args[1]) + str(args[2]))
-                    elif len(args) == 2:
-                        json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1])
-                    else:
-                        json_hash, status = self.factory.chain.generate_reboot_hash(args[0])
-
-                    if json_hash:
-                        self.factory.p2pFactory.send_reboot(json_hash)
-                        # self.factory.state.update(NState.synced)
-                    self.output['message'].write(status)
+            if command in self.cmd_mapping:
+                self.cmd_mapping[command](args)
 
         else:
             return False
 
         return True
 
-    def parse(self, data):
-        return data.strip()
 
     # Called when a command is recieved through telnet
     # Might be a good idea to use a json encrypted wallet
     def dataReceived(self, data):
+        data = data.strip().decode()
+
         self.factory.recn += 1
         self.isJSON = False
-        if data.lower().startswith(b'json '):
+        if data.lower().startswith('json '):
             self.isJSON = True
             data = data[5:]
         try:
-            if not self.parse_cmd(self.parse(data)):
+            if not self.parse_cmd(data):
                 self.output['status'] = 1
                 self.output['message'].write(">>> Command not recognised. Use 'help' for details \r\n")
         except KeyboardInterrupt as e:
@@ -433,7 +190,7 @@ class WalletProtocol(Protocol):
     #	generate address
     #	inform user of address information
     #	tell them how to save the address to wallet file
-    def getnewaddress(self, args):
+    def _getnewaddress(self, args):
         self.output['status'] = 0
         self.output['message'].write('>>> Creating new address, please be patient as this can take some time ...\r\n')
         self.output['keys'] += ['keypair_type', 'possible_signatures', 'address']
@@ -455,7 +212,7 @@ class WalletProtocol(Protocol):
         return
 
     # Simply saves wallet information
-    def savenewaddress(self):
+    def _savenewaddress(self, args):
         self.output['status'] = 1
         if not self.factory.newaddress:
             self.output['message'].write(">>> No new addresses created, yet. Try 'getnewaddress'" + '\r\n')
@@ -466,7 +223,7 @@ class WalletProtocol(Protocol):
         return
 
     # This method is for sending between local wallets as well as network wallets
-    def send_tx(self, args):
+    def _send(self, args):
         self.output['status'] = 1
         # Check if method was used correctly
         if not args or len(args) < 3:
@@ -479,10 +236,7 @@ class WalletProtocol(Protocol):
 
         wallet_from = args[0]
         wallet_to = args[1]
-        try:
-            wallet_to = wallet_to.decode('ascii')
-        except:
-            pass
+
         # Check if the wallet entered is a local wallet (should be, since sender should be local - it's you)
         try:
             int(wallet_from)
@@ -524,7 +278,7 @@ class WalletProtocol(Protocol):
         # Check to see if sending amount > amount owned (and reject if so)
         # This is hard to interpret. Break it up?
         balance = self.factory.state.state_balance(self.factory.chain.wallet.address_bundle[int(wallet_from)].address)
-        send_amt_arg = args[2].decode('ascii')
+        send_amt_arg = args[2]
         try:
             float(send_amt_arg)
         except:
@@ -582,7 +336,7 @@ class WalletProtocol(Protocol):
         self.output['message'].write('>>>created and sent into p2p network\r\n')
         return
 
-    def wallet(self):
+    def _wallet(self, args):
         if not self.factory.state.state_uptodate(self.factory.chain.height()):
             self.factory.state.state_read_chain(self.factory.chain)
 
@@ -598,3 +352,252 @@ class WalletProtocol(Protocol):
         for address in list_addr:
             self.output['message'].write(str(y) + str(address) + '\r\n')
             y += 1
+
+    def _create(self, args):
+        self.factory.p2pFactory.pos.create_next_block(int(args[0]))
+        self.output['status'] = 0
+        self.output['message'].write('Creating blocknumber #' + str(args[0]))
+
+    def _hexseed(self, args):
+        for addr_bundle in self.factory.chain.wallet.address_bundle:
+            if isinstance(addr_bundle.xmss, XMSS):
+                self.output['status'] = 0
+                self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
+                self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_hexseed() + '\r\n')
+                self.output['keys'] += ['Address', 'Recovery seed']
+                self.output['Address'] = addr_bundle.xmss.get_address()
+                self.output['Recovery seed'] = addr_bundle.xmss.get_hexseed()
+
+    def _seed(self, args):
+        for addr_bundle in self.factory.chain.wallet.address_bundle:
+            if isinstance(addr_bundle.xmss, XMSS):
+                self.output['status'] = 0
+                self.output['message'].write('Address: ' + addr_bundle.xmss.get_address() + '\r\n')
+                self.output['message'].write('Recovery seed: ' + addr_bundle.xmss.get_mnemonic() + '\r\n')
+                self.output['keys'] += ['Address', 'Recovery seed']
+
+    def _search(self, args):
+        if not args:
+            self.output['status'] = 1
+            self.output['message'].write('>>> Usage: search <txhash or Q-address>\r\n')
+            return None
+
+        tmp_output = None
+        if args[0][0] == 'Q':
+            tmp_output = json.loads(self.factory.chain.search_address(args[0]))
+            self.output['message'].write('Address: ' + str(args[0]))
+            self.output['message'].write('\r\nBalance: ' + str(tmp_output['state']['balance']))
+            self.output['message'].write('\r\nTransactions: ' + str(tmp_output['state']['transactions']))
+            for tx in tmp_output['transactions']:
+                self.output['message'].write(str(tx['txhash']))
+                self.output['message'].write(' ')
+                self.output['message'].write(str(tx['txfrom']))
+                self.output['message'].write(' ')
+                self.output['message'].write(str(tx['txto']))
+                self.output['message'].write(' ')
+                self.output['message'].write(str(tx['amount']))
+                self.output['message'].write('\r\n')
+        else:
+            tmp_output = json.loads(self.factory.chain.search_txhash(args[0]))
+            self.output['message'].write('Txnhash: ')
+            self.output['message'].write(args[0])
+            if tmp_output['status'] == 'Error':
+                self.output['message'].write('\r\n')
+                self.output['message'].write(str(tmp_output['error']))
+                self.output['message'].write('\r\n')
+                return True
+            self.output['message'].write('\r\nTimestamp: ')
+            self.output['message'].write(tmp_output['timestamp'])
+            self.output['message'].write('\r\nBlockNumber: ')
+            self.output['message'].write(tmp_output['block'])
+            self.output['message'].write('\r\nConfirmations: ')
+            self.output['message'].write(tmp_output['confirmations'])
+            self.output['message'].write('\r\nAmount: ')
+            self.output['message'].write(tmp_output['amount'])
+            self.output['message'].write('\r\n')
+
+        if not tmp_output:
+            self.output['status'] = 1
+            self.output['message'].write('>>> No Information available')
+            return True
+
+        for key in list(tmp_output.keys()):
+            self.output['keys'] += [str(key)]
+            self.output[key] = tmp_output[key]
+
+        self.output['status'] = 0
+        self.output['message'].write('')
+
+    def _json_block(self, args):
+        if not args:
+            self.output['message'].write(
+                helper.json_print_telnet(self.factory.chain.m_get_last_block()) + '\r\n')
+            return True
+        try:
+            int(args[0])
+        except:
+            self.output['message'].write('>>> Try "json_block <block number>" \r\n')
+            return True
+
+        if int(args[0]) > self.factory.chain.m_blockheight():
+            self.output['message'].write('>>> Block > Blockheight\r\n')
+            return True
+        self.output['status'] = 0
+        self.output['message'].write(
+            helper.json_print_telnet(self.factory.chain.m_get_block(int(args[0]))) + '\r\n')
+
+    def _recoverfromhexseed(self, args):
+        if not args or not hexseed_to_seed(args[0]):
+            self.output['message'].write('>>> Usage: recoverfromhexseed <paste in hexseed>\r\n')
+            self.output['message'].write('>>> Could take up to a minute..\r\n')
+            self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
+            return True
+
+        self.output['status'] = 0
+        addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=hexseed_to_seed(args[0]))
+        self.factory.newaddress = addr
+        self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
+        self.output['message'].write('>>> Recovery seed phrase: ' + addr[1].get_mnemonic() + '\r\n')
+        self.output['message'].write('>>> hexSEED confirm: ' + addr[1].get_hexseed() + '\r\n')
+        self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
+
+        self.output['keys'] += ['recovery_address', 'recovery_seed_phrase', 'hexseed_confirm']
+        self.output['recovery_address'] = addr[1].get_address()
+        self.output['recovery_seed_phrase'] = addr[1].get_mnemonic()
+        self.output['hexseed_confirm'] = addr[1].get_hexseed()
+
+    def _recoverfromwords(self, args):
+        if not args:
+            self.output['message'].write(
+                '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
+            return True
+        self.output['message'].write('>>> trying..this could take up to a minute..\r\n')
+        if len(args) != 32:
+            self.output['message'].write(
+                '>>> Usage: recoverfromwords <paste in 32 mnemonic words>\r\n')
+            return True
+
+        args = ' '.join(args)
+        addr = self.factory.chain.wallet.get_new_address(address_type='XMSS', seed=mnemonic2bin(args, wordlist))
+        self.factory.newaddress = addr
+        self.output['status'] = 0
+        self.output['message'].write('>>> Recovery address: ' + addr[1].get_address() + '\r\n')
+        self.output['message'].write('>>> Recovery hexSEED: ' + addr[1].get_hexseed() + '\r\n')
+        self.output['message'].write('>>> Mnemonic confirm: ' + addr[1].get_mnemonic() + '\r\n')
+        self.output['message'].write('>>> savenewaddress if Qaddress matches expectations..\r\n')
+
+        self.output['keys'] += ['recovery_address', 'recovery_hexseed', 'mnemonic_confirm']
+        self.output['recovery_address'] = addr[1].get_address()
+        self.output['recovery_hexseed'] = addr[1].get_hexseed()
+        self.output['mnemonic_confirm'] = addr[1].get_mnemonic()
+
+    def _stake(self, args):
+        self.output['status'] = 0
+        self.output['message'].write(
+            '>> Toggling stake from: ' + str(self.factory.p2pFactory.stake) + ' to: ' + str(
+                not self.factory.p2pFactory.stake) + '\r\n')
+        self.factory.p2pFactory.stake = not self.factory.p2pFactory.stake
+        logger.info(('STAKING set to: ', self.factory.p2pFactory.stake))
+        self.output['keys'] += ['stake']
+        self.output['stake'] = self.factory.p2pFactory.stake
+
+    def _stakenextepoch(self, args):
+        self.output['status'] = 0
+        self.output['message'].write(
+            '>>> Sending a stake transaction for address: ' + self.factory.chain.mining_address + ' to activate next epoch(' + str(
+                config.dev.blocks_per_epoch - (
+                    self.factory.chain.m_blockchain[-1].blockheader.blocknumber - (
+                        self.factory.chain.m_blockchain[
+                            -1].blockheader.epoch * config.dev.blocks_per_epoch))) + ' blocks time)\r\n')
+
+        logger.info(('STAKE for address:', self.factory.chain.mining_address))
+
+
+        blocknumber = self.factory.chain.block_chain_buffer.height() + 1
+        self.factory.p2pFactory.pos.make_st_tx(blocknumber=blocknumber, first_hash=None)
+
+    def _mempool(self, args):
+        self.output['status'] = 0
+        self.output['message'].write('>>> Number of transactions in memory pool: ' + str(
+            len(self.factory.chain.transaction_pool)) + '\r\n')
+        self.output['keys'] += ['txn_nos']
+        self.output['txn_nos'] = len(self.factory.chain.transaction_pool)
+
+    def _help(self, args):
+        self.output['status'] = 0
+        self.output['message'].write(
+            '>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n')
+
+    def _quit(self, args):
+        self.transport.loseConnection()
+
+    def _listaddresses(self, args):
+        addresses, num_sigs, types = self.factory.chain.wallet.inspect_wallet()
+        self.output['status'] = 0
+        self.output['keys'] += ['addresses']
+        self.output['addresses'] = []
+        for addr_bundle in range(len(addresses)):
+            self.output['message'].write(str(addr_bundle) + ', ' + addresses[addr_bundle] + '\r\n')
+            self.output['addresses'] += [addresses[addr_bundle]]
+
+    def _getinfo(self, args):
+        self.output['status'] = 0
+        self.output['message'].write('>>> Version: ' + self.factory.chain.version_number + '\r\n')
+        self.output['message'].write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
+        self.output['message'].write(
+            '>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peer_connections)) + '\r\n')
+        self.output['message'].write('>>> Staking set to: ' + str(self.factory.p2pFactory.stake) + '\r\n')
+        self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state.name + '\r\n')
+
+        self.output['keys'] += ['version', 'uptime', 'nodes_connected', 'staking_status', 'sync_status']
+        self.output['version'] = self.factory.chain.version_number
+        self.output['uptime'] = str(time.time() - self.factory.start_time)
+        self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peer_connections))
+        self.output['staking_status'] = str(self.factory.p2pFactory.stake)
+        self.output['sync_status'] = self.factory.p2pFactory.nodeState.state.name
+
+    def _blockheight(self, args):
+        self.output['status'] = 0
+        self.output['message'].write('>>> Blockheight: ' + str(self.factory.chain.m_blockheight()) + '\r\n')
+        self.output['message'].write(
+            '>>> Headerhash: ' + bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash) + '\r\n')
+
+
+        self.output['keys'] += ['blockheight', 'headerhash']
+        self.output['blockheight'] = self.factory.chain.m_blockheight()
+        self.output['headerhash'] = bin2hstr(self.factory.chain.m_blockchain[-1].blockheader.headerhash)
+
+    def _peers(self, args):
+        self.output['status'] = 0
+        self.output['message'].write('>>> Connected Peers:\r\n')
+        self.output['keys'] += ['peers']
+        self.output['peers'] = {}
+        for peer in self.factory.p2pFactory.peer_connections:
+            self.output['message'].write(
+                '>>> ' + peer.conn_identity + " [" + peer.version + "]  blockheight: " + str(
+                    peer.blockheight) + '\r\n')
+            self.output['peers'][peer.conn_identity] = {}
+            self.output['peers'][peer.conn_identity]['version'] = peer.version
+            self.output['peers'][peer.conn_identity]['blockheight'] = peer.blockheight
+
+    def _reboot(self, args):
+        if len(args) < 1:
+            self.output['message'].write('>>> reboot <password>\r\n')
+            self.output['message'].write('>>> or\r\n')
+            self.output['message'].write('>>> reboot <password> <nonce>\r\n')
+            self.output['message'].write('>>> or\r\n')
+            self.output['message'].write('>>> reboot <password> <nonce> <trim_blocknum>\r\n')
+            return True
+        json_hash, err = None, None
+        if len(args) == 3:
+            json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1], args[2])
+            self.output['message'].write(str(args[0]) + str(args[1]) + str(args[2]))
+        elif len(args) == 2:
+            json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1])
+        else:
+            json_hash, status = self.factory.chain.generate_reboot_hash(args[0])
+
+        if json_hash:
+            self.factory.p2pFactory.send_reboot(json_hash)
+            # self.factory.state.update(NState.synced)
+        self.output['message'].write(status)
