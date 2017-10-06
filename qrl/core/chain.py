@@ -424,73 +424,21 @@ class Chain:
                     if islong == 1: json_print(tx)
         return
 
-    @staticmethod
-    def get_chaindatafile(epoch):
-        baseDir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
-        config.create_path(baseDir)
-        return os.path.join(baseDir, 'chain.da' + str(epoch))
-
-    def f_read_chain(self, epoch):
-        delimiter = config.dev.binary_file_delimiter
-        block_list = []
-        if os.path.isfile(self.get_chaindatafile(epoch)) is False:
-            if epoch != 0:
-                return []
-            logger.info('Creating new chain file')
-            genesis_block = GenesisBlock().set_chain(self)
-            block_list.append(genesis_block)
-            return block_list
-
-        try:
-            with open(self.get_chaindatafile(epoch), 'rb') as myfile:
-                jsonBlock = bytearray()
-                tmp = bytearray()
-                count = 0
-                offset = 0
-                while True:
-                    chars = myfile.read(config.dev.chain_read_buffer_size)
-                    for char in chars:
-                        offset += 1
-                        if count > 0 and char != delimiter[count]:
-                            count = 0
-                            jsonBlock += tmp
-                            tmp = bytearray()
-                        if char == delimiter[count]:
-                            tmp.append(delimiter[count])
-                            count += 1
-                            if count < len(delimiter):
-                                continue
-                            tmp = bytearray()
-                            count = 0
-                            pos = offset - len(delimiter) - len(jsonBlock)
-                            jsonBlock = bz2.decompress(jsonBlock)
-                            block = Block.from_json(jsonBlock)
-                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
-                            block_list.append(block)
-                            jsonBlock = bytearray()
-                            continue
-                        jsonBlock.append(char)
-                    if len(chars) < config.dev.chain_read_buffer_size:
-                        break
-        except Exception as e:
-            logger.error('IO error %s', e)
-            return []
-
-        gc.collect()
-        return block_list
-
     def update_block_metadata(self, blocknumber, blockPos, blockSize):
-        self.state.db.db.Put(bytes('block_'+str(blocknumber), 'utf-8'),
-                             bytes(str(blockPos)+','+str(blockSize), 'utf-8'))
+        # FIXME: Breaking encapsulation
+        self.state.db.db.Put(bytes('block_' + str(blocknumber), 'utf-8'),
+                             bytes(str(blockPos) + ',' + str(blockSize), 'utf-8'))
 
     def update_last_tx(self, block):
         if len(block.transactions) == 0:
             return
         last_txn = []
+
         try:
             last_txn = self.state.db.get('last_txn')
         except:
             pass
+
         for txn in block.transactions[-20:]:
             if txn.subtype == TX_SUBTYPE_TX:
                 last_txn.insert(0,
@@ -526,30 +474,11 @@ class Chain:
                 self.update_wallet_tx_metadata(txn.txto, txn.txhash)
                 self.update_txn_count(txn.txto, txn.txfrom)
 
-    def f_write_m_blockchain(self):
-        blocknumber = self.m_blockchain[-1].blockheader.blocknumber
-        suffix = int(blocknumber // config.dev.blocks_per_chain_file)
-        writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
-        logger.info('Appending data to chain')
-
-        with open(self.get_chaindatafile(suffix), 'ab') as myfile:
-            for block in writeable:
-                jsonBlock = bytes(json_bytestream(block), 'utf-8')
-                compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
-                pos = myfile.tell()
-                blockSize = len(compressedBlock)
-                self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
-                myfile.write(compressedBlock)
-                myfile.write(config.dev.binary_file_delimiter)
-
-        del self.m_blockchain[:-1]
-        gc.collect()
-        return
-
     def load_chain_by_epoch(self, epoch):
 
         chains = self.f_read_chain(epoch)
         self.m_blockchain.append(chains[0])
+
         self.state.state_read_genesis(self.m_get_block(0))
         self.block_chain_buffer = ChainBuffer(self)
 
@@ -562,29 +491,6 @@ class Chain:
         return self.block_chain_buffer.add_block_mainchain(chain=self,
                                                            block=block,
                                                            validate=validate)
-
-    def m_load_chain(self):
-        del self.m_blockchain[:]
-        self.state.zero_all_addresses()
-
-        self.load_chain_by_epoch(0)
-
-        if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
-            return self.m_blockchain
-
-        epoch = 1
-        while os.path.isfile(self.get_chaindatafile(epoch)):
-            del self.m_blockchain[:-1]
-            chains = self.f_read_chain(epoch)
-
-            for block in chains:
-                self.add_block_mainchain(block, validate=False)
-
-            epoch += 1
-        self.wallet.save_wallet()
-
-        gc.collect()
-        return self.m_blockchain
 
     def m_read_chain(self):
         if not self.m_blockchain:
@@ -604,7 +510,7 @@ class Chain:
             return block
 
     def m_get_block(self, n):
-        
+
         if len(self.m_blockchain) == 0:
             return []
 
@@ -739,3 +645,105 @@ class Chain:
             return tx
 
         return False
+
+    ############## BLOCK CHAIN PERSISTANCE
+
+    @staticmethod
+    def get_chaindatafile(epoch):
+        baseDir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
+        config.create_path(baseDir)
+        return os.path.join(baseDir, 'chain.da' + str(epoch))
+
+    def m_load_chain(self):
+        del self.m_blockchain[:]
+        self.state.zero_all_addresses()
+
+        self.load_chain_by_epoch(0)
+
+        if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
+            return self.m_blockchain
+
+        epoch = 1
+        while os.path.isfile(self.get_chaindatafile(epoch)):
+            del self.m_blockchain[:-1]
+            chains = self.f_read_chain(epoch)
+
+            for block in chains:
+                self.add_block_mainchain(block, validate=False)
+
+            epoch += 1
+        self.wallet.save_wallet()
+
+        gc.collect()
+        return self.m_blockchain
+
+    def f_write_m_blockchain(self):
+        blocknumber = self.m_blockchain[-1].blockheader.blocknumber
+        suffix = int(blocknumber // config.dev.blocks_per_chain_file)
+        writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
+        logger.info('Appending data to chain')
+
+        with open(self.get_chaindatafile(suffix), 'ab') as myfile:
+            for block in writeable:
+                jsonBlock = bytes(json_bytestream(block), 'utf-8')
+                compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
+                pos = myfile.tell()
+                blockSize = len(compressedBlock)
+                self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
+                myfile.write(compressedBlock)
+                myfile.write(config.dev.binary_file_delimiter)
+
+        del self.m_blockchain[:-1]
+        gc.collect()
+        return
+
+    def f_read_chain(self, epoch):
+        delimiter = config.dev.binary_file_delimiter
+
+        block_list = []
+        if not os.path.isfile(self.get_chaindatafile(epoch)):
+            if epoch != 0:
+                return []
+
+            logger.info('Creating new chain file')
+            genesis_block = GenesisBlock().set_chain(self)
+            block_list.append(genesis_block)
+            return block_list
+
+        try:
+            with open(self.get_chaindatafile(epoch), 'rb') as myfile:
+                jsonBlock = bytearray()
+                tmp = bytearray()
+                count = 0
+                offset = 0
+                while True:
+                    chars = myfile.read(config.dev.chain_read_buffer_size)
+                    for char in chars:
+                        offset += 1
+                        if count > 0 and char != delimiter[count]:
+                            count = 0
+                            jsonBlock += tmp
+                            tmp = bytearray()
+                        if char == delimiter[count]:
+                            tmp.append(delimiter[count])
+                            count += 1
+                            if count < len(delimiter):
+                                continue
+                            tmp = bytearray()
+                            count = 0
+                            pos = offset - len(delimiter) - len(jsonBlock)
+                            jsonBlock = bz2.decompress(jsonBlock)
+                            block = Block.from_json(jsonBlock)
+                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
+                            block_list.append(block)
+                            jsonBlock = bytearray()
+                            continue
+                        jsonBlock.append(char)
+                    if len(chars) < config.dev.chain_read_buffer_size:
+                        break
+        except Exception as e:
+            logger.error('IO error %s', e)
+            return []
+
+        gc.collect()
+        return block_list
