@@ -432,8 +432,8 @@ class ApiProtocol(Protocol):
                      'block_time_variance': block_time_variance,
                      'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
-                     'emission': self._format_qrlamount(self.factory.state.db.total_coin_supply()),
-                     'unmined': config.dev.total_coin_supply - self.factory.state.db.total_coin_supply() / 100000000.000000000}
+                     'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
+                     'unmined': config.dev.total_coin_supply - self.factory.state.total_coin_supply() / 100000000.000000000}
 
         return json_print_telnet(net_stats)
 
