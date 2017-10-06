@@ -8,6 +8,7 @@ import simplejson as json
 from qrl.core import config, logger
 from qrl.crypto.misc import sha256
 
+#FIXME: Lack of clear schemas could be dangerous in this case
 
 def isValidAddress(addr):
     if addr.startswith('Q'):

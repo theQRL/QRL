@@ -51,6 +51,7 @@ def getTime():
     """
     :return:
     :rtype: float
+
     >>> getTime() is not None
     True
     """

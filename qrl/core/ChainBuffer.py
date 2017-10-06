@@ -601,8 +601,6 @@ class ChainBuffer:
         """
         A block is considered as a dirty block, if same stake validator created two different blocks
         for the same blocknumber having same prev_blockheaderhash.
-        :param data:
-        :return:
         """
         if blocknum > self.height():
             return

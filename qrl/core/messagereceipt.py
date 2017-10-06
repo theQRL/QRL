@@ -2,12 +2,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
+
 
 class MessageReceipt(object):
     """
@@ -37,6 +38,7 @@ class MessageReceipt(object):
        in a last Y hrs of time. Then that peer is forcefully disconnected.
        IP could be added into block list of that particular peer for couple
        of hours.
+
     """
 
     # TODO: Use enumerations instead of strings to reduce data size
@@ -94,7 +96,7 @@ class MessageReceipt(object):
 
         if block:
             if self.block_params(msg_hash_str, block):
-               return True
+                return True
 
         self.remove_hash(msg_hash_str, peer)
         return False

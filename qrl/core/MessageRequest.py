@@ -4,6 +4,7 @@
 
 from qrl.core import logger
 
+
 class MessageRequest:
     def __init__(self):
         self.callLater = None
