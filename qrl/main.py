@@ -83,6 +83,9 @@ def main():
     chain_obj = Chain(state=state_obj)
     qrlnode = QRLNode(db_state=state_obj)
 
+    logger.info('QRL blockchain ledger %s', config.dev.version_number)
+    logger.info('mining/staking address %s', chain_obj.mining_address)
+
     if args.get_wallets:
         address_data = chain_obj.wallet.list_addresses(chain_obj.state,
                                                        chain_obj.transaction_pool)

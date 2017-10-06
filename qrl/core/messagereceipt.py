@@ -9,6 +9,7 @@ from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 
+
 class MessageReceipt(object):
     """
     1> dict Hash to peer
@@ -95,7 +96,7 @@ class MessageReceipt(object):
 
         if block:
             if self.block_params(msg_hash_str, block):
-               return True
+                return True
 
         self.remove_hash(msg_hash_str, peer)
         return False

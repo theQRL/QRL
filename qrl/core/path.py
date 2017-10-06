@@ -4,7 +4,7 @@
 from os.path import join, pardir, abspath, dirname
 
 
-class Paths():
+class Paths:
     def __init__(self, File=__file__):
         self.ROOT = join(join(dirname(File), pardir), pardir)
         self.REQUIREMENTS = abspath(join(self.ROOT, "requirements.txt"))

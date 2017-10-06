@@ -30,33 +30,30 @@ from decimal import Decimal
 class Chain:
     def __init__(self, state):
         self.state = state
-        self.version_number = config.dev.version_number
-        self.transaction_pool = []
-        self.txhash_timestamp = []
-        self.m_blockchain = []
-
         self.wallet = Wallet()
+        self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
         # FIXME: should self.mining_address be self.staking_address
         self.mining_address = self.wallet.address_bundle[0].xmss.get_address()
 
-        self.initialize()
-        self.ping_list = []
-        self.ip_list = []
+        self.ping_list = []                     # FIXME: This has nothing to do with chain
+
+        self.transaction_pool = []
+        self.txhash_timestamp = []
+        self.m_blockchain = []
         self.blockheight_map = []
-        self.stake_list = []
-        self.stake_commit = []
         self.block_chain_buffer = None  # Initialized by node.py
-        self.prev_txpool = [None] * 1000  # TODO: use python dequeue
+        self.prev_txpool = [None] * 1000        # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
         self.duplicate_tx_pool = OrderedDict()
+
+        self.stake_list = []
+        self.stake_commit = []
         self.stake_reveal_one = []
         self.stake_ban_list = []
         self.stake_ban_block = {}
         self.stake_validator_latency = defaultdict(dict)
-
-        self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
     def add_tx_to_duplicate_pool(self, duplicate_txn):
         if len(self.duplicate_tx_pool) >= config.dev.transaction_pool_size:
@@ -64,15 +61,11 @@ class Chain:
 
         self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
 
-    def initialize(self):
-        logger.info('QRL blockchain ledger %s', self.version_number)
-        logger.info('loading db')
-        logger.info('loading wallet')
-        logger.info('mining/staking address %s', self.mining_address)
-
     def validate_reboot(self, mhash, nonce):
+        # FIXME: Reboot validation in the chain? This is node related
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
         try:
+            # FIXME: Accessing DB directly
             reboot_data_db = self.state.db.get('reboot_data')
             reboot_data = reboot_data_db
         except:
@@ -99,9 +92,11 @@ class Chain:
         return True, 'Success'
 
     def generate_reboot_hash(self, key, nonce=None, blocknumber=0):
+        # FIXME: Reboot validation in the chain? This is node related
         reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', 0]
 
         try:
+            # FIXME: Accessing DB directly
             reboot_data = self.state.db.get('reboot_data')
         except:
             pass
@@ -156,6 +151,7 @@ class Chain:
         return hashchain[-1], hashchain[target_chain]
 
     def select_winners(self, reveals, topN=1, blocknumber=None, block=None, seed=None):
+        # FIXME: This is POS related
         winners = None
         if not seed:
             logger.info('Exception raised due to Seed is None')
@@ -380,37 +376,6 @@ class Chain:
         l = self.pos_block_selector(seed, n)
         return l[i]
 
-    #### move from here
-    # tx, address chain search functions
-
-    def search_telnet(self, txcontains, islong=1):
-        tx_list = []
-        hrs_list = []
-
-        # because we allow hrs substitution in txto for transactions, we need to identify where this occurs for searching..
-
-        if txcontains[0] == 'Q':
-            for block in self.m_blockchain:
-                for tx in block.transactions:
-                    if tx.txfrom == txcontains:
-                        if len(tx.hrs) > 0:
-                            if self.state.state_hrs(tx.hrs) == txcontains:
-                                hrs_list.append(tx.hrs)
-
-        for tx in self.transaction_pool:
-            if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
-                if islong == 0: tx_list.append('<tx:txhash> ' + tx.txhash + ' <transaction_pool>')
-                if islong == 1: tx_list.append(json_print_telnet(tx))
-
-        for block in self.m_blockchain:
-            for tx in block.transactions:
-                if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains or tx.txto in hrs_list:
-                    # logger.info(( txcontains, 'found in block',str(block.blockheader.blocknumber),'..'
-                    if islong == 0: tx_list.append(
-                        '<tx:txhash> ' + tx.txhash + ' <block> ' + str(block.blockheader.blocknumber))
-                    if islong == 1: tx_list.append(json_print_telnet(tx))
-        return tx_list
-
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
@@ -435,6 +400,7 @@ class Chain:
         last_txn = []
 
         try:
+            # FIXME: Accessing DB directly
             last_txn = self.state.db.get('last_txn')
         except:
             pass
@@ -444,20 +410,25 @@ class Chain:
                 last_txn.insert(0,
                                 [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
         del last_txn[20:]
+        # FIXME: Accessing DB directly
         self.state.db.put('last_txn', last_txn)
 
     def update_wallet_tx_metadata(self, addr, new_txhash):
         try:
+            # FIXME: Accessing DB directly
             txhash = self.state.db.get('txn_' + addr)
         except Exception:
             txhash = []
         txhash.append(bin2hstr(new_txhash))
+        # FIXME: Accessing DB directly
         self.state.db.put('txn_' + addr, txhash)
 
     def update_txn_count(self, txto, txfrom):
         last_count = self.state.state_get_txn_count(txto)
+        # FIXME: Accessing DB directly
         self.state.db.put('txn_count_' + txto, last_count + 1)
         last_count = self.state.state_get_txn_count(txfrom)
+        # FIXME: Accessing DB directly
         self.state.db.put('txn_count_' + txfrom, last_count + 1)
 
     def update_tx_metadata(self, block):
@@ -466,6 +437,7 @@ class Chain:
 
         for txn in block.transactions:
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                # FIXME: Accessing DB directly
                 self.state.db.put(bin2hstr(txn.txhash),
                                   [txn.transaction_to_json(), block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
@@ -496,18 +468,6 @@ class Chain:
         if not self.m_blockchain:
             self.m_load_chain()
         return self.m_blockchain
-
-    def load_from_file(self, blocknum):
-        epoch = int(blocknum // config.dev.blocks_per_chain_file)
-        with open(self.get_chaindatafile(epoch), 'rb') as f:
-            pos_size = self.state.db.db.Get(bytes('block_' + str(blocknum), 'utf-8'))
-            pos, size = pos_size.decode('utf-8').split(',')
-            pos = int(pos)
-            size = int(size)
-            f.seek(pos)
-            jsonBlock = bz2.decompress(f.read(size))
-            block = Block.from_json(jsonBlock)
-            return block
 
     def m_get_block(self, n):
 
@@ -679,11 +639,11 @@ class Chain:
 
     def f_write_m_blockchain(self):
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
-        suffix = int(blocknumber // config.dev.blocks_per_chain_file)
+        file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
         writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
         logger.info('Appending data to chain')
 
-        with open(self.get_chaindatafile(suffix), 'ab') as myfile:
+        with open(self.get_chaindatafile(file_epoch), 'ab') as myfile:
             for block in writeable:
                 jsonBlock = bytes(json_bytestream(block), 'utf-8')
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
@@ -695,7 +655,20 @@ class Chain:
 
         del self.m_blockchain[:-1]
         gc.collect()
-        return
+
+    def load_from_file(self, blocknum):
+        epoch = int(blocknum // config.dev.blocks_per_chain_file)
+
+        with open(self.get_chaindatafile(epoch), 'rb') as f:
+            # FIXME: Accessing DB directly
+            pos_size = self.state.db.db.Get(bytes('block_' + str(blocknum), 'utf-8'))
+            pos, size = pos_size.decode('utf-8').split(',')
+            pos = int(pos)
+            size = int(size)
+            f.seek(pos)
+            jsonBlock = bz2.decompress(f.read(size))
+            block = Block.from_json(jsonBlock)
+            return block
 
     def f_read_chain(self, epoch):
         delimiter = config.dev.binary_file_delimiter
