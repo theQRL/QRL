@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-import pickle as pickle
 import leveldb
 import os
 import simplejson as json
@@ -40,11 +39,6 @@ class DB:
         # FIXME: Bottleneck
         dictObj = {'value': value_obj}
         self.db.Put(key_obj, json.dumps(dictObj).encode())
-        return
-
-    def put_batch(self, key_obj, value_obj, batch):  # serialise with pickle into a string
-        value_obj = pickle.dumps(value_obj)
-        batch.Put(key_obj.encode(), value_obj.encode())
         return
 
     def get(self, key_obj):
