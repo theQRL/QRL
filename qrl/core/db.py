@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-import pickle as pickle
 import leveldb
 import os
 import simplejson as json
@@ -27,22 +26,25 @@ class DB:
     def destroy(self):
         leveldb.DestroyDB(self.db_path)
 
-    def RangeIter(self, *args, **kwargs):
-        return self.db.RangeIter(args, kwargs)
+    def RangeIter(self, key_obj):
+        if not isinstance(key_obj, bytes):
+            key_obj = key_obj.encode()
+
+        return self.db.RangeIter(key_obj)
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
-        dictObj = {'value': value_obj}
-        self.db.Put(key_obj.encode(), json.dumps(dictObj).encode())
-        return
+        if not isinstance(key_obj, bytes):
+            key_obj = key_obj.encode()
 
-    def put_batch(self, key_obj, value_obj, batch):  # serialise with pickle into a string
-        value_obj = pickle.dumps(value_obj)
-        batch.Put(key_obj.encode(), value_obj.encode())
+        # FIXME: Bottleneck
+        dictObj = {'value': value_obj}
+        self.db.Put(key_obj, json.dumps(dictObj).encode())
         return
 
     def get(self, key_obj):
         if not isinstance(key_obj, bytes):
-            key_obj = bytes(key_obj, 'utf-8')
+            key_obj = key_obj.encode()
+
         value_obj = self.db.Get(key_obj)
         try:
             return json.loads(value_obj.decode())['value']
