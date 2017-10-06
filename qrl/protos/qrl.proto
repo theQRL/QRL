@@ -5,6 +5,8 @@ syntax = "proto3";
 
 package qrl;
 
+import "google/protobuf/timestamp.proto";
+
 service P2PNode {
   rpc Ping (PingReq) returns (PongResp) {}
   rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
@@ -63,6 +65,32 @@ message AddressState
     // FIXME: Add stake information. Probably a reference to another obj
 }
 
+message BlockHeader
+{
+    // Header
+    uint64 block_number = 1;
+    uint64 epoch_number = 2;
+    google.protobuf.Timestamp timestamp = 3;
+
+    bytes hash_header = 4;
+    bytes hash_header_prev = 5;
+
+    uint64 reward_block = 6;    // FIXME: Review quantities
+    uint64 reward_fee = 7;      // FIXME: Review quantities
+
+    bytes merkel_root = 8;
+    bytes hash_reveal = 9;
+    bytes hash_vote = 10;
+    string stake_selector = 11;
+}
+
+message Block
+{
+    BlockHeader header = 1;
+    repeated Transaction transactions = 2;
+    repeated Transaction dup_transactions = 3;      // TODO: Review this
+}
+
 message Transaction
 {
     enum Type
@@ -71,6 +99,7 @@ message Transaction
         STAKE = 1;
         COINBASE = 2;
         LATTICE = 3;
+        DUPLICATE = 4;
     }
 
     Type type = 1;
@@ -90,4 +119,11 @@ message Transaction
     uint64 epoch = 11;                  // Required for Stake
     bytes public_key_slave = 12;        // Required for Stake
     bytes stake_hash = 13;              // Required for Stake
+
+    uint64 dup_block_number = 14;           // Required for duplicate transaction
+    uint64 dup_hash_header_prev = 15;       // Required for duplicate transaction
+    bytes dup_coinbase1_hhash = 16;         // Required for duplicate transaction
+    bytes dup_coinbase2_hhash = 17;         // Required for duplicate transaction
+    Transaction dup_coinbase1 = 18;         // Required for duplicate transaction
+    Transaction dup_coinbase2 = 19;         // Required for duplicate transaction
 }

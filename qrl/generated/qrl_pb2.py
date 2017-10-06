@@ -13,14 +13,16 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"9\n\x10TransferCoinsReq\x12%\n\x0btransaction\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"5\n\x11TransferCoinsResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"g\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12&\n\x0ctransactions\x18\x04 \x03(\x0b\x32\x10.qrl.Transaction\"\xc5\x02\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\t\x12\x0c\n\x04hash\x18\x05 \x01(\x0c\x12\x13\n\x0bpublic_hash\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x06 \x01(\x0c\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x08 \x01(\t\x12\x0e\n\x06\x61mount\x18\t \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\n \x01(\x04\x12\r\n\x05\x65poch\x18\x0b \x01(\x04\x12\x18\n\x10public_key_slave\x18\x0c \x01(\x0c\x12\x12\n\nstake_hash\x18\r \x01(\x0c\":\n\x04Type\x12\x0c\n\x08TRANSFER\x10\x00\x12\t\n\x05STAKE\x10\x01\x12\x0c\n\x08\x43OINBASE\x10\x02\x12\x0b\n\x07LATTICE\x10\x03\x32r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\xd7\x01\n\tPublicAPI\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x46\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\"\x00\x12@\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\"\x00\x62\x06proto3')
-)
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\x1a\x1fgoogle/protobuf/timestamp.proto\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"9\n\x10TransferCoinsReq\x12%\n\x0btransaction\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"5\n\x11TransferCoinsResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"g\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12&\n\x0ctransactions\x18\x04 \x03(\x0b\x32\x10.qrl.Transaction\"\x96\x02\n\x0b\x42lockHeader\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x14\n\x0c\x65poch_number\x18\x02 \x01(\x04\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x13\n\x0bhash_header\x18\x04 \x01(\x0c\x12\x18\n\x10hash_header_prev\x18\x05 \x01(\x0c\x12\x14\n\x0creward_block\x18\x06 \x01(\x04\x12\x12\n\nreward_fee\x18\x07 \x01(\x04\x12\x13\n\x0bmerkel_root\x18\x08 \x01(\x0c\x12\x13\n\x0bhash_reveal\x18\t \x01(\x0c\x12\x11\n\thash_vote\x18\n \x01(\x0c\x12\x16\n\x0estake_selector\x18\x0b \x01(\t\")\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\"\xc5\x02\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\t\x12\x0c\n\x04hash\x18\x05 \x01(\x0c\x12\x13\n\x0bpublic_hash\x18\x04 \x01(\x0c\x12\x12\n\npublic_key\x18\x06 \x01(\x0c\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x08 \x01(\t\x12\x0e\n\x06\x61mount\x18\t \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\n \x01(\x04\x12\r\n\x05\x65poch\x18\x0b \x01(\x04\x12\x18\n\x10public_key_slave\x18\x0c \x01(\x0c\x12\x12\n\nstake_hash\x18\r \x01(\x0c\":\n\x04Type\x12\x0c\n\x08TRANSFER\x10\x00\x12\t\n\x05STAKE\x10\x01\x12\x0c\n\x08\x43OINBASE\x10\x02\x12\x0b\n\x07LATTICE\x10\x03\x32r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\xd7\x01\n\tPublicAPI\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x46\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\"\x00\x12@\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\"\x00\x62\x06proto3')
+  ,
+  dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
 
 
@@ -49,8 +51,8 @@ _TRANSACTION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=904,
-  serialized_end=962,
+  serialized_start=1261,
+  serialized_end=1319,
 )
 _sym_db.RegisterEnumDescriptor(_TRANSACTION_TYPE)
 
@@ -81,8 +83,8 @@ _PINGREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=18,
-  serialized_end=41,
+  serialized_start=51,
+  serialized_end=74,
 )
 
 
@@ -112,8 +114,8 @@ _PONGRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=43,
-  serialized_end=70,
+  serialized_start=76,
+  serialized_end=103,
 )
 
 
@@ -136,8 +138,8 @@ _GETKNOWNPEERSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=72,
-  serialized_end=90,
+  serialized_start=105,
+  serialized_end=123,
 )
 
 
@@ -167,8 +169,8 @@ _GETKNOWNPEERSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=92,
-  serialized_end=149,
+  serialized_start=125,
+  serialized_end=182,
 )
 
 
@@ -198,8 +200,8 @@ _GETADDRESSSTATEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=151,
-  serialized_end=188,
+  serialized_start=184,
+  serialized_end=221,
 )
 
 
@@ -229,8 +231,8 @@ _GETADDRESSSTATERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=190,
-  serialized_end=245,
+  serialized_start=223,
+  serialized_end=278,
 )
 
 
@@ -260,8 +262,8 @@ _TRANSFERCOINSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=247,
-  serialized_end=304,
+  serialized_start=280,
+  serialized_end=337,
 )
 
 
@@ -291,8 +293,8 @@ _TRANSFERCOINSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=306,
-  serialized_end=359,
+  serialized_start=339,
+  serialized_end=392,
 )
 
 
@@ -322,8 +324,8 @@ _WALLETSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=361,
-  serialized_end=404,
+  serialized_start=394,
+  serialized_end=437,
 )
 
 
@@ -367,8 +369,8 @@ _WALLET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=406,
-  serialized_end=469,
+  serialized_start=439,
+  serialized_end=502,
 )
 
 
@@ -398,8 +400,8 @@ _KNOWNPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=471,
-  serialized_end=509,
+  serialized_start=504,
+  serialized_end=542,
 )
 
 
@@ -429,8 +431,8 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=511,
-  serialized_end=529,
+  serialized_start=544,
+  serialized_end=562,
 )
 
 
@@ -481,8 +483,140 @@ _ADDRESSSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=531,
-  serialized_end=634,
+  serialized_start=564,
+  serialized_end=667,
+)
+
+
+_BLOCKHEADER = _descriptor.Descriptor(
+  name='BlockHeader',
+  full_name='qrl.BlockHeader',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='block_number', full_name='qrl.BlockHeader.block_number', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='epoch_number', full_name='qrl.BlockHeader.epoch_number', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='qrl.BlockHeader.timestamp', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='hash_header', full_name='qrl.BlockHeader.hash_header', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='hash_header_prev', full_name='qrl.BlockHeader.hash_header_prev', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='reward_block', full_name='qrl.BlockHeader.reward_block', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='reward_fee', full_name='qrl.BlockHeader.reward_fee', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='merkel_root', full_name='qrl.BlockHeader.merkel_root', index=7,
+      number=8, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='hash_reveal', full_name='qrl.BlockHeader.hash_reveal', index=8,
+      number=9, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='hash_vote', full_name='qrl.BlockHeader.hash_vote', index=9,
+      number=10, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='stake_selector', full_name='qrl.BlockHeader.stake_selector', index=10,
+      number=11, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=670,
+  serialized_end=948,
+)
+
+
+_BLOCK = _descriptor.Descriptor(
+  name='Block',
+  full_name='qrl.Block',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='header', full_name='qrl.Block.header', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=950,
+  serialized_end=991,
 )
 
 
@@ -597,8 +731,8 @@ _TRANSACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=637,
-  serialized_end=962,
+  serialized_start=994,
+  serialized_end=1319,
 )
 
 _GETKNOWNPEERSRESP.fields_by_name['known_peers'].message_type = _KNOWNPEERS
@@ -608,6 +742,8 @@ _TRANSFERCOINSRESP.fields_by_name['state'].message_type = _ADDRESSSTATE
 _WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
 _KNOWNPEERS.fields_by_name['peers'].message_type = _PEER
 _ADDRESSSTATE.fields_by_name['transactions'].message_type = _TRANSACTION
+_BLOCKHEADER.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
+_BLOCK.fields_by_name['header'].message_type = _BLOCKHEADER
 _TRANSACTION.fields_by_name['type'].enum_type = _TRANSACTION_TYPE
 _TRANSACTION_TYPE.containing_type = _TRANSACTION
 DESCRIPTOR.message_types_by_name['PingReq'] = _PINGREQ
@@ -623,6 +759,8 @@ DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
 DESCRIPTOR.message_types_by_name['KnownPeers'] = _KNOWNPEERS
 DESCRIPTOR.message_types_by_name['Peer'] = _PEER
 DESCRIPTOR.message_types_by_name['AddressState'] = _ADDRESSSTATE
+DESCRIPTOR.message_types_by_name['BlockHeader'] = _BLOCKHEADER
+DESCRIPTOR.message_types_by_name['Block'] = _BLOCK
 DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -717,6 +855,20 @@ AddressState = _reflection.GeneratedProtocolMessageType('AddressState', (_messag
   ))
 _sym_db.RegisterMessage(AddressState)
 
+BlockHeader = _reflection.GeneratedProtocolMessageType('BlockHeader', (_message.Message,), dict(
+  DESCRIPTOR = _BLOCKHEADER,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.BlockHeader)
+  ))
+_sym_db.RegisterMessage(BlockHeader)
+
+Block = _reflection.GeneratedProtocolMessageType('Block', (_message.Message,), dict(
+  DESCRIPTOR = _BLOCK,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.Block)
+  ))
+_sym_db.RegisterMessage(Block)
+
 Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.Message,), dict(
   DESCRIPTOR = _TRANSACTION,
   __module__ = 'qrl_pb2'
@@ -732,8 +884,8 @@ _P2PNODE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=964,
-  serialized_end=1078,
+  serialized_start=1321,
+  serialized_end=1435,
   methods=[
   _descriptor.MethodDescriptor(
     name='Ping',
@@ -765,8 +917,8 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=1081,
-  serialized_end=1296,
+  serialized_start=1438,
+  serialized_end=1653,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetKnownPeers',
