@@ -80,10 +80,8 @@ class Transaction(object, metaclass=ABCMeta):
         # FIXME: Review this. Leon?
         return sha256(pub + tuple([int(char) for char in str(ots_key)]))
 
-    def _get_pubhash(self, xmss):
+    def _get_pubhash(self):
         # FIXME: Review this. Leon?
-        self.PK = xmss.pk()
-        self.ots_key = xmss.get_index()
         return self.generate_pubhash(self.PK, self.ots_key)
 
     def _get_txhash(self, tmptxhash, pubhash):
@@ -91,8 +89,7 @@ class Transaction(object, metaclass=ABCMeta):
         self.pubhash = pubhash
         return sha2_256(tmptxhash + self.pubhash)
 
-    def _sign(self, txhash, xmss):
-        self.txhash = txhash
+    def sign(self, xmss):
         self.signature = xmss.SIGN(self.txhash)
 
     def _validate_signed_hash(self, height=config.dev.xmss_tree_height):
@@ -206,25 +203,30 @@ class SimpleTransaction(Transaction):
 
         return True
 
-    def create(self, tx_state, addr_to, amount, xmss, fee=0):
-        self.txfrom = xmss.get_address()
-        self.txto = addr_to
-        self.amount = int(amount)       # FIXME: Review conversions for quantities
-        self.fee = int(fee)             # FIXME: Review conversions for quantities
+    @staticmethod
+    def create(addr_from, addr_to, amount, xmss_pk, xmss_ots_key, fee=0):
+        transaction = SimpleTransaction()
+
+        transaction.txfrom = addr_from
+        transaction.txto = addr_to
+        transaction.amount = int(amount)       # FIXME: Review conversions for quantities
+        transaction.fee = int(fee)             # FIXME: Review conversions for quantities
 
         # FIXME: This is very confusing and can be a security risk
         # FIXME: Duplication. Risk of mismatch (create & verification)
 
-        if not self.pre_condition(tx_state):
-            return False
+        transaction.PK = xmss_pk
+        transaction.ots_key = xmss_ots_key
 
-        tmppubhash = self._get_pubhash(xmss)
+        tmppubhash = transaction._get_pubhash()
 
-        tmptxhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
-        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
+        tmptxhash = sha256(bytes(''.join(transaction.txfrom +
+                                         transaction.txto +
+                                         str(transaction.amount) + str(transaction.fee)), 'utf-8'))
 
-        self._sign(tmptxhash, xmss)
-        return self
+        transaction.txhash = transaction._get_txhash(tmptxhash, tmppubhash)
+
+        return transaction
 
     def validate_tx(self):
         if self.subtype != TX_SUBTYPE_TX:
@@ -305,6 +307,7 @@ class StakeTransaction(Transaction):
         message.write(bin2hstr(self.first_hash))
         messagestr = message.getvalue()
         result = sha256(str2bin(messagestr))
+
         return result
 
     def _dict_to_transaction(self, dict_tx):
@@ -323,22 +326,9 @@ class StakeTransaction(Transaction):
 
         return self
 
-    def create(self, blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
+    @staticmethod
+    def create(blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
         """
-        :param blocknumber:
-        :type blocknumber:
-        :param xmss:
-        :type xmss:
-        :param slave_public_key:
-        :type slave_public_key:
-        :param hashchain_terminator:
-        :type hashchain_terminator:
-        :param first_hash:
-        :type first_hash:
-        :param balance:
-        :type balance:
-        :return:
-        :rtype:
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
         >>> isinstance(s.create(0, XMSS(4), slave.pk(), None, slave.pk(), 10), StakeTransaction)
@@ -348,29 +338,33 @@ class StakeTransaction(Transaction):
             logger.info('Invalid Balance %d', balance)
             raise Exception
 
-        self.txfrom = xmss.get_address()
+        transaction = StakeTransaction()
 
-        self.slave_public_key = slave_public_key
-        self.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
-        self.balance = balance
+        transaction.txfrom = xmss.get_address()
 
-        self.first_hash = first_hash
-        if self.first_hash is None:
-            self.first_hash = tuple()
+        transaction.slave_public_key = slave_public_key
+        transaction.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
+        transaction.balance = balance
 
-        self.hash = hashchain_terminator
+        transaction.first_hash = first_hash
+        if transaction.first_hash is None:
+            transaction.first_hash = tuple()
+
+        transaction.hash = hashchain_terminator
         if hashchain_terminator is None:
-            self.hash = hashchain_reveal(xmss.get_seed_private(), epoch=self.epoch + 1)
+            transaction.hash = hashchain_reveal(xmss.get_seed_private(),
+                                                epoch=transaction.epoch + 1)
 
-        tmppubhash = self._get_pubhash(xmss)
+        transaction.PK = xmss.pk()
+        transaction.ots_key = xmss.get_index()
 
-        tmptxhash = ''.join([bin2hstr(b) for b in self.hash])
-        tmptxhash = str2bin(tmptxhash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key))
-        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
+        tmppubhash = transaction._get_pubhash()
 
-        self._sign(tmptxhash, xmss)
+        tmptxhash = ''.join([bin2hstr(b) for b in transaction.hash])
+        tmptxhash = str2bin(tmptxhash + bin2hstr(transaction.first_hash) + bin2hstr(transaction.slave_public_key))
+        transaction.txhash = transaction._get_txhash(tmptxhash, tmppubhash)
 
-        return self
+        return transaction
 
     def validate_tx(self):
         if not self._validate_subtype(self.subtype, TX_SUBTYPE_STAKE):
@@ -429,23 +423,27 @@ class CoinBase(Transaction):
         self.amount = int(dict_tx['amount'])
         return self
 
-    def create(self, blockheader, xmss):
-        self.txfrom = blockheader.stake_selector
-        self.txto = blockheader.stake_selector
-        self.amount = blockheader.block_reward + blockheader.fee_reward
+    @staticmethod
+    def create(blockheader, xmss):
+        transaction = CoinBase()
+
+        transaction.txfrom = blockheader.stake_selector
+        transaction.txto = blockheader.stake_selector
+        transaction.amount = blockheader.block_reward + blockheader.fee_reward
+
+        transaction.PK = xmss.pk()
+        transaction.ots_key = xmss.get_index()
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
+        tmppubhash = transaction._get_pubhash()
+
         tmptxhash = blockheader.prev_blockheaderhash + \
                     tuple([int(char) for char in str(blockheader.blocknumber)]) + \
                     blockheader.headerhash
 
-        tmppubhash = self._get_pubhash(xmss)
+        transaction.txhash = transaction._get_txhash(tmptxhash, tmppubhash)
 
-        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
-
-        self._sign(tmptxhash, xmss)
-
-        return self
+        return transaction
 
     def validate_tx(self, chain, blockheader):
         sv_list = chain.block_chain_buffer.stake_list_get(blockheader.blocknumber)
@@ -495,18 +493,25 @@ class LatticePublicKey(Transaction):
         super(LatticePublicKey, self)._dict_to_transaction(dict_tx)
         return self
 
-    def create(self, xmss, kyber_pk, tesla_pk):
-        self.txfrom = xmss.get_address()
-        self.kyber_pk = kyber_pk
-        self.tesla_pk = tesla_pk
+    @staticmethod
+    def create(xmss, kyber_pk, tesla_pk):
+        transaction = LatticePublicKey()
+
+        transaction.txfrom = xmss.get_address()
+        transaction.kyber_pk = kyber_pk
+        transaction.tesla_pk = tesla_pk
+
+        transaction.PK = xmss.pk()
+        transaction.ots_key = xmss.get_index()
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
-        tmppubhash = self._get_pubhash(xmss)
-        tmptxhash = sha256(self.kyber_pk + self.tesla_pk)
-        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
+        tmppubhash = transaction._get_pubhash()
 
-        self._sign(tmptxhash, xmss)
-        return self
+        tmptxhash = sha256(transaction.kyber_pk + transaction.tesla_pk)
+
+        transaction.txhash = transaction._get_txhash(tmptxhash, tmppubhash)
+
+        return transaction
 
     def validate_tx(self):
         if not self._validate_subtype(self.subtype, TX_SUBTYPE_LATTICE):
@@ -543,16 +548,19 @@ class DuplicateTransaction:
     def get_message_hash(self):
         return self.headerhash1 + self.headerhash2
 
-    def create(self, block1, block2):
-        self.blocknumber = block1.blockheader.blocknumber
-        self.prev_blockheaderhash = block1.blockheader.prev_blockheaderhash
+    @staticmethod
+    def create(block1, block2):
+        transaction = DuplicateTransaction()
 
-        self.coinbase1 = block1.transactions[0]
-        self.headerhash1 = block1.blockheader.headerhash
-        self.coinbase2 = block2.transactions[0]
-        self.headerhash2 = block2.blockheader.headerhash
+        transaction.blocknumber = block1.blockheader.blocknumber
+        transaction.prev_blockheaderhash = block1.blockheader.prev_blockheaderhash
 
-        return self
+        transaction.coinbase1 = block1.transactions[0]
+        transaction.headerhash1 = block1.blockheader.headerhash
+        transaction.coinbase2 = block2.transactions[0]
+        transaction.headerhash2 = block2.blockheader.headerhash
+
+        return transaction
 
     def validate_tx(self):
         if self.headerhash1 == self.headerhash2 and self.coinbase1.signature == self.coinbase2.signature:

@@ -25,18 +25,19 @@ def hexseed_to_seed(hex_seed):
 
 
 class WebWallet:
-    def __init__(self, chain, state, p2pFactory):
+    def __init__(self, chain, state, p2pFactory, qrlnode):
         package_directory = os.path.dirname(os.path.abspath(__file__))
 
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
+        self.qrlnode = qrlnode
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))
         resource.putChild(b"webwallet-addresses", showAddresses(self.chain))
         resource.putChild(b"webwallet-create-new-address", newAddress(self.chain))
-        resource.putChild(b"webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
+        resource.putChild(b"webwallet-send", sendQuanta(self.chain, self.state, self.qrlnode))
         resource.putChild(b"webwallet-mempool", memPoolSize(self.chain))
         resource.putChild(b"webwallet-sync", syncStatus(self.p2pFactory))
         resource.putChild(b"webwallet-recover", recoverAddress(self.chain))
@@ -176,11 +177,11 @@ class syncStatus(Resource):
 
 
 class sendQuanta(Resource):
-    def __init__(self, chain, state, p2pFactory):
+    def __init__(self, chain, state, qrlnode):
         Resource.__init__(self)
         self.chain = chain
         self.state = state
-        self.p2pFactory = p2pFactory
+        self.qrlnode = qrlnode
         self.output = {}
         self.txnResult = {}
 
@@ -258,12 +259,12 @@ class sendQuanta(Resource):
                     "message"] = "Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!"
                 return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
-        tx = self.chain.create_my_tx(txfrom=int(wallet_from), txto=bytes(wallet_to, 'utf-8'), amount=amount)
-
-        if tx is False:
+        tx = self.chain.create_send_tx(txfrom=int(wallet_from), txto=bytes(wallet_to, 'utf-8'), amount=amount)
+        if not self.chain.submit_send_tx(tx):
             self.txnResult["message"] = "Failed to Create txn"
             return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
+        # FIXME: Why validation here? The validation should be internal not in the API
         if tx.validate_tx():
             block_chain_buffer = self.chain.block_chain_buffer
             tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
@@ -276,11 +277,19 @@ class sendQuanta(Resource):
             self.txnResult["message"] = "TXN failed at validate_tx"
             return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
-        # send the transaction to peers (ie send it to the network - we are done)
+
+
+
+
+        # FIXME: Accessing peers directly from API
         self.p2pFactory.send_tx_to_peers(tx)
 
-        print(('>>> TXN Hash: ' + str(tx.txhash) + ', From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
-            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network'))
+
+        ################################
+        ################################
+        ################################
+        ################################
+        ################################
 
         self.txnResult["status"] = "success"
         self.txnResult["txnhash"] = str(tx.txhash)

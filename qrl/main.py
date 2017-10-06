@@ -81,7 +81,9 @@ def main():
     logger.info('Initializing chain..')
     state_obj = State()
     chain_obj = Chain(state=state_obj)
+
     qrlnode = QRLNode(db_state=state_obj)
+    qrlnode.set_chain(chain_obj)
 
     logger.info('QRL blockchain ledger %s', config.dev.version_number)
     logger.info('mining/staking address %s', chain_obj.mining_address)
@@ -111,20 +113,23 @@ def main():
     pos = POS(chain=chain_obj, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
     p2p_factory.setPOS(pos)
 
+    qrlnode.set_p2pfactory(p2p_factory)
+
+
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
     api_factory = ApiFactory(pos, chain_obj, state_obj, p2p_factory.peer_connections)
 
     welcome = 'QRL node connection established. Try starting with "help"\r\n'
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory, api_factory)
+    wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory, api_factory, qrlnode)
 
     logger.info('>>>Listening..')
     reactor.listenTCP(2000, wallet_factory, interface='127.0.0.1')
     reactor.listenTCP(9000, p2p_factory)
     reactor.listenTCP(8080, api_factory)
 
-    webwallet.WebWallet(chain_obj, state_obj, p2p_factory)
+    webwallet.WebWallet(chain_obj, state_obj, p2p_factory, qrlnode)
 
     pos.restart_monitor_bk(80)
 

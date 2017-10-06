@@ -26,8 +26,8 @@ import simplejson as json
 from collections import defaultdict
 from decimal import Decimal
 
+BlockFrame = namedtuple('BlockFrame', 'position size')  # FIXME: Remove/Refactor. This is temporary
 
-BlockFrame = namedtuple('BlockFrame', 'position size')         # FIXME: Remove/Refactor. This is temporary
 
 class Chain:
     def __init__(self, state):
@@ -38,7 +38,7 @@ class Chain:
         # FIXME: should self.mining_address be self.staking_address
         self.mining_address = self.wallet.address_bundle[0].xmss.get_address()
 
-        self.ping_list = []                     # FIXME: This has nothing to do with chain
+        self.ping_list = []  # FIXME: This has nothing to do with chain
 
         self.block_framedata = dict()
 
@@ -47,7 +47,7 @@ class Chain:
         self.m_blockchain = []
         self.blockheight_map = []
         self.block_chain_buffer = None  # Initialized by node.py
-        self.prev_txpool = [None] * 1000        # TODO: use python dequeue
+        self.prev_txpool = [None] * 1000  # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
         self.duplicate_tx_pool = OrderedDict()
@@ -586,33 +586,6 @@ class Chain:
 
         return True
 
-    def create_my_tx(self, addr_from_idx, addr_to, amount, fee=0):
-        # FIXME: The validation in the wallet should come here
-        # FIXME: This method is not about the chain. It is about operations (should be on a higher level)
-
-        if isinstance(addr_to, int):
-            addr_to = self.wallet.address_bundle[addr_to].address
-
-        xmss_from = self.wallet.address_bundle[addr_from_idx].xmss
-        addr_from = xmss_from.get_address()
-        block_number = self.block_chain_buffer.height() + 1
-
-        tx_state = self.block_chain_buffer.get_stxn_state(block_number, addr_from)
-
-        tx = SimpleTransaction().create(tx_state=tx_state,
-                                        addr_to=addr_to,
-                                        amount=amount,
-                                        xmss=xmss_from,
-                                        fee=fee)
-
-        if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.transaction_pool):
-            self.add_tx_to_pool(tx)
-            self.wallet.save_wallet()
-            # need to keep state after tx ..use self.wallet.info to store index..
-            # far faster than loading the 55mb self.wallet..
-            return tx
-
-        return False
 
     ############## BLOCK CHAIN PERSISTANCE
 
