@@ -586,23 +586,23 @@ class Chain:
 
         return True
 
-    def create_my_tx(self, txfrom, txto, amount, fee=0):
+    def create_my_tx(self, addr_from_idx, addr_to, amount, fee=0):
         # FIXME: The validation in the wallet should come here
         # FIXME: This method is not about the chain. It is about operations (should be on a higher level)
 
-        if isinstance(txto, int):
-            txto = self.wallet.address_bundle[txto].address
+        if isinstance(addr_to, int):
+            addr_to = self.wallet.address_bundle[addr_to].address
 
-        from_xmss = self.wallet.address_bundle[txfrom].xmss
-        from_addr = from_xmss.get_address()
+        xmss_from = self.wallet.address_bundle[addr_from_idx].xmss
+        addr_from = xmss_from.get_address()
+        block_number = self.block_chain_buffer.height() + 1
 
-        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1,
-                                                          from_addr)
+        tx_state = self.block_chain_buffer.get_stxn_state(block_number, addr_from)
 
         tx = SimpleTransaction().create(tx_state=tx_state,
-                                        txto=txto,
+                                        addr_to=addr_to,
                                         amount=amount,
-                                        xmss=from_xmss,
+                                        xmss=xmss_from,
                                         fee=fee)
 
         if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.transaction_pool):

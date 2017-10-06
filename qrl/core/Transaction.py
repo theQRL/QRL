@@ -80,14 +80,19 @@ class Transaction(object, metaclass=ABCMeta):
         # FIXME: Review this. Leon?
         return sha256(pub + tuple([int(char) for char in str(ots_key)]))
 
-    def _sign(self, xmss):
-        self.ots_key = xmss.get_index()
-        self.PK = xmss.pk()
-
+    def _get_pubhash(self, xmss):
         # FIXME: Review this. Leon?
-        self.pubhash = self.generate_pubhash(self.PK, self.ots_key)
-        self.txhash = sha2_256(self.txhash + self.pubhash)
+        self.PK = xmss.pk()
+        self.ots_key = xmss.get_index()
+        return self.generate_pubhash(self.PK, self.ots_key)
 
+    def _get_txhash(self, tmptxhash, pubhash):
+        # FIXME: Review this. Leon?
+        self.pubhash = pubhash
+        return sha2_256(tmptxhash + self.pubhash)
+
+    def _sign(self, txhash, xmss):
+        self.txhash = txhash
         self.signature = xmss.SIGN(self.txhash)
 
     def _validate_signed_hash(self, height=config.dev.xmss_tree_height):
@@ -201,20 +206,24 @@ class SimpleTransaction(Transaction):
 
         return True
 
-    def create(self, tx_state, txto, amount, xmss, fee=0):
+    def create(self, tx_state, addr_to, amount, xmss, fee=0):
         self.txfrom = xmss.get_address()
-        self.txto = txto
-        self.amount = int(amount)
-        self.fee = int(fee)
+        self.txto = addr_to
+        self.amount = int(amount)       # FIXME: Review conversions for quantities
+        self.fee = int(fee)             # FIXME: Review conversions for quantities
 
         # FIXME: This is very confusing and can be a security risk
         # FIXME: Duplication. Risk of mismatch (create & verification)
-        self.txhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
 
         if not self.pre_condition(tx_state):
             return False
 
-        self._sign(xmss)
+        tmppubhash = self._get_pubhash(xmss)
+
+        tmptxhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
+        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
+
+        self._sign(tmptxhash, xmss)
         return self
 
     def validate_tx(self):
@@ -353,10 +362,13 @@ class StakeTransaction(Transaction):
         if hashchain_terminator is None:
             self.hash = hashchain_reveal(xmss.get_seed_private(), epoch=self.epoch + 1)
 
-        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+        tmppubhash = self._get_pubhash(xmss)
 
-        self.txhash = str2bin(tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key))
-        self._sign(xmss)
+        tmptxhash = ''.join([bin2hstr(b) for b in self.hash])
+        tmptxhash = str2bin(tmptxhash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key))
+        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
+
+        self._sign(tmptxhash, xmss)
 
         return self
 
@@ -423,11 +435,16 @@ class CoinBase(Transaction):
         self.amount = blockheader.block_reward + blockheader.fee_reward
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
-        self.txhash = blockheader.prev_blockheaderhash + \
-                      tuple([int(char) for char in str(blockheader.blocknumber)]) + \
-                      blockheader.headerhash
+        tmptxhash = blockheader.prev_blockheaderhash + \
+                    tuple([int(char) for char in str(blockheader.blocknumber)]) + \
+                    blockheader.headerhash
 
-        self._sign(xmss)
+        tmppubhash = self._get_pubhash(xmss)
+
+        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
+
+        self._sign(tmptxhash, xmss)
+
         return self
 
     def validate_tx(self, chain, blockheader):
@@ -484,9 +501,11 @@ class LatticePublicKey(Transaction):
         self.tesla_pk = tesla_pk
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
-        self.txhash = sha256(self.kyber_pk + self.tesla_pk)
+        tmppubhash = self._get_pubhash(xmss)
+        tmptxhash = sha256(self.kyber_pk + self.tesla_pk)
+        tmptxhash = self._get_txhash(tmptxhash, tmppubhash)
 
-        self._sign(xmss)
+        self._sign(tmptxhash, xmss)
         return self
 
     def validate_tx(self):
