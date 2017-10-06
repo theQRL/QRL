@@ -5,6 +5,8 @@
 from operator import itemgetter
 from functools import reduce
 
+from jsonpickle import json
+
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
@@ -91,12 +93,13 @@ class State:
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
-        if height == self.db.get('blockheight'.encode()):
-            return True
-        return False
+        return height == self.state_blockheight
 
     def state_blockheight(self):
         return self.db.get('blockheight'.encode())
+
+    def state_set_blockheight(self, height):
+        return self.db.put('blockheight'.encode(), height)
 
     def state_get_txn_count(self, addr):
         try:
@@ -118,7 +121,21 @@ class State:
             logger.error('Exception in state_get_address')
             logger.exception(e)
 
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: THIS SHOULD BE REMOVED!!!!!!!!!!!!!!!!!
+        # FIXME: RETURNING FAKE FUNDS??? !!!!!!!!!!!!!!!!!
         return [0, 100 * (10**8), []]
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
@@ -131,38 +148,17 @@ class State:
 
         return False
 
-    def state_balance(self, addr):
-        try:
-            return self.db.get(addr.encode())[1]
-        except KeyError:
-            pass
-        except Exception as e:
-            logger.error('Exception in state_balance')
-            logger.exception(e)
-
-        return 100 * (10**8)
-
     def state_nonce(self, addr):
-        try:
-            return self.db.get(addr.encode())[0]
-        except KeyError:
-            pass
-        except Exception as e:
-            logger.error('Exception in state_nonce')
-            logger.exception(e)
+        address_state = self.state_get_address(addr)
+        return address_state[0]
 
-        return 0
+    def state_balance(self, addr):
+        address_state = self.state_get_address(addr)
+        return address_state[1]
 
     def state_pubhash(self, addr):
-        try:
-            return self.db.get(addr.encode())[2]
-        except KeyError:
-            pass
-        except Exception as e:
-            logger.error('Exception in state_pubhash')
-            logger.exception(e)
-
-        return []
+        address_state = self.state_get_address(addr)
+        return address_state[2]
 
     def state_hrs(self, hrs):
         try:
@@ -214,6 +210,34 @@ class State:
         self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
 
         return True
+
+    def return_all_addresses(self):
+        addresses = []
+        for k, v in self.db.RangeIter('Q'.encode()):
+            if k[0] == ord('Q'):
+                v = json.loads(v.decode())['value']
+                addresses.append([k, v[1]])
+        return addresses
+
+    def zero_all_addresses(self):
+        addresses = []
+        for k, v in self.db.RangeIter('Q'.encode()):
+            if k == b'slave_info':
+                continue
+            addresses.append(k)
+        for address in addresses:
+            self.db.put(address, [0, 0, []])
+
+        self.state_set_blockheight(0)
+        return
+
+    def total_coin_supply(self):
+        coins = 0
+        for k, v in self.db.RangeIter('Q'.encode()):
+            if k[0] == ord('Q'):
+                value = json.loads(v.decode('utf-8'))['value']
+                coins = coins + value[1]
+        return coins
 
     # Loads the state of the addresses mentioned into txn
     def load_address_state(self, chain, block, address_txn):
@@ -416,7 +440,8 @@ class State:
             if not ignore_save_wallet:
                 chain.wallet.save_wallet()
 
-        self.db.put('blockheight', chain.height() + 1)
+        self.state_set_blockheight(chain.height() + 1)
+
         logger.info('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
@@ -457,7 +482,7 @@ class State:
 
     def state_read_chain(self, chain):
 
-        self.db.zero_all_addresses()
+        self.zero_all_addresses()
         c = chain.m_get_block(0).state
         for address in c:
             self.db.put(address[0], address[1])
@@ -502,5 +527,5 @@ class State:
 
             logger.info((block, str(len(block.transactions)), 'tx ', ' passed'))
 
-        self.db.put('blockheight', chain.m_blockheight())
+        self.state_set_blockheight(chain.m_blockheight())
         return True

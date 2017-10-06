@@ -18,49 +18,17 @@ class DB:
         self.db_path = os.path.join(config.user.data_path, config.dev.db_name)
         logger.info('DB path: %s', self.db_path)
 
-        try:
-            # TODO: This is easier in python3 with exists_ok=True
-            os.makedirs(self.db_path)
-        except OSError as err:
-            if err.errno != 17:  # Already exists
-                raise
+        os.makedirs(self.db_path, exist_ok=True)
 
         # TODO: leveldb python module is not very active. Decouple and replace
         self.destroy()
         self.db = leveldb.LevelDB(self.db_path)
 
-    def return_all_addresses(self):
-        # FIXME: Separate concerns (db / logic)
-        addresses = []
-        for k, v in self.db.RangeIter('Q'.encode()):
-            if k[0] == ord('Q'):
-                v = json.loads(v.decode())['value']
-                addresses.append([k, v[1]])
-        return addresses
-
-    def total_coin_supply(self):
-        # FIXME: Separate concerns (db / logic)
-        coins = 0
-        for k, v in self.db.RangeIter('Q'.encode()):
-            if k[0] == ord('Q'):
-                value = json.loads(v.decode('utf-8'))['value']
-                coins = coins + value[1]
-        return coins
-
-    def zero_all_addresses(self):
-        # FIXME: Separate concerns (db / logic)
-        addresses = []
-        for k, v in self.db.RangeIter('Q'.encode()):
-            if k == b'slave_info':
-                continue
-            addresses.append(k)
-        for address in addresses:
-            self.put(address, [0, 0, []])
-        self.put('blockheight', 0)
-        return
-
     def destroy(self):
         leveldb.DestroyDB(self.db_path)
+
+    def RangeIter(self, *args, **kwargs):
+        return self.db.RangeIter(args, kwargs)
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
         dictObj = {'value': value_obj}

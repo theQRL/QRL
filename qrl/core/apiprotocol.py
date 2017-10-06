@@ -143,7 +143,10 @@ class ApiProtocol(Protocol):
         if not data:
             data = 5
 
-        error = {'status': 'error', 'error': 'invalid argument', 'method': 'richlist', 'parameter': data}
+        error = {'status': 'error',
+                 'error': 'invalid argument',
+                 'method': 'richlist',
+                 'parameter': data}
 
         try:
             n = int(data)
@@ -154,9 +157,11 @@ class ApiProtocol(Protocol):
             return json_print_telnet(error)
 
         if not self.factory.state.state_uptodate(self.factory.chain.m_blockheight()):
-            return json_print_telnet({'status': 'error', 'error': 'leveldb failed', 'method': 'richlist'})
+            return json_print_telnet({'status': 'error',
+                                      'error': 'leveldb failed',
+                                      'method': 'richlist'})
 
-        addr = self.factory.state.db.return_all_addresses()
+        addr = self.factory.state.return_all_addresses()
         richlist = sorted(addr, key=itemgetter(1), reverse=True)
 
         rl = {'richlist': {}}
@@ -375,7 +380,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_list.sv_list:
             b += self.factory.state.state_balance(staker)
         staked = decimal.Decimal((b / 100000000.000000000) / (
-        self.factory.state.db.total_coin_supply() / 100000000.000000000) * 100).quantize(
+        self.factory.state.total_coin_supply() / 100000000.000000000) * 100).quantize(
             decimal.Decimal('1.00'))  # /100000000.000000000)
         staked = float(str(staked))
 
