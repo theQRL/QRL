@@ -44,7 +44,7 @@ class State:
 
     def stake_list_get(self):
         try:
-            return self.db.get('stake_list'.encode())
+            return self.db.get('stake_list')
         except KeyError:
             pass
         except Exception as e:
@@ -62,7 +62,7 @@ class State:
 
     def next_stake_list_get(self):
         try:
-            return self.db.get('next_stake_list'.encode())
+            return self.db.get('next_stake_list')
         except KeyError:
             pass
         except Exception as e:
@@ -87,7 +87,7 @@ class State:
 
     def get_epoch_seed(self):
         try:
-            return self.db.get('epoch_seed'.encode())
+            return self.db.get('epoch_seed')
         except Exception as e:
             logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
@@ -96,14 +96,14 @@ class State:
         return height == self.state_blockheight
 
     def state_blockheight(self):
-        return self.db.get('blockheight'.encode())
+        return self.db.get('blockheight')
 
     def state_set_blockheight(self, height):
-        return self.db.put('blockheight'.encode(), height)
+        return self.db.put('blockheight', height)
 
     def state_get_txn_count(self, addr):
         try:
-            return self.db.get( ('txn_count_' + addr).encode())
+            return self.db.get( ('txn_count_' + addr))
         except KeyError:
             pass
         except Exception as e:
@@ -114,7 +114,7 @@ class State:
 
     def state_get_address(self, addr):
         try:
-            return self.db.get(addr.encode())
+            return self.db.get(addr)
         except KeyError:
             pass
         except Exception as e:
@@ -139,7 +139,7 @@ class State:
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
-            return self.db.get(addr.encode())
+            return self.db.get(addr)
         except KeyError:
             pass
         except Exception as e:
@@ -162,7 +162,7 @@ class State:
 
     def state_hrs(self, hrs):
         try:
-            return self.db.get('hrs{}'.format(hrs).encode())
+            return self.db.get('hrs{}'.format(hrs))
         except KeyError:
             pass
         except Exception as e:
@@ -213,7 +213,7 @@ class State:
 
     def return_all_addresses(self):
         addresses = []
-        for k, v in self.db.RangeIter('Q'.encode()):
+        for k, v in self.db.RangeIter('Q'):
             if k[0] == ord('Q'):
                 v = json.loads(v.decode())['value']
                 addresses.append([k, v[1]])
@@ -221,7 +221,7 @@ class State:
 
     def zero_all_addresses(self):
         addresses = []
-        for k, v in self.db.RangeIter('Q'.encode()):
+        for k, v in self.db.RangeIter('Q'):
             if k == b'slave_info':
                 continue
             addresses.append(k)
@@ -233,7 +233,7 @@ class State:
 
     def total_coin_supply(self):
         coins = 0
-        for k, v in self.db.RangeIter('Q'.encode()):
+        for k, v in self.db.RangeIter('Q'):
             if k[0] == ord('Q'):
                 value = json.loads(v.decode('utf-8'))['value']
                 coins = coins + value[1]
