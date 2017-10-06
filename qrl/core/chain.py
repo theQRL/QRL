@@ -555,6 +555,7 @@ class Chain:
 
         for block in chains[1:]:
             self.add_block_mainchain(block, validate=False)
+
         return self.m_blockchain
 
     def add_block_mainchain(self, block, validate=True):
@@ -563,17 +564,10 @@ class Chain:
                                                            validate=validate)
 
     def m_load_chain(self):
-
         del self.m_blockchain[:]
-        self.state.db.zero_all_addresses()
-        chains = self.f_read_chain(0)
-        self.m_blockchain.append(chains[0])
-        self.state.state_read_genesis(self.m_get_block(0))
-        self.block_chain_buffer = ChainBuffer(self)
+        self.state.zero_all_addresses()
 
-        for block in chains[1:]:
-            self.add_block_mainchain(block,
-                                     validate=False)
+        self.load_chain_by_epoch(0)
 
         if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
             return self.m_blockchain
@@ -584,10 +578,11 @@ class Chain:
             chains = self.f_read_chain(epoch)
 
             for block in chains:
-                self.add_block_mainchain(block,
-                                         validate=False)
+                self.add_block_mainchain(block, validate=False)
+
             epoch += 1
         self.wallet.save_wallet()
+
         gc.collect()
         return self.m_blockchain
 
