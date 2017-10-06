@@ -1,14 +1,17 @@
 import os
 
 from qrl.core import config, logger
+from qrl.core.state import State
 from qrl.generated import qrl_pb2
 
 
 class QRLNode:
-    def __init__(self):
+    def __init__(self, db_state: State):
         self.peer_addresses = []
         self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
         self.load_peer_addresses()
+
+        self.db_state = db_state
 
     def load_peer_addresses(self):
         if os.path.isfile(self.peers_path):
@@ -33,3 +36,14 @@ class QRLNode:
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
+    def get_address_state(self, address):
+        # FIXME: Refactor.
+        nonce, balance, pubhash_list = self.db_state.state_get_address(address)
+        transactions = []
+
+        address_state = qrl_pb2.AddressState(address=address,
+                                             balance=balance,
+                                             nonce=nonce,
+                                             transactions=transactions)
+
+        return address_state

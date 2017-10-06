@@ -69,13 +69,6 @@ def main():
 
     logger.debug("=====================================================================================")
 
-    #######
-
-    qrlnode = QRLNode()
-    qrlserver = start_services(qrlnode)                   # Keep assigned to a variable or it will be collected
-
-    #######
-
     logger.info("Data Path: %s", args.data_path)
     logger.info("Wallet Path: %s", args.wallet_path)
     config.user.data_path = args.data_path
@@ -88,6 +81,20 @@ def main():
     logger.info('Initializing chain..')
     state_obj = State()
     chain_obj = Chain(state=state_obj)
+    qrlnode = QRLNode(db_state=state_obj)
+
+    if args.get_wallets:
+        address_data = chain_obj.wallet.list_addresses(chain_obj.state,
+                                                       chain_obj.transaction_pool)
+        addresses = [a[0] for a in address_data]
+        print((addresses[0]))
+        return
+
+    #######
+    # NOTE: Keep assigned to a variable or it will be collected
+    qrlserver = start_services(qrlnode)
+    #######
+
 
     logger.info('Reading chain..')
     chain_obj.m_load_chain()
@@ -95,11 +102,6 @@ def main():
     logger.info('Verifying chain')
     logger.info('Building state leveldb')
 
-    if args.get_wallets:
-        address_data = chain_obj.wallet.list_addresses(chain_obj.state, chain_obj.transaction_pool)
-        addresses = [ a[0] for a in address_data ]
-        print((addresses[0]))
-        quit()
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
     p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state, node=qrlnode)

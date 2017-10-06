@@ -27,7 +27,7 @@ message GetAddressStateReq {   string address = 1;  }
 message GetAddressStateResp {   AddressState state = 1; }
 
 message TransferCoinsReq {   Transaction transaction = 1;  }
-message TransferCoinsResp {   AddressState state = 1; }  // FIXME: What to return here?
+message TransferCoinsResp {   AddressState state = 1; }  // FIXME: What to return here? tx_id?
 
 // Content
 
@@ -56,9 +56,11 @@ message Peer
 message AddressState
 {
     string address = 1;
-    string balance = 2;     // FIXME: We need a better solution for decimals. Serializing as string for now.
-    uint32 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
+    uint64 balance = 2;     // FIXME: Review quantities
+    uint64 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
     repeated Transaction transactions = 4;
+
+    // FIXME: Add stake information. Probably a reference to another obj
 }
 
 message Transaction
@@ -82,8 +84,8 @@ message Transaction
     bytes signature = 7;                // Required for Signed Transfer
 
     string addr_to = 8;                 // Required for Transfer
-    string amount = 9;                  // Required for Transfer        // FIXME: Review quantities
-    string fee = 10;                    // Required for Transfer        // FIXME: Review quantities
+    uint64 amount = 9;                  // Required for Transfer        // FIXME: Review quantities
+    uint64 fee = 10;                    // Required for Transfer        // FIXME: Review quantities
 
     uint64 epoch = 11;                  // Required for Stake
     bytes public_key_slave = 12;        // Required for Stake

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 pushd . > /dev/null
-cd $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+cd $( dirname "${BASH_SOURCE[0]}" )
 cd ..
 
 python -m grpc_tools.protoc -I=qrl/protos --python_out=qrl/generated --grpc_python_out=qrl/generated qrl/protos/qrl.proto
