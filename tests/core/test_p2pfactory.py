@@ -15,6 +15,6 @@ class TestP2PFactory(TestCase):
         super(TestP2PFactory, self).__init__(*args, **kwargs)
 
     def test_create_factory(self):
-        factory = P2PFactory(chain=None, nodeState=None, pos=None)
+        factory = P2PFactory(chain=None, nodeState=None, pos=None, node=None)
         self.assertEqual(factory.protocol, P2PProtocol,
                          "Factory has not been assigned the expected protocol")

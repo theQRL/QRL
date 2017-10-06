@@ -15,7 +15,7 @@ def calc_coeff(N_tot, block_tot):
     :param N_tot:
     :param block_tot:
     :return:
-    >>>calc_coeff(1, 1)
+    >>> calc_coeff(1, 1)
     0.0
     """
     return log(N_tot) / block_tot
