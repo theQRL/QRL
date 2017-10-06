@@ -3,14 +3,14 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
-from qrl.core.helper import json_print_telnet, json_bytestream, json_print
+from qrl.core.helper import json_bytestream, json_print
 from qrl.core.Transaction import SimpleTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
@@ -27,6 +27,8 @@ from collections import defaultdict
 from decimal import Decimal
 
 
+BlockFrame = namedtuple('BlockFrame', 'position size')         # FIXME: Remove/Refactor. This is temporary
+
 class Chain:
     def __init__(self, state):
         self.state = state
@@ -38,7 +40,7 @@ class Chain:
 
         self.ping_list = []                     # FIXME: This has nothing to do with chain
 
-        self.block_metadata = dict()
+        self.block_framedata = dict()
 
         self.transaction_pool = []
         self.txhash_timestamp = []
@@ -585,15 +587,22 @@ class Chain:
         return True
 
     def create_my_tx(self, txfrom, txto, amount, fee=0):
+        # FIXME: The validation in the wallet should come here
+        # FIXME: This method is not about the chain. It is about operations (should be on a higher level)
+
         if isinstance(txto, int):
             txto = self.wallet.address_bundle[txto].address
 
-        xmss = self.wallet.address_bundle[txfrom].xmss
-        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.get_address())
+        from_xmss = self.wallet.address_bundle[txfrom].xmss
+        from_addr = from_xmss.get_address()
+
+        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1,
+                                                          from_addr)
+
         tx = SimpleTransaction().create(tx_state=tx_state,
                                         txto=txto,
                                         amount=amount,
-                                        xmss=xmss,
+                                        xmss=from_xmss,
                                         fee=fee)
 
         if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.transaction_pool):
@@ -648,7 +657,7 @@ class Chain:
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
                 pos = myfile.tell()
                 blockSize = len(compressedBlock)
-                self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
+                self.block_framedata[block.blockheader.blocknumber] = BlockFrame(pos, blockSize)
                 myfile.write(compressedBlock)
                 myfile.write(config.dev.binary_file_delimiter)
 
@@ -669,9 +678,11 @@ class Chain:
         pos, size = self.get_block_metadata(blocknum)
 
         with open(self.get_chaindatafile(epoch), 'rb') as f:
-            # FIXME: Accessing DB directly
-            f.seek(pos)
-            jsonBlock = bz2.decompress(f.read(size))
+            framedata = self.block_framedata[blocknum]
+
+            f.seek(framedata.position)
+            jsonBlock = bz2.decompress(f.read(framedata.size))
+
             block = Block.from_json(jsonBlock)
             return block
 
@@ -711,9 +722,11 @@ class Chain:
                             count = 0
                             pos = offset - len(delimiter) - len(jsonBlock)
                             jsonBlock = bz2.decompress(jsonBlock)
+
                             block = Block.from_json(jsonBlock)
-                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
+                            self.block_framedata[block.blockheader.blocknumber] = BlockFrame(pos, len(jsonBlock))
                             block_list.append(block)
+
                             jsonBlock = bytearray()
                             continue
                         jsonBlock.append(char)

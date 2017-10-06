@@ -377,7 +377,7 @@ class ChainBuffer:
             stateBuffer = self.blocks[blocknumber - 1][1]
 
             if addr in stateBuffer.stxn_state:
-                return deepcopy(stateBuffer.stxn_state[addr])
+                return deepcopy(stateBuffer.stxn_state[addr])       # FIXME: Why deepcopy?
 
             return self.state.state_get_address(addr)
         except KeyError:

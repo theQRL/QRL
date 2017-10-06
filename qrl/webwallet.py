@@ -196,6 +196,8 @@ class sendQuanta(Resource):
     # Bit of duplicated code here - couldn't get it to work directly.
     # Will follow up with cyyber
     def send_tx(self, wallet_from, wallet_to, send_amount):
+        # FIXME: Duplication.
+
         self.txnResult = {
             'status': 'fail',
             'message': '',

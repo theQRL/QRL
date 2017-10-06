@@ -26,12 +26,12 @@ class Transaction(object, metaclass=ABCMeta):
     def __init__(self):
         self.nonce = 0  # Nonce is set when block is being created
         self.ots_key = None
-        self.pubhash = None
-        self.txhash = None
-        self.txfrom = None
+        self.txfrom = None  # FIXME: addr_from
+        self.pubhash = None  # FIXME: public_hash
+        self.txhash = None  # FIXME: transaction_hash
 
-        self.PK = None
-        self.signature = None
+        self.PK = None  # FIXME: public_key
+        self.signature = None  # FIXME: signature
 
     @staticmethod
     def tx_id_to_name(id):
@@ -39,7 +39,8 @@ class Transaction(object, metaclass=ABCMeta):
             1: 'TX',
             2: 'STAKE',
             3: 'COINBASE',
-            4: 'LATTICE'
+            4: 'LATTICE',
+            5: 'DUPLICATE'
         }
         return id_name[id]
 
@@ -60,7 +61,6 @@ class Transaction(object, metaclass=ABCMeta):
         >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Lattice), LatticePublicKey)
         True
         """
-        # type: (dict) -> Transaction
 
         # TODO: This would probably make more sense in a factory. Wait for protobuf3
         # FIXME: Avoid dictionary lookups for a small fixed amount of keys
@@ -77,30 +77,17 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def generate_pubhash(pub, ots_key):
+        # FIXME: Review this. Leon?
         return sha256(pub + tuple([int(char) for char in str(ots_key)]))
 
-    @staticmethod
-    def nonce_allocator(self, tx_list, block_chain_buffer, blocknumber=-1):
-        if blocknumber == -1:
-            blocknumber = block_chain_buffer.height()
-
-        addr_state = {}
-        for tx in tx_list:
-            if tx.txfrom not in addr_state:
-                addr_state[tx.txfrom] = block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
-
-            addr_state[tx.txfrom][0] += 1
-            tx.nonce = addr_state[tx.txfrom][0]
-
-        return tx_list
-
-    def _process_XMSS(self, txfrom, txhash, xmss):
+    def _sign(self, xmss):
         self.ots_key = xmss.get_index()
-        self.pubhash = self.generate_pubhash(xmss.pk(), self.ots_key)
-        self.txhash = sha2_256(txhash + self.pubhash)
-        self.txfrom = txfrom
-
         self.PK = xmss.pk()
+
+        # FIXME: Review this. Leon?
+        self.pubhash = self.generate_pubhash(self.PK, self.ots_key)
+        self.txhash = sha2_256(self.txhash + self.pubhash)
+
         self.signature = xmss.SIGN(self.txhash)
 
     def _validate_signed_hash(self, height=config.dev.xmss_tree_height):
@@ -118,7 +105,6 @@ class Transaction(object, metaclass=ABCMeta):
         return True
 
     def _dict_to_transaction(self, dict_tx):
-        # type: (dict) -> Transaction
         self.subtype = dict_tx['subtype']
 
         self.ots_key = int(dict_tx['ots_key'])
@@ -130,6 +116,7 @@ class Transaction(object, metaclass=ABCMeta):
 
         self.PK = tuple(dict_tx['PK'])
         self.signature = tuple(dict_tx['signature'])
+
         return self
 
     def _reformat(self, srcList):
@@ -155,7 +142,6 @@ class Transaction(object, metaclass=ABCMeta):
         message = StringIO()
         # FIXME: This looks suspicious
         '''
-
         message.write(self.nonce)
         message.write(self.txfrom)
         message.write(self.txhash)
@@ -190,7 +176,6 @@ class SimpleTransaction(Transaction):
         return sha256(bytes(message.getvalue(), 'utf-8'))
 
     def _dict_to_transaction(self, dict_tx):
-        # type: (dict) -> qrl.core.transaction.SimpleTransaction
         super(SimpleTransaction, self)._dict_to_transaction(dict_tx)
         self.txto = dict_tx['txto']
         self.amount = int(dict_tx['amount'])
@@ -204,10 +189,12 @@ class SimpleTransaction(Transaction):
         tx_balance = tx_state[1]
 
         if self.amount < 0:
+            # FIXME: logging txhash here is not useful as this changes when signing
             logger.info('State validation failed for %s because: Negative send', self.txhash)
             return False
 
         if tx_balance < self.amount:
+            # FIXME: logging txhash here is not useful as this changes when signing
             logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
             logger.info('balance: %s, amount: %s', tx_balance, self.amount)
             return False
@@ -221,12 +208,13 @@ class SimpleTransaction(Transaction):
         self.fee = int(fee)
 
         # FIXME: This is very confusing and can be a security risk
+        # FIXME: Duplication. Risk of mismatch (create & verification)
         self.txhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
+
         if not self.pre_condition(tx_state):
             return False
 
-        self._process_XMSS(self.txfrom, self.txhash, xmss)
-
+        self._sign(xmss)
         return self
 
     def validate_tx(self):
@@ -239,6 +227,7 @@ class SimpleTransaction(Transaction):
             logger.info('Amount %d', self.amount)
             return False
 
+        # FIXME: Duplication. Risk of mismatch (create & verification)
         txhash = sha256(bytes(''.join(self.txfrom + self.txto + str(self.amount) + str(self.fee)), 'utf-8'))
         txhash = sha256(txhash + self.pubhash)
 
@@ -310,7 +299,6 @@ class StakeTransaction(Transaction):
         return result
 
     def _dict_to_transaction(self, dict_tx):
-        # type: (dict) -> qrl.core.transaction.StakeTransaction
         super(StakeTransaction, self)._dict_to_transaction(dict_tx)
         self.epoch = int(dict_tx['epoch'])
         self.balance = dict_tx['balance']
@@ -351,23 +339,25 @@ class StakeTransaction(Transaction):
             logger.info('Invalid Balance %d', balance)
             raise Exception
 
+        self.txfrom = xmss.get_address()
+
         self.slave_public_key = slave_public_key
         self.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
-        self.first_hash = first_hash
         self.balance = balance
 
-        if hashchain_terminator is None:
-            self.hash = hashchain_reveal(xmss.get_seed_private(), epoch=self.epoch + 1)
-        else:
-            self.hash = hashchain_terminator
-
-        tmphash = ''.join([bin2hstr(b) for b in self.hash])
-
+        self.first_hash = first_hash
         if self.first_hash is None:
             self.first_hash = tuple()
 
+        self.hash = hashchain_terminator
+        if hashchain_terminator is None:
+            self.hash = hashchain_reveal(xmss.get_seed_private(), epoch=self.epoch + 1)
+
+        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+
         self.txhash = str2bin(tmphash + bin2hstr(self.first_hash) + bin2hstr(self.slave_public_key))
-        self._process_XMSS(xmss.get_address(), self.txhash, xmss)  # self.hash to be replaced with self.txhash
+        self._sign(xmss)
+
         return self
 
     def validate_tx(self):
@@ -422,7 +412,6 @@ class CoinBase(Transaction):
         self.subtype = TX_SUBTYPE_COINBASE
 
     def _dict_to_transaction(self, dict_tx):
-        # type: (dict) -> qrl.core.transaction.CoinBase
         super(CoinBase, self)._dict_to_transaction(dict_tx)
         self.txto = dict_tx['txto']
         self.amount = int(dict_tx['amount'])
@@ -433,8 +422,12 @@ class CoinBase(Transaction):
         self.txto = blockheader.stake_selector
         self.amount = blockheader.block_reward + blockheader.fee_reward
 
-        self.txhash = blockheader.prev_blockheaderhash + tuple([int(char) for char in str(blockheader.blocknumber)]) + blockheader.headerhash
-        self._process_XMSS(self.txfrom, self.txhash, xmss)
+        # FIXME: Duplication. Risk of mismatch (create & verification)
+        self.txhash = blockheader.prev_blockheaderhash + \
+                      tuple([int(char) for char in str(blockheader.blocknumber)]) + \
+                      blockheader.headerhash
+
+        self._sign(xmss)
         return self
 
     def validate_tx(self, chain, blockheader):
@@ -450,7 +443,12 @@ class CoinBase(Transaction):
             logger.warning('txto: %s txfrom: %s', self.txto, self.txfrom)
             return False
 
-        txhash = blockheader.prev_blockheaderhash + tuple([int(char) for char in str(blockheader.blocknumber)]) + blockheader.headerhash
+        # FIXME: Duplication. Risk of mismatch (create & verification)
+        txhash = blockheader.prev_blockheaderhash + \
+                 tuple([int(char) for char in str(blockheader.blocknumber)]) + \
+                 blockheader.headerhash
+
+        # FIXME: This additional transformation happens in a base class
         txhash = sha256(txhash + self.pubhash)
 
         if self.txhash != txhash:
@@ -459,7 +457,7 @@ class CoinBase(Transaction):
             logger.warning('Expected: %s', txhash)
             return False
 
-        #Slave XMSS is used to sign COINBASE txn having quite low XMSS height
+        # Slave XMSS is used to sign COINBASE txn having quite low XMSS height
         if not self._validate_signed_hash(height=config.dev.slave_xmss_height):
             return False
 
@@ -477,7 +475,6 @@ class LatticePublicKey(Transaction):
         self.subtype = TX_SUBTYPE_LATTICE
 
     def _dict_to_transaction(self, dict_tx):
-        # type: (dict) -> LatticePublicKey
         super(LatticePublicKey, self)._dict_to_transaction(dict_tx)
         return self
 
@@ -485,16 +482,21 @@ class LatticePublicKey(Transaction):
         self.txfrom = xmss.get_address()
         self.kyber_pk = kyber_pk
         self.tesla_pk = tesla_pk
+
+        # FIXME: Duplication. Risk of mismatch (create & verification)
         self.txhash = sha256(self.kyber_pk + self.tesla_pk)
-        self._process_XMSS(xmss.get_address(), self.txhash, xmss)
+
+        self._sign(xmss)
         return self
 
     def validate_tx(self):
         if not self._validate_subtype(self.subtype, TX_SUBTYPE_LATTICE):
             return False
 
+        # FIXME: Duplication. Risk of mismatch (create & verification)
         txhash = sha256(self.kyber_pk + self.tesla_pk)
         txhash = sha256(txhash + self.pubhash)
+
         if self.txhash != txhash:
             logger.info('Invalid Txhash')
             logger.warning('Found: %s Expected: %s', self.txhash, txhash)
@@ -504,6 +506,7 @@ class LatticePublicKey(Transaction):
             return False
 
         return True
+
 
 class DuplicateTransaction:
     def __init__(self):
