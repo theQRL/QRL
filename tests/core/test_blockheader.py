@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from qrl.core import logger
 from qrl.core.blockheader import BlockHeader
+from qrl.core.qrl_formulas import calc_coeff, remaining_emission
 
 logger.initialize_default(force_console_output=True)
 
@@ -22,13 +23,13 @@ class TestBlockHeader(TestCase):
 
     def test_calc_coeff(self):
         # TODO: Verify value and required precision
-        self.assertAlmostEqual(BlockHeader.calc_coeff(100, 2), 2.302585092994046, places=10)
+        self.assertAlmostEqual(calc_coeff(100, 2), 2.302585092994046, places=10)
         # TODO: Test more values
 
     def test_remaining_emission(self):
         # TODO: Verify value and required precision
-        print(BlockHeader.remaining_emission(100, 2))
-        self.assertEqual(BlockHeader.remaining_emission(100, 2), Decimal('99.99999122'))
+        print(remaining_emission(100, 2))
+        self.assertEqual(remaining_emission(100, 2), Decimal('99.99999122'))
         # TODO: Test more values
 
 

@@ -5,7 +5,6 @@
 import random
 import time
 from collections import Counter, defaultdict
-import simplejson as json
 from functools import reduce
 
 from pyqrllib.pyqrllib import bin2hstr

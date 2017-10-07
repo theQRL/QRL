@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-# FIXME: It is better to use GUIDs or plain integers instead of strings
+# FIXME: This is moving to protobuf enums
 
 TX_SUBTYPE_TX = 1
 TX_SUBTYPE_STAKE = 2

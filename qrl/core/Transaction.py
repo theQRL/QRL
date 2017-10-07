@@ -6,9 +6,9 @@ from abc import ABCMeta
 
 import simplejson as json
 from io import StringIO
+from pyqrllib.pyqrllib import sha2_256, getAddress, bin2hstr, str2bin
 
 import qrl
-from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin, bin2hstr, str2bin
 from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal
@@ -50,6 +50,7 @@ class Transaction(object, metaclass=ABCMeta):
         :type txdict:
         :return:
         :rtype:
+
         >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Simple), SimpleTransaction)
         True
         >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Stake), StakeTransaction)
@@ -215,7 +216,7 @@ class SimpleTransaction(Transaction):
 
     def create(self, tx_state, txto, amount, xmss, fee=0):
         self.txfrom = xmss.get_address()
-        self.txto = txto.decode('ascii')
+        self.txto = txto
         self.amount = int(amount)
         self.fee = int(fee)
 
@@ -290,6 +291,7 @@ class StakeTransaction(Transaction):
         """
         :return:
         :rtype:
+
         >>> s = StakeTransaction()
         >>> seed = [i for i in range(48)]
         >>> slave = XMSS(4, seed)

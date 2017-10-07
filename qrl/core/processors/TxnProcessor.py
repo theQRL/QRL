@@ -7,6 +7,7 @@ from time import time
 from twisted.internet.task import cooperate
 from pyqrllib.pyqrllib import bin2hstr
 
+
 class TxnProcessor:
 
     def __init__(self, block_chain_buffer, pending_tx_pool, transaction_pool, txhash_timestamp):
@@ -39,7 +40,7 @@ class TxnProcessor:
             return False
 
         tx_state = self.block_chain_buffer.get_stxn_state(blocknumber=self.block_chain_buffer.height(),
-                                                     addr=tx.txfrom)
+                                                          addr=tx.txfrom)
         isValidState = tx.state_validate_tx(
             tx_state=tx_state,
             transaction_pool=self.transaction_pool

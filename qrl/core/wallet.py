@@ -5,13 +5,15 @@ from collections import namedtuple
 
 import qrl.core.Transaction_subtypes
 from pyqrllib.pyqrllib import mnemonic2bin
+
+from qrl.generated import qrl_pb2
 from qrl.core import config, logger
 from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
 
 import os
 
-import simplejson as json
+import simplejson as json       # TODO: Left here for backward compatibility. Remove in next hard fork
 
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
 AddressSerialized = namedtuple('AddressSerialized', 'address mnemonic index')
@@ -38,39 +40,72 @@ class Wallet:
 
     def save_wallet(self):
         logger.info('Syncing wallet file')
-        with open(self.wallet_dat_filename, "w") as outfile:
-            # map
-            data = [AddressSerialized(a.address,
-                                      a.xmss.get_mnemonic(),
-                                      a.xmss.get_index())
-                    for a in self.address_bundle]
 
-            json.dump(data, outfile)
+        wallet_store = qrl_pb2.WalletStore()
+        wallets = []
+        for a in self.address_bundle:
+            wallets.append(qrl_pb2.Wallet(address=a.address,
+                                          mnemonic=a.xmss.get_mnemonic(),
+                                          xmss_index=a.xmss.get_index()))
+        wallet_store.wallets.extend(wallets)
+
+        with open(self.wallet_dat_filename, "wb") as outfile:
+            outfile.write(wallet_store.SerializeToString())
 
     def save_slave(self, slave):
-        with open(self.slave_dat_filename, "w") as outfile:
-            data = AddressSerialized(slave.get_address(), slave.get_mnemonic(), slave.get_index())
-            json.dump(data, outfile)
+        with open(self.slave_dat_filename, "wb") as outfile:
+            w = qrl_pb2.Wallet(address=slave.get_address(),
+                               mnemonic=slave.get_mnemonic(),
+                               xmss_index=slave.get_index())
+            outfile.write(w.SerializeToString())
 
     def read_slave(self):
         if not os.path.isfile(self.slave_dat_filename):
             return
-
         try:
-            with open(self.slave_dat_filename, "r") as infile:
-                data = json.load(infile)
-                return data
+            with open(self.slave_dat_filename, "rb") as infile:
+                w = qrl_pb2.Wallet()
+                w.ParseFromString(infile.read())
+                return AddressSerialized(w.address, w.mnemonic, w.xmss_index)
+
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
 
     def _read_wallet(self):
         self.address_bundle = None
+
         if not os.path.isfile(self.wallet_dat_filename):
-            return
+            upgraded = self._upgrade_old_wallet()
+            if not upgraded:
+                return
 
         try:
             logger.info('Retrieving wallet file')
-            with open(self.wallet_dat_filename, "r") as infile:
+            with open(self.wallet_dat_filename, "rb") as infile:
+                wallet_store = qrl_pb2.WalletStore()
+                wallet_store.ParseFromString(infile.read())
+
+                self.address_bundle = []
+                for a in wallet_store.wallets:
+                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a.mnemonic.strip(), wordlist))
+                    tmpxmss.set_index(a.xmss_index)
+                    if a.address != tmpxmss.get_address():
+                        logger.fatal("Mnemonic and address do not match.")
+                        exit(1)
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
+
+        except Exception as e:
+            logger.warning("It was not possible to open the wallet: %s", e)
+
+    def _upgrade_old_wallet(self):
+        wallet_old_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_old_dat_filename)
+        if not os.path.isfile(wallet_old_dat_filename):
+            return False
+
+        logger.info("Found old wallet format. Upgrading")
+        try:
+            logger.info('Retrieving wallet file')
+            with open(wallet_old_dat_filename, "r") as infile:
                 data = json.load(infile)
                 self.address_bundle = []
                 for a in data:
@@ -79,6 +114,9 @@ class Wallet:
                     self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
+
+        logger.info("Saving in the new format")
+        self.save_wallet()
 
     def _valid_or_create(self):
         if self.address_bundle is None or len(self.address_bundle) == 0:

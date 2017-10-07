@@ -125,7 +125,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_mnemonic() == xmss_mnemonic_test2
         True
         """
-        return bin2mnemonic(self._seed, wordlist)
+        return bin2mnemonic(self._xmss.getSeed(), wordlist)
 
     def get_address(self):
         return self._xmss.getAddress('Q')
