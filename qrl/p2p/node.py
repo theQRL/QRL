@@ -14,17 +14,21 @@ class QRLNode:
         self.db_state = db_state
 
     def load_peer_addresses(self):
-        if os.path.isfile(self.peers_path):
-            logger.info('Opening peers.qrl')
-            with open(self.peers_path, 'rb') as infile:
-                known_peers = qrl_pb2.KnownPeers()
-                known_peers.ParseFromString(infile.read())
-                self.peer_addresses = [peer.ip for peer in known_peers.peers]
-        else:
-            logger.info('Creating peers.qrl')
-            # Ensure the data path exists
-            config.create_path(config.user.data_path)
-            self.update_peer_addresses(config.user.peer_list)
+        try:
+            if os.path.isfile(self.peers_path):
+                logger.info('Opening peers.qrl')
+                with open(self.peers_path, 'rb') as infile:
+                    known_peers = qrl_pb2.KnownPeers()
+                    known_peers.ParseFromString(infile.read())
+                    self.peer_addresses = [peer.ip for peer in known_peers.peers]
+                    return
+        except Exception as e:
+            logger.warning("Error loading peers")
+
+        logger.info('Creating peers.qrl')
+        # Ensure the data path exists
+        config.create_path(config.user.data_path)
+        self.update_peer_addresses(config.user.peer_list)
 
         logger.info('Known Peers: %s', self.peer_addresses)
 
