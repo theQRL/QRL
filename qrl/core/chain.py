@@ -389,10 +389,9 @@ class Chain:
                     if islong == 1: json_print(tx)
         return
 
-    def update_block_metadata(self, blocknumber, blockPos, blockSize):
+    def update_block_metadata(self, block_number, block_position, block_size):
         # FIXME: Breaking encapsulation
-        self.state.db.db.Put(bytes('block_' + str(blocknumber), 'utf-8'),
-                             bytes(str(blockPos) + ',' + str(blockSize), 'utf-8'))
+        self.state.db.put('blockpos_{}'.format(block_number), [block_position, block_size])
 
     def update_last_tx(self, block):
         if len(block.transactions) == 0:
@@ -661,12 +660,10 @@ class Chain:
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
 
+        pos, size = self.state.db.get('blockpos_{}'.format(blocknum))
+
         with open(self.get_chaindatafile(epoch), 'rb') as f:
             # FIXME: Accessing DB directly
-            pos_size = self.state.db.db.Get(bytes('block_' + str(blocknum), 'utf-8'))
-            pos, size = pos_size.decode('utf-8').split(',')
-            pos = int(pos)
-            size = int(size)
             f.seek(pos)
             jsonBlock = bz2.decompress(f.read(size))
             block = Block.from_json(jsonBlock)
