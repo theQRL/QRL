@@ -53,7 +53,7 @@ class Wallet:
             outfile.write(wallet_store.SerializeToString())
 
     def save_slave(self, slave):
-        with open(self.slave_dat_filename, "w") as outfile:
+        with open(self.slave_dat_filename, "wb") as outfile:
             w = qrl_pb2.Wallet(address=slave.get_address(),
                                mnemonic=slave.get_mnemonic(),
                                xmss_index=slave.get_index())
@@ -63,7 +63,7 @@ class Wallet:
         if not os.path.isfile(self.slave_dat_filename):
             return
         try:
-            with open(self.slave_dat_filename, "r") as infile:
+            with open(self.slave_dat_filename, "rb") as infile:
                 w = qrl_pb2.Wallet()
                 w.ParseFromString(infile.read())
                 return AddressSerialized(w.address, w.mnemonic, w.xmss_index)
