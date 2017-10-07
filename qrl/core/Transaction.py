@@ -72,6 +72,7 @@ class Transaction(object, metaclass=ABCMeta):
         }
 
         subtype = txdict['subtype']
+
         return type_to_txn[subtype]()._dict_to_transaction(txdict)
 
     @staticmethod
@@ -154,7 +155,7 @@ class Transaction(object, metaclass=ABCMeta):
         message = StringIO()
         # FIXME: This looks suspicious
         '''
-        
+
         message.write(self.nonce)
         message.write(self.txfrom)
         message.write(self.txhash)

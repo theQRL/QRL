@@ -495,6 +495,8 @@ class Chain:
         myBlock.create(self, reveal_hash, vote_hash, last_block_number)
 
         slave_xmss = self.block_chain_buffer.get_slave_xmss(last_block_number + 1)
+        if not slave_xmss:
+            return
         self.wallet.save_slave(slave_xmss)
         return myBlock
 
