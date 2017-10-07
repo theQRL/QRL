@@ -33,7 +33,7 @@ class DB:
         return self.db.RangeIter(key_obj)
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
-        if not isinstance(key_obj, bytes):
+        if not isinstance(key_obj, bytes) and not isinstance(key_obj, bytearray):
             key_obj = key_obj.encode()
 
         # FIXME: Bottleneck
