@@ -500,7 +500,8 @@ class State:
 
                 s1 = self.state_get_address(tx.txfrom)
 
-                if s1[1] - tx.amount < 0:
+                # FIXME: review this.. why stake transaction are getting here?
+                if hasattr(tx, 'amount') and s1[1] - tx.amount < 0:
                     logger.info('%s %s exceeds balance, invalid tx %s', tx, tx.txfrom, tx.txhash)
                     logger.info('failed state checks %s', bin2hstr(block.blockheader.headerhash))
                     return False
