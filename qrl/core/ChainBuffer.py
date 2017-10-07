@@ -26,13 +26,8 @@ class ChainBuffer:
 
         self.slave_xmss = dict()
 
-        baseseed = self.chain.wallet.address_bundle[0].xmss.get_seed()
-        starting_epoch = 0
-
-        self.slave_xmsspool = XmssPool(baseseed,
-                                       config.dev.slave_xmss_height,
-                                       starting_epoch,
-                                       pool_size = 2)
+        self.slave_xmsspool = None
+        self.assign_slave_xmsspool(0)
 
         # TODO: For the moment, only the first address is used (discussed with cyyber)
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
@@ -44,6 +39,13 @@ class ChainBuffer:
         if self.chain.height() > 0:
             self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
 
+    def assign_slave_xmsspool(self, starting_epoch):
+        baseseed = self.chain.wallet.address_bundle[0].xmss.get_seed()
+        self.slave_xmsspool = XmssPool(baseseed,
+                                       config.dev.slave_xmss_height,
+                                       starting_epoch,
+                                       pool_size = 2)
+
     def generate_slave_xmss(self, epoch):
         assert(epoch == self.slave_xmsspool.getCurrentIndex())    # Verify we are not skipping trees
         tmp_xmss = self.slave_xmsspool.getNextTree()
@@ -52,6 +54,12 @@ class ChainBuffer:
     def get_slave_xmss(self, blocknumber):
         epoch = blocknumber // config.dev.blocks_per_epoch
         if epoch not in self.slave_xmss:
+            if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
+                self.assign_slave_xmsspool(epoch)
+                return None
+            if not self.slave_xmsspool.isAvailable():
+                return None
+
             self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
             data = self.chain.wallet.read_slave()
             if data and data['address'] == self.slave_xmss[epoch].get_address():
@@ -61,6 +69,13 @@ class ChainBuffer:
     def get_next_slave_xmss(self, blocknumber):
         epoch = blocknumber // config.dev.blocks_per_epoch
         if epoch + 1 not in self.slave_xmss:
+            if self.slave_xmsspool.getCurrentIndex() - epoch != 1 and self.slave_xmsspool.getCurrentIndex() - epoch != 0:
+                self.assign_slave_xmsspool(epoch)
+                return None
+            if epoch + 1 - self.slave_xmsspool.getCurrentIndex() == 1:
+                if not self.slave_xmsspool.isAvailable():
+                    return None
+                self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
             self.slave_xmss[epoch + 1] = self.generate_slave_xmss(epoch + 1)
         return self.slave_xmss[epoch + 1]
 
@@ -188,7 +203,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
         else:
-            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(str(self.epoch_seed))))
+            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)

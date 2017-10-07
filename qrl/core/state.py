@@ -293,7 +293,7 @@ class State:
                                                                      lambda set1, set2: set1 + set2, staker[1]))),
                                                                  balance=staker[4],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
-
+        chain.block_chain_buffer.epoch_seed = format(chain.block_chain_buffer.epoch_seed, 'x')
         if chain.stake_list[0][0] != block.blockheader.stake_selector:
             logger.info('stake selector wrong..')
             return

@@ -178,10 +178,15 @@ class POS:
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
         tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
+        slave_xmss = self.chain.block_chain_buffer.get_slave_xmss(0)
+        if not slave_xmss:
+            logger.info('Waiting for SLAVE XMSS to be done')
+            reactor.callLater(5, self.pre_pos_1)
+            return
 
         st = StakeTransaction().create(blocknumber=0,
                                        xmss=self.chain.wallet.address_bundle[0].xmss,
-                                       slave_public_key=self.chain.block_chain_buffer.get_slave_xmss(0).pk(),
+                                       slave_public_key=slave_xmss.pk(),
                                        hashchain_terminator=tmphc.hc_terminator,
                                        first_hash=tmphc.hashchain[-1][-2],
                                        balance=tmpbalance)
@@ -217,6 +222,8 @@ class POS:
                                                                            reveal_one=bin2hstr(sha256(reduce(lambda set1, set2: set1 + set2, staker[1]))),
                                                                            balance=staker[4],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
+
+        self.chain.block_chain_buffer.epoch_seed = format(self.chain.block_chain_buffer.epoch_seed, 'x')
 
         logger.info('genesis stakers ready = %s / %s', len(self.chain.stake_list), config.dev.minimum_required_stakers)
         logger.info('node address: %s', self.chain.mining_address)
@@ -532,10 +539,15 @@ class POS:
             logger.warning('Balance %s', balance)
             return
 
+
+        slave_xmss = self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber)
+        if not slave_xmss:
+            return
+
         st = StakeTransaction().create(
             blocknumber=blocknumber,
             xmss=self.chain.wallet.address_bundle[0].xmss,
-            slave_public_key=self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber).pk(),
+            slave_public_key=slave_xmss.pk(),
             first_hash=first_hash,
             balance=balance
         )
