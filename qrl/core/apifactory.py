@@ -141,7 +141,10 @@ class ApiFactory(ServerFactory):
 
         json_tx = json.loads(txn_metadata[0])
         tx = Transaction().from_txdict(json_tx)
+        tx.blocknumber = txn_metadata[1]
+        tx.confirmations = self.factory.chain.height() - tx.blocknumber
         tx.timestamp = txn_metadata[2]
+
         tx_new = copy.deepcopy(tx)
         self.reformat_txn(tx_new)
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
