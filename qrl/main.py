@@ -117,7 +117,7 @@ def main():
     welcome = 'QRL node connection established. Try starting with "help"\r\n'
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory)
+    wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory, api_factory)
 
     logger.info('>>>Listening..')
     reactor.listenTCP(2000, wallet_factory, interface='127.0.0.1')
