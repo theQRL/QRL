@@ -222,12 +222,10 @@ class State:
     def zero_all_addresses(self):
         addresses = []
         for k, v in self.db.RangeIter('Q'):
-            if k == b'slave_info':
-                continue
             addresses.append(k)
         for address in addresses:
-            self.db.put(address, [0, 0, []])
-
+            self.db.Delete(address)
+        logger.info('Reset Finished')
         self.state_set_blockheight(0)
         return
 
