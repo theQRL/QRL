@@ -963,7 +963,9 @@ class P2PProtocol(Protocol):
             tmp2 = hstr2bin(tmp.decode())
             tmp3 = bytearray(tmp2)
             m = struct.unpack('>L', tmp3)[0]  # is m length encoded correctly?
-        except ValueError as e:
+        except (UnicodeDecodeError, ValueError):
+            logger.info('Peer not following protocol %s', self.conn_identity)
+            self.transport.loseConnection()
             return False
         except Exception as e:
             logger.exception(e)
