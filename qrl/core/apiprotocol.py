@@ -454,6 +454,7 @@ class ApiProtocol(Protocol):
 
         json_tx = json.loads(txn_metadata[0])
         tx = Transaction().from_txdict(json_tx)
+        tx.timestamp = txn_metadata[2]
         tx_new = copy.deepcopy(tx)
         self.reformat_txn(tx_new)
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
