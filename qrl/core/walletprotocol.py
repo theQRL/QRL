@@ -387,7 +387,8 @@ class WalletProtocol(Protocol):
 
         tmp_output = None
         if args[0][0] == 'Q':
-            tmp_output = json.loads(self.factory.chain.search_address(args[0]))
+            # FIXME: Accessing private member
+            tmp_output = json.loads(self.factory.chain._search_address(args[0]))
             self.output['message'].write('Address: ' + str(args[0]))
             self.output['message'].write('\r\nBalance: ' + str(tmp_output['state']['balance']))
             self.output['message'].write('\r\nTransactions: ' + str(tmp_output['state']['transactions']))
