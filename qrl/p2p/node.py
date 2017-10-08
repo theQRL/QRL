@@ -1,5 +1,7 @@
 import os
 
+from decimal import Decimal
+
 from qrl.core import config, logger
 from qrl.core.Transaction import SimpleTransaction
 from qrl.core.state import State
@@ -15,8 +17,8 @@ class QRLNode:
 
         self.db_state = db_state
 
-        self.chain = None               # FIXME: REMOVE. This is temporary
-        self.p2pfactory = None          # FIXME: REMOVE. This is temporary
+        self.chain = None  # FIXME: REMOVE. This is temporary
+        self.p2pfactory = None  # FIXME: REMOVE. This is temporary
 
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain):
@@ -54,7 +56,7 @@ class QRLNode:
             outfile.write(known_peers.SerializeToString())
 
     def get_address_state(self, address):
-        # FIXME: Refactor.
+        # FIXME: Refactor. Define concerns, etc.
         nonce, balance, pubhash_list = self.db_state.state_get_address(address)
         transactions = []
 
@@ -65,44 +67,85 @@ class QRLNode:
 
         return address_state
 
-    def create_send_tx(self, addr_from, addr_to, amount, fee=0):
-        tx = self.chain.create_send_tx(addr_from, addr_to, amount, fee)
-        self.chain.submit_send_tx(tx)
+    def get_wallet_absolute(self, addr_or_index):
+        # FIXME: Refactor. Define concerns, etc. Validation vs logic
+        if not addr_or_index:
+            raise ValueError("address is empty")
 
-    def _get_xmss(self, key_addr):
+        if addr_or_index.isdigit():
+            num_wallets = len(self.chain.wallet.address_bundle)
+            addr_idx = int(addr_or_index)
+            if 0 <= addr_idx < num_wallets:
+                return self.chain.wallet.address_bundle[addr_idx].get_address()
+            else:
+                raise ValueError("invalid address index")
+
+        if addr_or_index[0] != 'Q':
+            raise ValueError("Invalid address")
+
+        return addr_or_index
+
+    def validate_amount(self, amount_str):
+        # FIXME: Refactored code. Review Decimal usage all over the code
+        amount = Decimal(amount_str)
+
+
+    def _find_xmss(self, key_addr):
+        # FIXME: Move down the wallet management
         for addr in self.chain.wallet.address_bundle:
             if addr.address == key_addr:
                 return addr.xmss
         return None
 
-    def create_send_tx(self, addr_from, addr_to, amount, fee=0):
-        # FIXME: This method is not about the chain. It is about operations (should be on a higher level)
-
-        xmss_from = self._get_xmss(addr_from)
+    def transfer_coins(self, addr_from, addr_to, amount, fee=0):
+        xmss_from = self._find_xmss(addr_from)
         if xmss_from is None:
-            raise LookupError("The source address could not be found")
+            raise LookupError("The source address does not belong to this wallet/node")
+        xmss_pk = xmss_from.pk()
+        xmss_ots_key = xmss_from.get_index()
 
-        block_number = self.chain.block_chain_buffer.height() + 1
+        # TODO: Review this
+        ### Balance validation
+        balance = self.db_state.state_balance(addr_from)
+        if amount + fee > balance:
+            raise RuntimeError("Not enough funds")
 
-        tx_state = self.chain.block_chain_buffer.get_stxn_state(block_number, addr_from)
+        if xmss_from.get_remaining_signatures() == 1:
+            if amount + fee < balance:
+                # FIXME: maybe this is too strict?
+                raise RuntimeError("Last signature! You must move all the funds to another account!")
 
-        tx = SimpleTransaction.create(addr_from=addr_from,
-                                      addr_to=addr_to,
-                                      amount=amount,
-                                      xmss_pk=xmss_from.pk(),
-                                      xmss_ots_key=xmss_from.get_index(),
-                                      fee=fee)
+        tx = self.create_send_tx(addr_from,
+                                 addr_to,
+                                 amount,
+                                 fee,
+                                 xmss_pk,
+                                 xmss_ots_key)
 
         tx.sign(xmss_from)
+        self.submit_send_tx(tx)
+        self.p2pfactory.send_tx_to_peers(tx)
 
         return tx
 
+    def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_key):
+        return SimpleTransaction.create(addr_from=addr_from,
+                                        addr_to=addr_to,
+                                        amount=amount,
+                                        fee=fee,
+                                        xmss_pk=xmss_pk,
+                                        xmss_ots_key=xmss_ots_key)
+
     def submit_send_tx(self, tx):
-        if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
-            self.chain.add_tx_to_pool(tx)
-            self.chain.wallet.save_wallet()
-            # need to keep state after tx ..use self.wallet.info to store index..
-            # far faster than loading the 55mb self.wallet..
-            return True
+        # TODO: Review this
+        if tx and tx.validate_tx():
+                block_chain_buffer = self.chain.block_chain_buffer
+                block_number = block_chain_buffer.height() + 1
+                tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txto)
+
+                if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
+                    self.chain.add_tx_to_pool(tx)
+                    self.chain.wallet.save_wallet()
+                    return True
 
         return False

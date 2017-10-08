@@ -224,9 +224,7 @@ class WalletProtocol(Protocol):
 
     # This method is for sending between local wallets as well as network wallets
     def _send(self, args):
-        # FIXME: Refactor the logic should not be part of the API
         self.output['status'] = 1
-        # Check if method was used correctly
         if not args or len(args) < 3:
             self.output['message'].write('>>> Usage: send <from> <to> <amount> [<fee>]\r\n')
             self.output['message'].write('>>> i.e. send 0 4 100 5\r\n')
@@ -237,125 +235,45 @@ class WalletProtocol(Protocol):
 
         wallet_from = args[0]
         wallet_to = args[1]
-        send_amt_arg = args[2]
-        fee = 0
-
-        if wallet_to.isdigit():
-            wallet_to = int(wallet_to)
-
+        amount_arg = args[2]
+        fee_arg = 0
         if len(args) == 4:
-            fee = decimal.Decimal(decimal.Decimal(args[3]) * 100000000).quantize(decimal.Decimal('1'),
-                                                                                 rounding=decimal.ROUND_HALF_UP)
+            fee_arg = args[3]
 
-        # FIXME: Separate UI validation from model validation
+        qrlnode = self.factory.qrlnode
 
-        # Both source and destination must be proper addresses
-        self.factory.qrlnode.create_send_tx(wallet_from, wallet_to, send_amt_arg, fee)
+        ########################
+        ########################
 
         try:
-            float(send_amt_arg)
-        except:
-            self.output['message'].write(
-                '>>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)\r\n')
-            return
+            wallet_from = qrlnode.get_wallet_absolute(wallet_from)
+            wallet_to = qrlnode.get_wallet_absolute(wallet_to)
 
-        amount = decimal.Decimal(decimal.Decimal(send_amt_arg) * 100000000).quantize(decimal.Decimal('1'),
-                                                                                     rounding=decimal.ROUND_HALF_UP)
-
-        # Check if the wallet entered is a local wallet (should be, since sender should be local - it's you)
-        try:
-            wallet_from = int(wallet_from)
-        except:
-            self.output['message'].write(
-                '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
-            return
-
-        # Check if local wallet number is higher than the number of local wallets that are saved
-        if wallet_from > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state,
-                                                                      self.factory.chain.transaction_pool)) - 1:
-            self.output['message'].write(
-                '>>> Invalid sending address. Try a valid number from your wallet - type wallet for details.\r\n')
-            return
-
-        # perhaps make a "wallet_precondition(wallet)" method
-        # to check if the wallet string is correct
-        # good way to centralize that code too
-        # in case it ever changes
-
-        # if wallet_to is not a local wallet, and wallet_to is not prepended by Q and
-
-        if len(wallet_to) > 1 and wallet_to[0] != 'Q' and self.factory.state.state_hrs(wallet_to) != False:
-            pass
-        elif wallet_to[0] == 'Q':
-            pass
-        else:
+            ########################
+            ########################
+            # FIXME: Review all quantities
             try:
-                int(wallet_to)
+                float(amount_arg)         ## FIXME: ?? Float first, later decimal?
             except:
-                self.output['message'].write(
-                    '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
+                raise Exception(">>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)\r\n")
                 return
-            if int(wallet_to) > len(self.factory.chain.wallet.list_addresses(self.factory.chain.state,
-                                                                             self.factory.chain.transaction_pool)) - 1:
-                self.output['message'].write(
-                    '>>> Invalid receiving address - addresses must start with Q. Try a number from your self.factory.chain.wallet.\r\n')
-                return
-            wallet_to = int(wallet_to)
 
-        # Check to see if sending amount > amount owned (and reject if so)
-        # This is hard to interpret. Break it up?
-        balance = self.factory.state.state_balance(self.factory.chain.wallet.address_bundle[wallet_from].address)
+            # FIXME: Magic number? Unify
+            amount = decimal.Decimal(decimal.Decimal(amount_arg) * 100000000).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP)
+            fee = decimal.Decimal(decimal.Decimal(fee_arg) * 100000000).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP)
+            ########################
+            ########################
 
-        if balance < amount + fee:
-            self.output['message'].write(
-                '>>> Invalid amount to send. Type a number less than or equal to the balance of the sending address\r\n')
+            # FIXME: This whole class will disappear so it is ok for now
+            tx = qrlnode.transfer_coins(wallet_from, wallet_to, amount, fee)
+        except Exception as e:
+            self.output['message'].write(str(e))
             return
-
-        # Stop user from sending less than their entire balance if they've only
-        # got one signature remaining.
-        sigsremaining = self.factory.chain.wallet.get_num_signatures(
-            self.factory.chain.wallet.address_bundle[wallet_from].address)
-        if sigsremaining is 1:
-            # FIXME: This is wrong, the fee is missing
-            if amount < balance:
-                self.output['message'].write(
-                    '>>> Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!\r\n')
-                return
-
-        tx = self.factory.chain.create_send_tx(txfrom=wallet_from,
-                                               txto=wallet_to,
-                                               amount=amount,
-                                               fee=fee)
-
-        if not self.chain.submit_send_tx(tx):
-            self.output['message'].write('Failed to Create txn')
-            return
-
-        # FIXME: Why validation here? The validation should be internal not in the API
-        if tx.validate_tx():
-            block_chain_buffer = self.factory.chain.block_chain_buffer
-            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
-                                                         addr=tx.txfrom)
-            if not tx.state_validate_tx(tx_state=tx_state,
-                                        transaction_pool=self.factory.chain.transaction_pool):
-                self.output['message'].write('>>> OTS key reused')
-                return
-        else:
-            self.output['message'].write('>>> TXN failed at validate_tx')
-            logger.info('>>> TXN failed at validate_tx')
-            return
-
-        # FIXME: Accessing peers directly from API
-        self.factory.p2pFactory.send_tx_to_peers(tx)
-
-        ################################
-        ################################
-        ################################
-        ################################
-        ################################
 
         self.output['status'] = 0
         self.output['message'].write('>>> ' + bin2hstr(tx.txhash))
+        # FIXME: Review all quantities
+        # FIXME: Magic number? Unify
         self.output['message'].write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
             tx.amount / 100000000.000000000) + ' Fee: ' + str(tx.fee / 100000000.000000000) + '\r\n')
         self.output['message'].write('>>>created and sent into p2p network\r\n')

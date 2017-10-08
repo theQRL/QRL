@@ -206,7 +206,7 @@ class SimpleTransaction(Transaction):
         return True
 
     @staticmethod
-    def create(addr_from, addr_to, amount, xmss_pk, xmss_ots_key, fee=0):
+    def create(addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_key):
         transaction = SimpleTransaction()
 
         transaction.txfrom = addr_from
