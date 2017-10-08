@@ -390,6 +390,7 @@ class ApiProtocol(Protocol):
         b = 0
         for staker in self.factory.state.stake_validators_list.sv_list:
             b += self.factory.state.state_balance(staker)
+        # FIXME: Magic number? Unify
         staked = decimal.Decimal((b / 100000000.000000000) / (
         self.factory.state.total_coin_supply() / 100000000.000000000) * 100).quantize(
             decimal.Decimal('1.00'))  # /100000000.000000000)
@@ -432,7 +433,8 @@ class ApiProtocol(Protocol):
                      'block_time_variance': block_time_variance,
                      'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
-                     'emission': self.factory.format_qrlamount(self.factory.state.total_coin_supply()),
+                     # FIXME: Magic number? Unify
+                     'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
                      'unmined': config.dev.total_coin_supply - self.factory.state.total_coin_supply() / 100000000.000000000}
 
         return json_print_telnet(net_stats)
@@ -514,6 +516,10 @@ class ApiProtocol(Protocol):
         return output
 
     ##########################
+
+    def _format_qrlamount(self, balance):
+        # FIXME: Magic number? Unify
+        return format(float(balance / 100000000.00000000), '.8f').rstrip('.0')
 
     def _search_address(self, address):
         return self.factory.search_address(address)

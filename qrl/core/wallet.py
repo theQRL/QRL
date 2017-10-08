@@ -155,6 +155,7 @@ class Wallet:
                 dict_addr['address'] = addr_bundle.address
                 dict_addr['type'] = addr_bundle.xmss.get_type()
 
+                # FIXME: Magic number? Unify
                 FACTOR = 100000000.000000000
                 tmp_state_balance = state.state_balance(addr_bundle.address)
                 tmp_state_nonce = state.state_nonce(addr_bundle.address)
