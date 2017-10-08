@@ -16,3 +16,18 @@ class TestState(TestCase):
     def test_create_state(self):
         state = State()
         self.assertIsNotNone(state)  # to avoid warning (unused variable)
+
+    def test_set_block_pos(self):
+        with State() as state:
+            block_number = 123
+
+            block_position = 234
+            block_size = 345
+
+            state.db.put('block_{}'.format(block_number), [block_position, block_size])
+
+            pos_size = state.db.get('block_{}'.format(block_number))
+            read_position, read_size = pos_size
+
+            self.assertEqual(block_position, read_position)
+            self.assertEqual(block_size, read_size)

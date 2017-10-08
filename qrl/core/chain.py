@@ -38,6 +38,8 @@ class Chain:
 
         self.ping_list = []                     # FIXME: This has nothing to do with chain
 
+        self.block_metadata = dict()
+
         self.transaction_pool = []
         self.txhash_timestamp = []
         self.m_blockchain = []
@@ -389,11 +391,6 @@ class Chain:
                     if islong == 1: json_print(tx)
         return
 
-    def update_block_metadata(self, blocknumber, blockPos, blockSize):
-        # FIXME: Breaking encapsulation
-        self.state.db.db.Put(bytes('block_' + str(blocknumber), 'utf-8'),
-                             bytes(str(blockPos) + ',' + str(blockSize), 'utf-8'))
-
     def update_last_tx(self, block):
         if len(block.transactions) == 0:
             return
@@ -658,15 +655,21 @@ class Chain:
         del self.m_blockchain[:-1]
         gc.collect()
 
+    def update_block_metadata(self, block_number, block_position, block_size):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        self.block_metadata[block_number] = [block_position, block_size]
+
+    def get_block_metadata(self, block_number):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        return self.block_metadata[block_number]
+
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
 
+        pos, size = self.get_block_metadata(blocknum)
+
         with open(self.get_chaindatafile(epoch), 'rb') as f:
             # FIXME: Accessing DB directly
-            pos_size = self.state.db.db.Get(bytes('block_' + str(blocknum), 'utf-8'))
-            pos, size = pos_size.decode('utf-8').split(',')
-            pos = int(pos)
-            size = int(size)
             f.seek(pos)
             jsonBlock = bz2.decompress(f.read(size))
             block = Block.from_json(jsonBlock)
@@ -720,5 +723,4 @@ class Chain:
             logger.error('IO error %s', e)
             return []
 
-        gc.collect()
         return block_list
