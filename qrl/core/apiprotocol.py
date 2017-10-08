@@ -539,7 +539,7 @@ class ApiProtocol(Protocol):
     ##########################
 
     def _format_qrlamount(self, balance):
-        return format(float(balance / 100000000.00000000), '.8f').rstrip('.0')
+        return format(float(balance / 100000000.00000000), '.8f')
 
     def _search_address(self, address):
 
