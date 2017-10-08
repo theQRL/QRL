@@ -413,20 +413,20 @@ class Chain:
     def update_wallet_tx_metadata(self, addr, new_txhash):
         try:
             # FIXME: Accessing DB directly
-            txhash = self.state.db.get('txn_' + addr)
+            txhash = self.state.db.get('txn_' + str(addr))
         except Exception:
             txhash = []
         txhash.append(bin2hstr(new_txhash))
         # FIXME: Accessing DB directly
-        self.state.db.put('txn_' + addr, txhash)
+        self.state.db.put('txn_' + str(addr), txhash)
 
     def update_txn_count(self, txto, txfrom):
         last_count = self.state.state_get_txn_count(txto)
         # FIXME: Accessing DB directly
-        self.state.db.put('txn_count_' + txto, last_count + 1)
+        self.state.db.put('txn_count_' + str(txto), last_count + 1)
         last_count = self.state.state_get_txn_count(txfrom)
         # FIXME: Accessing DB directly
-        self.state.db.put('txn_count_' + txfrom, last_count + 1)
+        self.state.db.put('txn_count_' + str(txfrom), last_count + 1)
 
     def update_tx_metadata(self, block):
         if len(block.transactions) == 0:
