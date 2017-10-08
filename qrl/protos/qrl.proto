@@ -131,4 +131,7 @@ message Transaction
     bytes dup_coinbase2_hhash = 17;         // Required for duplicate transaction
     Transaction dup_coinbase1 = 18;         // Required for duplicate transaction
     Transaction dup_coinbase2 = 19;         // Required for duplicate transaction
+
+    bytes pk_kyber = 20;                    // Required for LatticePublicKey
+    bytes pk_tesla = 21;                    // Required for LatticePublicKey
 }

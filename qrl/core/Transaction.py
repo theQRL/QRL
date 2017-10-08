@@ -491,6 +491,8 @@ class LatticePublicKey(Transaction):
     def __init__(self):
         super(LatticePublicKey, self).__init__()
         self.subtype = TX_SUBTYPE_LATTICE
+        self.kyber_pk = None
+        self.tesla_pk = None
 
     def _dict_to_transaction(self, dict_tx):
         super(LatticePublicKey, self)._dict_to_transaction(dict_tx)
