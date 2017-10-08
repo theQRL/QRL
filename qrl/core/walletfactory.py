@@ -7,10 +7,11 @@ from qrl.core.walletprotocol import WalletProtocol
 
 
 class WalletFactory(ServerFactory):
-    def __init__(self, stuff, chain, state, p2pFactory):
+    def __init__(self, stuff, chain, state, p2pFactory, api_factory):
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
+        self.apiFactory = api_factory
         self.protocol = WalletProtocol
         self.newaddress = 0
 

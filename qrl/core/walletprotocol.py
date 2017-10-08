@@ -86,14 +86,15 @@ class WalletProtocol(Protocol):
     # Called when a command is recieved through telnet
     # Might be a good idea to use a json encrypted wallet
     def dataReceived(self, data):
-        data = data.strip().decode()
-
-        self.factory.recn += 1
-        self.isJSON = False
-        if data.lower().startswith('json '):
-            self.isJSON = True
-            data = data[5:]
         try:
+            data = data.strip().decode()
+
+            self.factory.recn += 1
+            self.isJSON = False
+            if data.lower().startswith('json '):
+                self.isJSON = True
+                data = data[5:]
+
             if not self.parse_cmd(data):
                 self.output['status'] = 1
                 self.output['message'].write(">>> Command not recognised. Use 'help' for details \r\n")
@@ -387,7 +388,9 @@ class WalletProtocol(Protocol):
 
         tmp_output = None
         if args[0][0] == 'Q':
-            tmp_output = json.loads(self.factory.chain.search_address(args[0]))
+            # FIXME: Accessing private member
+            # FIXME: Access to another
+            tmp_output = json.loads(self.factory.apiFactory.search_address(args[0]))
             self.output['message'].write('Address: ' + str(args[0]))
             self.output['message'].write('\r\nBalance: ' + str(tmp_output['state']['balance']))
             self.output['message'].write('\r\nTransactions: ' + str(tmp_output['state']['transactions']))
@@ -401,7 +404,7 @@ class WalletProtocol(Protocol):
                 self.output['message'].write(str(tx['amount']))
                 self.output['message'].write('\r\n')
         else:
-            tmp_output = json.loads(self.factory.chain.search_txhash(args[0]))
+            tmp_output = json.loads(self.factory.apiFactory.search_txhash(args[0]))
             self.output['message'].write('Txnhash: ')
             self.output['message'].write(args[0])
             if tmp_output['status'] == 'Error':
