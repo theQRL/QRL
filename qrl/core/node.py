@@ -287,6 +287,9 @@ class POS:
     # create new block..
 
     def create_new_block(self, reveal_hash, vote_hash, last_block_number):
+        block_chain_buffer = self.chain.block_chain_buffer
+        if not block_chain_buffer.get_slave_xmss(last_block_number + 1):
+            return
         logger.info('create_new_block #%s', (last_block_number + 1))
         block_obj = self.chain.create_stake_block(reveal_hash, vote_hash, last_block_number)
 
