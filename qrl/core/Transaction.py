@@ -24,6 +24,8 @@ class Transaction(object, metaclass=ABCMeta):
     # FIXME: Use metaclass and make this class abstract. Enforce same API in derived classes
 
     def __init__(self):
+        # FIXME: at the moment, it is not possible to rename attributed because of the way things are serialized
+
         self.nonce = 0  # Nonce is set when block is being created
         self.ots_key = None
         self.txfrom = None  # FIXME: addr_from
@@ -232,6 +234,7 @@ class SimpleTransaction(Transaction):
         if self.subtype != TX_SUBTYPE_TX:
             return False
 
+        # FIXME: what does this comment means?
         # sanity check: this is not how the economy is supposed to work!
         if self.amount <= 0:
             logger.info('State validation failed for %s because negative or zero', self.txhash)

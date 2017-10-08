@@ -438,8 +438,10 @@ class Chain:
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 # FIXME: Accessing DB directly
                 self.state.db.put(bin2hstr(txn.txhash),
-                                  [txn.transaction_to_json(), block.blockheader.blocknumber,
+                                  [txn.transaction_to_json(),
+                                   block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
+
                 if txn.subtype == TX_SUBTYPE_TX:
                     self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
                 self.update_wallet_tx_metadata(txn.txto, txn.txhash)

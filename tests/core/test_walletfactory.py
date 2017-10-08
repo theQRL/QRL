@@ -18,7 +18,9 @@ class TestWalletFactory(TestCase):
         factory = WalletFactory(stuff=None,
                                 chain=None,
                                 state=None,
-                                p2pFactory=None)
+                                p2pFactory=None,
+                                api_factory=None,
+                                qrlnode=None)
 
         self.assertEqual(factory.protocol, WalletProtocol,
                          "Factory has not been assigned the expected protocol")
