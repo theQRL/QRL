@@ -195,6 +195,8 @@ class sendQuanta(Resource):
 
     # FIXME: Missing fee. It wont get fixed as the webwallet will get removed
     def send_tx(self, wallet_from, wallet_to, amount_arg):
+        fee_arg = 0  # FIXME: Fee argument is missing here, the class will be removed. No plans for fixing this
+
         self.txnResult = {
             'status': 'fail',
             'message': '',
@@ -206,17 +208,14 @@ class sendQuanta(Resource):
 
         qrlnode = self.qrlnode
 
+        ########################
+        ########################
+
         try:
             wallet_from = qrlnode.get_wallet_absolute(wallet_from)
             wallet_to = qrlnode.get_wallet_absolute(wallet_to)
-            fee_arg = 0         # FIXME: Fee is missing here, the class will be removed. No plans for fixing this
-
-            ########################
-            ########################
-            amount = decimal.Decimal(decimal.Decimal(amount_arg) * 100000000).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP)
-            fee = decimal.Decimal(decimal.Decimal(fee_arg) * 100000000).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP)
-            ########################
-            ########################
+            amount = qrlnode.get_dec_amount(amount_arg)
+            fee = qrlnode.get_dec_amount(fee_arg)
 
             tx = qrlnode.transfer_coins(wallet_from, wallet_to, amount, fee)
 
@@ -224,9 +223,6 @@ class sendQuanta(Resource):
             self.txnResult["message"].write(str(e))
             return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
-        ################################
-        ################################
-        ################################
         ################################
         ################################
 

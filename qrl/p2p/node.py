@@ -1,3 +1,4 @@
+import decimal
 import os
 
 from decimal import Decimal
@@ -67,12 +68,23 @@ class QRLNode:
 
         return address_state
 
+    def get_dec_amount(self, str_amount_arg):
+        # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion. Quantity formats should be always clear
+        # FIXME: Review. This is just relocated code. It looks odd
+        # FIXME: Antipattern. Magic number.
+        # FIXME: Validate string, etc.
+        return decimal.Decimal(decimal.Decimal(str_amount_arg) * 100000000).quantize(decimal.Decimal('1'),
+                                                                                     rounding=decimal.ROUND_HALF_UP)
+
     def get_wallet_absolute(self, addr_or_index):
         # FIXME: Refactor. Define concerns, etc. Validation vs logic
         if not addr_or_index:
             raise ValueError("address is empty")
 
         if addr_or_index.isdigit():
+            # FIXME: The whole idea of accepting relative (index based) wallets internally is flawed.
+            # There is a risk of confusing things. Relative should be a feature of UIs
+
             num_wallets = len(self.chain.wallet.address_bundle)
             addr_idx = int(addr_or_index)
             if 0 <= addr_idx < num_wallets:
@@ -88,7 +100,6 @@ class QRLNode:
     def validate_amount(self, amount_str):
         # FIXME: Refactored code. Review Decimal usage all over the code
         amount = Decimal(amount_str)
-
 
     def _find_xmss(self, key_addr):
         # FIXME: Move down the wallet management
@@ -139,13 +150,13 @@ class QRLNode:
     def submit_send_tx(self, tx):
         # TODO: Review this
         if tx and tx.validate_tx():
-                block_chain_buffer = self.chain.block_chain_buffer
-                block_number = block_chain_buffer.height() + 1
-                tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txto)
+            block_chain_buffer = self.chain.block_chain_buffer
+            block_number = block_chain_buffer.height() + 1
+            tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txto)
 
-                if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
-                    self.chain.add_tx_to_pool(tx)
-                    self.chain.wallet.save_wallet()
-                    return True
+            if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
+                self.chain.add_tx_to_pool(tx)
+                self.chain.wallet.save_wallet()
+                return True
 
         return False

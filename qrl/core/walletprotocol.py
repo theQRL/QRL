@@ -248,27 +248,18 @@ class WalletProtocol(Protocol):
         try:
             wallet_from = qrlnode.get_wallet_absolute(wallet_from)
             wallet_to = qrlnode.get_wallet_absolute(wallet_to)
+            amount = qrlnode.get_dec_amount(amount_arg)
+            fee = qrlnode.get_dec_amount(fee_arg)
 
-            ########################
-            ########################
-            # FIXME: Review all quantities
-            try:
-                float(amount_arg)         ## FIXME: ?? Float first, later decimal?
-            except:
-                raise Exception(">>> Invalid amount type. Type a number (less than or equal to the balance of the sending address)\r\n")
-                return
-
-            # FIXME: Magic number? Unify
-            amount = decimal.Decimal(decimal.Decimal(amount_arg) * 100000000).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP)
-            fee = decimal.Decimal(decimal.Decimal(fee_arg) * 100000000).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP)
-            ########################
-            ########################
-
-            # FIXME: This whole class will disappear so it is ok for now
             tx = qrlnode.transfer_coins(wallet_from, wallet_to, amount, fee)
+
         except Exception as e:
             self.output['message'].write(str(e))
             return
+
+        ########################
+        ########################
+        # FIXME: Clean below
 
         self.output['status'] = 0
         self.output['message'].write('>>> ' + bin2hstr(tx.txhash))
