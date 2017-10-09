@@ -490,9 +490,10 @@ class POS:
 
     def post_block_logic(self, blocknumber):
         """
-            post block logic we initiate the next POS cycle
-            send R1, send ST, reset POS flags and remove unnecessary
-            messages in chain.stake_reveal_one and _two..
+        post block logic we initiate the next POS cycle
+        send ST, reset POS flags and remove unnecessary
+        messages in chain.stake_reveal_one and _two..
+
         :return:
         """
 
@@ -633,9 +634,10 @@ class POS:
 
     def blockheight_map(self):
         """
-            blockheight map for connected nodes - when the blockheight seems up to date after a sync or error, we check all connected nodes to ensure all on same chain/height..
-            note - may not return correctly during a block propagation..
-            once working alter to identify fork better..
+        blockheight map for connected nodes - when the blockheight seems up to date after a sync or error, we check all connected nodes to ensure all on same chain/height..
+        note - may not return correctly during a block propagation..
+        once working alter to identify fork better..
+
         :return:
         """
         # i = [block_number, headerhash, self.transport.getPeer().host]
