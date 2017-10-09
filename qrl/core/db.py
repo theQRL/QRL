@@ -61,3 +61,9 @@ class DB:
     def delete(self, key_obj):
         self.db.Delete(key_obj)
         return
+
+    def put_raw(self, key, value):
+        self.db.Put(key, value)
+
+    def get_raw(self, key):
+        self.db.Get(key)
