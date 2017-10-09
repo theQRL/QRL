@@ -198,7 +198,7 @@ class State:
 
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
         nonce = self.stake_validators_list.sv_list[block.transactions[0].txto].nonce
-        logger.info('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
+        logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
                     block.blockheader.blocknumber,
                     block.blockheader.epoch,
                     blocks_left - 1,
@@ -454,7 +454,7 @@ class State:
 
         self.state_set_blockheight(chain.height() + 1)
 
-        logger.info('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
+        logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
     def calc_seed(self, sl, verbose=False):
