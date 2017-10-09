@@ -11,10 +11,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_bytestream, json_print
-from qrl.core.Transaction import SimpleTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
-
-import gc
 
 import bz2
 from io import StringIO

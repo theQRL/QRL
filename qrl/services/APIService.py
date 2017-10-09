@@ -1,9 +1,9 @@
 import grpc
 
 from qrl.core import logger
+from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
-from qrl.services.node import QRLNode
 
 
 class APIService(PublicAPIServicer):

@@ -8,7 +8,6 @@ import simplejson as json
 from io import StringIO
 from pyqrllib.pyqrllib import sha2_256, getAddress, bin2hstr, str2bin
 
-import qrl
 from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal

@@ -5,7 +5,7 @@
 import simplejson as json
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
-from qrl.core import logger, config, ntp
+from qrl.core import logger, config
 from qrl.core.blockheader import BlockHeader
 from qrl.core.helper import select_target_hashchain
 from qrl.core.Transaction import Transaction, CoinBase, DuplicateTransaction

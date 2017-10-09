@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import hstr2bin, str2bin, bin2hstr, XmssPool
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer

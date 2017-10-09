@@ -1,10 +1,7 @@
 # coding=utf-8
-import decimal
-from math import log
-
 from pyqrllib.pyqrllib import sha2_256, str2bin
 from qrl.core import ntp, logger, config
-from qrl.core.qrl_formulas import block_reward_calc
+from qrl.core.formulas import block_reward_calc
 
 
 class BlockHeader(object):

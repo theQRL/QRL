@@ -1,6 +1,6 @@
+from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import P2PNodeServicer
-from qrl.services.node import QRLNode
 
 
 class P2PService(P2PNodeServicer):

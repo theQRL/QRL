@@ -3,10 +3,10 @@ from concurrent.futures import ThreadPoolExecutor
 import grpc
 
 from qrl.core import logger
+from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrl_pb2_grpc import add_P2PNodeServicer_to_server, add_PublicAPIServicer_to_server
 from qrl.services.APIService import APIService
 from qrl.services.P2PService import P2PService
-from qrl.services.node import QRLNode
 
 
 def start_services(node: QRLNode):

@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 # QRL Web Wallet
 # localhost:8888/
-import decimal
 import json
 import os
 
