@@ -6,9 +6,9 @@ from abc import ABCMeta
 
 import simplejson as json
 from io import StringIO
+from pyqrllib.pyqrllib import sha2_256, getAddress, bin2hstr, str2bin
 
 import qrl
-from pyqrllib.pyqrllib import sha2_256, getAddress, hstr2bin, bin2hstr, str2bin
 from qrl.core import helper, config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal
@@ -32,6 +32,16 @@ class Transaction(object, metaclass=ABCMeta):
 
         self.PK = None
         self.signature = None
+
+    @staticmethod
+    def tx_id_to_name(id):
+        id_name = {
+            1: 'TX',
+            2: 'STAKE',
+            3: 'COINBASE',
+            4: 'LATTICE'
+        }
+        return id_name[id]
 
     @staticmethod
     def from_txdict(txdict):
@@ -205,7 +215,7 @@ class SimpleTransaction(Transaction):
 
     def create(self, tx_state, txto, amount, xmss, fee=0):
         self.txfrom = xmss.get_address()
-        self.txto = txto.decode('ascii')
+        self.txto = txto
         self.amount = int(amount)
         self.fee = int(fee)
 

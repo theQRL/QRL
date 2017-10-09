@@ -14,6 +14,15 @@ from copy import deepcopy
 
 
 class ChainBuffer:
+    """
+    Because blocks can arrive out of order over the network, and the strongest block may not arrive until up to two
+    minutes later, there is a need for a buffer. ChainBuffer buffers up to 3 blocks at a time.
+    It's intended to be the only pathway to add blocks, or chains of different epochs to Chain.
+    As a result it's used also when reading the blockchain from disk.
+    For each block received, it creates a BlockBuffer(), which contains Block() and some metadata
+    (stake reward and score), and StateBuffer() which are changes to the state as a result of that block.
+    """
+
     def __init__(self, chain):
         self.chain = chain
         self.state = self.chain.state
@@ -181,8 +190,6 @@ class ChainBuffer:
 
             if epoch in self._wallet_private_seeds:
                 del self._wallet_private_seeds[epoch]
-            if epoch in self.slave_xmss:
-                del self.slave_xmss[epoch]
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
         else:
@@ -603,8 +610,6 @@ class ChainBuffer:
         """
         A block is considered as a dirty block, if same stake validator created two different blocks
         for the same blocknumber having same prev_blockheaderhash.
-        :param data:
-        :return:
         """
         if blocknum > self.height():
             return

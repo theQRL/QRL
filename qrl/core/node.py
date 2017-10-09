@@ -5,7 +5,6 @@
 import random
 import time
 from collections import Counter, defaultdict
-import simplejson as json
 from functools import reduce
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -550,6 +549,7 @@ class POS:
                 break
 
         self.chain.add_tx_to_pool(st)
+        self.chain.wallet.save_wallet()
 
     def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
         try:

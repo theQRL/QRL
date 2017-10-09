@@ -96,7 +96,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
-        self.version_number = "alpha/0.52a"
+        self.version_number = "0.52.2a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000
@@ -107,8 +107,11 @@ class DevConfig(object):
         self.xmss_tree_height = 10
 
         self.db_name = 'state'
-        self.peers_filename = 'peers.dat'
-        self.wallet_dat_filename = 'wallet.json'
+        self.peers_filename = 'peers.qrl'
+
+        self.wallet_dat_filename = 'wallet.qrl'
+        self.wallet_old_dat_filename = 'wallet.json'
+
         self.slave_dat_filename = 'slave.json'
         self.mnemonic_filename = 'mnemonic'
         self.genesis_prev_headerhash = 'Cross-Breed-Testnet'

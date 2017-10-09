@@ -5,6 +5,8 @@
 from operator import itemgetter
 from functools import reduce
 
+from jsonpickle import json
+
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
@@ -16,6 +18,8 @@ from qrl.crypto.misc import sha256
 
 class State:
     """
+    QRL's State is the account nonce, balance, the keys used by that account, and the list of stake validators.
+    The actual storage is handled by LevelDB, and this just hides away the intricacies of interacting with it.
         state functions
         first iteration - state data stored in leveldb file
         state holds address balances, the transaction nonce and a list of
@@ -42,9 +46,9 @@ class State:
 
     def stake_list_get(self):
         try:
-            return self.db.get('stake_list'.encode())
+            return self.db.get('stake_list')
         except KeyError:
-            logger.warning('stake_list empty returning empty list')
+            pass
         except Exception as e:
             logger.error('Exception in stake_list_get')
             logger.exception(e)
@@ -60,9 +64,9 @@ class State:
 
     def next_stake_list_get(self):
         try:
-            return self.db.get('next_stake_list'.encode())
+            return self.db.get('next_stake_list')
         except KeyError:
-            logger.warning('next_stake_list empty returning empty list')
+            pass
         except Exception as e:
             logger.error('Exception in next_stake_list_get')
             logger.exception(e)
@@ -85,24 +89,25 @@ class State:
 
     def get_epoch_seed(self):
         try:
-            return self.db.get('epoch_seed'.encode())
+            return self.db.get('epoch_seed')
         except Exception as e:
             logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
-        if height == self.db.get('blockheight'.encode()):
-            return True
-        return False
+        return height == self.state_blockheight
 
     def state_blockheight(self):
-        return self.db.get('blockheight'.encode())
+        return self.db.get('blockheight')
+
+    def state_set_blockheight(self, height):
+        return self.db.put('blockheight', height)
 
     def state_get_txn_count(self, addr):
         try:
-            return self.db.get( ('txn_count_' + addr).encode())
+            return self.db.get( ('txn_count_' + addr))
         except KeyError:
-            logger.warning('No txn count for %s', addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_get_txn_count')
             logger.exception(e)
@@ -111,64 +116,57 @@ class State:
 
     def state_get_address(self, addr):
         try:
-            return self.db.get(addr.encode())
+            return self.db.get(addr)
         except KeyError:
-            logger.warning('state_get_address: No state found for %s', addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_get_address')
             logger.exception(e)
 
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: THIS SHOULD BE REMOVED!!!!!!!!!!!!!!!!!
+        # FIXME: RETURNING FAKE FUNDS??? !!!!!!!!!!!!!!!!!
         return [0, 100 * (10**8), []]
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
+        # FIXME: ******************************************************
 
     def state_address_used(self, addr):  # if excepts then address does not exist..
         try:
-            return self.db.get(addr.encode())
+            return self.db.get(addr)
         except KeyError:
-            logger.warning('state_address_used: address not found %s', addr)
+            pass
         except Exception as e:
             logger.error('Exception in state_address_used')
             logger.exception(e)
 
         return False
 
-    def state_balance(self, addr):
-        try:
-            return self.db.get(addr.encode())[1]
-        except KeyError:
-            logger.warning("state_balance: state not found for %s", addr)
-        except Exception as e:
-            logger.error('Exception in state_balance')
-            logger.exception(e)
-
-        return 100 * (10**8)
-
     def state_nonce(self, addr):
-        try:
-            return self.db.get(addr.encode())[0]
-        except KeyError:
-            logger.warning("state_nonce: state not found for %s", addr)
-        except Exception as e:
-            logger.error('Exception in state_nonce')
-            logger.exception(e)
+        address_state = self.state_get_address(addr)
+        return address_state[0]
 
-        return 0
+    def state_balance(self, addr):
+        address_state = self.state_get_address(addr)
+        return address_state[1]
 
     def state_pubhash(self, addr):
-        try:
-            return self.db.get(addr.encode())[2]
-        except KeyError:
-            logger.warning("state_pubhash: state not found for %s", addr)
-        except Exception as e:
-            logger.error('Exception in state_pubhash')
-            logger.exception(e)
-
-        return []
+        address_state = self.state_get_address(addr)
+        return address_state[2]
 
     def state_hrs(self, hrs):
         try:
-            return self.db.get('hrs{}'.format(hrs).encode())
+            return self.db.get('hrs{}'.format(hrs))
         except KeyError:
-            logger.warning("state_hrs: state not found for %s", hrs)
+            pass
         except Exception as e:
             logger.error('Exception in state_hrs')
             logger.exception(e)
@@ -214,6 +212,34 @@ class State:
         self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
 
         return True
+
+    def return_all_addresses(self):
+        addresses = []
+        for k, v in self.db.RangeIter('Q'):
+            if k[0] == ord('Q'):
+                v = json.loads(v.decode())['value']
+                addresses.append([k, v[1]])
+        return addresses
+
+    def zero_all_addresses(self):
+        addresses = []
+        for k, v in self.db.RangeIter('Q'):
+            if k == b'slave_info':
+                continue
+            addresses.append(k)
+        for address in addresses:
+            self.db.put(address, [0, 0, []])
+
+        self.state_set_blockheight(0)
+        return
+
+    def total_coin_supply(self):
+        coins = 0
+        for k, v in self.db.RangeIter('Q'):
+            if k[0] == ord('Q'):
+                value = json.loads(v.decode('utf-8'))['value']
+                coins = coins + value[1]
+        return coins
 
     # Loads the state of the addresses mentioned into txn
     def load_address_state(self, chain, block, address_txn):
@@ -416,7 +442,8 @@ class State:
             if not ignore_save_wallet:
                 chain.wallet.save_wallet()
 
-        self.db.put('blockheight', chain.height() + 1)
+        self.state_set_blockheight(chain.height() + 1)
+
         logger.info('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
@@ -457,7 +484,7 @@ class State:
 
     def state_read_chain(self, chain):
 
-        self.db.zero_all_addresses()
+        self.zero_all_addresses()
         c = chain.m_get_block(0).state
         for address in c:
             self.db.put(address[0], address[1])
@@ -502,5 +529,5 @@ class State:
 
             logger.info((block, str(len(block.transactions)), 'tx ', ' passed'))
 
-        self.db.put('blockheight', chain.m_blockheight())
+        self.state_set_blockheight(chain.m_blockheight())
         return True

@@ -1,26 +1,24 @@
 # coding=utf-8
-import pickle as pickle
-import os
+import queue
 import random
-import struct
 import time
 from collections import defaultdict
 
-import simplejson as json
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger, helper
 from qrl.core.helper import json_encode, json_bytestream_bk
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
-import queue
+from qrl.p2p.node import QRLNode
+
 
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
 
-    def __init__(self, chain, nodeState, pos=None):
+    def __init__(self, chain, nodeState, node: QRLNode, pos=None):
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
@@ -48,9 +46,9 @@ class P2PFactory(ServerFactory):
         self.last_reveal_three = None
 
         self.peer_connections = []
-        self.peer_addresses = []
-        self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
-        self.load_peer_addresses()
+
+        self.node = node
+
         self.txn_processor_running = False
 
         self.bkmr_blocknumber = 0  # Blocknumber for which bkmr is being tracked
@@ -113,6 +111,7 @@ class P2PFactory(ServerFactory):
                 if score > oldscore:
                     del self.bkmr_priorityq
                     self.bkmr_priorityq = queue.PriorityQueue()
+                    return
 
             self.RFM(data={'hash': hash, 'type': 'BK'})
             self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
@@ -133,16 +132,17 @@ class P2PFactory(ServerFactory):
         :return:
         :rtype: None
         """
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer in self.peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self.node.peer_addresses)
+        for peer_address in self.node.peer_addresses:
+            # FIXME: Refactor search
             found = False
             for peer_conn in self.peer_connections:
-                if peer == peer_conn.transport.getPeer().host:
+                if peer_address == peer_conn.transport.getPeer().host:
                     found = True
                     break
             if found:
                 continue
-            reactor.connectTCP(peer, 9000, self)
+            reactor.connectTCP(peer_address, 9000, self)
 
     def get_block_a_to_b(self, a, b):
         logger.info('<<<Requested blocks: %s to %s from peers..', a, b)
@@ -361,27 +361,6 @@ class P2PFactory(ServerFactory):
         return
 
     # connection functions
-
-    # FIXME: Temporarily moving here
-    def load_peer_addresses(self):
-        if os.path.isfile(self.peers_path) is True:
-            logger.info('Opening peers.dat')
-            with open(self.peers_path, 'rb') as my_file:
-                self.peer_addresses = pickle.load(my_file)
-        else:
-            logger.info('Creating peers.dat')
-            # Ensure the data path exists
-            config.create_path(config.user.data_path)
-            with open(self.peers_path, 'wb') as my_file:
-                pickle.dump(config.user.peer_list, my_file)
-                self.peer_addresses = config.user.peer_list
-
-        logger.info('Known Peers: %s', self.peer_addresses)
-
-    def update_peer_addresses(self, peer_addresses):
-        self.peer_addresses = peer_addresses
-        with open(self.peers_path, "wb") as myfile:
-            pickle.dump(self.peer_addresses, myfile)
 
     def reset_processor_flag(self, _):
         self.txn_processor_running = False

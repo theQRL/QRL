@@ -8,7 +8,7 @@
 
 > Python-based blockchain ledger utilising hash-based one-time merkle tree signature scheme (XMSS) instead of ECDSA. Proof-of-stake block selection via a signed iterative hash chain reveal scheme which is both probabilistic and random (https://github.com/theQRL/pos).
 >
-> Hash-based signatures means larger transactions (6kb per tx, binary), longer keypair generation times and the need to record 'state' of transactions as each keypair can only be used once safely. Merkle tree usage enables a single address to be used for signing numerous transactions (up to 2^13 computationally easily enough). Transactions have an incremented nonce to allow wallets to know which MSS keypair to use - currently Lamport-Diffie and Winternitz one-time signatures as part of merkle signature schemes and XMSS/W-OTS+ are natively supported.
+> Hash-based signatures means larger transactions (6kb per tx, binary), longer keypair generation times and the need to record 'state' of transactions as each keypair can only be used once safely. Merkle tree usage enables a single address to be used for signing numerous transactions (up to 2^13 computationally easily enough). Transactions have an incremented nonce to allow wallets to know which MSS keypair to use - currently XMSS/W-OTS+ are natively supported.
 
 More information:
  - [theqrl.org](https://theqrl.org)
@@ -26,19 +26,16 @@ More information:
 
 ## Ubuntu :white_check_mark:
 
-Ensure your apt sources are up to date
+Ensure your apt sources are up to date and install dependencies
 
-`sudo apt update`
-
-Install packages
-
-```
-sudo apt -y install swig3.0 python3-dev build-essential cmake pkg-config
+```bash
+sudo apt update
+sudo apt -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libboost-random-dev libssl-dev libffi-dev
 ```
 
 To get the source and start the node, use the following:
 
-```
+```bash
 git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt
@@ -51,12 +48,13 @@ If you dont have brew yet, we think you should :) Install brew following the ins
 Now install some dependencies
 
 ```bash
-brew install cmake python3 swig
+brew update
+brew install cmake python3 swig boost
 ```
 
 To get the source and start the node, use the following:
 
-```
+```bash
 git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt
@@ -66,14 +64,15 @@ python3 start_qrl.py
 ## Raspberry Pi :white_check_mark:
 
 Install dependencies
-```
-sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build
+```bash
+sudo apt update
+sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev libssl-dev libffi-dev
 sudo pip3 install -U setuptools
 ```
 
 To get the source and start the node, use the following:
 
-```
+```bash
 git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt

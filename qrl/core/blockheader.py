@@ -4,6 +4,7 @@ from math import log
 
 from pyqrllib.pyqrllib import sha2_256, str2bin
 from qrl.core import ntp, logger, config
+from qrl.core.qrl_formulas import block_reward_calc
 
 
 class BlockHeader(object):
@@ -12,18 +13,21 @@ class BlockHeader(object):
         >>> BlockHeader() is not None
         True
         """
-        # FIXME: init and create should probably be merged
         self.blocknumber = None
+        self.epoch = None
         self.timestamp = None
+
+        self.headerhash = None
         self.prev_blockheaderhash = None
+
+        self.block_reward = None
+        self.fee_reward = 0
+
         self.tx_merkle_root = None
         self.reveal_hash = None
-        self.vote_hash = None
-        self.epoch = None
         self.stake_selector = None
-        self.block_reward = None
-        self.headerhash = None
-        self.fee_reward = 0
+
+        self.vote_hash = None  # FIXME: unused
 
     def create(self,
                chain,
@@ -53,10 +57,10 @@ class BlockHeader(object):
         """
 
         self.blocknumber = blocknumber
+        self.timestamp = 0
+        self.epoch = self.blocknumber // config.dev.blocks_per_epoch
 
-        if self.blocknumber == 0:
-            self.timestamp = 0
-        else:
+        if self.blocknumber != 0:
             self.timestamp = int(ntp.getTime())
             if self.timestamp == 0:
                 logger.warning('Failed to get NTP timestamp')
@@ -67,12 +71,11 @@ class BlockHeader(object):
         self.reveal_hash = reveal_hash
         self.vote_hash = vote_hash
         self.fee_reward = fee_reward
-        self.epoch = self.blocknumber // config.dev.blocks_per_epoch
 
-        if self.blocknumber == 0:
-            self.stake_selector = ''
-            self.block_reward = 0
-        else:
+        self.stake_selector = ''
+        self.block_reward = 0
+
+        if self.blocknumber != 0:
             if self.blocknumber == 1:
                 tmp_chain, _ = chain.select_hashchain(
                     last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(0),
@@ -83,61 +86,28 @@ class BlockHeader(object):
 
         self.headerhash = self.generate_headerhash()
 
-    def json_to_blockheader(self, json_blockheader):
+    @staticmethod
+    def from_json(json_blockheader):
+        tmp = BlockHeader()
+
         # TODO: Moving to protobuf?
-        self.reveal_hash = tuple(json_blockheader['reveal_hash'])
-        self.vote_hash = tuple(json_blockheader['vote_hash'])
-        self.epoch = json_blockheader['epoch']
-        self.headerhash = tuple(json_blockheader['headerhash'])
-        self.timestamp = json_blockheader['timestamp']
-        self.tx_merkle_root = tuple(json_blockheader['tx_merkle_root'])
-        self.blocknumber = json_blockheader['blocknumber']
-        self.prev_blockheaderhash = tuple(json_blockheader['prev_blockheaderhash'])
-        self.stake_selector = json_blockheader['stake_selector']
-        self.block_reward = json_blockheader['block_reward']
-        self.fee_reward = json_blockheader['fee_reward']
+        tmp.blocknumber = json_blockheader['blocknumber']
+        tmp.epoch = json_blockheader['epoch']
+        tmp.timestamp = json_blockheader['timestamp']
 
-    @staticmethod
-    def calc_coeff(N_tot, block_tot):
-        # TODO: This is more related to the way QRL works.. Move to another place
-        # TODO: Verify these values and formula
-        """
-        block reward calculation
-        decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
-        N_tot is less the initial coin supply.
-        :param N_tot:
-        :param block_tot:
-        :return:
-        >>> BlockHeader.calc_coeff(1, 1)
-        0.0
-        """
-        return log(N_tot) / block_tot
+        tmp.headerhash = tuple(json_blockheader['headerhash'])
+        tmp.prev_blockheaderhash = tuple(json_blockheader['prev_blockheaderhash'])
 
-    @staticmethod
-    def remaining_emission(N_tot, block_n):
-        # TODO: This is more related to the way QRL works.. Move to another place
-        """
-        calculate remaining emission at block_n: N=total initial coin supply, coeff = decay constant
-        need to use decimal as floating point not precise enough on different platforms..
-        :param N_tot:
-        :param block_n:
-        :return:
+        tmp.block_reward = json_blockheader['block_reward']
+        tmp.fee_reward = json_blockheader['fee_reward']
 
-        >>> BlockHeader.remaining_emission(1, 1)
-        Decimal('0.99999996')
-        """
-        # TODO: Verify these values and formula
-        coeff = BlockHeader.calc_coeff(config.dev.total_coin_supply, 420480000)
-        return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
-            .quantize(decimal.Decimal('1.00000000'), rounding=decimal.ROUND_HALF_UP)
+        tmp.tx_merkle_root = tuple(json_blockheader['tx_merkle_root'])
+        tmp.reveal_hash = tuple(json_blockheader['reveal_hash'])
+        tmp.stake_selector = json_blockheader['stake_selector']
 
-    def block_reward_calc(self):
-        """
-        return block reward for the block_n
-        :return:
-        """
-        return int((BlockHeader.remaining_emission(config.dev.total_coin_supply, self.blocknumber - 1)
-                    - self.remaining_emission(config.dev.total_coin_supply, self.blocknumber)) * 100000000)
+        tmp.vote_hash = tuple(json_blockheader['vote_hash'])
+
+        return tmp
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
@@ -152,3 +122,63 @@ class BlockHeader(object):
                                                        self.vote_hash,
                                                        self.reveal_hash)
         return sha2_256(str2bin(data))
+
+    def block_reward_calc(self):
+        """
+        return block reward for the block_n
+        :return:
+        """
+        return block_reward_calc(self.blocknumber)
+
+    def validate(self, last_header):
+        if last_header.blocknumber != self.blocknumber - 1:
+            logger.warning('Block numbers out of sequence: failed validation')
+            return False
+
+        if last_header.headerhash != self.prev_blockheaderhash:
+            logger.warning('Headerhash not in sequence: failed validation')
+            return False
+
+        if self.generate_headerhash() != self.headerhash:
+            logger.warning('Headerhash false for block: failed validation')
+            return False
+
+        if self.block_reward != self.block_reward_calc():
+            logger.warning('Block reward incorrect for block: failed validation')
+            return False
+
+        if self.epoch != self.blocknumber // config.dev.blocks_per_epoch:
+            logger.warning('Epoch incorrect for block: failed validation')
+            return False
+
+        if self.timestamp == 0 and self.blocknumber > 0:
+            logger.warning('Invalid block timestamp ')
+            return False
+
+        if self.timestamp <= last_header.timestamp:
+            logger.warning('BLOCK timestamp is less than prev block timestamp')
+            logger.warning('block timestamp %s ', self.timestamp)
+            logger.warning('must be greater than %s', last_header.timestamp)
+            return False
+
+        if last_header.timestamp + config.dev.minimum_minting_delay > self.timestamp:
+            logger.warning('BLOCK created without waiting for minimum minting delay')
+            logger.warning('prev_block timestamp %s ', last_header.timestamp)
+            logger.warning('current_block timestamp %s ', self.timestamp)
+            return False
+
+        return True
+
+    def validate_block_timestamp(self, last_block_timestamp):
+        # TODO: Add minimum minting delay
+        if last_block_timestamp >= self.timestamp:
+            return False
+
+        curr_time = ntp.getTime()
+        if curr_time == 0:
+            return False
+
+        max_block_number = int((curr_time - last_block_timestamp) / config.dev.block_creation_seconds)
+        if self.blocknumber > max_block_number:
+            return False
+
