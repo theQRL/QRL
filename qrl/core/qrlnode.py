@@ -9,7 +9,7 @@ from qrl.core.state import State
 from qrl.generated import qrl_pb2
 
 
-# FIXME: This will soon move to core
+# FIXME: This will soon move to core. Split/group functionality
 class QRLNode:
     def __init__(self, db_state: State):
         self.peer_addresses = []
@@ -112,6 +112,7 @@ class QRLNode:
                 return addr.xmss
         return None
 
+    # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from, addr_to, amount, fee=0):
         xmss_from = self._find_xmss(addr_from)
         if xmss_from is None:
@@ -139,10 +140,9 @@ class QRLNode:
 
         tx.sign(xmss_from)
         self.submit_send_tx(tx)
-        self.p2pfactory.send_tx_to_peers(tx)
-
         return tx
 
+    # FIXME: Rename this appropriately
     def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_key):
         return SimpleTransaction.create(addr_from=addr_from,
                                         addr_to=addr_to,
@@ -151,7 +151,8 @@ class QRLNode:
                                         xmss_pk=xmss_pk,
                                         xmss_ots_key=xmss_ots_key)
 
-    def submit_send_tx(self, tx):
+    # FIXME: Rename this appropriately
+    def submit_send_tx(self, tx : SimpleTransaction) -> bool:
         # TODO: Review this
         if tx and tx.validate_tx():
             block_chain_buffer = self.chain.block_chain_buffer
@@ -161,6 +162,7 @@ class QRLNode:
             if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
                 self.chain.add_tx_to_pool(tx)
                 self.chain.wallet.save_wallet()
+                self.p2pfactory.send_tx_to_peers(tx)
                 return True
 
         return False

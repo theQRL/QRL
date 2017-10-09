@@ -12,7 +12,7 @@ from qrl.core import config, logger, helper
 from qrl.core.helper import json_encode, json_bytestream, json_bytestream_bk
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
-from qrl.p2p.node import QRLNode
+from qrl.services.node import QRLNode
 
 
 class P2PFactory(ServerFactory):

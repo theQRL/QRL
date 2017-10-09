@@ -6,8 +6,8 @@ import logging
 
 from twisted.internet import reactor
 
-from qrl.p2p.node import QRLNode
-from qrl.p2p.services import start_services
+from qrl.services.node import QRLNode
+from qrl.services.services import start_services
 from . import webwallet
 from .core import logger, ntp, node, config
 from .core.apifactory import ApiFactory
