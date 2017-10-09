@@ -26,11 +26,14 @@ class DB:
     def destroy(self):
         leveldb.DestroyDB(self.db_path)
 
-    def RangeIter(self, key_obj):
-        if not isinstance(key_obj, bytes):
-            key_obj = key_obj.encode()
+    def RangeIter(self, key_obj_start, key_obj_end):
+        if not isinstance(key_obj_start, bytes):
+            key_obj_start = key_obj_start.encode()
 
-        return self.db.RangeIter(key_obj)
+        if not isinstance(key_obj_end, bytes):
+            key_obj_end = key_obj_end.encode()
+
+        return self.db.RangeIter(key_obj_start, key_obj_end)
 
     def put(self, key_obj, value_obj):  # serialise with pickle into a string
         if not isinstance(key_obj, bytes) and not isinstance(key_obj, bytearray):

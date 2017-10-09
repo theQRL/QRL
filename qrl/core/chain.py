@@ -639,22 +639,20 @@ class Chain:
 
     def update_block_metadata(self, block_number, block_position, block_size):
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        self.block_metadata[block_number] = [block_position, block_size]
+        self.block_framedata[block_number] = [block_position, block_size]
 
     def get_block_metadata(self, block_number):
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        return self.block_metadata[block_number]
+        return self.block_framedata[block_number]
 
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
 
-        pos, size = self.get_block_metadata(blocknum)
+        block_offset, block_size = self.get_block_metadata(blocknum)
 
         with open(self.get_chaindatafile(epoch), 'rb') as f:
-            framedata = self.block_framedata[blocknum]
-
-            f.seek(framedata.position)
-            jsonBlock = bz2.decompress(f.read(framedata.size))
+            f.seek(block_offset)
+            jsonBlock = bz2.decompress(f.read(block_size))
 
             block = Block.from_json(jsonBlock)
             return block
@@ -697,7 +695,9 @@ class Chain:
                             jsonBlock = bz2.decompress(jsonBlock)
 
                             block = Block.from_json(jsonBlock)
-                            self.block_framedata[block.blockheader.blocknumber] = BlockFrame(pos, len(jsonBlock))
+
+                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
+
                             block_list.append(block)
 
                             jsonBlock = bytearray()

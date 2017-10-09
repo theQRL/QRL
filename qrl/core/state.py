@@ -212,32 +212,6 @@ class State:
 
         return True
 
-    def return_all_addresses(self):
-        addresses = []
-        for k, v in self.db.RangeIter('Q'):
-            if k[0] == ord('Q'):
-                v = json.loads(v.decode())['value']
-                addresses.append([k, v[1]])
-        return addresses
-
-    def zero_all_addresses(self):
-        addresses = []
-        for k, v in self.db.RangeIter('Q'):
-            addresses.append(k)
-        for address in addresses:
-            self.db.db.Delete(address)
-        logger.info('Reset Finished')
-        self.state_set_blockheight(0)
-        return
-
-    def total_coin_supply(self):
-        coins = 0
-        for k, v in self.db.RangeIter('Q'):
-            if k[0] == ord('Q'):
-                value = json.loads(v.decode('utf-8'))['value']
-                coins = coins + value[1]
-        return coins
-
     # Loads the state of the addresses mentioned into txn
     def load_address_state(self, chain, block, address_txn):
         blocknumber = block.blockheader.blocknumber
@@ -413,14 +387,35 @@ class State:
         return True
 
     def _get_address_state(self, address):
-        # FIXME: This is temporary code. Avoiding json to speed things up a little
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
         # TODO: This must return legacy state
         return self.address_state[address]
         pass
 
     def _save_address_state(self, address, legacy_state):
-        # FIXME: This is temporary code. Avoiding json to speed things up a little
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
         self.address_state[address] = legacy_state
+
+    def return_all_addresses(self):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        addresses = []
+        for k, v in self.address_state.items():
+            addresses.append([k, v[1]])
+        return addresses
+
+    def zero_all_addresses(self):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        self.address_state.clear()
+        logger.info('Reset Finished')
+        self.state_set_blockheight(0)
+        return
+
+    def total_coin_supply(self):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        coins = 0
+        for k, v in self.address_state.items():
+            coins = coins + v[1]            # FIXME: decimal math?
+        return coins
 
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):
         # FIXME: This indexing approach is very inefficient
