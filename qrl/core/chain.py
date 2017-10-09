@@ -617,7 +617,6 @@ class Chain:
             epoch += 1
         self.wallet.save_wallet()
 
-        gc.collect()
         return self.m_blockchain
 
     def f_write_m_blockchain(self):
@@ -637,7 +636,6 @@ class Chain:
                 myfile.write(config.dev.binary_file_delimiter)
 
         del self.m_blockchain[:-1]
-        gc.collect()
 
     def update_block_metadata(self, block_number, block_position, block_size):
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
