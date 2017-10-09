@@ -4,7 +4,7 @@
 
 from operator import itemgetter
 from functools import reduce
-
+from copy import deepcopy
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
@@ -197,11 +197,11 @@ class State:
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
         nonce = self.stake_validators_list.sv_list[block.transactions[0].txto].nonce
         logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                    block.blockheader.blocknumber,
-                    block.blockheader.epoch,
-                    blocks_left - 1,
-                    nonce,
-                    block.blockheader.stake_selector)
+                     block.blockheader.blocknumber,
+                     block.blockheader.epoch,
+                     blocks_left - 1,
+                     nonce,
+                     block.blockheader.stake_selector)
 
         if not self.state_update(block, self.stake_validators_list, address_txn):
             return
@@ -387,7 +387,7 @@ class State:
     def _get_address_state(self, address):
         # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
         # TODO: This must return legacy state
-        return self.address_state[address]
+        return deepcopy(self.address_state[address])
         pass
 
     def _save_address_state(self, address, legacy_state):

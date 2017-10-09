@@ -62,8 +62,8 @@ class ChainBuffer:
 
             self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
             data = self.chain.wallet.read_slave()
-            if data and data['address'] == self.slave_xmss[epoch].get_address():
-                self.slave_xmss[epoch].set_index(data['index'])
+            if data and data.address == self.slave_xmss[epoch].get_address():
+                self.slave_xmss[epoch].set_index(data.index)
         return self.slave_xmss[epoch]
 
     def get_next_slave_xmss(self, blocknumber):
