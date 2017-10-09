@@ -78,7 +78,11 @@ class QRLNode:
 
     def get_wallet_absolute(self, addr_or_index):
         # FIXME: Refactor. Define concerns, etc. Validation vs logic
-        if not addr_or_index:
+        # FIXME: It is possible to receive integers instead of strings....
+        if not isinstance(addr_or_index, str):
+            addr_or_index = str(addr_or_index)
+
+        if addr_or_index == "":
             raise ValueError("address is empty")
 
         if addr_or_index.isdigit():
@@ -88,7 +92,7 @@ class QRLNode:
             num_wallets = len(self.chain.wallet.address_bundle)
             addr_idx = int(addr_or_index)
             if 0 <= addr_idx < num_wallets:
-                return self.chain.wallet.address_bundle[addr_idx].get_address()
+                return self.chain.wallet.address_bundle[addr_idx].address
             else:
                 raise ValueError("invalid address index")
 

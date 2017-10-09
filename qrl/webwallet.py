@@ -220,7 +220,7 @@ class sendQuanta(Resource):
             tx = qrlnode.transfer_coins(wallet_from, wallet_to, amount, fee)
 
         except Exception as e:
-            self.txnResult["message"].write(str(e))
+            self.txnResult["message"] = str(e)
             return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
         ################################
