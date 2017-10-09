@@ -69,7 +69,7 @@ message BlockHeader
 {
     // Header
     uint64 block_number = 1;
-    uint64 epoch_number = 2;
+    uint64 epoch = 2;
     google.protobuf.Timestamp timestamp = 3;
 
     bytes hash_header = 4;
@@ -89,6 +89,11 @@ message Block
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
     repeated Transaction dup_transactions = 3;      // TODO: Review this
+
+    repeated AddressState state = 4;
+
+    repeated string stake_list = 5;                 // addresses
+    bytes stake_seed = 6;
 }
 
 message Transaction
@@ -106,7 +111,7 @@ message Transaction
 
     uint64 nonce = 2;
     string addr_from = 3;
-    bytes hash = 5;
+    bytes transaction_hash = 5;
     bytes public_hash = 4;
 
     bytes public_key = 6;               // Required for Signed Transfer
@@ -126,4 +131,7 @@ message Transaction
     bytes dup_coinbase2_hhash = 17;         // Required for duplicate transaction
     Transaction dup_coinbase1 = 18;         // Required for duplicate transaction
     Transaction dup_coinbase2 = 19;         // Required for duplicate transaction
+
+    bytes pk_kyber = 20;                    // Required for LatticePublicKey
+    bytes pk_tesla = 21;                    // Required for LatticePublicKey
 }

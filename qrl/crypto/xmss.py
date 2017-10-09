@@ -80,7 +80,7 @@ class XMSS(object):
         """
         return self._xmss.getSK()
 
-    def pk(self, i=None):
+    def pk(self):
         """
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1).pk()) == xmss_pk_expected1
         True

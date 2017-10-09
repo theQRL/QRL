@@ -5,7 +5,7 @@
 import simplejson as json
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
-from qrl.core import logger, config, ntp
+from qrl.core import logger, config
 from qrl.core.blockheader import BlockHeader
 from qrl.core.helper import select_target_hashchain
 from qrl.core.Transaction import Transaction, CoinBase, DuplicateTransaction
@@ -64,12 +64,11 @@ class Block(object):
                                 hashedtransactions=hashedtransactions,
                                 fee_reward=fee_reward)
 
-        coinbase_tx = CoinBase().create(self.blockheader,
-                                        chain.block_chain_buffer.get_slave_xmss(last_block_number + 1))
-        # coinbase_tx = CoinBase().create(self.blockheader.block_reward + self.blockheader.fee_reward,
-        #                                            self.blockheader.headerhash,
-        #                                            chain.wallet.address_bundle[0].xmss.get_address(),
-        #                                            chain.block_chain_buffer.get_slave_xmss(last_block_number + 1))
+        signing_xmss = chain.block_chain_buffer.get_slave_xmss(last_block_number + 1)
+
+        coinbase_tx = CoinBase.create(self.blockheader, signing_xmss)
+
+        coinbase_tx.sign(signing_xmss)
 
         self.transactions[0] = coinbase_tx
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list

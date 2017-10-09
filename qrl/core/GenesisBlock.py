@@ -45,6 +45,7 @@ class GenesisBlock(object, metaclass=Singleton):
         self.state = []
 
         for key in self._genesis_info:
+            # FIXME: Magic number? Unify
             self.state.append([key, [0, self._genesis_info[key] * 100000000, []]])
 
         self.stake_list = []

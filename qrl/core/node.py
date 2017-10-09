@@ -183,12 +183,14 @@ class POS:
             reactor.callLater(5, self.pre_pos_1)
             return
 
-        st = StakeTransaction().create(blocknumber=0,
-                                       xmss=self.chain.wallet.address_bundle[0].xmss,
-                                       slave_public_key=slave_xmss.pk(),
-                                       hashchain_terminator=tmphc.hc_terminator,
-                                       first_hash=tmphc.hashchain[-1][-2],
-                                       balance=tmpbalance)
+        signing_xmss = self.chain.wallet.address_bundle[0].xmss
+        st = StakeTransaction.create(blocknumber=0,
+                                     xmss=signing_xmss,
+                                     slave_public_key=slave_xmss.pk(),
+                                     hashchain_terminator=tmphc.hc_terminator,
+                                     first_hash=tmphc.hashchain[-1][-2],
+                                     balance=tmpbalance)
+        st.sign(signing_xmss)
 
         self.chain.add_tx_to_pool(st)
         # send the stake tx to generate hashchain terminators for the staker addresses..
@@ -207,7 +209,8 @@ class POS:
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom],
+                                     tx.slave_public_key])
                     self.chain.state.stake_validators_list.add_sv(tx.txfrom,
                                                                   tx.slave_public_key,
                                                                   tx.hash,
@@ -218,7 +221,9 @@ class POS:
 
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
-                                                                           reveal_one=bin2hstr(sha256(reduce(lambda set1, set2: set1 + set2, staker[1]))),
+                                                                           reveal_one=bin2hstr(sha256(
+                                                                               reduce(lambda set1, set2: set1 + set2,
+                                                                                      staker[1]))),
                                                                            balance=staker[4],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 
@@ -240,9 +245,9 @@ class POS:
 
             # create the genesis block 2 here..
             reveal_hash, vote_hash = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
-                                                           self.chain.mining_address,
-                                                           tmphc.hashchain,
-                                                           blocknumber=1)
+                                                                 self.chain.mining_address,
+                                                                 tmphc.hashchain,
+                                                                 blocknumber=1)
             b = self.chain.m_create_block(reveal_hash[-2], vote_hash[-2])
             self.pre_block_logic(b)
         else:
@@ -499,7 +504,7 @@ class POS:
 
             if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_list:
                 diff = max(1, int(
-                    (config.dev.stake_before_x_blocks * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
+                    (config.dev.stake_before_x_blocks * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)))
                 if random.randint(1, diff) == 1:
                     self.make_st_tx(blocknumber, None)
 
@@ -513,7 +518,7 @@ class POS:
 
                     if threshold_blocknum - 1 <= epoch_blocknum < max_threshold_blocknum - 1:
                         diff = max(1, int(
-                            (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)) )
+                            (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)))
                         if random.randint(1, diff) == 1:
                             xmss = self.chain.wallet.address_bundle[0].xmss
                             tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
@@ -546,13 +551,18 @@ class POS:
         if not slave_xmss:
             return
 
-        st = StakeTransaction().create(
+        signing_xmss = self.chain.wallet.address_bundle[0].xmss
+        
+        st = StakeTransaction.create(
             blocknumber=blocknumber,
-            xmss=self.chain.wallet.address_bundle[0].xmss,
+            xmss=signing_xmss,
             slave_public_key=slave_xmss.pk(),
             first_hash=first_hash,
             balance=balance
         )
+
+        st.sign(signing_xmss)
+
         self.p2pFactory.send_st_to_peers(st)
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]

@@ -3,18 +3,15 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
-from qrl.core.helper import json_print_telnet, json_bytestream, json_print
-from qrl.core.Transaction import SimpleTransaction
+from qrl.core.helper import json_bytestream, json_print
 from qrl.crypto.misc import sha256, merkle_tx_hash
-
-import gc
 
 import bz2
 from io import StringIO
@@ -26,6 +23,8 @@ import simplejson as json
 from collections import defaultdict
 from decimal import Decimal
 
+BlockFrame = namedtuple('BlockFrame', 'position size')  # FIXME: Remove/Refactor. This is temporary
+
 
 class Chain:
     def __init__(self, state):
@@ -36,16 +35,16 @@ class Chain:
         # FIXME: should self.mining_address be self.staking_address
         self.mining_address = self.wallet.address_bundle[0].xmss.get_address()
 
-        self.ping_list = []                     # FIXME: This has nothing to do with chain
+        self.ping_list = []  # FIXME: This has nothing to do with chain
 
-        self.block_metadata = dict()
+        self.block_framedata = dict()
 
         self.transaction_pool = []
         self.txhash_timestamp = []
         self.m_blockchain = []
         self.blockheight_map = []
         self.block_chain_buffer = None  # Initialized by node.py
-        self.prev_txpool = [None] * 1000        # TODO: use python dequeue
+        self.prev_txpool = [None] * 1000  # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
         self.duplicate_tx_pool = OrderedDict()
@@ -436,8 +435,10 @@ class Chain:
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 # FIXME: Accessing DB directly
                 self.state.db.put(bin2hstr(txn.txhash),
-                                  [txn.transaction_to_json(), block.blockheader.blocknumber,
+                                  [txn.transaction_to_json(),
+                                   block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
+
                 if txn.subtype == TX_SUBTYPE_TX:
                     self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
                 self.update_wallet_tx_metadata(txn.txto, txn.txhash)
@@ -584,26 +585,6 @@ class Chain:
 
         return True
 
-    def create_my_tx(self, txfrom, txto, amount, fee=0):
-        if isinstance(txto, int):
-            txto = self.wallet.address_bundle[txto].address
-
-        xmss = self.wallet.address_bundle[txfrom].xmss
-        tx_state = self.block_chain_buffer.get_stxn_state(self.block_chain_buffer.height() + 1, xmss.get_address())
-        tx = SimpleTransaction().create(tx_state=tx_state,
-                                        txto=txto,
-                                        amount=amount,
-                                        xmss=xmss,
-                                        fee=fee)
-
-        if tx and tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.transaction_pool):
-            self.add_tx_to_pool(tx)
-            self.wallet.save_wallet()
-            # need to keep state after tx ..use self.wallet.info to store index..
-            # far faster than loading the 55mb self.wallet..
-            return tx
-
-        return False
 
     ############## BLOCK CHAIN PERSISTANCE
 
@@ -633,7 +614,6 @@ class Chain:
             epoch += 1
         self.wallet.save_wallet()
 
-        gc.collect()
         return self.m_blockchain
 
     def f_write_m_blockchain(self):
@@ -648,30 +628,29 @@ class Chain:
                 compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
                 pos = myfile.tell()
                 blockSize = len(compressedBlock)
-                self.update_block_metadata(block.blockheader.blocknumber, pos, blockSize)
+                self.block_framedata[block.blockheader.blocknumber] = BlockFrame(pos, blockSize)
                 myfile.write(compressedBlock)
                 myfile.write(config.dev.binary_file_delimiter)
 
         del self.m_blockchain[:-1]
-        gc.collect()
 
     def update_block_metadata(self, block_number, block_position, block_size):
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        self.block_metadata[block_number] = [block_position, block_size]
+        self.block_framedata[block_number] = [block_position, block_size]
 
     def get_block_metadata(self, block_number):
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        return self.block_metadata[block_number]
+        return self.block_framedata[block_number]
 
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
 
-        pos, size = self.get_block_metadata(blocknum)
+        block_offset, block_size = self.get_block_metadata(blocknum)
 
         with open(self.get_chaindatafile(epoch), 'rb') as f:
-            # FIXME: Accessing DB directly
-            f.seek(pos)
-            jsonBlock = bz2.decompress(f.read(size))
+            f.seek(block_offset)
+            jsonBlock = bz2.decompress(f.read(block_size))
+
             block = Block.from_json(jsonBlock)
             return block
 
@@ -711,9 +690,13 @@ class Chain:
                             count = 0
                             pos = offset - len(delimiter) - len(jsonBlock)
                             jsonBlock = bz2.decompress(jsonBlock)
+
                             block = Block.from_json(jsonBlock)
+
                             self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
+
                             block_list.append(block)
+
                             jsonBlock = bytearray()
                             continue
                         jsonBlock.append(char)

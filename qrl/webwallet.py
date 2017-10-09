@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 # QRL Web Wallet
 # localhost:8888/
-import decimal
 import json
 import os
 
@@ -25,18 +24,19 @@ def hexseed_to_seed(hex_seed):
 
 
 class WebWallet:
-    def __init__(self, chain, state, p2pFactory):
+    def __init__(self, chain, state, p2pFactory, qrlnode):
         package_directory = os.path.dirname(os.path.abspath(__file__))
 
         self.chain = chain
         self.state = state
         self.p2pFactory = p2pFactory
+        self.qrlnode = qrlnode
 
         # Start local web server and define routes
         resource = File(os.path.join(package_directory, 'web-wallet'))
         resource.putChild(b"webwallet-addresses", showAddresses(self.chain))
         resource.putChild(b"webwallet-create-new-address", newAddress(self.chain))
-        resource.putChild(b"webwallet-send", sendQuanta(self.chain, self.state, self.p2pFactory))
+        resource.putChild(b"webwallet-send", sendQuanta(self.chain, self.state, self.qrlnode))
         resource.putChild(b"webwallet-mempool", memPoolSize(self.chain))
         resource.putChild(b"webwallet-sync", syncStatus(self.p2pFactory))
         resource.putChild(b"webwallet-recover", recoverAddress(self.chain))
@@ -176,11 +176,11 @@ class syncStatus(Resource):
 
 
 class sendQuanta(Resource):
-    def __init__(self, chain, state, p2pFactory):
+    def __init__(self, chain, state, qrlnode):
         Resource.__init__(self)
         self.chain = chain
         self.state = state
-        self.p2pFactory = p2pFactory
+        self.qrlnode = qrlnode
         self.output = {}
         self.txnResult = {}
 
@@ -192,98 +192,43 @@ class sendQuanta(Resource):
 
         return self.send_tx(jsQ["from"], jsQ["to"], jsQ["amount"])
 
-    # TODO
-    # Bit of duplicated code here - couldn't get it to work directly.
-    # Will follow up with cyyber
-    def send_tx(self, wallet_from, wallet_to, send_amount):
+    # FIXME: Missing fee. It wont get fixed as the webwallet will get removed
+    def send_tx(self, wallet_from, wallet_to, amount_arg):
+        fee_arg = 0  # FIXME: Fee argument is missing here, the class will be removed. No plans for fixing this
+
         self.txnResult = {
             'status': 'fail',
             'message': '',
             'txnhash': '',
             'from': wallet_from,
             'to': wallet_to,
-            'amount': send_amount
+            'amount': amount_arg
         }
 
-        # Check if local wallet number is higher than the number of local wallets that are saved
-        if int(wallet_from) > len(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)) - 1:
-            self.txnResult[
-                "message"] = "Invalid sending address. Try a valid number from your wallet - type wallet for details."
-            return bytes(helper.json_encode(self.txnResult), 'utf-8')
+        qrlnode = self.qrlnode
 
-        # if wallet_to is not a local wallet, and wallet_to is not prepended by Q and
-        if len(wallet_to) > 1 and wallet_to[0] != 'Q' and self.state.state_hrs(wallet_to) != False:
-            pass
-        elif wallet_to[0] == 'Q':
-            pass
-        else:
-            try:
-                int(wallet_to)
-            except:
-                self.txnResult["message"] = "Invalid receiving address - addresses must start with Q."
-                return bytes(helper.json_encode(self.txnResult), 'utf-8')
+        ########################
+        ########################
 
-            if int(wallet_to) > len(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)) - 1:
-                self.txnResult["message"] = "Invalid receiving address - addresses must start with Q."
-                return bytes(helper.json_encode(self.txnResult), 'utf-8')
-
-            wallet_to = int(wallet_to)
-
-        # Check to see if sending amount > amount owned (and reject if so)
-        # This is hard to interpret. Break it up?
-        balance = self.state.state_balance(self.chain.wallet.address_bundle[int(wallet_from)].address)
         try:
-            float(send_amount)
-        except:
-            self.txnResult[
-                "message"] = "Invalid amount type. Type a number (less than or equal to the balance of the sending address)"
+            wallet_from = qrlnode.get_wallet_absolute(wallet_from)
+            wallet_to = qrlnode.get_wallet_absolute(wallet_to)
+            amount = qrlnode.get_dec_amount(amount_arg)
+            fee = qrlnode.get_dec_amount(fee_arg)
+
+            tx = qrlnode.transfer_coins(wallet_from, wallet_to, amount, fee)
+
+        except Exception as e:
+            self.txnResult["message"] = str(e)
             return bytes(helper.json_encode(self.txnResult), 'utf-8')
 
-        amount = decimal.Decimal(decimal.Decimal(send_amount) * 100000000).quantize(decimal.Decimal('1'),
-                                                                                    rounding=decimal.ROUND_HALF_UP)
-
-        if balance < amount:
-            self.txnResult[
-                "message"] = "Invalid amount to send. Type a number less than or equal to the balance of the sending address"
-            return bytes(helper.json_encode(self.txnResult), 'utf-8')
-
-        # Stop user from sending less than their entire balance if they've only
-        # got one signature remaining.
-        sigsremaining = self.chain.wallet.get_num_signatures(self.chain.wallet.address_bundle[int(wallet_from)].address)
-        if sigsremaining is 1:
-            if amount < balance:
-                self.txnResult[
-                    "message"] = "Stop! You only have one signing signature remaining. You should send your entire balance or the remainder will be lost!"
-                return bytes(helper.json_encode(self.txnResult), 'utf-8')
-
-        tx = self.chain.create_my_tx(txfrom=int(wallet_from), txto=bytes(wallet_to, 'utf-8'), amount=amount)
-
-        if tx is False:
-            self.txnResult["message"] = "Failed to Create txn"
-            return bytes(helper.json_encode(self.txnResult), 'utf-8')
-
-        if tx.validate_tx():
-            block_chain_buffer = self.chain.block_chain_buffer
-            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
-                                                         addr=tx.txfrom)
-            if not tx.state_validate_tx(tx_state=tx_state,
-                                        transaction_pool=self.chain.transaction_pool):
-                self.txnResult["message"] = "OTS key reused"
-                return bytes(helper.json_encode(self.txnResult), 'utf-8')
-        else:
-            self.txnResult["message"] = "TXN failed at validate_tx"
-            return bytes(helper.json_encode(self.txnResult), 'utf-8')
-
-        # send the transaction to peers (ie send it to the network - we are done)
-        self.p2pFactory.send_tx_to_peers(tx)
-
-        print(('>>> TXN Hash: ' + str(tx.txhash) + ', From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
-            tx.amount / 100000000.000000000) + '\r\n' + '>>>created and sent into p2p network'))
+        ################################
+        ################################
 
         self.txnResult["status"] = "success"
         self.txnResult["txnhash"] = str(tx.txhash)
         self.txnResult["from"] = str(tx.txfrom)
         self.txnResult["to"] = str(tx.txto)
+        # FIXME: Magic number? Unify
         self.txnResult["amount"] = str(tx.amount / 100000000.000000000)
-
         return bytes(helper.json_encode(self.txnResult), 'utf-8')

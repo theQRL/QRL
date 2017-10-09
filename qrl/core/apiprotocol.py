@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import copy
-import decimal
 import json
 import time
 from operator import itemgetter
@@ -14,7 +13,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger
 from qrl.core.helper import json_print_telnet
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_STAKE
-from qrl.core.Transaction import SimpleTransaction, CoinBase, Transaction
+from qrl.core.Transaction import SimpleTransaction, Transaction
 
 
 class ApiProtocol(Protocol):
@@ -386,14 +385,16 @@ class ApiProtocol(Protocol):
     def stats(self, data=None):
         logger.info('<<< API stats call')
 
+        # FIXME: Review all this. Most math is flawed
+
         # calculate staked/emission %
-        b = 0
+        total_at_stake = 0
+        total_supply = self.factory.state.total_coin_supply()
+
         for staker in self.factory.state.stake_validators_list.sv_list:
-            b += self.factory.state.state_balance(staker)
-        staked = decimal.Decimal((b / 100000000.000000000) / (
-        self.factory.state.total_coin_supply() / 100000000.000000000) * 100).quantize(
-            decimal.Decimal('1.00'))  # /100000000.000000000)
-        staked = float(str(staked))
+            total_at_stake += self.factory.state.state_balance(staker)
+
+        staked = 100 * total_at_stake / total_supply
 
         # calculate average blocktime over last 100 blocks..
         z = 0
@@ -422,7 +423,7 @@ class ApiProtocol(Protocol):
             block_time = z / len(t)
             block_time_variance = max(t) - min(t)   # FIXME: This is not the variance!
 
-        net_stats = {'status': 'ok', 'version': self.factory.chain.version_number,
+        net_stats = {'status': 'ok', 'version': config.dev.version_number,
                      'block_reward': self.factory.format_qrlamount(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
                      'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list),
                      'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
@@ -432,7 +433,8 @@ class ApiProtocol(Protocol):
                      'block_time_variance': block_time_variance,
                      'blockheight': self.factory.chain.m_blockheight(),
                      'nodes': len(self.factory.peers) + 1,
-                     'emission': self.factory.format_qrlamount(self.factory.state.total_coin_supply()),
+                     # FIXME: Magic number? Unify
+                     'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
                      'unmined': config.dev.total_coin_supply - self.factory.state.total_coin_supply() / 100000000.000000000}
 
         return json_print_telnet(net_stats)
@@ -514,6 +516,10 @@ class ApiProtocol(Protocol):
         return output
 
     ##########################
+
+    def _format_qrlamount(self, balance):
+        # FIXME: Magic number? Unify
+        return format(float(balance / 100000000.00000000), '.8f')
 
     def _search_address(self, address):
         return self.factory.search_address(address)

@@ -5,8 +5,6 @@
 from operator import itemgetter
 from functools import reduce
 
-from jsonpickle import json
-
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
@@ -33,6 +31,7 @@ class State:
         """
         self.db = db.DB()  # generate db object here
         self.stake_validators_list = StakeValidatorsList()
+        self.address_state = dict()
 
     def __enter__(self):
         return self
@@ -112,9 +111,9 @@ class State:
 
         return 0
 
-    def state_get_address(self, addr):
+    def state_get_address(self, address):
         try:
-            return self.db.get(addr)
+            return self._get_address_state(address)
         except KeyError:
             pass
         except Exception as e:
@@ -137,9 +136,9 @@ class State:
         # FIXME: ******************************************************
         # FIXME: ******************************************************
 
-    def state_address_used(self, addr):  # if excepts then address does not exist..
+    def state_address_used(self, address):  # if excepts then address does not exist..
         try:
-            return self.db.get(addr)
+            return self._get_address_state(address)
         except KeyError:
             pass
         except Exception as e:
@@ -187,7 +186,7 @@ class State:
 
     def state_add_block(self, chain, block, ignore_save_wallet=False):
         address_txn = dict()
-        self.load_address_state(chain, block, address_txn)
+        self.load_address_state(chain, block, address_txn)                                  # FIXME: Bottleneck
 
         if block.blockheader.blocknumber == 1:
             if not self.state_update_genesis(chain, block, address_txn):
@@ -197,7 +196,7 @@ class State:
 
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
         nonce = self.stake_validators_list.sv_list[block.transactions[0].txto].nonce
-        logger.info('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
+        logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
                     block.blockheader.blocknumber,
                     block.blockheader.epoch,
                     blocks_left - 1,
@@ -207,35 +206,9 @@ class State:
         if not self.state_update(block, self.stake_validators_list, address_txn):
             return
 
-        self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
+        self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)       # FIXME: Bottleneck
 
         return True
-
-    def return_all_addresses(self):
-        addresses = []
-        for k, v in self.db.RangeIter('Q'):
-            if k[0] == ord('Q'):
-                v = json.loads(v.decode())['value']
-                addresses.append([k, v[1]])
-        return addresses
-
-    def zero_all_addresses(self):
-        addresses = []
-        for k, v in self.db.RangeIter('Q'):
-            addresses.append(k)
-        for address in addresses:
-            self.db.db.Delete(address)
-        logger.info('Reset Finished')
-        self.state_set_blockheight(0)
-        return
-
-    def total_coin_supply(self):
-        coins = 0
-        for k, v in self.db.RangeIter('Q'):
-            if k[0] == ord('Q'):
-                value = json.loads(v.decode('utf-8'))['value']
-                coins = coins + value[1]
-        return coins
 
     # Loads the state of the addresses mentioned into txn
     def load_address_state(self, chain, block, address_txn):
@@ -244,6 +217,7 @@ class State:
         for tx in block.transactions:
             if tx.txfrom not in address_txn:
                 address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
+
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 if tx.txto not in address_txn:
                     address_txn[tx.txto] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txto)
@@ -410,14 +384,47 @@ class State:
 
         return True
 
+    def _get_address_state(self, address):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        # TODO: This must return legacy state
+        return self.address_state[address]
+        pass
+
+    def _save_address_state(self, address, legacy_state):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        self.address_state[address] = legacy_state
+
+    def return_all_addresses(self):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        addresses = []
+        for k, v in self.address_state.items():
+            addresses.append([k, v[1]])
+        return addresses
+
+    def zero_all_addresses(self):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        self.address_state.clear()
+        logger.info('Reset Finished')
+        self.state_set_blockheight(0)
+        return
+
+    def total_coin_supply(self):
+        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
+        coins = 0
+        for k, v in self.address_state.items():
+            coins = coins + v[1]            # FIXME: decimal math?
+        return coins
+
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):
+        # FIXME: This indexing approach is very inefficient
+
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
 
         staker = block.blockheader.stake_selector
         self.stake_validators_list.sv_list[staker].nonce += 1
 
         for address in address_txn:
-            self.db.put(address, address_txn[address])
+            self._save_address_state(address, address_txn[address])
 
         for dup_tx in block.duplicate_transactions:
             if dup_tx.coinbase1.txto in self.stake_validators_list.sv_list:
@@ -440,7 +447,7 @@ class State:
 
         self.state_set_blockheight(chain.height() + 1)
 
-        logger.info('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
+        logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
     def calc_seed(self, sl, verbose=False):
@@ -475,7 +482,7 @@ class State:
         logger.info('genesis:')
 
         for address in genesis_block.state:
-            self.db.put(address[0], address[1])
+            self._save_address_state(address[0], address[1])
         return True
 
     def state_read_chain(self, chain):
@@ -483,7 +490,7 @@ class State:
         self.zero_all_addresses()
         c = chain.m_get_block(0).state
         for address in c:
-            self.db.put(address[0], address[1])
+            self._save_address_state(address[0], address[1])
 
         c = chain.m_read_chain()[2:]
         for block in c:
@@ -517,12 +524,12 @@ class State:
                 s1[0] += 1
                 s1[1] = s1[1] - tx.amount
                 s1[2].append(pubhash)
-                self.db.put(tx.txfrom, s1)  # must be ordered in case tx.txfrom = tx.txto
+                self._save_address_state(tx.txfrom, s1)  # must be ordered in case tx.txfrom = tx.txto
 
                 s2 = self.state_get_address(tx.txto)
                 s2[1] = s2[1] + tx.amount
 
-                self.db.put(tx.txto, s2)
+                self._save_address_state(tx.txto, s2)
 
             logger.info((block, str(len(block.transactions)), 'tx ', ' passed'))
 

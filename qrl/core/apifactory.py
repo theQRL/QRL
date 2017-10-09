@@ -58,7 +58,7 @@ class ApiFactory(ServerFactory):
             if tx.txto == address or tx.txfrom == address:
                 logger.info('%s found in transaction pool', address)
 
-                tmp_txn = {'subtype': tx.subtype,
+                tmp_txn = {'subtype': Transaction.tx_id_to_name(tx.subtype),
                            'txhash': bin2hstr(tx.txhash),
                            'block': 'unconfirmed',
                            'amount': self.format_qrlamount(tx.amount),
@@ -70,8 +70,6 @@ class ApiFactory(ServerFactory):
 
                 if tx.subtype == TX_SUBTYPE_TX:
                     tmp_txn['fee'] = self.format_qrlamount(tx.fee)
-
-                tmp_txn.subtype = Transaction.tx_id_to_name(tx.subtype)
 
                 tmp_transactions.append(tmp_txn)
                 txnhash_added.add(tx.txhash)
@@ -95,7 +93,7 @@ class ApiFactory(ServerFactory):
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 logger.info('%s found in block %s', address, str(txn_metadata[1]))
 
-                tmp_txn = {'subtype': tx.subtype,
+                tmp_txn = {'subtype': Transaction.tx_id_to_name(tx.subtype),
                            'txhash': bin2hstr(tx.txhash),
                            'block': txn_metadata[1],
                            'timestamp': txn_metadata[2],
@@ -108,18 +106,15 @@ class ApiFactory(ServerFactory):
                 if tx.subtype == TX_SUBTYPE_TX:
                     tmp_txn['fee'] = self.format_qrlamount(tx.fee)
 
-                tmp_txn['subtype'] = Transaction.tx_id_to_name(tmp_txn['subtype'])
-
                 addr['transactions'].append(tmp_txn)
                 txnhash_added.add(tx.txhash)
 
         if len(addr['transactions']) > 0:
             addr['state']['transactions'] = len(addr['transactions'])
 
+        addr['status'] = 'ok'
         if addr == {'transactions': {}}:
             addr = {'status': 'error', 'error': 'address not found', 'method': 'address', 'parameter': address}
-        else:
-            addr['status'] = 'ok'
 
         return json_print_telnet(addr)
 
