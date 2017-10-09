@@ -42,7 +42,6 @@ class WalletProtocol(Protocol):
             "help": self._help,
             "quit": self._quit,
             "exit": self._quit,
-            "listaddresses": self._listaddresses,
             "wallet": self._wallet,
             "getinfo": self._getinfo,
             "blockheight": self._blockheight,
@@ -537,18 +536,9 @@ class WalletProtocol(Protocol):
     def _quit(self, args):
         self.transport.loseConnection()
 
-    def _listaddresses(self, args):
-        addresses, num_sigs, types = self.factory.chain.wallet.inspect_wallet()
-        self.output['status'] = 0
-        self.output['keys'] += ['addresses']
-        self.output['addresses'] = []
-        for addr_bundle in range(len(addresses)):
-            self.output['message'].write(str(addr_bundle) + ', ' + addresses[addr_bundle] + '\r\n')
-            self.output['addresses'] += [addresses[addr_bundle]]
-
     def _getinfo(self, args):
         self.output['status'] = 0
-        self.output['message'].write('>>> Version: ' + self.factory.chain.version_number + '\r\n')
+        self.output['message'].write('>>> Version: ' + config.dev.version_number + '\r\n')
         self.output['message'].write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
         self.output['message'].write(
             '>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peer_connections)) + '\r\n')
@@ -556,7 +546,7 @@ class WalletProtocol(Protocol):
         self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state.name + '\r\n')
 
         self.output['keys'] += ['version', 'uptime', 'nodes_connected', 'staking_status', 'sync_status']
-        self.output['version'] = self.factory.chain.version_number
+        self.output['version'] = config.dev.version_number
         self.output['uptime'] = str(time.time() - self.factory.start_time)
         self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peer_connections))
         self.output['staking_status'] = str(self.factory.p2pFactory.stake)

@@ -93,7 +93,7 @@ class State:
             return False
 
     def state_uptodate(self, height):  # check state db marker to current blockheight.
-        return height == self.state_blockheight
+        return height == self.state_blockheight()
 
     def state_blockheight(self):
         return self.db.get('blockheight')
@@ -224,7 +224,7 @@ class State:
         for k, v in self.db.RangeIter('Q'):
             addresses.append(k)
         for address in addresses:
-            self.db.Delete(address)
+            self.db.db.Delete(address)
         logger.info('Reset Finished')
         self.state_set_blockheight(0)
         return
