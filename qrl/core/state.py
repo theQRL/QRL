@@ -401,15 +401,15 @@ class State:
         tmp = [ h for h in address_state.pubhashes]
 
         return [address_state.nonce,
-                Decimal(address_state.balance),
+                address_state.balance,
                 tmp]
 
     def _save_address_state(self, address, state):
         # FIXME: internally keep data in byte form
         address_state = qrl_pb2.AddressState()
-        address_state.address = address.encode()
+        address_state.address = address
         address_state.nonce = state[0]
-        address_state.balance = str(state[1])
+        address_state.balance = state[1]
 
         # FIXME: Keep internally all hashes as bytearrays
         address_state.pubhashes.extend([ bytes(b) for b in state[2] ])
