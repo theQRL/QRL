@@ -57,8 +57,8 @@ message Peer
 
 message AddressState
 {
-    bytes address = 1;
-    string balance = 2;     // FIXME: Review quantities
+    string address = 1;
+    uint64 balance = 2;
     uint64 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
     repeated Transaction transactions = 5;
@@ -75,8 +75,8 @@ message BlockHeader
     bytes hash_header = 4;
     bytes hash_header_prev = 5;
 
-    uint64 reward_block = 6;    // FIXME: Review quantities
-    uint64 reward_fee = 7;      // FIXME: Review quantities
+    uint64 reward_block = 6;
+    uint64 reward_fee = 7;
 
     bytes merkel_root = 8;
     bytes hash_reveal = 9;
@@ -110,14 +110,14 @@ message Transaction
     Type type = 1;
 
     uint64 nonce = 2;
-    string addr_from = 3;
+    bytes addr_from = 3;
     bytes transaction_hash = 5;
     bytes public_hash = 4;
 
     bytes public_key = 6;               // Required for Signed Transfer
     bytes signature = 7;                // Required for Signed Transfer
 
-    string addr_to = 8;                 // Required for Transfer
+    bytes addr_to = 8;                 // Required for Transfer
     uint64 amount = 9;                  // Required for Transfer        // FIXME: Review quantities
     uint64 fee = 10;                    // Required for Transfer        // FIXME: Review quantities
 
