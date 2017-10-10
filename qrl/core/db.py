@@ -66,4 +66,4 @@ class DB:
         self.db.Put(key, value)
 
     def get_raw(self, key):
-        self.db.Get(key)
+        return self.db.Get(key)

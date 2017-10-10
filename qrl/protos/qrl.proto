@@ -58,7 +58,7 @@ message Peer
 message AddressState
 {
     bytes address = 1;
-    uint64 balance = 2;     // FIXME: Review quantities
+    string balance = 2;     // FIXME: Review quantities
     uint64 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
     repeated Transaction transactions = 5;

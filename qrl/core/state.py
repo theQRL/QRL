@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
+from _decimal import Decimal
 from operator import itemgetter
 from functools import reduce
 from copy import deepcopy
@@ -12,6 +12,7 @@ from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
+from qrl.generated import qrl_pb2
 
 
 class State:
@@ -31,7 +32,6 @@ class State:
         """
         self.db = db.DB()  # generate db object here
         self.stake_validators_list = StakeValidatorsList()
-        self.address_state = dict()
 
     def __enter__(self):
         return self
@@ -148,16 +148,16 @@ class State:
         return False
 
     def state_nonce(self, addr):
-        address_state = self.state_get_address(addr)
-        return address_state[0]
+        nonce, balance, pubhash_list = self._get_address_state(addr)
+        return nonce
 
     def state_balance(self, addr):
-        address_state = self.state_get_address(addr)
-        return address_state[1]
+        nonce, balance, pubhash_list = self._get_address_state(addr)
+        return balance
 
     def state_pubhash(self, addr):
-        address_state = self.state_get_address(addr)
-        return address_state[2]
+        nonce, balance, pubhash_list = self._get_address_state(addr)
+        return pubhash_list
 
     def state_hrs(self, hrs):
         try:
@@ -248,8 +248,13 @@ class State:
         for tx in block.transactions:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
-                tmp_list.append(
-                    [tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom], tx.slave_public_key])
+                tmp_list.append([tx.txfrom,
+                                 tx.hash,
+                                 0,
+                                 tx.first_hash,
+                                 GenesisBlock().get_info()[tx.txfrom],
+                                 tx.slave_public_key])
+
                 if tx.txfrom == block.blockheader.stake_selector:
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
                         self.stake_validators_list.add_sv(tx.txfrom,
@@ -385,34 +390,54 @@ class State:
         return True
 
     def _get_address_state(self, address):
-        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
-        # TODO: This must return legacy state
-        return deepcopy(self.address_state[address])
-        pass
+        address_state = qrl_pb2.AddressState()
+        data = self.db.get_raw(address.encode())
+        if data is None:
+            raise KeyError("{} not found".format(address))
 
-    def _save_address_state(self, address, legacy_state):
-        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
-        self.address_state[address] = legacy_state
+        address_state.ParseFromString(data)
+
+        # FIXME: pubhashes is deserialized as a pb container but some methods want to make changes. Workaround
+        tmp = [ h for h in address_state.pubhashes]
+
+        return [address_state.nonce,
+                Decimal(address_state.balance),
+                tmp]
+
+    def _save_address_state(self, address, state):
+        # FIXME: internally keep data in byte form
+        address_state = qrl_pb2.AddressState()
+        address_state.address = address.encode()
+        address_state.nonce = state[0]
+        address_state.balance = str(state[1])
+
+        # FIXME: Keep internally all hashes as bytearrays
+        address_state.pubhashes.extend([ bytes(b) for b in state[2] ])
+
+        self.db.put_raw(address.encode(), address_state.SerializeToString())
 
     def return_all_addresses(self):
-        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
         addresses = []
-        for k, v in self.address_state.items():
-            addresses.append([k, v[1]])
+        address_state = qrl_pb2.AddressState()
+        for k, v in self.db.RangeIter(b'Q', b'Qz'):
+            address_state.ParseFromString(v)
+            addresses.append([k, Decimal(address_state.balance)])
         return addresses
 
     def zero_all_addresses(self):
-        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
-        self.address_state.clear()
+        for k, v in self.db.RangeIter(b'Q', b'Qz'):
+            self.db.delete(k)
         logger.info('Reset Finished')
         self.state_set_blockheight(0)
         return
 
     def total_coin_supply(self):
-        # FIXME: This is temporary code. NOT SCALABLE. Avoiding json to speed things up a little
-        coins = 0
-        for k, v in self.address_state.items():
-            coins = coins + v[1]            # FIXME: decimal math?
+        # FIXME: This is temporary code. NOT SCALABLE. It is easy to keep a global count
+        coins = Decimal(0)
+        address_state = qrl_pb2.AddressState()
+        for k, v in self.db.RangeIter(b'Q', b'Qz'):
+            address_state.ParseFromString(v)
+            coins = coins + Decimal(address_state.balance)        # FIXME: decimal math?
         return coins
 
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):

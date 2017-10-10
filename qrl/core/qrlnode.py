@@ -58,6 +58,7 @@ class QRLNode:
 
     def get_address_state(self, address):
         # FIXME: Refactor. Define concerns, etc.
+        # FIXME: Unnecessary double conversion
         nonce, balance, pubhash_list = self.db_state.state_get_address(address)
         transactions = []
 
