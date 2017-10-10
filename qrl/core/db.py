@@ -42,7 +42,6 @@ class DB:
         # FIXME: Bottleneck
         dictObj = {'value': value_obj}
         self.db.Put(key_obj, json.dumps(dictObj).encode())
-        return
 
     def get(self, key_obj):
         if not isinstance(key_obj, bytes):
@@ -60,7 +59,6 @@ class DB:
 
     def delete(self, key_obj):
         self.db.Delete(key_obj)
-        return
 
     def put_raw(self, key, value):
         self.db.Put(key, value)

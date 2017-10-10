@@ -54,7 +54,6 @@ class P2PProtocol(Protocol):
         self.blocknumber_headerhash = {}
         self.last_requested_blocknum = None
         self.fetch_tried = 0
-        pass
 
     def parse_msg(self, data):
         try:

@@ -22,9 +22,6 @@ def twisted_log_observer(event):
     f = twisted_logger_mapping[current_loglevel]
     if 'log_text' in event:
         f("[TWISTED] %s", event['log_text'])
-    else:
-        pass
-    pass
 
 
 def enable_twisted_log_observer():
