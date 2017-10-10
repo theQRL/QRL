@@ -111,7 +111,6 @@ class WalletProtocol(Protocol):
         except Exception as e:
             logger.error('Walletprotocol unexpected exception while sending msg to client')
             logger.exception(e)
-            pass
 
         del self.output
         self.output = {'status': 1,
@@ -208,8 +207,6 @@ class WalletProtocol(Protocol):
         self.output['message'].write(">>> type 'savenewaddress' to append to wallet file" + '\r\n')
         self.factory.newaddress = addr_bundle
 
-        return
-
     # Simply saves wallet information
     def _savenewaddress(self, args):
         self.output['status'] = 1
@@ -267,7 +264,6 @@ class WalletProtocol(Protocol):
         self.output['message'].write('>>> From: ' + str(tx.txfrom) + ' To: ' + str(tx.txto) + ' For: ' + str(
             tx.amount / 100000000.000000000) + ' Fee: ' + str(tx.fee / 100000000.000000000) + '\r\n')
         self.output['message'].write('>>>created and sent into p2p network\r\n')
-        return
 
     def _wallet(self, args):
         if not self.factory.state.state_uptodate(self.factory.chain.height()):

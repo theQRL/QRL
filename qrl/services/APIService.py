@@ -1,4 +1,9 @@
-import grpc
+# coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+# FIXME: This is odd...
+from grpc._cython.cygrpc import StatusCode
 
 from qrl.core import logger
 from qrl.core.qrlnode import QRLNode
@@ -20,7 +25,7 @@ class APIService(PublicAPIServicer):
         try:
             address_state = self.qrlnode.get_address_state(request.address)
         except Exception as e:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_code(StatusCode.not_found)
             context.set_details(e)
             return None
         return qrl_pb2.GetAddressStateResp(state=address_state)
