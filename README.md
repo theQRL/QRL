@@ -67,7 +67,7 @@ Install dependencies
 ```bash
 sudo apt update
 sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev libssl-dev libffi-dev
-sudo pip3 install -U setuptools
+sudo pip3 install -U setuptools pip
 ```
 
 To get the source and start the node, use the following:
