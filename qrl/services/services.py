@@ -5,7 +5,6 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import grpc
-from grpc_reflection.v1alpha.reflection import enable_server_reflection
 
 from qrl.core import logger
 from qrl.core.qrlnode import QRLNode
@@ -19,10 +18,6 @@ def start_services(node: QRLNode):
 
     add_P2PNodeServicer_to_server(P2PService(node), server)
     add_PublicAPIServicer_to_server(APIService(node), server)
-
-    services = ['qrl.PublicAPI']
-
-    enable_server_reflection(services, server)
 
     server.add_insecure_port("[::]:9009")
     server.start()
