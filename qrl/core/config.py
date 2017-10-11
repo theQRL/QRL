@@ -77,7 +77,7 @@ class DevConfig(object):
         #          For QRL Developers only                             #
         ################################################################
         self.public_ip = None
-        self.minimum_required_stakers = 5
+        self.minimum_required_stakers = 4
         self.minimum_staking_balance_required = 1
         self.blocks_per_epoch = 100
         self.reorg_limit = 3
