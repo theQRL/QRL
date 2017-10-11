@@ -71,5 +71,5 @@ def calc_year(year):
     start = (per_year*(year-1))+1
     end = (per_year*(year-1))+(1+per_year)
     for n in range(start, end):
-        summation += calc(n)/100000000.0
+        summation += block_reward_calc(n)/100000000.0
     return summation
