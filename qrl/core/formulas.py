@@ -64,7 +64,7 @@ def calc_year(year):
     #uses 45 second block time
     summation = 0
     time = 45 #assumes a block takes 45 seconds on average, which is true all the time 
-    per_day = 24*60*60/45 #Assumes a day is exactly 24 hours, which is not true
+    per_day = 24*60*60/time #Assumes a day is exactly 24 hours, which is not true
     per_year = per_day*365 #Assumes a year is exactly 365 days, which is not true
     start = (per_year*(year-1))+1
     end = (per_year*(year-1))+(1+per_year)
