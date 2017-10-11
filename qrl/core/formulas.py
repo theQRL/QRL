@@ -11,7 +11,7 @@ def calc_coeff(N_tot, block_tot):
     """
     block reward calculation
     decay curve: 200 years (until 2217AD, 140155555 blocks at 45 seconds block-times)
-    
+
     N_tot is less the initial coin supply.
     :param N_tot:
     :param block_tot:
@@ -37,7 +37,7 @@ def remaining_emission(N_tot, block_n):
     # TODO: Verify these values and formula
     #http://www.wolframalpha.com/input/?i=seconds+in+200+years
     #http://www.wolframalpha.com/input/?i=(6.307%C3%9710%5E9)%2F45
-    coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 140155555) 
+    coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 140155555)
     # FIXME:
     #This magic number here should be a function of block time which should be easily changed somewhere
     #By not doing this, it becomes exceedingly difficult to change block time in the future
@@ -66,7 +66,7 @@ def block_reward_calc(block_number):
 def calc_year(year):
     #uses 45 second block time
     summation = 0
-    time = 45 #assumes a block takes 45 seconds on average, which is true all the time 
+    time = 45 #assumes a block takes 45 seconds on average, which is true all the time
     per_day = 24*60*60/time #Assumes a day is exactly 24 hours, which is not true
     per_year = per_day*365 #Assumes a year is exactly 365 days, which is not true
     start = (per_year*(year-1))+1
@@ -92,4 +92,3 @@ print("Total emitted after 200 years: ", summation)
 
 
 output: https://pastebin.com/7fqbEEQJ
-"""
