@@ -116,7 +116,7 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('PBHL', self.factory.chain.block_chain_buffer.height()))
         self.fork_height = self.factory.chain.block_chain_buffer.height()
         self.fork_timestamp = time.time()
-        logger.info('-->>FBHL called')
+        logger.debug('-->>FBHL called')
 
     def PBHL(self, blocknumber):
         """
@@ -138,11 +138,11 @@ class P2PProtocol(Protocol):
         Evaluate Block Headerhash List
         :return:
         """
-        logger.info('-->>EBHL received')
+        logger.debug('-->>EBHL received')
         if time.time() - self.fork_timestamp > 120:  # Reject if replied after 2 minutes
             return
 
-        logger.info('-->>EBHL processing')
+        logger.debug('-->>EBHL processing')
         blocknum_headerhash = json.loads(data)
         blocknum_headerhash = {int(k): v for k, v in blocknum_headerhash.items()}
 
