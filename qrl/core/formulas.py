@@ -62,7 +62,6 @@ def block_reward_calc(block_number):
 #Use only for testing purposes
 def calc_year(year):
     #uses 45 second block time
-    print "Starting year ", year
     summation = 0
     time = 45 #assumes a block takes 45 seconds on average, which is true all the time 
     per_day = 24*60*60/45 #Assumes a day is exactly 24 hours, which is not true
