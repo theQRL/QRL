@@ -10,7 +10,8 @@ def calc_coeff(N_tot, block_tot):
     # TODO: Verify these values and formula
     """
     block reward calculation
-    decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
+    decay curve: 200 years (until 2217AD, 140155555 blocks at 45 seconds block-times)
+    
     N_tot is less the initial coin supply.
     :param N_tot:
     :param block_tot:
@@ -34,7 +35,9 @@ def remaining_emission(N_tot, block_n):
     Decimal('0.99999996')
     """
     # TODO: Verify these values and formula
-    coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 420480000) 
+    #http://www.wolframalpha.com/input/?i=seconds+in+200+years
+    #http://www.wolframalpha.com/input/?i=(6.307%C3%9710%5E9)%2F45
+    coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 140155555) 
     # FIXME:
     #This magic number here should be a function of block time which should be easily changed somewhere
     #By not doing this, it becomes exceedingly difficult to change block time in the future
@@ -88,5 +91,5 @@ for n in range(3,201):
 print("Total emitted after 200 years: ", summation)
 
 
-output: https://pastebin.com/gF1bwxQS
+output: https://pastebin.com/7fqbEEQJ
 """
