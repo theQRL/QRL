@@ -34,7 +34,6 @@ def remaining_emission(N_tot, block_n):
     >>> remaining_emission(1, 1)
     Decimal('0.99999996')
     """
-    # TODO: Verify these values and formula
     #http://www.wolframalpha.com/input/?i=seconds+in+200+years
     #http://www.wolframalpha.com/input/?i=(6.307%C3%9710%5E9)%2F45
     coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 140155555)
@@ -76,19 +75,19 @@ def calc_year(year):
     return summation
 
 #example usage
-"""
-year_1 = calc_year(1)
-year_2 = calc_year(2)
-print("The calculation for number 1 is: ", year_1)
-print("The calculation for number 2 is: ", year_2)
-interyear_decay = year_2/year_1
-summation = year_1 + year_2
-prev_emittance = year_2
-for n in range(3,201):
-    prev_emittance = prev_emittance * interyear_decay
-    summation += prev_emittance
-    print("emittance for year ", n, " is ", prev_emittance)
-print("Total emitted after 200 years: ", summation)
+
+# year_1 = calc_year(1)
+# year_2 = calc_year(2)
+# print("The calculation for number 1 is: ", year_1)
+# print("The calculation for number 2 is: ", year_2)
+# interyear_decay = year_2/year_1
+# summation = year_1 + year_2
+# prev_emittance = year_2
+# for n in range(3,201):
+#     prev_emittance = prev_emittance * interyear_decay
+#     summation += prev_emittance
+#     print("emittance for year ", n, " is ", prev_emittance)
+# print("Total emitted after 200 years: ", summation)
 
 
-output: https://pastebin.com/7fqbEEQJ
+# output: https://pastebin.com/7fqbEEQJ
