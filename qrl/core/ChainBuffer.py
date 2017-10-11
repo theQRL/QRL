@@ -41,10 +41,11 @@ class ChainBuffer:
 
     def assign_slave_xmsspool(self, starting_epoch):
         baseseed = self.chain.wallet.address_bundle[0].xmss.get_seed()
+        pool_size = 2
         self.slave_xmsspool = XmssPool(baseseed,
                                        config.dev.slave_xmss_height,
                                        starting_epoch,
-                                       pool_size = 2)
+                                       pool_size)
 
     def generate_slave_xmss(self, epoch):
         assert(epoch == self.slave_xmsspool.getCurrentIndex())    # Verify we are not skipping trees
