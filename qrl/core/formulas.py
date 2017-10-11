@@ -38,7 +38,7 @@ def remaining_emission(N_tot, block_n):
     # FIXME:
     #This magic number here should be a function of block time which should be easily changed somewhere
     #By not doing this, it becomes exceedingly difficult to change block time in the future
-    
+
     # FIXME: Magic number? Unify
     return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
         .quantize(decimal.Decimal('1.00000000'), rounding=decimal.ROUND_HALF_UP)
@@ -57,7 +57,7 @@ def block_reward_calc(block_number):
 #Note: if config.dev.total_coin_supply is used anywhere else to validate the reward, it should be changed
 #to subtract the initial mint in genesis. This merge might require changes elsewhere
 
-#calculates (*approximately*) how many QRL get minted in a given year
+#calculates (approximately) how many QRL get minted in a year
 #Takes awhile. Calculate year 1 and year 2 and then use the ratio for inter-year decay.
 #Use only for testing purposes
 def calc_year(year):
@@ -70,5 +70,24 @@ def calc_year(year):
     start = (per_year*(year-1))+1
     end = (per_year*(year-1))+(1+per_year)
     for n in range(start, end):
-        summation += block_reward_calc(n)/100000000.0
+        summation += calc(n)/100000000.0
     return summation
+
+#example usage
+"""
+year_1 = calc_year(1)
+year_2 = calc_year(2)
+print("The calculation for number 1 is: ", year_1)
+print("The calculation for number 2 is: ", year_2)
+interyear_decay = year_2/year_1
+summation = year_1 + year_2
+prev_emittance = year_2
+for n in range(3,201):
+    prev_emittance = prev_emittance * interyear_decay
+    summation += prev_emittance
+    print("emittance for year ", n, " is ", prev_emittance)
+print("Total emitted after 200 years: ", summation)
+
+
+output: https://pastebin.com/gF1bwxQS
+"""
