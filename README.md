@@ -30,7 +30,31 @@ Ensure your apt sources are up to date and install dependencies
 
 ```bash
 sudo apt update
-sudo apt -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libboost-random-dev libssl-dev libffi-dev
+sudo apt -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev
+```
+
+To get the source and start the node, use the following:
+
+```bash
+git clone https://github.com/theQRL/QRL.git
+cd QRL/
+sudo pip3 install -r requirements.txt
+python3 start_qrl.py
+```
+
+## Debian Jessie :white_check_mark:
+
+Debian has some issues in old packages, so you need to install some backports.
+Debian does not have `sudo` by default, if you have not installed `sudo`, the use `su` and later do not forget to `exit`.
+Do NOT run the node as root.
+The following lines show `[sudo]` as optional. Adjust accordingly. 
+
+```bash
+[sudo] echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list
+[sudo] apt-get update
+[sudo] apt-get -t jessie-backports install cmake swig3.0
+[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev
+[sudo] pip3 install -U setuptools pip
 ```
 
 To get the source and start the node, use the following:
@@ -61,13 +85,38 @@ sudo pip3 install -r requirements.txt
 python3 start_qrl.py
 ```
 
-## Raspberry Pi :white_check_mark:
+## Raspberry Pi (Raspbian Stretch) :white_check_mark:
 
 Install dependencies
 ```bash
 sudo apt update
 sudo apt -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev libssl-dev libffi-dev
 sudo pip3 install -U setuptools pip
+```
+
+To get the source and start the node, use the following:
+
+```bash
+git clone https://github.com/theQRL/QRL.git
+cd QRL/
+sudo pip3 install -r requirements.txt
+python3 start_qrl.py
+```
+
+## Raspberry Pi (Raspbian Jessie) :seedling:
+**NOT TESTED. Your feedback is appreciated!**
+
+Debian has some issues in old packages, so you need to install some backports.
+Debian does not have `sudo` by default, if you have not installed `sudo`, the use `su` and later do not forget to `exit`.
+Do NOT run the node as root.
+The following lines show `[sudo]` as optional. Adjust accordingly. 
+
+```bash
+[sudo] echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list
+[sudo] apt-get update
+[sudo] apt-get -t jessie-backports install cmake swig3.0
+[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential pkg-config libssl-dev libffi-dev
+[sudo] pip3 install -U setuptools pip
 ```
 
 To get the source and start the node, use the following:
