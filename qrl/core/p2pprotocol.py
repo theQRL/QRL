@@ -25,6 +25,7 @@ class P2PProtocol(Protocol):
                         'SFM': self.SFM,  # Send Full Message
                         'TX': self.TX,  # Transaction
                         'ST': self.ST,  # Stake Transaction
+                        'DT': self.DT,  # Duplicate Transaction
                         'BM': self.BM,  # Block Height Map
                         'BK': self.BK,  # Block
                         'PBB': self.PBB,  # Push Block Buffer
@@ -38,13 +39,15 @@ class P2PProtocol(Protocol):
                         'BN': self.BN,  # Block Number
                         'FB': self.FB,  # Fetch request for block
                         'FH': self.FH,  # Fetch block header hash
-                        'PO': self.PO,  # Pong
-                        'PI': self.PI,  # Ping
+                        'PONG': self.PONG,  # Ping-Pong
                         'PL': self.PL,  # Peers List
                         'RT': self.RT,  # Transaction pool to peer
                         'PE': self.PE,  # Peers (get a list of connected peers)
                         'VE': self.VE,  # Version
                         'IP': self.IP,  # Get IP (geotagging?)
+                        'FBHL': self.FBHL,  # Fetch Blockheaderhash List
+                        'PBHL': self.PBHL,  # Push Blockheaderhash List
+                        'EBHL': self.EBHL   # Evaluate Blockheaderhash List
                         }
         self.buffer = b''
         self.messages = []
@@ -54,6 +57,9 @@ class P2PProtocol(Protocol):
         self.blocknumber_headerhash = {}
         self.last_requested_blocknum = None
         self.fetch_tried = 0
+        self.fork_timestamp = 0
+        self.disconnect_callLater = None
+        self.ping_callLater = None
 
     def parse_msg(self, data):
         try:
@@ -102,6 +108,86 @@ class P2PProtocol(Protocol):
                 self.factory.chain.m_load_chain()
                 self.factory.pos.update_node_state(NState.synced)
 
+    def FBHL(self):
+        """
+        Fetch Block Headerhash List
+        :return:
+        """
+        self.transport.write(self.wrap_message('PBHL', self.factory.chain.block_chain_buffer.height()))
+        self.fork_height = self.factory.chain.block_chain_buffer.height()
+        self.fork_timestamp = time.time()
+        logger.info('-->>FBHL called')
+
+    def PBHL(self, blocknumber):
+        """
+        Push Block Headerhash List
+        :return:
+        """
+        blocknum_headerhash = {}
+        for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber):
+             block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
+             if not block:
+                 break
+             blocknum_headerhash[blocknum] = block.blockheader.headerhash
+
+        self.transport.write(self.wrap_message('EBHL', json.dumps(blocknum_headerhash)))
+        self.fork_timestamp = time.time()
+
+    def EBHL(self, data):
+        """
+        Evaluate Block Headerhash List
+        :return:
+        """
+        logger.info('-->>EBHL received')
+        if time.time() - self.fork_timestamp > 120:  # Reject if replied after 2 minutes
+            return
+
+        logger.info('-->>EBHL processing')
+        blocknum_headerhash = json.loads(data)
+        blocknum_headerhash = {int(k): v for k, v in blocknum_headerhash.items()}
+
+        blocknum = min(blocknum_headerhash)
+
+        if blocknum > self.factory.chain.block_chain_buffer.height():
+            return
+
+        last_matching_blocknum = None
+        while blocknum in blocknum_headerhash:
+            if blocknum > self.factory.chain.block_chain_buffer.height():
+                return
+
+            block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
+
+            if blocknum_headerhash[blocknum] != block.blockheader.headerhash:
+                if last_matching_blocknum:
+                    # Check if the forked point is within chainbuffer
+                    if blocknum in self.factory.chain.block_chain_buffer.blocks:
+                        self.transport.write(self.wrap_message('resend_BKMR', blocknum))
+                return
+            last_matching_blocknum = blocknum
+
+            blocknum += 1
+
+        self.fork_timestamp = time.time()
+
+    def resend_BKMR(self, blocknum):
+        block_chain_buffer = self.factory.chain.block_chain_buffer
+        if blocknum > block_chain_buffer.height():
+            return
+
+        block = block_chain_buffer.get_block_n(blocknum)
+
+        data = {'hash': block.blockheader.headerhash,
+                'type': 'BK',
+                'stake_selector': block.transactions[0].txto,
+                'blocknumber': block.blockheader.blocknumber,
+                'prev_headerhash': block.blockheader.prev_blockheaderhash,
+                'reveal_hash': block.blockheader.reveal_hash,
+                'vote_hash': block.blockheader.vote_hash}
+
+        self.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
+
+        return
     def MR(self, data):
         """
         Message Receipt
@@ -141,6 +227,8 @@ class P2PProtocol(Protocol):
                                                          prev_blockheaderhash=tuple(data['prev_headerhash']),
                                                          stake_selector=data['stake_selector']):
                     self.factory.RFM(data)
+                elif data['blocknumber'] > self.factory.chain.block_chain_buffer.height() - config.dev.reorg_limit:
+                    self.FBHL()
                 return
 
             blocknumber = data['blocknumber']
@@ -650,17 +738,25 @@ class P2PProtocol(Protocol):
                 self.factory.chain.ping_list.append({'node': self.transport.getPeer().host,
                                                      'ping (ms)': (time.time() - self.factory.chain.last_ping) * 1000})
 
-    def PI(self, data):
+    def PING(self):
         """
         Ping
         :return:
         """
-        if data[0:2] == 'NG':
-            self.transport.write(self.wrap_message('PONG'))
-        else:
-            self.transport.loseConnection()
+        self.transport.write(self.wrap_message('PONG'))
         return
 
+    def PONG(self):
+        """
+        Pong
+        :return:
+        """
+        self.disconnect_callLater.reset(config.user.ping_timeout)
+        if self.ping_callLater.active():
+            self.ping_callLater.cancel()
+        self.ping_callLater = reactor.callLater(config.user.ping_timeout // 3, self.PING)
+        return
+        
     def PL(self, data):  # receiving a list of peers to save into peer list..
         """
         Peers List
@@ -1102,6 +1198,8 @@ class P2PProtocol(Protocol):
         self.get_m_blockheight_from_connection()
         self.get_peers()
         self.get_version()
+        self.disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
+        self.ping_callLater = reactor.callLater(1, self.PING)
 
     # here goes the code for handshake..using functions within the p2pprotocol class
     # should ask for latest block/block number.
