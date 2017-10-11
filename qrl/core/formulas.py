@@ -34,8 +34,7 @@ def remaining_emission(N_tot, block_n):
     >>> remaining_emission(1, 1)
     Decimal('0.99999988')
     """
-    #http://www.wolframalpha.com/input/?i=seconds+in+200+years
-    #http://www.wolframalpha.com/input/?i=(6.307%C3%9710%5E9)%2F45
+    
     coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 140155555)
     # FIXME:
     #This magic number here should be a function of block time which should be easily changed somewhere
