@@ -34,7 +34,7 @@ def remaining_emission(N_tot, block_n):
     Decimal('0.99999996')
     """
     # TODO: Verify these values and formula
-    coeff = calc_coeff(config.dev.total_coin_supply, 420480000)
+    coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 420480000)
 
     # FIXME: Magic number? Unify
     return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
@@ -48,5 +48,26 @@ def block_reward_calc(block_number):
     """
 
     # FIXME: Magic number? Unify
-    return int((remaining_emission(config.dev.total_coin_supply, block_number - 1)
-                - remaining_emission(config.dev.total_coin_supply, block_number)) * 100000000)
+    return int((remaining_emission(config.dev.total_coin_supply - 65000000, block_number - 1)
+                - remaining_emission(config.dev.total_coin_supply - 65000000, block_number)) * 100000000)
+
+#Note: if config.dev.total_coin_supply is used anywhere else to validate the reward, it should be changed
+#to subtract the initial mint in genesis. This merge might require changes elsewhere
+
+#calculates (*approximately*) how many QRL get minted in a given year
+#Takes awhile. Calculate year 1 and year 2 and then use the ratio for inter-year decay.
+#Use only for testing purposes
+def calc_year(year):
+    #uses 45 second block time
+    print "Starting year ", year
+    summation = 0
+    time = 45
+    per_day = 24*60*60/45 #Assumes a day is exactly 24 hours
+    per_week = per_day*7
+    per_month = per_week*4
+    per_year = per_month*12 #Assumes a year is 12 months, that a month is 4 weeks, that a week is 7 days, and a day is 24 hours
+    start = (per_year*(year-1))+1
+    end = (per_year*(year-1))+(1+per_year)
+    for n in range(start, end):
+        summation += calc(n)/100000000.0
+    return summation
