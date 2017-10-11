@@ -10,7 +10,8 @@ def calc_coeff(N_tot, block_tot):
     # TODO: Verify these values and formula
     """
     block reward calculation
-    decay curve: 200 years (until 2217AD, 420480000 blocks at 15s block-times)
+    decay curve: 200 years (until 2217AD, 140155555 blocks at 45 seconds block-times)
+
     N_tot is less the initial coin supply.
     :param N_tot:
     :param block_tot:
@@ -31,10 +32,13 @@ def remaining_emission(N_tot, block_n):
     :return:
 
     >>> remaining_emission(1, 1)
-    Decimal('0.99999996')
+    Decimal('0.99999988')
     """
-    # TODO: Verify these values and formula
-    coeff = calc_coeff(config.dev.total_coin_supply, 420480000)
+    
+    coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 140155555)
+    # FIXME:
+    #This magic number here should be a function of block time which should be easily changed somewhere
+    #By not doing this, it becomes exceedingly difficult to change block time in the future
 
     # FIXME: Magic number? Unify
     return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
@@ -48,5 +52,8 @@ def block_reward_calc(block_number):
     """
 
     # FIXME: Magic number? Unify
-    return int((remaining_emission(config.dev.total_coin_supply, block_number - 1)
-                - remaining_emission(config.dev.total_coin_supply, block_number)) * 100000000)
+    return int((remaining_emission(config.dev.total_coin_supply - 65000000, block_number - 1)
+                - remaining_emission(config.dev.total_coin_supply - 65000000, block_number)) * 100000000)
+
+#Note: if config.dev.total_coin_supply is used anywhere else to validate the reward, it should be changed
+#to subtract the initial mint in genesis. This merge might require changes elsewhere
