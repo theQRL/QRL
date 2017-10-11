@@ -37,7 +37,8 @@ def remaining_emission(N_tot, block_n):
     coeff = calc_coeff(config.dev.total_coin_supply - 65000000, 420480000) 
     # FIXME:
     #This magic number here should be a function of block time which should be easily changed somewhere
-
+    #By not doing this, it becomes exceedingly difficult to change block time in the future
+    
     # FIXME: Magic number? Unify
     return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
         .quantize(decimal.Decimal('1.00000000'), rounding=decimal.ROUND_HALF_UP)
@@ -63,9 +64,7 @@ def calc_year(year):
     #uses 45 second block time
     print "Starting year ", year
     summation = 0
-    time = 45 #assumes a block takes 45 seconds on average, which is true all the time
-    #important to note that by going this route for emission calculation (ie no halvings)
-    #it becomes 
+    time = 45 #assumes a block takes 45 seconds on average, which is true all the time 
     per_day = 24*60*60/45 #Assumes a day is exactly 24 hours, which is not true
     per_year = per_day*365 #Assumes a year is exactly 365 days, which is not true
     start = (per_year*(year-1))+1
