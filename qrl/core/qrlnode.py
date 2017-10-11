@@ -21,6 +21,9 @@ class QRLNode:
         self.chain = None  # FIXME: REMOVE. This is temporary
         self.p2pfactory = None  # FIXME: REMOVE. This is temporary
 
+        # FIXME: Move to __version__ coming from pip
+        self.version = config.dev.version_number
+
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain):
         self.chain = chain

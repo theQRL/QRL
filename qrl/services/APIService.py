@@ -16,21 +16,51 @@ class APIService(PublicAPIServicer):
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
 
-    def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
-        known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
-        return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
-
-    def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
+    def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) \
+            -> qrl_pb2.GetKnownPeersResp:
         try:
-            address_state = self.qrlnode.get_address_state(request.address)
+            known_peers = qrl_pb2.KnownPeers()
+            known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
+            return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
+        except Exception as e:
+            context.set_code(StatusCode.unknown)
+            context.set_details(e)
+            return None
+
+    def GetAddressStateLocal(self, request: qrl_pb2.GetAddressStateLocalReq, context) \
+            -> qrl_pb2.GetAddressStateResp:
+        try:
+            address = self.qrlnode.get_wallet_absolute(request.address_idx)
+            address_state = self.qrlnode.get_address_state(address)
+            return qrl_pb2.GetAddressStateResp(state=address_state)
         except Exception as e:
             context.set_code(StatusCode.not_found)
             context.set_details(e)
             return None
-        return qrl_pb2.GetAddressStateResp(state=address_state)
 
-    def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
+    def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) \
+            -> qrl_pb2.GetAddressStateResp:
+        try:
+            address_state = self.qrlnode.get_address_state(request.address)
+            return qrl_pb2.GetAddressStateResp(state=address_state)
+        except Exception as e:
+            context.set_code(StatusCode.not_found)
+            context.set_details(e)
+            return None
+
+    def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) \
+            -> qrl_pb2.TransferCoinsResp:
         logger.debug("[QRLNode] TransferCoins")
-        self.qrlnode.transfer_coins()
-        return qrl_pb2.TransferCoinsResp()
+        try:
+            response = qrl_pb2.TransferCoinsResp()
+            response.transaction_unsigned = self.qrlnode.create_send_tx(addr_from=request.address_from,
+                                                                        addr_to=request.address_to,
+                                                                        amount=request.amount,
+                                                                        fee=request.fee,
+                                                                        xmss_pk=request.xmss_pk,
+                                                                        xmss_ots_key=request.xmss_ots_key)
+            return response
+        except Exception as e:
+            context.set_code(StatusCode.unknown)
+            context.set_details(e)
+            return None

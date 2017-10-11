@@ -9,13 +9,16 @@ import grpc
 from qrl.core import logger
 from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrl_pb2_grpc import add_P2PNodeServicer_to_server, add_PublicAPIServicer_to_server
+from qrl.generated.qrlbase_pb2_grpc import add_BaseServicer_to_server
 from qrl.services.APIService import APIService
+from qrl.services.BaseService import BaseService
 from qrl.services.P2PService import P2PService
 
 
 def start_services(node: QRLNode):
     server = grpc.server(ThreadPoolExecutor(max_workers=1))
 
+    add_BaseServicer_to_server(BaseService(node), server)
     add_P2PNodeServicer_to_server(P2PService(node), server)
     add_PublicAPIServicer_to_server(APIService(node), server)
 
