@@ -395,7 +395,7 @@ class State:
         if data is None:
             raise KeyError("{} not found".format(address))
 
-        address_state.ParseFromString(data)
+        address_state.ParseFromString(bytes(data))
 
         # FIXME: pubhashes is deserialized as a pb container but some methods want to make changes. Workaround
         tmp = [ h for h in address_state.pubhashes]
