@@ -32,7 +32,7 @@ def remaining_emission(N_tot, block_n):
     :return:
 
     >>> remaining_emission(1, 1)
-    Decimal('0.99999996')
+    Decimal('0.99999988')
     """
     #http://www.wolframalpha.com/input/?i=seconds+in+200+years
     #http://www.wolframalpha.com/input/?i=(6.307%C3%9710%5E9)%2F45
@@ -58,36 +58,3 @@ def block_reward_calc(block_number):
 
 #Note: if config.dev.total_coin_supply is used anywhere else to validate the reward, it should be changed
 #to subtract the initial mint in genesis. This merge might require changes elsewhere
-
-#calculates (approximately) how many QRL get minted in a year
-#Takes awhile. Calculate year 1 and year 2 and then use the ratio for inter-year decay.
-#Use only for testing purposes
-def calc_year(year):
-    #uses 45 second block time
-    summation = 0
-    time = 45 #assumes a block takes 45 seconds on average, which is true all the time
-    per_day = 24*60*60/time #Assumes a day is exactly 24 hours, which is not true
-    per_year = per_day*365 #Assumes a year is exactly 365 days, which is not true
-    start = (per_year*(year-1))+1
-    end = (per_year*(year-1))+(1+per_year)
-    for n in range(start, end):
-        summation += block_reward_calc(n)/100000000.0
-    return summation
-
-#example usage
-
-# year_1 = calc_year(1)
-# year_2 = calc_year(2)
-# print("The calculation for number 1 is: ", year_1)
-# print("The calculation for number 2 is: ", year_2)
-# interyear_decay = year_2/year_1
-# summation = year_1 + year_2
-# prev_emittance = year_2
-# for n in range(3,201):
-#     prev_emittance = prev_emittance * interyear_decay
-#     summation += prev_emittance
-#     print("emittance for year ", n, " is ", prev_emittance)
-# print("Total emitted after 200 years: ", summation)
-
-
-# output: https://pastebin.com/7fqbEEQJ
