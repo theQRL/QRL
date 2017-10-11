@@ -1,0 +1,137 @@
+// Distributed under the MIT software license, see the accompanying
+// file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+syntax = "proto3";
+
+package qrl;
+
+import "google/protobuf/timestamp.proto";
+
+service P2PNode {
+  rpc Ping (PingReq) returns (PongResp) {}
+  rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
+}
+
+service PublicAPI {
+  rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
+  rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {}
+  rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {}
+}
+
+// API Messages
+
+message PingReq {   string name = 1;    }
+message PongResp {   string message = 1; }
+message GetKnownPeersReq {}
+message GetKnownPeersResp { KnownPeers known_peers = 1; }
+
+message GetAddressStateReq {   string address = 1;  }
+message GetAddressStateResp {   AddressState state = 1; }
+
+message TransferCoinsReq {   Transaction transaction = 1;  }
+message TransferCoinsResp {   AddressState state = 1; }  // FIXME: What to return here? tx_id?
+
+// Content
+
+message WalletStore
+{
+    repeated Wallet wallets = 1;
+}
+
+message Wallet
+{
+    string address = 1;
+    string mnemonic = 2;
+    int32 xmss_index = 3;
+}
+
+message KnownPeers
+{
+    repeated Peer peers = 1;
+}
+
+message Peer
+{
+    string ip = 1;
+}
+
+message AddressState
+{
+    string address = 1;
+    uint64 balance = 2;
+    uint64 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
+    repeated bytes pubhashes = 4;
+    repeated Transaction transactions = 5;
+    // FIXME: Add stake information. Probably a reference to another obj
+}
+
+message BlockHeader
+{
+    // Header
+    uint64 block_number = 1;
+    uint64 epoch = 2;
+    google.protobuf.Timestamp timestamp = 3;
+
+    bytes hash_header = 4;
+    bytes hash_header_prev = 5;
+
+    uint64 reward_block = 6;
+    uint64 reward_fee = 7;
+
+    bytes merkel_root = 8;
+    bytes hash_reveal = 9;
+    bytes hash_vote = 10;
+    string stake_selector = 11;
+}
+
+message Block
+{
+    BlockHeader header = 1;
+    repeated Transaction transactions = 2;
+    repeated Transaction dup_transactions = 3;      // TODO: Review this
+
+    repeated AddressState state = 4;
+
+    repeated string stake_list = 5;                 // addresses
+    bytes stake_seed = 6;
+}
+
+message Transaction
+{
+    enum Type
+    {
+        TRANSFER = 0;
+        STAKE = 1;
+        COINBASE = 2;
+        LATTICE = 3;
+        DUPLICATE = 4;
+    }
+
+    Type type = 1;
+
+    uint64 nonce = 2;
+    bytes addr_from = 3;
+    bytes transaction_hash = 5;
+    bytes public_hash = 4;
+
+    bytes public_key = 6;               // Required for Signed Transfer
+    bytes signature = 7;                // Required for Signed Transfer
+
+    bytes addr_to = 8;                 // Required for Transfer
+    uint64 amount = 9;                  // Required for Transfer        // FIXME: Review quantities
+    uint64 fee = 10;                    // Required for Transfer        // FIXME: Review quantities
+
+    uint64 epoch = 11;                  // Required for Stake
+    bytes public_key_slave = 12;        // Required for Stake
+    bytes stake_hash = 13;              // Required for Stake
+
+    uint64 dup_block_number = 14;           // Required for duplicate transaction
+    uint64 dup_hash_header_prev = 15;       // Required for duplicate transaction
+    bytes dup_coinbase1_hhash = 16;         // Required for duplicate transaction
+    bytes dup_coinbase2_hhash = 17;         // Required for duplicate transaction
+    Transaction dup_coinbase1 = 18;         // Required for duplicate transaction
+    Transaction dup_coinbase2 = 19;         // Required for duplicate transaction
+
+    bytes pk_kyber = 20;                    // Required for LatticePublicKey
+    bytes pk_tesla = 21;                    // Required for LatticePublicKey
+}

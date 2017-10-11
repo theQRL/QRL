@@ -1,0 +1,55 @@
+sudo: required
+dist: trusty
+services: docker
+language: python
+env:
+  matrix:
+  - PLATFORM='xenial' COVERAGE="true"
+#virtualenv:
+#  system_site_packages: true
+
+addons:
+  apt:
+    packages:
+    - git
+
+cache:
+- pip
+
+cache:
+  timeout: 600
+
+before_install:
+- sudo pip install -U pip setuptools twine
+- pip install -U coverage coveralls
+- pip install -U codacy-coverage
+
+install:
+- "./travis/install.sh"
+
+before_script:
+- pyenv versions
+
+script:
+- "./travis/build.sh"
+
+after_success:
+- if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
+- if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+
+notifications:
+  email: false
+
+#before_deploy:
+
+deploy:
+  provider: pypi
+  skip_cleanup: true
+  user: jleni
+  password:
+    secure: LEHilAb+FXCKVvd1/AEmVlUPyf8sOVYt/rMLZPr3bMEiwgK//lFJWlBPli9+G9ed4HjDpq/YFGpTKsRs9Etl4MWSnEJwYJPL0qBTWRCvEn1Py1kTI68dqRKR6oLpssj2BsLpuZvLt+2kE9PVvLSTGbwUGrnvob2AX2suUZcxnZD2q25TOnbZS2/M2F7SOy/0rVn6jlvGPwhMbdsmiLBStsx4rdiu84e1aryUDELSNTP7GtX61dmZs3et2Tpfz7uHXF++mxuT4hzjRe6mUKbtBekCy5EuAzI8vUTmys/m0llmB++gORSLeM22jfpGyfT7AxlkAxO3vlX3XLIythPIYcAEEjBA2xdt8GRlLWH3XLJJYWVEQgdA21sQLuQEGBepc44oKsdUH5t1Ok7kBYjvtQWJCa1/gv+GowKnU5159iJe6MBL9iJqzaz+tbGqKbQHpCvkPlNmipEBKVUANIx7IoXc/tHruCJtjp/vX4hbbOcT4674UaCcHtWpM3ME6EafC2r/nHNNA7rLoX1CP0RCrbSZJOGzhTZlyY9lB0qAmJe+3NDVSiY+6wO2qDFDN7nSl7BUBppPWHkhCVdXq3647RJB31djCguNfnjJLT7hoKkFTMFrrpkpvYUdPkJUAPqh3VZdl+esfMQnHctqBk0D8B+0lX6IJ9v8I5R/kyBs7/g=
+  on:
+    tags: true
+    all_branches: true
+
+#after_deploy:

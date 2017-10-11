@@ -1,7 +1,51 @@
-*.swp
-.DS_Store
+# Temporary and binary files
+*~
 *.py[cod]
-*.dat
-*.info
+*.cfg
+!setup.cfg
+*.orig
 *.log
+*.pot
+__pycache__/*
+.cache/*
+.DS_Store
+.*.swp
+*/.ipynb_checkpoints/*
+
+# Project files
+.ropeproject
+.project
+.pydevproject
+.settings
+.idea
+
+# Package files
+*.egg
+*.eggs/
+.installed.cfg
+*.egg-info
+
+# Unittest and coverage
+htmlcov/*
+.coverage
+.tox
+junit.xml
+coverage.xml
+
+# Build and docs folder/files
+build/*
+dist/*
+sdist/*
+docs/api/*
+docs/_build/*
+cover/*
+MANIFEST
+
+tests/state/
+
 state/
+
+tests/core/known_data/testcase1/wallet.dat
+
+tests/core/known_data/testcase1/wallet.info
+

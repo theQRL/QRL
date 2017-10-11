@@ -1,0 +1,135 @@
+body {
+    background-color: #FFFFFF;
+}
+.ui.menu.inverted {
+    background-color: #1D2951;
+}
+.ui.inverted.footer {
+    background-color: #1D2951;
+}
+.ui.menu .item img.logo {
+    margin-right: 1.5em;
+}
+.main.container {
+    margin-top: 4.5em;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+.wireframe {
+    margin-top: 2em;
+}
+.ui.footer.segment {
+    margin: 5em 0em 0em;
+    padding: 5em 0em;
+}
+.ui.table tr {
+    font-size: 0.9em;
+}
+.hidden {
+    display: none;
+}
+.ui.menu .item > .input input {
+    width: 14em;
+}
+#searchres {
+    margin-left: 1em;
+}
+#petefix > .item {
+    margin-right: 2em;
+    border-left: 0;
+    padding-left: 0 !important;
+}
+#petefix2 > .item {
+    margin-right: 2em;
+}
+.ui.table td {
+    overflow: hidden;
+}
+.ui.table th {
+    overflow: auto;
+}
+.ui .event .content .summary a {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+#searchID {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+#PartiesFrom {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+#PartiesTo {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+#domModalBody {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+.ui.list .list > a.item,
+.ui.list > a.item,
+a.item {
+    color: #1D2951;
+}
+.ui.list .list > a.item:hover,
+.ui.list > a.item:hover {
+    color: #1D2951;
+}
+#TransT {
+    width:100% !important;
+    white-space: normal;
+}
+@-moz-document url-prefix() {
+    #TransT {
+        width:100% !important;
+        white-space: normal;
+        word-break: break-all;
+    }
+}
+#TransT tbody tr td {
+    word-break: break-word;
+    vertical-align: top;
+}
+#TransT_filter {
+    float: right;
+}
+#TransT_length {
+    float: left;
+    padding-bottom: 20px;
+}
+@media all and (max-width: 519px) {
+    /* First, hide the main menu */
+    
+    #menu {
+        display: none;
+    }
+    /* then display the mobile menu */
+    
+    #m_menu {
+        display: block;
+    }
+    /* lastly, show your mobile menu button */
+    
+    #m_btn {
+        display: inline-block;
+    }
+}
+@media all and (min-width: 520px) {
+    /* Hide the mobile menu */
+    
+    #m_menu {
+        display: none;
+    }
+    /* Unhide the regular menu */
+    
+    #menu {
+        display: block;
+    }
+    /* Lastly, hide the mobile menu button */
+    
+    #m_btn {
+        display: none;
+    }
+}
