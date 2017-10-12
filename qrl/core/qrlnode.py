@@ -158,7 +158,7 @@ class QRLNode:
         if tx and tx.validate_tx():
             block_chain_buffer = self.chain.block_chain_buffer
             block_number = block_chain_buffer.height() + 1
-            tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txto)
+            tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
             if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
                 self.chain.add_tx_to_pool(tx)
