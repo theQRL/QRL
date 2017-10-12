@@ -6,10 +6,10 @@ from twisted.internet.protocol import ServerFactory
 
 from qrl.core import logger
 from qrl.core.Transaction import Transaction, SimpleTransaction, CoinBase
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_STAKE
 from qrl.core.apiprotocol import ApiProtocol
 from qrl.core.helper import json_print_telnet
-
+from decimal import Decimal
 
 class ApiFactory(ServerFactory):
     def __init__(self, pos, chain, state, peers):
@@ -22,7 +22,7 @@ class ApiFactory(ServerFactory):
         self.peers = peers
 
     def format_qrlamount(self, balance):
-        return format(float(balance / 100000000.00000000), '.8f')
+        return format(float(balance / Decimal(100000000.00000000)), '.8f')
 
     #FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_address(self, address):
@@ -118,10 +118,42 @@ class ApiFactory(ServerFactory):
 
         return json_print_telnet(addr)
 
+    def reformat_block(self, block):
+        block.blockheader.block_reward = self.format_qrlamount(block.blockheader.block_reward)
+        block.blockheader.fee_reward = self.format_qrlamount(block.blockheader.fee_reward)
+        block.blockheader.reveal_hash = bin2hstr(block.blockheader.reveal_hash)
+        block.blockheader.vote_hash = bin2hstr(block.blockheader.vote_hash)
+        block.blockheader.headerhash = bin2hstr(block.blockheader.headerhash)
+        block.blockheader.tx_merkle_root = bin2hstr(block.blockheader.tx_merkle_root)
+        block.blockheader.prev_blockheaderhash = bin2hstr(block.blockheader.prev_blockheaderhash)
+
+        for txn in block.transactions:
+            self.reformat_txn(txn)
+
+        return block
+
+    def reformat_txn(self, txn):
+        if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+            txn.amount = self.format_qrlamount(txn.amount)
+        txn.txhash = bin2hstr(txn.txhash)
+        txn.pubhash = bin2hstr(txn.pubhash)
+        txn.signature = bin2hstr(txn.signature)
+        txn.PK = bin2hstr(txn.PK)
+        if txn.subtype == TX_SUBTYPE_STAKE:
+            txn.slave_public_key = bin2hstr(txn.slave_public_key)
+            if txn.first_hash:
+                txn.first_hash = bin2hstr(txn.first_hash)
+            for j in range(len(txn.hash)):
+                txn.hash[j] = bin2hstr(txn.hash[j])
+
+        txn.subtype = Transaction.tx_id_to_name(txn.subtype)
+
+        return txn
+
     # FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_txhash(self, txhash):  # txhash is unique due to nonce.
         err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
-        for tx in self.factory.chain.transaction_pool:
+        for tx in self.chain.transaction_pool:
             if tx.txhash == txhash:
                 logger.info('%s found in transaction pool..', txhash)
                 tx_new = copy.deepcopy(tx)
@@ -129,7 +161,7 @@ class ApiFactory(ServerFactory):
                 return json_print_telnet(tx_new)
 
         try:
-            txn_metadata = self.factory.chain.state.db.get(txhash)
+            txn_metadata = self.chain.state.db.get(txhash)
         except:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return json_print_telnet(err)
@@ -137,7 +169,7 @@ class ApiFactory(ServerFactory):
         json_tx = json.loads(txn_metadata[0])
         tx = Transaction().from_txdict(json_tx)
         tx.blocknumber = txn_metadata[1]
-        tx.confirmations = self.factory.chain.height() - tx.blocknumber
+        tx.confirmations = self.chain.height() - tx.blocknumber
         tx.timestamp = txn_metadata[2]
 
         tx_new = copy.deepcopy(tx)
