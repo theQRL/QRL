@@ -5,6 +5,7 @@ import copy
 import json
 import time
 from operator import itemgetter
+from decimal import Decimal
 
 import statistics
 from twisted.internet.protocol import Protocol, connectionDone
@@ -12,7 +13,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger
 from qrl.core.helper import json_print_telnet
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_STAKE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
 from qrl.core.Transaction import SimpleTransaction, Transaction
 
 
@@ -322,38 +323,6 @@ class ApiProtocol(Protocol):
         }
         return json_print_telnet(error)
 
-    def reformat_block(self, block):
-        block.blockheader.block_reward = self.factory.format_qrlamount(block.blockheader.block_reward)
-        block.blockheader.fee_reward = self._factory.format_qrlamount(block.blockheader.fee_reward)
-        block.blockheader.reveal_hash = bin2hstr(block.blockheader.reveal_hash)
-        block.blockheader.vote_hash = bin2hstr(block.blockheader.vote_hash)
-        block.blockheader.headerhash = bin2hstr(block.blockheader.headerhash)
-        block.blockheader.tx_merkle_root = bin2hstr(block.blockheader.tx_merkle_root)
-        block.blockheader.prev_blockheaderhash = bin2hstr(block.blockheader.prev_blockheaderhash)
-
-        for txn in block.transactions:
-            self.reformat_txn(txn)
-
-        return block
-
-    def reformat_txn(self, txn):
-        if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-            txn.amount = self.factory.format_qrlamount(txn.amount)
-        txn.txhash = bin2hstr(txn.txhash)
-        txn.pubhash = bin2hstr(txn.pubhash)
-        txn.signature = bin2hstr(txn.signature)
-        txn.PK = bin2hstr(txn.PK)
-        if txn.subtype == TX_SUBTYPE_STAKE:
-            txn.slave_public_key = bin2hstr(txn.slave_public_key)
-            if txn.first_hash:
-                txn.first_hash = bin2hstr(txn.first_hash)
-            for j in range(len(txn.hash)):
-                txn.hash[j] = bin2hstr(txn.hash[j])
-
-        txn.subtype = Transaction.tx_id_to_name(txn.subtype)
-
-        return txn
-
     def block_data(self, data=None):  # if no data = last block ([-1])			#change this to add error..
         error = {
             'status': 'error',
@@ -378,7 +347,7 @@ class ApiProtocol(Protocol):
             js_bk1 = copy.deepcopy(js_bk)
             js_bk1.number_transactions = len(js_bk1.transactions)
             js_bk1.status = 'ok'
-            self.reformat_block(js_bk1)
+            self.factory.reformat_block(js_bk1)
 
             return json_print_telnet(js_bk1)
 
@@ -435,7 +404,7 @@ class ApiProtocol(Protocol):
                      'nodes': len(self.factory.peers) + 1,
                      # FIXME: Magic number? Unify
                      'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
-                     'unmined': config.dev.total_coin_supply - self.factory.state.total_coin_supply() / 100000000.000000000}
+                     'unmined': config.dev.total_coin_supply - float(self._format_qrlamount(self.factory.state.total_coin_supply()))}
 
         return json_print_telnet(net_stats)
 
@@ -519,7 +488,7 @@ class ApiProtocol(Protocol):
 
     def _format_qrlamount(self, balance):
         # FIXME: Magic number? Unify
-        return format(float(balance / 100000000.00000000), '.8f')
+        return format(float(balance / decimal(100000000.00000000)), '.8f')
 
     def _search_address(self, address):
         return self.factory.search_address(address)
