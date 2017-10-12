@@ -25,6 +25,7 @@ def sha256(message):
 
 def merkle_tx_hash(hashes):
     # TODO: Clean this, move to C++
+    # FIXME: Review and consider (CVE-2012-2459) and bitcoin source code
     """
     merkle tree root hash of tx from pool for next POS block
     :param hashes:

@@ -78,6 +78,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
+    self.GetAddressStateLocal = channel.unary_unary(
+        '/qrl.PublicAPI/GetAddressStateLocal',
+        request_serializer=qrl__pb2.GetAddressStateLocalReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetAddressStateResp.FromString,
+        )
     self.GetAddressState = channel.unary_unary(
         '/qrl.PublicAPI/GetAddressState',
         request_serializer=qrl__pb2.GetAddressStateReq.SerializeToString,
@@ -88,6 +93,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
         response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
         )
+    self.PushTransaction = channel.unary_unary(
+        '/qrl.PublicAPI/PushTransaction',
+        request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
+        response_deserializer=qrl__pb2.PushTransactionReqResp.FromString,
+        )
 
 
 class PublicAPIServicer(object):
@@ -95,6 +105,13 @@ class PublicAPIServicer(object):
   pass
 
   def GetKnownPeers(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetAddressStateLocal(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -115,6 +132,13 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def PushTransaction(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -122,6 +146,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetKnownPeers,
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
           response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
+      ),
+      'GetAddressStateLocal': grpc.unary_unary_rpc_method_handler(
+          servicer.GetAddressStateLocal,
+          request_deserializer=qrl__pb2.GetAddressStateLocalReq.FromString,
+          response_serializer=qrl__pb2.GetAddressStateResp.SerializeToString,
       ),
       'GetAddressState': grpc.unary_unary_rpc_method_handler(
           servicer.GetAddressState,
@@ -132,6 +161,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.TransferCoins,
           request_deserializer=qrl__pb2.TransferCoinsReq.FromString,
           response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
+      ),
+      'PushTransaction': grpc.unary_unary_rpc_method_handler(
+          servicer.PushTransaction,
+          request_deserializer=qrl__pb2.PushTransactionReq.FromString,
+          response_serializer=qrl__pb2.PushTransactionReqResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
