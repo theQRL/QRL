@@ -4,22 +4,25 @@ let grpc = require('grpc');
 let temp = require('temp').track();
 let fs = require("fs-extra");
 
-async function fetchRemoteProto(node_addr) {
+async function fetchRemoteProto(nodeAddr) {
     let protoDescriptor = grpc.load('../../qrl/protos/qrlbase.proto');
-    let client = new protoDescriptor.qrl.Base(node_addr, grpc.credentials.createInsecure());
+    let client = new protoDescriptor.qrl.Base(nodeAddr, grpc.credentials.createInsecure());
 
-    return new Promise(resolve => {
+    return new Promise( (resolve) => {
         client.getNodeInfo({}, function (err, nodeInfo) {
-            if (err) throw err;    // TODO: Handle errors, etc
+            if (err) {
+                // TODO: Handle errors
+                throw err;
+            }
 
             // TODO: Check version, etc.
 
             // WORKAROUND: Copy timestamp  (I am investigating how to avoid this step)
-            let req_file = '/tmp/google/protobuf/timestamp.proto';
-            if (!fs.existsSync(req_file))
+            let requiredFile = '/tmp/google/protobuf/timestamp.proto';
+            if (!fs.existsSync(requiredFile))
             {
                 fs.ensureDirSync('/tmp/google/protobuf');
-                fs.copySync('timestamp.proto', req_file, { overwrite : true });
+                fs.copySync('timestamp.proto', requiredFile, { overwrite : true });
             }
 
             // At the moment, we can only load from a file..
@@ -36,11 +39,11 @@ async function fetchRemoteProto(node_addr) {
     });
 }
 
-async function getQRLClient(node_addr) {
+async function getQRLClient(nodeAddr) {
     return new Promise(resolve => {
-        const remoteProto = fetchRemoteProto(node_addr);
+        const remoteProto = fetchRemoteProto(nodeAddr);
         remoteProto.then(function (remoteProto) {
-            let client = new remoteProto.qrl.PublicAPI(node_addr, grpc.credentials.createInsecure());
+            let client = new remoteProto.qrl.PublicAPI(nodeAddr, grpc.credentials.createInsecure());
             resolve(client);
         });
     });
