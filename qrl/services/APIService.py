@@ -24,7 +24,7 @@ class APIService(PublicAPIServicer):
             return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
         except Exception as e:
             context.set_code(StatusCode.unknown)
-            context.set_details(e)
+            context.set_details(str(e))
             return None
 
     def GetAddressStateLocal(self, request: qrl_pb2.GetAddressStateLocalReq, context) \
@@ -35,7 +35,7 @@ class APIService(PublicAPIServicer):
             return qrl_pb2.GetAddressStateResp(state=address_state)
         except Exception as e:
             context.set_code(StatusCode.not_found)
-            context.set_details(e)
+            context.set_details(str(e))
             return None
 
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) \
@@ -45,7 +45,7 @@ class APIService(PublicAPIServicer):
             return qrl_pb2.GetAddressStateResp(state=address_state)
         except Exception as e:
             context.set_code(StatusCode.not_found)
-            context.set_details(e)
+            context.set_details(str(e))
             return None
 
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) \
@@ -62,5 +62,5 @@ class APIService(PublicAPIServicer):
             return response
         except Exception as e:
             context.set_code(StatusCode.unknown)
-            context.set_details(e)
+            context.set_details(str(e))
             return None

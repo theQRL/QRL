@@ -1,0 +1,9 @@
+{
+  "name": "qrl_nodejs_examples",
+  "version": "0.0.1",
+  "dependencies": {
+    "grpc": "latest",
+    "temp": "latest",
+    "fs-extra": "latest"
+  }
+}
