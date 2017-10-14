@@ -41,14 +41,15 @@ class APIService(PublicAPIServicer):
             -> qrl_pb2.TransferCoinsResp:
         logger.debug("[QRLNode] TransferCoins")
         try:
-            response = qrl_pb2.TransferCoinsResp()
-            response.transaction_unsigned = self.qrlnode.create_send_tx(addr_from=request.address_from,
-                                                                        addr_to=request.address_to,
-                                                                        amount=request.amount,
-                                                                        fee=request.fee,
-                                                                        xmss_pk=request.xmss_pk,
-                                                                        xmss_ots_key=request.xmss_ots_key)
-            return response
+            tx = self.qrlnode.create_send_tx(addr_from=request.address_from,
+                                             addr_to=request.address_to,
+                                             amount=request.amount,
+                                             fee=request.fee,
+                                             xmss_pk=request.xmss_pk,
+                                             xmss_ots_index=request.xmss_ots_index)
+
+            return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx)
+
         except Exception as e:
             context.set_code(StatusCode.unknown)
             context.set_details(str(e))

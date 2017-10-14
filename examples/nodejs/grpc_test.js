@@ -55,28 +55,35 @@ let qrlClient = getQRLClient('localhost:9009');
 
 qrlClient.then( function (qrlClient) {
 
-    // TODO: Normal logic should be based on async/await like what I did in getQRLClient / fetchRemoteProto
     // This is just a short example
 
-    // Get local address state
-    qrlClient.getAddressStateLocal({address_idx: 0}, function (err, response) {
-        if (err) {
-            console.log("Error: ", err.message);
-            return;
-        }
+    // // Get some genesis address state
+    // qrlClient.getAddressState({address : 'Qada446e9ac25b11299e0615de8bd1b7f5404ce0052fbb27db7ada425904a5aea6063deb3'}, function (err, response){
+    //     if (err){
+    //         console.log("Error: ", err.message);
+    //         return;
+    //     }
+    //
+    //     console.log("Address: %s        Balance: %d", response.state.address, response.state.balance);
+    // });
 
-        // No need to use dictionaries, etc
-        console.log("Address: %s        Balance: %d", response.state.address, response.state.balance);
-    });
 
-    // Get some genesis address state
-    qrlClient.getAddressState({address : 'Qada446e9ac25b11299e0615de8bd1b7f5404ce0052fbb27db7ada425904a5aea6063deb3'}, function (err, response){
+    tx = {
+        address_from: 'Qada446e9ac25b11299e0615de8bd1b7f5404ce0052fbb27db7ada425904a5aea6063deb3',
+        address_to: 'Qada446e9ac25b11299e0615de8bd1b7f5404ce0052fbb27db7ada425904a5aea6063deb3',
+        amount : 1,
+        fee : 1,
+        xmss_pk : Buffer.from([0x01]),
+        xmss_ots_index: 1
+    };
+
+    qrlClient.transferCoins(tx, function (err, response){
         if (err){
             console.log("Error: ", err.message);
             return;
         }
 
-        console.log("Address: %s        Balance: %d", response.state.address, response.state.balance);
+        console.log(response);
     });
 
 });

@@ -138,7 +138,7 @@ message Transaction
     uint64 nonce = 2;
     bytes addr_from = 3;
     bytes transaction_hash = 5;
-    bytes public_hash = 4;
+    bytes public_hash = 4;              // Use also as first hash in stake?
 
     bytes public_key = 6;               // Required for Signed Transfer
     bytes signature = 7;                // Required for Signed Transfer
@@ -151,7 +151,7 @@ message Transaction
     uint64 finalized_blocknumber = 12;  // Required for Stake
     bytes finalized_headerhash = 13;    // Required for Stake
     bytes public_key_slave = 14;        // Required for Stake
-    bytes stake_hash = 15;              // Required for Stake
+    repeated bytes stake_hash = 15;              // Required for Stake
 
     uint64 dup_block_number = 16;           // Required for duplicate transaction
     uint64 dup_hash_header_prev = 17;       // Required for duplicate transaction
@@ -162,4 +162,6 @@ message Transaction
 
     bytes pk_kyber = 22;                    // Required for LatticePublicKey
     bytes pk_tesla = 23;                    // Required for LatticePublicKey
+    
+    uint32 ots_key = 24;                    // FIXME: Remove
 }
