@@ -176,7 +176,7 @@ class POS:
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
-        tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
+        tmpbalance = self.chain.state.balance(self.chain.mining_address)
         slave_xmss = self.chain.block_chain_buffer.get_slave_xmss(0)
         if not slave_xmss:
             logger.info('Waiting for SLAVE XMSS to be done')

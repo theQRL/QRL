@@ -44,7 +44,7 @@ class StateBuffer:
         stxn_state_keys = list(self.stxn_state.keys())
         for addr in stxn_state_keys:
 
-            addr_list = state.state_get_address(addr)
+            addr_list = state.get_address(addr)
             for i in range(0, len(addr_list[2])):
                 addr_list[2][i] = tuple(addr_list[2][i])
 

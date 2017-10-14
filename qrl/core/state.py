@@ -91,72 +91,72 @@ class State:
             logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
-    def state_uptodate(self, height):  # check state db marker to current blockheight.
-        return height == self.state_blockheight()
+    def uptodate(self, height):  # check state db marker to current blockheight.
+        return height == self._blockheight()
 
-    def state_blockheight(self):
+    def _blockheight(self):
         return self.db.get('blockheight')
 
-    def state_set_blockheight(self, height):
+    def _set_blockheight(self, height):
         return self.db.put('blockheight', height)
 
-    def state_get_txn_count(self, addr):
+    def get_txn_count(self, addr):
         try:
             return self.db.get( ('txn_count_' + addr))
         except KeyError:
             pass
         except Exception as e:
-            logger.error('Exception in state_get_txn_count')
+            logger.error('Exception in get_txn_count')
             logger.exception(e)
 
         return 0
 
-    def state_get_address(self, address):
+    def get_address(self, address):
         try:
             return self._get_address_state(address)
         except KeyError:
             pass
         except Exception as e:
-            logger.error('Exception in state_get_address')
+            logger.error('Exception in get_address')
             logger.exception(e)
 
         return [config.dev.default_nonce, config.dev.default_account_balance, config.dev.default_pubhash_blacklist]
 
-    def state_address_used(self, address):  # if excepts then address does not exist..
+    def address_used(self, address):  # if excepts then address does not exist..
         try:
             return self._get_address_state(address)
         except KeyError:
             pass
         except Exception as e:
-            logger.error('Exception in state_address_used')
+            logger.error('Exception in address_used')
             logger.exception(e)
 
         return False
 
-    def state_nonce(self, addr):
-        nonce, balance, pubhash_list = self.state_get_address(addr)
+    def nonce(self, addr):
+        nonce, balance, pubhash_list = self.get_address(addr)
         return nonce
 
-    def state_balance(self, addr):
-        nonce, balance, pubhash_list = self.state_get_address(addr)
+    def balance(self, addr):
+        nonce, balance, pubhash_list = self.get_address(addr)
         return balance
 
-    def state_pubhash(self, addr):
-        nonce, balance, pubhash_list = self.state_get_address(addr)
+    def pubhash(self, addr):
+        nonce, balance, pubhash_list = self.get_address(addr)
         return pubhash_list
 
-    def state_hrs(self, hrs):
+    def hrs(self, hrs):
         try:
             return self.db.get('hrs{}'.format(hrs))
         except KeyError:
             pass
         except Exception as e:
-            logger.error('Exception in state_hrs')
+            logger.error('Exception in State.hrs()')
             logger.exception(e)
 
         return False
 
-    def state_validate_tx_pool(self, chain):
+    def validate_tx_pool(self, chain):
         result = True
 
         for tx in chain.transaction_pool:
@@ -170,12 +170,12 @@ class State:
 
         return result
 
-    def state_add_block(self, chain, block, ignore_save_wallet=False):
+    def add_block(self, chain, block, ignore_save_wallet=False):
         address_txn = dict()
         self.load_address_state(chain, block, address_txn)                                  # FIXME: Bottleneck
 
         if block.blockheader.blocknumber == 1:
-            if not self.state_update_genesis(chain, block, address_txn):
+            if not self.update_genesis(chain, block, address_txn):
                 return False
             self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
             return True
@@ -189,7 +189,7 @@ class State:
                      nonce,
                      block.blockheader.stake_selector)
 
-        if not self.state_update(block, self.stake_validators_list, address_txn):
+        if not self.update(block, self.stake_validators_list, address_txn):
             return
 
         self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)       # FIXME: Bottleneck
@@ -210,7 +210,7 @@ class State:
 
         return address_txn
 
-    def state_update_genesis(self, chain, block, address_txn):
+    def update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
         pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
@@ -292,7 +292,7 @@ class State:
         chain.wallet.save_wallet()
         return True
 
-    def state_update(self, block, stake_validators_list, address_txn):
+    def update(self, block, stake_validators_list, address_txn):
 
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
@@ -414,7 +414,7 @@ class State:
         for k, v in self.db.RangeIter(b'Q', b'Qz'):
             self.db.delete(k)
         logger.info('Reset Finished')
-        self.state_set_blockheight(0)
+        self._set_blockheight(0)
         return
 
     def total_coin_supply(self):
@@ -456,7 +456,7 @@ class State:
             if not ignore_save_wallet:
                 chain.wallet.save_wallet()
 
-        self.state_set_blockheight(chain.height() + 1)
+        self._set_blockheight(chain.height() + 1)
 
         logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
@@ -489,14 +489,14 @@ class State:
 
         return config.dev.high_staker_first_hash_block
 
-    def state_read_genesis(self, genesis_block):
+    def read_genesis(self, genesis_block):
         logger.info('genesis:')
 
         for address in genesis_block.state:
             self._save_address_state(address[0], address[1])
         return True
 
-    def state_read_chain(self, chain):
+    def read_chain(self, chain):
 
         self.zero_all_addresses()
         c = chain.m_get_block(0).state
@@ -507,14 +507,14 @@ class State:
         for block in c:
 
             # update coinbase address state
-            stake_master = self.state_get_address(block.blockheader.stake_selector)
+            stake_master = self.get_address(block.blockheader.stake_selector)
             stake_master[1] += block.transactions[0].amount
             self.db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
                 pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
 
-                s1 = self.state_get_address(tx.txfrom)
+                s1 = self.get_address(tx.txfrom)
 
                 # FIXME: review this.. why stake transaction are getting here?
                 if hasattr(tx, 'amount') and s1[1] - tx.amount < 0:
@@ -537,12 +537,12 @@ class State:
                 s1[2].append(pubhash)
                 self._save_address_state(tx.txfrom, s1)  # must be ordered in case tx.txfrom = tx.txto
 
-                s2 = self.state_get_address(tx.txto)
+                s2 = self.get_address(tx.txto)
                 s2[1] = s2[1] + tx.amount
 
                 self._save_address_state(tx.txto, s2)
 
             logger.info((block, str(len(block.transactions)), 'tx ', ' passed'))
 
-        self.state_set_blockheight(chain.m_blockheight())
+        self._set_blockheight(chain.m_blockheight())
         return True
