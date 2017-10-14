@@ -140,16 +140,18 @@ message Transaction
     uint64 fee = 10;                    // Required for Transfer
 
     uint64 epoch = 11;                  // Required for Stake
-    bytes public_key_slave = 12;        // Required for Stake
-    bytes stake_hash = 13;              // Required for Stake
+    uint64 finalized_blocknumber = 12;  // Required for Stake
+    bytes finalized_headerhash = 13;    // Required for Stake
+    bytes public_key_slave = 14;        // Required for Stake
+    bytes stake_hash = 15;              // Required for Stake
 
-    uint64 dup_block_number = 14;           // Required for duplicate transaction
-    uint64 dup_hash_header_prev = 15;       // Required for duplicate transaction
-    bytes dup_coinbase1_hhash = 16;         // Required for duplicate transaction
-    bytes dup_coinbase2_hhash = 17;         // Required for duplicate transaction
-    Transaction dup_coinbase1 = 18;         // Required for duplicate transaction
-    Transaction dup_coinbase2 = 19;         // Required for duplicate transaction
+    uint64 dup_block_number = 16;           // Required for duplicate transaction
+    uint64 dup_hash_header_prev = 17;       // Required for duplicate transaction
+    bytes dup_coinbase1_hhash = 18;         // Required for duplicate transaction
+    bytes dup_coinbase2_hhash = 19;         // Required for duplicate transaction
+    Transaction dup_coinbase1 = 20;         // Required for duplicate transaction
+    Transaction dup_coinbase2 = 21;         // Required for duplicate transaction
 
-    bytes pk_kyber = 20;                    // Required for LatticePublicKey
-    bytes pk_tesla = 21;                    // Required for LatticePublicKey
+    bytes pk_kyber = 22;                    // Required for LatticePublicKey
+    bytes pk_tesla = 23;                    // Required for LatticePublicKey
 }

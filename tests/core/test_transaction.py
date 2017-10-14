@@ -36,6 +36,8 @@ test_txdict_Stake = {
     'PK': '1234',
     ############## Specific content
     'epoch': 1,
+    'finalized_blocknumber': 0,
+    'finalized_headerhash': '1234',
     'balance': 1,
     'slave_public_key' : '1234',
     'hash': '1234',
@@ -147,7 +149,7 @@ class TestStakeTransaction(TestCase):
         self.bob = XMSS(4, seed='b' * 48)
 
     def test_create(self):
-        tx = self.stake_tx.create(2, self.alice, self.bob.pk(), balance=100)
+        tx = self.stake_tx.create(2, self.alice, self.bob.pk(), 0, (0, 1), balance=100)
         self.assertTrue(tx)
 
     def test_from_txdict(self):
@@ -167,6 +169,8 @@ class TestStakeTransaction(TestCase):
 
         # Test that specific content was copied over.
         self.assertEqual(tx.epoch, 1)
+        self.assertEqual(tx.finalized_blocknumber, 1)
+        self.assertEqual(tx.finalized_headerhash, tuple('1234'))
         self.assertEqual(tx.balance, 1)
         self.assertEqual(tx.slave_public_key, tuple('1234'))
         self.assertEqual(tx.hash, [('1',), ('2',), ('3',), ('4',)])

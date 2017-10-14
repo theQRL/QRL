@@ -188,6 +188,7 @@ class P2PProtocol(Protocol):
         self.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
 
         return
+
     def MR(self, data):
         """
         Message Receipt
