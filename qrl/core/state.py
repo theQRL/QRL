@@ -120,21 +120,7 @@ class State:
             logger.error('Exception in state_get_address')
             logger.exception(e)
 
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: THIS SHOULD BE REMOVED!!!!!!!!!!!!!!!!!
-        # FIXME: RETURNING FAKE FUNDS??? !!!!!!!!!!!!!!!!!
-        return [0, 100 * (10**8), []]
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
-        # FIXME: ******************************************************
+        return [config.dev.default_nonce, config.dev.default_account_balance, config.dev.default_pubhash_blacklist]
 
     def state_address_used(self, address):  # if excepts then address does not exist..
         try:
@@ -148,15 +134,15 @@ class State:
         return False
 
     def state_nonce(self, addr):
-        nonce, balance, pubhash_list = self._get_address_state(addr)
+        nonce, balance, pubhash_list = self.state_get_address(addr)
         return nonce
 
     def state_balance(self, addr):
-        nonce, balance, pubhash_list = self._get_address_state(addr)
+        nonce, balance, pubhash_list = self.state_get_address(addr)
         return balance
 
     def state_pubhash(self, addr):
-        nonce, balance, pubhash_list = self._get_address_state(addr)
+        nonce, balance, pubhash_list = self.state_get_address(addr)
         return pubhash_list
 
     def state_hrs(self, hrs):
