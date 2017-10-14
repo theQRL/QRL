@@ -101,7 +101,7 @@ class Block(object):
 
             sv_list = chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
 
-            if coinbase_tx.txto != self.blockheader.stake_selector:
+            if coinbase_tx.txto != bytes(self.blockheader.stake_selector.encode()):
                 logger.info('Non matching txto and stake_selector')
                 logger.info('txto: %s stake_selector %s', coinbase_tx.txfrom, self.blockheader.stake_selector)
                 return False
@@ -118,7 +118,7 @@ class Block(object):
                 found = False
                 for tx in self.transactions:
                     if tx.subtype == TX_SUBTYPE_STAKE:
-                        if tx.txfrom == blk_header.stake_selector:
+                        if tx.txfrom == bytes(blk_header.stake_selector.encode()):
                             found = True
                             reveal_hash, vote_hash = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash,
                                                                             self.transactions[0].txto,

@@ -122,7 +122,7 @@ class QRLNode:
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
         xmss_pk = xmss_from.pk()
-        xmss_ots_key = xmss_from.get_index()
+        xmss_ots_index = xmss_from.get_index()
 
         # TODO: Review this
         ### Balance validation
@@ -140,20 +140,20 @@ class QRLNode:
                                  amount,
                                  fee,
                                  xmss_pk,
-                                 xmss_ots_key)
+                                 xmss_ots_index)
 
         tx.sign(xmss_from)
         self.submit_send_tx(tx)
         return tx
 
     # FIXME: Rename this appropriately
-    def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_key):
+    def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_index):
         return SimpleTransaction.create(addr_from=addr_from,
                                         addr_to=addr_to,
                                         amount=amount,
                                         fee=fee,
                                         xmss_pk=xmss_pk,
-                                        xmss_ots_key=xmss_ots_key)
+                                        xmss_ots_index=xmss_ots_index)
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx : SimpleTransaction) -> bool:

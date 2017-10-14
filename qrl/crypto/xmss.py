@@ -78,7 +78,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2)._sk()) == xmss_sk_expected2
         True
         """
-        return self._xmss.getSK()
+        return bytes(self._xmss.getSK())
 
     def pk(self):
         """
@@ -87,7 +87,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2).pk()) == xmss_pk_expected2
         True
         """
-        return self._xmss.getPK()
+        return bytes(self._xmss.getPK())
 
     def get_number_signatures(self):
         """
@@ -200,7 +200,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_private() )
         'ad70ef34f316aaadcbf16a64b1b381db731eb53d833745c0d3eaa1e24cf728a2'
         """
-        return self._xmss.getPKSeed()
+        return bytes(self._xmss.getPKSeed())
 
     def get_seed_private(self):
         """
@@ -211,7 +211,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_public() )
         'df2355c48096f2351e4d04db57b326c355345552d31b75a65ac18b1f6d7c7875'
         """
-        return self._xmss.getSKSeed()
+        return bytes(self._xmss.getSKSeed())
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
@@ -241,7 +241,7 @@ class XMSS(object):
         return XmssFast.verify(message, signature, pk, height)
 
     def SIGN(self, message):
-        # type: (bytearray) -> tuple
+        # type: (bytes) -> bytes
         """
         :param message:
         :return:
@@ -250,7 +250,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2).SIGN(str2bin("test_message"))) == xmss_sign_expected2
         True
         """
-        return self._xmss.sign(message)
+        return bytes(self._xmss.sign(message))
 
     def list_addresses(self):
         """
