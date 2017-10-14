@@ -288,7 +288,7 @@ class StakeTransaction(Transaction):
         >>> s = StakeTransaction()
         >>> seed = [i for i in range(48)]
         >>> slave = XMSS(4, seed)
-        >>> t = s.create(0, XMSS(4, seed), slave.pk(), None, slave.pk(), 10)
+        >>> t = s.create(0, XMSS(4, seed), slave.pk(), 0, tuple((0, 1)), None, slave.pk(), 10)
         >>> t.get_message_hash()
         (190, 216, 197, 106, 146, 168, 148, 15, 12, 106, 8, 196, 43, 74, 14, 144, 215, 198, 251, 97, 148, 8, 182, 151, 10, 227, 212, 134, 25, 11, 228, 245)
         """
@@ -333,7 +333,7 @@ class StakeTransaction(Transaction):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
-        >>> isinstance(s.create(0, XMSS(4), slave.pk(), None, slave.pk(), 10), StakeTransaction)
+        >>> isinstance(s.create(0, XMSS(4), slave.pk(), 0, tulpe((0, 1)), None, slave.pk(), 10), StakeTransaction)
         True
         """
         if not balance:
