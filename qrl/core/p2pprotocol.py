@@ -744,6 +744,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         self.transport.write(self.wrap_message('PONG'))
+        logger.debug('Sending PING to %s', self.conn_identity)
         return
 
     def PONG(self):
@@ -754,9 +755,10 @@ class P2PProtocol(Protocol):
         self.disconnect_callLater.reset(config.user.ping_timeout)
         if self.ping_callLater.active():
             self.ping_callLater.cancel()
-        self.ping_callLater = reactor.callLater(config.user.ping_timeout // 3, self.PING)
+        self.ping_callLater = reactor.callLater(config.user.ping_frequency, self.PING)
+        logger.debug('Received PONG from %s', self.conn_identity)
         return
-        
+
     def PL(self, data):  # receiving a list of peers to save into peer list..
         """
         Peers List
