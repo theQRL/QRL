@@ -107,7 +107,7 @@ class DevConfig(object):
         self.slave_xmss_height = self.slave_xmss_height + (self.slave_xmss_height & 0x1)
         self.xmss_tree_height = 10
         self.default_nonce = 0
-        self.default_account_balance = 0
+        self.default_account_balance = 100*(10**8)
         self.default_pubhash_blacklist = []
 
         self.db_name = 'state'
