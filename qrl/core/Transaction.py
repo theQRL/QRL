@@ -255,7 +255,7 @@ class SimpleTransaction(Transaction):
         tx_pubhashes = tx_state[2]
 
         if pubhash in tx_pubhashes:
-            logger.info('1. State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
         for txn in transaction_pool:
@@ -264,7 +264,7 @@ class SimpleTransaction(Transaction):
 
             pubhashn = self.generate_pubhash(txn.PK, txn.ots_key)
             if pubhashn == pubhash:
-                logger.info('2. State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
         return True
@@ -288,7 +288,7 @@ class StakeTransaction(Transaction):
         >>> s = StakeTransaction()
         >>> seed = [i for i in range(48)]
         >>> slave = XMSS(4, seed)
-        >>> t = s.create(0, XMSS(4, seed), slave.pk(), None, slave.pk(), 10)
+        >>> t = s.create(0, XMSS(4, seed), slave.pk(), 0, tuple((0, 1)), None, slave.pk(), 10)
         >>> t.get_message_hash()
         (190, 216, 197, 106, 146, 168, 148, 15, 12, 106, 8, 196, 43, 74, 14, 144, 215, 198, 251, 97, 148, 8, 182, 151, 10, 227, 212, 134, 25, 11, 228, 245)
         """
@@ -309,6 +309,8 @@ class StakeTransaction(Transaction):
         self.balance = dict_tx['balance']
 
         self.slave_public_key = tuple(dict_tx['slave_public_key'])
+        self.finalized_blocknumber = int(dict_tx['finalized_blocknumber'])
+        self.finalized_headerhash = tuple(dict_tx['finalized_headerhash'])
 
         self.hash = []
 
@@ -320,11 +322,18 @@ class StakeTransaction(Transaction):
         return self
 
     @staticmethod
-    def create(blocknumber, xmss, slave_public_key, hashchain_terminator=None, first_hash=None, balance=None):
+    def create(blocknumber,
+               xmss,
+               slave_public_key,
+               finalized_blocknumber,
+               finalized_headerhash,
+               hashchain_terminator=None,
+               first_hash=None,
+               balance=None):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
-        >>> isinstance(s.create(0, XMSS(4), slave.pk(), None, slave.pk(), 10), StakeTransaction)
+        >>> isinstance(s.create(0, XMSS(4), slave.pk(), 0, tulpe((0, 1)), None, slave.pk(), 10), StakeTransaction)
         True
         """
         if not balance:
@@ -336,6 +345,9 @@ class StakeTransaction(Transaction):
         transaction.txfrom = xmss.get_address()
 
         transaction.slave_public_key = slave_public_key
+        transaction.finalized_blocknumber = finalized_blocknumber
+        transaction.finalized_headerhash = finalized_headerhash
+
         transaction.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
         transaction.balance = balance
 
@@ -352,6 +364,7 @@ class StakeTransaction(Transaction):
         transaction.ots_key = xmss.get_index()
 
         tmppubhash = transaction._get_pubhash()
+        tmptxhash = transaction.get_txn_hash()
 
         tmptxhash = ''.join([bin2hstr(b) for b in transaction.hash])
         tmptxhash = str2bin(tmptxhash + bin2hstr(transaction.first_hash) + bin2hstr(transaction.slave_public_key))
@@ -359,7 +372,32 @@ class StakeTransaction(Transaction):
 
         return transaction
 
+    def get_txn_hash(self):
+        """
+        All variables whose value needs to be protected being tampered, must be
+        included into tmptxhash.
+        :return:
+        """
+        tmptxhash = ''.join([bin2hstr(b) for b in self.hash])
+        tmptxhash = str2bin(tmptxhash
+                            + bin2hstr(self.first_hash)
+                            + bin2hstr(self.slave_public_key)
+                            + bin2hstr(sha2_256(bytes(self.epoch)))
+                            + bin2hstr(sha2_256(bytes(self.subtype)))
+                            + bin2hstr(sha2_256(bytes(self.finalized_blocknumber)))
+                            + bin2hstr(self.finalized_headerhash))
+        return tmptxhash
+
     def validate_tx(self):
+        tmppubhash = self._get_pubhash()
+        tmptxhash = self.get_txn_hash()
+
+        txhash = self._get_txhash(tmptxhash, tmppubhash)
+
+        if txhash != self.txhash:
+            logger.info('Invalid Transaction hash')
+            return False
+
         if not self._validate_subtype(self.subtype, TX_SUBTYPE_STAKE):
             return False
 

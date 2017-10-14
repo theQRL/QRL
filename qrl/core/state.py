@@ -243,28 +243,16 @@ class State:
 
                 if tx.txfrom == block.blockheader.stake_selector:
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx.txfrom,
-                                                          tx.slave_public_key,
-                                                          tx.hash,
-                                                          tx.first_hash,
-                                                          tx.balance)
+                        self.stake_validators_list.add_sv(tx)
                         self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
                     else:
                         logger.warning('designated staker not in genesis..')
                         return False
                 else:
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx.txfrom,
-                                                          tx.slave_public_key,
-                                                          tx.hash,
-                                                          tx.first_hash,
-                                                          tx.balance)
+                        self.stake_validators_list.add_sv(tx)
                     else:
-                        self.stake_validators_list.add_next_sv(tx.txfrom,
-                                                               tx.slave_public_key,
-                                                               tx.hash,
-                                                               tx.first_hash,
-                                                               tx.balance)
+                        self.stake_validators_list.add_next_sv(tx)
 
                 pubhash = tx.generate_pubhash(tx.PK, tx.ots_key)
                 address_txn[tx.txfrom][2].append(pubhash)
@@ -360,7 +348,7 @@ class State:
                             return False
                         stake_validators_list.set_first_hash(tx.txfrom, tx.first_hash)
                 else:
-                    stake_validators_list.add_next_sv(tx.txfrom, tx.slave_public_key, tx.hash, tx.first_hash, tx.balance)
+                    stake_validators_list.add_next_sv(tx)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
                 address_txn[tx.txfrom][0] += 1

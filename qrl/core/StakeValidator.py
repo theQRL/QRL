@@ -15,22 +15,25 @@ class StakeValidator:
     Maintains the cache of successfully validated hashes, saves validation
     time by avoiding recalculation of the hash till the hash terminators.
     """
-    def __init__(self, stake_validator, slave_public_key, hashchain_terminators=None, first_hash=None, balance=0):
+    def __init__(self, stake_txn):
         self.buffer_size = 4  # Move size to dev configuration
-        self.stake_validator = stake_validator
-        self.slave_public_key = tuple(slave_public_key)
-        self.balance = balance
-        self.first_hash = first_hash
-        self.hashchain_terminators = tuple(hashchain_terminators)
+        self.stake_validator = stake_txn.txfrom
+        self.slave_public_key = tuple(stake_txn.slave_public_key)
+        self.balance = stake_txn.balance
+        self.first_hash = stake_txn.first_hash
+        self.hashchain_terminators = tuple(stake_txn.hash)
+
+        self.finalized_blocknumber = stake_txn.finalized_blocknumber
+        self.finalized_headerhash = tuple(stake_txn.finalized_headerhash)
+
         self.nonce = 0
         self.is_banned = False
-        if hashchain_terminators:
+        if stake_txn.hash:
             self.cache_hash = dict()
             for chain_num in range(config.dev.hashchain_nums):
                 self.cache_hash[chain_num] = dict()
-                self.cache_hash[chain_num][-1] = hashchain_terminators[chain_num]
+                self.cache_hash[chain_num][-1] = stake_txn.hash[chain_num]
             self.cache_hash[config.dev.hashchain_nums-1][-1] = self.first_hash
-
 
     def hash_to_terminator(self, hash, times):
         for _ in range(times):
@@ -47,7 +50,6 @@ class StakeValidator:
             remove_hash = self.cache_hash[target_chain][minimum_epoch_blocknum]
             del hash_staker[remove_hash]
             del self.cache_hash[target_chain][minimum_epoch_blocknum]
-
 
     @staticmethod
     def get_epoch_blocknum(blocknum):
