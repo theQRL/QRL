@@ -7,7 +7,7 @@ import time
 from collections import Counter, defaultdict
 from functools import reduce
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, sha2_256
 from twisted.internet import reactor
 
 import qrl.core.Transaction_subtypes
@@ -187,6 +187,8 @@ class POS:
         st = StakeTransaction.create(blocknumber=0,
                                      xmss=signing_xmss,
                                      slave_public_key=slave_xmss.pk(),
+                                     finalized_blocknumber=0,
+                                     finalized_headerhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
                                      hashchain_terminator=tmphc.hc_terminator,
                                      first_hash=tmphc.hashchain[-1][-2],
                                      balance=tmpbalance)
@@ -211,11 +213,7 @@ class POS:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
                     tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])
-                    self.chain.state.stake_validators_list.add_sv(tx.txfrom,
-                                                                  tx.slave_public_key,
-                                                                  tx.hash,
-                                                                  tx.first_hash,
-                                                                  GenesisBlock().get_info()[tx.txfrom])
+                    self.chain.state.stake_validators_list.add_sv(tx)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
 
@@ -548,17 +546,26 @@ class POS:
             logger.warning('Balance %s', balance)
             return
 
-
         slave_xmss = self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber)
         if not slave_xmss:
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
-        
+
+        finalized_blocknumber = ((blocknumber - 1) // config.dev.blocks_per_epoch) * config.dev.blocks_per_epoch
+        finalized_block = self.chain.block_chain_buffer.get_block_n(finalized_blocknumber)
+        if not finalized_block:
+            logger.warning('Cannot make ST txn, unable to get blocknumber %s', finalized_blocknumber)
+            return
+
+        finalized_headerhash = finalized_block.blockheader.headerhash
+
         st = StakeTransaction.create(
             blocknumber=blocknumber,
             xmss=signing_xmss,
             slave_public_key=slave_xmss.pk(),
+            finalized_blocknumber = finalized_blocknumber,
+            finalized_headerhash = finalized_headerhash,
             first_hash=first_hash,
             balance=balance
         )
