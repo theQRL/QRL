@@ -30,7 +30,9 @@ class UserConfig(object):
                           '104.251.219.40']  # Atleast one active peer IP required
 
         self.max_peers_limit = 40  # Number of allowed peers
-        self.ping_timeout = 60
+        self.ping_timeout = 180
+        self.ping_frequency = 20  # How frequently a node should ping (in seconds)
+                                  # must be less than ping_timeout
         self.data_path = expanduser("~/.qrl/data")
         self.wallet_path = expanduser("~/.qrl/wallet")
         self.config_path = '~/.qrl/config.yml'
@@ -97,7 +99,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
-        self.version_number = "0.53.0a"
+        self.version_number = "0.53.1a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000
