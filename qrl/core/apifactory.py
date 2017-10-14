@@ -31,7 +31,7 @@ class ApiFactory(ServerFactory):
         txnhash_added = set()
 
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        if not self.state.state_address_used(address):
+        if not self.state.address_used(address):
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
             addr['parameter'] = address
@@ -39,7 +39,7 @@ class ApiFactory(ServerFactory):
 
         # FIXME: This is a duplicate of balance
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, pubhash_list = self.state.state_get_address(address)
+        nonce, balance, pubhash_list = self.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
         addr['state']['balance'] = self.format_qrlamount(balance)

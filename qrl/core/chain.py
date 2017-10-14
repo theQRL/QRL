@@ -207,7 +207,7 @@ class Chain:
         sv_hash = StringIO()
         stake_validators_list = self.state.stake_validators_list
         for staker in stake_validators_list.sv_list:
-            balance = self.state.state_balance(staker)
+            balance = self.state.balance(staker)
             sv_hash.write(staker + str(balance))
         sv_hash = sha256(sv_hash.getvalue())
         return sv_hash
@@ -420,10 +420,10 @@ class Chain:
         self.state.db.put('txn_' + str(addr), txhash)
 
     def update_txn_count(self, txto, txfrom):
-        last_count = self.state.state_get_txn_count(txto)
+        last_count = self.state.get_txn_count(txto)
         # FIXME: Accessing DB directly
         self.state.db.put('txn_count_' + str(txto), last_count + 1)
-        last_count = self.state.state_get_txn_count(txfrom)
+        last_count = self.state.get_txn_count(txfrom)
         # FIXME: Accessing DB directly
         self.state.db.put('txn_count_' + str(txfrom), last_count + 1)
 
@@ -449,7 +449,7 @@ class Chain:
         chains = self.f_read_chain(epoch)
         self.m_blockchain.append(chains[0])
 
-        self.state.state_read_genesis(self.m_get_block(0))
+        self.state.read_genesis(self.m_get_block(0))
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
@@ -503,12 +503,12 @@ class Chain:
             self.m_read_chain()
 
         if block_obj.validate_block(chain=self) is True:
-            if self.state.state_add_block(self, block_obj) is True:
+            if self.state.add_block(self, block_obj) is True:
                 self.m_blockchain.append(block_obj)
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
                 logger.info('last block failed state/stake checks, removed from chain')
-                self.state.state_validate_tx_pool(self)
+                self.state.validate_tx_pool(self)
                 return False
         else:
             logger.info('m_add_block failed - block failed validation.')

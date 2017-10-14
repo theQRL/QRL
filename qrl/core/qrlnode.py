@@ -62,7 +62,7 @@ class QRLNode:
     def get_address_state(self, address):
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
-        nonce, balance, pubhash_list = self.db_state.state_get_address(address)
+        nonce, balance, pubhash_list = self.db_state.get_address(address)
         transactions = []
 
         address_state = qrl_pb2.AddressState(address=address,
@@ -126,7 +126,7 @@ class QRLNode:
 
         # TODO: Review this
         ### Balance validation
-        balance = self.db_state.state_balance(addr_from)
+        balance = self.db_state.balance(addr_from)
         if amount + fee > balance:
             raise RuntimeError("Not enough funds")
 

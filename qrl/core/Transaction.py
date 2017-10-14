@@ -177,7 +177,7 @@ class SimpleTransaction(Transaction):
         return self
 
     def pre_condition(self, tx_state):
-        # if state_uptodate() is False:
+        # if state.uptodate() is False:
         #	logger.info(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
         #	return False
         tx_balance = tx_state[1]

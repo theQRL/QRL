@@ -185,14 +185,14 @@ class ChainBuffer:
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
-            if self.state.state_add_block(chain, block, ignore_save_wallet=True) is True:
+            if self.state.add_block(chain, block, ignore_save_wallet=True) is True:
                 chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
         self.add_txns_buffer()
-        if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
+        if block_left == 1:  # As State.add_block would have already moved the next stake list to stake_list
             self.epoch_seed = bin2hstr(hex(self.state.stake_validators_list.calc_seed()))
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
@@ -306,7 +306,7 @@ class ChainBuffer:
 
     def state_add_block_buffer(self, block, stake_validators_list, address_txn):
         self.chain.state.load_address_state(self.chain, block, address_txn)
-        is_success = self.chain.state.state_update(block, stake_validators_list, address_txn)
+        is_success = self.chain.state.update(block, stake_validators_list, address_txn)
         if is_success:
             self.commit(block, stake_validators_list)
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blockheader.blocknumber,
@@ -367,7 +367,7 @@ class ChainBuffer:
     def get_stxn_state(self, blocknumber, addr):
         try:
             if blocknumber - 1 == self.chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
-                tmp_state = self.state.state_get_address(addr)
+                tmp_state = self.state.get_address(addr)
                 # FIX ME: Temporary fix, to convert all list into tuple
                 # As state is stored in json format which converts tuple into list
                 for index in range(len(tmp_state[2])):
@@ -380,7 +380,7 @@ class ChainBuffer:
             if addr in stateBuffer.stxn_state:
                 return deepcopy(stateBuffer.stxn_state[addr])       # FIXME: Why deepcopy?
 
-            return self.state.state_get_address(addr)
+            return self.state.get_address(addr)
         except KeyError:
             self.error_msg('get_stxn_state', blocknumber)
         except Exception as e:
@@ -461,7 +461,7 @@ class ChainBuffer:
 
     def move_to_mainchain(self, blocknum):
         block = self.blocks[blocknum][0].block
-        if not self.state.state_add_block(self.chain, block):
+        if not self.state.add_block(self.chain, block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 

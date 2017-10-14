@@ -167,7 +167,7 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        if not self.factory.state.state_uptodate(self.factory.chain.m_blockheight()):
+        if not self.factory.state.uptodate(self.factory.chain.m_blockheight()):
             return json_print_telnet({'status': 'error',
                                       'error': 'leveldb failed',
                                       'method': 'richlist'})
@@ -361,7 +361,7 @@ class ApiProtocol(Protocol):
         total_supply = self.factory.state.total_coin_supply()
 
         for staker in self.factory.state.stake_validators_list.sv_list:
-            total_at_stake += self.factory.state.state_balance(staker)
+            total_at_stake += self.factory.state.balance(staker)
 
         staked = 100 * total_at_stake / total_supply
 
@@ -421,19 +421,19 @@ class ApiProtocol(Protocol):
         addr = {}
 
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        if not self.factory.state.state_address_used(address):
+        if not self.factory.state.address_used(address):
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
             addr['parameter'] = address
             return json_print_telnet(addr)
 
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, _ = self.factory.state.state_get_address(address)
+        nonce, balance, _ = self.factory.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
         addr['state']['balance'] = self.factory.format_qrlamount(balance)
         addr['state']['nonce'] = nonce
-        addr['state']['transactions'] = self.factory.state.state_get_txn_count(address)
+        addr['state']['transactions'] = self.factory.state.get_txn_count(address)
         addr['status'] = 'ok'
 
         return json_print_telnet(addr)
