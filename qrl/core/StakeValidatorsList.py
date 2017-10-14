@@ -26,9 +26,9 @@ class StakeValidatorsList:
         self.threshold = dict()
         self.isOrderedLength = 0
 
-    def __add__(self, sv_list, txfrom, slave_public_key, hash, first_hash, balance):
-        sv = StakeValidator(txfrom, slave_public_key, hash, first_hash, balance)
-        sv_list[txfrom] = sv
+    def __add__(self, sv_list, stake_txn):
+        sv = StakeValidator(stake_txn)
+        sv_list[stake_txn.txfrom] = sv
         return sv
 
     def update_hash_staker(self, sv):
@@ -50,12 +50,12 @@ class StakeValidatorsList:
 
         return epoch_seed
 
-    def add_sv(self, txfrom, slave_public_key, hash, first_hash, balance):
-        sv = self.__add__(self.sv_list, txfrom, slave_public_key, hash, first_hash, balance)
+    def add_sv(self, stake_txn):
+        sv = self.__add__(self.sv_list, stake_txn)
         self.update_hash_staker(sv)
 
-    def add_next_sv(self, txfrom, slave_public_key, hash, first_hash, balance):
-        self.__add__(self.next_sv_list, txfrom, slave_public_key, hash, first_hash, balance)
+    def add_next_sv(self, stake_txn):
+        self.__add__(self.next_sv_list, stake_txn)
 
     def get_sv_list(self, txfrom):
         if txfrom not in self.sv_list:
