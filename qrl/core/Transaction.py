@@ -52,15 +52,6 @@ class Transaction(object, metaclass=ABCMeta):
         :type txdict:
         :return:
         :rtype:
-
-        >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Simple), SimpleTransaction)
-        True
-        >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Stake), StakeTransaction)
-        True
-        >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_CoinBase), CoinBase )
-        True
-        >>> from qrl.core.doctest_data import *;  isinstance(Transaction.from_txdict(test_txdict_Lattice), LatticePublicKey)
-        True
         """
 
         # TODO: This would probably make more sense in a factory. Wait for protobuf3
