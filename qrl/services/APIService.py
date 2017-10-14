@@ -27,17 +27,6 @@ class APIService(PublicAPIServicer):
             context.set_details(str(e))
             return None
 
-    def GetAddressStateLocal(self, request: qrl_pb2.GetAddressStateLocalReq, context) \
-            -> qrl_pb2.GetAddressStateResp:
-        try:
-            address = self.qrlnode.get_wallet_absolute(request.address_idx)
-            address_state = self.qrlnode.get_address_state(address)
-            return qrl_pb2.GetAddressStateResp(state=address_state)
-        except Exception as e:
-            context.set_code(StatusCode.not_found)
-            context.set_details(str(e))
-            return None
-
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) \
             -> qrl_pb2.GetAddressStateResp:
         try:
