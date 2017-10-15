@@ -213,7 +213,6 @@ class State:
     def update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
         tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        pubhash = tx.get_pubhash()
 
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
@@ -221,13 +220,13 @@ class State:
             logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
             return False
         # TODO: To be fixed later
-        if pubhash in address_txn[tx.txfrom][2]:
+        if tx.pubhash in address_txn[tx.txfrom][2]:
             logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
             logger.warning('subtype: %s', tx.subtype)
             return False
 
         address_txn[tx.txto][1] += tx.amount
-        address_txn[tx.txfrom][2].append(pubhash)
+        address_txn[tx.txfrom][2].append(tx.pubhash)
 
         # Coinbase update end here
         tmp_list = []
@@ -254,8 +253,7 @@ class State:
                     else:
                         self.stake_validators_list.add_next_sv(tx)
 
-                pubhash = tx.get_pubhash()
-                address_txn[tx.txfrom][2].append(pubhash)
+                address_txn[tx.txfrom][2].append(tx.pubhash)
 
         epoch_seed = self.stake_validators_list.calc_seed()
         chain.block_chain_buffer.epoch_seed = epoch_seed
@@ -296,8 +294,6 @@ class State:
         # cycle through every tx in the new block to check state
         for tx in block.transactions:
 
-            pubhash = tx.get_pubhash()
-
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
             else:
@@ -308,10 +304,10 @@ class State:
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
             # TODO: To be fixed later
-            if pubhash in address_txn[tx.txfrom][2]:
+            if tx.pubhash in address_txn[tx.txfrom][2]:
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
-                logger.info(pubhash)
+                logger.info(tx.pubhash)
                 logger.info(address_txn[tx.txfrom][2])
                 return False
 
@@ -333,7 +329,7 @@ class State:
                                    config.dev.stake_before_x_blocks)
                     return False
 
-                address_txn[tx.txfrom][2].append(pubhash)
+                address_txn[tx.txfrom][2].append(tx.pubhash)
                 next_sv_list = stake_validators_list.next_sv_list
                 if tx.txfrom in next_sv_list:
                     if not next_sv_list[tx.txfrom].first_hash and tx.first_hash:
@@ -359,7 +355,7 @@ class State:
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 address_txn[tx.txto][1] += tx.amount
 
-            address_txn[tx.txfrom][2].append(pubhash)
+            address_txn[tx.txfrom][2].append(tx.pubhash)
 
         return True
 
@@ -500,7 +496,7 @@ class State:
             self.db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
-                pubhash = tx.get_pubhash()
+                pubhash = tx.pubhash
 
                 nonce1, balance1, pubhash_list1 = self.get_address(tx.txfrom)
 

@@ -42,7 +42,7 @@ test_txdict_Stake = {
     'finalized_blocknumber': 25,
     'finalized_headerhash': b'1234',
     'balance': 1,
-    'slave_public_key' : b'1234',
+    'slave_public_key': b'1234',
     'hash': b'1234',
     'first_hash': b'1234',
 }
@@ -125,7 +125,7 @@ class TestSimpleTransaction(TestCase):
     def disabled_test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
         tx = self.tx.create(self.alice.get_address(), self.bob.get_address(), 100, 1, self.alice.pk(),
-                                    self.alice.get_index())
+                            self.alice.get_index())
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -157,8 +157,8 @@ class TestStakeTransaction(TestCase):
         # Test that common Transaction components were copied over.
         self.assertEqual(1, tx.ots_key)
         self.assertEqual(1, tx.nonce)
-        self.assertEqual(b'1234', tx.txfrom )
-        self.assertEqual(b'1234', tx.pubhash )
+        self.assertEqual(b'1234', tx.txfrom)
+        self.assertEqual(b'1234', tx.pubhash)
         self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
@@ -203,25 +203,27 @@ class TestStakeTransaction(TestCase):
         self.assertEqual(expected_answer, tx.get_message_hash())
 
 
+class MockBlockHeader:
+    def __init__(self):
+        pass
+
+
 class TestCoinBase(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCoinBase, self).__init__(*args, **kwargs)
         self.alice = XMSS(4, seed='a' * 48)
         self.tx = CoinBase()
 
-        class MockBlockHeader:
-            pass
-        self.mock_blockheader = MockBlockHeader()
-
     def test_create(self):
-        self.mock_blockheader.stake_selector = self.alice.get_address()
-        self.mock_blockheader.block_reward = 50
-        self.mock_blockheader.fee_reward = 40
-        self.mock_blockheader.prev_blockheaderhash = (0,1,2,3)
-        self.mock_blockheader.blocknumber = 1
-        self.mock_blockheader.headerhash = (1,2,3,4)
+        mock_blockheader = MockBlockHeader()
+        mock_blockheader.stake_selector = self.alice.get_address()
+        mock_blockheader.block_reward = 50
+        mock_blockheader.fee_reward = 40
+        mock_blockheader.prev_blockheaderhash = (0, 1, 2, 3)
+        mock_blockheader.blocknumber = 1
+        mock_blockheader.headerhash = (1, 2, 3, 4)
 
-        tx = self.tx.create(self.mock_blockheader, self.alice)
+        tx = self.tx.create(mock_blockheader, self.alice)
         self.assertIsInstance(tx, CoinBase)
 
     def test_from_txdict(self):

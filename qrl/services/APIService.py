@@ -48,7 +48,7 @@ class APIService(PublicAPIServicer):
                                              xmss_pk=request.xmss_pk,
                                              xmss_ots_index=request.xmss_ots_index)
 
-            return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx)
+            return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
         except Exception as e:
             context.set_code(StatusCode.unknown)

@@ -71,7 +71,7 @@ qrlClient.then( function (qrlClient) {
     tx = {
         address_from: 'Qada446e9ac25b11299e0615de8bd1b7f5404ce0052fbb27db7ada425904a5aea6063deb3',
         address_to: 'Qada446e9ac25b11299e0615de8bd1b7f5404ce0052fbb27db7ada425904a5aea6063deb3',
-        amount : 1,
+        amount : 100,
         fee : 1,
         xmss_pk : Buffer.from([0x01]),
         xmss_ots_index: 1
