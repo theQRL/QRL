@@ -19,9 +19,9 @@ addons:
 cache:
   timeout: 600
 before_install:
-- sudo pip3 install -U pip setuptools twine
-- pip3 install -U coverage coveralls
-- pip3 install -U codacy-coverage
+- sudo pip install -U pip setuptools twine
+- pip install -U coverage coveralls
+- pip install -U codacy-coverage
 install:
 - "./travis/install.sh"
 before_script:
