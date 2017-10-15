@@ -9,29 +9,36 @@ env:
   matrix:
   - PLATFORM='xenial' COVERAGE="true"
 
-virtualenv:
-  system_site_packages: true
+#virtualenv:
+#  system_site_packages: true
 
 addons:
   apt:
     packages:
     - git
+
 cache:
   timeout: 600
+
 before_install:
 - sudo pip install -U pip setuptools twine
 - pip install -U coverage coveralls
 - pip install -U codacy-coverage
+
 install:
 - "./travis/install.sh"
+
 before_script:
 - pyenv versions
+
 script:
 - "./travis/build.sh"
+
 after_success:
 - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
 - if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo
   "failed"; fi
+
 notifications:
   email: false
 
