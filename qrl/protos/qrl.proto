@@ -5,7 +5,12 @@ syntax = "proto3";
 
 package qrl;
 
-import "google/protobuf/timestamp.proto";
+// TODO: Avoid using timestamp until the github issue is fixed
+// import "google/protobuf/timestamp.proto";
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
 
 service P2PNode {
   rpc Ping (PingReq) returns (PongResp) {}
@@ -14,11 +19,14 @@ service P2PNode {
 
 service PublicAPI {
   rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
-  rpc GetAddressStateLocal (GetAddressStateLocalReq) returns (GetAddressStateResp) {}
   rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {}
 
   rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {}
   rpc PushTransaction (PushTransactionReq) returns (PushTransactionReqResp) {}
+}
+
+service TestingAPI
+{
 }
 
 // API Messages
@@ -36,10 +44,10 @@ message TransferCoinsReq
 {
     string address_from = 1;
     string address_to = 2;
-    uint64 amount = 3;
-    uint64 fee = 4;
+    uint64 amount = 3;                      // IMPORTANT: These should be expressed in Shor
+    uint64 fee = 4;                         // IMPORTANT: These should be expressed in Shor
     bytes xmss_pk = 5;
-    bytes xmss_ots_key = 6;
+    uint64 xmss_ots_index = 6;
 }
 message TransferCoinsResp {   Transaction transaction_unsigned = 1; }
 
@@ -88,7 +96,7 @@ message BlockHeader
     // Header
     uint64 block_number = 1;
     uint64 epoch = 2;
-    google.protobuf.Timestamp timestamp = 3;
+    Timestamp timestamp = 3;                           // FIXME: Temporary
 
     bytes hash_header = 4;
     bytes hash_header_prev = 5;
@@ -118,11 +126,12 @@ message Transaction
 {
     enum Type
     {
-        TRANSFER = 0;
-        STAKE = 1;
-        COINBASE = 2;
-        LATTICE = 3;
-        DUPLICATE = 4;
+        UNKNOWN = 0;
+        TRANSFER = 1;
+        STAKE = 2;
+        COINBASE = 3;
+        LATTICE = 4;
+        DUPLICATE = 5;
     }
 
     Type type = 1;
@@ -130,10 +139,12 @@ message Transaction
     uint64 nonce = 2;
     bytes addr_from = 3;
     bytes transaction_hash = 5;
-    bytes public_hash = 4;
+    bytes public_hash = 4;              // Use also as first hash in stake?
 
     bytes public_key = 6;               // Required for Signed Transfer
     bytes signature = 7;                // Required for Signed Transfer
+
+    // FIXME: Move soon to OneOf
 
     bytes addr_to = 8;                 // Required for Transfer
     uint64 amount = 9;                  // Required for Transfer
@@ -143,7 +154,7 @@ message Transaction
     uint64 finalized_blocknumber = 12;  // Required for Stake
     bytes finalized_headerhash = 13;    // Required for Stake
     bytes public_key_slave = 14;        // Required for Stake
-    bytes stake_hash = 15;              // Required for Stake
+    repeated bytes stake_hash = 15;     // Required for Stake
 
     uint64 dup_block_number = 16;           // Required for duplicate transaction
     uint64 dup_hash_header_prev = 17;       // Required for duplicate transaction
@@ -154,4 +165,6 @@ message Transaction
 
     bytes pk_kyber = 22;                    // Required for LatticePublicKey
     bytes pk_tesla = 23;                    // Required for LatticePublicKey
+    
+    uint32 ots_key = 24;                    // FIXME: Remove
 }

@@ -1,4 +1,7 @@
 from unittest import TestCase
+
+from pytest import raises
+
 from qrl.core import logger
 from qrl.crypto.xmss import XMSS
 from qrl.core.Transaction import Transaction, SimpleTransaction, StakeTransaction, CoinBase
@@ -12,15 +15,15 @@ test_txdict_Simple = {
     'ots_key': 1,
     'nonce': 1,
     'txfrom': '1234',
-    'pubhash': '1234',
-    'txhash': '1234',
+    'pubhash': b'1234',
+    'txhash': b'1234',
     # >> Signature components
-    'signature': 'abc12341',
-    'PK': '1234',
+    'signature': b'abc12341',
+    'PK': b'1234',
     ############## Specific content
     'txto': '1234',
-    'amount': '1234',
-    'fee': '1234',
+    'amount': 1234,
+    'fee': 1234,
 }
 
 test_txdict_Stake = {
@@ -29,19 +32,19 @@ test_txdict_Stake = {
     'ots_key': 1,
     'nonce': 1,
     'txfrom': '1234',
-    'pubhash': '1234',
-    'txhash': '1234',
+    'pubhash': b'1234',
+    'txhash': b'1234',
     # >> Signature components
-    'signature': 'abc12341',
-    'PK': '1234',
+    'signature': b'abc12341',
+    'PK': b'1234',
     ############## Specific content
     'epoch': 1,
-    'finalized_blocknumber': 0,
-    'finalized_headerhash': '1234',
+    'finalized_blocknumber': 25,
+    'finalized_headerhash': b'1234',
     'balance': 1,
-    'slave_public_key' : '1234',
-    'hash': '1234',
-    'first_hash': '1234',
+    'slave_public_key': b'1234',
+    'hash': b'1234',
+    'first_hash': b'1234',
 }
 
 test_txdict_CoinBase = {
@@ -50,11 +53,11 @@ test_txdict_CoinBase = {
     'ots_key': 1,
     'nonce': 1,
     'txfrom': '1234',
-    'pubhash': '1234',
-    'txhash': '1234',
+    'pubhash': b'1234',
+    'txhash': b'1234',
     # >> Signature components
-    'signature': 'abc12341',
-    'PK': '1234',
+    'signature': b'abc12341',
+    'PK': b'1234',
     ############## Specific content
     'txto': '1234',
     'amount': '1234',
@@ -65,12 +68,12 @@ test_txdict_Lattice = {
 
     'ots_key': 1,
     'nonce': 1,
-    'txfrom': '1234',
-    'pubhash': '1234',
-    'txhash': '1234',
+    'txfrom': b'1234',
+    'pubhash': b'1234',
+    'txhash': b'1234',
     # >> Signature components
-    'signature': 'abc12341',
-    'PK': '1234',
+    'signature': b'abc12341',
+    'PK': b'1234',
     ############## Specific content
 }
 
@@ -100,34 +103,29 @@ class TestSimpleTransaction(TestCase):
         # Test that common Transaction components were copied over.
         self.assertEqual(tx.ots_key, 1)
         self.assertEqual(tx.nonce, 1)
-        self.assertEqual(tx.txfrom, '1234')
-        self.assertEqual(tx.pubhash, tuple('1234'))
-        self.assertEqual(tx.txhash, tuple('1234'))
+        self.assertEqual(b'1234', tx.txfrom)
+        self.assertEqual(b'1234', tx.pubhash)
+        self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
-        self.assertEqual(tx.signature, tuple('abc12341'))
-        self.assertEqual(tx.PK, tuple('1234'))
+        self.assertEqual(b'abc12341', tx.signature)
+        self.assertEqual(b'1234', tx.PK)
 
         # Test that specific content was copied over.
-        self.assertEqual(tx.txto, '1234')
-        self.assertEqual(tx.amount, 1234)
-        self.assertEqual(tx.fee, 1234)
+        self.assertEqual(b'1234', tx.txto, )
+        self.assertEqual(1234, tx.amount)
+        self.assertEqual(1234, tx.fee)
 
-    def disabled_test_create_no_negative_amounts(self):
+    def test_create_no_negative_amounts(self):
         # Alice sending a negative amount to Bob
-        result = self.tx.create(self.alice.get_address(), self.bob.get_address(), -10, 1, self.alice.pk(),
-                                self.alice.get_index())
-
-        # In the old code, this would return a False.
-        # Currently validation is broken.
-        # Not sure what future code will do, but it should also fail somewhere.
-
-        self.assertFalse(result)
+        with self.assertRaises(ValueError):
+            result = self.tx.create(self.alice.get_address(), self.bob.get_address(), -10, 1, self.alice.pk(),
+                                    self.alice.get_index())
 
     def disabled_test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
         tx = self.tx.create(self.alice.get_address(), self.bob.get_address(), 100, 1, self.alice.pk(),
-                                    self.alice.get_index())
+                            self.alice.get_index())
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -149,7 +147,7 @@ class TestStakeTransaction(TestCase):
         self.bob = XMSS(4, seed='b' * 48)
 
     def test_create(self):
-        tx = self.stake_tx.create(2, self.alice, self.bob.pk(), 0, (0, 1), balance=100)
+        tx = self.stake_tx.create(2, self.alice, self.bob.pk(), 0, bytes([0, 1]), balance=100)
         self.assertTrue(tx)
 
     def test_from_txdict(self):
@@ -157,27 +155,32 @@ class TestStakeTransaction(TestCase):
         self.assertIsInstance(tx, StakeTransaction)
 
         # Test that common Transaction components were copied over.
-        self.assertEqual(tx.ots_key, 1)
-        self.assertEqual(tx.nonce, 1)
-        self.assertEqual(tx.txfrom, '1234')
-        self.assertEqual(tx.pubhash, tuple('1234'))
-        self.assertEqual(tx.txhash, tuple('1234'))
+        self.assertEqual(1, tx.ots_key)
+        self.assertEqual(1, tx.nonce)
+        self.assertEqual(b'1234', tx.txfrom)
+        self.assertEqual(b'1234', tx.pubhash)
+        self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
-        self.assertEqual(tx.signature, tuple('abc12341'))
-        self.assertEqual(tx.PK, tuple('1234'))
+        self.assertEqual(b'abc12341', tx.signature)
+        self.assertEqual(b'1234', tx.PK)
 
         # Test that specific content was copied over.
-        self.assertEqual(tx.epoch, 1)
-        self.assertEqual(tx.finalized_blocknumber, 1)
-        self.assertEqual(tx.finalized_headerhash, tuple('1234'))
-        self.assertEqual(tx.balance, 1)
-        self.assertEqual(tx.slave_public_key, tuple('1234'))
-        self.assertEqual(tx.hash, [('1',), ('2',), ('3',), ('4',)])
-        self.assertEqual(tx.first_hash, tuple('1234'))
+        self.assertEqual(1, tx.epoch)
+        self.assertEqual(25, tx.finalized_blocknumber)
+        self.assertEqual(b'1234', tx.finalized_headerhash)
+        self.assertEqual(1, tx.balance)
+        self.assertEqual(b'1234', tx.slave_public_key)
+        self.assertEqual([b'1', b'2', b'3', b'4'], tx.hash)
+        self.assertEqual(b'1234', tx.first_hash)
 
     def disabled_test_validate_tx(self):
-        tx = self.stake_tx.create(2, self.alice, self.bob.pk(), balance=100)
+        tx = self.stake_tx.create(blocknumber=2,
+                                  xmss=self.alice,
+                                  slave_public_key=self.bob.pk(),
+                                  finalized_blocknumber=5,
+                                  finalized_headerhash='finalized_headerhash',
+                                  balance=100)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -186,11 +189,23 @@ class TestStakeTransaction(TestCase):
         self.assertTrue(tx.validate_tx())
 
     def test_get_message_hash(self):
-        tx = self.stake_tx.create(0, self.alice, self.alice.pk(), None, first_hash=self.alice.pk(), balance=10)
+        tx = self.stake_tx.create(blocknumber=0,
+                                  xmss=self.alice,
+                                  slave_public_key=self.alice.pk(),
+                                  finalized_blocknumber=0,
+                                  finalized_headerhash=b'some_headerhash',
+                                  hashchain_terminator=None,
+                                  first_hash=self.alice.pk(),
+                                  balance=10)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        answer = (122, 232, 174, 53, 1, 13, 82, 121, 232, 68, 239, 224, 231, 164, 227, 197, 180, 44, 69, 225, 244, 158, 145, 27, 172, 243, 250, 215, 64, 196, 233, 182)
-        self.assertEqual(tx.get_message_hash(), answer)
+        expected_answer = b'B&w\xb0\xd4v\xbd\xef9\xd4N\x06q\xe3\x9d\xd1I\x9c\x93\x9c\xa1;o\x96\x02\xb6\x13l\xda\x9cb/'
+        self.assertEqual(expected_answer, tx.get_message_hash())
+
+
+class MockBlockHeader:
+    def __init__(self):
+        pass
 
 
 class TestCoinBase(TestCase):
@@ -199,19 +214,16 @@ class TestCoinBase(TestCase):
         self.alice = XMSS(4, seed='a' * 48)
         self.tx = CoinBase()
 
-        class MockBlockHeader:
-            pass
-        self.mock_blockheader = MockBlockHeader()
-
     def test_create(self):
-        self.mock_blockheader.stake_selector = self.alice.get_address()
-        self.mock_blockheader.block_reward = 50
-        self.mock_blockheader.fee_reward = 40
-        self.mock_blockheader.prev_blockheaderhash = (0,1,2,3)
-        self.mock_blockheader.blocknumber = 1
-        self.mock_blockheader.headerhash = (1,2,3,4)
+        mock_blockheader = MockBlockHeader()
+        mock_blockheader.stake_selector = self.alice.get_address()
+        mock_blockheader.block_reward = 50
+        mock_blockheader.fee_reward = 40
+        mock_blockheader.prev_blockheaderhash = (0, 1, 2, 3)
+        mock_blockheader.blocknumber = 1
+        mock_blockheader.headerhash = (1, 2, 3, 4)
 
-        tx = self.tx.create(self.mock_blockheader, self.alice)
+        tx = self.tx.create(mock_blockheader, self.alice)
         self.assertIsInstance(tx, CoinBase)
 
     def test_from_txdict(self):
@@ -221,14 +233,14 @@ class TestCoinBase(TestCase):
         # Test that common Transaction components were copied over.
         self.assertEqual(tx.ots_key, 1)
         self.assertEqual(tx.nonce, 1)
-        self.assertEqual(tx.txfrom, '1234')
-        self.assertEqual(tx.pubhash, tuple('1234'))
-        self.assertEqual(tx.txhash, tuple('1234'))
+        self.assertEqual(b'1234', tx.txfrom)
+        self.assertEqual(b'1234', tx.pubhash)
+        self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
-        self.assertEqual(tx.signature, tuple('abc12341'))
-        self.assertEqual(tx.PK, tuple('1234'))
+        self.assertEqual(b'abc12341', tx.signature)
+        self.assertEqual(b'1234', tx.PK)
 
         # Test that specific content was copied over.
-        self.assertEqual(tx.txto, '1234')
+        self.assertEqual(b'1234', tx.txto)
         self.assertEqual(tx.amount, 1234)
