@@ -126,11 +126,12 @@ message Transaction
 {
     enum Type
     {
-        TRANSFER = 0;
-        STAKE = 1;
-        COINBASE = 2;
-        LATTICE = 3;
-        DUPLICATE = 4;
+        UNKNOWN = 0;
+        TRANSFER = 1;
+        STAKE = 2;
+        COINBASE = 3;
+        LATTICE = 4;
+        DUPLICATE = 5;
     }
 
     Type type = 1;
@@ -143,6 +144,8 @@ message Transaction
     bytes public_key = 6;               // Required for Signed Transfer
     bytes signature = 7;                // Required for Signed Transfer
 
+    // FIXME: Move soon to OneOf
+
     bytes addr_to = 8;                 // Required for Transfer
     uint64 amount = 9;                  // Required for Transfer
     uint64 fee = 10;                    // Required for Transfer
@@ -151,7 +154,7 @@ message Transaction
     uint64 finalized_blocknumber = 12;  // Required for Stake
     bytes finalized_headerhash = 13;    // Required for Stake
     bytes public_key_slave = 14;        // Required for Stake
-    repeated bytes stake_hash = 15;              // Required for Stake
+    repeated bytes stake_hash = 15;     // Required for Stake
 
     uint64 dup_block_number = 16;           // Required for duplicate transaction
     uint64 dup_hash_header_prev = 17;       // Required for duplicate transaction
