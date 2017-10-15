@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from pyqrllib.pyqrllib import bin2hstr
 from pytest import raises
 
 from qrl.core import logger
@@ -104,7 +105,7 @@ class TestSimpleTransaction(TestCase):
         self.assertEqual(tx.ots_key, 1)
         self.assertEqual(tx.nonce, 1)
         self.assertEqual(b'1234', tx.txfrom)
-        self.assertEqual(b'1234', tx.pubhash)
+        self.assertEqual('f6ff5adab5180a3d10ffb611f2caddd0a2b0922bde398ad186e946480bec3943', bin2hstr(tx.pubhash))
         self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
@@ -147,7 +148,14 @@ class TestStakeTransaction(TestCase):
         self.bob = XMSS(4, seed='b' * 48)
 
     def test_create(self):
-        tx = self.stake_tx.create(2, self.alice, self.bob.pk(), 0, bytes([0, 1]), balance=100)
+        tx = self.stake_tx.create(blocknumber=2,
+                                  xmss=self.alice,
+                                  slave_public_key=self.bob.pk(),
+                                  finalized_blocknumber=0,
+                                  finalized_headerhash=bytes([0, 1]),
+                                  hashchain_terminator=bytes([4, 6, 7]),
+                                  first_hash=bytes([7, 8, 9]),
+                                  balance=100)
         self.assertTrue(tx)
 
     def test_from_txdict(self):
@@ -158,7 +166,7 @@ class TestStakeTransaction(TestCase):
         self.assertEqual(1, tx.ots_key)
         self.assertEqual(1, tx.nonce)
         self.assertEqual(b'1234', tx.txfrom)
-        self.assertEqual(b'1234', tx.pubhash)
+        self.assertEqual('f6ff5adab5180a3d10ffb611f2caddd0a2b0922bde398ad186e946480bec3943', bin2hstr(tx.pubhash))
         self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
@@ -179,7 +187,7 @@ class TestStakeTransaction(TestCase):
                                   xmss=self.alice,
                                   slave_public_key=self.bob.pk(),
                                   finalized_blocknumber=5,
-                                  finalized_headerhash='finalized_headerhash',
+                                  finalized_headerhash=b'finalized_headerhash',
                                   balance=100)
 
         # We must sign the tx before validation will work.
@@ -199,8 +207,8 @@ class TestStakeTransaction(TestCase):
                                   balance=10)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        expected_answer = b'B&w\xb0\xd4v\xbd\xef9\xd4N\x06q\xe3\x9d\xd1I\x9c\x93\x9c\xa1;o\x96\x02\xb6\x13l\xda\x9cb/'
-        self.assertEqual(expected_answer, tx.get_message_hash())
+        self.assertEqual('eb7cb4bc6b5b7ef1945410ef4c66ce16198b4a36689c07195dfbc554244f9f48',
+                         bin2hstr(tx.get_message_hash()))
 
 
 class MockBlockHeader:
@@ -234,7 +242,7 @@ class TestCoinBase(TestCase):
         self.assertEqual(tx.ots_key, 1)
         self.assertEqual(tx.nonce, 1)
         self.assertEqual(b'1234', tx.txfrom)
-        self.assertEqual(b'1234', tx.pubhash)
+        self.assertEqual('f6ff5adab5180a3d10ffb611f2caddd0a2b0922bde398ad186e946480bec3943', bin2hstr(tx.pubhash))
         self.assertEqual(b'1234', tx.txhash)
 
         # Test that signature components were copied over.
