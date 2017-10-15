@@ -28,6 +28,11 @@ class Transaction(object, metaclass=ABCMeta):
 
     @property
     def pbdata(self):
+        """
+        Returns a protobuf object that contains persistable data representing this object
+        :return: A protobuf Transaction object
+        :rtype: qrl_pb2.Transaction
+        """
         return self._data
 
     @property
@@ -76,6 +81,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def tx_id_to_name(id):
+        # FIXME: Move to enums
         id_name = {
             1: 'TX',
             2: 'STAKE',
@@ -87,8 +93,8 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def from_txdict(dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         # TODO: This would probably make more sense in a factory. Wait for protobuf3
-        # FIXME: Avoid dictionary lookups for a small fixed amount of keys
         type_to_txn = {
             TX_SUBTYPE_TX: SimpleTransaction,
             TX_SUBTYPE_STAKE: StakeTransaction,
@@ -126,6 +132,7 @@ class Transaction(object, metaclass=ABCMeta):
         return True
 
     def _dict_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         self._data.type = dict_tx['subtype']
         self._data.nonce = dict_tx['nonce']
 
@@ -151,12 +158,14 @@ class Transaction(object, metaclass=ABCMeta):
 
     @abstractmethod
     def get_message_hash(self):
-        return StringIO()           # FIXME
+        return StringIO()  # FIXME
 
     def transaction_to_json(self):
+        # FIXME: Remove once we move completely to protobuf
         return json.dumps(self.__dict__)
 
     def json_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         return self._dict_to_transaction(json.loads(dict_tx))
 
 
@@ -171,15 +180,12 @@ class SimpleTransaction(Transaction):
 
     def get_message_hash(self):
         message = super(SimpleTransaction, self).get_message_hash()
-        # message.write(self.epoch)
-        # message.write(self.txto)
-        # message.write(self.amount)
-        # message.write(self.fee)
         message.write(str(self.signature))
         message.write(str(self.txhash))
         return sha256(bytes(message.getvalue(), 'utf-8'))
 
     def _dict_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         super(SimpleTransaction, self)._dict_to_transaction(dict_tx)
         self._data.addr_to = bytes(dict_tx['txto'].encode())
         self._data.amount = int(dict_tx['amount'])
@@ -249,7 +255,7 @@ class SimpleTransaction(Transaction):
                  str(self.amount).encode() + \
                  str(self.fee).encode()
 
-        txhash = sha256(txhash + self.pubhash)
+        txhash = self._get_txhash(txhash)
 
         # cryptographic checks
         if self.txhash != txhash:
@@ -325,30 +331,8 @@ class StakeTransaction(Transaction):
         # TODO: Review with cyyber
         return self._data.public_hash
 
-    def get_message_hash(self):
-        """
-        :return:
-        :rtype:
-
-        >>> s = StakeTransaction()
-        >>> seed = [i for i in range(48)]
-        >>> slave = XMSS(4, seed)
-        >>> t = s.create(0, XMSS(4, seed), slave.pk(), 0, tuple((0, 1)), None, slave.pk(), 10)
-        >>> bin2hstr( t.get_message_hash() )
-        '96b4bfa27522bd57969b6548cd0065297c76c342c9c2cc42a905c6356cd586ce'
-        """
-        message = super(StakeTransaction, self).get_message_hash()
-        # message.write(self.epoch)
-
-        tmphash = ''.join([bin2hstr(b) for b in self.hash])
-        message.write(tmphash)
-        message.write(bin2hstr(self.first_hash))
-        messagestr = message.getvalue()
-        result = sha256(str2bin(messagestr))
-
-        return result
-
     def _dict_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         super(StakeTransaction, self)._dict_to_transaction(dict_tx)
         self._data.epoch = int(dict_tx['epoch'])
         self._data.amount = dict_tx['balance']
@@ -356,11 +340,13 @@ class StakeTransaction(Transaction):
         self._data.public_key_slave = bytes(dict_tx['slave_public_key'])
 
         if 'finalized_blocknumber' not in dict_tx:
+            # FIXME: Kept as warning to avoid crashes due to fork. Probably it should just fail
             logger.warning("finalized_blocknumber is not available")
         else:
             self._data.finalized_blocknumber = int(dict_tx['finalized_blocknumber'])
 
         if 'finalized_headerhash' not in dict_tx:
+            # FIXME: Kept as warning to avoid crashes due to fork. Probably it should just fail
             logger.warning("finalized_headerhash is not available")
         else:
             self._data.finalized_headerhash = bytes(dict_tx['finalized_headerhash'])
@@ -415,8 +401,8 @@ class StakeTransaction(Transaction):
         transaction._data.public_key = bytes(xmss.pk())
         transaction._data.ots_key = xmss.get_index()
 
+        # FIXME: Avoid duplication creation/validation
         tmptxhash = transaction.get_txn_hash()
-
         transaction._data.transaction_hash = transaction._get_txhash(tmptxhash)
 
         return transaction
@@ -438,7 +424,31 @@ class StakeTransaction(Transaction):
                             + bin2hstr(self.finalized_headerhash))
         return bytes(tmptxhash)
 
+    # FIXME: Unify with get_txn_hash?? Discuss
+    def get_message_hash(self):
+        """
+        :return:
+        :rtype:
+
+        >>> s = StakeTransaction()
+        >>> seed = [i for i in range(48)]
+        >>> slave = XMSS(4, seed)
+        >>> t = s.create(0, XMSS(4, seed), slave.pk(), 0, bytes((0, 1)), None, slave.pk(), 10)
+        >>> bin2hstr( t.get_message_hash() )
+        '96b4bfa27522bd57969b6548cd0065297c76c342c9c2cc42a905c6356cd586ce'
+        """
+        message = super(StakeTransaction, self).get_message_hash()
+        # message.write(self.epoch)
+
+        tmphash = ''.join([bin2hstr(b) for b in self.hash])
+        message.write(tmphash)
+        message.write(bin2hstr(self.first_hash))
+        messagestr = message.getvalue()
+        result = sha256(str2bin(messagestr))
+        return result
+
     def validate_tx(self):
+        # FIX: Directly combine all this
         tmptxhash = self.get_txn_hash()
         txhash = self._get_txhash(tmptxhash)
 
@@ -497,13 +507,14 @@ class CoinBase(Transaction):
         self._data.type = TX_SUBTYPE_COINBASE
 
     def _dict_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         super(CoinBase, self)._dict_to_transaction(dict_tx)
         self._data.addr_to = bytes(dict_tx['txto'].encode())
         self._data.amount = int(dict_tx['amount'])
         return self
 
     def get_message_hash(self):
-        return super(SimpleTransaction, self).get_message_hash()
+        return super(CoinBase, self).get_message_hash()
 
     @staticmethod
     def create(blockheader, xmss):
@@ -517,11 +528,9 @@ class CoinBase(Transaction):
         transaction._data.ots_key = xmss.get_index()
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
-
         tmptxhash = blockheader.prev_blockheaderhash + \
-                    tuple([int(char) for char in str(blockheader.blocknumber)]) + \
+                    bytes(str(blockheader.blocknumber).encode()) + \
                     blockheader.headerhash
-
         tmptxhash = bytes(tmptxhash)
 
         transaction._data.transaction_hash = transaction._get_txhash(tmptxhash)
@@ -545,8 +554,6 @@ class CoinBase(Transaction):
         txhash = bytes(blockheader.prev_blockheaderhash) + \
                  bytes(str(blockheader.blocknumber).encode()) + \
                  bytes(blockheader.headerhash)
-
-        # FIXME: This additional transformation happens in a base class
         txhash = self._get_txhash(txhash)
 
         if self.txhash != txhash:
@@ -583,6 +590,7 @@ class LatticePublicKey(Transaction):
         return self._data.pk_tesla
 
     def _dict_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         super(LatticePublicKey, self)._dict_to_transaction(dict_tx)
         return self
 
@@ -598,9 +606,7 @@ class LatticePublicKey(Transaction):
         transaction._data.ots_key = xmss.get_index()
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
-        tmptxhash = sha256(transaction.kyber_pk + transaction.tesla_pk)
-        tmptxhash = bytes(tmptxhash)
-
+        tmptxhash = bytes(sha256(transaction.kyber_pk + transaction.tesla_pk))
         transaction._data.transaction_hash = transaction._get_txhash(tmptxhash)
 
         return transaction
@@ -610,8 +616,8 @@ class LatticePublicKey(Transaction):
             return False
 
         # FIXME: Duplication. Risk of mismatch (create & verification)
-        txhash = sha256(self.kyber_pk + self.tesla_pk)
-        txhash = sha256(txhash + self.pubhash)
+        txhash = bytes(sha256(self.kyber_pk + self.tesla_pk))
+        txhash = self._get_txhash(txhash)
 
         if self.txhash != txhash:
             logger.info('Invalid Txhash')
@@ -699,22 +705,26 @@ class DuplicateTransaction(Transaction):
         return True
 
     def from_txdict(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         return self._dict_to_transaction(dict_tx)
 
     def _dict_to_transaction(self, dict_tx):
+        # FIXME: Remove once we move completely to protobuf
         self.blocknumber = dict_tx['blocknumber']
-        self.prev_blockheaderhash = tuple(dict_tx['prev_blockheaderhash'])
+        self.prev_blockheaderhash = bytes(dict_tx['prev_blockheaderhash'])
 
         self._data.dup_coinbase1 = CoinBase()._dict_to_transaction(dict_tx['coinbase1'])
-        self._data.dup_coinbase1_hhash = tuple(dict_tx['headerhash1'])
+        self._data.dup_coinbase1_hhash = bytes(dict_tx['headerhash1'])
 
         self._data.dup_coinbase2 = CoinBase()._dict_to_transaction(dict_tx['coinbase2'])
-        self._data.dup_coinbase2_hhash = tuple(dict_tx['headerhash2'])
+        self._data.dup_coinbase2_hhash = bytes(dict_tx['headerhash2'])
 
         return self
 
     def to_json(self):
+        # FIXME: Remove once we move completely to protobuf
         return helper.json_encode_complex(self)
 
     def json_to_transaction(self, str_tx):
+        # FIXME: Remove once we move completely to protobuf
         return self._dict_to_transaction(json.loads(str_tx))
