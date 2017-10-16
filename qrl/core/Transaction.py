@@ -48,15 +48,9 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.addr_from
 
     @property
-    def txto(self):
-        return self._data.addr_to
-
-    @property
     def pubhash(self):
         # FIXME: Review this. Leon?
-        # FIXME: Avoid recalculating
-        self._data.public_hash = bytes(sha256(bytes(self.PK) + str(self.ots_key).encode()))
-        return self._data.public_hash
+        return bytes(sha256(bytes(self.PK) + str(self.ots_key).encode()))
 
     @property
     def txhash(self):
@@ -65,14 +59,6 @@ class Transaction(object, metaclass=ABCMeta):
     @property
     def ots_key(self):
         return self._data.ots_key
-
-    @property
-    def amount(self):
-        return self._data.amount
-
-    @property
-    def fee(self):
-        return self._data.fee
 
     @property
     def PK(self):
@@ -186,12 +172,26 @@ class SimpleTransaction(Transaction):
         super(SimpleTransaction, self).__init__(protobuf_transaction)
         self._data.type = qrl_pb2.Transaction.TRANSFER
 
+    @property
+    def txto(self):
+        return self._data.transfer.addr_to
+
+    @property
+    def amount(self):
+        return self._data.transfer.amount
+
+    @property
+    def fee(self):
+        return self._data.transfer.fee
+
     def _dict_to_transaction(self, dict_tx):
         # FIXME: Remove once we move completely to protobuf
         super(SimpleTransaction, self)._dict_to_transaction(dict_tx)
-        self._data.addr_to = bytes(dict_tx['txto'].encode())
-        self._data.amount = int(dict_tx['amount'])
-        self._data.fee = int(dict_tx['fee'])
+
+        self._data.transfer.addr_to = bytes(dict_tx['txto'].encode())
+        self._data.transfer.amount = int(dict_tx['amount'])
+        self._data.transfer.fee = int(dict_tx['fee'])
+
         return self
 
     def pre_condition(self, tx_state):
@@ -230,10 +230,12 @@ class SimpleTransaction(Transaction):
         transaction = SimpleTransaction()
 
         transaction._data.addr_from = bytes(addr_from.encode())
-        transaction._data.addr_to = bytes(addr_to.encode())
-        transaction._data.amount = int(amount)              # FIXME: Review conversions for quantities
-        transaction._data.fee = int(fee)                    # FIXME: Review conversions for quantities
         transaction._data.public_key = bytes(xmss_pk)
+
+        transaction._data.transfer.addr_to = bytes(addr_to.encode())
+        transaction._data.transfer.amount = int(amount)              # FIXME: Review conversions for quantities
+        transaction._data.transfer.fee = int(fee)                    # FIXME: Review conversions for quantities
+
         transaction._data.ots_key = xmss_ots_index
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
@@ -295,58 +297,58 @@ class StakeTransaction(Transaction):
         self._data.type = qrl_pb2.Transaction.STAKE
 
     @property
-    def epoch(self):
-        return self._data.epoch
-
-    @property
     def balance(self):
-        return self._data.amount
+        return self._data.stake.balance
 
     @property
-    def slave_public_key(self):
-        return self._data.public_key_slave
+    def epoch(self):
+        return self._data.stake.epoch
 
     @property
     def finalized_blocknumber(self):
-        return self._data.finalized_blocknumber
+        return self._data.stake.finalized_blocknumber
 
     @property
     def finalized_headerhash(self):
-        return self._data.finalized_headerhash
+        return self._data.stake.finalized_headerhash
 
     @property
-    def hash(self):
-        return self._data.stake_hash
+    def slave_public_key(self):
+        return self._data.stake.slavePK
 
     @property
     def first_hash(self):
         # TODO: Review with cyyber
-        return self._data.public_hash
+        return self._data.stake.first_hash
+
+    @property
+    def hash(self):
+        return self._data.stake.hash
 
     def _dict_to_transaction(self, dict_tx):
         # FIXME: Remove once we move completely to protobuf
         super(StakeTransaction, self)._dict_to_transaction(dict_tx)
-        self._data.epoch = int(dict_tx['epoch'])
-        self._data.amount = dict_tx['balance']
+        self._data.stake.epoch = int(dict_tx['epoch'])
+        self._data.stake.balance = dict_tx['balance']
 
-        self._data.public_key_slave = bytes(dict_tx['slave_public_key'])
+        self._data.stake.slavePK = bytes(dict_tx['slave_public_key'])
 
         if 'finalized_blocknumber' not in dict_tx:
             # FIXME: Kept as warning to avoid crashes due to fork. Probably it should just fail
             logger.warning("finalized_blocknumber is not available")
         else:
-            self._data.finalized_blocknumber = int(dict_tx['finalized_blocknumber'])
+            self._data.stake.finalized_blocknumber = int(dict_tx['finalized_blocknumber'])
 
         if 'finalized_headerhash' not in dict_tx:
             # FIXME: Kept as warning to avoid crashes due to fork. Probably it should just fail
             logger.warning("finalized_headerhash is not available")
         else:
-            self._data.finalized_headerhash = bytes(dict_tx['finalized_headerhash'])
+            self._data.stake.finalized_headerhash = bytes(dict_tx['finalized_headerhash'])
 
-        self._data.stake_hash[:] = [bytes(hash_item) for hash_item in dict_tx['hash']]
+        self._data.stake.hash[:] = [bytes(hash_item) for hash_item in dict_tx['hash']]
 
         # TODO: Review with cyyber
-        self._data.public_hash = bytes(dict_tx['first_hash'])
+        self._data.stake.first_hash = bytes(dict_tx['first_hash'])
 
         return self
 
@@ -370,7 +372,7 @@ class StakeTransaction(Transaction):
     @staticmethod
     def create(blocknumber,
                xmss,
-               slave_public_key,
+               slavePK,
                finalized_blocknumber,
                finalized_headerhash,
                hashchain_terminator=None,
@@ -389,27 +391,27 @@ class StakeTransaction(Transaction):
         transaction = StakeTransaction()
 
         transaction._data.addr_from = bytes(xmss.get_address().encode())
-        transaction._data.public_key_slave = bytes(slave_public_key)
-        transaction._data.finalized_blocknumber = finalized_blocknumber
-        transaction._data.finalized_headerhash = bytes(finalized_headerhash)
-        transaction._data.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
-        transaction._data.amount = balance
+        transaction._data.public_key = bytes(xmss.pk())
 
-        if first_hash is None:
-            transaction._data.public_hash = bytes()
-        else:
-            transaction._data.public_hash = first_hash
+        # Stake specific
+        transaction._data.stake.balance = balance
+        transaction._data.stake.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
+        transaction._data.stake.finalized_blocknumber = finalized_blocknumber
+        transaction._data.stake.finalized_headerhash = bytes(finalized_headerhash)
+        transaction._data.stake.slavePK = bytes(slavePK)
+
+        transaction._data.stake.first_hash = bytes()
+        if first_hash is not None:
+            transaction._data.stake.first_hash = first_hash
 
         if hashchain_terminator is None:
-            transaction._data.stake_hash[:] = hashchain_reveal(xmss.get_seed_private(), epoch=transaction.epoch + 1)
+            transaction._data.stake.hash[:] = hashchain_reveal(xmss.get_seed_private(), epoch=transaction.epoch + 1)
         else:
-            transaction._data.stake_hash[:] = hashchain_terminator
+            transaction._data.stake.hash[:] = hashchain_terminator
 
-        transaction._data.public_key = bytes(xmss.pk())
+        # WARNING: These fields need to the calculated once all other fields are set
         transaction._data.ots_key = xmss.get_index()
-
         transaction._data.transaction_hash = transaction.calculate_txhash()
-
         return transaction
 
     def validate_tx(self):
@@ -473,11 +475,19 @@ class CoinBase(Transaction):
         # This attribute is not persistable
         self.blockheader = None
 
+    @property
+    def txto(self):
+        return self._data.coinbase.addr_to
+
+    @property
+    def amount(self):
+        return self._data.coinbase.amount
+
     def _dict_to_transaction(self, dict_tx):
         # FIXME: Remove once we move completely to protobuf
         super(CoinBase, self)._dict_to_transaction(dict_tx)
-        self._data.addr_to = bytes(dict_tx['txto'].encode())
-        self._data.amount = int(dict_tx['amount'])
+        self._data.coinbase.addr_to = bytes(dict_tx['txto'].encode())
+        self._data.coinbase.amount = int(dict_tx['amount'])
         return self
 
     def _get_hashable_bytes(self):
@@ -498,9 +508,11 @@ class CoinBase(Transaction):
         transaction.blockheader = blockheader
 
         transaction._data.addr_from = bytes(blockheader.stake_selector.encode())
-        transaction._data.addr_to = bytes(blockheader.stake_selector.encode())
-        transaction._data.amount = blockheader.block_reward + blockheader.fee_reward
         transaction._data.public_key = bytes(xmss.pk())
+
+        transaction._data.coinbase.addr_to = bytes(blockheader.stake_selector.encode())
+        transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
+
         transaction._data.ots_key = xmss.get_index()
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
@@ -566,9 +578,7 @@ class LatticePublicKey(Transaction):
         :return: hashable bytes
         :rtype: bytes
         """
-        tmptxhash = self.kyber_pk + \
-                    self.tesla_pk
-
+        tmptxhash = self.kyber_pk + self.tesla_pk
         return bytes(sha256(tmptxhash))
 
     @staticmethod
@@ -576,9 +586,11 @@ class LatticePublicKey(Transaction):
         transaction = LatticePublicKey()
 
         transaction._data.txfrom = xmss.get_address()
-        transaction._data.kyber_pk = kyber_pk
-        transaction._data.tesla_pk = tesla_pk
         transaction._data.public_key = xmss.pk()
+
+        transaction._data.latticePK.kyber_pk = kyber_pk
+        transaction._data.latticePK.tesla_pk = tesla_pk
+
         transaction._data.ots_key = xmss.get_index()
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
@@ -605,33 +617,42 @@ class DuplicateTransaction(Transaction):
         super(DuplicateTransaction, self).__init__(protobuf_transaction)
         self._data.type = qrl_pb2.Transaction.DUPLICATE
 
-        self._data.dup_block_number = 0
-        self._data.dup_hash_header_prev = None
+        self._data.duplicate.block_number = 0
+        self._data.duplicate.hash_header_prev = None
 
-        self._data.dup_coinbase1 = None
-        self._data.dup_coinbase1_hhash = None
+        self._data.duplicate.coinbase1 = None
+        self._data.duplicate.coinbase1_hhash = None
 
-        self._data.dup_coinbase2 = None
-        self._data.dup_coinbase2_hhash = None
+        self._data.duplicate.coinbase2 = None
+        self._data.duplicate.coinbase2_hhash = None
 
         # TODO: review, this is not persistable
         self.headerhash = None
         self.coinbase = None
 
     @property
-    def headerhash1(self):
-        return self._data.dup_coinbase1_hhash
+    def blocknumber(self):
+        return self._data.duplicate.blocknumber
 
+    @property
+    def prev_header_hash(self):
+        return self._data.duplicate.prev_header_hash
+
+    @property
+    def headerhash1(self):
+        return self._data.duplicate.coinbase1_hhash
+
+    @property
     def headerhash2(self):
-        return self._data.dup_coinbase2_hhash
+        return self._data.duplicate.coinbase2_hhash
 
     @property
     def coinbase1(self):
-        return self._data.dup_coinbase1
+        return self._data.duplicate.coinbase1
 
     @property
     def coinbase2(self):
-        return self._data.dup_coinbase2
+        return self._data.duplicate.coinbase2
 
     # def get_message_hash(self):
     #     return self.headerhash1 + self.headerhash2
@@ -648,6 +669,7 @@ class DuplicateTransaction(Transaction):
                     bytes(str(self.blocknumber).encode()) + \
                     bytes(self.headerhash) + \
                     bytes(self.coinbase.pubhash)
+                    # FIXME: Review. coinbase2?
 
         return bytes(sha256(tmptxhash))
 
@@ -655,13 +677,15 @@ class DuplicateTransaction(Transaction):
     def create(block1, block2):
         transaction = DuplicateTransaction()
 
-        transaction.blocknumber = block1.blockheader.blocknumber
-        transaction.prev_blockheaderhash = block1.blockheader.prev_blockheaderhash
+        transaction._data.duplicate.blocknumber = block1.blockheader.blocknumber
+        transaction._data.duplicate.prev_header_hash = block1.blockheader.prev_blockheaderhash
 
-        transaction._data.dup_coinbase1 = block1.transactions[0]
-        transaction._data.dup_coinbase1_hhash = block1.blockheader.headerhash
-        transaction._data.dup_coinbase2 = block2.transactions[0]
-        transaction._data.dup_coinbase2_hhash = block2.blockheader.headerhash
+        transaction._data.duplicate.coinbase1 = block1.transactions[0]
+        transaction._data.duplicate.coinbase1_hhash = block1.blockheader.headerhash
+        transaction._data.duplicate.coinbase2 = block2.transactions[0]
+        transaction._data.duplicate.coinbase2_hhash = block2.blockheader.headerhash
+
+        #FIXME: No hashing? This seems wrong
 
         return transaction
 
@@ -704,11 +728,11 @@ class DuplicateTransaction(Transaction):
         self.blocknumber = dict_tx['blocknumber']
         self.prev_blockheaderhash = bytes(dict_tx['prev_blockheaderhash'])
 
-        self._data.dup_coinbase1 = CoinBase()._dict_to_transaction(dict_tx['coinbase1'])
-        self._data.dup_coinbase1_hhash = bytes(dict_tx['headerhash1'])
+        self._data.duplicate.coinbase1 = CoinBase()._dict_to_transaction(dict_tx['coinbase1'])
+        self._data.duplicate.coinbase1_hhash = bytes(dict_tx['headerhash1'])
 
-        self._data.dup_coinbase2 = CoinBase()._dict_to_transaction(dict_tx['coinbase2'])
-        self._data.dup_coinbase2_hhash = bytes(dict_tx['headerhash2'])
+        self._data.duplicate.coinbase2 = CoinBase()._dict_to_transaction(dict_tx['coinbase2'])
+        self._data.duplicate.coinbase2_hhash = bytes(dict_tx['headerhash2'])
 
         return self
 

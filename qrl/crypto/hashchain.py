@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from pyqrllib.pyqrllib import getHashChainSeed, sha2_256, hstr2bin
+from pyqrllib.pyqrllib import getHashChainSeed, sha2_256, hstr2bin, bin2hstr
 from qrl.core import config
 
 HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')
@@ -41,7 +41,7 @@ def hashchain(seed_private,
               blocks_per_epoch=config.dev.blocks_per_epoch):
     # type: (bytes, int, int) -> HashChainBundle
     """
-    >>> isinstance(hashchain(hstr2bin('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e')), HashChainBundle)
+    >>> from qrl.crypto.doctest_data import *; isinstance(hashchain(hashchain_reveal_input), HashChainBundle)
     True
     """
     return HashChainBundle(*_calc_hashchain(seed_private, epoch, blocks_per_epoch))
@@ -51,7 +51,8 @@ def hashchain_reveal(seed_private,
                      epoch=0,
                      blocks_per_epoch=config.dev.blocks_per_epoch):
     """
-    >>> from qrl.crypto.doctest_data import *; hashchain_reveal(hstr2bin('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e')) #== hashchain_reveal_expected1
+    >>> from qrl.crypto.doctest_data import *
+    >>> binvec2hstr(hashchain_reveal(hashchain_reveal_input)) == hashchain_reveal_expected1
     True
     """
     tmp = hashchain(seed_private, epoch, blocks_per_epoch)

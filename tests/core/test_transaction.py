@@ -44,7 +44,7 @@ test_txdict_Stake = {
     'finalized_headerhash': b'1234',
     'balance': 1,
     'slave_public_key': b'1234',
-    'hash': b'1234',
+    'hash': [b'1234'],
     'first_hash': b'1234',
 }
 
@@ -150,10 +150,10 @@ class TestStakeTransaction(TestCase):
     def test_create(self):
         tx = self.stake_tx.create(blocknumber=2,
                                   xmss=self.alice,
-                                  slave_public_key=self.bob.pk(),
+                                  slavePK=self.bob.pk(),
                                   finalized_blocknumber=0,
                                   finalized_headerhash=bytes([0, 1]),
-                                  hashchain_terminator=bytes([4, 6, 7]),
+                                  hashchain_terminator=[bytes([4, 6, 7])],
                                   first_hash=bytes([7, 8, 9]),
                                   balance=100)
         self.assertTrue(tx)
@@ -179,13 +179,13 @@ class TestStakeTransaction(TestCase):
         self.assertEqual(b'1234', tx.finalized_headerhash)
         self.assertEqual(1, tx.balance)
         self.assertEqual(b'1234', tx.slave_public_key)
-        self.assertEqual([b'1', b'2', b'3', b'4'], tx.hash)
+        self.assertEqual([b'1234'], tx.hash)
         self.assertEqual(b'1234', tx.first_hash)
 
     def disabled_test_validate_tx(self):
         tx = self.stake_tx.create(blocknumber=2,
                                   xmss=self.alice,
-                                  slave_public_key=self.bob.pk(),
+                                  slavePK=self.bob.pk(),
                                   finalized_blocknumber=5,
                                   finalized_headerhash=b'finalized_headerhash',
                                   balance=100)
@@ -199,7 +199,7 @@ class TestStakeTransaction(TestCase):
     def test_get_message_hash(self):
         tx = self.stake_tx.create(blocknumber=0,
                                   xmss=self.alice,
-                                  slave_public_key=self.alice.pk(),
+                                  slavePK=self.alice.pk(),
                                   finalized_blocknumber=0,
                                   finalized_headerhash=b'some_headerhash',
                                   hashchain_terminator=None,
@@ -207,7 +207,7 @@ class TestStakeTransaction(TestCase):
                                   balance=10)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual('eb7cb4bc6b5b7ef1945410ef4c66ce16198b4a36689c07195dfbc554244f9f48',
+        self.assertEqual('f1afd8241e479f3ba14e7146eab4fb53423a35845696e0cc180aaff829448423',
                          bin2hstr(tx.get_message_hash()))
 
 
