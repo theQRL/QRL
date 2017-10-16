@@ -486,12 +486,9 @@ class POS:
         """
 
         if self.p2pFactory.stake:
-            next_stake_list = self.chain.block_chain_buffer.next_stake_list_get(blocknumber)
+            stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
 
-            epoch = blocknumber // config.dev.blocks_per_epoch
-            epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
-
-            if self.chain.mining_address not in next_stake_list:
+            if self.chain.mining_address not in stake_list:
                 self.make_st_tx(blocknumber)
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)

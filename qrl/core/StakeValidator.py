@@ -20,7 +20,6 @@ class StakeValidator:
         self.stake_validator = stake_txn.txfrom
         self.slave_public_key = tuple(stake_txn.slave_public_key)
         self.balance = stake_txn.balance
-        self.first_hash = stake_txn.first_hash
         self.hashchain_terminators = tuple(stake_txn.hash)
 
         self.finalized_blocknumber = stake_txn.finalized_blocknumber
@@ -30,7 +29,7 @@ class StakeValidator:
         self.is_banned = False
         if stake_txn.hash:
             self.cache_hash = dict()
-            self.cache_hash[0][-1] = self.first_hash
+            self.cache_hash[-1] = self.hashchain_terminators
 
     def hash_to_terminator(self, hash, times):
         for _ in range(times):
@@ -40,13 +39,13 @@ class StakeValidator:
 
     # Saves the last X validated hash into the memory
     def update(self, epoch_blocknum, hash, hash_staker):
-        self.cache_hash[0][epoch_blocknum] = hash
+        self.cache_hash[epoch_blocknum] = hash
         hash_staker[hash] = self.stake_validator
-        if len(self.cache_hash[0]) > self.buffer_size:
-            minimum_epoch_blocknum = min(self.cache_hash[0])
-            remove_hash = self.cache_hash[0][minimum_epoch_blocknum]
+        if len(self.cache_hash) > self.buffer_size:
+            minimum_epoch_blocknum = min(self.cache_hash)
+            remove_hash = self.cache_hash[minimum_epoch_blocknum]
             del hash_staker[remove_hash]
-            del self.cache_hash[0][minimum_epoch_blocknum]
+            del self.cache_hash[minimum_epoch_blocknum]
 
     @staticmethod
     def get_epoch_blocknum(blocknum):
@@ -56,12 +55,12 @@ class StakeValidator:
     def validate_hash(self, hash, blocknum, hash_staker):
         epoch_blocknum = self.get_epoch_blocknum(blocknum)
 
-        cache_blocknum = max(self.cache_hash[0])
+        cache_blocknum = max(self.cache_hash)
         times = epoch_blocknum - cache_blocknum
 
         terminator_expected = self.hash_to_terminator(hash, times)
 
-        terminator_found = self.cache_hash[0][cache_blocknum]
+        terminator_found = self.cache_hash[cache_blocknum]
 
         if terminator_found != terminator_expected:
             return False
@@ -69,16 +68,6 @@ class StakeValidator:
         self.update(epoch_blocknum, hash, hash_staker)
 
         return True
-
-    @staticmethod
-    def to_object(json_sv):
-        dict_sv = json.loads(json_sv)
-        sv = StakeValidator(dict_sv['stake_validator'], dict_sv['slave_public_key'])
-        sv.cache_hash = dict_sv['cache_hash']
-        sv.first_hash = dict_sv['first_hash']
-        sv.balance = dict_sv['balance']
-
-        return sv
 
     def to_json(self):
         return json.dumps(self.__dict__)

@@ -321,7 +321,6 @@ class ChainBuffer:
                 stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
 
         if blocks_left == 1:
-            stake_validators_list.move_next_epoch()
             self.update_hash_chain(blocknumber)
 
     def get_strongest_block(self, blocknumber):
@@ -399,19 +398,6 @@ class ChainBuffer:
             self.error_msg('stake_list_get', blocknumber)
         except Exception as e:
             self.error_msg('stake_list_get', blocknumber, e)
-
-        return None
-
-    def next_stake_list_get(self, blocknumber):
-        try:
-            if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.next_sv_list
-
-            return self.blocks[blocknumber - 1][1].stake_validators_list.next_sv_list
-        except KeyError:
-            self.error_msg('next_stake_list_get', blocknumber)
-        except Exception as e:
-            self.error_msg('next_stake_list_get', blocknumber, e)
 
         return None
 
@@ -528,7 +514,6 @@ class ChainBuffer:
         return blocknumber
 
     def verify_BK_hash(self, data, conn_identity):
-
         blocknum = data['blocknumber']
         stake_selector = data['stake_selector']
 
@@ -558,7 +543,6 @@ class ChainBuffer:
         reveal_hash = tuple(data['reveal_hash'])
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
-        target_chain = stake_validators_list.select_target(prev_headerhash)
 
         if not stake_validators_list.validate_hash(reveal_hash,
                                                    blocknum,

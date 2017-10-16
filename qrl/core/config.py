@@ -83,13 +83,8 @@ class DevConfig(object):
         self.minimum_staking_balance_required = 1
         self.blocks_per_epoch = 100
         self.reorg_limit = 3
-        self.block_creation_seconds = 55
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
-        self.stake_before_x_blocks = 50
-        self.low_staker_first_hash_block = 70
-        self.high_staker_first_hash_block = 80
-        self.st_txn_safety_margin = 0.10  # 10% safety margin
         self.N = 256  # Constant used in Block winner formula
         self.POS_delay_after_block = 15
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
@@ -98,7 +93,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
-        self.version_number = "0.53.1a"
+        self.version_number = "0.54.0a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000

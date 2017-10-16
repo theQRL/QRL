@@ -59,24 +59,6 @@ class State:
             logger.warning("stake_list_put: %s %s", type(e), e)
             return False
 
-    def next_stake_list_get(self):
-        try:
-            return self.db.get('next_stake_list')
-        except KeyError:
-            pass
-        except Exception as e:
-            logger.error('Exception in next_stake_list_get')
-            logger.exception(e)
-
-        return []
-
-    def next_stake_list_put(self, next_sl):
-        try:
-            self.db.put('next_stake_list', next_sl)
-        except Exception as e:
-            logger.warning("next_stake_list_put: %s %s", type(e), e)
-            return False
-
     def put_epoch_seed(self, epoch_seed):
         try:
             self.db.put('epoch_seed', epoch_seed)
@@ -247,10 +229,7 @@ class State:
                         logger.warning('designated staker not in genesis..')
                         return False
                 else:
-                    if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx)
-                    else:
-                        self.stake_validators_list.add_next_sv(tx)
+                    self.stake_validators_list.add_sv(tx)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
@@ -319,9 +298,9 @@ class State:
 
             elif tx.subtype == TX_SUBTYPE_STAKE:
                 address_txn[tx.txfrom][2].append(tx.pubhash)
-                next_sv_list = stake_validators_list.next_sv_list
-                if tx.txfrom in next_sv_list:
-                    stake_validators_list.add_next_sv(tx)
+                sv_list = stake_validators_list.sv_list
+                if tx.txfrom not in sv_list:
+                    stake_validators_list.add_sv(tx)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
                 address_txn[tx.txfrom][0] += 1
@@ -403,12 +382,7 @@ class State:
                 self.stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
 
         if blocks_left == 1:
-            logger.info('EPOCH change: resetting stake_list, activating next_stake_list, updating PRF with '
-                        'seed+entropy updating wallet hashchains..')
-
-            self.stake_validators_list.move_next_epoch()
-            # TODO: To be fixed later
-            #self.stake_list_put(self.stake_validators_list.to_json())
+            logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
 
             xmss = chain.wallet.address_bundle[0].xmss
             tmphc = hashchain(xmss.get_seed_private(), epoch=block.blockheader.epoch + 1)
@@ -431,7 +405,7 @@ class State:
         epoch_seed = 0
 
         for staker in sl:
-            epoch_seed |= int(str(bin2hstr(staker[3])), 16)
+            epoch_seed |= int(str(bin2hstr(staker[1])), 16)
 
         return epoch_seed
 
