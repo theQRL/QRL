@@ -32,7 +32,7 @@ class StakeValidatorsList:
         return sv
 
     def update_hash_staker(self, sv):
-        for chain_num in range(config.dev.hashchain_nums):
+        for chain_num in range(1):
             hash = sv.cache_hash[chain_num][-1]
             self.hash_staker[hash] = sv.stake_validator
 
@@ -72,7 +72,7 @@ class StakeValidatorsList:
 
         return target_chain
 
-    def validate_hash(self, hash, blocknum, target_chain=config.dev.hashchain_nums-1, stake_address=None):
+    def validate_hash(self, hash, blocknum, stake_address=None):
         epoch_blocknum = StakeValidator.get_epoch_blocknum(blocknum)
         if hash in self.hash_staker:
             if stake_address and stake_address != self.hash_staker[hash]:
@@ -83,7 +83,7 @@ class StakeValidatorsList:
             if stake_address not in self.sv_list:
                 return False
             sv = self.sv_list[stake_address]
-            return sv.validate_hash(hash, blocknum, self.hash_staker, target_chain)
+            return sv.validate_hash(hash, blocknum, self.hash_staker)
 
         tmp = hash
         count = epoch_blocknum
@@ -92,7 +92,7 @@ class StakeValidatorsList:
             if tmp in self.hash_staker:
                 stake_address = self.hash_staker[tmp]
                 sv = self.sv_list[stake_address]
-                sv.update(epoch_blocknum, hash, target_chain, self.hash_staker)
+                sv.update(epoch_blocknum, hash, self.hash_staker)
                 return True
             count -= 1
 

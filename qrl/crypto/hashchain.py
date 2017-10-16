@@ -16,15 +16,11 @@ def _calc_hashchain(
     :type epoch: int
     :return:
     """
-    hc_seed = getHashChainSeed(seed_private, epoch, config.dev.hashchain_nums)
+    hc_seed = getHashChainSeed(seed_private, epoch, 1)
 
     hc = [[bytes(hash_chain)] for hash_chain in hc_seed]
 
     hc_terminator = []
-    for hash_chain in hc[:-1]:  # skip last element as it is reveal hash
-        for x in range(blocks_per_epoch):
-            hash_chain.append(bytes(sha2_256(hash_chain[-1])))
-        hc_terminator.append(hash_chain[-1])
 
     # Reveal hash chain
     for hash_chain in hc[-1:]:

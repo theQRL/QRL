@@ -83,7 +83,6 @@ class GenesisBlock(object, metaclass=Singleton):
                                 prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
                                 hashedtransactions=sha2_256(b'0'),
                                 reveal_hash='genesis',
-                                vote_hash='genesis',
                                 fee_reward=0)
         return self
 

@@ -568,22 +568,12 @@ class ChainBuffer:
             return
 
         reveal_hash = tuple(data['reveal_hash'])
-        vote_hash = tuple(data['vote_hash'])
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
         target_chain = stake_validators_list.select_target(prev_headerhash)
 
-        if not stake_validators_list.validate_hash(vote_hash,
-                                                   blocknum,
-                                                   target_chain=target_chain,
-                                                   stake_address=stake_selector):
-            logger.info('%s vote hash doesnt hash to stake terminator vote %s',
-                        conn_identity, vote_hash)
-            return
-
         if not stake_validators_list.validate_hash(reveal_hash,
                                                    blocknum,
-                                                   target_chain=config.dev.hashchain_nums - 1,
                                                    stake_address=stake_selector):
             logger.info('%s reveal doesnt hash to stake terminator reveal %s',
                         conn_identity, reveal_hash)

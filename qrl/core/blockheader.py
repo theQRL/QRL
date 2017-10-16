@@ -24,15 +24,12 @@ class BlockHeader(object):
         self.reveal_hash = None
         self.stake_selector = None
 
-        self.vote_hash = None  # FIXME: unused
-
     def create(self,
                chain,
                blocknumber,
                prev_blockheaderhash,
                hashedtransactions,
                reveal_hash,
-               vote_hash,
                fee_reward):
         """
         Create a block header based on the parameters
@@ -41,7 +38,6 @@ class BlockHeader(object):
         :param prev_blockheaderhash:
         :param hashedtransactions:
         :param reveal_hash:
-        :param vote_hash:
         :param fee_reward:
         :return:
 
@@ -66,18 +62,12 @@ class BlockHeader(object):
         self.prev_blockheaderhash = prev_blockheaderhash
         self.tx_merkle_root = hashedtransactions
         self.reveal_hash = reveal_hash
-        self.vote_hash = vote_hash
         self.fee_reward = fee_reward
 
         self.stake_selector = ''
         self.block_reward = 0
 
         if self.blocknumber != 0:
-            if self.blocknumber == 1:
-                tmp_chain, _ = chain.select_hashchain(
-                    last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(0),
-                    hashchain=chain.hash_chain,
-                    blocknumber=self.blocknumber)
             self.stake_selector = chain.mining_address
             self.block_reward = self.block_reward_calc()
 
@@ -102,8 +92,6 @@ class BlockHeader(object):
         tmp.reveal_hash = tuple(json_blockheader['reveal_hash'])
         tmp.stake_selector = json_blockheader['stake_selector']
 
-        tmp.vote_hash = tuple(json_blockheader['vote_hash'])
-
         return tmp
 
     def generate_headerhash(self):
@@ -116,7 +104,6 @@ class BlockHeader(object):
                                                        self.blocknumber,
                                                        self.prev_blockheaderhash,
                                                        self.tx_merkle_root,
-                                                       self.vote_hash,
                                                        self.reveal_hash)
         return sha2_256(str2bin(data))
 

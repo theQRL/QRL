@@ -83,7 +83,6 @@ class DevConfig(object):
         self.minimum_staking_balance_required = 1
         self.blocks_per_epoch = 100
         self.reorg_limit = 3
-        self.hashchain_nums = 50  # 1 Primary and rest Secondary hashchain
         self.block_creation_seconds = 55
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
