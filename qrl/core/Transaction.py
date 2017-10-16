@@ -367,7 +367,7 @@ class StakeTransaction(Transaction):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
-        >>> isinstance(s.create(0, XMSS(4), slave.pk(), 0, bytes((0, 1)), None, slave.pk(), 10), StakeTransaction)
+        >>> isinstance(s.create(0, XMSS(4), slave.pk(), 0, bytes((0, 1)), None, 10), StakeTransaction)
         True
         """
         if not balance:

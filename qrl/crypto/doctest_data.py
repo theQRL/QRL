@@ -34,4 +34,4 @@ xmss_sign_expected2_h = 4
 
 hashchain_reveal_input = hstr2bin('32eee808dc7c5dfe26fd4859b415e5a713bd764036bbeefd7a541da9a1cc7b9fcaf17da039a62756b63835de1769e05e')
 
-hashchain_reveal_expected1 =['2cf28b5d723c78384006b9fc8bc24939566b9ded9257e0722003aede28f6d208']
+hashchain_reveal_expected1 =['1d607de5dc840ca31b6cdc8aa2a0c5e7158396b27103a3a128c97994d33e3fce']
