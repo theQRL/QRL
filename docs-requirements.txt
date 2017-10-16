@@ -1,18 +1,4 @@
 # Fixing sphinx version due to https://github.com/sphinx-doc/sphinx/issues/3976
-jsonpickle>=0.9.5
-leveldb==0.20
-statistics>=1.0.3.5
-ntplib>=0.3.3
-Twisted==17.5.0
-colorlog>=3.0.1
-simplejson>=3.11.1
-PyYAML==3.12
-grpcio>=1.6.3
-grpcio-tools>=1.6.3
-service_identity
-pyopenssl>=17.3.0
-pyqrllib>=0.1.28
-six>=1.9
 sphinx==1.5.6
 sphinx_rtd_theme>=0.2.4
 recommonmark>=0.4.0
