@@ -313,11 +313,6 @@ class StakeTransaction(Transaction):
         return self._data.stake.slavePK
 
     @property
-    def first_hash(self):
-        # TODO: Review with cyyber
-        return self._data.stake.first_hash
-
-    @property
     def hash(self):
         return self._data.stake.hash
 
@@ -343,9 +338,6 @@ class StakeTransaction(Transaction):
 
         self._data.stake.hash[:] = [bytes(hash_item) for hash_item in dict_tx['hash']]
 
-        # TODO: Review with cyyber
-        self._data.stake.first_hash = bytes(dict_tx['first_hash'])
-
         return self
 
     def _get_hashable_bytes(self):
@@ -357,7 +349,6 @@ class StakeTransaction(Transaction):
         #FIXME: Avoid all intermediate conversions
         tmptxhash = ''.join([bin2hstr(b) for b in self.hash])
         tmptxhash = str2bin(tmptxhash
-                            + bin2hstr(self.first_hash)
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.epoch)))
                             + bin2hstr(sha2_256(bytes(self.subtype)))
@@ -372,7 +363,6 @@ class StakeTransaction(Transaction):
                finalized_blocknumber,
                finalized_headerhash,
                hashchain_terminator=None,
-               first_hash=None,
                balance=None):
         """
         >>> s = StakeTransaction()
@@ -395,10 +385,6 @@ class StakeTransaction(Transaction):
         transaction._data.stake.finalized_blocknumber = finalized_blocknumber
         transaction._data.stake.finalized_headerhash = bytes(finalized_headerhash)
         transaction._data.stake.slavePK = bytes(slavePK)
-
-        transaction._data.stake.first_hash = bytes()
-        if first_hash is not None:
-            transaction._data.stake.first_hash = first_hash
 
         if hashchain_terminator is None:
             transaction._data.stake.hash[:] = hashchain_reveal(xmss.get_seed_private(), epoch=transaction.epoch + 1)
@@ -424,12 +410,6 @@ class StakeTransaction(Transaction):
         if not helper.isValidAddress(self.txfrom):
             logger.info('Invalid From Address %s', self.txfrom)
             return False
-
-        if self.first_hash:
-            hashterminator = sha256(self.first_hash)
-            if hashterminator != self.hash[-1]:
-                logger.info('First_hash doesnt stake to hashterminator')
-                return False
 
         if not self._validate_signed_hash():
             return False

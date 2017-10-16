@@ -45,7 +45,6 @@ test_txdict_Stake = {
     'balance': 1,
     'slave_public_key': b'1234',
     'hash': [b'1234'],
-    'first_hash': b'1234',
 }
 
 test_txdict_CoinBase = {
@@ -154,7 +153,6 @@ class TestStakeTransaction(TestCase):
                                   finalized_blocknumber=0,
                                   finalized_headerhash=bytes([0, 1]),
                                   hashchain_terminator=[bytes([4, 6, 7])],
-                                  first_hash=bytes([7, 8, 9]),
                                   balance=100)
         self.assertTrue(tx)
 
@@ -180,7 +178,6 @@ class TestStakeTransaction(TestCase):
         self.assertEqual(1, tx.balance)
         self.assertEqual(b'1234', tx.slave_public_key)
         self.assertEqual([b'1234'], tx.hash)
-        self.assertEqual(b'1234', tx.first_hash)
 
     def disabled_test_validate_tx(self):
         tx = self.stake_tx.create(blocknumber=2,
@@ -203,11 +200,10 @@ class TestStakeTransaction(TestCase):
                                   finalized_blocknumber=0,
                                   finalized_headerhash=b'some_headerhash',
                                   hashchain_terminator=None,
-                                  first_hash=self.alice.pk(),
                                   balance=10)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual('e7f49dbeed4fbc20222b1b76a904218a35031ab626931553adfaa05d63eecda7',
+        self.assertEqual('6610ccb3974e65e696bf0ef0a21609ed07ff63a654519f0ec6c3a7fcb942944b',
                          bin2hstr(tx.get_message_hash()))
 
 

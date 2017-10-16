@@ -428,22 +428,11 @@ class ChainBuffer:
 
         return None
 
-    def get_threshold(self, blocknumber, staker_address):
-        try:
-            if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.get_threshold(staker_address)
-
-            stateBuffer = self.blocks[blocknumber - 1][1]
-
-            return stateBuffer.stake_validators_list.get_threshold(staker_address)
-        except KeyError:
-            self.error_msg('get_threshold', blocknumber)
-        except Exception as e:
-            self.error_msg('get_threshold', blocknumber, e)
-
-        return None
-
     def describe(self):
+        """
+        For debugging purpose only
+        :return:
+        """
         if len(self.blocks) == 0:
             return
         min_block = min(self.blocks)
