@@ -128,16 +128,12 @@ class Transaction(object, metaclass=ABCMeta):
     def _dict_to_transaction(self, dict_tx):
         # FIXME: Remove once we move completely to protobuf
         self._data.type = dict_tx['subtype']
-        self._data.nonce = dict_tx['nonce']
 
-        self._data.ots_key = int(dict_tx['ots_key'])
         self._data.nonce = int(dict_tx['nonce'])
         self._data.addr_from = bytes(dict_tx['txfrom'].encode())
-
-        self._data.public_hash = bytes(dict_tx['pubhash'])
-        self._data.transaction_hash = bytes(dict_tx['txhash'])
-
         self._data.public_key = bytes(dict_tx['PK'])
+        self._data.transaction_hash = bytes(dict_tx['txhash'])
+        self._data.ots_key = int(dict_tx['ots_key'])
         self._data.signature = bytes(dict_tx['signature'])
 
         return self
