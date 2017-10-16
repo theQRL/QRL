@@ -202,83 +202,6 @@ class P2PFactory(ServerFactory):
             peer.transport.write(self.protocol.wrap_message('reboot', json_hash))
         return
 
-    # transmit reveal_one hash.. (node cast lottery vote)
-
-    def send_stake_reveal_one(self, blocknumber=None):
-        if blocknumber is None:
-            blocknumber = self.chain.block_chain_buffer.height() + 1  # next block..
-
-        reveal_msg = {'stake_address': self.chain.mining_address,
-                      'block_number': blocknumber,
-                      # demonstrate the hash from last block to prevent building upon invalid block..
-                      'headerhash': self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)}
-
-        epoch = blocknumber // config.dev.blocks_per_epoch
-
-        hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
-        # +1 to skip first reveal
-        reveal_msg['reveal_one'] = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
-        reveal_msg['vote_hash'] = None
-        reveal_msg['weighted_hash'] = None
-        epoch_seed = self.chain.block_chain_buffer.get_epoch_seed(blocknumber)
-        reveal_msg['seed'] = epoch_seed
-        reveal_msg['SV_hash'] = self.chain.get_stake_validators_hash()
-
-        stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(blocknumber)
-        target_chain = stake_validators_list.select_target(reveal_msg['headerhash'])
-
-        hashes = hash_chain[target_chain]
-        reveal_msg['vote_hash'] = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
-
-        if reveal_msg['reveal_one'] is None or reveal_msg['vote_hash'] is None:
-            logger.info('reveal_one or vote_hash None for stake_address: %s selected hash: %s',
-                        reveal_msg['stake_address'],
-                        hash_chain[target_chain])
-            logger.info('reveal_one %s', reveal_msg['reveal_one'])
-            logger.info('vote_hash %s', reveal_msg['vote_hash'])
-            logger.info('hash %s', hash_chain[target_chain])
-            return
-
-        reveal_msg['weighted_hash'] = self.chain.score(
-            stake_address=reveal_msg['stake_address'],
-            reveal_one=reveal_msg['reveal_one'],
-            balance=self.chain.block_chain_buffer.get_st_balance(reveal_msg['stake_address'], blocknumber),
-            seed=epoch_seed)
-
-        y = False
-        tmp_stake_reveal_one = []
-        for r in self.chain.stake_reveal_one:  # need to check the reveal list for existence already, if so..reuse..
-            if r[0] == self.chain.mining_address:
-                if r[1] == reveal_msg['headerhash']:
-                    if r[2] == blocknumber:
-                        if y:
-                            continue  # if repetition then remove..
-                        else:
-                            reveal_msg['reveal_one'] = r[3]
-                            y = True
-            tmp_stake_reveal_one.append(r)
-
-        self.chain.stake_reveal_one = tmp_stake_reveal_one
-        logger.info('<<<Transmitting POS reveal_one %s %s', blocknumber,
-                    self.chain.block_chain_buffer.get_st_balance(reveal_msg['stake_address'], blocknumber))
-
-        self.last_reveal_one = reveal_msg
-        self.register_and_broadcast('R1', reveal_msg['vote_hash'], json_encode(reveal_msg))
-
-        if not y:
-            self.chain.stake_reveal_one.append([reveal_msg['stake_address'],
-                                                reveal_msg['headerhash'],
-                                                reveal_msg['block_number'],
-                                                reveal_msg['reveal_one'],
-                                                reveal_msg['weighted_hash'],
-                                                reveal_msg['vote_hash']])
-
-        return reveal_msg['reveal_one']
-
-    def send_last_stake_reveal_one(self):
-        for peer in self.peer_connections:
-            peer.transport.write(self.protocol.wrap_message('R1', json_encode(self.last_reveal_one)))
-
     def ip_geotag_peers(self):
         logger.info('<<<IP geotag broadcast')
         for peer in self.peer_connections:
@@ -311,7 +234,6 @@ class P2PFactory(ServerFactory):
 
         if block.blockheader.blocknumber > 1:
             extra_data['reveal_hash'] = block.blockheader.reveal_hash
-            extra_data['vote_hash'] = block.blockheader.vote_hash
 
         self.register_and_broadcast('BK',
                                     block.blockheader.headerhash,

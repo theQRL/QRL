@@ -182,8 +182,7 @@ class P2PProtocol(Protocol):
                 'stake_selector': block.transactions[0].txto,
                 'blocknumber': block.blockheader.blocknumber,
                 'prev_headerhash': block.blockheader.prev_blockheaderhash,
-                'reveal_hash': block.blockheader.reveal_hash,
-                'vote_hash': block.blockheader.vote_hash}
+                'reveal_hash': block.blockheader.reveal_hash,}
 
         self.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
 
