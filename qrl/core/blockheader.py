@@ -41,11 +41,11 @@ class BlockHeader(object):
         :param fee_reward:
         :return:
 
-        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', b'0', 0.1) is None
+        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', 0.1) is None
         True
-        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', b'0', 0.1); b.epoch
+        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', 0.1); b.epoch
         0
-        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', b'0', 0.1); b.epoch # doctest: +SKIP
+        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', 0.1); b.epoch # doctest: +SKIP
         0
         """
 
@@ -96,15 +96,15 @@ class BlockHeader(object):
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
-        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}".format(self.stake_selector,
-                                                       self.epoch,
-                                                       self.block_reward,
-                                                       self.fee_reward,
-                                                       self.timestamp,
-                                                       self.blocknumber,
-                                                       self.prev_blockheaderhash,
-                                                       self.tx_merkle_root,
-                                                       self.reveal_hash)
+        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}".format(self.stake_selector,
+                                                    self.epoch,
+                                                    self.block_reward,
+                                                    self.fee_reward,
+                                                    self.timestamp,
+                                                    self.blocknumber,
+                                                    self.prev_blockheaderhash,
+                                                    self.tx_merkle_root,
+                                                    self.reveal_hash)
         return sha2_256(str2bin(data))
 
     def block_reward_calc(self):
