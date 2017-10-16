@@ -1,8 +1,11 @@
-===
 Quantum Resistant Ledger
-===
+========================
 
-This is the documentation of **QRL**.
+This is the documentation of **QRL Node**.
+
+.. note::
+   WORK IN PROGRESS
+
 
 .. note::
 
