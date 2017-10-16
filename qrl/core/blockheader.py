@@ -24,15 +24,12 @@ class BlockHeader(object):
         self.reveal_hash = None
         self.stake_selector = None
 
-        self.vote_hash = None  # FIXME: unused
-
     def create(self,
                chain,
                blocknumber,
                prev_blockheaderhash,
                hashedtransactions,
                reveal_hash,
-               vote_hash,
                fee_reward):
         """
         Create a block header based on the parameters
@@ -41,15 +38,14 @@ class BlockHeader(object):
         :param prev_blockheaderhash:
         :param hashedtransactions:
         :param reveal_hash:
-        :param vote_hash:
         :param fee_reward:
         :return:
 
-        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', b'0', 0.1) is None
+        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', 0.1) is None
         True
-        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', b'0', 0.1); b.epoch
+        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', 0.1); b.epoch
         0
-        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', b'0', 0.1); b.epoch # doctest: +SKIP
+        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', 0.1); b.epoch # doctest: +SKIP
         0
         """
 
@@ -66,18 +62,12 @@ class BlockHeader(object):
         self.prev_blockheaderhash = prev_blockheaderhash
         self.tx_merkle_root = hashedtransactions
         self.reveal_hash = reveal_hash
-        self.vote_hash = vote_hash
         self.fee_reward = fee_reward
 
         self.stake_selector = ''
         self.block_reward = 0
 
         if self.blocknumber != 0:
-            if self.blocknumber == 1:
-                tmp_chain, _ = chain.select_hashchain(
-                    last_block_headerhash=chain.block_chain_buffer.get_strongest_headerhash(0),
-                    hashchain=chain.hash_chain,
-                    blocknumber=self.blocknumber)
             self.stake_selector = chain.mining_address
             self.block_reward = self.block_reward_calc()
 
@@ -102,22 +92,19 @@ class BlockHeader(object):
         tmp.reveal_hash = tuple(json_blockheader['reveal_hash'])
         tmp.stake_selector = json_blockheader['stake_selector']
 
-        tmp.vote_hash = tuple(json_blockheader['vote_hash'])
-
         return tmp
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
-        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}{9}".format(self.stake_selector,
-                                                       self.epoch,
-                                                       self.block_reward,
-                                                       self.fee_reward,
-                                                       self.timestamp,
-                                                       self.blocknumber,
-                                                       self.prev_blockheaderhash,
-                                                       self.tx_merkle_root,
-                                                       self.vote_hash,
-                                                       self.reveal_hash)
+        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}".format(self.stake_selector,
+                                                    self.epoch,
+                                                    self.block_reward,
+                                                    self.fee_reward,
+                                                    self.timestamp,
+                                                    self.blocknumber,
+                                                    self.prev_blockheaderhash,
+                                                    self.tx_merkle_root,
+                                                    self.reveal_hash)
         return sha2_256(str2bin(data))
 
     def block_reward_calc(self):

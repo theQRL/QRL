@@ -5,9 +5,8 @@
 import simplejson as json
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
-from qrl.core import logger, config
+from qrl.core import logger
 from qrl.core.blockheader import BlockHeader
-from qrl.core.helper import select_target_hashchain
 from qrl.core.Transaction import Transaction, CoinBase, DuplicateTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
@@ -21,10 +20,9 @@ class Block(object):
         self.state = None
         self.stake_list = None
 
-    def create(self, chain, reveal_hash, vote_hash, last_block_number=-1):
+    def create(self, chain, reveal_hash, last_block_number=-1):
         # FIXME: probably this should turn into a constructor
         reveal_hash = reveal_hash
-        vote_hash = vote_hash
 
         data = None
         if last_block_number == -1:
@@ -59,7 +57,6 @@ class Block(object):
         self.blockheader.create(chain=chain,
                                 blocknumber=last_block_number + 1,
                                 reveal_hash=reveal_hash,
-                                vote_hash=vote_hash,
                                 prev_blockheaderhash=prev_blockheaderhash,
                                 hashedtransactions=hashedtransactions,
                                 fee_reward=fee_reward)
@@ -99,8 +96,6 @@ class Block(object):
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
                 return False
 
-            sv_list = chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
-
             if coinbase_tx.txto != self.blockheader.stake_selector:
                 logger.info('Non matching txto and stake_selector')
                 logger.info('txto: %s stake_selector %s', coinbase_tx.txfrom, self.blockheader.stake_selector)
@@ -120,9 +115,8 @@ class Block(object):
                     if tx.subtype == TX_SUBTYPE_STAKE:
                         if tx.txfrom == blk_header.stake_selector:
                             found = True
-                            reveal_hash, vote_hash = chain.select_hashchain(chain.m_blockchain[-1].blockheader.headerhash,
-                                                                            self.transactions[0].txto,
-                                                                            tx.hash, blocknumber=1)
+                            reveal_hash = chain.select_hashchain(self.transactions[0].txto,
+                                                                 tx.hash, blocknumber=1)
 
                             if sha256(blk_header.reveal_hash) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
@@ -140,18 +134,8 @@ class Block(object):
 
                 if not stake_validators_list.validate_hash(blk_header.reveal_hash,
                                                            blk_header.blocknumber,
-                                                           config.dev.hashchain_nums - 1,
                                                            self.transactions[0].txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
-                    return False
-
-                target_chain = select_target_hashchain(blk_header.prev_blockheaderhash)
-
-                if not stake_validators_list.validate_hash(blk_header.vote_hash,
-                                                           blk_header.blocknumber,
-                                                           target_chain,
-                                                           self.transactions[0].txto):
-                    logger.warning('Not all the reveal_hashes are valid..')
                     return False
 
             if not self._validate_tx_in_block(chain):

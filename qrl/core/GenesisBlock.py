@@ -74,7 +74,7 @@ class GenesisBlock(object, metaclass=Singleton):
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         'genesis'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
-        'ef651a6c581c1e96c6d3b9d8cb6579d45bdb8a12db428acd23acd1ba7ab41841'
+        '22388dd5e1a6ab7b1802075b199dddf7d99c9b14602fdc9038e8263c88a42ff5'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
         'c593bc8feea0099ddd3a4a457150ca215499d680c49bbc4c2c24a72f2179439d'
         """
@@ -83,7 +83,6 @@ class GenesisBlock(object, metaclass=Singleton):
                                 prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
                                 hashedtransactions=sha2_256(b'0'),
                                 reveal_hash='genesis',
-                                vote_hash='genesis',
                                 fee_reward=0)
         return self
 

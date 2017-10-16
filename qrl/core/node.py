@@ -242,11 +242,10 @@ class POS:
             tmphc = hashchain(self.chain.wallet.address_bundle[0].xmss.get_seed_private())
 
             # create the genesis block 2 here..
-            reveal_hash, vote_hash = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
-                                                                 self.chain.mining_address,
-                                                                 tmphc.hashchain,
-                                                                 blocknumber=1)
-            b = self.chain.m_create_block(reveal_hash[-2], vote_hash[-2])
+            reveal_hash = self.chain.select_hashchain(self.chain.mining_address,
+                                                      tmphc.hashchain,
+                                                      blocknumber=1)
+            b = self.chain.m_create_block(reveal_hash[-2])
             self.pre_block_logic(b)
         else:
             logger.info('await block creation by stake validator: %s', self.chain.stake_list[0][0])
@@ -289,10 +288,9 @@ class POS:
 
     # create new block..
 
-    def create_new_block(self, reveal_hash, vote_hash, last_block_number):
-        block_chain_buffer = self.chain.block_chain_buffer
+    def create_new_block(self, reveal_hash, last_block_number):
         logger.info('create_new_block #%s', (last_block_number + 1))
-        block_obj = self.chain.create_stake_block(reveal_hash, vote_hash, last_block_number)
+        block_obj = self.chain.create_stake_block(reveal_hash, last_block_number)
 
         return block_obj
 
@@ -475,15 +473,7 @@ class POS:
 
         my_reveal = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
 
-        prev_headerhash = self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)
-        stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(blocknumber)
-
-        target_chain = stake_validators_list.select_target(prev_headerhash)
-        hashes = hash_chain[target_chain]
-        vote_hash = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
-
         block = self.create_new_block(my_reveal,
-                                      vote_hash,
                                       blocknumber - 1)
         self.pre_block_logic(block)  # broadcast this block
 

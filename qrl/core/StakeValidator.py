@@ -30,10 +30,7 @@ class StakeValidator:
         self.is_banned = False
         if stake_txn.hash:
             self.cache_hash = dict()
-            for chain_num in range(config.dev.hashchain_nums):
-                self.cache_hash[chain_num] = dict()
-                self.cache_hash[chain_num][-1] = stake_txn.hash[chain_num]
-            self.cache_hash[config.dev.hashchain_nums-1][-1] = self.first_hash
+            self.cache_hash[0][-1] = self.first_hash
 
     def hash_to_terminator(self, hash, times):
         for _ in range(times):
@@ -42,34 +39,34 @@ class StakeValidator:
         return hash
 
     # Saves the last X validated hash into the memory
-    def update(self, epoch_blocknum, hash, target_chain, hash_staker):
-        self.cache_hash[target_chain][epoch_blocknum] = hash
+    def update(self, epoch_blocknum, hash, hash_staker):
+        self.cache_hash[0][epoch_blocknum] = hash
         hash_staker[hash] = self.stake_validator
-        if len(self.cache_hash[target_chain]) > self.buffer_size:
-            minimum_epoch_blocknum = min(self.cache_hash[target_chain])
-            remove_hash = self.cache_hash[target_chain][minimum_epoch_blocknum]
+        if len(self.cache_hash[0]) > self.buffer_size:
+            minimum_epoch_blocknum = min(self.cache_hash[0])
+            remove_hash = self.cache_hash[0][minimum_epoch_blocknum]
             del hash_staker[remove_hash]
-            del self.cache_hash[target_chain][minimum_epoch_blocknum]
+            del self.cache_hash[0][minimum_epoch_blocknum]
 
     @staticmethod
     def get_epoch_blocknum(blocknum):
         epoch = blocknum // config.dev.blocks_per_epoch
         return blocknum - (epoch * config.dev.blocks_per_epoch)
 
-    def validate_hash(self, hash, blocknum, hash_staker, target_chain=config.dev.hashchain_nums-1):
+    def validate_hash(self, hash, blocknum, hash_staker):
         epoch_blocknum = self.get_epoch_blocknum(blocknum)
 
-        cache_blocknum = max(self.cache_hash[target_chain])
+        cache_blocknum = max(self.cache_hash[0])
         times = epoch_blocknum - cache_blocknum
 
         terminator_expected = self.hash_to_terminator(hash, times)
 
-        terminator_found = self.cache_hash[target_chain][cache_blocknum]
+        terminator_found = self.cache_hash[0][cache_blocknum]
 
         if terminator_found != terminator_expected:
             return False
 
-        self.update(epoch_blocknum, hash, target_chain, hash_staker)
+        self.update(epoch_blocknum, hash, hash_staker)
 
         return True
 

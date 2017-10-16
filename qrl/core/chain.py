@@ -131,7 +131,7 @@ class Chain:
             tmp = sha256(tmp)
         return tmp
 
-    def select_hashchain(self, last_block_headerhash, stake_address=None, hashchain=None, blocknumber=None):
+    def select_hashchain(self, stake_address=None, hashchain=None, blocknumber=None):
 
         if not hashchain:
             for s in self.block_chain_buffer.stake_list_get(blocknumber):
@@ -142,14 +142,7 @@ class Chain:
         if not hashchain:
             return
 
-        target_chain = 0
-
-        for byte in last_block_headerhash:
-            target_chain += byte
-
-        target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
-
-        return hashchain[-1], hashchain[target_chain]
+        return hashchain[-1]
 
     def select_winners(self, reveals, topN=1, blocknumber=None, block=None, seed=None):
         # FIXME: This is POS related
@@ -213,7 +206,7 @@ class Chain:
         return sv_hash
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
-    def create_stake_block(self, reveal_hash, vote_hash, last_block_number):
+    def create_stake_block(self, reveal_hash, last_block_number):
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
@@ -270,7 +263,7 @@ class Chain:
             txnum += 1
 
         # create the block..
-        block_obj = self.m_create_block(reveal_hash, vote_hash, last_block_number)
+        block_obj = self.m_create_block(reveal_hash, last_block_number)
         # reset the pool back
         self.transaction_pool = copy.deepcopy(t_pool2)
 
@@ -488,9 +481,9 @@ class Chain:
             return False
         return self.m_blockchain[-1]
 
-    def m_create_block(self, reveal_hash, vote_hash, last_block_number=-1):
+    def m_create_block(self, reveal_hash, last_block_number=-1):
         myBlock = Block()
-        myBlock.create(self, reveal_hash, vote_hash, last_block_number)
+        myBlock.create(self, reveal_hash, last_block_number)
 
         slave_xmss = self.block_chain_buffer.get_slave_xmss(last_block_number + 1)
         if not slave_xmss:

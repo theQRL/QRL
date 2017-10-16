@@ -207,7 +207,7 @@ class TestStakeTransaction(TestCase):
                                   balance=10)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual('f1afd8241e479f3ba14e7146eab4fb53423a35845696e0cc180aaff829448423',
+        self.assertEqual('e7f49dbeed4fbc20222b1b76a904218a35031ab626931553adfaa05d63eecda7',
                          bin2hstr(tx.get_message_hash()))
 
 
