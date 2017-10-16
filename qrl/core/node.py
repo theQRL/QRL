@@ -186,7 +186,7 @@ class POS:
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
         st = StakeTransaction.create(blocknumber=0,
                                      xmss=signing_xmss,
-                                     slave_public_key=slave_xmss.pk(),
+                                     slavePK=slave_xmss.pk(),
                                      finalized_blocknumber=0,
                                      finalized_headerhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
                                      hashchain_terminator=tmphc.hc_terminator,
@@ -563,7 +563,7 @@ class POS:
         st = StakeTransaction.create(
             blocknumber=blocknumber,
             xmss=signing_xmss,
-            slave_public_key=slave_xmss.pk(),
+            slavePK=slave_xmss.pk(),
             finalized_blocknumber = finalized_blocknumber,
             finalized_headerhash = finalized_headerhash,
             first_hash=first_hash,
