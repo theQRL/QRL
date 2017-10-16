@@ -241,18 +241,8 @@ class Chain:
                     continue
                 balance = 0
                 next_sv_list = self.block_chain_buffer.next_stake_list_get(last_block_number + 1)
-                if tx.txfrom in next_sv_list:
-                    balance = next_sv_list[tx.txfrom].balance
-                    threshold_blocknum = self.block_chain_buffer.get_threshold(last_block_number + 1, tx.txfrom)
-                    if epoch_blocknum < threshold_blocknum - 1:
-                        logger.warning('Skipping st as ST txn before threshold')
-                        logger.warning('Expected : %s', threshold_blocknum - 1)
-                        logger.warning('Found : %s', epoch_blocknum)
-                        del t_pool2[txnum]
-                        total_txn -= 1
-                        continue
-                # balance>0 only in case 1st st already accepted
-                if not (balance > 0 or last_block_number == 0):
+
+                if not (tx.txfrom not in next_sv_list or last_block_number == 0):
                     if tx.first_hash:
                         del t_pool2[txnum]
                         total_txn -= 1

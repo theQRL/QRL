@@ -190,7 +190,6 @@ class POS:
                                      finalized_blocknumber=0,
                                      finalized_headerhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
                                      hashchain_terminator=tmphc.hc_terminator,
-                                     first_hash=tmphc.hashchain[-1][-2],
                                      balance=tmpbalance)
         st.sign(signing_xmss)
 
@@ -210,8 +209,8 @@ class POS:
 
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
-                if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom],
+                if tx.txfrom in self.chain.m_blockchain[0].stake_list:
+                    tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])
                     self.chain.state.stake_validators_list.add_sv(tx)
 
@@ -222,7 +221,7 @@ class POS:
                                                                            reveal_one=bin2hstr(sha256(
                                                                                reduce(lambda set1, set2: set1 + set2,
                                                                                       staker[1]))),
-                                                                           balance=staker[4],
+                                                                           balance=staker[3],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 
         self.chain.block_chain_buffer.epoch_seed = format(self.chain.block_chain_buffer.epoch_seed, 'x')
@@ -492,27 +491,8 @@ class POS:
             epoch = blocknumber // config.dev.blocks_per_epoch
             epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
 
-            if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_list:
-                diff = max(1, int(
-                    (config.dev.stake_before_x_blocks * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)))
-                if random.randint(1, diff) == 1:
-                    self.make_st_tx(blocknumber, None)
-
-            elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_list:
-                if not next_stake_list[self.chain.mining_address].first_hash:
-                    threshold_blocknum = self.chain.block_chain_buffer.get_threshold(blocknumber,
-                                                                                     self.chain.mining_address)
-                    max_threshold_blocknum = config.dev.blocks_per_epoch
-                    if threshold_blocknum == config.dev.low_staker_first_hash_block:
-                        max_threshold_blocknum = config.dev.high_staker_first_hash_block
-
-                    if threshold_blocknum - 1 <= epoch_blocknum < max_threshold_blocknum - 1:
-                        diff = max(1, int(
-                            (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)))
-                        if random.randint(1, diff) == 1:
-                            xmss = self.chain.wallet.address_bundle[0].xmss
-                            tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
-                            self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
+            if self.chain.mining_address not in next_stake_list:
+                self.make_st_tx(blocknumber)
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
 
@@ -529,7 +509,7 @@ class POS:
 
         return
 
-    def make_st_tx(self, blocknumber, first_hash):
+    def make_st_tx(self, blocknumber):
         balance = self.chain.block_chain_buffer.get_stxn_state(blocknumber, self.chain.mining_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
@@ -556,7 +536,6 @@ class POS:
             slavePK=slave_xmss.pk(),
             finalized_blocknumber = finalized_blocknumber,
             finalized_headerhash = finalized_headerhash,
-            first_hash=first_hash,
             balance=balance
         )
 

@@ -236,7 +236,6 @@ class State:
                 tmp_list.append([tx.txfrom,
                                  tx.hash,
                                  0,
-                                 tx.first_hash,
                                  GenesisBlock().get_info()[tx.txfrom],
                                  tx.slave_public_key])
 
@@ -319,31 +318,9 @@ class State:
                     return False
 
             elif tx.subtype == TX_SUBTYPE_STAKE:
-                epoch_blocknum = config.dev.blocks_per_epoch - blocks_left
-                if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
-                    logger.warning('Block rejected #%s due to ST without first_reveal beyond limit',
-                                   block.blockheader.blocknumber)
-                    logger.warning('Stake_selector: %s', block.blockheader.stake_selector)
-                    logger.warning('epoch_blocknum: %s Threshold: %s',
-                                   epoch_blocknum,
-                                   config.dev.stake_before_x_blocks)
-                    return False
-
                 address_txn[tx.txfrom][2].append(tx.pubhash)
                 next_sv_list = stake_validators_list.next_sv_list
                 if tx.txfrom in next_sv_list:
-                    if not next_sv_list[tx.txfrom].first_hash and tx.first_hash:
-                        threshold_blocknum = stake_validators_list.get_threshold(tx.txfrom)
-                        if epoch_blocknum < threshold_blocknum - 1:
-                            logger.warning('Block rejected #%s due to ST before threshold',
-                                           block.blockheader.blocknumber)
-                            logger.warning('Stake_selector: %s', block.blockheader.stake_selector)
-                            logger.warning('epoch_blocknum: %s Threshold: %s',
-                                           epoch_blocknum,
-                                           threshold_blocknum - 1)
-                            return False
-                        stake_validators_list.set_first_hash(tx.txfrom, tx.first_hash)
-                else:
                     stake_validators_list.add_next_sv(tx)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
@@ -457,21 +434,6 @@ class State:
             epoch_seed |= int(str(bin2hstr(staker[3])), 16)
 
         return epoch_seed
-
-    def get_staker_threshold_blocknum(self, next_stake_list, staker_address):
-        tmp_next_stake_list = sorted(next_stake_list, key=itemgetter(4))
-        total_stakers = len(next_stake_list)
-        found_position = -1
-
-        for i in range(total_stakers):
-            if tmp_next_stake_list[i] == staker_address:
-                found_position = i
-                break
-
-        if found_position < total_stakers // 2:
-            return config.dev.low_staker_first_hash_block
-
-        return config.dev.high_staker_first_hash_block
 
     def read_genesis(self, genesis_block):
         logger.info('genesis:')

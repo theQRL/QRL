@@ -193,7 +193,6 @@ class ChainBuffer:
 
         self.add_txns_buffer()
         if block_left == 1:  # As State.add_block would have already moved the next stake list to stake_list
-            self.epoch_seed = bin2hstr(hex(self.state.stake_validators_list.calc_seed()))
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
@@ -203,8 +202,8 @@ class ChainBuffer:
                 del self._wallet_private_seeds[epoch]
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
-        else:
-            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(self.epoch_seed)))
+
+        self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -258,7 +257,7 @@ class ChainBuffer:
             state_buffer.set_next_seed(block.blockheader.reveal_hash, self.epoch_seed)
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update_stxn_state(block, self.state)
+            state_buffer.update_stxn_state(self.state)
         else:
             block_state_buffer = self.blocks[blocknum - 1]
             parent_state_buffer = block_state_buffer[1]
@@ -429,22 +428,11 @@ class ChainBuffer:
 
         return None
 
-    def get_threshold(self, blocknumber, staker_address):
-        try:
-            if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.get_threshold(staker_address)
-
-            stateBuffer = self.blocks[blocknumber - 1][1]
-
-            return stateBuffer.stake_validators_list.get_threshold(staker_address)
-        except KeyError:
-            self.error_msg('get_threshold', blocknumber)
-        except Exception as e:
-            self.error_msg('get_threshold', blocknumber, e)
-
-        return None
-
     def describe(self):
+        """
+        For debugging purpose only
+        :return:
+        """
         if len(self.blocks) == 0:
             return
         min_block = min(self.blocks)

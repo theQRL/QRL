@@ -25,7 +25,7 @@ def _calc_hashchain(
     # Reveal hash chain
     for hash_chain in hc[-1:]:
         # Extra hash to reveal one hash value
-        for x in range(blocks_per_epoch + 1):
+        for x in range(blocks_per_epoch):
             hash_chain.append(bytes(sha2_256(hash_chain[-1])))
         hc_terminator.append(hash_chain[-1])
 

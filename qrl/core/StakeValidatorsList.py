@@ -14,16 +14,11 @@ from qrl.crypto.misc import sha256
 class StakeValidatorsList:
     """
     Maintains the Stake validators list for current and next epoch
-
-    Also maintains the threshold blocknumber for the stake validators
-    of next epoch. This threshold value is compared when to validate
-    the ST txn.
     """
     def __init__(self):
         self.sv_list = OrderedDict()
         self.next_sv_list = OrderedDict()
         self.hash_staker = OrderedDict()
-        self.threshold = dict()
         self.isOrderedLength = 0
 
     def __add__(self, sv_list, stake_txn):
@@ -98,21 +93,6 @@ class StakeValidatorsList:
 
         return False
 
-    def get_threshold(self, staker_address):
-        if self.isOrderedLength != len(self.next_sv_list):
-            self.next_sv_list = OrderedDict(sorted(iter(self.next_sv_list.items()), key=lambda sv: sv[1].balance))
-            self.isOrderedLength = len(self.next_sv_list)
-            mid_stakers = len(self.next_sv_list) // 2
-            position = 0
-            for staker in self.next_sv_list:
-                if position < mid_stakers:
-                    self.threshold[staker] = config.dev.low_staker_first_hash_block
-                else:
-                    self.threshold[staker] = config.dev.high_staker_first_hash_block
-                position += 1
-
-        return self.threshold[staker_address]
-
     def set_first_hash(self, staker_address, first_hash):
         self.next_sv_list[staker_address].first_hash = first_hash
         self.next_sv_list[staker_address].cache_hash[config.dev.hashchain_nums-1][-1] = first_hash
@@ -134,8 +114,6 @@ class StakeValidatorsList:
         self.hash_staker = OrderedDict()
         for staker in self.sv_list:
             self.update_hash_staker(self.sv_list[staker])
-
-        self.threshold = dict()
 
     @staticmethod
     def to_object(json_svl):
