@@ -134,7 +134,7 @@ class TestSimpleTransaction(TestCase):
         self.assertEqual(100, tx.amount)
         self.assertEqual(1, tx.fee)
 
-    def disabled_test_validate_tx(self):
+    def test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
         tx = SimpleTransaction.create(addr_from=self.alice.get_address(),
                                       addr_to=self.bob.get_address(),
@@ -147,11 +147,11 @@ class TestSimpleTransaction(TestCase):
         tx.sign(self.alice)
 
         # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_tx())
+        # However, our XMSS tree height is 4, not config.dev.xmss_tree_height.
+        self.assertTrue(tx.validate_tx(height=4))
 
     def test_state_validate_tx(self):
         # Test balance not enough
-        # Test negative tx amounts
         pass
 
 
@@ -213,7 +213,7 @@ class TestStakeTransaction(TestCase):
                           '0f617ba98e6a0f426517e51aff86858da592399abcde80b1b5995a6d0b71a055'],
                          binvec2hstr(tx.hash))
 
-    def disabled_test_validate_tx(self):
+    def test_validate_tx(self):
         tx = StakeTransaction.create(blocknumber=2,
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
@@ -226,7 +226,7 @@ class TestStakeTransaction(TestCase):
         tx.sign(self.alice)
 
         # We haven't touched the tx: validation should pass
-        self.assertTrue(tx.validate_tx())
+        self.assertTrue(tx.validate_tx(height=4))
 
     def test_get_message_hash(self):
         tx = StakeTransaction.create(blocknumber=2,
