@@ -209,19 +209,18 @@ class POS:
 
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
-                logger.info('%s %s', tx.txfrom, self.chain.m_blockchain[0].stake_list)
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list:
                     tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])
                     self.chain.state.stake_validators_list.add_sv(tx)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
-
+        #  TODO : Needed to be reviewed later
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
-                                                                           reveal_one=bin2hstr(sha256(
+                                                                           reveal_one=bin2hstr(sha256(str(
                                                                                reduce(lambda set1, set2: set1 + set2,
-                                                                                      staker[1]))),
+                                                                                      tuple(staker[1]))).encode())),
                                                                            balance=staker[3],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 

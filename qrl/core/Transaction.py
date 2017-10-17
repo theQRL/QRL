@@ -290,7 +290,7 @@ class StakeTransaction(Transaction):
         :rtype: bytes
         """
         # FIXME: Avoid all intermediate conversions
-        tmptxhash = ''.join([bin2hstr(b) for b in self.hash])
+        tmptxhash = bin2hstr(tuple(self.hash))
         tmptxhash = str2bin(tmptxhash
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.epoch)))
@@ -330,9 +330,9 @@ class StakeTransaction(Transaction):
         transaction._data.stake.slavePK = bytes(slavePK)
 
         if hashchain_terminator is None:
-            transaction._data.stake.hash[:] = hashchain_reveal(xmss.get_seed_private(), epoch=transaction.epoch + 1)
+            transaction._data.stake.hash = hashchain_reveal(xmss.get_seed_private(), epoch=transaction.epoch + 1)
         else:
-            transaction._data.stake.hash[:] = hashchain_terminator
+            transaction._data.stake.hash = hashchain_terminator
 
         # WARNING: These fields need to the calculated once all other fields are set
         transaction._data.ots_key = xmss.get_index()
@@ -419,10 +419,10 @@ class CoinBase(Transaction):
         transaction = CoinBase()
         transaction.blockheader = blockheader
 
-        transaction._data.addr_from = bytes(blockheader.stake_selector.encode())
+        transaction._data.addr_from = blockheader.stake_selector
         transaction._data.public_key = bytes(xmss.pk())
 
-        transaction._data.coinbase.addr_to = bytes(blockheader.stake_selector.encode())
+        transaction._data.coinbase.addr_to = blockheader.stake_selector
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
 
         transaction._data.ots_key = xmss.get_index()
