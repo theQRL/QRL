@@ -276,7 +276,7 @@ class POS:
             logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
             self.chain.add_tx_to_pool(tx)
 
-            txn_msg = tx_peer.wrap_message('TX', tx.transaction_to_json())
+            txn_msg = tx_peer.wrap_message('TX', tx.to_json())
             for peer in tx_peer.factory.peer_connections:
                 if peer != tx_peer:
                     peer.transport.write(txn_msg)

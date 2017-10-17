@@ -84,11 +84,7 @@ class ApiFactory(ServerFactory):
 
         for txn_hash in my_txn:
             txn_metadata = self.state.db.get(txn_hash)
-            dict_txn_metadata = json.loads(txn_metadata[0])
-            if dict_txn_metadata['subtype'] == TX_SUBTYPE_TX:
-                tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            elif dict_txn_metadata['subtype'] == TX_SUBTYPE_COINBASE:
-                tx = CoinBase().json_to_transaction(txn_metadata[0])
+            tx = Transaction.from_json(txn_metadata[0])
 
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 logger.info('%s found in block %s', address, str(txn_metadata[1]))

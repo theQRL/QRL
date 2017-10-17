@@ -12,7 +12,7 @@ from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState
 from qrl.core.nstate import NState
-from qrl.core.Transaction import StakeTransaction, SimpleTransaction, DuplicateTransaction
+from qrl.core.Transaction import StakeTransaction, SimpleTransaction, DuplicateTransaction, Transaction
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from queue import PriorityQueue
 
@@ -287,7 +287,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         try:
-            st = StakeTransaction().json_to_transaction(data)
+            st = Transaction.from_json(data)
         except Exception as e:
             logger.error('st rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -318,7 +318,7 @@ class P2PProtocol(Protocol):
             logger.warning('>>>ST %s invalid state validation failed..', hashes)
             return
 
-        self.factory.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())
+        self.factory.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
         return
 
     def DT(self, data):
@@ -329,7 +329,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         try:
-            duplicate_txn = DuplicateTransaction().json_to_transaction(data)
+            duplicate_txn = DuplicateTransaction().from_json(data)
         except Exception as e:
             logger.error('DT rejected')
             logger.exception(e)
@@ -1227,7 +1227,7 @@ class P2PProtocol(Protocol):
 
     def recv_tx(self, json_tx_obj):
         try:
-            tx = SimpleTransaction().json_to_transaction(json_tx_obj)
+            tx = Transaction.from_json(json_tx_obj)
         except Exception as e:
             logger.info('tx rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
