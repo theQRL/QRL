@@ -138,6 +138,15 @@ message Block {
     bytes stake_seed = 6;
 }
 
+message MR {
+    bytes hash = 1;
+    string type = 2;
+    string stake_selector = 3;
+    uint64 blocknumber = 4;
+    bytes prev_headerhash = 5;
+    bytes reveal_hash = 6;
+}
+
 message Transaction {
     enum Type {
         UNKNOWN = 0;

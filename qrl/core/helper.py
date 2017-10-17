@@ -11,7 +11,7 @@ from qrl.crypto.misc import sha256
 #FIXME: Lack of clear schemas could be dangerous in this case
 
 def isValidAddress(addr):
-    if addr.startswith('Q'):
+    if addr.startswith(b'Q'):
         suffix = addr[1:]
         if len(suffix) == 72:
             try:
