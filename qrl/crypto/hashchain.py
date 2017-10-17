@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from pyqrllib.pyqrllib import getHashChainSeed, sha2_256, hstr2bin, bin2hstr
+from pyqrllib.pyqrllib import getHashChainSeed, sha2_256
 from qrl.core import config
 
 HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')

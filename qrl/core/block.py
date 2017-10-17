@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import simplejson as json
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
 from qrl.core import logger
@@ -168,7 +169,7 @@ class Block(object):
         for tx in self.duplicate_transactions:
             if not tx.validate_tx():
                 logger.warning('invalid duplicate tx in block')
-                logger.warning('txhash: %s tx_stake_selector: %s', tx.get_message_hash(), tx.coinbase1.txto)
+                logger.warning('txhash: %s tx_stake_selector: %s', bin2hstr(tx.get_message_hash()), tx.coinbase1.txto)
                 return False
 
         return True
@@ -191,8 +192,8 @@ class Block(object):
         json_transactions = json_block['transactions']
         json_duplicate_transactions = json_block['duplicate_transactions']
 
-        tmp_block.transactions = [Transaction.from_txdict(tx) for tx in json_transactions]
-        tmp_block.duplicate_transactions = [DuplicateTransaction().from_txdict(tx)
+        tmp_block.transactions = [Transaction.from_json(tx) for tx in json_transactions]
+        tmp_block.duplicate_transactions = [DuplicateTransaction().from_json(tx)
                                             for tx in json_duplicate_transactions]
 
         return tmp_block

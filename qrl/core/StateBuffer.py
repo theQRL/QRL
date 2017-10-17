@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
-from qrl.core import config
 from qrl.crypto.misc import sha256
 from copy import deepcopy
 

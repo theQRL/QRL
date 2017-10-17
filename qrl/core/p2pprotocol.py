@@ -12,7 +12,7 @@ from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState
 from qrl.core.nstate import NState
-from qrl.core.Transaction import StakeTransaction, SimpleTransaction, DuplicateTransaction, Transaction
+from qrl.core.Transaction import DuplicateTransaction, Transaction
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from queue import PriorityQueue
 
@@ -198,6 +198,8 @@ class P2PProtocol(Protocol):
         :return:
         """
         data = json.loads(data)
+        msg_hash = bytes(data['hash'])
+
         if data['type'] not in MessageReceipt.allowed_types:
             return
 
@@ -205,18 +207,18 @@ class P2PProtocol(Protocol):
             return
 
         if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
-            logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', data['hash'])
+            logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
         if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.contains(data['hash'], data['type']):
+        if self.factory.master_mr.contains(msg_hash, data['type']):
             return
 
-        self.factory.master_mr.add_peer(data['hash'], data['type'], self, data)
+        self.factory.master_mr.add_peer(msg_hash, data['type'], self, data)
 
-        if self.factory.master_mr.is_callLater_active(data['hash']):  # Ignore if already requested
+        if self.factory.master_mr.is_callLater_active(msg_hash):  # Ignore if already requested
             return
 
         if data['type'] == 'BK':
@@ -243,7 +245,7 @@ class P2PProtocol(Protocol):
                 return
 
             score = block_chain_buffer.score_BK_hash(data)
-            self.factory.bkmr_priorityq.put((score, data['hash']))
+            self.factory.bkmr_priorityq.put((score, msg_hash))
 
             if not self.factory.bkmr_processor.active():
                 self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)

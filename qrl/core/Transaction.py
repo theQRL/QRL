@@ -626,23 +626,6 @@ class DuplicateTransaction(Transaction):
 
         return True
 
-    # def from_txdict(self, dict_tx):
-    #     # FIXME: Remove once we move completely to protobuf
-    #     return self.from_dict(dict_tx)
-    #
-    # # def from_dict(self, dict_tx):
-    # #     # FIXME: Remove once we move completely to protobuf
-    # #     self.blocknumber = dict_tx['blocknumber']
-    # #     self.prev_blockheaderhash = bytes(dict_tx['prev_blockheaderhash'])
-    # #
-    # #     self._data.duplicate.coinbase1 = CoinBase().from_dict(dict_tx['coinbase1'])
-    # #     self._data.duplicate.coinbase1_hhash = bytes(dict_tx['headerhash1'])
-    # #
-    # #     self._data.duplicate.coinbase2 = CoinBase().from_dict(dict_tx['coinbase2'])
-    # #     self._data.duplicate.coinbase2_hhash = bytes(dict_tx['headerhash2'])
-    # #
-    # #     return self
-
 
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: SimpleTransaction,

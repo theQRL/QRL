@@ -9,7 +9,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import config, logger, helper
-from qrl.core.helper import json_encode, json_bytestream_bk
+from qrl.core.helper import json_encode, json_bytestream_bk, json_bytestream
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
@@ -245,7 +245,8 @@ class P2PFactory(ServerFactory):
         # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
 
-        data = {'hash': msg_hash,
+        # FIXME: Clean
+        data = {'hash': bin2hstr(msg_hash),
                 'type': msg_type}
 
         if extra_data:
@@ -260,10 +261,9 @@ class P2PFactory(ServerFactory):
         This function sends the Message Receipt to all connected peers.
         :return:
         """
-        msg_hash_str = bin2hstr(tuple(msg_hash))
         ignore_peers = []
-        if msg_hash_str in self.master_mr.requested_hash:
-            ignore_peers = self.master_mr.requested_hash[msg_hash_str].peers_connection_list
+        if msg_hash in self.master_mr.requested_hash:
+            ignore_peers = self.master_mr.requested_hash[msg_hash].peers_connection_list
 
         if not data:
             data = {'hash': sha256(msg_hash),
