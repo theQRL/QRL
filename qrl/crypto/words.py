@@ -4,10 +4,10 @@
 
 __author__ = 'pete'
 
-'''
+"""
 word list from which to derive mnemonic for SEED retrieval. 4096 words. 
 Thus a 48 byte SEED can be represented by 32 words..
-'''
+"""
 
 wordlist = ['aback', 'abbey', 'abbot', 'abide', 'ablaze', 'able', 'aboard', 'abode', 'abort', 'abound', 'about', 'above',
             'abra', 'abroad', 'abrupt', 'absent', 'absorb', 'absurd', 'accent', 'accept', 'access', 'accord', 'accuse', 'ace',
