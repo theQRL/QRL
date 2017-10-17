@@ -105,7 +105,7 @@ class Transaction(object, metaclass=ABCMeta):
     def sign(self, xmss):
         self._data.signature = xmss.SIGN(self.txhash)
 
-    def _validate_signed_hash(self, height=config.dev.xmss_tree_height):
+    def _validate_signed_hash(self, height):
         if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom.decode():
             logger.warning('Public key verification failed')
             return False
@@ -204,7 +204,7 @@ class SimpleTransaction(Transaction):
 
         return transaction
 
-    def validate_tx(self):
+    def validate_tx(self, height=config.dev.xmss_tree_height):
         if self.subtype != TX_SUBTYPE_TX:
             return False
 
@@ -219,7 +219,7 @@ class SimpleTransaction(Transaction):
         if self.txhash != self.calculate_txhash():
             return False
 
-        if not self._validate_signed_hash():
+        if not self._validate_signed_hash(height):
             return False
 
         return True
@@ -339,7 +339,7 @@ class StakeTransaction(Transaction):
         transaction._data.transaction_hash = transaction.calculate_txhash()
         return transaction
 
-    def validate_tx(self):
+    def validate_tx(self, height=config.dev.xmss_tree_height):
         # FIX: Directly combine all this
         txhash = self.calculate_txhash()
 
@@ -354,7 +354,7 @@ class StakeTransaction(Transaction):
             logger.info('Invalid From Address %s', self.txfrom)
             return False
 
-        if not self._validate_signed_hash():
+        if not self._validate_signed_hash(height):
             return False
 
         return True
@@ -430,7 +430,7 @@ class CoinBase(Transaction):
 
         return transaction
 
-    def validate_tx(self, chain, blockheader):
+    def validate_tx(self, chain, blockheader, height=config.dev.xmss_tree_height):
         sv_list = chain.block_chain_buffer.stake_list_get(blockheader.blocknumber)
         if blockheader.blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
             logger.warning('Stake validator doesnt own the Public key')
@@ -453,7 +453,7 @@ class CoinBase(Transaction):
             return False
 
         # Slave XMSS is used to sign COINBASE txn having quite low XMSS height
-        if not self._validate_signed_hash(height=config.dev.slave_xmss_height):
+        if not self._validate_signed_hash(height):
             return False
 
         return True
@@ -503,7 +503,7 @@ class LatticePublicKey(Transaction):
 
         return transaction
 
-    def validate_tx(self):
+    def validate_tx(self, height=config.dev.xmss_tree_height):
         if not self._validate_subtype(self.subtype, TX_SUBTYPE_LATTICE):
             return False
 
@@ -513,7 +513,7 @@ class LatticePublicKey(Transaction):
             logger.warning('Found: %s Expected: %s', self.txhash, txhash)
             return False
 
-        if not self._validate_signed_hash():
+        if not self._validate_signed_hash(height):
             return False
 
         return True
@@ -610,7 +610,7 @@ class DuplicateTransaction(Transaction):
 
         return True
 
-    def validate_hash(self, headerhash, coinbase):
+    def validate_hash(self, headerhash, coinbase, height=config.dev.xmss_tree_height):
         self.headerhash = headerhash
         self.coinbase = coinbase
 
@@ -621,7 +621,7 @@ class DuplicateTransaction(Transaction):
             logger.warning('Found: %s Expected: %s', coinbase.txhash, txhash)
             return False
 
-        if not coinbase._validate_signed_hash(height=config.dev.slave_xmss_height):
+        if not coinbase._validate_signed_hash(height):
             return False
 
         return True
