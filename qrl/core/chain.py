@@ -33,7 +33,7 @@ class Chain:
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
         # FIXME: should self.mining_address be self.staking_address
-        self.mining_address = self.wallet.address_bundle[0].xmss.get_address()
+        self.mining_address = self.wallet.address_bundle[0].xmss.get_address().encode()
 
         self.ping_list = []  # FIXME: This has nothing to do with chain
 

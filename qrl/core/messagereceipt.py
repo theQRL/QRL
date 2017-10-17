@@ -4,7 +4,7 @@
 
 from collections import OrderedDict
 
-from qrl.core import config
+from qrl.core import config, logger
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 
