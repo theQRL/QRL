@@ -261,7 +261,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         data = json.loads(data)
-        msg_hash = hstr2bin(data['hash'])
+        msg_hash = bytes(hstr2bin(data['hash']))
         msg_type = data['type']
 
         if not self.factory.master_mr.contains(msg_hash, msg_type):
@@ -269,8 +269,7 @@ class P2PProtocol(Protocol):
 
         # Sending message from node, doesn't guarantee that peer has received it.
         # Thus requesting peer could re request it, may be ACK would be required
-        self.transport.write(self.wrap_message(msg_type,
-                                               self.factory.master_mr.hash_msg[bin2hstr(msg_hash)].msg))
+        self.transport.write(self.wrap_message(msg_type, self.factory.master_mr.hash_msg[msg_hash].msg))
 
     def TX(self, data):  # tx received..
         """
@@ -852,7 +851,7 @@ class P2PProtocol(Protocol):
         """
         if not config.user.enable_peer_discovery:
             return
-        data = json.loads(data)
+        data = json.loads(json_data)
         new_ips = []
         for ip in data:
             if ip not in new_ips:

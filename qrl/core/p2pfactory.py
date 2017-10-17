@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import simplejson as json
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
@@ -75,7 +75,7 @@ class P2PFactory(ServerFactory):
         # FIXME: Again, breaking encasulation
         # FIXME: Huge amount of lookups in dictionaries
 
-        msg_hash = bytes(data['hash'])
+        msg_hash = bytes(hstr2bin(data['hash']))
 
         if msg_hash in self.master_mr.hash_msg:
             if msg_hash in self.master_mr.requested_hash:
