@@ -83,7 +83,7 @@ class BlockHeader(object):
         tmp.timestamp = json_blockheader['timestamp']
 
         tmp.headerhash = tuple(json_blockheader['headerhash'])
-        tmp.prev_blockheaderhash = tuple(json_blockheader['prev_blockheaderhash'])
+        tmp.prev_blockheaderhash = json_blockheader['prev_blockheaderhash']
 
         tmp.block_reward = json_blockheader['block_reward']
         tmp.fee_reward = json_blockheader['fee_reward']

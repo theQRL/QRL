@@ -70,7 +70,7 @@ class Block(object):
 
         self.transactions[0] = coinbase_tx
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
-        coinbase_tx.nonce = sv_list[chain.mining_address].nonce + 1
+        coinbase_tx._data.nonce = sv_list[chain.mining_address].nonce + 1
 
     def validate_block(self, chain):  # check validity of new block..
         """

@@ -82,7 +82,7 @@ class State:
 
     def get_txn_count(self, addr):
         try:
-            return self.db.get( ('txn_count_' + addr))
+            return self.db.get( (b'txn_count_' + addr))
         except KeyError:
             pass
         except Exception as e:
@@ -241,7 +241,7 @@ class State:
                                                                  reveal_one=bin2hstr(sha256(str(
                                                                      reduce(lambda set1, set2: set1 + set2,
                                                                      tuple(staker[1]))).encode())),
-                                                                 balance=staker[4],
+                                                                 balance=staker[3],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
         chain.block_chain_buffer.epoch_seed = format(chain.block_chain_buffer.epoch_seed, 'x')
         if chain.stake_list[0][0] != block.blockheader.stake_selector:
@@ -404,7 +404,6 @@ class State:
         epoch_seed = 0
 
         for staker in sl:
-            logger.info('%s ', staker)
             epoch_seed |= int(str(bin2hstr(tuple(staker[1]))), 16)
 
         return epoch_seed

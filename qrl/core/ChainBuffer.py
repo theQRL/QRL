@@ -204,7 +204,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
 
-        self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(self.epoch_seed)))
+        self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + hstr2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
