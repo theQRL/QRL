@@ -187,7 +187,7 @@ message Transaction {
         uint64 finalized_blocknumber = 3;
         bytes finalized_headerhash = 4;
         bytes slavePK = 5;
-        repeated bytes hash = 7;
+        bytes hash = 7;
     }
 
     message CoinBase {

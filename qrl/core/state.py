@@ -238,8 +238,9 @@ class State:
         chain.block_chain_buffer.epoch_seed = chain.state.calc_seed(tmp_list)
         chain.stake_list = sorted(tmp_list,
                                   key=lambda staker: chain.score(stake_address=staker[0],
-                                                                 reveal_one=bin2hstr(sha256(reduce(
-                                                                     lambda set1, set2: set1 + set2, staker[1]))),
+                                                                 reveal_one=bin2hstr(sha256(str(
+                                                                     reduce(lambda set1, set2: set1 + set2,
+                                                                     tuple(staker[1]))).encode())),
                                                                  balance=staker[4],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
         chain.block_chain_buffer.epoch_seed = format(chain.block_chain_buffer.epoch_seed, 'x')
@@ -403,7 +404,8 @@ class State:
         epoch_seed = 0
 
         for staker in sl:
-            epoch_seed |= int(str(bin2hstr(staker[1])), 16)
+            logger.info('%s ', staker)
+            epoch_seed |= int(str(bin2hstr(tuple(staker[1]))), 16)
 
         return epoch_seed
 

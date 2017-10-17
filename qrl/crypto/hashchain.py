@@ -18,16 +18,12 @@ def _calc_hashchain(
     """
     hc_seed = getHashChainSeed(seed_private, epoch, 1)
 
-    hc = [[bytes(hash_chain)] for hash_chain in hc_seed]
+    hc = [bytes(hc_seed[0])]
 
-    hc_terminator = []
+    for x in range(blocks_per_epoch):
+        hc.append(bytes(sha2_256(hc[-1])))
 
-    # Reveal hash chain
-    for hash_chain in hc[-1:]:
-        # Extra hash to reveal one hash value
-        for x in range(blocks_per_epoch):
-            hash_chain.append(bytes(sha2_256(hash_chain[-1])))
-        hc_terminator.append(hash_chain[-1])
+    hc_terminator = hc[-1]
 
     return hc_seed, hc, hc_terminator
 
