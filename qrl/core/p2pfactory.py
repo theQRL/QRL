@@ -4,12 +4,14 @@ import random
 import time
 from collections import defaultdict
 
+import simplejson as json
+
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import config, logger, helper
-from qrl.core.helper import json_encode, json_bytestream_bk, json_bytestream
+from qrl.core.helper import json_bytestream_bk, json_bytestream
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
@@ -73,22 +75,21 @@ class P2PFactory(ServerFactory):
         # FIXME: Again, breaking encasulation
         # FIXME: Huge amount of lookups in dictionaries
 
-        msg_hash = data['hash']
-        msg_hash_str = bin2hstr(msg_hash)
+        msg_hash = bytes(data['hash'])
 
-        if msg_hash_str in self.master_mr.hash_msg:
-            if msg_hash_str in self.master_mr.requested_hash:
-                del self.master_mr.requested_hash[msg_hash_str]
+        if msg_hash in self.master_mr.hash_msg:
+            if msg_hash in self.master_mr.requested_hash:
+                del self.master_mr.requested_hash[msg_hash]
             return
 
-        peers_list = self.master_mr.requested_hash[msg_hash_str].peers_connection_list
-        message_request = self.master_mr.requested_hash[msg_hash_str]
+        peers_list = self.master_mr.requested_hash[msg_hash].peers_connection_list
+        message_request = self.master_mr.requested_hash[msg_hash]
         for peer in peers_list:
             if peer in message_request.already_requested_peers:
                 continue
             message_request.already_requested_peers.append(peer)
 
-            peer.transport.write(peer.wrap_message('SFM', helper.json_encode(data)))
+            peer.transport.write(peer.wrap_message('SFM', json.dumps(data)))
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                self.RFM,
                                                data)
@@ -98,8 +99,8 @@ class P2PFactory(ServerFactory):
         # If execution reach to this line, then it means no peer was able to provide
         # Full message for this hash thus the hash has to be deleted.
         # Moreover, negative points could be added to the peers, for this behavior
-        if msg_hash_str in self.master_mr.requested_hash:
-            del self.master_mr.requested_hash[msg_hash_str]
+        if msg_hash in self.master_mr.requested_hash:
+            del self.master_mr.requested_hash[msg_hash]
 
     def select_best_bkmr(self):
         block_chain_buffer = self.chain.block_chain_buffer
@@ -241,7 +242,7 @@ class P2PFactory(ServerFactory):
                                     extra_data)
         return
 
-    def register_and_broadcast(self, msg_type, msg_hash, msg_json, extra_data=None):
+    def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json, extra_data=None):
         # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
 
@@ -255,7 +256,7 @@ class P2PFactory(ServerFactory):
 
         self.broadcast(msg_hash, msg_type, data)
 
-    def broadcast(self, msg_hash, msg_type, data=None):  # Move to factory
+    def broadcast(self, msg_hash: bytes, msg_type, data=None):  # Move to factory
         """
         Broadcast
         This function sends the Message Receipt to all connected peers.
@@ -272,7 +273,7 @@ class P2PFactory(ServerFactory):
         for peer in self.peer_connections:
             if peer in ignore_peers:
                 continue
-            peer.transport.write(self.protocol.wrap_message('MR', json_encode(data)))
+            peer.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
 
     # request transaction_pool from peers
 

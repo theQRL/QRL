@@ -198,7 +198,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         data = json.loads(data)
-        msg_hash = bytes(data['hash'])
+        msg_hash = bytes(hstr2bin(data['hash']))
 
         if data['type'] not in MessageReceipt.allowed_types:
             return
@@ -261,7 +261,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         data = json.loads(data)
-        msg_hash = data['hash']
+        msg_hash = hstr2bin(data['hash'])
         msg_type = data['type']
 
         if not self.factory.master_mr.contains(msg_hash, msg_type):
@@ -372,11 +372,11 @@ class P2PProtocol(Protocol):
             z = {'block_number': self.factory.chain.m_blockchain[-1].blockheader.blocknumber,
                  'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash}
 
-            self.transport.write(self.wrap_message('BM', helper.json_encode(z)))
+            self.transport.write(self.wrap_message('BM', json.dumps(z)))
             return
         else:
             logger.info('>>> Receiving block_map')
-            z = helper.json_decode(data)
+            z = json.loads(data)
             block_number = z['block_number']
             headerhash = z['headerhash'].encode('latin1')
 
@@ -458,7 +458,7 @@ class P2PProtocol(Protocol):
             if self.isNoMoreBlock(data):
                 return
 
-            data = helper.json_decode(data)
+            data = json.loads(data)
             blocknumber = int(list(data.keys())[0].encode('ascii'))
 
             if blocknumber != self.last_requested_blocknum:
@@ -541,7 +541,7 @@ class P2PProtocol(Protocol):
             fork.verify(data, self.conn_identity, self.chain, self.randomize_headerhash_fetch)
         else:
             mini_block = json.loads(data)
-            self.blocknumber_headerhash[mini_block['blocknumber']] = mini_block['headerhash']
+            self.blocknumber_headerhash[mini_block['blocknumber']] = hstr2bin(mini_block['headerhash'])
         return
 
     def LB(self):  # request for last block to be sent
@@ -572,7 +572,7 @@ class P2PProtocol(Protocol):
         data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
                 'blocknumber': self.factory.chain.m_blockchain[-1].blockheader.blocknumber}
 
-        self.transport.write(self.wrap_message('PMBH', helper.json_encode(data)))
+        self.transport.write(self.wrap_message('PMBH', json.dumps(data)))
         return
 
     def PMBH(self, data):  # Push Maximum Blockheight and Headerhash
@@ -581,7 +581,7 @@ class P2PProtocol(Protocol):
         Function processes, received maximum blockheight and headerhash.
         :return:
         """
-        data = helper.json_decode(data)
+        data = json.loads(data)
         if not data or 'headerhash' not in data or 'blocknumber' not in data:
             return
 
@@ -630,7 +630,7 @@ class P2PProtocol(Protocol):
         >>> p.factory = Factory(defaultdict(), p.chain, tmp)
         >>> p.CB('{"block_number": 3, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}')
         """
-        z = helper.json_decode(data)
+        z = json.loads(data)
         block_number = z['block_number']
         headerhash = tuple(z['headerhash'])
 
@@ -719,7 +719,7 @@ class P2PProtocol(Protocol):
                         str(data), self.transport.getPeer().host)
             mini_block['headerhash'] = self.factory.chain.m_get_block(data).blockheader.headerhash
             mini_block['blocknumber'] = data
-            self.transport.write(self.wrap_message('PH', helper.json_bytestream_ph(mini_block)))
+            self.transport.write(self.wrap_message('PH', json.dumps(mini_block)))
         else:
             if data > self.factory.chain.height():
                 logger.info('FH for a blocknumber is greater than the local chain length..')
@@ -799,10 +799,10 @@ class P2PProtocol(Protocol):
                 'version': config.dev.version_number,
                 'genesis_prev_headerhash': config.dev.genesis_prev_headerhash
             }
-            self.transport.write(self.wrap_message('VE', helper.json_encode(version_details)))
+            self.transport.write(self.wrap_message('VE', json.dumps(version_details)))
         else:
             try:
-                data = helper.json_decode(data)
+                data = json.loads(data)
                 self.version = str(data['version'])
                 logger.info('%s version: %s | genesis prev_headerhash %s',
                             self.transport.getPeer().host,
@@ -852,7 +852,7 @@ class P2PProtocol(Protocol):
         """
         if not config.user.enable_peer_discovery:
             return
-        data = helper.json_decode(json_data)
+        data = json.loads(data)
         new_ips = []
         for ip in data:
             if ip not in new_ips:
@@ -914,7 +914,7 @@ class P2PProtocol(Protocol):
 
         if len(self.factory.chain.m_blockchain):
             z['block_number'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
-        self.transport.write(self.wrap_message('CB', helper.json_encode(z)))
+        self.transport.write(self.wrap_message('CB', json.dumps(z)))
         return
 
     def get_version(self):
@@ -937,7 +937,7 @@ class P2PProtocol(Protocol):
         peers_list = []
         for peer in self.factory.peer_connections:
             peers_list.append(peer.transport.getPeer().host)
-        self.transport.write(self.wrap_message('PL', helper.json_encode(peers_list)))
+        self.transport.write(self.wrap_message('PL', json.dumps(peers_list)))
         return
 
     def get_block_n(self, n):

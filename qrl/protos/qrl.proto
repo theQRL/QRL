@@ -187,17 +187,17 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        bytes pk_kyber = 1; // Required for LatticePublicKey
-        bytes pk_tesla = 2; // Required for LatticePublicKey
+        bytes pk_kyber = 1;
+        bytes pk_tesla = 2;
     }
 
     message Duplicate {
-        uint64 block_number = 1; // Required for duplicate transaction
-        uint64 prev_header_hash = 2; // Required for duplicate transaction
-        bytes coinbase1_hhash = 3; // Required for duplicate transaction
-        bytes coinbase2_hhash = 4; // Required for duplicate transaction
-        Transaction coinbase1 = 5; // Required for duplicate transaction
-        Transaction coinbase2 = 6; // Required for duplicate transaction
+        uint64 block_number = 1;
+        uint64 prev_header_hash = 2;
+        bytes coinbase1_hhash = 3;
+        bytes coinbase2_hhash = 4;
+        Transaction coinbase1 = 5;
+        Transaction coinbase2 = 6;
     }
 
 }

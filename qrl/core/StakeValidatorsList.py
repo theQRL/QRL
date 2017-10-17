@@ -1,12 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
+import simplejson as json
 from pyqrllib.pyqrllib import bin2hstr
-from qrl.core import helper, logger
+from qrl.core import logger
 from qrl.core.StakeValidator import StakeValidator
 from collections import OrderedDict
 
+from qrl.core.helper import ComplexEncoder
 from qrl.crypto.misc import sha256
 
 
@@ -77,4 +78,4 @@ class StakeValidatorsList:
 
     def to_json(self):
         logger.info('%s', self.__dict__)
-        return helper.json_encode_complex(self)
+        return json.dumps(self, cls=ComplexEncoder)
