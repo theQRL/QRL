@@ -572,7 +572,7 @@ class DuplicateTransaction(Transaction):
         """
         # FIXME: Avoid all intermediate conversions
         # TODO: Review get_message_hash is too different/inconsistent
-        tmptxhash = bytes(self.prev_blockheaderhash) + \
+        tmptxhash = bytes(self.prev_header_hash) + \
                     bytes(str(self.blocknumber).encode()) + \
                     bytes(self.headerhash) + \
                     bytes(self.coinbase.pubhash)
