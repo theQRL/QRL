@@ -290,7 +290,7 @@ class ApiProtocol(Protocol):
         while n > 0:
             n -= 1
             tx_meta = last_txn[n]
-            tx = SimpleTransaction().json_to_transaction(tx_meta[0])
+            tx = Transaction.from_json(tx_meta[0])
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': tx_meta[1],
                        'timestamp': tx_meta[2],

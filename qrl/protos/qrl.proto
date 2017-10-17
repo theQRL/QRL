@@ -178,7 +178,6 @@ message Transaction {
         uint64 finalized_blocknumber = 3;
         bytes finalized_headerhash = 4;
         bytes slavePK = 5;
-        bytes first_hash = 6;
         repeated bytes hash = 7;
     }
 

@@ -387,7 +387,7 @@ class Chain:
         for txn in block.transactions[-20:]:
             if txn.subtype == TX_SUBTYPE_TX:
                 last_txn.insert(0,
-                                [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
+                                [txn.to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
         del last_txn[20:]
         # FIXME: Accessing DB directly
         self.state.db.put('last_txn', last_txn)
@@ -418,7 +418,7 @@ class Chain:
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 # FIXME: Accessing DB directly
                 self.state.db.put(bin2hstr(txn.txhash),
-                                  [txn.transaction_to_json(),
+                                  [txn.to_json(),
                                    block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
 

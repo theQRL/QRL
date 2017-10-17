@@ -188,12 +188,12 @@ class P2PFactory(ServerFactory):
 
     def send_st_to_peers(self, st):
         logger.info('<<<Transmitting ST: %s', st.epoch)
-        self.register_and_broadcast('ST', st.get_message_hash(), st.transaction_to_json())
+        self.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
         return
 
     def send_tx_to_peers(self, tx):
         logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
-        self.register_and_broadcast('TX', tx.get_message_hash(), tx.transaction_to_json())
+        self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())
         return
 
     def send_reboot(self, json_hash):
