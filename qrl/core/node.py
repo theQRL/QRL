@@ -167,7 +167,7 @@ class POS:
         # are we a staker in the stake list?
 
         if self.chain.mining_address not in self.chain.m_blockchain[0].stake_list:
-            logger.info('not in stake list..no further pre_pos_x calls')
+            logger.info('%s %s', self.chain.mining_address, self.chain.m_blockchain[0].stake_list)
             return
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
@@ -209,6 +209,7 @@ class POS:
 
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
+                logger.info('%s %s', tx.txfrom, self.chain.m_blockchain[0].stake_list)
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list:
                     tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])

@@ -338,7 +338,7 @@ class State:
         # FIXME: Keep internally all hashes as bytearrays
         address_state.pubhashes.extend([ bytes(b) for b in state[2] ])
 
-        self.db.put_raw(address.encode(), address_state.SerializeToString())
+        self.db.put_raw(address, address_state.SerializeToString())
 
     def return_all_addresses(self):
         addresses = []
