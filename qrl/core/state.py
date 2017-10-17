@@ -2,9 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from _decimal import Decimal
-from operator import itemgetter
 from functools import reduce
-from copy import deepcopy
 from qrl.core import db, logger, config, helper
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList

@@ -5,7 +5,7 @@ from pyqrllib._pyqrllib import bin2hstr
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import logger
-from qrl.core.Transaction import Transaction, SimpleTransaction, CoinBase
+from qrl.core.Transaction import Transaction
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_STAKE
 from qrl.core.apiprotocol import ApiProtocol
 from qrl.core.helper import json_print_telnet
