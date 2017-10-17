@@ -142,7 +142,7 @@ class Chain:
         if not hashchain:
             return
 
-        return hashchain[-1]
+        return hashchain
 
     def select_winners(self, reveals, topN=1, blocknumber=None, block=None, seed=None):
         # FIXME: This is POS related

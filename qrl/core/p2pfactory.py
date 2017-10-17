@@ -234,13 +234,13 @@ class P2PFactory(ServerFactory):
         data = qrl_pb2.MR()
         data.stake_selector = block.transactions[0].txto
         data.blocknumber = block.blockheader.blocknumber
-        data.prev_headerhash = block.blockheader.prev_blockheaderhash
+        data.prev_headerhash = bytes(block.blockheader.prev_blockheaderhash)
 
         if block.blockheader.blocknumber > 1:
             data.reveal_hash = block.blockheader.reveal_hash
 
         self.register_and_broadcast('BK',
-                                    block.blockheader.headerhash,
+                                    bytes(block.blockheader.headerhash),
                                     json_bytestream_bk(block),
                                     data)
         return
@@ -252,6 +252,7 @@ class P2PFactory(ServerFactory):
         # FIXME: Clean
         if not data:
             data = qrl_pb2.MR()
+
         data.hash = msg_hash
         data.type = msg_type
 
