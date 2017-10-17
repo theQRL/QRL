@@ -221,13 +221,13 @@ class State:
 
                 if tx.txfrom == block.blockheader.stake_selector:
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx)
+                        self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
                         self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
                     else:
                         logger.warning('designated staker not in genesis..')
                         return False
                 else:
-                    self.stake_validators_list.add_sv(tx)
+                    self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
@@ -299,7 +299,7 @@ class State:
                 address_txn[tx.txfrom][2].append(tx.pubhash)
                 sv_list = stake_validators_list.sv_list
                 if tx.txfrom not in sv_list:
-                    stake_validators_list.add_sv(tx)
+                    stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
                 address_txn[tx.txfrom][0] += 1

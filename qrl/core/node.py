@@ -212,7 +212,7 @@ class POS:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list:
                     tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])
-                    self.chain.state.stake_validators_list.add_sv(tx)
+                    self.chain.state.stake_validators_list.add_sv(tx, 0)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
