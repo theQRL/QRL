@@ -32,13 +32,6 @@ def select_target_hashchain(last_block_headerhash):
 
     return target_chain
 
-def json_encode(obj):
-    return json.dumps(obj)
-
-
-def json_decode(js_obj):
-    return json.loads(js_obj)
-
 
 # noinspection PyClassHasNoInit
 class ComplexEncoder(json.JSONEncoder):
@@ -60,10 +53,6 @@ def json_bytestream_tx(tx_obj):  # JSON serialise tx object
 
 def json_bytestream_pb(block_obj):
     return json_bytestream(block_obj)
-
-
-def json_bytestream_ph(mini_block):
-    return json_encode(mini_block)
 
 
 def json_bytestream_bk(block_obj):  # "" block object

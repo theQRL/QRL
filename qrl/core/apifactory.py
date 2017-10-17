@@ -1,7 +1,7 @@
 # coding=utf-8
 import copy
-from jsonpickle import json
-from pyqrllib._pyqrllib import bin2hstr
+import simplejson as json
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import logger
