@@ -64,4 +64,6 @@ class DB:
         self.db.Put(key, value)
 
     def get_raw(self, key):
+        if isinstance(key, str):
+            key = bytes(key, 'utf-8')
         return self.db.Get(key)

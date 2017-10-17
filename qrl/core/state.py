@@ -315,7 +315,7 @@ class State:
 
     def _get_address_state(self, address):
         address_state = qrl_pb2.AddressState()
-        data = self.db.get_raw(address.encode())
+        data = self.db.get_raw(address)
         if data is None:
             raise KeyError("{} not found".format(address))
 

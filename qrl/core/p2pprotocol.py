@@ -5,6 +5,7 @@ import time
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
+from google.protobuf.json_format import Parse
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import helper, config, logger, fork
@@ -14,6 +15,7 @@ from qrl.core.node import NodeState
 from qrl.core.nstate import NState
 from qrl.core.Transaction import DuplicateTransaction, Transaction
 from qrl.core.processors.TxnProcessor import TxnProcessor
+from qrl.generated import qrl_pb2
 from queue import PriorityQueue
 
 
@@ -197,43 +199,44 @@ class P2PProtocol(Protocol):
         Otherwise the request is made to get the full message.
         :return:
         """
-        data = json.loads(data)
-        msg_hash = bytes(hstr2bin(data['hash']))
+        mr_data = qrl_pb2.MR()
+        Parse(data, mr_data)
+        msg_hash = mr_data.hash
 
-        if data['type'] not in MessageReceipt.allowed_types:
+        if mr_data.type not in MessageReceipt.allowed_types:
             return
 
-        if data['type'] in ['TX'] and self.factory.nodeState.state != NState.synced:
+        if mr_data.type in ['TX'] and self.factory.nodeState.state != NState.synced:
             return
 
-        if data['type'] == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
+        if mr_data.type == 'TX' and len(self.factory.chain.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
-        if data['type'] == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
+        if mr_data.type == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
             return
 
-        if self.factory.master_mr.contains(msg_hash, data['type']):
+        if self.factory.master_mr.contains(msg_hash, mr_data.type):
             return
 
-        self.factory.master_mr.add_peer(msg_hash, data['type'], self, data)
+        self.factory.master_mr.add_peer(msg_hash, mr_data.type, self, mr_data)
 
         if self.factory.master_mr.is_callLater_active(msg_hash):  # Ignore if already requested
             return
 
-        if data['type'] == 'BK':
+        if mr_data.type == 'BK':
             block_chain_buffer = self.factory.chain.block_chain_buffer
 
-            if not block_chain_buffer.verify_BK_hash(data, self.conn_identity):
-                if block_chain_buffer.is_duplicate_block(blocknum=data['blocknumber'],
-                                                         prev_blockheaderhash=tuple(data['prev_headerhash']),
-                                                         stake_selector=data['stake_selector']):
-                    self.factory.RFM(data)
-                elif data['blocknumber'] > self.factory.chain.block_chain_buffer.height() - config.dev.reorg_limit:
+            if not block_chain_buffer.verify_BK_hash(mr_data, self.conn_identity):
+                if block_chain_buffer.is_duplicate_block(blocknum=mr_data.blocknumber,
+                                                         prev_blockheaderhash=tuple(mr_data.prev_headerhash),
+                                                         stake_selector=mr_data.stake_selector):
+                    self.factory.RFM(mr_data)
+                elif mr_data.blocknumber > self.factory.chain.block_chain_buffer.height() - config.dev.reorg_limit:
                     self.FBHL()
                 return
 
-            blocknumber = data['blocknumber']
+            blocknumber = mr_data.blocknumber
             target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.pos.ntp)
             if target_blocknumber != self.factory.bkmr_blocknumber:
                 self.factory.bkmr_blocknumber = target_blocknumber
@@ -241,10 +244,10 @@ class P2PProtocol(Protocol):
                 self.factory.bkmr_priorityq = PriorityQueue()
 
             if blocknumber != target_blocknumber or blocknumber == 1:
-                self.factory.RFM(data)
+                self.factory.RFM(mr_data)
                 return
 
-            score = block_chain_buffer.score_BK_hash(data)
+            score = block_chain_buffer.score_BK_hash(mr_data)
             self.factory.bkmr_priorityq.put((score, msg_hash))
 
             if not self.factory.bkmr_processor.active():
@@ -252,7 +255,7 @@ class P2PProtocol(Protocol):
 
             return
 
-        self.factory.RFM(data)
+        self.factory.RFM(mr_data)
 
     def SFM(self, data):  # Send full message
         """
@@ -260,9 +263,10 @@ class P2PProtocol(Protocol):
         This function serves the request made for the full message.
         :return:
         """
-        data = json.loads(data)
-        msg_hash = bytes(hstr2bin(data['hash']))
-        msg_type = data['type']
+        mr_data = qrl_pb2.MR()
+        Parse(data, mr_data)
+        msg_hash = mr_data.hash
+        msg_type = mr_data.type
 
         if not self.factory.master_mr.contains(msg_hash, msg_type):
             return

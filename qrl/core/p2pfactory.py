@@ -6,6 +6,7 @@ from collections import defaultdict
 
 import simplejson as json
 
+from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
@@ -15,6 +16,7 @@ from qrl.core.helper import json_bytestream_bk, json_bytestream
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
+from qrl.generated import qrl_pb2
 
 
 class P2PFactory(ServerFactory):
@@ -75,7 +77,7 @@ class P2PFactory(ServerFactory):
         # FIXME: Again, breaking encasulation
         # FIXME: Huge amount of lookups in dictionaries
 
-        msg_hash = bytes(hstr2bin(data['hash']))
+        msg_hash = data.hash
 
         if msg_hash in self.master_mr.hash_msg:
             if msg_hash in self.master_mr.requested_hash:
@@ -89,7 +91,7 @@ class P2PFactory(ServerFactory):
                 continue
             message_request.already_requested_peers.append(peer)
 
-            peer.transport.write(peer.wrap_message('SFM', json.dumps(data)))
+            peer.transport.write(peer.wrap_message('SFM', MessageToJson(data)))
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                self.RFM,
                                                data)
@@ -229,30 +231,29 @@ class P2PFactory(ServerFactory):
 
     def send_block_to_peers(self, block):
         # logger.info('<<<Transmitting block: ', block.blockheader.headerhash)
-        extra_data = {'stake_selector': block.transactions[0].txto,
-                      'blocknumber': block.blockheader.blocknumber,
-                      'prev_headerhash': block.blockheader.prev_blockheaderhash}
+        data = qrl_pb2.MR()
+        data.stake_selector = block.transactions[0].txto
+        data.blocknumber = block.blockheader.blocknumber
+        data.prev_headerhash = block.blockheader.prev_blockheaderhash
 
         if block.blockheader.blocknumber > 1:
-            extra_data['reveal_hash'] = block.blockheader.reveal_hash
+            data.reveal_hash = block.blockheader.reveal_hash
 
         self.register_and_broadcast('BK',
                                     block.blockheader.headerhash,
                                     json_bytestream_bk(block),
-                                    extra_data)
+                                    data)
         return
 
-    def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json, extra_data=None):
+    def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json, data=None):
         # FIXME: Try to keep parameters in the same order (consistency)
         self.master_mr.register(msg_hash, msg_json, msg_type)
 
         # FIXME: Clean
-        data = {'hash': bin2hstr(msg_hash),
-                'type': msg_type}
-
-        if extra_data:
-            for key in extra_data:
-                data[key] = extra_data[key]
+        if not data:
+            data = qrl_pb2.MR()
+        data.hash = msg_hash
+        data.type = msg_type
 
         self.broadcast(msg_hash, msg_type, data)
 
@@ -267,13 +268,14 @@ class P2PFactory(ServerFactory):
             ignore_peers = self.master_mr.requested_hash[msg_hash].peers_connection_list
 
         if not data:
-            data = {'hash': sha256(msg_hash),
-                    'type': msg_type}
+            data = qrl_pb2.MR()
+            data.hash = msg_hash
+            data.type = msg_type
 
         for peer in self.peer_connections:
             if peer in ignore_peers:
                 continue
-            peer.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
+            peer.transport.write(self.protocol.wrap_message('MR', MessageToJson(data)))
 
     # request transaction_pool from peers
 
