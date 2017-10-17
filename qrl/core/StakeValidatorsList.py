@@ -16,14 +16,10 @@ class StakeValidatorsList:
     Maintains the Stake validators list for current and next epoch
     """
     def __init__(self):
-        self.sv_list = OrderedDict()
+        self.sv_list = OrderedDict()  # Active stake validator objects
+        self.inactive_sv_list = OrderedDict()  # Inactive stake validator objects
         self.hash_staker = OrderedDict()
         self.isOrderedLength = 0
-
-    def __add__(self, sv_list, stake_txn):
-        sv = StakeValidator(stake_txn)
-        sv_list[stake_txn.txfrom] = sv
-        return sv
 
     def update_hash_staker(self, sv):
         hash = sv.cache_hash[-1]
@@ -41,8 +37,9 @@ class StakeValidatorsList:
 
         return epoch_seed
 
-    def add_sv(self, stake_txn):
-        sv = self.__add__(self.sv_list, stake_txn)
+    def add_sv(self, stake_txn, blocknumber):
+        sv = StakeValidator(stake_txn, blocknumber)
+        self.sv_list[stake_txn.txfrom] = sv
         self.update_hash_staker(sv)
 
     def get_sv_list(self, txfrom):
