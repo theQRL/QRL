@@ -515,10 +515,10 @@ class ChainBuffer:
         return blocknumber
 
     def verify_BK_hash(self, data, conn_identity):
-        blocknum = data['blocknumber']
-        stake_selector = data['stake_selector']
+        blocknum = data.block_number
+        stake_selector = data.stake_selector
 
-        prev_headerhash = tuple(data['prev_headerhash'])
+        prev_headerhash = data.prev_headerhash
 
         if blocknum <= self.chain.height():
             return False
@@ -541,7 +541,7 @@ class ChainBuffer:
             logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
             return
 
-        reveal_hash = tuple(data['reveal_hash'])
+        reveal_hash = data.reveal_hash
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
 

@@ -7,6 +7,7 @@ from collections import OrderedDict, namedtuple
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
+from qrl.core.Transaction import Transaction
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
@@ -366,7 +367,8 @@ class Chain:
                 logger.info('%s found in transaction pool..', txcontains)
                 if islong == 1: json_print(tx)
         for block in self.m_blockchain:
-            for tx in block.transactions:
+            for protobuf_tx in block.transactions:
+                tx = Transaction.from_pbdata(protobuf_tx)
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
                     logger.info('%s found in block %s', txcontains, str(block.blockheader.blocknumber))
                     if islong == 0: logger.info(('<tx:txhash> ' + tx.txhash))
@@ -384,7 +386,8 @@ class Chain:
         except:
             pass
 
-        for txn in block.transactions[-20:]:
+        for protobuf_txn in block.transactions[-20:]:
+            txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype == TX_SUBTYPE_TX:
                 last_txn.insert(0,
                                 [txn.to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
@@ -414,7 +417,8 @@ class Chain:
         if len(block.transactions) == 0:
             return
 
-        for txn in block.transactions:
+        for protobuf_txn in block.transactions:
+            txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 # FIXME: Accessing DB directly
                 self.state.db.put(bin2hstr(txn.txhash),
@@ -552,7 +556,8 @@ class Chain:
         return self.transaction_pool
 
     def remove_tx_in_block_from_pool(self, block_obj):
-        for tx in block_obj.transactions:
+        for protobuf_tx in block_obj.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             for txn in self.transaction_pool:
                 if tx.txhash == txn.txhash:
                     self.remove_tx_from_pool(txn)
