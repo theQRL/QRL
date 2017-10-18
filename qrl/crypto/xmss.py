@@ -207,8 +207,8 @@ class XMSS(object):
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
-    def VERIFY(message, signature, pk, height=config.dev):
-        # type: (bytearray, list) -> bool
+    def VERIFY(message, signature, pk):
+        # type: (bytes, bytes, bytes) -> bool
         # NOTE: used by transaction
         """
         Verify an xmss sig with shorter PK
@@ -221,16 +221,16 @@ class XMSS(object):
         :param message:
         :param signature:
         :return:
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1), xmss_sign_expected1_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1))
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1), xmss_sign_expected1_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1))
         False
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2), xmss_sign_expected2_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2))
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2), xmss_sign_expected2_h)
+        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2))
         False
         """
-        return XmssFast.verify(message, signature, pk, height)
+        return XmssFast.verify(message, signature, pk)
 
     def SIGN(self, message):
         # type: (bytes) -> bytes
