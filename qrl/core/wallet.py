@@ -8,7 +8,6 @@ from pyqrllib.pyqrllib import mnemonic2bin
 
 from qrl.generated import qrl_pb2
 from qrl.core import config, logger
-from qrl.crypto.words import wordlist
 from qrl.crypto.xmss import XMSS
 
 import os
@@ -87,7 +86,7 @@ class Wallet:
 
                 self.address_bundle = []
                 for a in wallet_store.wallets:
-                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a.mnemonic.strip(), wordlist))
+                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a.mnemonic.strip()))
                     tmpxmss.set_index(a.xmss_index)
                     if a.address != tmpxmss.get_address():
                         logger.fatal("Mnemonic and address do not match.")
@@ -109,7 +108,7 @@ class Wallet:
                 data = json.load(infile)
                 self.address_bundle = []
                 for a in data:
-                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip(), wordlist))
+                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip()))
                     tmpxmss.set_index(a['index'])
                     self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
         except Exception as e:
