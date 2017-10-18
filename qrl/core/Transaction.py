@@ -105,15 +105,14 @@ class Transaction(object, metaclass=ABCMeta):
     def sign(self, xmss):
         self._data.signature = xmss.SIGN(self.txhash)
 
-    def _validate_signed_hash(self, height=config.dev.xmss_tree_height):
+    def _validate_signed_hash(self):
         if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom.decode():
             logger.warning('Public key verification failed')
             return False
 
         if not XMSS.VERIFY(message=self.txhash,
                            signature=self.signature,
-                           pk=self.PK,
-                           height=height):
+                           pk=self.PK):
             logger.warning('xmss_verify failed')
             return False
 

@@ -11,5 +11,5 @@ grpcio>=1.6.3
 grpcio-tools>=1.6.3
 service_identity
 pyopenssl>=17.3.0
-pyqrllib>=0.2.0
+pyqrllib>=0.2.3
 six>=1.9
