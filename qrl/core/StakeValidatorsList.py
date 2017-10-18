@@ -21,8 +21,8 @@ class StakeValidatorsList:
         self.hash_staker = OrderedDict()
         self.isOrderedLength = 0
 
-    def update_hash_staker(self, sv):
-        hash = sv.cache_hash[-1]
+    def update_hash_staker(self, sv, blocknumber):
+        hash = sv.cache_hash[blocknumber]
         self.hash_staker[hash] = sv.stake_validator
 
     def calc_seed(self):
@@ -40,7 +40,7 @@ class StakeValidatorsList:
     def add_sv(self, stake_txn, blocknumber):
         sv = StakeValidator(stake_txn, blocknumber)
         self.sv_list[stake_txn.txfrom] = sv
-        self.update_hash_staker(sv)
+        self.update_hash_staker(sv, blocknumber)
 
     def get_sv_list(self, txfrom):
         if txfrom not in self.sv_list:
