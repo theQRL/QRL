@@ -81,9 +81,9 @@ class GenesisBlock(object, metaclass=Singleton):
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
-                                hashedtransactions=sha2_256(b'0'),
-                                reveal_hash='000000000000000000',
+                                prev_blockheaderhash=bytes(sha2_256(config.dev.genesis_prev_headerhash.encode())),
+                                hashedtransactions=bytes(sha2_256(b'0')),
+                                reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
                                 fee_reward=0)
         return self
 

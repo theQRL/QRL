@@ -66,4 +66,4 @@ def merkle_tx_hash(hashes):
 
     res = tuple(itertools.chain(*l_array[-1]))
 
-    return res
+    return bytes(res)
