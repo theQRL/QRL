@@ -160,7 +160,7 @@ class ChainBuffer:
             self.tx_buffer[blocknum] = []
 
             for tx in block.transactions:
-                self.tx_buffer[blocknum].append(tx.txhash)
+                self.tx_buffer[blocknum].append(tx.transaction_hash)
 
     def add_block_mainchain(self, chain, block, validate=True):
         # TODO : minimum block validation in unsynced _state
@@ -252,7 +252,7 @@ class ChainBuffer:
                 return
 
             block_buffer = BlockBuffer(block, stake_reward, self.chain, self.epoch_seed,
-                                       self.get_st_balance(block.transactions[0].txto,
+                                       self.get_st_balance(block.transactions[0].addr_from,
                                                            block.blockheader.blocknumber))
 
             state_buffer.set_next_seed(block.blockheader.reveal_hash, self.epoch_seed)
@@ -270,7 +270,7 @@ class ChainBuffer:
                 logger.warning('State_validate_block failed inside chainbuffer #%s', block.blockheader.blocknumber)
                 return
             block_buffer = BlockBuffer(block, stake_reward, self.chain, parent_seed,
-                                       self.get_st_balance(block.transactions[0].txto,
+                                       self.get_st_balance(block.transactions[0].addr_from,
                                                            block.blockheader.blocknumber))
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
@@ -556,10 +556,10 @@ class ChainBuffer:
         return self.is_better_block(blocknum, score)
 
     def score_BK_hash(self, data):
-        blocknum = data['blocknumber']
-        stake_selector = data['stake_selector']
+        blocknum = data.block_number
+        stake_selector = data.stake_selector
 
-        reveal_hash = tuple(data['reveal_hash'])
+        reveal_hash = tuple(data.reveal_hash)
 
         seed = self.chain.block_chain_buffer.get_epoch_seed(blocknum)
         score = self.chain.score(stake_address=stake_selector,

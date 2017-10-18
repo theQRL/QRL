@@ -136,7 +136,7 @@ class Block(object):
                             reveal_hash = chain.select_hashchain(coinbase_tx.txto,
                                                                  tx.hash, blocknumber=1)
 
-                            if sha256(blk_header.reveal_hash) != reveal_hash:
+                            if sha256(bin2hstr(tuple(blk_header.reveal_hash)).encode()) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
                                 return False
 

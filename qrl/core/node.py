@@ -463,15 +463,13 @@ class POS:
                                                blocknumber=blocknumber)
         self.pos_blocknum = blocknumber
 
-    def create_next_block(self, blocknumber):
+    def create_next_block(self, blocknumber, entry_blocknumber):
         if not self.chain.block_chain_buffer.get_slave_xmss(blocknumber):
             return
 
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
-        epoch = blocknumber // config.dev.blocks_per_epoch
 
-        my_reveal = hash_chain[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
-
+        my_reveal = hash_chain[::-1][blocknumber - entry_blocknumber]
         block = self.create_new_block(my_reveal,
                                       blocknumber - 1)
         self.pre_block_logic(block)  # broadcast this block
@@ -498,7 +496,8 @@ class POS:
                 if stake_list[self.chain.mining_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
-                    self.create_next_block(blocknumber)
+                    entry_blocknumber = stake_list[self.chain.mining_address].entry_blocknumber
+                    self.create_next_block(blocknumber, entry_blocknumber)
                     delay = None
 
             last_blocknum = self.chain.block_chain_buffer.height()

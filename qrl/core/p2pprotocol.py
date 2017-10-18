@@ -228,7 +228,7 @@ class P2PProtocol(Protocol):
             block_chain_buffer = self.factory.chain.block_chain_buffer
 
             if not block_chain_buffer.verify_BK_hash(mr_data, self.conn_identity):
-                if block_chain_buffer.is_duplicate_block(blocknum=mr_data.blocknumber,
+                if block_chain_buffer.is_duplicate_block(blocknum=mr_data.block_number,
                                                          prev_blockheaderhash=tuple(mr_data.prev_headerhash),
                                                          stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
@@ -571,29 +571,28 @@ class P2PProtocol(Protocol):
         if self.factory.pos.nodeState.state != NState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
+        data = qrl_pb2.BlockMetaData()
+        data.hash_header = self.factory.chain.m_blockchain[-1].blockheader.headerhash
+        data.block_number = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
 
-        data = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
-                'blocknumber': self.factory.chain.m_blockchain[-1].blockheader.blocknumber}
-
-        self.transport.write(self.wrap_message('PMBH', json.dumps(data)))
+        self.transport.write(self.wrap_message('PMBH', MessageToJson(data)))
         return
 
-    def PMBH(self, data):  # Push Maximum Blockheight and Headerhash
+    def PMBH(self, raw_data):  # Push Maximum Blockheight and Headerhash
         """
         Push Maximum Blockheight and Headerhash
         Function processes, received maximum blockheight and headerhash.
         :return:
         """
-        data = json.loads(data)
-        if not data or 'headerhash' not in data or 'blocknumber' not in data:
-            return
+        data = qrl_pb2.BlockMetaData()
+        Parse(raw_data, data)
 
-        tmp = tuple(data['headerhash'])
+        tmp = data.hash_header
 
         if self.conn_identity in self.factory.pos.fmbh_allowed_peers:
             self.factory.pos.fmbh_allowed_peers[self.conn_identity] = data
             if tmp not in self.factory.pos.fmbh_blockhash_peers:
-                self.factory.pos.fmbh_blockhash_peers[tmp] = {'blocknumber': data['blocknumber'],
+                self.factory.pos.fmbh_blockhash_peers[tmp] = {'blocknumber': data.block_number,
                                                               'peers': []}
             self.factory.pos.fmbh_blockhash_peers[tmp]['peers'].append(self)
 

@@ -116,7 +116,12 @@ class P2PFactory(ServerFactory):
                     self.bkmr_priorityq = queue.PriorityQueue()
                     return
 
-            self.RFM(data={'hash': hash, 'type': 'BK'})
+            data = qrl_pb2.MR()
+
+            data.hash = hash
+            data.type = 'BK'
+
+            self.RFM(data)
             self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
         except queue.Empty:
             return
