@@ -2,27 +2,59 @@
 from pyqrllib.pyqrllib import sha2_256, str2bin
 from qrl.core import ntp, logger, config
 from qrl.core.formulas import block_reward_calc
+from qrl.generated import qrl_pb2
+from google.protobuf.json_format import MessageToJson, Parse
 
 
 class BlockHeader(object):
-    def __init__(self):
+    def __init__(self, protobuf_blockheader=None):
         """
         >>> BlockHeader() is not None
         True
         """
-        self.blocknumber = None
-        self.epoch = None
-        self.timestamp = None
+        self._data = protobuf_blockheader
+        if protobuf_blockheader is None:
+            self._data = qrl_pb2.BlockHeader()
 
-        self.headerhash = None
-        self.prev_blockheaderhash = None
+    @property
+    def blocknumber(self):
+        return self._data.block_number
 
-        self.block_reward = None
-        self.fee_reward = 0
+    @property
+    def epoch(self):
+        return self._data.epoch
 
-        self.tx_merkle_root = None
-        self.reveal_hash = None
-        self.stake_selector = None
+    @property
+    def timestamp(self):
+        return self._data.timestamp.seconds
+
+    @property
+    def headerhash(self):
+        return self._data.hash_header
+
+    @property
+    def prev_blockheaderhash(self):
+        return self._data.hash_header_prev
+
+    @property
+    def block_reward(self):
+        return self._data.reward_block
+
+    @property
+    def fee_reward(self):
+        return self._data.reward_fee
+
+    @property
+    def tx_merkle_root(self):
+        return self._data.merkle_root
+
+    @property
+    def reveal_hash(self):
+        return self._data.hash_reveal
+
+    @property
+    def stake_selector(self):
+        return self._data.stake_selector
 
     def create(self,
                chain,
@@ -49,50 +81,30 @@ class BlockHeader(object):
         0
         """
 
-        self.blocknumber = blocknumber
-        self.timestamp = 0
-        self.epoch = self.blocknumber // config.dev.blocks_per_epoch
+        self._data.block_number = blocknumber
+        self._data.epoch = self._data.block_number // config.dev.blocks_per_epoch
 
-        if self.blocknumber != 0:
-            self.timestamp = int(ntp.getTime())
-            if self.timestamp == 0:
+        if self._data.block_number != 0:
+            self._data.timestamp.seconds = int(ntp.getTime())
+            if self._data.timestamp == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
 
-        self.prev_blockheaderhash = prev_blockheaderhash
-        self.tx_merkle_root = hashedtransactions
-        self.reveal_hash = reveal_hash
-        self.fee_reward = fee_reward
+        self._data.hash_header_prev = prev_blockheaderhash
+        self._data.merkle_root = hashedtransactions
+        self._data.hash_reveal = reveal_hash
+        self._data.reward_fee = fee_reward
 
-        self.stake_selector = ''
-        self.block_reward = 0
+        self._data.stake_selector = b''
+        self._data.reward_block = 0
 
-        if self.blocknumber != 0:
-            self.stake_selector = chain.mining_address
-            self.block_reward = self.block_reward_calc()
+        if self._data.block_number != 0:
+            self._data.stake_selector = chain.mining_address
+            self._data.reward_block = self.block_reward_calc()
 
-        self.headerhash = self.generate_headerhash()
+        self._data.hash_header = self.generate_headerhash()
 
-    @staticmethod
-    def from_json(json_blockheader):
-        tmp = BlockHeader()
-
-        # TODO: Moving to protobuf?
-        tmp.blocknumber = json_blockheader['blocknumber']
-        tmp.epoch = json_blockheader['epoch']
-        tmp.timestamp = json_blockheader['timestamp']
-
-        tmp.headerhash = tuple(json_blockheader['headerhash'])
-        tmp.prev_blockheaderhash = tuple(json_blockheader['prev_blockheaderhash'])
-
-        tmp.block_reward = json_blockheader['block_reward']
-        tmp.fee_reward = json_blockheader['fee_reward']
-
-        tmp.tx_merkle_root = tuple(json_blockheader['tx_merkle_root'])
-        tmp.reveal_hash = tuple(json_blockheader['reveal_hash'])
-        tmp.stake_selector = json_blockheader['stake_selector']
-
-        return tmp
+        return self
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
@@ -105,7 +117,7 @@ class BlockHeader(object):
                                                     self.prev_blockheaderhash,
                                                     self.tx_merkle_root,
                                                     self.reveal_hash)
-        return sha2_256(str2bin(data))
+        return bytes(sha2_256(str2bin(data)))
 
     def block_reward_calc(self):
         """
@@ -166,3 +178,12 @@ class BlockHeader(object):
         if self.blocknumber > max_block_number:
             return False
 
+    @staticmethod
+    def from_json(json_data):
+        pbdata = qrl_pb2.BlockHeader()
+        Parse(json_data, pbdata)
+        return BlockHeader(pbdata)
+
+    def to_json(self):
+        # FIXME: Remove once we move completely to protobuf
+        return MessageToJson(self._data)

@@ -1,12 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import simplejson as json
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
-from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
+from qrl.core.helper import json_bytestream, get_blocks_left, ComplexEncoder
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -203,7 +204,7 @@ class ChainBuffer:
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
 
-        self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(self.epoch_seed)))
+        self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + hstr2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -472,7 +473,7 @@ class ChainBuffer:
             tmp = {blocknumber: []}
             blockStateBuffer = self.blocks[blocknumber]
             tmp[blocknumber].append(blockStateBuffer[0].block)
-            transport.write(wrap_message('PBB', json_encode_complex(tmp)))
+            transport.write(wrap_message('PBB', json.dumps(tmp, cls=ComplexEncoder)))
 
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
@@ -514,10 +515,10 @@ class ChainBuffer:
         return blocknumber
 
     def verify_BK_hash(self, data, conn_identity):
-        blocknum = data['blocknumber']
-        stake_selector = data['stake_selector']
+        blocknum = data.block_number
+        stake_selector = data.stake_selector
 
-        prev_headerhash = tuple(data['prev_headerhash'])
+        prev_headerhash = data.prev_headerhash
 
         if blocknum <= self.chain.height():
             return False
@@ -540,7 +541,7 @@ class ChainBuffer:
             logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
             return
 
-        reveal_hash = tuple(data['reveal_hash'])
+        reveal_hash = data.reveal_hash
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
 

@@ -36,7 +36,8 @@ class GenesisBlock(object, metaclass=Singleton):
         with open(genesis_data_path) as f:
             logger.info("Loading genesis from %s", genesis_data_path)
             dataMap = yaml.safe_load(f)
-            self._genesis_info.update(dataMap['genesis_info'])
+            for key in dataMap['genesis_info']:
+                self._genesis_info[key.encode()] = dataMap['genesis_info'][key]
 
         self.blockheader = BlockHeader()
         self.transactions = []
@@ -80,9 +81,9 @@ class GenesisBlock(object, metaclass=Singleton):
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
-                                hashedtransactions=sha2_256(b'0'),
-                                reveal_hash='genesis',
+                                prev_blockheaderhash=bytes(sha2_256(config.dev.genesis_prev_headerhash.encode())),
+                                hashedtransactions=bytes(sha2_256(b'0')),
+                                reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
                                 fee_reward=0)
         return self
 

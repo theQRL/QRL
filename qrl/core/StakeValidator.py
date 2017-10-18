@@ -15,21 +15,24 @@ class StakeValidator:
     Maintains the cache of successfully validated hashes, saves validation
     time by avoiding recalculation of the hash till the hash terminators.
     """
-    def __init__(self, stake_txn):
+    def __init__(self, stake_txn, entry_blocknumber):
         self.buffer_size = 4  # Move size to dev configuration
         self.stake_validator = stake_txn.txfrom
         self.slave_public_key = tuple(stake_txn.slave_public_key)
         self.balance = stake_txn.balance
-        self.hashchain_terminators = tuple(stake_txn.hash)
+        self.hash = tuple(stake_txn.hash)
+        self.entry_blocknumber = entry_blocknumber  # Blocknumber at which ST txn was added into block
 
         self.finalized_blocknumber = stake_txn.finalized_blocknumber
         self.finalized_headerhash = tuple(stake_txn.finalized_headerhash)
 
         self.nonce = 0
         self.is_banned = False
-        if stake_txn.hash:
+        self.is_active = True  # Flag that represents if the stakevalidator has been deactivated by destake txn
+
+        if self.hash:
             self.cache_hash = dict()
-            self.cache_hash[-1] = self.hashchain_terminators
+            self.cache_hash[-1] = self.hash
 
     def hash_to_terminator(self, hash, times):
         for _ in range(times):

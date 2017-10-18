@@ -167,7 +167,7 @@ class POS:
         # are we a staker in the stake list?
 
         if self.chain.mining_address not in self.chain.m_blockchain[0].stake_list:
-            logger.info('not in stake list..no further pre_pos_x calls')
+            logger.info('%s %s', self.chain.mining_address, self.chain.m_blockchain[0].stake_list)
             return
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
@@ -212,15 +212,15 @@ class POS:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list:
                     tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])
-                    self.chain.state.stake_validators_list.add_sv(tx)
+                    self.chain.state.stake_validators_list.add_sv(tx, 0)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
-
+        #  TODO : Needed to be reviewed later
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
-                                                                           reveal_one=bin2hstr(sha256(
+                                                                           reveal_one=bin2hstr(sha256(str(
                                                                                reduce(lambda set1, set2: set1 + set2,
-                                                                                      staker[1]))),
+                                                                                      tuple(staker[1]))).encode())),
                                                                            balance=staker[3],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 
@@ -276,7 +276,7 @@ class POS:
             logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
             self.chain.add_tx_to_pool(tx)
 
-            txn_msg = tx_peer.wrap_message('TX', tx.transaction_to_json())
+            txn_msg = tx_peer.wrap_message('TX', tx.to_json())
             for peer in tx_peer.factory.peer_connections:
                 if peer != tx_peer:
                     peer.transport.write(txn_msg)
@@ -470,7 +470,7 @@ class POS:
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
         epoch = blocknumber // config.dev.blocks_per_epoch
 
-        my_reveal = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
+        my_reveal = hash_chain[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
 
         block = self.create_new_block(my_reveal,
                                       blocknumber - 1)

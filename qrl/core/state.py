@@ -2,10 +2,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from _decimal import Decimal
-from operator import itemgetter
 from functools import reduce
-from copy import deepcopy
 from qrl.core import db, logger, config, helper
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
@@ -84,7 +83,7 @@ class State:
 
     def get_txn_count(self, addr):
         try:
-            return self.db.get( ('txn_count_' + addr))
+            return self.db.get( (b'txn_count_' + addr))
         except KeyError:
             pass
         except Exception as e:
@@ -182,7 +181,8 @@ class State:
     def load_address_state(self, chain, block, address_txn):
         blocknumber = block.blockheader.blocknumber
 
-        for tx in block.transactions:
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if tx.txfrom not in address_txn:
                 address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
 
@@ -194,8 +194,8 @@ class State:
 
     def update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
-        tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-
+        protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
+        tx = CoinBase.from_pbdata(protobuf_tx)
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
             logger.warning('subtype: %s', tx.subtype)
@@ -212,7 +212,8 @@ class State:
 
         # Coinbase update end here
         tmp_list = []
-        for tx in block.transactions:
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if tx.subtype == TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
                 tmp_list.append([tx.txfrom,
@@ -223,13 +224,13 @@ class State:
 
                 if tx.txfrom == block.blockheader.stake_selector:
                     if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx)
+                        self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
                         self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
                     else:
                         logger.warning('designated staker not in genesis..')
                         return False
                 else:
-                    self.stake_validators_list.add_sv(tx)
+                    self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
@@ -240,9 +241,10 @@ class State:
         chain.block_chain_buffer.epoch_seed = chain.state.calc_seed(tmp_list)
         chain.stake_list = sorted(tmp_list,
                                   key=lambda staker: chain.score(stake_address=staker[0],
-                                                                 reveal_one=bin2hstr(sha256(reduce(
-                                                                     lambda set1, set2: set1 + set2, staker[1]))),
-                                                                 balance=staker[4],
+                                                                 reveal_one=bin2hstr(sha256(str(
+                                                                     reduce(lambda set1, set2: set1 + set2,
+                                                                     tuple(staker[1]))).encode())),
+                                                                 balance=staker[3],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
         chain.block_chain_buffer.epoch_seed = format(chain.block_chain_buffer.epoch_seed, 'x')
         if chain.stake_list[0][0] != block.blockheader.stake_selector:
@@ -270,8 +272,8 @@ class State:
             logger.warning('stake selector is in banned list')
             return
         # cycle through every tx in the new block to check state
-        for tx in block.transactions:
-
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
             else:
@@ -300,7 +302,7 @@ class State:
                 address_txn[tx.txfrom][2].append(tx.pubhash)
                 sv_list = stake_validators_list.sv_list
                 if tx.txfrom not in sv_list:
-                    stake_validators_list.add_sv(tx)
+                    stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
                 address_txn[tx.txfrom][0] += 1
@@ -317,7 +319,7 @@ class State:
 
     def _get_address_state(self, address):
         address_state = qrl_pb2.AddressState()
-        data = self.db.get_raw(address.encode())
+        data = self.db.get_raw(address)
         if data is None:
             raise KeyError("{} not found".format(address))
 
@@ -340,7 +342,7 @@ class State:
         # FIXME: Keep internally all hashes as bytearrays
         address_state.pubhashes.extend([ bytes(b) for b in state[2] ])
 
-        self.db.put_raw(address.encode(), address_state.SerializeToString())
+        self.db.put_raw(address, address_state.SerializeToString())
 
     def return_all_addresses(self):
         addresses = []
@@ -405,7 +407,7 @@ class State:
         epoch_seed = 0
 
         for staker in sl:
-            epoch_seed |= int(str(bin2hstr(staker[1])), 16)
+            epoch_seed |= int(str(bin2hstr(tuple(staker[1]))), 16)
 
         return epoch_seed
 

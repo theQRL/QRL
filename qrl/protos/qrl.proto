@@ -121,10 +121,9 @@ message BlockHeader {
     uint64 reward_block = 6;
     uint64 reward_fee = 7;
 
-    bytes merkel_root = 8;
+    bytes merkle_root = 8;
     bytes hash_reveal = 9;
-    bytes hash_vote = 10;
-    string stake_selector = 11;
+    bytes stake_selector = 10;
 }
 
 message Block {
@@ -135,7 +134,20 @@ message Block {
     repeated AddressState state = 4;
 
     repeated string stake_list = 5; // addresses
-    bytes stake_seed = 6;
+}
+
+message BlockMetaData {
+    uint64 block_number = 1;
+    bytes hash_header = 2;
+}
+
+message MR {
+    bytes hash = 1;
+    string type = 2;
+    bytes stake_selector = 3;
+    uint64 block_number = 4;
+    bytes prev_headerhash = 5;
+    bytes reveal_hash = 6;
 }
 
 message Transaction {
@@ -178,8 +190,7 @@ message Transaction {
         uint64 finalized_blocknumber = 3;
         bytes finalized_headerhash = 4;
         bytes slavePK = 5;
-        bytes first_hash = 6;
-        repeated bytes hash = 7;
+        bytes hash = 7;
     }
 
     message CoinBase {
@@ -188,17 +199,17 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        bytes pk_kyber = 1; // Required for LatticePublicKey
-        bytes pk_tesla = 2; // Required for LatticePublicKey
+        bytes pk_kyber = 1;
+        bytes pk_tesla = 2;
     }
 
     message Duplicate {
-        uint64 block_number = 1; // Required for duplicate transaction
-        uint64 prev_header_hash = 2; // Required for duplicate transaction
-        bytes coinbase1_hhash = 3; // Required for duplicate transaction
-        bytes coinbase2_hhash = 4; // Required for duplicate transaction
-        Transaction coinbase1 = 5; // Required for duplicate transaction
-        Transaction coinbase2 = 6; // Required for duplicate transaction
+        uint64 block_number = 1;
+        uint64 prev_header_hash = 2;
+        bytes coinbase1_hhash = 3;
+        bytes coinbase2_hhash = 4;
+        Transaction coinbase1 = 5;
+        Transaction coinbase2 = 6;
     }
 
 }

@@ -3,27 +3,42 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import simplejson as json
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
 from qrl.core import logger
 from qrl.core.blockheader import BlockHeader
 from qrl.core.Transaction import Transaction, CoinBase, DuplicateTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
+from qrl.generated import qrl_pb2
+from google.protobuf.json_format import MessageToJson, Parse
 
 
 class Block(object):
-    def __init__(self):
-        self.blockheader = None
-        self.transactions = None
-        self.duplicate_transactions = None
+    def __init__(self, protobuf_block=None):
+        self._data = protobuf_block
+        if protobuf_block is None:
+            self._data = qrl_pb2.Block()
+        else:
+            self.blockheader = BlockHeader(protobuf_block.header)
 
-        self.state = None
-        self.stake_list = None
+    @property
+    def transactions(self):
+        return self._data.transactions
+
+    @property
+    def duplicate_transactions(self):
+        return self._data.dup_transactions
+
+    @property
+    def state(self):
+        return self._data.state
+
+    @property
+    def stake_list(self):
+        return self._data.stake_list
 
     def create(self, chain, reveal_hash, last_block_number=-1):
-        # FIXME: probably this should turn into a constructor
-        reveal_hash = reveal_hash
-
         data = None
         if last_block_number == -1:
             data = chain.block_chain_buffer.get_last_block()  # m_get_last_block()
@@ -34,42 +49,44 @@ class Block(object):
         prev_blockheaderhash = data.blockheader.headerhash
 
         hashedtransactions = []
-        self.transactions = [None]
+
+        self._data.transactions.extend([qrl_pb2.Transaction()])
         fee_reward = 0
 
         for tx in chain.transaction_pool:
             if tx.subtype == TX_SUBTYPE_TX:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
-            self.transactions.append(tx)  # copy memory rather than sym link
-
-        self.duplicate_transactions = []
+            self._data.transactions.extend([tx._data])  # copy memory rather than sym link
 
         for tx in chain.duplicate_tx_pool:
-            self.duplicate_transactions.append(chain.duplicate_tx_pool[tx])
+            self._data.duplicate_transactions.extend([chain.duplicate_tx_pool[tx]._data])
 
         if not hashedtransactions:
             hashedtransactions = [sha256('')]
 
         hashedtransactions = merkle_tx_hash(hashedtransactions)
 
-        self.blockheader = BlockHeader()
-        self.blockheader.create(chain=chain,
-                                blocknumber=last_block_number + 1,
-                                reveal_hash=reveal_hash,
-                                prev_blockheaderhash=prev_blockheaderhash,
-                                hashedtransactions=hashedtransactions,
-                                fee_reward=fee_reward)
+        self.blockheader = BlockHeader().create(chain=chain,
+                                                blocknumber=last_block_number + 1,
+                                                reveal_hash=reveal_hash,
+                                                prev_blockheaderhash=prev_blockheaderhash,
+                                                hashedtransactions=hashedtransactions,
+                                                fee_reward=fee_reward)
+
+        self._data.header.MergeFrom(self.blockheader._data)
+
 
         signing_xmss = chain.block_chain_buffer.get_slave_xmss(last_block_number + 1)
 
         coinbase_tx = CoinBase.create(self.blockheader, signing_xmss)
 
-        coinbase_tx.sign(signing_xmss)
-
-        self.transactions[0] = coinbase_tx
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
-        coinbase_tx.nonce = sv_list[chain.mining_address].nonce + 1
+        coinbase_tx._data.nonce = sv_list[chain.mining_address].nonce + 1
+
+        coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
+
+        self._data.transactions[0].CopyFrom(coinbase_tx._data)
 
     def validate_block(self, chain):  # check validity of new block..
         """
@@ -90,7 +107,7 @@ class Block(object):
                 logger.warning('BLOCK : There must be atleast 1 txn')
                 return False
 
-            coinbase_tx = self.transactions[0]
+            coinbase_tx = CoinBase(self.transactions[0])
 
             if coinbase_tx.subtype != TX_SUBTYPE_COINBASE:
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
@@ -111,11 +128,12 @@ class Block(object):
 
             if blk_header.blocknumber == 1:
                 found = False
-                for tx in self.transactions:
+                for protobuf_tx in self.transactions:
+                    tx = Transaction.from_pbdata(protobuf_tx)
                     if tx.subtype == TX_SUBTYPE_STAKE:
                         if tx.txfrom == blk_header.stake_selector:
                             found = True
-                            reveal_hash = chain.select_hashchain(self.transactions[0].txto,
+                            reveal_hash = chain.select_hashchain(coinbase_tx.txto,
                                                                  tx.hash, blocknumber=1)
 
                             if sha256(blk_header.reveal_hash) != reveal_hash:
@@ -128,13 +146,13 @@ class Block(object):
 
             else:  # we look in stake_list for the hash terminator and hash to it..
                 stake_validators_list = chain.block_chain_buffer.get_stake_validators_list(self.blockheader.blocknumber)
-                if self.transactions[0].txto not in stake_validators_list.sv_list:
+                if coinbase_tx.txto not in stake_validators_list.sv_list:
                     logger.warning('Stake selector not in stake_list for this epoch..')
                     return False
 
                 if not stake_validators_list.validate_hash(blk_header.reveal_hash,
                                                            blk_header.blocknumber,
-                                                           self.transactions[0].txto):
+                                                           coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
 
@@ -150,7 +168,7 @@ class Block(object):
 
     def _validate_tx_in_block(self, chain):
         # Validating coinbase txn
-        coinbase_txn = self.transactions[0]
+        coinbase_txn = CoinBase(self.transactions[0])
         valid = coinbase_txn.validate_tx(chain=chain,
                                          blockheader=self.blockheader)
 
@@ -159,40 +177,28 @@ class Block(object):
             return False
 
         for tx_num in range(1, len(self.transactions)):
-            tx = self.transactions[tx_num]
+            protobuf_tx = self.transactions[tx_num]
+            tx = Transaction.from_pbdata(protobuf_tx)
             if not tx.validate_tx():
                 logger.warning('invalid tx in block')
                 logger.warning('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
                 return False
 
-        for tx in self.duplicate_transactions:
+        for protobuf_tx in self.duplicate_transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if not tx.validate_tx():
                 logger.warning('invalid duplicate tx in block')
-                logger.warning('txhash: %s tx_stake_selector: %s', tx.get_message_hash(), tx.coinbase1.txto)
+                logger.warning('txhash: %s tx_stake_selector: %s', bin2hstr(tx.get_message_hash()), tx.coinbase1.txto)
                 return False
 
         return True
 
     @staticmethod
-    def from_json(json_block):
-        """
-        Constructor a block from a json string
-        :param json_block: a block serialized as a json string
-        :return: A block
-        """
-        tmp_block = Block()
-        json_block = json.loads(json_block)
-        tmp_block.blockheader = BlockHeader.from_json(json_block['blockheader'])
+    def from_json(json_data):
+        pbdata = qrl_pb2.Block()
+        Parse(json_data, pbdata)
+        return Block(pbdata)
 
-        if tmp_block.blockheader.blocknumber == 0:
-            tmp_block.state = json_block['state']
-            tmp_block.stake_list = json_block['stake_list']
-
-        json_transactions = json_block['transactions']
-        json_duplicate_transactions = json_block['duplicate_transactions']
-
-        tmp_block.transactions = [Transaction.from_txdict(tx) for tx in json_transactions]
-        tmp_block.duplicate_transactions = [DuplicateTransaction().from_txdict(tx)
-                                            for tx in json_duplicate_transactions]
-
-        return tmp_block
+    def to_json(self):
+        # FIXME: Remove once we move completely to protobuf
+        return MessageToJson(self._data)

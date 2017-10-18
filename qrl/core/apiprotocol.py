@@ -5,16 +5,17 @@ import copy
 import json
 import time
 from operator import itemgetter
-from decimal import Decimal
 
 import statistics
+from unicodedata import decimal
+
 from twisted.internet.protocol import Protocol, connectionDone
 
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger
 from qrl.core.helper import json_print_telnet
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
-from qrl.core.Transaction import SimpleTransaction, Transaction
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX
+from qrl.core.Transaction import Transaction
 
 
 class ApiProtocol(Protocol):
@@ -290,7 +291,7 @@ class ApiProtocol(Protocol):
         while n > 0:
             n -= 1
             tx_meta = last_txn[n]
-            tx = SimpleTransaction().json_to_transaction(tx_meta[0])
+            tx = Transaction.from_json(tx_meta[0])
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
                        'block': tx_meta[1],
                        'timestamp': tx_meta[2],
