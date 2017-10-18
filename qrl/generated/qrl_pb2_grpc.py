@@ -91,7 +91,7 @@ class PublicAPIStub(object):
     self.PushTransaction = channel.unary_unary(
         '/qrl.PublicAPI/PushTransaction',
         request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
-        response_deserializer=qrl__pb2.PushTransactionReqResp.FromString,
+        response_deserializer=qrl__pb2.PushTransactionResp.FromString,
         )
 
 
@@ -148,7 +148,7 @@ def add_PublicAPIServicer_to_server(servicer, server):
       'PushTransaction': grpc.unary_unary_rpc_method_handler(
           servicer.PushTransaction,
           request_deserializer=qrl__pb2.PushTransactionReq.FromString,
-          response_serializer=qrl__pb2.PushTransactionReqResp.SerializeToString,
+          response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
