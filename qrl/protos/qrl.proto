@@ -123,8 +123,7 @@ message BlockHeader {
 
     bytes merkel_root = 8;
     bytes hash_reveal = 9;
-    bytes hash_vote = 10;
-    string stake_selector = 11;
+    string stake_selector = 10;
 }
 
 message Block {
@@ -135,7 +134,6 @@ message Block {
     repeated AddressState state = 4;
 
     repeated string stake_list = 5; // addresses
-    bytes stake_seed = 6;
 }
 
 message MR {

@@ -557,7 +557,7 @@ class P2PProtocol(Protocol):
                     str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))),
                     self.transport.getPeer().host)
 
-        self.transport.write(self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_last_block())))
+        self.transport.write(self.wrap_message('BK', self.factory.chain.m_get_last_block()).to_json())
         return
 
     def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
@@ -682,7 +682,7 @@ class P2PProtocol(Protocol):
                         len(helper.json_bytestream(self.factory.chain.m_get_block(int(data)))),
                         self.transport.getPeer().host)
             self.transport.write(
-                self.wrap_message('BK', helper.json_bytestream_bk(self.factory.chain.m_get_block(int(data)))))
+                self.wrap_message('BK', self.factory.chain.m_get_block(int(data))).to_json())
         else:
             if int(data) >= self.factory.chain.m_blockheight():
                 logger.info('BN for a blockheight greater than local chain length..')
