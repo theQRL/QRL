@@ -29,15 +29,25 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     import inspect
     from sphinx import apidoc
+    import sys
+    from unittest.mock import MagicMock
 
     __location__ = os.path.join(os.getcwd(), os.path.dirname(
         inspect.getfile(inspect.currentframe())))
 
-    output_dir = os.path.join(__location__, "../docs/api")
-    module_dir = os.path.join(__location__, "../core")
+    output_dir = os.path.join(__location__, "..", "docs", "api")
+    module_dir = os.path.join(__location__, "..", "qrl")
     cmd_line_template = "sphinx-apidoc -f -o {outputdir} {moduledir}"
     cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
     apidoc.main(cmd_line.split(" "))
+
+    class Mock(MagicMock):
+        @classmethod
+        def __getattr__(cls, name):
+                return MagicMock()
+
+    MOCK_MODULES = ['pyqrllib']
+    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # -- General configuration -----------------------------------------------------
 

@@ -12,9 +12,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from qrl.core import helper
 from qrl.crypto.mnemonic import validate_mnemonic
-from qrl.crypto.words import wordlist
 
 
 def hexseed_to_seed(hex_seed):
@@ -54,7 +52,8 @@ class showAddresses(Resource):
     isLeaf = True
 
     def render_GET(self, request):
-        return bytes(helper.json_encode(self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)), 'utf-8')
+        tmp = self.chain.wallet.list_addresses(self.chain.state, self.chain.transaction_pool)
+        return bytes(json.dumps(tmp), 'utf-8')
 
 
 class newAddress(Resource):
@@ -94,18 +93,18 @@ class recoverAddress(Resource):
             # Fail if no words provided
             if not jsQ["words"]:
                 self.result["message"] = "You must provide your mnemonic phrase!"
-                return bytes(helper.json_encode(self.result), 'utf-8')
+                return bytes(json.dumps(self.result), 'utf-8')
 
             # FIXME: Validation should not be here, it should be part of mnemonic
             mnemonicphrase = jsQ["words"]
 
             if not validate_mnemonic(mnemonicphrase):
                 self.result["message"] = "Invalid mnemonic phrase! It must contain exactly 32 valid words"
-                return bytes(helper.json_encode(self.result), 'utf-8')
+                return bytes(json.dumps(self.result), 'utf-8')
 
             # Try to recover
             try:
-                addr = self.chain.wallet.get_new_address(seed=mnemonic2bin(mnemonicphrase, wordlist))
+                addr = self.chain.wallet.get_new_address(seed=mnemonic2bin(mnemonicphrase))
                 self.chain.wallet.append_wallet(addr)
                 
                 # Find hex/mnemonic for recovered wallet
@@ -118,13 +117,13 @@ class recoverAddress(Resource):
                     "message"] = "There was a problem restoring your address. " \
                                  "If you believe this is in error, please raise it with the QRL team."
 
-                return bytes(helper.json_encode(self.result), 'utf-8')
+                return bytes(json.dumps(self.result), 'utf-8')
 
         # Recover address from hexseed
         elif jsQ["type"] == "hexseed":
             if not jsQ["hexseed"] or not hexseed_to_seed(jsQ["hexseed"]):
                 self.result["message"] = "Invalid Hex Seed!"
-                return bytes(helper.json_encode(self.result), 'utf-8')
+                return bytes(json.dumps(self.result), 'utf-8')
 
             # Try to recover
             try:
@@ -139,18 +138,18 @@ class recoverAddress(Resource):
             except:
                 self.result[
                     "message"] = "There was a problem restoring your address. If you believe this is in error, please raise it with the QRL team."
-                return bytes(helper.json_encode(self.result), 'utf-8')
+                return bytes(json.dumps(self.result), 'utf-8')
 
         # Invalid selection
         else:
             self.result[
                 "message"] = "You must select either mnemonic or hexseed recovery options to restore an address!"
-            return bytes(helper.json_encode(self.result), 'utf-8')
+            return bytes(json.dumps(self.result), 'utf-8')
 
         # If we got this far, it must have worked!
         self.result["status"] = "success"
 
-        return bytes(helper.json_encode(self.result), 'utf-8')
+        return bytes(json.dumps(self.result), 'utf-8')
 
 
 class memPoolSize(Resource):
@@ -220,7 +219,7 @@ class sendQuanta(Resource):
 
         except Exception as e:
             self.txnResult["message"] = str(e)
-            return bytes(helper.json_encode(self.txnResult), 'utf-8')
+            return bytes(json.dumps(self.txnResult), 'utf-8')
 
         ################################
         ################################
@@ -231,4 +230,4 @@ class sendQuanta(Resource):
         self.txnResult["to"] = str(tx.txto)
         # FIXME: Magic number? Unify
         self.txnResult["amount"] = str(tx.amount / 100000000.000000000)
-        return bytes(helper.json_encode(self.txnResult), 'utf-8')
+        return bytes(json.dumps(self.txnResult), 'utf-8')

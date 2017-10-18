@@ -17,20 +17,53 @@ class APIService(PublicAPIServicer):
         self.qrlnode = qrlnode
 
     def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
-        known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
-        return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
+        try:
+            known_peers = qrl_pb2.KnownPeers()
+            known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
+            return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
+        except Exception as e:
+            context.set_code(StatusCode.unknown)
+            context.set_details(str(e))
+            return None
 
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
         try:
             address_state = self.qrlnode.get_address_state(request.address)
+            return qrl_pb2.GetAddressStateResp(state=address_state)
         except Exception as e:
             context.set_code(StatusCode.not_found)
-            context.set_details(e)
+            context.set_details(str(e))
             return None
-        return qrl_pb2.GetAddressStateResp(state=address_state)
 
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[QRLNode] TransferCoins")
-        self.qrlnode.transfer_coins()
-        return qrl_pb2.TransferCoinsResp()
+        try:
+            tx = self.qrlnode.create_send_tx(addr_from=request.address_from,
+                                             addr_to=request.address_to,
+                                             amount=request.amount,
+                                             fee=request.fee,
+                                             xmss_pk=request.xmss_pk,
+                                             xmss_ots_index=request.xmss_ots_index)
+
+            return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+
+        except Exception as e:
+            context.set_code(StatusCode.unknown)
+            context.set_details(str(e))
+            return None
+
+    def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
+        logger.debug("[QRLNode] PushTransaction")
+        try:
+            submitted = self.qrlnode.submit_send_tx(request.transaction_signed)
+
+            # FIXME: Improve response type
+            # Prepare response
+            answer = qrl_pb2.PushTransactionResp()
+            answer.some_response = str(submitted)
+            return answer
+
+        except Exception as e:
+            context.set_code(StatusCode.unknown)
+            context.set_details(str(e))
+            return None

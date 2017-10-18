@@ -7,7 +7,7 @@ import time
 from collections import Counter, defaultdict
 from functools import reduce
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, sha2_256
 from twisted.internet import reactor
 
 import qrl.core.Transaction_subtypes
@@ -167,7 +167,7 @@ class POS:
         # are we a staker in the stake list?
 
         if self.chain.mining_address not in self.chain.m_blockchain[0].stake_list:
-            logger.info('not in stake list..no further pre_pos_x calls')
+            logger.info('%s %s', self.chain.mining_address, self.chain.m_blockchain[0].stake_list)
             return
 
         logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
@@ -176,7 +176,7 @@ class POS:
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
-        tmpbalance = self.chain.state.state_balance(self.chain.mining_address)
+        tmpbalance = self.chain.state.balance(self.chain.mining_address)
         slave_xmss = self.chain.block_chain_buffer.get_slave_xmss(0)
         if not slave_xmss:
             logger.info('Waiting for SLAVE XMSS to be done')
@@ -186,9 +186,10 @@ class POS:
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
         st = StakeTransaction.create(blocknumber=0,
                                      xmss=signing_xmss,
-                                     slave_public_key=slave_xmss.pk(),
+                                     slavePK=slave_xmss.pk(),
+                                     finalized_blocknumber=0,
+                                     finalized_headerhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
                                      hashchain_terminator=tmphc.hc_terminator,
-                                     first_hash=tmphc.hashchain[-1][-2],
                                      balance=tmpbalance)
         st.sign(signing_xmss)
 
@@ -208,23 +209,19 @@ class POS:
 
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
-                if tx.txfrom in self.chain.m_blockchain[0].stake_list and tx.first_hash:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, tx.first_hash, GenesisBlock().get_info()[tx.txfrom],
+                if tx.txfrom in self.chain.m_blockchain[0].stake_list:
+                    tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
                                      tx.slave_public_key])
-                    self.chain.state.stake_validators_list.add_sv(tx.txfrom,
-                                                                  tx.slave_public_key,
-                                                                  tx.hash,
-                                                                  tx.first_hash,
-                                                                  GenesisBlock().get_info()[tx.txfrom])
+                    self.chain.state.stake_validators_list.add_sv(tx, 0)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
-
+        #  TODO : Needed to be reviewed later
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
-                                                                           reveal_one=bin2hstr(sha256(
+                                                                           reveal_one=bin2hstr(sha256(str(
                                                                                reduce(lambda set1, set2: set1 + set2,
-                                                                                      staker[1]))),
-                                                                           balance=staker[4],
+                                                                                      tuple(staker[1]))).encode())),
+                                                                           balance=staker[3],
                                                                            seed=self.chain.block_chain_buffer.epoch_seed))
 
         self.chain.block_chain_buffer.epoch_seed = format(self.chain.block_chain_buffer.epoch_seed, 'x')
@@ -244,11 +241,10 @@ class POS:
             tmphc = hashchain(self.chain.wallet.address_bundle[0].xmss.get_seed_private())
 
             # create the genesis block 2 here..
-            reveal_hash, vote_hash = self.chain.select_hashchain(self.chain.m_blockchain[-1].blockheader.headerhash,
-                                                                 self.chain.mining_address,
-                                                                 tmphc.hashchain,
-                                                                 blocknumber=1)
-            b = self.chain.m_create_block(reveal_hash[-2], vote_hash[-2])
+            reveal_hash = self.chain.select_hashchain(self.chain.mining_address,
+                                                      tmphc.hashchain,
+                                                      blocknumber=1)
+            b = self.chain.m_create_block(reveal_hash[-2])
             self.pre_block_logic(b)
         else:
             logger.info('await block creation by stake validator: %s', self.chain.stake_list[0][0])
@@ -280,7 +276,7 @@ class POS:
             logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
             self.chain.add_tx_to_pool(tx)
 
-            txn_msg = tx_peer.wrap_message('TX', tx.transaction_to_json())
+            txn_msg = tx_peer.wrap_message('TX', tx.to_json())
             for peer in tx_peer.factory.peer_connections:
                 if peer != tx_peer:
                     peer.transport.write(txn_msg)
@@ -291,10 +287,9 @@ class POS:
 
     # create new block..
 
-    def create_new_block(self, reveal_hash, vote_hash, last_block_number):
-        block_chain_buffer = self.chain.block_chain_buffer
+    def create_new_block(self, reveal_hash, last_block_number):
         logger.info('create_new_block #%s', (last_block_number + 1))
-        block_obj = self.chain.create_stake_block(reveal_hash, vote_hash, last_block_number)
+        block_obj = self.chain.create_stake_block(reveal_hash, last_block_number)
 
         return block_obj
 
@@ -468,24 +463,14 @@ class POS:
                                                blocknumber=blocknumber)
         self.pos_blocknum = blocknumber
 
-    def create_next_block(self, blocknumber):
+    def create_next_block(self, blocknumber, entry_blocknumber):
         if not self.chain.block_chain_buffer.get_slave_xmss(blocknumber):
             return
 
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
-        epoch = blocknumber // config.dev.blocks_per_epoch
 
-        my_reveal = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
-
-        prev_headerhash = self.chain.block_chain_buffer.get_strongest_headerhash(blocknumber - 1)
-        stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(blocknumber)
-
-        target_chain = stake_validators_list.select_target(prev_headerhash)
-        hashes = hash_chain[target_chain]
-        vote_hash = hashes[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch)]
-
+        my_reveal = hash_chain[::-1][blocknumber - entry_blocknumber]
         block = self.create_new_block(my_reveal,
-                                      vote_hash,
                                       blocknumber - 1)
         self.pre_block_logic(block)  # broadcast this block
 
@@ -499,32 +484,10 @@ class POS:
         """
 
         if self.p2pFactory.stake:
-            next_stake_list = self.chain.block_chain_buffer.next_stake_list_get(blocknumber)
+            stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
 
-            epoch = blocknumber // config.dev.blocks_per_epoch
-            epoch_blocknum = blocknumber - epoch * config.dev.blocks_per_epoch
-
-            if epoch_blocknum < config.dev.stake_before_x_blocks and self.chain.mining_address not in next_stake_list:
-                diff = max(1, int(
-                    (config.dev.stake_before_x_blocks * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)))
-                if random.randint(1, diff) == 1:
-                    self.make_st_tx(blocknumber, None)
-
-            elif epoch_blocknum >= config.dev.stake_before_x_blocks - 1 and self.chain.mining_address in next_stake_list:
-                if not next_stake_list[self.chain.mining_address].first_hash:
-                    threshold_blocknum = self.chain.block_chain_buffer.get_threshold(blocknumber,
-                                                                                     self.chain.mining_address)
-                    max_threshold_blocknum = config.dev.blocks_per_epoch
-                    if threshold_blocknum == config.dev.low_staker_first_hash_block:
-                        max_threshold_blocknum = config.dev.high_staker_first_hash_block
-
-                    if threshold_blocknum - 1 <= epoch_blocknum < max_threshold_blocknum - 1:
-                        diff = max(1, int(
-                            (max_threshold_blocknum * (1 - config.dev.st_txn_safety_margin) - epoch_blocknum)))
-                        if random.randint(1, diff) == 1:
-                            xmss = self.chain.wallet.address_bundle[0].xmss
-                            tmphc = hashchain(xmss.get_seed_private(), epoch=epoch + 1)
-                            self.make_st_tx(blocknumber, tmphc.hashchain[-1][-2])
+            if self.chain.mining_address not in stake_list:
+                self.make_st_tx(blocknumber)
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
 
@@ -533,7 +496,8 @@ class POS:
                 if stake_list[self.chain.mining_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
-                    self.create_next_block(blocknumber)
+                    entry_blocknumber = stake_list[self.chain.mining_address].entry_blocknumber
+                    self.create_next_block(blocknumber, entry_blocknumber)
                     delay = None
 
             last_blocknum = self.chain.block_chain_buffer.height()
@@ -541,25 +505,33 @@ class POS:
 
         return
 
-    def make_st_tx(self, blocknumber, first_hash):
+    def make_st_tx(self, blocknumber):
         balance = self.chain.block_chain_buffer.get_stxn_state(blocknumber, self.chain.mining_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
             return
 
-
         slave_xmss = self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber)
         if not slave_xmss:
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
-        
+
+        finalized_blocknumber = ((blocknumber - 1) // config.dev.blocks_per_epoch) * config.dev.blocks_per_epoch
+        finalized_block = self.chain.block_chain_buffer.get_block_n(finalized_blocknumber)
+        if not finalized_block:
+            logger.warning('Cannot make ST txn, unable to get blocknumber %s', finalized_blocknumber)
+            return
+
+        finalized_headerhash = finalized_block.blockheader.headerhash
+
         st = StakeTransaction.create(
             blocknumber=blocknumber,
             xmss=signing_xmss,
-            slave_public_key=slave_xmss.pk(),
-            first_hash=first_hash,
+            slavePK=slave_xmss.pk(),
+            finalized_blocknumber = finalized_blocknumber,
+            finalized_headerhash = finalized_headerhash,
             balance=balance
         )
 

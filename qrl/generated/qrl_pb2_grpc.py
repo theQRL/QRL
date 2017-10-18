@@ -88,6 +88,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
         response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
         )
+    self.PushTransaction = channel.unary_unary(
+        '/qrl.PublicAPI/PushTransaction',
+        request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
+        response_deserializer=qrl__pb2.PushTransactionResp.FromString,
+        )
 
 
 class PublicAPIServicer(object):
@@ -115,6 +120,13 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def PushTransaction(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -133,7 +145,37 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.TransferCoinsReq.FromString,
           response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
+      'PushTransaction': grpc.unary_unary_rpc_method_handler(
+          servicer.PushTransaction,
+          request_deserializer=qrl__pb2.PushTransactionReq.FromString,
+          response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
+      ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
       'qrl.PublicAPI', rpc_method_handlers)
+  server.add_generic_rpc_handlers((generic_handler,))
+
+
+class TestingAPIStub(object):
+  # missing associated documentation comment in .proto file
+  pass
+
+  def __init__(self, channel):
+    """Constructor.
+
+    Args:
+      channel: A grpc.Channel.
+    """
+
+
+class TestingAPIServicer(object):
+  # missing associated documentation comment in .proto file
+  pass
+
+
+def add_TestingAPIServicer_to_server(servicer, server):
+  rpc_method_handlers = {
+  }
+  generic_handler = grpc.method_handlers_generic_handler(
+      'qrl.TestingAPI', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))

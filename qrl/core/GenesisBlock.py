@@ -6,7 +6,7 @@ import os
 import yaml
 
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
-from .blockheader import BlockHeader
+from qrl.core.blockheader import BlockHeader
 from qrl.core import config, logger
 
 
@@ -36,7 +36,8 @@ class GenesisBlock(object, metaclass=Singleton):
         with open(genesis_data_path) as f:
             logger.info("Loading genesis from %s", genesis_data_path)
             dataMap = yaml.safe_load(f)
-            self._genesis_info.update(dataMap['genesis_info'])
+            for key in dataMap['genesis_info']:
+                self._genesis_info[key.encode()] = dataMap['genesis_info'][key]
 
         self.blockheader = BlockHeader()
         self.transactions = []
@@ -72,18 +73,17 @@ class GenesisBlock(object, metaclass=Singleton):
         >>> GenesisBlock().set_chain(None).blockheader.fee_reward
         0
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
-        'genesis'
+        b'\\x00\\x00\\x00\\x00\\x00\\x00'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
-        '6e3a32597ab20577f7adf33d77aed79631193419432ec7183fcdbbd470cfcccc'
+        'e8591c7562c3c982f2f6cc0ebec756c904aa4b5474ba70ad85144599b97a3d87'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
-        'a2cb1574a3e5bc97a441e478a4cb8954901a26e4fe297d72088418db51e2ed6e'
+        'c593bc8feea0099ddd3a4a457150ca215499d680c49bbc4c2c24a72f2179439d'
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
-                                hashedtransactions=sha2_256(b'0'),
-                                reveal_hash='genesis',
-                                vote_hash='genesis',
+                                prev_blockheaderhash=bytes(sha2_256(config.dev.genesis_prev_headerhash.encode())),
+                                hashedtransactions=bytes(sha2_256(b'0')),
+                                reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
                                 fee_reward=0)
         return self
 

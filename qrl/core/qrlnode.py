@@ -21,6 +21,9 @@ class QRLNode:
         self.chain = None  # FIXME: REMOVE. This is temporary
         self.p2pfactory = None  # FIXME: REMOVE. This is temporary
 
+        # FIXME: Move to __version__ coming from pip
+        self.version = config.dev.version_number
+
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain):
         self.chain = chain
@@ -59,7 +62,7 @@ class QRLNode:
     def get_address_state(self, address):
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
-        nonce, balance, pubhash_list = self.db_state.state_get_address(address)
+        nonce, balance, pubhash_list = self.db_state.get_address(address)
         transactions = []
 
         address_state = qrl_pb2.AddressState(address=address,
@@ -119,11 +122,11 @@ class QRLNode:
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
         xmss_pk = xmss_from.pk()
-        xmss_ots_key = xmss_from.get_index()
+        xmss_ots_index = xmss_from.get_index()
 
         # TODO: Review this
         ### Balance validation
-        balance = self.db_state.state_balance(addr_from)
+        balance = self.db_state.balance(addr_from)
         if amount + fee > balance:
             raise RuntimeError("Not enough funds")
 
@@ -137,20 +140,20 @@ class QRLNode:
                                  amount,
                                  fee,
                                  xmss_pk,
-                                 xmss_ots_key)
+                                 xmss_ots_index)
 
         tx.sign(xmss_from)
         self.submit_send_tx(tx)
         return tx
 
     # FIXME: Rename this appropriately
-    def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_key):
+    def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_index):
         return SimpleTransaction.create(addr_from=addr_from,
                                         addr_to=addr_to,
                                         amount=amount,
                                         fee=fee,
                                         xmss_pk=xmss_pk,
-                                        xmss_ots_key=xmss_ots_key)
+                                        xmss_ots_index=xmss_ots_index)
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx : SimpleTransaction) -> bool:
@@ -158,7 +161,7 @@ class QRLNode:
         if tx and tx.validate_tx():
             block_chain_buffer = self.chain.block_chain_buffer
             block_number = block_chain_buffer.height() + 1
-            tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txto)
+            tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
             if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
                 self.chain.add_tx_to_pool(tx)

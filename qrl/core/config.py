@@ -30,7 +30,9 @@ class UserConfig(object):
                           '104.251.219.40']  # Atleast one active peer IP required
 
         self.max_peers_limit = 40  # Number of allowed peers
-        self.ping_timeout = 60
+        self.ping_timeout = 180
+        self.ping_frequency = 20  # How frequently a node should ping (in seconds)
+                                  # must be less than ping_timeout
         self.data_path = expanduser("~/.qrl/data")
         self.wallet_path = expanduser("~/.qrl/wallet")
         self.config_path = '~/.qrl/config.yml'
@@ -77,18 +79,12 @@ class DevConfig(object):
         #          For QRL Developers only                             #
         ################################################################
         self.public_ip = None
-        self.minimum_required_stakers = 5
+        self.minimum_required_stakers = 4
         self.minimum_staking_balance_required = 1
         self.blocks_per_epoch = 100
         self.reorg_limit = 3
-        self.hashchain_nums = 50  # 1 Primary and rest Secondary hashchain
-        self.block_creation_seconds = 55
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
-        self.stake_before_x_blocks = 50
-        self.low_staker_first_hash_block = 70
-        self.high_staker_first_hash_block = 80
-        self.st_txn_safety_margin = 0.10  # 10% safety margin
         self.N = 256  # Constant used in Block winner formula
         self.POS_delay_after_block = 15
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
@@ -97,7 +93,7 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
-        self.version_number = "0.53.0a"
+        self.version_number = "0.54.0a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.total_coin_supply = 105000000
@@ -106,6 +102,9 @@ class DevConfig(object):
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.slave_xmss_height = self.slave_xmss_height + (self.slave_xmss_height & 0x1)
         self.xmss_tree_height = 10
+        self.default_nonce = 0
+        self.default_account_balance = 100*(10**8)
+        self.default_pubhash_blacklist = []
 
         self.db_name = 'state'
         self.peers_filename = 'peers.qrl'

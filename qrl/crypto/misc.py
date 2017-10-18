@@ -20,11 +20,12 @@ def sha256(message):
     >>> bin2hstr(sha256(b"another string"))
     '81e7826a5821395470e5a2fed0277b6a40c26257512319875e1d70106dcb1ca0'
     """
-    return sha2_256(message)
+    return bytes(sha2_256(message))
 
 
 def merkle_tx_hash(hashes):
     # TODO: Clean this, move to C++
+    # FIXME: Review and consider (CVE-2012-2459) and bitcoin source code
     """
     merkle tree root hash of tx from pool for next POS block
     :param hashes:
@@ -65,4 +66,4 @@ def merkle_tx_hash(hashes):
 
     res = tuple(itertools.chain(*l_array[-1]))
 
-    return res
+    return bytes(res)

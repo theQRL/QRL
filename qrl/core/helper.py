@@ -11,7 +11,7 @@ from qrl.crypto.misc import sha256
 #FIXME: Lack of clear schemas could be dangerous in this case
 
 def isValidAddress(addr):
-    if addr.startswith('Q'):
+    if addr.startswith(b'Q'):
         suffix = addr[1:]
         if len(suffix) == 72:
             try:
@@ -31,13 +31,6 @@ def select_target_hashchain(last_block_headerhash):
     target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
 
     return target_chain
-
-def json_encode(obj):
-    return json.dumps(obj)
-
-
-def json_decode(js_obj):
-    return json.loads(js_obj)
 
 
 # noinspection PyClassHasNoInit
@@ -60,10 +53,6 @@ def json_bytestream_tx(tx_obj):  # JSON serialise tx object
 
 def json_bytestream_pb(block_obj):
     return json_bytestream(block_obj)
-
-
-def json_bytestream_ph(mini_block):
-    return json_encode(mini_block)
 
 
 def json_bytestream_bk(block_obj):  # "" block object

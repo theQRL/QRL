@@ -5,72 +5,115 @@ syntax = "proto3";
 
 package qrl;
 
-import "google/protobuf/timestamp.proto";
+// TODO: Avoid using timestamp until the github issue is fixed
+// import "google/protobuf/timestamp.proto";
+message Timestamp {
+    int64 seconds = 1;
+    int32 nanos = 2;
+}
 
 service P2PNode {
-  rpc Ping (PingReq) returns (PongResp) {}
-  rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
+    rpc Ping (PingReq) returns (PongResp) {
+    }
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {
+    }
 }
 
 service PublicAPI {
-  rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {}
-  rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {}
-  rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {}
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {
+    }
+    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {
+    }
+
+    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {
+    }
+    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) {
+    }
+}
+
+service TestingAPI {
 }
 
 // API Messages
 
-message PingReq {   string name = 1;    }
-message PongResp {   string message = 1; }
-message GetKnownPeersReq {}
-message GetKnownPeersResp { KnownPeers known_peers = 1; }
+message PingReq {
+    string name = 1;
+}
+message PongResp {
+    string message = 1;
+}
+message GetKnownPeersReq {
+}
+message GetKnownPeersResp {
+    KnownPeers known_peers = 1;
+}
 
-message GetAddressStateReq {   string address = 1;  }
-message GetAddressStateResp {   AddressState state = 1; }
+message GetAddressStateLocalReq {
+    uint32 address_idx = 1;
+}
+message GetAddressStateReq {
+    string address = 1;
+}
+message GetAddressStateResp {
+    AddressState state = 1;
+}
 
-message TransferCoinsReq {   Transaction transaction = 1;  }
-message TransferCoinsResp {   AddressState state = 1; }  // FIXME: What to return here? tx_id?
+message TransferCoinsReq {
+    string address_from = 1;
+    string address_to = 2;
+    uint64 amount = 3; // IMPORTANT: These should be expressed in Shor
+    uint64 fee = 4; // IMPORTANT: These should be expressed in Shor
+    bytes xmss_pk = 5;
+    uint64 xmss_ots_index = 6;
+}
+message TransferCoinsResp {
+    Transaction transaction_unsigned = 1;
+}
+
+message PushTransactionReq {
+    Transaction transaction_signed = 1;
+}
+message PushTransactionResp {
+    string some_response = 1;
+}
 
 // Content
 
-message WalletStore
-{
+message WalletStore {
     repeated Wallet wallets = 1;
 }
 
-message Wallet
-{
+message Wallet {
     string address = 1;
     string mnemonic = 2;
     int32 xmss_index = 3;
 }
 
-message KnownPeers
-{
+message KnownPeers {
     repeated Peer peers = 1;
 }
 
-message Peer
-{
+message Peer {
     string ip = 1;
 }
 
-message AddressState
-{
+message AddressState {
+    //    int64 range = [ -9223372036854775808 to 9223372036854775807 ]
+    //    QRL coins = 105M - 10^8 = 10499999999999999
+
     string address = 1;
     uint64 balance = 2;
-    uint64 nonce = 3;       // FIXME: Discuss. 32 or 64 bits?
+    uint64 nonce = 3; // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
     repeated Transaction transactions = 5;
     // FIXME: Add stake information. Probably a reference to another obj
 }
 
-message BlockHeader
-{
+message BlockHeader {
     // Header
     uint64 block_number = 1;
     uint64 epoch = 2;
-    google.protobuf.Timestamp timestamp = 3;
+    Timestamp timestamp = 3; // FIXME: Temporary
 
     bytes hash_header = 4;
     bytes hash_header_prev = 5;
@@ -78,60 +121,96 @@ message BlockHeader
     uint64 reward_block = 6;
     uint64 reward_fee = 7;
 
-    bytes merkel_root = 8;
+    bytes merkle_root = 8;
     bytes hash_reveal = 9;
-    bytes hash_vote = 10;
-    string stake_selector = 11;
+    bytes stake_selector = 10;
 }
 
-message Block
-{
+message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
-    repeated Transaction dup_transactions = 3;      // TODO: Review this
+    repeated Transaction dup_transactions = 3; // TODO: Review this
 
     repeated AddressState state = 4;
 
-    repeated string stake_list = 5;                 // addresses
-    bytes stake_seed = 6;
+    repeated string stake_list = 5; // addresses
 }
 
-message Transaction
-{
-    enum Type
-    {
-        TRANSFER = 0;
-        STAKE = 1;
-        COINBASE = 2;
-        LATTICE = 3;
-        DUPLICATE = 4;
+message BlockMetaData {
+    uint64 block_number = 1;
+    bytes hash_header = 2;
+}
+
+message MR {
+    bytes hash = 1;
+    string type = 2;
+    bytes stake_selector = 3;
+    uint64 block_number = 4;
+    bytes prev_headerhash = 5;
+    bytes reveal_hash = 6;
+}
+
+message Transaction {
+    enum Type {
+        UNKNOWN = 0;
+        TRANSFER = 1;
+        STAKE = 2;
+        COINBASE = 3;
+        LATTICE = 4;
+        DUPLICATE = 5;
     }
 
     Type type = 1;
 
     uint64 nonce = 2;
     bytes addr_from = 3;
+    bytes public_key = 4;
     bytes transaction_hash = 5;
-    bytes public_hash = 4;
+    uint32 ots_key = 6;
+    bytes signature = 7;
 
-    bytes public_key = 6;               // Required for Signed Transfer
-    bytes signature = 7;                // Required for Signed Transfer
+    oneof transactionType {
+        Transfer transfer = 8;
+        Stake stake = 9;
+        CoinBase coinbase = 10;
+        LatticePublicKey latticePK = 11;
+        Duplicate duplicate = 12;
+    }
 
-    bytes addr_to = 8;                 // Required for Transfer
-    uint64 amount = 9;                  // Required for Transfer        // FIXME: Review quantities
-    uint64 fee = 10;                    // Required for Transfer        // FIXME: Review quantities
+    //////////
+    message Transfer {
+        bytes addr_to = 1;
+        uint64 amount = 2;
+        uint64 fee = 3;
+    }
 
-    uint64 epoch = 11;                  // Required for Stake
-    bytes public_key_slave = 12;        // Required for Stake
-    bytes stake_hash = 13;              // Required for Stake
+    message Stake {
+        uint64 balance = 1;
+        uint64 epoch = 2;
+        uint64 finalized_blocknumber = 3;
+        bytes finalized_headerhash = 4;
+        bytes slavePK = 5;
+        bytes hash = 7;
+    }
 
-    uint64 dup_block_number = 14;           // Required for duplicate transaction
-    uint64 dup_hash_header_prev = 15;       // Required for duplicate transaction
-    bytes dup_coinbase1_hhash = 16;         // Required for duplicate transaction
-    bytes dup_coinbase2_hhash = 17;         // Required for duplicate transaction
-    Transaction dup_coinbase1 = 18;         // Required for duplicate transaction
-    Transaction dup_coinbase2 = 19;         // Required for duplicate transaction
+    message CoinBase {
+        bytes addr_to = 1;
+        uint64 amount = 2;
+    }
 
-    bytes pk_kyber = 20;                    // Required for LatticePublicKey
-    bytes pk_tesla = 21;                    // Required for LatticePublicKey
+    message LatticePublicKey {
+        bytes pk_kyber = 1;
+        bytes pk_tesla = 2;
+    }
+
+    message Duplicate {
+        uint64 block_number = 1;
+        uint64 prev_header_hash = 2;
+        bytes coinbase1_hhash = 3;
+        bytes coinbase2_hhash = 4;
+        Transaction coinbase1 = 5;
+        Transaction coinbase2 = 6;
+    }
+
 }
+

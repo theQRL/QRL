@@ -21,7 +21,7 @@ class TestChain(TestCase):
 
     @timeout_decorator.timeout(60)
     @pytest.mark.skip(reason="needs custom seed. Already fixed in another branch")
-    def test_check_chain(self):
+    def disabled_test_check_chain(self):
         with State() as state:
             self.assertIsNotNone(state)
 

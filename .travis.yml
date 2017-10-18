@@ -2,19 +2,17 @@ sudo: required
 dist: trusty
 services: docker
 language: python
+python:
+- '3.4'
+
 env:
   matrix:
   - PLATFORM='xenial' COVERAGE="true"
-#virtualenv:
-#  system_site_packages: true
 
 addons:
   apt:
     packages:
     - git
-
-cache:
-- pip
 
 cache:
   timeout: 600
@@ -35,21 +33,18 @@ script:
 
 after_success:
 - if [[ "$COVERAGE" == "true" ]]; then coveralls || echo "failed"; fi
-- if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+- if [[ "$COVERAGE" == "true" ]]; then python-codacy-coverage -r coverage.xml || echo
+  "failed"; fi
 
 notifications:
   email: false
 
-#before_deploy:
-
 deploy:
   provider: pypi
   skip_cleanup: true
-  user: jleni
+  user: deployqrl
   password:
-    secure: LEHilAb+FXCKVvd1/AEmVlUPyf8sOVYt/rMLZPr3bMEiwgK//lFJWlBPli9+G9ed4HjDpq/YFGpTKsRs9Etl4MWSnEJwYJPL0qBTWRCvEn1Py1kTI68dqRKR6oLpssj2BsLpuZvLt+2kE9PVvLSTGbwUGrnvob2AX2suUZcxnZD2q25TOnbZS2/M2F7SOy/0rVn6jlvGPwhMbdsmiLBStsx4rdiu84e1aryUDELSNTP7GtX61dmZs3et2Tpfz7uHXF++mxuT4hzjRe6mUKbtBekCy5EuAzI8vUTmys/m0llmB++gORSLeM22jfpGyfT7AxlkAxO3vlX3XLIythPIYcAEEjBA2xdt8GRlLWH3XLJJYWVEQgdA21sQLuQEGBepc44oKsdUH5t1Ok7kBYjvtQWJCa1/gv+GowKnU5159iJe6MBL9iJqzaz+tbGqKbQHpCvkPlNmipEBKVUANIx7IoXc/tHruCJtjp/vX4hbbOcT4674UaCcHtWpM3ME6EafC2r/nHNNA7rLoX1CP0RCrbSZJOGzhTZlyY9lB0qAmJe+3NDVSiY+6wO2qDFDN7nSl7BUBppPWHkhCVdXq3647RJB31djCguNfnjJLT7hoKkFTMFrrpkpvYUdPkJUAPqh3VZdl+esfMQnHctqBk0D8B+0lX6IJ9v8I5R/kyBs7/g=
+    secure: rav+35H/zB7IiVmFEeoJ0FAbTph3b9fc74NrKwKrQTrtD9vvQx3q66sWrKibA/Ws1DqkORS3leMBqJGU5Q4JTp5lcfMTvqtZhdBCJwUHMUlZ9Qw5SiVHpK+adFOwbtzKisgMPhPTgOyxiUtI18I9fMd5SeHEzTXDDZAWuJRVPuLYLDhHj+he5EfoaGtNgN5kVDIP3c6jo6mE+dVvJl89IvuMQihDScpv3TSEmA9klUF4Vm7VeQwrkZn81SfoR8RpIU4QoWhxXbK52hVRK9126Y9JMMBK4XXfGRLjtv3likdX50TjclS7IBjarMGc27LBKfcmpRBqCXcYo4oWV/hDaH7U+AdB+M0wUnR8zoNEEJX1pzTbMsnu+yvLDZ8wS1gjJxr5JEMgkWxg4cnND2hJW2zLKzRqVpFpicYH48Hv13p0QXMxfbpI3hsRHjs9Sl2oV9svcYoFlFTZHcxHkmw6RthxaI/85pj7m1RzfTy1CatRpmY8sRgjpbuztU8lkRTiiuOhqL+OBidstsjygXKMUVP78LxqBuSH3i/kJxF0vkE6FxlkwnSjxk6isN+T+CvAfvqqqjYNI+sbZ1grLVEhC0eOtgLXTcvzfHj2Zcc9XscJMfo8EQ9rnXVRhJAI67P0EqRTdGcv6GH5xCZfRFYkmG4+0kWUl5LYJJpEyMHtV9I=
   on:
     tags: true
     all_branches: true
-
-#after_deploy:
