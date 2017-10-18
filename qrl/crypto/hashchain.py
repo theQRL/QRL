@@ -44,7 +44,7 @@ def hashchain_reveal(seed_private,
                      blocks_per_epoch=config.dev.blocks_per_epoch):
     """
     >>> from qrl.crypto.doctest_data import *
-    >>> binvec2hstr(hashchain_reveal(hashchain_reveal_input)) == hashchain_reveal_expected1
+    >>> bin2hstr(hashchain_reveal(hashchain_reveal_input)) == hashchain_reveal_expected1
     True
     """
     tmp = hashchain(seed_private, epoch, blocks_per_epoch)
