@@ -27,19 +27,16 @@ test_json_Simple = """{
 
 test_json_Stake = """{
   "type": "STAKE",
-  "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
+  "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==", 
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "Hclt3TlOzVeFBMR8vnzsh+BNmpECLOubV8hlIOjrjAg=",
+  "transactionHash": "0SPiGkWTEpHUX+jVjMLKOxszGGW64UbsOUWZoHRi0mo=",
   "otsKey": 10,
   "stake": {
     "balance": "100",
     "finalizedBlocknumber": "23",
     "finalizedHeaderhash": "xlgxlEyp2QYysUS+fI/amKOQKXMGE/hch6En6TbcM9E=",
     "slavePK": "OAeT3r+PcucO9zUe5QBd9sfKIyD/SeDq0MQLGce7HMFJbhmkgsBjUL3AVOTtUqJOyMmUxE+TQdARkKgasJOt6A==",
-    "hash": [
-      "H5NgPbU7+tXJI5D3NdDLuGF7SrghSukcVmSj0emwCcg=",
-      "D2F7qY5qD0JlF+Ua/4aFjaWSOZq83oCxtZlabQtxoFU="
-    ]
+    "hash": "H5NgPbU7+tXJI5D3NdDLuGF7SrghSukcVmSj0emwCcg="
   }
 }"""
 
@@ -170,7 +167,7 @@ class TestStakeTransaction(TestCase):
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
                                      finalized_headerhash=sha256(b'finalized_headerhash'),
-                                     hashchain_terminator=[sha256(b'T1'), sha256(b'T2')],
+                                     hashchain_terminator=sha256(b'T1'),
                                      balance=100)
         self.assertTrue(tx)
 
@@ -180,7 +177,7 @@ class TestStakeTransaction(TestCase):
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
                                      finalized_headerhash=sha256(b'finalized_headerhash'),
-                                     hashchain_terminator=[sha256(b'T1'), sha256(b'T2')],
+                                     hashchain_terminator=sha256(b'T1'),
                                      balance=100)
         txjson = tx.to_json()
         self.assertEqual(json.loads(test_json_Stake), json.loads(txjson))
@@ -195,7 +192,7 @@ class TestStakeTransaction(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual('1dc96ddd394ecd578504c47cbe7cec87e04d9a91022ceb9b57c86520e8eb8c08', bin2hstr(tx.txhash))
+        self.assertEqual('d123e21a45931291d45fe8d58cc2ca3b1b331865bae146ec394599a07462d26a', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
         self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
@@ -209,9 +206,8 @@ class TestStakeTransaction(TestCase):
         self.assertEqual('380793debf8f72e70ef7351ee5005df6c7ca2320ff49e0ead0c40b19c7bb1cc1'
                          '496e19a482c06350bdc054e4ed52a24ec8c994c44f9341d01190a81ab093ade8',
                          bin2hstr(tx.slave_public_key))
-        self.assertEqual(['1f93603db53bfad5c92390f735d0cbb8617b4ab8214ae91c5664a3d1e9b009c8',
-                          '0f617ba98e6a0f426517e51aff86858da592399abcde80b1b5995a6d0b71a055'],
-                         binvec2hstr(tx.hash))
+        self.assertEqual('1f93603db53bfad5c92390f735d0cbb8617b4ab8214ae91c5664a3d1e9b009c8',
+                         bin2hstr(tx.hash))
 
     def disabled_test_validate_tx(self):
         tx = StakeTransaction.create(blocknumber=2,
@@ -219,7 +215,7 @@ class TestStakeTransaction(TestCase):
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
                                      finalized_headerhash=sha256(b'finalized_headerhash'),
-                                     hashchain_terminator=[sha256(b'T1'), sha256(b'T2')],
+                                     hashchain_terminator=sha256(b'T1'),
                                      balance=100)
 
         # We must sign the tx before validation will work.
@@ -234,12 +230,12 @@ class TestStakeTransaction(TestCase):
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
                                      finalized_headerhash=sha256(b'finalized_headerhash'),
-                                     hashchain_terminator=[sha256(b'T1'), sha256(b'T2')],
+                                     hashchain_terminator=sha256(b'T1'),
                                      balance=100)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual('1dc96ddd394ecd578504c47cbe7cec87e04d9a91022ceb9b57c86520e8eb8c08',
-                         bin2hstr(tx.get_message_hash()))
+        self.assertEqual('d123e21a45931291d45fe8d58cc2ca3b1b331865bae146ec394599a07462d26a',
+                         bin2hstr(tuple(tx.get_message_hash())))
 
 
 class MockBlockHeader:
@@ -254,7 +250,7 @@ class TestCoinBase(TestCase):
         self.alice.set_index(11)
 
         self.mock_blockheader = MockBlockHeader()
-        self.mock_blockheader.stake_selector = self.alice.get_address()
+        self.mock_blockheader.stake_selector = self.alice.get_address().encode()
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
         self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')

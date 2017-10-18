@@ -6,7 +6,7 @@ import os
 import yaml
 
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
-from .blockheader import BlockHeader
+from qrl.core.blockheader import BlockHeader
 from qrl.core import config, logger
 
 

@@ -73,11 +73,11 @@ class BlockHeader(object):
         :param fee_reward:
         :return:
 
-        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', 0.1) is None
+        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', 1) is not None
         True
-        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', 0.1); b.epoch
+        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch;
         0
-        >>> b = BlockHeader(); b.create(None, 0, b'0', b'0', b'0', 0.1); b.epoch # doctest: +SKIP
+        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch;
         0
         """
 
