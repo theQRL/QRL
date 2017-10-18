@@ -13,14 +13,6 @@ class XMSS(object):
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
         :param seed:
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1, wordlist)).get_address()
-        'Q572721d2221f1d43b18eecacb945221f1156f1e2f519b71e3def43d761e88f3af72feb52'
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_address()
-        'Q578230464f0550df33f1bad86b725ce6e6c5e278c5d03a100fb93c1d282daec21b2422f2'
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_address()
-        'Q578230464f0550df33f1bad86b725ce6e6c5e278c5d03a100fb93c1d282daec21b2422f2'
-
-        # NEW TESTS
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getHeight()
         4
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getSecretKeySize()
@@ -116,16 +108,16 @@ class XMSS(object):
         """
         :return:
         :rtype:
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_mnemonic() == xmss_mnemonic_expected1
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, hstr2bin(xmss_mnemonic_seed1)).get_mnemonic() == xmss_mnemonic_test1
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_mnemonic() == xmss_mnemonic_expected2
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, hstr2bin(xmss_mnemonic_seed2)).get_mnemonic() == xmss_mnemonic_test2
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1, wordlist)).get_mnemonic() == xmss_mnemonic_test1
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1)).get_mnemonic() == xmss_mnemonic_test1
         True
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2, wordlist)).get_mnemonic() == xmss_mnemonic_test2
+        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2)).get_mnemonic() == xmss_mnemonic_test2
         True
         """
-        return bin2mnemonic(self._xmss.getSeed(), wordlist)
+        return bin2mnemonic(self._xmss.getSeed())
 
     def get_address(self):
         return self._xmss.getAddress('Q')
