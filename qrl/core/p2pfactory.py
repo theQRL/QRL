@@ -240,8 +240,8 @@ class P2PFactory(ServerFactory):
             data.reveal_hash = block.blockheader.reveal_hash
 
         self.register_and_broadcast('BK',
-                                    bytes(block.blockheader.headerhash),
-                                    json_bytestream_bk(block),
+                                    block.blockheader.headerhash,
+                                    block.to_json(),
                                     data)
         return
 

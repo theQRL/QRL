@@ -10,21 +10,37 @@ from qrl.core import logger
 from qrl.core.blockheader import BlockHeader
 from qrl.core.Transaction import Transaction, CoinBase, DuplicateTransaction
 from qrl.crypto.misc import sha256, merkle_tx_hash
+from qrl.generated import qrl_pb2
+from google.protobuf.json_format import MessageToJson, Parse
 
 
 class Block(object):
-    def __init__(self):
-        self.blockheader = None
-        self.transactions = None
-        self.duplicate_transactions = None
+    def __init__(self, protobuf_block=None):
+        self._data = protobuf_block
+        if protobuf_block is None:
+            self._data = qrl_pb2.Block()
 
-        self.state = None
-        self.stake_list = None
+    @property
+    def blockheader(self):
+        return self._data.header
+
+    @property
+    def transactions(self):
+        return self._data.transactions
+
+    @property
+    def duplicate_transactions(self):
+        return self._data.duplicate_transactions
+
+    @property
+    def state(self):
+        return self._data.state
+
+    @property
+    def stake_list(self):
+        return self._data.stake_list
 
     def create(self, chain, reveal_hash, last_block_number=-1):
-        # FIXME: probably this should turn into a constructor
-        reveal_hash = reveal_hash
-
         data = None
         if last_block_number == -1:
             data = chain.block_chain_buffer.get_last_block()  # m_get_last_block()
@@ -35,7 +51,7 @@ class Block(object):
         prev_blockheaderhash = data.blockheader.headerhash
 
         hashedtransactions = []
-        self.transactions = [None]
+        self._data.transactions = [None]
         fee_reward = 0
 
         for tx in chain.transaction_pool:
@@ -44,7 +60,7 @@ class Block(object):
             hashedtransactions.append(tx.txhash)
             self.transactions.append(tx)  # copy memory rather than sym link
 
-        self.duplicate_transactions = []
+        self._data.duplicate_transactions = []
 
         for tx in chain.duplicate_tx_pool:
             self.duplicate_transactions.append(chain.duplicate_tx_pool[tx])
@@ -54,13 +70,13 @@ class Block(object):
 
         hashedtransactions = merkle_tx_hash(hashedtransactions)
 
-        self.blockheader = BlockHeader()
-        self.blockheader.create(chain=chain,
-                                blocknumber=last_block_number + 1,
-                                reveal_hash=reveal_hash,
-                                prev_blockheaderhash=prev_blockheaderhash,
-                                hashedtransactions=hashedtransactions,
-                                fee_reward=fee_reward)
+        self._data.header = BlockHeader()
+        self._data.header.create(chain=chain,
+                                 blocknumber=last_block_number + 1,
+                                 reveal_hash=reveal_hash,
+                                 prev_blockheaderhash=prev_blockheaderhash,
+                                 hashedtransactions=hashedtransactions,
+                                 fee_reward=fee_reward)
 
         signing_xmss = chain.block_chain_buffer.get_slave_xmss(last_block_number + 1)
 
@@ -68,7 +84,7 @@ class Block(object):
 
         coinbase_tx.sign(signing_xmss)
 
-        self.transactions[0] = coinbase_tx
+        self._data.transactions[0] = coinbase_tx
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
         coinbase_tx._data.nonce = sv_list[chain.mining_address].nonce + 1
 
@@ -175,25 +191,11 @@ class Block(object):
         return True
 
     @staticmethod
-    def from_json(json_block):
-        """
-        Constructor a block from a json string
-        :param json_block: a block serialized as a json string
-        :return: A block
-        """
-        tmp_block = Block()
-        json_block = json.loads(json_block)
-        tmp_block.blockheader = BlockHeader.from_json(json_block['blockheader'])
+    def from_json(json_data):
+        pbdata = qrl_pb2.Block()
+        Parse(json_data, pbdata)
+        return Block(pbdata)
 
-        if tmp_block.blockheader.blocknumber == 0:
-            tmp_block.state = json_block['state']
-            tmp_block.stake_list = json_block['stake_list']
-
-        json_transactions = json_block['transactions']
-        json_duplicate_transactions = json_block['duplicate_transactions']
-
-        tmp_block.transactions = [Transaction.from_json(tx) for tx in json_transactions]
-        tmp_block.duplicate_transactions = [DuplicateTransaction().from_json(tx)
-                                            for tx in json_duplicate_transactions]
-
-        return tmp_block
+    def to_json(self):
+        # FIXME: Remove once we move completely to protobuf
+        return MessageToJson(self._data)
