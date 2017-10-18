@@ -112,7 +112,7 @@ Do NOT run the node as root.
 The following lines show `[sudo]` as optional. Adjust accordingly. 
 
 ```bash
-[sudo] echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
+echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
 [sudo] apt-get update
 [sudo] apt-get -t jessie-backports install cmake swig3.0
 [sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential pkg-config libssl-dev libffi-dev
