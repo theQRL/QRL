@@ -7,3 +7,9 @@ snowballstemmer>=1.1
 commonmark<=0.5.4
 jinja2
 imagesize
+pytest-cov
+pytest
+mock>=1.0.0
+flake8
+timeout-decorator
+nose

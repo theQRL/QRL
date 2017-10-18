@@ -7,6 +7,7 @@ from collections import OrderedDict, namedtuple
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
+from qrl.core.Transaction import Transaction
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
@@ -33,7 +34,7 @@ class Chain:
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
         # FIXME: should self.mining_address be self.staking_address
-        self.mining_address = self.wallet.address_bundle[0].xmss.get_address()
+        self.mining_address = self.wallet.address_bundle[0].xmss.get_address().encode()
 
         self.ping_list = []  # FIXME: This has nothing to do with chain
 
@@ -131,7 +132,7 @@ class Chain:
             tmp = sha256(tmp)
         return tmp
 
-    def select_hashchain(self, last_block_headerhash, stake_address=None, hashchain=None, blocknumber=None):
+    def select_hashchain(self, stake_address=None, hashchain=None, blocknumber=None):
 
         if not hashchain:
             for s in self.block_chain_buffer.stake_list_get(blocknumber):
@@ -142,14 +143,7 @@ class Chain:
         if not hashchain:
             return
 
-        target_chain = 0
-
-        for byte in last_block_headerhash:
-            target_chain += byte
-
-        target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
-
-        return hashchain[-1], hashchain[target_chain]
+        return hashchain
 
     def select_winners(self, reveals, topN=1, blocknumber=None, block=None, seed=None):
         # FIXME: This is POS related
@@ -207,13 +201,13 @@ class Chain:
         sv_hash = StringIO()
         stake_validators_list = self.state.stake_validators_list
         for staker in stake_validators_list.sv_list:
-            balance = self.state.state_balance(staker)
+            balance = self.state.balance(staker)
             sv_hash.write(staker + str(balance))
         sv_hash = sha256(sv_hash.getvalue())
         return sv_hash
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
-    def create_stake_block(self, reveal_hash, vote_hash, last_block_number):
+    def create_stake_block(self, reveal_hash, last_block_number):
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
@@ -248,18 +242,8 @@ class Chain:
                     continue
                 balance = 0
                 next_sv_list = self.block_chain_buffer.next_stake_list_get(last_block_number + 1)
-                if tx.txfrom in next_sv_list:
-                    balance = next_sv_list[tx.txfrom].balance
-                    threshold_blocknum = self.block_chain_buffer.get_threshold(last_block_number + 1, tx.txfrom)
-                    if epoch_blocknum < threshold_blocknum - 1:
-                        logger.warning('Skipping st as ST txn before threshold')
-                        logger.warning('Expected : %s', threshold_blocknum - 1)
-                        logger.warning('Found : %s', epoch_blocknum)
-                        del t_pool2[txnum]
-                        total_txn -= 1
-                        continue
-                # balance>0 only in case 1st st already accepted
-                if not (balance > 0 or last_block_number == 0):
+
+                if not (tx.txfrom not in next_sv_list or last_block_number == 0):
                     if tx.first_hash:
                         del t_pool2[txnum]
                         total_txn -= 1
@@ -270,7 +254,7 @@ class Chain:
             txnum += 1
 
         # create the block..
-        block_obj = self.m_create_block(reveal_hash, vote_hash, last_block_number)
+        block_obj = self.m_create_block(reveal_hash, last_block_number)
         # reset the pool back
         self.transaction_pool = copy.deepcopy(t_pool2)
 
@@ -383,7 +367,8 @@ class Chain:
                 logger.info('%s found in transaction pool..', txcontains)
                 if islong == 1: json_print(tx)
         for block in self.m_blockchain:
-            for tx in block.transactions:
+            for protobuf_tx in block.transactions:
+                tx = Transaction.from_pbdata(protobuf_tx)
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
                     logger.info('%s found in block %s', txcontains, str(block.blockheader.blocknumber))
                     if islong == 0: logger.info(('<tx:txhash> ' + tx.txhash))
@@ -401,10 +386,11 @@ class Chain:
         except:
             pass
 
-        for txn in block.transactions[-20:]:
+        for protobuf_txn in block.transactions[-20:]:
+            txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype == TX_SUBTYPE_TX:
                 last_txn.insert(0,
-                                [txn.transaction_to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
+                                [txn.to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
         del last_txn[20:]
         # FIXME: Accessing DB directly
         self.state.db.put('last_txn', last_txn)
@@ -420,10 +406,10 @@ class Chain:
         self.state.db.put('txn_' + str(addr), txhash)
 
     def update_txn_count(self, txto, txfrom):
-        last_count = self.state.state_get_txn_count(txto)
+        last_count = self.state.get_txn_count(txto)
         # FIXME: Accessing DB directly
         self.state.db.put('txn_count_' + str(txto), last_count + 1)
-        last_count = self.state.state_get_txn_count(txfrom)
+        last_count = self.state.get_txn_count(txfrom)
         # FIXME: Accessing DB directly
         self.state.db.put('txn_count_' + str(txfrom), last_count + 1)
 
@@ -431,11 +417,12 @@ class Chain:
         if len(block.transactions) == 0:
             return
 
-        for txn in block.transactions:
+        for protobuf_txn in block.transactions:
+            txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 # FIXME: Accessing DB directly
                 self.state.db.put(bin2hstr(txn.txhash),
-                                  [txn.transaction_to_json(),
+                                  [txn.to_json(),
                                    block.blockheader.blocknumber,
                                    block.blockheader.timestamp])
 
@@ -449,7 +436,7 @@ class Chain:
         chains = self.f_read_chain(epoch)
         self.m_blockchain.append(chains[0])
 
-        self.state.state_read_genesis(self.m_get_block(0))
+        self.state.read_genesis(self.m_get_block(0))
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
@@ -488,9 +475,9 @@ class Chain:
             return False
         return self.m_blockchain[-1]
 
-    def m_create_block(self, reveal_hash, vote_hash, last_block_number=-1):
+    def m_create_block(self, reveal_hash, last_block_number=-1):
         myBlock = Block()
-        myBlock.create(self, reveal_hash, vote_hash, last_block_number)
+        myBlock.create(self, reveal_hash, last_block_number)
 
         slave_xmss = self.block_chain_buffer.get_slave_xmss(last_block_number + 1)
         if not slave_xmss:
@@ -503,12 +490,12 @@ class Chain:
             self.m_read_chain()
 
         if block_obj.validate_block(chain=self) is True:
-            if self.state.state_add_block(self, block_obj) is True:
+            if self.state.add_block(self, block_obj) is True:
                 self.m_blockchain.append(block_obj)
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
                 logger.info('last block failed state/stake checks, removed from chain')
-                self.state.state_validate_tx_pool(self)
+                self.state.validate_tx_pool(self)
                 return False
         else:
             logger.info('m_add_block failed - block failed validation.')
@@ -569,7 +556,8 @@ class Chain:
         return self.transaction_pool
 
     def remove_tx_in_block_from_pool(self, block_obj):
-        for tx in block_obj.transactions:
+        for protobuf_tx in block_obj.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             for txn in self.transaction_pool:
                 if tx.txhash == txn.txhash:
                     self.remove_tx_from_pool(txn)

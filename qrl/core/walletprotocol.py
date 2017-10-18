@@ -151,7 +151,7 @@ class WalletProtocol(Protocol):
         self.output['status'] = 1
 
         # is chain up to date? If not, fail/inform user
-        if self.factory.state.state_uptodate(self.factory.chain.height()) is False:
+        if self.factory.state.uptodate(self.factory.chain.height()) is False:
             self.output['message'].write('>>> LevelDB not up to date..\r\n')
             # add "force" argument to bring it up to date and get balance?
             return
@@ -167,13 +167,13 @@ class WalletProtocol(Protocol):
             return
 
         # is the address in use? If not, fail/inform user
-        if self.factory.state.state_address_used(addr[0]) is False:
+        if self.factory.state.address_used(addr[0]) is False:
             self.output['message'].write(bytes('>>> Unused address: ' + addr + '\r\n', 'utf-8'))
             return
 
         # if all of these are met, return the balance
         self.output['status'] = 0
-        balance = self.factory.state.state_balance(addr[0])
+        balance = self.factory.state.balance(addr[0])
         self.output['message'].write(bytes('>>> balance:  ' + str(balance) + '\r\n', 'utf-8'))
         self.output['keys'] += ['balance']
         self.output['balance'] = balance
@@ -266,8 +266,8 @@ class WalletProtocol(Protocol):
         self.output['message'].write('>>>created and sent into p2p network\r\n')
 
     def _wallet(self, args):
-        if not self.factory.state.state_uptodate(self.factory.chain.height()):
-            self.factory.state.state_read_chain(self.factory.chain)
+        if not self.factory.state.uptodate(self.factory.chain.height()):
+            self.factory.state.read_chain(self.factory.chain)
 
         self.output['status'] = 0
         self.output['message'].write('>>> Wallet contents:\r\n')

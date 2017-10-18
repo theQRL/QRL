@@ -1,12 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import simplejson as json
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
-from qrl.core.helper import json_bytestream, json_encode_complex, get_blocks_left
+from qrl.core.helper import json_bytestream, get_blocks_left, ComplexEncoder
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -185,15 +186,14 @@ class ChainBuffer:
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
-            if self.state.state_add_block(chain, block, ignore_save_wallet=True) is True:
+            if self.state.add_block(chain, block, ignore_save_wallet=True) is True:
                 chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
         self.add_txns_buffer()
-        if block_left == 1:  # As state_add_block would have already moved the next stake list to stake_list
-            self.epoch_seed = bin2hstr(hex(self.state.stake_validators_list.calc_seed()))
+        if block_left == 1:  # As State.add_block would have already moved the next stake list to stake_list
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
@@ -203,8 +203,8 @@ class ChainBuffer:
                 del self._wallet_private_seeds[epoch]
             if epoch in self.slave_xmss:
                 del self.slave_xmss[epoch]
-        else:
-            self.epoch_seed = bin2hstr(sha256(block.blockheader.reveal_hash + hstr2bin(self.epoch_seed)))
+
+        self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + hstr2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
@@ -258,7 +258,7 @@ class ChainBuffer:
             state_buffer.set_next_seed(block.blockheader.reveal_hash, self.epoch_seed)
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update_stxn_state(block, self.state)
+            state_buffer.update_stxn_state(self.state)
         else:
             block_state_buffer = self.blocks[blocknum - 1]
             parent_state_buffer = block_state_buffer[1]
@@ -306,7 +306,7 @@ class ChainBuffer:
 
     def state_add_block_buffer(self, block, stake_validators_list, address_txn):
         self.chain.state.load_address_state(self.chain, block, address_txn)
-        is_success = self.chain.state.state_update(block, stake_validators_list, address_txn)
+        is_success = self.chain.state.update(block, stake_validators_list, address_txn)
         if is_success:
             self.commit(block, stake_validators_list)
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blockheader.blocknumber,
@@ -322,7 +322,6 @@ class ChainBuffer:
                 stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
 
         if blocks_left == 1:
-            stake_validators_list.move_next_epoch()
             self.update_hash_chain(blocknumber)
 
     def get_strongest_block(self, blocknumber):
@@ -367,7 +366,7 @@ class ChainBuffer:
     def get_stxn_state(self, blocknumber, addr):
         try:
             if blocknumber - 1 == self.chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
-                tmp_state = self.state.state_get_address(addr)
+                tmp_state = self.state.get_address(addr)
                 # FIX ME: Temporary fix, to convert all list into tuple
                 # As state is stored in json format which converts tuple into list
                 for index in range(len(tmp_state[2])):
@@ -380,7 +379,7 @@ class ChainBuffer:
             if addr in stateBuffer.stxn_state:
                 return deepcopy(stateBuffer.stxn_state[addr])       # FIXME: Why deepcopy?
 
-            return self.state.state_get_address(addr)
+            return self.state.get_address(addr)
         except KeyError:
             self.error_msg('get_stxn_state', blocknumber)
         except Exception as e:
@@ -403,19 +402,6 @@ class ChainBuffer:
 
         return None
 
-    def next_stake_list_get(self, blocknumber):
-        try:
-            if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.next_sv_list
-
-            return self.blocks[blocknumber - 1][1].stake_validators_list.next_sv_list
-        except KeyError:
-            self.error_msg('next_stake_list_get', blocknumber)
-        except Exception as e:
-            self.error_msg('next_stake_list_get', blocknumber, e)
-
-        return None
-
     def get_stake_validators_list(self, blocknumber):
         try:
             if blocknumber - 1 == self.chain.height():
@@ -429,22 +415,11 @@ class ChainBuffer:
 
         return None
 
-    def get_threshold(self, blocknumber, staker_address):
-        try:
-            if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.get_threshold(staker_address)
-
-            stateBuffer = self.blocks[blocknumber - 1][1]
-
-            return stateBuffer.stake_validators_list.get_threshold(staker_address)
-        except KeyError:
-            self.error_msg('get_threshold', blocknumber)
-        except Exception as e:
-            self.error_msg('get_threshold', blocknumber, e)
-
-        return None
-
     def describe(self):
+        """
+        For debugging purpose only
+        :return:
+        """
         if len(self.blocks) == 0:
             return
         min_block = min(self.blocks)
@@ -461,7 +436,7 @@ class ChainBuffer:
 
     def move_to_mainchain(self, blocknum):
         block = self.blocks[blocknum][0].block
-        if not self.state.state_add_block(self.chain, block):
+        if not self.state.add_block(self.chain, block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 
@@ -498,7 +473,7 @@ class ChainBuffer:
             tmp = {blocknumber: []}
             blockStateBuffer = self.blocks[blocknumber]
             tmp[blocknumber].append(blockStateBuffer[0].block)
-            transport.write(wrap_message('PBB', json_encode_complex(tmp)))
+            transport.write(wrap_message('PBB', json.dumps(tmp, cls=ComplexEncoder)))
 
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
@@ -540,11 +515,10 @@ class ChainBuffer:
         return blocknumber
 
     def verify_BK_hash(self, data, conn_identity):
+        blocknum = data.block_number
+        stake_selector = data.stake_selector
 
-        blocknum = data['blocknumber']
-        stake_selector = data['stake_selector']
-
-        prev_headerhash = tuple(data['prev_headerhash'])
+        prev_headerhash = data.prev_headerhash
 
         if blocknum <= self.chain.height():
             return False
@@ -567,23 +541,12 @@ class ChainBuffer:
             logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
             return
 
-        reveal_hash = tuple(data['reveal_hash'])
-        vote_hash = tuple(data['vote_hash'])
+        reveal_hash = data.reveal_hash
 
         stake_validators_list = self.get_stake_validators_list(blocknum)
-        target_chain = stake_validators_list.select_target(prev_headerhash)
-
-        if not stake_validators_list.validate_hash(vote_hash,
-                                                   blocknum,
-                                                   target_chain=target_chain,
-                                                   stake_address=stake_selector):
-            logger.info('%s vote hash doesnt hash to stake terminator vote %s',
-                        conn_identity, vote_hash)
-            return
 
         if not stake_validators_list.validate_hash(reveal_hash,
                                                    blocknum,
-                                                   target_chain=config.dev.hashchain_nums - 1,
                                                    stake_address=stake_selector):
             logger.info('%s reveal doesnt hash to stake terminator reveal %s',
                         conn_identity, reveal_hash)

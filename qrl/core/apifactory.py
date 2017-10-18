@@ -1,11 +1,11 @@
 # coding=utf-8
 import copy
-from jsonpickle import json
-from pyqrllib._pyqrllib import bin2hstr
+import simplejson as json
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import logger
-from qrl.core.Transaction import Transaction, SimpleTransaction, CoinBase
+from qrl.core.Transaction import Transaction
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_STAKE
 from qrl.core.apiprotocol import ApiProtocol
 from qrl.core.helper import json_print_telnet
@@ -31,7 +31,7 @@ class ApiFactory(ServerFactory):
         txnhash_added = set()
 
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        if not self.state.state_address_used(address):
+        if not self.state.address_used(address):
             addr['status'] = 'error'
             addr['error'] = 'Address not found'
             addr['parameter'] = address
@@ -39,7 +39,7 @@ class ApiFactory(ServerFactory):
 
         # FIXME: This is a duplicate of balance
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, pubhash_list = self.state.state_get_address(address)
+        nonce, balance, pubhash_list = self.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
         addr['state']['balance'] = self.format_qrlamount(balance)
@@ -84,11 +84,7 @@ class ApiFactory(ServerFactory):
 
         for txn_hash in my_txn:
             txn_metadata = self.state.db.get(txn_hash)
-            dict_txn_metadata = json.loads(txn_metadata[0])
-            if dict_txn_metadata['subtype'] == TX_SUBTYPE_TX:
-                tx = SimpleTransaction().json_to_transaction(txn_metadata[0])
-            elif dict_txn_metadata['subtype'] == TX_SUBTYPE_COINBASE:
-                tx = CoinBase().json_to_transaction(txn_metadata[0])
+            tx = Transaction.from_json(txn_metadata[0])
 
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
                 logger.info('%s found in block %s', address, str(txn_metadata[1]))
