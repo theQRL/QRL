@@ -6,7 +6,7 @@ import pkg_resources
 from qrl.core.path import Paths
 
 
-class RequirementsChecker():
+class RequirementsChecker:
     def __init__(self):
         self.requirements = []
         self.paths = Paths()

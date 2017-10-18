@@ -36,7 +36,8 @@ class GenesisBlock(object, metaclass=Singleton):
         with open(genesis_data_path) as f:
             logger.info("Loading genesis from %s", genesis_data_path)
             dataMap = yaml.safe_load(f)
-            self._genesis_info.update(dataMap['genesis_info'])
+            for key in dataMap['genesis_info']:
+                self._genesis_info[key.encode()] = dataMap['genesis_info'][key]
 
         self.blockheader = BlockHeader()
         self.transactions = []
@@ -74,16 +75,15 @@ class GenesisBlock(object, metaclass=Singleton):
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         'genesis'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
-        'ef651a6c581c1e96c6d3b9d8cb6579d45bdb8a12db428acd23acd1ba7ab41841'
+        '22388dd5e1a6ab7b1802075b199dddf7d99c9b14602fdc9038e8263c88a42ff5'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
         'c593bc8feea0099ddd3a4a457150ca215499d680c49bbc4c2c24a72f2179439d'
         """
         self.blockheader.create(chain=chain,
                                 blocknumber=0,
-                                prev_blockheaderhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
-                                hashedtransactions=sha2_256(b'0'),
-                                reveal_hash='genesis',
-                                vote_hash='genesis',
+                                prev_blockheaderhash=bytes(sha2_256(config.dev.genesis_prev_headerhash.encode())),
+                                hashedtransactions=bytes(sha2_256(b'0')),
+                                reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
                                 fee_reward=0)
         return self
 
