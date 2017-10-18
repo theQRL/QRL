@@ -10,6 +10,8 @@ from unittest import TestCase
 import os
 
 from os.path import isfile
+
+import pytest
 from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.core import logger, config
@@ -42,6 +44,7 @@ class TestWallet(TestCase):
             wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
             self.assertTrue(isfile( wallet_file_path ))
 
+    @pytest.mark.skip(reason="old wallets are not supported anymore")
     def test_upgrade_wallet(self):
         with self.setWalletDir("old_wallet"):
             wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
