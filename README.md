@@ -112,7 +112,7 @@ Do NOT run the node as root.
 The following lines show `[sudo]` as optional. Adjust accordingly. 
 
 ```bash
-[sudo] echo "deb http://ftp.debian.org/debian jessie-backports main" | tee -a /etc/apt/sources.list
+[sudo] echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
 [sudo] apt-get update
 [sudo] apt-get -t jessie-backports install cmake swig3.0
 [sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential pkg-config libssl-dev libffi-dev
@@ -126,6 +126,19 @@ git clone https://github.com/theQRL/QRL.git
 cd QRL/
 sudo pip3 install -r requirements.txt
 python3 start_qrl.py
+```
+
+If you get the following error:
+
+```dependencies not satisfied, run [pip3 install -r requirements.txt] first.
+ The 'cffi>=1.7' distribution was not found and is required by cryptography
+ get an error with 
+``` 
+
+Add the cffi package:
+
+```
+[sudo] pip3 install cffi
 ```
 
 ## Windows :seedling:
