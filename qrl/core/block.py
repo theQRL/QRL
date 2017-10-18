@@ -19,6 +19,8 @@ class Block(object):
         self._data = protobuf_block
         if protobuf_block is None:
             self._data = qrl_pb2.Block()
+        else:
+            self.blockheader = BlockHeader(protobuf_block.header)
 
     @property
     def transactions(self):
@@ -26,7 +28,7 @@ class Block(object):
 
     @property
     def duplicate_transactions(self):
-        return self._data.duplicate_transactions
+        return self._data.dup_transactions
 
     @property
     def state(self):
@@ -55,10 +57,10 @@ class Block(object):
             if tx.subtype == TX_SUBTYPE_TX:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
-            self.transactions.extend([tx._data])  # copy memory rather than sym link
+            self._data.transactions.extend([tx._data])  # copy memory rather than sym link
 
         for tx in chain.duplicate_tx_pool:
-            self.duplicate_transactions.extend([chain.duplicate_tx_pool[tx]._data])
+            self._data.duplicate_transactions.extend([chain.duplicate_tx_pool[tx]._data])
 
         if not hashedtransactions:
             hashedtransactions = [sha256('')]
@@ -105,7 +107,7 @@ class Block(object):
                 logger.warning('BLOCK : There must be atleast 1 txn')
                 return False
 
-            coinbase_tx = self.transactions[0]
+            coinbase_tx = CoinBase(self.transactions[0])
 
             if coinbase_tx.subtype != TX_SUBTYPE_COINBASE:
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
@@ -126,11 +128,12 @@ class Block(object):
 
             if blk_header.blocknumber == 1:
                 found = False
-                for tx in self.transactions:
+                for protobuf_tx in self.transactions:
+                    tx = Transaction.from_pbdata(protobuf_tx)
                     if tx.subtype == TX_SUBTYPE_STAKE:
                         if tx.txfrom == blk_header.stake_selector:
                             found = True
-                            reveal_hash = chain.select_hashchain(self.transactions[0].txto,
+                            reveal_hash = chain.select_hashchain(coinbase_tx.txto,
                                                                  tx.hash, blocknumber=1)
 
                             if sha256(blk_header.reveal_hash) != reveal_hash:
@@ -143,13 +146,13 @@ class Block(object):
 
             else:  # we look in stake_list for the hash terminator and hash to it..
                 stake_validators_list = chain.block_chain_buffer.get_stake_validators_list(self.blockheader.blocknumber)
-                if self.transactions[0].txto not in stake_validators_list.sv_list:
+                if coinbase_tx.txto not in stake_validators_list.sv_list:
                     logger.warning('Stake selector not in stake_list for this epoch..')
                     return False
 
                 if not stake_validators_list.validate_hash(blk_header.reveal_hash,
                                                            blk_header.blocknumber,
-                                                           self.transactions[0].txto):
+                                                           coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
 
@@ -165,7 +168,7 @@ class Block(object):
 
     def _validate_tx_in_block(self, chain):
         # Validating coinbase txn
-        coinbase_txn = self.transactions[0]
+        coinbase_txn = CoinBase(self.transactions[0])
         valid = coinbase_txn.validate_tx(chain=chain,
                                          blockheader=self.blockheader)
 
@@ -174,13 +177,15 @@ class Block(object):
             return False
 
         for tx_num in range(1, len(self.transactions)):
-            tx = self.transactions[tx_num]
+            protobuf_tx = self.transactions[tx_num]
+            tx = Transaction.from_pbdata(protobuf_tx)
             if not tx.validate_tx():
                 logger.warning('invalid tx in block')
                 logger.warning('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
                 return False
 
-        for tx in self.duplicate_transactions:
+        for protobuf_tx in self.duplicate_transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if not tx.validate_tx():
                 logger.warning('invalid duplicate tx in block')
                 logger.warning('txhash: %s tx_stake_selector: %s', bin2hstr(tx.get_message_hash()), tx.coinbase1.txto)

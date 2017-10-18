@@ -4,6 +4,7 @@
 from _decimal import Decimal
 from functools import reduce
 from qrl.core import db, logger, config, helper
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
@@ -180,7 +181,8 @@ class State:
     def load_address_state(self, chain, block, address_txn):
         blocknumber = block.blockheader.blocknumber
 
-        for tx in block.transactions:
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if tx.txfrom not in address_txn:
                 address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
 
@@ -192,8 +194,8 @@ class State:
 
     def update_genesis(self, chain, block, address_txn):
         # Start Updating coin base txn
-        tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-
+        protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
+        tx = CoinBase.from_pbdata(protobuf_tx)
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
             logger.warning('subtype: %s', tx.subtype)
@@ -210,7 +212,8 @@ class State:
 
         # Coinbase update end here
         tmp_list = []
-        for tx in block.transactions:
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if tx.subtype == TX_SUBTYPE_STAKE:
                 # update txfrom, hash and stake_nonce against genesis for current or next stake_list
                 tmp_list.append([tx.txfrom,
@@ -269,8 +272,8 @@ class State:
             logger.warning('stake selector is in banned list')
             return
         # cycle through every tx in the new block to check state
-        for tx in block.transactions:
-
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
             else:

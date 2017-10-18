@@ -145,7 +145,7 @@ message MR {
     bytes hash = 1;
     string type = 2;
     bytes stake_selector = 3;
-    uint64 blocknumber = 4;
+    uint64 block_number = 4;
     bytes prev_headerhash = 5;
     bytes reveal_hash = 6;
 }

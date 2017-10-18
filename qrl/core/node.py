@@ -470,7 +470,7 @@ class POS:
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
         epoch = blocknumber // config.dev.blocks_per_epoch
 
-        my_reveal = hash_chain[-1][:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
+        my_reveal = hash_chain[:-1][::-1][blocknumber - (epoch * config.dev.blocks_per_epoch) + 1]
 
         block = self.create_new_block(my_reveal,
                                       blocknumber - 1)

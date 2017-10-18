@@ -232,11 +232,11 @@ class P2PProtocol(Protocol):
                                                          prev_blockheaderhash=tuple(mr_data.prev_headerhash),
                                                          stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
-                elif mr_data.blocknumber > self.factory.chain.block_chain_buffer.height() - config.dev.reorg_limit:
+                elif mr_data.block_number > self.factory.chain.block_chain_buffer.height() - config.dev.reorg_limit:
                     self.FBHL()
                 return
 
-            blocknumber = mr_data.blocknumber
+            blocknumber = mr_data.block_number
             target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.pos.ntp)
             if target_blocknumber != self.factory.bkmr_blocknumber:
                 self.factory.bkmr_blocknumber = target_blocknumber
