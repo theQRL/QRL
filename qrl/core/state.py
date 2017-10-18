@@ -162,7 +162,7 @@ class State:
             return True
 
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
-        nonce = self.stake_validators_list.sv_list[block.transactions[0].txto].nonce
+        nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
         logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
                      block.blockheader.blocknumber,
                      block.blockheader.epoch,
