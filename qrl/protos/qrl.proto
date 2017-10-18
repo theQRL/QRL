@@ -27,7 +27,7 @@ service PublicAPI {
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {
     }
-    rpc PushTransaction (PushTransactionReq) returns (PushTransactionReqResp) {
+    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) {
     }
 }
 
@@ -73,7 +73,7 @@ message TransferCoinsResp {
 message PushTransactionReq {
     Transaction transaction_signed = 1;
 }
-message PushTransactionReqResp {
+message PushTransactionResp {
     string some_response = 1;
 }
 
