@@ -21,10 +21,6 @@ class Block(object):
             self._data = qrl_pb2.Block()
 
     @property
-    def blockheader(self):
-        return self._data.header
-
-    @property
     def transactions(self):
         return self._data.transactions
 
@@ -51,42 +47,44 @@ class Block(object):
         prev_blockheaderhash = data.blockheader.headerhash
 
         hashedtransactions = []
-        self._data.transactions = [None]
+
+        self._data.transactions.extend([qrl_pb2.Transaction()])
         fee_reward = 0
 
         for tx in chain.transaction_pool:
             if tx.subtype == TX_SUBTYPE_TX:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
-            self.transactions.append(tx)  # copy memory rather than sym link
-
-        self._data.duplicate_transactions = []
+            self.transactions.extend([tx._data])  # copy memory rather than sym link
 
         for tx in chain.duplicate_tx_pool:
-            self.duplicate_transactions.append(chain.duplicate_tx_pool[tx])
+            self.duplicate_transactions.extend([chain.duplicate_tx_pool[tx]._data])
 
         if not hashedtransactions:
             hashedtransactions = [sha256('')]
 
         hashedtransactions = merkle_tx_hash(hashedtransactions)
 
-        self._data.header = BlockHeader()
-        self._data.header.create(chain=chain,
-                                 blocknumber=last_block_number + 1,
-                                 reveal_hash=reveal_hash,
-                                 prev_blockheaderhash=prev_blockheaderhash,
-                                 hashedtransactions=hashedtransactions,
-                                 fee_reward=fee_reward)
+        self.blockheader = BlockHeader().create(chain=chain,
+                                                blocknumber=last_block_number + 1,
+                                                reveal_hash=reveal_hash,
+                                                prev_blockheaderhash=prev_blockheaderhash,
+                                                hashedtransactions=hashedtransactions,
+                                                fee_reward=fee_reward)
+
+        self._data.header.MergeFrom(self.blockheader._data)
+
 
         signing_xmss = chain.block_chain_buffer.get_slave_xmss(last_block_number + 1)
 
         coinbase_tx = CoinBase.create(self.blockheader, signing_xmss)
 
-        coinbase_tx.sign(signing_xmss)
-
-        self._data.transactions[0] = coinbase_tx
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
         coinbase_tx._data.nonce = sv_list[chain.mining_address].nonce + 1
+
+        coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
+
+        self._data.transactions[0].CopyFrom(coinbase_tx._data)
 
     def validate_block(self, chain):  # check validity of new block..
         """

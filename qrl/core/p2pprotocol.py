@@ -5,7 +5,7 @@ import time
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
-from google.protobuf.json_format import Parse
+from google.protobuf.json_format import MessageToJson, Parse
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import helper, config, logger, fork
@@ -607,7 +607,7 @@ class P2PProtocol(Protocol):
         self.send_m_blockheight_to_peer()
         return
 
-    def CB(self, data):
+    def CB(self, raw_data):
         """
         Check Blockheight
         :return:
@@ -633,12 +633,13 @@ class P2PProtocol(Protocol):
         >>> p.factory = Factory(defaultdict(), p.chain, tmp)
         >>> p.CB('{"block_number": 3, "headerhash": [53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19]}')
         """
-        z = json.loads(data)
-        block_number = z['block_number']
-        headerhash = tuple(z['headerhash'])
+        data = qrl_pb2.BlockMetaData()
+        Parse(raw_data, data)
+        block_number = data.block_number
+        headerhash = data.hash_header
 
         tmp = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
-        self.factory.peers_blockheight[tmp] = z['block_number']
+        self.factory.peers_blockheight[tmp] = data.block_number
 
         self.blockheight = block_number
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
@@ -912,12 +913,12 @@ class P2PProtocol(Protocol):
         Sends the mainchain maximum blockheight request.
         :return:
         """
-        z = {'headerhash': self.factory.chain.m_blockchain[-1].blockheader.headerhash,
-             'block_number': 0}
+        data = qrl_pb2.BlockMetaData()
+        data.hash_header = self.factory.chain.m_blockchain[-1].blockheader.headerhash
 
         if len(self.factory.chain.m_blockchain):
-            z['block_number'] = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
-        self.transport.write(self.wrap_message('CB', json.dumps(z)))
+            data.block_number = self.factory.chain.m_blockchain[-1].blockheader.blocknumber
+        self.transport.write(self.wrap_message('CB', MessageToJson(data)))
         return
 
     def get_version(self):

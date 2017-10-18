@@ -121,9 +121,9 @@ message BlockHeader {
     uint64 reward_block = 6;
     uint64 reward_fee = 7;
 
-    bytes merkel_root = 8;
+    bytes merkle_root = 8;
     bytes hash_reveal = 9;
-    string stake_selector = 10;
+    bytes stake_selector = 10;
 }
 
 message Block {
@@ -136,10 +136,15 @@ message Block {
     repeated string stake_list = 5; // addresses
 }
 
+message BlockMetaData {
+    uint64 block_number = 1;
+    bytes hash_header = 2;
+}
+
 message MR {
     bytes hash = 1;
     string type = 2;
-    string stake_selector = 3;
+    bytes stake_selector = 3;
     uint64 blocknumber = 4;
     bytes prev_headerhash = 5;
     bytes reveal_hash = 6;
