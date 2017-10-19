@@ -6,9 +6,7 @@ import jsonpickle
 import simplejson as json
 
 from qrl.core import config, logger
-from qrl.crypto.misc import sha256
 
-#FIXME: Lack of clear schemas could be dangerous in this case
 
 def isValidAddress(addr):
     if addr.startswith(b'Q'):
@@ -21,16 +19,6 @@ def isValidAddress(addr):
                 return False
 
     return False
-
-
-def select_target_hashchain(last_block_headerhash):
-    target_chain = 0
-    for byte in last_block_headerhash:
-        target_chain += byte
-
-    target_chain = (target_chain - 1) % (config.dev.hashchain_nums - 1)  # 1 Primary hashchain size
-
-    return target_chain
 
 
 # noinspection PyClassHasNoInit
@@ -67,19 +55,9 @@ def json_print_telnet(obj):
     return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)
 
 
-def hash_to_terminator(hash_val, times):
-    new_hash = hash_val
-    for i in range(times):
-        new_hash = sha256(new_hash)
-    return new_hash
-
-
-def reveal_to_terminator(hash_val, times):
-    return hash_to_terminator(hash_val, times + 1)
-
 # Returns the number of blocks left before next epoch
 def get_blocks_left(blocknumber):
     epoch = blocknumber // config.dev.blocks_per_epoch
-    blocks_left = blocknumber - ( epoch * config.dev.blocks_per_epoch)
+    blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
     blocks_left = config.dev.blocks_per_epoch - blocks_left
     return blocks_left

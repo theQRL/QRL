@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from pyqrllib.pyqrllib import getHashChainSeed, bin2hstr
 from qrl.core import config, logger
 from qrl.core.ChainBuffer import ChainBuffer
@@ -19,12 +19,11 @@ from io import StringIO
 from time import time
 from math import log, ceil
 import heapq
-import os, copy
+import os
+import copy
 import simplejson as json
 from collections import defaultdict
 from decimal import Decimal
-
-BlockFrame = namedtuple('BlockFrame', 'position size')  # FIXME: Remove/Refactor. This is temporary
 
 
 class Chain:
@@ -125,7 +124,8 @@ class Chain:
 
         return None
 
-    def reveal_to_terminator(self, reveal, blocknumber, add_loop=0):
+    @staticmethod
+    def reveal_to_terminator(reveal, blocknumber, add_loop=0):
         tmp = sha256(reveal)
         epoch = blocknumber // config.dev.blocks_per_epoch
         for _ in range(blocknumber - (epoch * config.dev.blocks_per_epoch) + add_loop):
@@ -294,7 +294,8 @@ class Chain:
 
     def pos_block_pool(self, n=1.5):
         """
-        create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms, but let's give a window of 1.5 seconds).
+        create a snapshot of the transaction pool to account for network traversal time (probably less than 300ms,
+        but let's give a window of 1.5 seconds).
         :param n:
         :return: list of merkle root hashes of the tx pool over last 1.5 seconds
         """
@@ -350,29 +351,21 @@ class Chain:
 
         return prf_range
 
-    def pos_block_selector_n(self, seed, n, i):
-        """
-        return the POS staker list position for given seed at index, i
-        :param seed:
-        :param n:
-        :param i:
-        :return:
-        """
-        l = self.pos_block_selector(seed, n)
-        return l[i]
-
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
                 logger.info('%s found in transaction pool..', txcontains)
-                if islong == 1: json_print(tx)
+                if islong == 1:
+                    json_print(tx)
         for block in self.m_blockchain:
             for protobuf_tx in block.transactions:
                 tx = Transaction.from_pbdata(protobuf_tx)
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
                     logger.info('%s found in block %s', txcontains, str(block.blockheader.blocknumber))
-                    if islong == 0: logger.info(('<tx:txhash> ' + tx.txhash))
-                    if islong == 1: json_print(tx)
+                    if islong == 0:
+                        logger.info(('<tx:txhash> ' + tx.txhash))
+                    if islong == 1:
+                        json_print(tx)
         return
 
     def update_last_tx(self, block):
@@ -449,11 +442,6 @@ class Chain:
                                                            block=block,
                                                            validate=validate)
 
-    def m_read_chain(self):
-        if not self.m_blockchain:
-            self.m_load_chain()
-        return self.m_blockchain
-
     def m_get_block(self, n):
 
         if len(self.m_blockchain) == 0:
@@ -476,14 +464,14 @@ class Chain:
         return self.m_blockchain[-1]
 
     def m_create_block(self, reveal_hash, last_block_number=-1):
-        myBlock = Block()
-        myBlock.create(self, reveal_hash, last_block_number)
+        tmp_block = Block()
+        tmp_block.create(self, reveal_hash, last_block_number)
 
         slave_xmss = self.block_chain_buffer.get_slave_xmss(last_block_number + 1)
         if not slave_xmss:
             return
         self.wallet.save_slave(slave_xmss)
-        return myBlock
+        return tmp_block
 
     def m_add_block(self, block_obj):
         if len(self.m_blockchain) == 0:
@@ -527,12 +515,8 @@ class Chain:
         logger.info(('Number of transactions: ', str(len(b.transactions))))
         logger.info(('Validates: ', b.validate_block(self)))
 
-    def m_f_sync_chain(self):
-        if (self.m_blockchain[-1].blockheader.blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
-            self.f_write_m_blockchain()
-        return
-
-    def m_verify_chain(self, verbose=0):
+    def m_verify_chain(self):
+        # FIXME: Unused, remove?
         for block in self.m_read_chain()[1:]:
             if not block.validate_block(self):
                 return False
@@ -573,14 +557,31 @@ class Chain:
 
         return True
 
+    # BLOCK CHAIN PERSISTANCE
 
-    ############## BLOCK CHAIN PERSISTANCE
+    def m_read_chain(self):
+        if not self.m_blockchain:
+            self.m_load_chain()
+        return self.m_blockchain
+
+    def m_f_sync_chain(self):
+        if (self.m_blockchain[-1].blockheader.blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
+            self.f_write_m_blockchain()
+        return
 
     @staticmethod
     def get_chaindatafile(epoch):
-        baseDir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
-        config.create_path(baseDir)
-        return os.path.join(baseDir, 'chain.da' + str(epoch))
+        base_dir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
+        config.create_path(base_dir)
+        return os.path.join(base_dir, 'chain.da' + str(epoch))
+
+    def update_block_metadata(self, block_number, block_position, block_size):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        self.block_framedata[block_number] = [block_position, block_size]
+
+    def get_block_metadata(self, block_number):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        return self.block_framedata[block_number]
 
     def m_load_chain(self):
         del self.m_blockchain[:]
@@ -612,23 +613,17 @@ class Chain:
 
         with open(self.get_chaindatafile(file_epoch), 'ab') as myfile:
             for block in writeable:
-                jsonBlock = bytes(json_bytestream(block), 'utf-8')
-                compressedBlock = bz2.compress(jsonBlock, config.dev.compression_level)
-                pos = myfile.tell()
-                blockSize = len(compressedBlock)
-                self.block_framedata[block.blockheader.blocknumber] = BlockFrame(pos, blockSize)
-                myfile.write(compressedBlock)
+                json_block = bytes(json_bytestream(block), 'utf-8')
+                compressed_block = bz2.compress(json_block, config.dev.compression_level)
+                block_pos = myfile.tell()
+                block_size = len(compressed_block)
+
+                self.update_block_metadata(block.blockheader.blocknumber, block_pos, block_size)
+
+                myfile.write(compressed_block)
                 myfile.write(config.dev.binary_file_delimiter)
 
         del self.m_blockchain[:-1]
-
-    def update_block_metadata(self, block_number, block_position, block_size):
-        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        self.block_framedata[block_number] = [block_position, block_size]
-
-    def get_block_metadata(self, block_number):
-        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        return self.block_framedata[block_number]
 
     def load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
@@ -637,9 +632,9 @@ class Chain:
 
         with open(self.get_chaindatafile(epoch), 'rb') as f:
             f.seek(block_offset)
-            jsonBlock = bz2.decompress(f.read(block_size))
+            json_block = bz2.decompress(f.read(block_size))
 
-            block = Block.from_json(jsonBlock)
+            block = Block.from_json(json_block)
             return block
 
     def f_read_chain(self, epoch):
@@ -657,7 +652,7 @@ class Chain:
 
         try:
             with open(self.get_chaindatafile(epoch), 'rb') as myfile:
-                jsonBlock = bytearray()
+                json_block = bytearray()
                 tmp = bytearray()
                 count = 0
                 offset = 0
@@ -667,7 +662,7 @@ class Chain:
                         offset += 1
                         if count > 0 and char != delimiter[count]:
                             count = 0
-                            jsonBlock += tmp
+                            json_block += tmp
                             tmp = bytearray()
                         if char == delimiter[count]:
                             tmp.append(delimiter[count])
@@ -676,18 +671,18 @@ class Chain:
                                 continue
                             tmp = bytearray()
                             count = 0
-                            pos = offset - len(delimiter) - len(jsonBlock)
-                            jsonBlock = bz2.decompress(jsonBlock)
+                            pos = offset - len(delimiter) - len(json_block)
+                            json_block = bz2.decompress(json_block)
 
-                            block = Block.from_json(jsonBlock)
+                            block = Block.from_json(json_block)
 
-                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(jsonBlock))
+                            self.update_block_metadata(block.blockheader.blocknumber, pos, len(json_block))
 
                             block_list.append(block)
 
-                            jsonBlock = bytearray()
+                            json_block = bytearray()
                             continue
-                        jsonBlock.append(char)
+                        json_block.append(char)
                     if len(chars) < config.dev.chain_read_buffer_size:
                         break
         except Exception as e:

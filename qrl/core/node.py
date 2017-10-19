@@ -265,11 +265,11 @@ class POS:
             block_chain_buffer = self.chain.block_chain_buffer
             tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
                                                          addr=tx.txfrom)
-            isValidState = tx.state_validate_tx(
-                tx_state=tx_state,
-                transaction_pool=self.chain.transaction_pool
-            )
-            if not isValidState:
+
+            is_valid_state = tx.state_validate_tx(tx_state=tx_state,
+                                                  transaction_pool=self.chain.transaction_pool)
+
+            if not is_valid_state:
                 logger.info('>>>TX %s failed state_validate', tx.txhash)
                 continue
 
@@ -293,22 +293,19 @@ class POS:
 
         return block_obj
 
-    def reset_everything(self, data=None):
+    def reset_everything(self):
         logger.info('** resetting loops and emptying chain.stake_reveal_one and chain.expected_winner ')
         for r in self.chain.stake_reveal_one:
             msg_hash = r[5]
             self.master_mr.deregister(msg_hash, 'R1')
 
         del self.chain.stake_reveal_one[:]
-        return
 
     def filter_reveal_one_two(self, blocknumber=None):
         if not blocknumber:
             blocknumber = self.chain.m_blockchain[-1].blockheader.blocknumber
 
         self.chain.stake_reveal_one = [s for s in self.chain.stake_reveal_one if s[2] > blocknumber]
-
-        return
 
     # TODO: Incomplete fn, use to select the maximum blockheight by consensus
     def select_blockheight_by_consensus(self):
@@ -530,8 +527,8 @@ class POS:
             blocknumber=blocknumber,
             xmss=signing_xmss,
             slavePK=slave_xmss.pk(),
-            finalized_blocknumber = finalized_blocknumber,
-            finalized_headerhash = finalized_headerhash,
+            finalized_blocknumber=finalized_blocknumber,
+            finalized_headerhash=finalized_headerhash,
             balance=balance
         )
 
@@ -549,17 +546,18 @@ class POS:
         self.chain.add_tx_to_pool(st)
         self.chain.wallet.save_wallet()
 
-    def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
-        try:
-            reactor.prepare_winners.cancel()
-        except Exception:  # No need to log this Exception
-            pass
-
-        reactor.prepare_winners = reactor.callLater(
-            delay,
-            self.prepare_winners,
-            our_reveal=our_reveal,
-            last_block_number=last_block_number)
+    # FIXME: Remove?
+    # def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
+    #     try:
+    #         reactor.prepare_winners.cancel()
+    #     except Exception:  # No need to log this Exception
+    #         pass
+    #
+    #     reactor.prepare_winners = reactor.callLater(
+    #         delay,
+    #         self.prepare_winners,                       # FIXME: This is unknown
+    #         our_reveal=our_reveal,
+    #         last_block_number=last_block_number)
 
     def randomize_block_fetch(self, blocknumber):
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():
@@ -607,7 +605,8 @@ class POS:
 
     def blockheight_map(self):
         """
-        blockheight map for connected nodes - when the blockheight seems up to date after a sync or error, we check all connected nodes to ensure all on same chain/height..
+        blockheight map for connected nodes - when the blockheight seems up to date after a sync or error,
+        we check all connected nodes to ensure all on same chain/height..
         note - may not return correctly during a block propagation..
         once working alter to identify fork better..
 
