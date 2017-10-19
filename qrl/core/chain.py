@@ -429,7 +429,7 @@ class Chain:
         chains = self.f_read_chain(epoch)
         self.m_blockchain.append(chains[0])
 
-        self.state.read_genesis(self.m_get_block(0))
+        self.state.read_genesis()
         self.block_chain_buffer = ChainBuffer(self)
 
         for block in chains[1:]:
