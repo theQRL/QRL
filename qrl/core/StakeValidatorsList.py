@@ -17,13 +17,7 @@ class StakeValidatorsList:
     """
     def __init__(self):
         self.sv_list = OrderedDict()  # Active stake validator objects
-        self.inactive_sv_list = OrderedDict()  # Inactive stake validator objects
-        self.hash_staker = OrderedDict()
         self.isOrderedLength = 0
-
-    def update_hash_staker(self, sv, blocknumber):
-        tmphash = sv.cache_hash[blocknumber]
-        self.hash_staker[tmphash] = sv.stake_validator
 
     def calc_seed(self):
         epoch_seed = 0
@@ -40,7 +34,6 @@ class StakeValidatorsList:
     def add_sv(self, stake_txn, blocknumber):
         sv = StakeValidator(stake_txn, blocknumber)
         self.sv_list[stake_txn.txfrom] = sv
-        self.update_hash_staker(sv, blocknumber)
 
     def get_sv_list(self, txfrom):
         if txfrom not in self.sv_list:
@@ -48,30 +41,10 @@ class StakeValidatorsList:
         return self.sv_list[txfrom]
 
     def validate_hash(self, hasharg, blocknum, stake_address=None):
-        epoch_blocknum = StakeValidator.get_epoch_blocknum(blocknum)
-        if hasharg in self.hash_staker:
-            if stake_address and stake_address != self.hash_staker[hasharg]:
-                return False
-            return True
-
-        if stake_address:
-            if stake_address not in self.sv_list:
-                return False
-            sv = self.sv_list[stake_address]
-            return sv.validate_hash(hasharg, blocknum, self.hash_staker)
-
-        tmp = hasharg
-        count = epoch_blocknum
-        while count >= -1:
-            tmp = sha256(tmp)
-            if tmp in self.hash_staker:
-                stake_address = self.hash_staker[tmp]
-                sv = self.sv_list[stake_address]
-                sv.update(epoch_blocknum, hasharg, self.hash_staker)
-                return True
-            count -= 1
-
-        return False
+        if stake_address not in self.sv_list:
+            return False
+        sv = self.sv_list[stake_address]
+        return sv.validate_hash(hasharg, blocknum, self.hash_staker)
 
     def to_json(self):
         logger.info('%s', self.__dict__)

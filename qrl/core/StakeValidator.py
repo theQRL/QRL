@@ -42,13 +42,10 @@ class StakeValidator:
         return hasharg
 
     # Saves the last X validated hash into the memory
-    def update(self, epoch_blocknum, hasharg, hash_staker):
+    def update(self, epoch_blocknum, hasharg):
         self.cache_hash[epoch_blocknum] = hasharg
-        hash_staker[hasharg] = self.stake_validator
         if len(self.cache_hash) > self.buffer_size:
             minimum_epoch_blocknum = min(self.cache_hash)
-            remove_hash = self.cache_hash[minimum_epoch_blocknum]
-            del hash_staker[remove_hash]
             del self.cache_hash[minimum_epoch_blocknum]
 
     @staticmethod
@@ -56,7 +53,7 @@ class StakeValidator:
         epoch = blocknum // config.dev.blocks_per_epoch
         return blocknum - (epoch * config.dev.blocks_per_epoch)
 
-    def validate_hash(self, hasharg, blocknum, hash_staker):
+    def validate_hash(self, hasharg, blocknum):
 
         cache_blocknum = max(self.cache_hash)
         times = blocknum - cache_blocknum
@@ -67,7 +64,7 @@ class StakeValidator:
         if terminator_found != terminator_expected:
             return False
 
-        self.update(blocknum, hasharg, hash_staker)
+        self.update(blocknum, hasharg)
 
         return True
 
