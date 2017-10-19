@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from pyqrllib.pyqrllib import bin2hstr
-from qrl.core import config, logger
+from qrl.core import config
 import simplejson as json
 
 from qrl.crypto.misc import sha256
@@ -35,16 +35,16 @@ class StakeValidator:
             self.cache_hash = dict()
             self.cache_hash[entry_blocknumber] = self.hash
 
-    def hash_to_terminator(self, hash, times):
+    def hash_to_terminator(self, hasharg:bytes, times):
         for _ in range(times):
-            hash = sha256(bin2hstr(tuple(hash)).encode())
+            hasharg = sha256(bin2hstr(bytes(hasharg)).encode())
 
-        return hash
+        return hasharg
 
     # Saves the last X validated hash into the memory
-    def update(self, epoch_blocknum, hash, hash_staker):
-        self.cache_hash[epoch_blocknum] = hash
-        hash_staker[hash] = self.stake_validator
+    def update(self, epoch_blocknum, hasharg, hash_staker):
+        self.cache_hash[epoch_blocknum] = hasharg
+        hash_staker[hasharg] = self.stake_validator
         if len(self.cache_hash) > self.buffer_size:
             minimum_epoch_blocknum = min(self.cache_hash)
             remove_hash = self.cache_hash[minimum_epoch_blocknum]
@@ -56,18 +56,18 @@ class StakeValidator:
         epoch = blocknum // config.dev.blocks_per_epoch
         return blocknum - (epoch * config.dev.blocks_per_epoch)
 
-    def validate_hash(self, hash, blocknum, hash_staker):
+    def validate_hash(self, hasharg, blocknum, hash_staker):
 
         cache_blocknum = max(self.cache_hash)
         times = blocknum - cache_blocknum
 
-        terminator_expected = tuple(self.hash_to_terminator(hash, times))
+        terminator_expected = tuple(self.hash_to_terminator(hasharg, times))
         terminator_found = tuple(self.cache_hash[cache_blocknum])
 
         if terminator_found != terminator_expected:
             return False
 
-        self.update(blocknum, hash, hash_staker)
+        self.update(blocknum, hasharg, hash_staker)
 
         return True
 

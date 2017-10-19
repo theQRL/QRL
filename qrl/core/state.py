@@ -83,7 +83,7 @@ class State:
 
     def get_txn_count(self, addr):
         try:
-            return self.db.get( (b'txn_count_' + addr))
+            return self.db.get((b'txn_count_' + addr))
         except KeyError:
             pass
         except Exception as e:
@@ -142,7 +142,7 @@ class State:
 
         for tx in chain.transaction_pool:
             block_chain_buffer = chain.block_chain_buffer
-            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height()+1,
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height() + 1,
                                                          addr=tx.txfrom)
             if tx.state_validate_tx(tx_state=tx_state) is False:
                 result = False
@@ -153,7 +153,7 @@ class State:
 
     def add_block(self, chain, block, ignore_save_wallet=False):
         address_txn = dict()
-        self.load_address_state(chain, block, address_txn)                                  # FIXME: Bottleneck
+        self.load_address_state(chain, block, address_txn)  # FIXME: Bottleneck
 
         if block.blockheader.blocknumber == 1:
             if not self.update_genesis(chain, block, address_txn):
@@ -173,7 +173,7 @@ class State:
         if not self.update(block, self.stake_validators_list, address_txn):
             return
 
-        self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)       # FIXME: Bottleneck
+        self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)  # FIXME: Bottleneck
 
         return True
 
@@ -243,7 +243,7 @@ class State:
                                   key=lambda staker: chain.score(stake_address=staker[0],
                                                                  reveal_one=bin2hstr(sha256(str(
                                                                      reduce(lambda set1, set2: set1 + set2,
-                                                                     tuple(staker[1]))).encode())),
+                                                                            tuple(staker[1]))).encode())),
                                                                  balance=staker[3],
                                                                  seed=chain.block_chain_buffer.epoch_seed))
         chain.block_chain_buffer.epoch_seed = format(chain.block_chain_buffer.epoch_seed, 'x')
@@ -326,7 +326,7 @@ class State:
         address_state.ParseFromString(bytes(data))
 
         # FIXME: pubhashes is deserialized as a pb container but some methods want to make changes. Workaround
-        tmp = [ h for h in address_state.pubhashes]
+        tmp = [h for h in address_state.pubhashes]
 
         return [address_state.nonce,
                 address_state.balance,
@@ -340,7 +340,7 @@ class State:
         address_state.balance = state[1]
 
         # FIXME: Keep internally all hashes as bytearrays
-        address_state.pubhashes.extend([ bytes(b) for b in state[2] ])
+        address_state.pubhashes.extend([bytes(b) for b in state[2]])
 
         self.db.put_raw(address, address_state.SerializeToString())
 
@@ -365,7 +365,7 @@ class State:
         address_state = qrl_pb2.AddressState()
         for k, v in self.db.RangeIter(b'Q', b'Qz'):
             address_state.ParseFromString(v)
-            coins = coins + Decimal(address_state.balance)        # FIXME: decimal math?
+            coins = coins + Decimal(address_state.balance)  # FIXME: decimal math?
         return coins
 
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):
@@ -458,7 +458,8 @@ class State:
                 nonce1 += 1
                 balance1 = balance1 - tx.amount
                 pubhash_list1.append(pubhash)
-                self._save_address_state(tx.txfrom, [nonce1, balance1, pubhash_list1])  # must be ordered in case tx.txfrom = tx.txto
+                self._save_address_state(tx.txfrom, [nonce1, balance1,
+                                                     pubhash_list1])  # must be ordered in case tx.txfrom = tx.txto
 
                 # Update state address to
                 nonce2, balance2, pubhash_list2 = self.get_address(tx.txto)

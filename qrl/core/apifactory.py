@@ -162,8 +162,7 @@ class ApiFactory(ServerFactory):
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return json_print_telnet(err)
 
-        json_tx = json.loads(txn_metadata[0])
-        tx = Transaction().from_txdict(json_tx)
+        tx = Transaction.from_json(txn_metadata[0])
         tx.blocknumber = txn_metadata[1]
         tx.confirmations = self.chain.height() - tx.blocknumber
         tx.timestamp = txn_metadata[2]

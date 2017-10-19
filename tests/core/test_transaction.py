@@ -4,7 +4,6 @@ from pyqrllib.pyqrllib import bin2hstr
 import simplejson as json
 
 from qrl.core import logger
-from qrl.crypto.doctest_data import binvec2hstr
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.core.Transaction import Transaction, SimpleTransaction, StakeTransaction, CoinBase

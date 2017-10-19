@@ -125,7 +125,7 @@ class QRLNode:
         xmss_ots_index = xmss_from.get_index()
 
         # TODO: Review this
-        ### Balance validation
+        # Balance validation
         balance = self.db_state.balance(addr_from)
         if amount + fee > balance:
             raise RuntimeError("Not enough funds")
@@ -156,7 +156,7 @@ class QRLNode:
                                         xmss_ots_index=xmss_ots_index)
 
     # FIXME: Rename this appropriately
-    def submit_send_tx(self, tx : SimpleTransaction) -> bool:
+    def submit_send_tx(self, tx: SimpleTransaction) -> bool:
         # TODO: Review this
         if tx and tx.validate_tx():
             block_chain_buffer = self.chain.block_chain_buffer

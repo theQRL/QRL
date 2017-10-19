@@ -1,7 +1,7 @@
 from collections import namedtuple
 
 from pyqrllib.pyqrllib import getHashChainSeed, sha2_256, bin2hstr
-from qrl.core import config, logger
+from qrl.core import config
 
 HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')
 
@@ -28,10 +28,9 @@ def _calc_hashchain(
     return hc_seed, hc, hc_terminator
 
 
-def hashchain(seed_private,
-              epoch=0,
-              blocks_per_epoch=config.dev.blocks_per_epoch):
-    # type: (bytes, int, int) -> HashChainBundle
+def hashchain(seed_private: bytes,
+              epoch: int = 0,
+              blocks_per_epoch: int = config.dev.blocks_per_epoch) -> HashChainBundle:
     """
     >>> from qrl.crypto.doctest_data import *; isinstance(hashchain(hashchain_reveal_input), HashChainBundle)
     True
