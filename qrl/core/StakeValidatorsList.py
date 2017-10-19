@@ -15,6 +15,8 @@ class StakeValidatorsList:
     def __init__(self):
         self.sv_list = OrderedDict()  # Active stake validator objects
         self.expiry = defaultdict(set)  # Maintains the blocknumber as key at which Stake validator has to be expired
+        self.future_sv_list = defaultdict(set)
+        self.future_stake_addresses = set()
         self.isOrderedLength = 0
 
     def calc_seed(self):
@@ -29,19 +31,34 @@ class StakeValidatorsList:
 
         return epoch_seed
 
-    def add_sv(self, stake_txn, blocknumber):
-        sv = StakeValidator(stake_txn, blocknumber)
+    def activate_sv(self, stake_txn):
+        sv = StakeValidator(stake_txn)
         self.sv_list[stake_txn.txfrom] = sv
-        self.expiry[blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
+        self.expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
-    def remove_expired_sv(self, blocknumber):
-        if blocknumber not in self.expiry:
-            return
+    def add_sv(self, stake_txn, blocknumber):
+        if stake_txn.activation_blocknumber > blocknumber:
+            self.add_future_sv(stake_txn)
+        else:
+            self.activate_sv(stake_txn)
 
-        for sv_addr in self.expiry[blocknumber]:
-            del self.sv_list[sv_addr]
+    def add_future_sv(self, stake_txn):
+        self.future_sv_list[stake_txn.activation_blocknumber].add(stake_txn)
+        self.future_stake_addresses.add(stake_txn.txfrom)
 
-        del self.expiry[blocknumber]
+    def update_sv(self, blocknumber):
+        next_blocknumber = blocknumber + 1
+        if next_blocknumber in self.expiry:
+            for sv_addr in self.expiry[next_blocknumber]:
+                del self.sv_list[sv_addr]
+            del self.expiry[next_blocknumber]
+
+        if next_blocknumber in self.future_sv_list:
+            sv_set = self.future_sv_list[next_blocknumber]
+            for stake_txn in sv_set:
+                self.activate_sv(stake_txn=stake_txn)
+                self.future_stake_addresses.remove(stake_txn.txfrom)
+            del self.future_sv_list[next_blocknumber]
 
     def get_sv_list(self, txfrom):
         if txfrom not in self.sv_list:
@@ -50,6 +67,8 @@ class StakeValidatorsList:
 
     def validate_hash(self, hasharg, blocknum, stake_address=None):
         if stake_address not in self.sv_list:
+            logger.info('>>> return 1')
             return False
         sv = self.sv_list[stake_address]
+        logger.info('>>> return 2')
         return sv.validate_hash(hasharg, blocknum)

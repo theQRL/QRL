@@ -26,12 +26,13 @@ test_json_Simple = """{
 
 test_json_Stake = """{
   "type": "STAKE",
-  "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==", 
+  "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "0SPiGkWTEpHUX+jVjMLKOxszGGW64UbsOUWZoHRi0mo=",
+  "transactionHash": "why8+szjNRHGNjVDYQYC4kKnabD1rpK+DNYeb3ZJzGU=",
   "otsKey": 10,
   "stake": {
     "balance": "100",
+    "activationBlocknumber": "2",
     "finalizedBlocknumber": "23",
     "finalizedHeaderhash": "xlgxlEyp2QYysUS+fI/amKOQKXMGE/hch6En6TbcM9E=",
     "slavePK": "OAeT3r+PcucO9zUe5QBd9sfKIyD/SeDq0MQLGce7HMFJbhmkgsBjUL3AVOTtUqJOyMmUxE+TQdARkKgasJOt6A==",
@@ -161,7 +162,7 @@ class TestStakeTransaction(TestCase):
         self.maxDiff = None
 
     def test_create(self):
-        tx = StakeTransaction.create(blocknumber=2,
+        tx = StakeTransaction.create(activation_blocknumber=2,
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
@@ -171,7 +172,7 @@ class TestStakeTransaction(TestCase):
         self.assertTrue(tx)
 
     def test_to_json(self):
-        tx = StakeTransaction.create(blocknumber=2,
+        tx = StakeTransaction.create(activation_blocknumber=2,
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
@@ -191,14 +192,14 @@ class TestStakeTransaction(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual('d123e21a45931291d45fe8d58cc2ca3b1b331865bae146ec394599a07462d26a', bin2hstr(tx.txhash))
+        self.assertEqual('c21cbcfacce33511c6363543610602e242a769b0f5ae92be0cd61e6f7649cc65', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
         self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
 
         # Test that specific content was copied over.
         self.assertEqual(100, tx.balance)
-        self.assertEqual(0, tx.epoch)
+        self.assertEqual(2, tx.activation_blocknumber)
         self.assertEqual(23, tx.finalized_blocknumber)
         self.assertEqual('c65831944ca9d90632b144be7c8fda98a39029730613f85c87a127e936dc33d1',
                          bin2hstr(tx.finalized_headerhash))
@@ -209,7 +210,7 @@ class TestStakeTransaction(TestCase):
                          bin2hstr(tx.hash))
 
     def test_validate_tx(self):
-        tx = StakeTransaction.create(blocknumber=2,
+        tx = StakeTransaction.create(activation_blocknumber=2,
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
@@ -224,7 +225,7 @@ class TestStakeTransaction(TestCase):
         self.assertTrue(tx.validate_tx())
 
     def test_get_message_hash(self):
-        tx = StakeTransaction.create(blocknumber=2,
+        tx = StakeTransaction.create(activation_blocknumber=2,
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      finalized_blocknumber=23,
@@ -233,7 +234,7 @@ class TestStakeTransaction(TestCase):
                                      balance=100)
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual('d123e21a45931291d45fe8d58cc2ca3b1b331865bae146ec394599a07462d26a',
+        self.assertEqual('c21cbcfacce33511c6363543610602e242a769b0f5ae92be0cd61e6f7649cc65',
                          bin2hstr(tuple(tx.get_message_hash())))
 
 

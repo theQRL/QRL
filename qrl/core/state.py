@@ -9,7 +9,6 @@ from _decimal import Decimal
 from functools import reduce
 from qrl.core import db, logger, config, helper
 from qrl.core.Transaction import Transaction, CoinBase
-from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
@@ -235,7 +234,7 @@ class State:
                 if tx.txfrom == block.blockheader.stake_selector:
                     self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
 
-                self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
+                self.stake_validators_list.add_sv(tx, 1)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
@@ -305,8 +304,8 @@ class State:
 
             elif tx.subtype == TX_SUBTYPE_STAKE:
                 address_txn[tx.txfrom][2].append(tx.pubhash)
-                sv_list = stake_validators_list.sv_list
-                if tx.txfrom not in sv_list:
+                future_stake_addresses = stake_validators_list.future_stake_addresses
+                if tx.txfrom not in future_stake_addresses:
                     stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
@@ -374,8 +373,8 @@ class State:
         return coins
 
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):
-        # FIXME: This indexing approach is very inefficient
 
+        # FIXME: This indexing approach is very inefficient
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
 
         staker = block.blockheader.stake_selector
@@ -399,6 +398,8 @@ class State:
                 chain.wallet.save_wallet()
 
         self._set_blockheight(chain.height() + 1)
+
+        self.stake_validators_list.update_sv(block.blockheader.blocknumber)
 
         logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True

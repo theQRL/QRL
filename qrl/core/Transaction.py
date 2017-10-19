@@ -263,8 +263,8 @@ class StakeTransaction(Transaction):
         return self._data.stake.balance
 
     @property
-    def epoch(self):
-        return self._data.stake.epoch
+    def activation_blocknumber(self):
+        return self._data.stake.activation_blocknumber
 
     @property
     def finalized_blocknumber(self):
@@ -292,14 +292,14 @@ class StakeTransaction(Transaction):
         tmptxhash = bin2hstr(tuple(self.hash))
         tmptxhash = str2bin(tmptxhash
                             + bin2hstr(self.slave_public_key)
-                            + bin2hstr(sha2_256(bytes(self.epoch)))
+                            + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
                             + bin2hstr(sha2_256(bytes(self.subtype)))
                             + bin2hstr(sha2_256(bytes(self.finalized_blocknumber)))
                             + bin2hstr(self.finalized_headerhash))
         return bytes(tmptxhash)
 
     @staticmethod
-    def create(blocknumber,
+    def create(activation_blocknumber,
                xmss,
                slavePK,
                finalized_blocknumber,
@@ -323,13 +323,14 @@ class StakeTransaction(Transaction):
 
         # Stake specific
         transaction._data.stake.balance = balance
-        transaction._data.stake.epoch = blocknumber // config.dev.blocks_per_epoch  # in this block the epoch is..
+        transaction._data.stake.activation_blocknumber = activation_blocknumber
         transaction._data.stake.finalized_blocknumber = finalized_blocknumber
         transaction._data.stake.finalized_headerhash = bytes(finalized_headerhash)
         transaction._data.stake.slavePK = bytes(slavePK)
 
         if hashchain_terminator is None:
-            transaction._data.stake.hash = hashchain_reveal(xmss.get_seed_private(), epoch=transaction.epoch + 1)
+            epoch = activation_blocknumber // config.dev.blocks_per_epoch
+            transaction._data.stake.hash = hashchain_reveal(xmss.get_seed_private(), epoch=epoch)
         else:
             transaction._data.stake.hash = hashchain_terminator
 
