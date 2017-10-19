@@ -32,7 +32,7 @@ class QRLNode:
     def set_p2pfactory(self, p2pfactory):
         self.p2pfactory = p2pfactory
 
-    def load_peer_addresses(self):
+    def load_peer_addresses(self)->None:
         try:
             if os.path.isfile(self.peers_path):
                 logger.info('Opening peers.qrl')
@@ -51,7 +51,7 @@ class QRLNode:
 
         logger.info('Known Peers: %s', self.peer_addresses)
 
-    def update_peer_addresses(self, peer_addresses):
+    def update_peer_addresses(self, peer_addresses)->None:
         # FIXME: Probably will be refactored
         self.peer_addresses = peer_addresses
         known_peers = qrl_pb2.KnownPeers()
@@ -59,7 +59,7 @@ class QRLNode:
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
-    def get_address_state(self, address):
+    def get_address_state(self, address: bytes)->qrl_pb2.AddressState:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
         nonce, balance, pubhash_list = self.db_state.get_address(address)
@@ -72,7 +72,7 @@ class QRLNode:
 
         return address_state
 
-    def get_dec_amount(self, str_amount_arg):
+    def get_dec_amount(self, str_amount_arg: str)->Decimal:
         # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion. Quantity formats should be always clear
         # FIXME: Review. This is just relocated code. It looks odd
         # FIXME: Antipattern. Magic number.
@@ -105,9 +105,10 @@ class QRLNode:
 
         return addr_or_index
 
-    def validate_amount(self, amount_str):
+    def validate_amount(self, amount_str: str)->bool:
         # FIXME: Refactored code. Review Decimal usage all over the code
         amount = Decimal(amount_str)
+        return True
 
     def _find_xmss(self, key_addr):
         # FIXME: Move down the wallet management
@@ -117,7 +118,7 @@ class QRLNode:
         return None
 
     # FIXME: Rename this appropriately
-    def transfer_coins(self, addr_from, addr_to, amount, fee=0):
+    def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
         xmss_from = self._find_xmss(addr_from)
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
@@ -126,11 +127,8 @@ class QRLNode:
 
         # TODO: Review this
         # Balance validation
-        balance = self.db_state.balance(addr_from)
-        if amount + fee > balance:
-            raise RuntimeError("Not enough funds")
-
         if xmss_from.get_remaining_signatures() == 1:
+            balance = self.db_state.balance(addr_from)
             if amount + fee < balance:
                 # FIXME: maybe this is too strict?
                 raise RuntimeError("Last signature! You must move all the funds to another account!")
@@ -147,7 +145,17 @@ class QRLNode:
         return tx
 
     # FIXME: Rename this appropriately
-    def create_send_tx(self, addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_index):
+    def create_send_tx(self,
+                       addr_from: bytes,
+                       addr_to: bytes,
+                       amount: int,
+                       fee: int,
+                       xmss_pk: bytes,
+                       xmss_ots_index: int) -> SimpleTransaction:
+        balance = self.db_state.balance(addr_from)
+        if amount + fee > balance:
+            raise RuntimeError("Not enough funds in the source address")
+
         return SimpleTransaction.create(addr_from=addr_from,
                                         addr_to=addr_to,
                                         amount=amount,
@@ -157,16 +165,21 @@ class QRLNode:
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx: SimpleTransaction) -> bool:
+        if tx is None:
+            raise ValueError("The transaction was empty")
+
         # TODO: Review this
-        if tx and tx.validate_tx():
-            block_chain_buffer = self.chain.block_chain_buffer
-            block_number = block_chain_buffer.height() + 1
-            tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
+        if not tx.validate_tx():
+            raise ValueError("The transaction failed validation")
 
-            if tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
-                self.chain.add_tx_to_pool(tx)
-                self.chain.wallet.save_wallet()
-                self.p2pfactory.send_tx_to_peers(tx)
-                return True
+        block_chain_buffer = self.chain.block_chain_buffer
+        block_number = block_chain_buffer.height() + 1
+        tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
-        return False
+        if not tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
+            raise ValueError("The transaction failed validatation (blockchain state)")
+
+        self.chain.add_tx_to_pool(tx)
+        self.chain.wallet.save_wallet()
+        self.p2pfactory.send_tx_to_peers(tx)
+        return True

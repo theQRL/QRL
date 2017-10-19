@@ -143,7 +143,6 @@ class ApiFactory(ServerFactory):
                 txn.hash[j] = bin2hstr(txn.hash[j])
 
         txn.subtype = Transaction.tx_id_to_name(txn.subtype)
-
         return txn
 
     # FIXME: Temporarily moving this here to keep thing running. Remove/refactor

@@ -35,9 +35,9 @@ class GenesisBlock(object, metaclass=Singleton):
 
         with open(genesis_data_path) as f:
             logger.info("Loading genesis from %s", genesis_data_path)
-            dataMap = yaml.safe_load(f)
-            for key in dataMap['genesis_info']:
-                self._genesis_info[key.encode()] = dataMap['genesis_info'][key]
+            data_map = yaml.safe_load(f)
+            for key in data_map['genesis_info']:
+                self._genesis_info[key.encode()] = data_map['genesis_info'][key]
 
         self.blockheader = BlockHeader()
         self.transactions = []

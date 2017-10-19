@@ -38,7 +38,6 @@ class Block(object):
         return self._data.stake_list
 
     def create(self, chain, reveal_hash, last_block_number=-1):
-        data = None
         if last_block_number == -1:
             data = chain.block_chain_buffer.get_last_block()  # m_get_last_block()
         else:
@@ -56,10 +55,10 @@ class Block(object):
             if tx.subtype == TX_SUBTYPE_TX:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
-            self._data.transactions.extend([tx._data])  # copy memory rather than sym link
+            self._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
         for tx in chain.duplicate_tx_pool:
-            self._data.duplicate_transactions.extend([chain.duplicate_tx_pool[tx]._data])
+            self._data.duplicate_transactions.extend([chain.duplicate_tx_pool[tx].pbdata])
 
         if not hashedtransactions:
             hashedtransactions = [sha256('')]
@@ -81,11 +80,11 @@ class Block(object):
         coinbase_tx = CoinBase.create(self.blockheader, signing_xmss)
 
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
-        coinbase_tx._data.nonce = sv_list[chain.mining_address].nonce + 1
+        coinbase_tx.pbdata.nonce = sv_list[chain.mining_address].nonce + 1
 
         coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
 
-        self._data.transactions[0].CopyFrom(coinbase_tx._data)
+        self._data.transactions[0].CopyFrom(coinbase_tx.pbdata)
 
     def validate_block(self, chain):  # check validity of new block..
         """
