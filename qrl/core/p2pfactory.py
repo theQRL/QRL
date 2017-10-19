@@ -4,18 +4,16 @@ import random
 import time
 from collections import defaultdict
 
-import simplejson as json
-
 from google.protobuf.json_format import MessageToJson
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from qrl.core import config, logger, helper
-from qrl.core.helper import json_bytestream_bk, json_bytestream
+from qrl.core import config, logger
+from qrl.core.helper import json_bytestream
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
-from qrl.crypto.misc import sha256
+
 from qrl.generated import qrl_pb2
 
 
@@ -108,17 +106,17 @@ class P2PFactory(ServerFactory):
         block_chain_buffer = self.chain.block_chain_buffer
         blocknumber = self.bkmr_blocknumber
         try:
-            score, hash = self.bkmr_priorityq.get_nowait()
+            dscore, dhash = self.bkmr_priorityq.get_nowait()
             if blocknumber <= block_chain_buffer.height():
                 oldscore = block_chain_buffer.get_block_n_score(blocknumber)
-                if score > oldscore:
+                if dscore > oldscore:
                     del self.bkmr_priorityq
                     self.bkmr_priorityq = queue.PriorityQueue()
                     return
 
             data = qrl_pb2.MR()
 
-            data.hash = hash
+            data.hash = dhash
             data.type = 'BK'
 
             self.RFM(data)

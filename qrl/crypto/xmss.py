@@ -2,8 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from pyqrllib.pyqrllib import bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin, XmssFast
-from qrl.core import config
-from qrl.crypto.words import wordlist
 
 
 class XMSS(object):
@@ -207,15 +205,11 @@ class XMSS(object):
 
     @staticmethod
     # NOTE: USED EXTERNALLY!!!
-    def VERIFY(message, signature, pk):
-        # type: (bytes, bytes, bytes) -> bool
-        # NOTE: used by transaction
+    def VERIFY(message: bytes, signature: bytes, pk: bytes):
         """
         Verify an xmss sig with shorter PK
         same function but verifies using shorter signature where PK: {root, hex(_public_SEED)}
         # main verification function..
-        :param height:
-        :type height:
         :param pk:
         :type pk:
         :param message:

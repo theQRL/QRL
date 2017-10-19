@@ -41,7 +41,7 @@ class TestMessageReceipt(TestCase):
         mr.add_peer(msg_hash, msg_type, peer)
 
         self.assertTrue(mr.contains(msg_hash, msg_type))
-        self.assertFalse(mr.contains('hash_invalid', msg_type))
+        self.assertFalse(mr.contains(b'hash_invalid', msg_type))
 
     def test_contains(self):
         mr = MessageReceipt()

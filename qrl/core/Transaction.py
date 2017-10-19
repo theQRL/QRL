@@ -68,7 +68,7 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.signature
 
     @staticmethod
-    def tx_id_to_name(id):
+    def tx_id_to_name(idarg):
         # FIXME: Move to enums
         id_name = {
             qrl_pb2.Transaction.TRANSFER: 'TX',
@@ -77,7 +77,7 @@ class Transaction(object, metaclass=ABCMeta):
             qrl_pb2.Transaction.LATTICE: 'LATTICE',
             qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE'
         }
-        return id_name[id]
+        return id_name[idarg]
 
     @staticmethod
     def from_pbdata(pbdata: qrl_pb2.Transaction):
@@ -452,7 +452,7 @@ class CoinBase(Transaction):
             return False
 
         # Slave XMSS is used to sign COINBASE txn having quite low XMSS height
-        if not self._validate_signed_hash(height=config.dev.slave_xmss_height):
+        if not self._validate_signed_hash():
             return False
 
         return True

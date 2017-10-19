@@ -75,9 +75,9 @@ class BlockHeader(object):
 
         >>> BlockHeader().create(None, 0, b'0', b'0', b'0', 1) is not None
         True
-        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch;
+        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch
         0
-        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch;
+        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch
         0
         """
 

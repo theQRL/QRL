@@ -7,10 +7,9 @@
 from pyqrllib.pyqrllib import mnemonic2bin
 
 from qrl.core import logger
-from qrl.crypto.words import wordlist
 
 
-def validate_mnemonic(mnemonic: str)->bool:
+def validate_mnemonic(mnemonic: str) -> bool:
     """
     validates a mnemonic
     :param mnemonic:
@@ -24,7 +23,7 @@ def validate_mnemonic(mnemonic: str)->bool:
     try:
         mnemonic2bin(mnemonic)
     except Exception as e:
-        logger.error('Invalid mnemonic %s', str(e) )
+        logger.error('Invalid mnemonic %s', str(e))
         return False
 
     return True

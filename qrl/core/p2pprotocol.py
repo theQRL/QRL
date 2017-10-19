@@ -49,7 +49,7 @@ class P2PProtocol(Protocol):
                         'IP': self.IP,  # Get IP (geotagging?)
                         'FBHL': self.FBHL,  # Fetch Blockheaderhash List
                         'PBHL': self.PBHL,  # Push Blockheaderhash List
-                        'EBHL': self.EBHL   # Evaluate Blockheaderhash List
+                        'EBHL': self.EBHL  # Evaluate Blockheaderhash List
                         }
         self.buffer = b''
         self.messages = []
@@ -127,10 +127,10 @@ class P2PProtocol(Protocol):
         """
         blocknum_headerhash = {}
         for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber):
-             block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
-             if not block:
-                 break
-             blocknum_headerhash[blocknum] = block.blockheader.headerhash
+            block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
+            if not block:
+                break
+            blocknum_headerhash[blocknum] = block.blockheader.headerhash
 
         self.transport.write(self.wrap_message('EBHL', json.dumps(blocknum_headerhash)))
         self.fork_timestamp = time.time()
@@ -184,7 +184,7 @@ class P2PProtocol(Protocol):
                 'stake_selector': block.transactions[0].txto,
                 'blocknumber': block.blockheader.blocknumber,
                 'prev_headerhash': block.blockheader.prev_blockheaderhash,
-                'reveal_hash': block.blockheader.reveal_hash,}
+                'reveal_hash': block.blockheader.reveal_hash, }
 
         self.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
 
