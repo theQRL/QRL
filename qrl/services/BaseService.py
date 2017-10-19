@@ -30,4 +30,4 @@ class BaseService(BaseServicer):
         except Exception as e:
             context.set_code(StatusCode.unknown)
             context.set_details(e)
-            return None
+            return GetNodeInfoResp()

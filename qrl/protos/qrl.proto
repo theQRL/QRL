@@ -98,8 +98,8 @@ message Peer {
 }
 
 message AddressState {
-    //    int64 range = [ -9223372036854775808 to 9223372036854775807 ]
-    //    QRL coins = 105M - 10^8 = 10499999999999999
+    //    int64 range = [                                   -9223372036854775808 to 9223372036854775807 ]
+    //    QRL coins = 105M - 10^-8 = 104999999.99999999 =>     10499999999999999
 
     string address = 1;
     uint64 balance = 2;

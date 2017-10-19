@@ -89,8 +89,6 @@ qrlClient.then( function (qrlClient) {
         xmss_ots_index: 1
     };
 
-    console.log('======================================');
-
     qrlClient.transferCoins(tx, (err, response) => {
         if (err){
             console.log("Error: ", err.message);
