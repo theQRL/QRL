@@ -6,6 +6,7 @@
 from grpc._cython.cygrpc import StatusCode
 
 from qrl.core import logger
+from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
@@ -55,7 +56,8 @@ class APIService(PublicAPIServicer):
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[QRLNode] PushTransaction")
         try:
-            submitted = self.qrlnode.submit_send_tx(request.transaction_signed)
+            tx = Transaction.from_pbdata(request.transaction_signed)
+            submitted = self.qrlnode.submit_send_tx(tx)
 
             # FIXME: Improve response type
             # Prepare response
