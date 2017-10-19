@@ -4,7 +4,6 @@
 
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
-import simplejson as json
 
 from qrl.crypto.misc import sha256
 
@@ -67,6 +66,3 @@ class StakeValidator:
         self.update(blocknum, hasharg)
 
         return True
-
-    def to_json(self):
-        return json.dumps(self.__dict__)

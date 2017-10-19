@@ -1,14 +1,11 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import simplejson as json
-from pyqrllib.pyqrllib import bin2hstr
-from qrl.core import logger
-from qrl.core.StakeValidator import StakeValidator
-from collections import OrderedDict
 
-from qrl.core.helper import ComplexEncoder
-from qrl.crypto.misc import sha256
+from collections import OrderedDict, defaultdict
+from pyqrllib.pyqrllib import bin2hstr
+from qrl.core import logger, config
+from qrl.core.StakeValidator import StakeValidator
 
 
 class StakeValidatorsList:
@@ -17,6 +14,7 @@ class StakeValidatorsList:
     """
     def __init__(self):
         self.sv_list = OrderedDict()  # Active stake validator objects
+        self.expiry = defaultdict(set)  # Maintains the blocknumber as key at which Stake validator has to be expired
         self.isOrderedLength = 0
 
     def calc_seed(self):
@@ -34,6 +32,16 @@ class StakeValidatorsList:
     def add_sv(self, stake_txn, blocknumber):
         sv = StakeValidator(stake_txn, blocknumber)
         self.sv_list[stake_txn.txfrom] = sv
+        self.expiry[blocknumber + config.dev.blocks_per_epoch].append(stake_txn.txfrom)
+
+    def remove_expired_sv(self, blocknumber):
+        if blocknumber not in self.expiry:
+            return
+
+        for sv_addr in self.expiry[blocknumber]:
+            del self.sv_list[sv_addr]
+
+        del self.expiry[blocknumber]
 
     def get_sv_list(self, txfrom):
         if txfrom not in self.sv_list:
@@ -44,8 +52,4 @@ class StakeValidatorsList:
         if stake_address not in self.sv_list:
             return False
         sv = self.sv_list[stake_address]
-        return sv.validate_hash(hasharg, blocknum, self.hash_staker)
-
-    def to_json(self):
-        logger.info('%s', self.__dict__)
-        return json.dumps(self, cls=ComplexEncoder)
+        return sv.validate_hash(hasharg, blocknum)
