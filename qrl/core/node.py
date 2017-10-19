@@ -12,7 +12,6 @@ from twisted.internet import reactor
 
 import qrl.core.Transaction_subtypes
 from qrl.core import logger, config, fork
-from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState

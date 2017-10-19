@@ -1,6 +1,5 @@
 # coding=utf-8
 import copy
-import simplejson as json
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet.protocol import ServerFactory
 

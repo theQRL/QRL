@@ -9,7 +9,6 @@ from _decimal import Decimal
 from functools import reduce
 from qrl.core import db, logger, config, helper
 from qrl.core.Transaction import Transaction, CoinBase
-from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE

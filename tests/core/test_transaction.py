@@ -192,14 +192,14 @@ class TestStakeTransaction(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual('d123e21a45931291d45fe8d58cc2ca3b1b331865bae146ec394599a07462d26a', bin2hstr(tx.txhash))
+        self.assertEqual('c21cbcfacce33511c6363543610602e242a769b0f5ae92be0cd61e6f7649cc65', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
         self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
 
         # Test that specific content was copied over.
         self.assertEqual(100, tx.balance)
-        self.assertEqual(0, tx.activation_blocknumber)
+        self.assertEqual(2, tx.activation_blocknumber)
         self.assertEqual(23, tx.finalized_blocknumber)
         self.assertEqual('c65831944ca9d90632b144be7c8fda98a39029730613f85c87a127e936dc33d1',
                          bin2hstr(tx.finalized_headerhash))
