@@ -192,16 +192,13 @@ class ChainBuffer:
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
         self.add_txns_buffer()
-        if block_left == 1:  # As State.add_block would have already moved the next stake list to stake_list
+        if block_left == 1:
 
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
             self.hash_chain[epoch + 1] = hashchain(private_seed, epoch=epoch + 1).hashchain
 
-            if epoch in self._wallet_private_seeds:
-                del self._wallet_private_seeds[epoch]
-            if epoch in self.slave_xmss:
-                del self.slave_xmss[epoch]
+        self.clean_mining_data(blocknum)
 
         self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + hstr2bin(self.epoch_seed)))
 
