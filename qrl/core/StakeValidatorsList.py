@@ -32,7 +32,7 @@ class StakeValidatorsList:
     def add_sv(self, stake_txn, blocknumber):
         sv = StakeValidator(stake_txn, blocknumber)
         self.sv_list[stake_txn.txfrom] = sv
-        self.expiry[blocknumber + config.dev.blocks_per_epoch].append(stake_txn.txfrom)
+        self.expiry[blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
     def remove_expired_sv(self, blocknumber):
         if blocknumber not in self.expiry:
