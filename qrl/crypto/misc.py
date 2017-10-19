@@ -15,6 +15,7 @@ def sha256(message):
     :type message: Union[str, unicode]
     :return:
     :rtype: str
+
     >>> bin2hstr(sha256(b"test"))
     '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
     >>> bin2hstr(sha256(b"another string"))
@@ -30,6 +31,7 @@ def merkle_tx_hash(hashes):
     merkle tree root hash of tx from pool for next POS block
     :param hashes:
     :return:
+
     >>> bin2hstr(merkle_tx_hash([b'0', b'1']) ) # FIXME: This input is not realistic
     '938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'
     >>> merkle_tx_hash(['938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'])

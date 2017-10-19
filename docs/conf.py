@@ -41,13 +41,9 @@ if on_rtd:
     cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
     apidoc.main(cmd_line.split(" "))
 
-    class Mock(MagicMock):
-        @classmethod
-        def __getattr__(cls, name):
-                return MagicMock()
-
-    MOCK_MODULES = ['pyqrllib']
-    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+    autodoc_mock_imports = ['jsonpickle', 'leveldb', 'statistics', 'ntplib', 'Twisted',
+                            'colorlog''simplejson', 'grpcio', 'grpcio-tools',
+                            'service_identity', 'pyopenssl''pyqrllib', 'six']
 
 # -- General configuration -----------------------------------------------------
 
