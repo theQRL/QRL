@@ -110,10 +110,10 @@ class QRLNode:
         amount = Decimal(amount_str)
         return True
 
-    def _find_xmss(self, key_addr):
+    def _find_xmss(self, key_addr: bytes):
         # FIXME: Move down the wallet management
         for addr in self.chain.wallet.address_bundle:
-            if addr.address == key_addr:
+            if bytes(addr.address.encode()) == key_addr:
                 return addr.xmss
         return None
 
