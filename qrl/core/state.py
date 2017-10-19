@@ -1,6 +1,10 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+import yaml
+import os
+
 from _decimal import Decimal
 from functools import reduce
 from qrl.core import db, logger, config, helper
@@ -211,6 +215,8 @@ class State:
         address_txn[tx.txfrom][2].append(tx.pubhash)
 
         # Coinbase update end here
+        genesis_info = self.load_genesis_info()
+
         tmp_list = []
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
@@ -219,18 +225,17 @@ class State:
                 tmp_list.append([tx.txfrom,
                                  tx.hash,
                                  0,
-                                 GenesisBlock().get_info()[tx.txfrom],
+                                 genesis_info[tx.txfrom],
                                  tx.slave_public_key])
 
+                if tx.txfrom not in genesis_info:
+                    logger.warning('designated staker not in genesis..')
+                    return False
+
                 if tx.txfrom == block.blockheader.stake_selector:
-                    if tx.txfrom in chain.m_blockchain[0].stake_list:
-                        self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
-                        self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
-                    else:
-                        logger.warning('designated staker not in genesis..')
-                        return False
-                else:
-                    self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
+                    self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
+
+                self.stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
@@ -411,11 +416,27 @@ class State:
 
         return epoch_seed
 
-    def read_genesis(self, genesis_block):
+    @staticmethod
+    def load_genesis_info():
+        genesis_info = dict()
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        genesis_data_path = os.path.join(package_directory, 'genesis.yml')
+
+        with open(genesis_data_path) as f:
+            logger.info("Loading genesis from %s", genesis_data_path)
+            data_map = yaml.safe_load(f)
+            for key in data_map['genesis_info']:
+                genesis_info[key.encode()] = data_map['genesis_info'][key]
+
+        return genesis_info
+
+    def read_genesis(self):
         logger.info('genesis:')
 
-        for address in genesis_block.state:
-            self._save_address_state(address[0], address[1])
+        genesis_info = self.load_genesis_info()
+
+        for address in genesis_info:
+            self._save_address_state(address, genesis_info[address])
         return True
 
     def read_chain(self, chain):

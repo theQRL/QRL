@@ -130,10 +130,6 @@ message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
     repeated Transaction dup_transactions = 3; // TODO: Review this
-
-    repeated AddressState state = 4;
-
-    repeated string stake_list = 5; // addresses
 }
 
 message BlockMetaData {

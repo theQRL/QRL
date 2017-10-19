@@ -206,11 +206,11 @@ class POS:
         # assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
 
         tmp_list = []
-
+        genesis_info = self.chain.state.load_genesis_info()
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 if tx.txfrom in self.chain.m_blockchain[0].stake_list:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, GenesisBlock().get_info()[tx.txfrom],
+                    tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom],
                                      tx.slave_public_key])
                     self.chain.state.stake_validators_list.add_sv(tx, 0)
 
