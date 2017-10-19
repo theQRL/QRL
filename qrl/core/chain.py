@@ -223,34 +223,25 @@ class Chain:
                 total_txn -= 1
                 continue
             if tx.subtype == TX_SUBTYPE_STAKE:
-                epoch_blocknum = last_block_number + 1 - (curr_epoch * config.dev.blocks_per_epoch)
-
+                future_stake_addresses = self.block_chain_buffer.future_stake_addresses(last_block_number + 1)
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
-                if (not tx.first_hash) and epoch_blocknum >= config.dev.stake_before_x_blocks:
-                    logger.warning('Skipping st as blocknumber beyond stake limit , CreateBlock()')
-                    logger.warning('Expected ST txn before epoch_blocknumber : %s', config.dev.stake_before_x_blocks)
-                    logger.warning('Found ST txn in epoch_blocknumber : %s', epoch_blocknum)
+                if tx.txfrom in future_stake_addresses:
+                    logger.warning('Skipping st as staker is already in future_stake_address')
+                    logger.warning('Staker address : %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
-                if tx.epoch != curr_epoch:
-                    logger.warning('Skipping st as epoch mismatch, CreateBlock()')
-                    logger.warning('Expected st epoch : %s', curr_epoch)
-                    logger.warning('Found st epoch : %s', tx.epoch)
+                if tx.activation_blocknumber > self.block_chain_buffer.height() + config.dev.blocks_per_epoch + 1:
+                    logger.warning('Skipping st as activation_blocknumber beyond limit')
+                    logger.warning('Expected # less than : %s', (self.block_chain_buffer.height() + config.dev.blocks_per_epoch))
+                    logger.warning('Found activation_blocknumber : %s', tx.activation_blocknumber)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
-                balance = 0
-                next_sv_list = self.block_chain_buffer.next_stake_list_get(last_block_number + 1)
 
-                if not (tx.txfrom not in next_sv_list or last_block_number == 0):
-                    if tx.first_hash:
-                        del t_pool2[txnum]
-                        total_txn -= 1
-                        continue
             self.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
-            tx.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + tx_nonce[tx.txfrom]
+            tx._data.nonce = self.block_chain_buffer.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + tx_nonce[tx.txfrom]
             txnum += 1
 
         # create the block..

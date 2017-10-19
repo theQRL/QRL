@@ -184,7 +184,7 @@ class POS:
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
-        st = StakeTransaction.create(blocknumber=0,
+        st = StakeTransaction.create(activation_blocknumber=1,
                                      xmss=signing_xmss,
                                      slavePK=slave_xmss.pk(),
                                      finalized_blocknumber=0,
@@ -212,7 +212,7 @@ class POS:
                 if tx.txfrom in genesis_info:
                     tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom],
                                      tx.slave_public_key])
-                    self.chain.state.stake_validators_list.add_sv(tx, 0)
+                    self.chain.state.stake_validators_list.add_sv(tx, 1)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
@@ -452,7 +452,7 @@ class POS:
             last_block_timestamp = last_block.blockheader.timestamp
             curr_timestamp = int(self.ntp.getTime())
 
-            delay = max(0, last_block_timestamp + config.dev.minimum_minting_delay - curr_timestamp)
+            delay = max(5, last_block_timestamp + config.dev.minimum_minting_delay - curr_timestamp)
 
         self.stop_post_block_logic()
         self.pos_callLater = reactor.callLater(delay,
@@ -460,13 +460,14 @@ class POS:
                                                blocknumber=blocknumber)
         self.pos_blocknum = blocknumber
 
-    def create_next_block(self, blocknumber, entry_blocknumber):
+    def create_next_block(self, blocknumber, activation_blocknumber):
         if not self.chain.block_chain_buffer.get_slave_xmss(blocknumber):
             return
 
         hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
 
-        my_reveal = hash_chain[::-1][blocknumber - entry_blocknumber]
+        my_reveal = hash_chain[::-1][blocknumber - activation_blocknumber + 1]
+
         block = self.create_new_block(my_reveal,
                                       blocknumber - 1)
         self.pre_block_logic(block)  # broadcast this block
@@ -481,9 +482,9 @@ class POS:
         """
 
         if self.p2pFactory.stake:
-            stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
+            future_stake_addresses = self.chain.block_chain_buffer.future_stake_addresses(blocknumber)
 
-            if self.chain.mining_address not in stake_list:
+            if self.chain.mining_address not in future_stake_addresses:
                 self.make_st_tx(blocknumber)
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
@@ -493,8 +494,8 @@ class POS:
                 if stake_list[self.chain.mining_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
-                    entry_blocknumber = stake_list[self.chain.mining_address].entry_blocknumber
-                    self.create_next_block(blocknumber, entry_blocknumber)
+                    activation_blocknumber = stake_list[self.chain.mining_address].activation_blocknumber
+                    self.create_next_block(blocknumber, activation_blocknumber)
                     delay = None
 
             last_blocknum = self.chain.block_chain_buffer.height()
@@ -502,20 +503,26 @@ class POS:
 
         return
 
-    def make_st_tx(self, blocknumber):
-        balance = self.chain.block_chain_buffer.get_stxn_state(blocknumber, self.chain.mining_address)[1]
+    def make_st_tx(self, curr_blocknumber):
+        sv_list = self.chain.block_chain_buffer.stake_list_get(curr_blocknumber)
+        if self.chain.mining_address in sv_list:
+            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber + config.dev.blocks_per_epoch
+        else:
+            activation_blocknumber = curr_blocknumber + config.dev.blocks_per_epoch
+
+        balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.chain.mining_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
             return
 
-        slave_xmss = self.chain.block_chain_buffer.get_next_slave_xmss(blocknumber)
+        slave_xmss = self.chain.block_chain_buffer.get_slave_xmss(activation_blocknumber)
         if not slave_xmss:
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
 
-        finalized_blocknumber = ((blocknumber - 1) // config.dev.blocks_per_epoch) * config.dev.blocks_per_epoch
+        finalized_blocknumber = ((curr_blocknumber - 1) // config.dev.blocks_per_epoch) * config.dev.blocks_per_epoch
         finalized_block = self.chain.block_chain_buffer.get_block_n(finalized_blocknumber)
         if not finalized_block:
             logger.warning('Cannot make ST txn, unable to get blocknumber %s', finalized_blocknumber)
@@ -524,7 +531,7 @@ class POS:
         finalized_headerhash = finalized_block.blockheader.headerhash
 
         st = StakeTransaction.create(
-            blocknumber=blocknumber,
+            activation_blocknumber=activation_blocknumber,
             xmss=signing_xmss,
             slavePK=slave_xmss.pk(),
             finalized_blocknumber=finalized_blocknumber,

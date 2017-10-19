@@ -193,7 +193,7 @@ class P2PFactory(ServerFactory):
         return
 
     def send_st_to_peers(self, st):
-        logger.info('<<<Transmitting ST: %s', st.epoch)
+        logger.info('<<<Transmitting ST: %s', st.activation_blocknumber)
         self.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
         return
 

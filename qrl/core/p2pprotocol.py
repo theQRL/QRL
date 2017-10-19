@@ -302,8 +302,8 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
             return
 
-        if len(
-                self.factory.chain.m_blockchain) == 1 and st.epoch > 0:  # catch error for new nodes listening for ST's from later epochs
+        if len(self.factory.chain.m_blockchain) == 1 and \
+                                st.activation_blocknumber > self.factory.chain.height() + config.dev.blocks_per_epoch:
             return
 
         for t in self.factory.chain.transaction_pool:

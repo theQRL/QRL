@@ -54,7 +54,7 @@ class ChainBuffer:
         return XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
 
     def get_slave_xmss(self, blocknumber):
-        epoch = blocknumber // config.dev.blocks_per_epoch
+        epoch = self.get_mining_epoch(blocknumber)
         if epoch not in self.slave_xmss:
             if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
                 self.assign_slave_xmsspool(epoch)
@@ -67,19 +67,6 @@ class ChainBuffer:
             if data and data.address == self.slave_xmss[epoch].get_address():
                 self.slave_xmss[epoch].set_index(data.index)
         return self.slave_xmss[epoch]
-
-    def get_next_slave_xmss(self, blocknumber):
-        epoch = blocknumber // config.dev.blocks_per_epoch
-        if epoch + 1 not in self.slave_xmss:
-            if self.slave_xmsspool.getCurrentIndex() - epoch != 1 and self.slave_xmsspool.getCurrentIndex() - epoch != 0:
-                self.assign_slave_xmsspool(epoch)
-                return None
-            if epoch + 1 - self.slave_xmsspool.getCurrentIndex() == 1:
-                if not self.slave_xmsspool.isAvailable():
-                    return None
-                self.slave_xmss[epoch] = self.generate_slave_xmss(epoch)
-            self.slave_xmss[epoch + 1] = self.generate_slave_xmss(epoch + 1)
-        return self.slave_xmss[epoch + 1]
 
     def get_st_balance(self, stake_address, blocknumber):
         if stake_address is None:
@@ -132,8 +119,20 @@ class ChainBuffer:
 
         return None
 
+    def get_mining_epoch(self, blocknumber):
+        sv_list = self.stake_list_get(blocknumber)
+
+        epoch = blocknumber // config.dev.blocks_per_epoch
+
+        if sv_list and self.chain.mining_address in sv_list:
+            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber
+            if activation_blocknumber + config.dev.blocks_per_epoch > blocknumber:
+                epoch = activation_blocknumber // config.dev.blocks_per_epoch
+
+        return epoch
+
     def hash_chain_get(self, blocknumber):
-        epoch = int(blocknumber // config.dev.blocks_per_epoch)
+        epoch = self.get_mining_epoch(blocknumber)
         return self.hash_chain[epoch]
 
     def update_hash_chain(self, blocknumber):
@@ -323,6 +322,8 @@ class ChainBuffer:
 
         if blocks_left == 1:
             self.update_hash_chain(blocknumber)
+            
+        stake_validators_list.update_sv(blocknumber)
 
     def get_strongest_block(self, blocknumber):
         try:
@@ -371,7 +372,6 @@ class ChainBuffer:
                 # As state is stored in json format which converts tuple into list
                 for index in range(len(tmp_state[2])):
                     tmp_state[2][index] = tuple(tmp_state[2][index])
-
                 return tmp_state
 
             stateBuffer = self.blocks[blocknumber - 1][1]
@@ -389,6 +389,9 @@ class ChainBuffer:
 
     def stake_list_get(self, blocknumber):
         try:
+            if blocknumber - 1 > self.height():
+                return None
+
             if blocknumber - 1 == self.chain.height():
                 return self.state.stake_validators_list.sv_list
 
@@ -401,6 +404,22 @@ class ChainBuffer:
             self.error_msg('stake_list_get', blocknumber, e)
 
         return None
+
+    def future_stake_addresses(self, blocknumber):
+        try:
+            if blocknumber - 1 == self.chain.height():
+                return self.state.stake_validators_list.future_stake_addresses
+
+            stateBuffer = self.blocks[blocknumber - 1][1]
+
+            return stateBuffer.stake_validators_list.future_stake_addresses
+        except KeyError:
+            self.error_msg('stake_list_get', blocknumber)
+        except Exception as e:
+            self.error_msg('stake_list_get', blocknumber, e)
+
+        return None
+
 
     def get_stake_validators_list(self, blocknumber):
         try:
@@ -434,6 +453,16 @@ class ChainBuffer:
             logger.info((block.blockheader.reveal_hash, ' ', block.blockheader.stake_selector))
         logger.info(('=' * 40))
 
+    def clean_mining_data(self, blocknumber):
+        prev_epoch = blocknumber // config.dev.blocks_per_epoch
+
+        if prev_epoch in self._wallet_private_seeds:
+            del self._wallet_private_seeds[prev_epoch]
+        if prev_epoch in self.hash_chain:
+            del self.hash_chain[prev_epoch]
+        if prev_epoch in self.slave_xmss:
+            del self.slave_xmss[prev_epoch]
+
     def move_to_mainchain(self, blocknum):
         block = self.blocks[blocknum][0].block
         if not self.state.add_block(self.chain, block):
@@ -446,17 +475,18 @@ class ChainBuffer:
 
         self.epoch_seed = self.blocks[blocknum][1].next_seed
 
-        del (self.blocks[blocknum])
         prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
         self.epoch = int(blocknum // config.dev.blocks_per_epoch)
-        if prev_epoch != self.epoch:
-            if prev_epoch in self._wallet_private_seeds:
-                del self._wallet_private_seeds[prev_epoch]
-            if prev_epoch in self.hash_chain:
-                del self.hash_chain[prev_epoch]
-            if prev_epoch in self.slave_xmss:
-                del self.slave_xmss[prev_epoch]
 
+        sv_list = self.state.stake_validators_list.sv_list
+        if self.chain.mining_address in sv_list:
+            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber
+            if activation_blocknumber + config.dev.blocks_per_epoch == blocknum:
+                self.clean_mining_data(blocknum - 1)
+        elif prev_epoch != self.epoch:
+            self.clean_mining_data(blocknum - 1)
+
+        del (self.blocks[blocknum])
         self.chain.update_last_tx(block)
         self.chain.update_tx_metadata(block)
         return True
@@ -606,6 +636,7 @@ class ChainBuffer:
             return
 
         logger.error('%s blocknum not found in blocks %s', func_name, blocknum)
-        logger.error('Min block num %s', min(self.blocks))
-        logger.error('Max block num %s', max(self.blocks))
+        if self.blocks:
+            logger.error('Min block num %s', min(self.blocks))
+            logger.error('Max block num %s', max(self.blocks))
         return

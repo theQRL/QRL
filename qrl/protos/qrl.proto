@@ -182,7 +182,7 @@ message Transaction {
 
     message Stake {
         uint64 balance = 1;
-        uint64 epoch = 2;
+        uint64 activation_blocknumber = 2;
         uint64 finalized_blocknumber = 3;
         bytes finalized_headerhash = 4;
         bytes slavePK = 5;
