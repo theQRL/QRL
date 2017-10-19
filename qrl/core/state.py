@@ -426,7 +426,7 @@ class State:
             logger.info("Loading genesis from %s", genesis_data_path)
             data_map = yaml.safe_load(f)
             for key in data_map['genesis_info']:
-                genesis_info[key.encode()] = data_map['genesis_info'][key]
+                genesis_info[key.encode()] = data_map['genesis_info'][key] * (10**8)
 
         return genesis_info
 
@@ -436,7 +436,7 @@ class State:
         genesis_info = self.load_genesis_info()
 
         for address in genesis_info:
-            self._save_address_state(address, genesis_info[address])
+            self._save_address_state(address, [0, genesis_info[address], []])
         return True
 
     def read_chain(self, chain):
