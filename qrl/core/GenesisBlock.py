@@ -37,6 +37,7 @@ class GenesisBlock(object, metaclass=Singleton):
         :type chain:
         :return:
         :rtype:
+
         >>> GenesisBlock().set_chain(None) is not None
         True
         >>> GenesisBlock().set_chain(None).blockheader.epoch

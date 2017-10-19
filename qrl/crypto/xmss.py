@@ -11,6 +11,7 @@ class XMSS(object):
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
         :param seed:
+
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getHeight()
         4
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getSecretKeySize()
@@ -83,6 +84,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_number_signatures()
         16
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_number_signatures()
@@ -95,6 +97,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_remaining_signatures()
         16
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_remaining_signatures()
@@ -106,6 +109,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; XMSS(4, hstr2bin(xmss_mnemonic_seed1)).get_mnemonic() == xmss_mnemonic_test1
         True
         >>> from qrl.crypto.doctest_data import *; XMSS(4, hstr2bin(xmss_mnemonic_seed2)).get_mnemonic() == xmss_mnemonic_test2
@@ -128,6 +132,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_index()
         0
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_index()
@@ -163,6 +168,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_hexseed()
         '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
         >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_hexseed()
@@ -174,6 +180,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1).get_seed() )
         '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed() )
@@ -185,6 +192,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1).get_seed_private() )
         '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_private() )
@@ -196,6 +204,7 @@ class XMSS(object):
         """
         :return:
         :rtype:
+
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1).get_seed_public() )
         '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_public() )
@@ -215,6 +224,7 @@ class XMSS(object):
         :param message:
         :param signature:
         :return:
+
         >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1))
         True
         >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1))
@@ -231,6 +241,7 @@ class XMSS(object):
         """
         :param message:
         :return:
+
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1).SIGN(str2bin("test_message"))) == xmss_sign_expected1
         True
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2).SIGN(str2bin("test_message"))) == xmss_sign_expected2
@@ -242,6 +253,7 @@ class XMSS(object):
         """
         List the addresses derived in the main tree
         :return:
+
         """
         addr_arr = []
         for addr in self.addresses:
