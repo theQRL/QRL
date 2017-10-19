@@ -30,7 +30,6 @@ if on_rtd:
     import inspect
     from sphinx import apidoc
     import sys
-    from unittest.mock import MagicMock
 
     __location__ = os.path.join(os.getcwd(), os.path.dirname(
         inspect.getfile(inspect.currentframe())))
@@ -39,11 +38,12 @@ if on_rtd:
     module_dir = os.path.join(__location__, "..", "qrl")
     cmd_line_template = "sphinx-apidoc -f -o {outputdir} {moduledir}"
     cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
-    apidoc.main(cmd_line.split(" "))
 
-    autodoc_mock_imports = ['jsonpickle', 'leveldb', 'statistics', 'ntplib', 'Twisted',
-                            'colorlog''simplejson', 'grpcio', 'grpcio-tools',
-                            'service_identity', 'pyopenssl''pyqrllib', 'six']
+    autodoc_mock_imports = ['jsonpickle', 'leveldb', 'statistics', 'ntplib', 'twisted',
+                            'colorlog', 'simplejson', 'grpcio', 'grpcio-tools',
+                            'service_identity', 'pyopenssl', 'pyqrllib', 'six']
+
+    apidoc.main(cmd_line.split(" "))
 
 # -- General configuration -----------------------------------------------------
 
