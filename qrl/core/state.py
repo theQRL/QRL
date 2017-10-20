@@ -147,7 +147,7 @@ class State:
             block_chain_buffer = chain.block_chain_buffer
             tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height() + 1,
                                                          addr=tx.txfrom)
-            if tx.state_validate_tx(tx_state=tx_state) is False:
+            if not tx.validate_extended(tx_state=tx_state):
                 result = False
                 logger.warning('tx %s failed', tx.txhash)
                 chain.remove_tx_from_pool(tx)

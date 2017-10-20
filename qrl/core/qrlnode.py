@@ -4,7 +4,7 @@ import os
 from decimal import Decimal
 
 from qrl.core import config, logger
-from qrl.core.Transaction import SimpleTransaction
+from qrl.core.Transaction import TransferTransaction
 from qrl.core.state import State
 from qrl.generated import qrl_pb2
 
@@ -150,32 +150,30 @@ class QRLNode:
                        amount: int,
                        fee: int,
                        xmss_pk: bytes,
-                       xmss_ots_index: int) -> SimpleTransaction:
+                       xmss_ots_index: int) -> TransferTransaction:
         balance = self.db_state.balance(addr_from)
         if amount + fee > balance:
             raise RuntimeError("Not enough funds in the source address")
 
-        return SimpleTransaction.create(addr_from=addr_from,
-                                        addr_to=addr_to,
-                                        amount=amount,
-                                        fee=fee,
-                                        xmss_pk=xmss_pk,
-                                        xmss_ots_index=xmss_ots_index)
+        return TransferTransaction.create(addr_from=addr_from,
+                                          addr_to=addr_to,
+                                          amount=amount,
+                                          fee=fee,
+                                          xmss_pk=xmss_pk,
+                                          xmss_ots_index=xmss_ots_index)
 
     # FIXME: Rename this appropriately
-    def submit_send_tx(self, tx: SimpleTransaction) -> bool:
+    def submit_send_tx(self, tx: TransferTransaction) -> bool:
         if tx is None:
             raise ValueError("The transaction was empty")
 
-        # TODO: Review this
-        if not tx.validate_tx():
-            raise ValueError("The transaction failed validation")
+        tx.validate_or_raise()
 
         block_chain_buffer = self.chain.block_chain_buffer
         block_number = block_chain_buffer.height() + 1
         tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
-        if not tx.state_validate_tx(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
+        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
             raise ValueError("The transaction failed validatation (blockchain state)")
 
         self.chain.add_tx_to_pool(tx)

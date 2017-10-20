@@ -69,4 +69,4 @@ class StakeValidatorsList:
         if stake_address not in self.sv_list:
             return False
         sv = self.sv_list[stake_address]
-        return sv.validate_hash(hasharg, blocknum)
+        return sv.validate_extended(hasharg, blocknum)
