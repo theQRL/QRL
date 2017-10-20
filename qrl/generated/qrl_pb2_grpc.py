@@ -5,8 +5,8 @@ import qrl.generated.qrl_pb2 as qrl__pb2
 
 
 class P2PNodeStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """This service describes the P2P API
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -27,8 +27,8 @@ class P2PNodeStub(object):
 
 
 class P2PNodeServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """This service describes the P2P API
+  """
 
   def Ping(self, request, context):
     # missing associated documentation comment in .proto file
@@ -64,8 +64,8 @@ def add_P2PNodeServicer_to_server(servicer, server):
 
 
 class PublicAPIStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """This service describes the Public API used by clients (wallet/cli/etc)
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -73,6 +73,11 @@ class PublicAPIStub(object):
     Args:
       channel: A grpc.Channel.
     """
+    self.GetNodeState = channel.unary_unary(
+        '/qrl.PublicAPI/GetNodeState',
+        request_serializer=qrl__pb2.GetNodeStateReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetNodeStateResp.FromString,
+        )
     self.GetKnownPeers = channel.unary_unary(
         '/qrl.PublicAPI/GetKnownPeers',
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
@@ -82,6 +87,11 @@ class PublicAPIStub(object):
         '/qrl.PublicAPI/GetAddressState',
         request_serializer=qrl__pb2.GetAddressStateReq.SerializeToString,
         response_deserializer=qrl__pb2.GetAddressStateResp.FromString,
+        )
+    self.Search = channel.unary_unary(
+        '/qrl.PublicAPI/Search',
+        request_serializer=qrl__pb2.SearchReq.SerializeToString,
+        response_deserializer=qrl__pb2.SearchResp.FromString,
         )
     self.TransferCoins = channel.unary_unary(
         '/qrl.PublicAPI/TransferCoins',
@@ -96,8 +106,15 @@ class PublicAPIStub(object):
 
 
 class PublicAPIServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+  """This service describes the Public API used by clients (wallet/cli/etc)
+  """
+
+  def GetNodeState(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
 
   def GetKnownPeers(self, request, context):
     # missing associated documentation comment in .proto file
@@ -107,6 +124,13 @@ class PublicAPIServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetAddressState(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def Search(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -130,6 +154,11 @@ class PublicAPIServicer(object):
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
+      'GetNodeState': grpc.unary_unary_rpc_method_handler(
+          servicer.GetNodeState,
+          request_deserializer=qrl__pb2.GetNodeStateReq.FromString,
+          response_serializer=qrl__pb2.GetNodeStateResp.SerializeToString,
+      ),
       'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
           servicer.GetKnownPeers,
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
@@ -139,6 +168,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetAddressState,
           request_deserializer=qrl__pb2.GetAddressStateReq.FromString,
           response_serializer=qrl__pb2.GetAddressStateResp.SerializeToString,
+      ),
+      'Search': grpc.unary_unary_rpc_method_handler(
+          servicer.Search,
+          request_deserializer=qrl__pb2.SearchReq.FromString,
+          response_serializer=qrl__pb2.SearchResp.SerializeToString,
       ),
       'TransferCoins': grpc.unary_unary_rpc_method_handler(
           servicer.TransferCoins,
@@ -156,9 +190,9 @@ def add_PublicAPIServicer_to_server(servicer, server):
   server.add_generic_rpc_handlers((generic_handler,))
 
 
-class TestingAPIStub(object):
-  # missing associated documentation comment in .proto file
-  pass
+class AdminAPIStub(object):
+  """This is a place holder for testing/instrumentation APIs
+  """
 
   def __init__(self, channel):
     """Constructor.
@@ -168,14 +202,14 @@ class TestingAPIStub(object):
     """
 
 
-class TestingAPIServicer(object):
-  # missing associated documentation comment in .proto file
-  pass
+class AdminAPIServicer(object):
+  """This is a place holder for testing/instrumentation APIs
+  """
 
 
-def add_TestingAPIServicer_to_server(servicer, server):
+def add_AdminAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'qrl.TestingAPI', rpc_method_handlers)
+      'qrl.AdminAPI', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))
