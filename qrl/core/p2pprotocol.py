@@ -8,7 +8,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 from google.protobuf.json_format import MessageToJson, Parse
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-from qrl.core import helper, config, logger, fork
+from qrl.core import config, logger, fork
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState

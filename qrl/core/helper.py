@@ -8,12 +8,6 @@ import simplejson as json
 from qrl.core import config, logger
 
 
-# noinspection PyClassHasNoInit
-class ComplexEncoder(json.JSONEncoder):
-    def default(self, obj):
-        return obj.__dict__
-
-
 def json_print(obj):  # prettify output from JSON for export purposes
     logger.info('%s', json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False))))
 

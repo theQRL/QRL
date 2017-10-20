@@ -10,7 +10,7 @@ from functools import reduce
 from pyqrllib.pyqrllib import bin2hstr, sha2_256
 from twisted.internet import reactor
 
-import qrl.core.Transaction_subtypes
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE
 from qrl.core import logger, config, fork
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
@@ -207,7 +207,7 @@ class POS:
         tmp_list = []
         genesis_info = self.chain.state.load_genesis_info()
         for tx in self.chain.transaction_pool:
-            if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
+            if tx.subtype == TX_SUBTYPE_STAKE:
                 if tx.txfrom in genesis_info:
                     tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
                     #FIX ME: This goes to stake validator list without verifiction, Security Risk
@@ -543,7 +543,7 @@ class POS:
         self.p2pFactory.send_st_to_peers(st)
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
-            if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE and st.hash == t.hash:
+            if t.subtype == TX_SUBTYPE_STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
                 self.chain.remove_tx_from_pool(t)
