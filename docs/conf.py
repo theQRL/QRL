@@ -39,7 +39,7 @@ if on_rtd:
     cmd_line_template = "sphinx-apidoc -f -o {outputdir} {moduledir}"
     cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
 
-    autodoc_mock_imports = ['jsonpickle', 'leveldb', 'statistics', 'ntplib', 'twisted',
+    autodoc_mock_imports = ['jsonpickle', 'leveldb', 'ntplib', 'twisted',
                             'colorlog', 'simplejson', 'grpcio', 'grpcio-tools',
                             'service_identity', 'pyopenssl', 'pyqrllib', 'six']
 

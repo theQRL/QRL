@@ -51,12 +51,9 @@ sudo pip install Twisted==16.0.0 (you need version 16.0.0 or it won't work)
 sudo pip install blessings
 
 6.
-sudo pip install statistics
-
-7.
 sudo pip install service_identity
 
-8.
+7.
 sudo pip install ntplib
 
 <<< Cloning the Quantum Resistant Ledger source code from github >>>
