@@ -148,9 +148,9 @@ class Block(object):
                     logger.warning('Stake selector not in stake_list for this epoch..')
                     return False
 
-                if not stake_validators_list.validate_extended(blk_header.reveal_hash,
-                                                               blk_header.blocknumber,
-                                                               coinbase_tx.txto):
+                if not stake_validators_list.validate_hash(blk_header.reveal_hash,
+                                                           blk_header.blocknumber,
+                                                           coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
 
