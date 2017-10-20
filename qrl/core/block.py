@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
@@ -10,7 +11,6 @@ from qrl.core.blockheader import BlockHeader
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.crypto.misc import sha256, merkle_tx_hash
 from qrl.generated import qrl_pb2
-from google.protobuf.json_format import MessageToJson, Parse
 
 
 class Block(object):
