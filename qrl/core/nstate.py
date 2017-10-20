@@ -4,6 +4,6 @@ from enum import Enum
 
 class NState(Enum):
     unsynced = 1
-    synced = 2
-    syncing = 4
-    forked = 3
+    syncing = 2
+    synced = 3
+    forked = 4

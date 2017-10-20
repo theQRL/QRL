@@ -126,7 +126,7 @@ class POS:
         block_height_counter = Counter()
 
         for peer in self.p2pFactory.peers:
-            block_height_counter[peer.blockheight] += 1
+            block_height_counter[peer.block_height] += 1
 
         blocknumber = block_height_counter.most_common(1)
         if not blocknumber:

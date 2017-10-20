@@ -7,7 +7,7 @@ from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import P2PNodeServicer
 
 
-class P2PService(P2PNodeServicer):
+class P2PNodeService(P2PNodeServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, node: QRLNode):
         self.node = node
