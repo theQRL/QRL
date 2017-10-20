@@ -148,9 +148,9 @@ class Block(object):
                     logger.warning('Stake selector not in stake_list for this epoch..')
                     return False
 
-                if not stake_validators_list.validate_hash(blk_header.reveal_hash,
-                                                           blk_header.blocknumber,
-                                                           coinbase_tx.txto):
+                if not stake_validators_list.validate_extended(blk_header.reveal_hash,
+                                                               blk_header.blocknumber,
+                                                               coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
 
@@ -167,8 +167,9 @@ class Block(object):
     def _validate_tx_in_block(self, chain):
         # Validating coinbase txn
         coinbase_txn = CoinBase(self.transactions[0])
-        valid = coinbase_txn.validate_tx(chain=chain,
-                                         blockheader=self.blockheader)
+
+        sv_list = chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
+        valid = coinbase_txn.validate_extended(sv_list=sv_list, blockheader=self.blockheader)
 
         if not valid:
             logger.warning('coinbase txn in block failed')
@@ -177,16 +178,14 @@ class Block(object):
         for tx_num in range(1, len(self.transactions)):
             protobuf_tx = self.transactions[tx_num]
             tx = Transaction.from_pbdata(protobuf_tx)
-            if not tx.validate_tx():
+            if not tx.validate():
                 logger.warning('invalid tx in block')
-                logger.warning('subtype: %s txhash: %s txfrom: %s', tx.subtype, tx.txhash, tx.txfrom)
                 return False
 
         for protobuf_tx in self.duplicate_transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
-            if not tx.validate_tx():
+            if not tx.validate():
                 logger.warning('invalid duplicate tx in block')
-                logger.warning('txhash: %s tx_stake_selector: %s', bin2hstr(tx.get_message_hash()), tx.coinbase1.txto)
                 return False
 
         return True

@@ -150,7 +150,7 @@ class WalletProtocol(Protocol):
         self.output['status'] = 1
 
         # is chain up to date? If not, fail/inform user
-        if self.factory.state.uptodate(self.factory.chain.height()) is False:
+        if not self.factory.state.uptodate(self.factory.chain.height()):
             self.output['message'].write('>>> LevelDB not up to date..\r\n')
             # add "force" argument to bring it up to date and get balance?
             return
@@ -166,7 +166,7 @@ class WalletProtocol(Protocol):
             return
 
         # is the address in use? If not, fail/inform user
-        if self.factory.state.address_used(addr[0]) is False:
+        if not self.factory.state.address_used(addr[0]):
             self.output['message'].write(bytes('>>> Unused address: ' + addr + '\r\n', 'utf-8'))
             return
 

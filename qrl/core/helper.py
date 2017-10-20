@@ -8,19 +8,6 @@ import simplejson as json
 from qrl.core import config, logger
 
 
-def isValidAddress(addr):
-    if addr.startswith(b'Q'):
-        suffix = addr[1:]
-        if len(suffix) == 72:
-            try:
-                int(suffix, 16)
-                return True
-            except:
-                return False
-
-    return False
-
-
 # noinspection PyClassHasNoInit
 class ComplexEncoder(json.JSONEncoder):
     def default(self, obj):

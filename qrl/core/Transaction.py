@@ -105,24 +105,56 @@ class Transaction(object, metaclass=ABCMeta):
     def sign(self, xmss):
         self._data.signature = xmss.SIGN(self.txhash)
 
-    def _validate_signed_hash(self):
-        if self.subtype != TX_SUBTYPE_COINBASE and getAddress('Q', self.PK) != self.txfrom.decode():
-            logger.warning('Public key verification failed')
+    @abstractmethod
+    def _validate_custom(self)->bool:
+        """
+        This is an extension point for derived classes validation
+        If derived classes need additional field validation they should override this member
+        """
+        return True
+
+    def validate(self)->bool:
+        """
+        This method calls validate_or_raise, logs any failure and returns True or False accordingly
+        The main purpose is to avoid exceptions and accomodate legacy code
+        :return: True is the transation is valid
+        :rtype: bool
+        """
+        try:
+            self.validate_or_raise()
+        except ValueError as e:
+            logger.info('[%s] failed validate_tx', bin2hstr(self.txhash))
+            logger.warning(str(e))
             return False
+        except Exception as e:
+            logger.exception(e)
+            return False
+        return True
+
+    def validate_or_raise(self)->bool:
+        """
+        This method will validate a transaction and raise exception if problems are found
+        :return: True if the exception is valid, exceptions otherwise
+        :rtype: bool
+        """
+        if not isinstance(self, TYPEMAP[self.subtype]):
+            raise TypeError('Invalid subtype: Found: %s Expected: %s', type(self), TYPEMAP[self.subtype])
+
+        if not self._validate_custom():
+            raise ValueError("Custom validation failed")
+
+        # cryptographic checks
+        if self.txhash != self.calculate_txhash():
+            raise ValueError("Invalid transaction hash")
+
+        # FIXME: Why is coinbase skipped?
+        if not isinstance(self, CoinBase) and getAddress('Q', self.PK) != self.txfrom.decode():
+            raise ValueError('Public key and address dont match')
 
         if not XMSS.VERIFY(message=self.txhash,
                            signature=self.signature,
                            pk=self.PK):
-            logger.warning('xmss_verify failed')
-            return False
-
-        return True
-
-    def _validate_subtype(self, subtype, expected_subtype):
-        if subtype != expected_subtype:
-            logger.warning('Invalid subtype')
-            logger.warning('Found: %s Expected: %s', subtype, expected_subtype)
-            return False
+            raise ValueError("Invalid xmss signature")
 
         return True
 
@@ -135,13 +167,13 @@ class Transaction(object, metaclass=ABCMeta):
         return MessageToJson(self._data)
 
 
-class SimpleTransaction(Transaction):
+class TransferTransaction(Transaction):
     """
     SimpleTransaction for the transaction of QRL from one wallet to another.
     """
 
     def __init__(self, protobuf_transaction=None):
-        super(SimpleTransaction, self).__init__(protobuf_transaction)
+        super(TransferTransaction, self).__init__(protobuf_transaction)
         self._data.type = qrl_pb2.Transaction.TRANSFER
 
     @property
@@ -155,25 +187,6 @@ class SimpleTransaction(Transaction):
     @property
     def fee(self):
         return self._data.transfer.fee
-
-    def pre_condition(self, tx_state):
-        # if state.uptodate() is False:
-        #	logger.info(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
-        #	return False
-        tx_balance = tx_state[1]
-
-        if self.amount < 0:
-            # FIXME: logging txhash here is not useful as this changes when signing
-            logger.info('State validation failed for %s because: Negative send', self.txhash)
-            return False
-
-        if tx_balance < self.amount:
-            # FIXME: logging txhash here is not useful as this changes when signing
-            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
-            logger.info('balance: %s, amount: %s', tx_balance, self.amount)
-            return False
-
-        return True
 
     def _get_hashable_bytes(self):
         """
@@ -189,51 +202,45 @@ class SimpleTransaction(Transaction):
 
     @staticmethod
     def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk, xmss_ots_index):
-        transaction = SimpleTransaction()
+        transaction = TransferTransaction()
 
         transaction._data.addr_from = addr_from
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer.addr_to = addr_to
-        transaction._data.transfer.amount = int(amount)     # FIXME: Review conversions for quantities
-        transaction._data.transfer.fee = int(fee)           # FIXME: Review conversions for quantities
+        transaction._data.transfer.amount = int(amount)  # FIXME: Review conversions for quantities
+        transaction._data.transfer.fee = int(fee)  # FIXME: Review conversions for quantities
 
         transaction._data.ots_key = xmss_ots_index
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
-    def validate_tx(self):
-        if self.subtype != TX_SUBTYPE_TX:
-            return False
-
-        # FIXME: what does this comment means?
-        # sanity check: this is not how the economy is supposed to work!
+    def _validate_custom(self):
         if self.amount <= 0:
-            logger.info('State validation failed for %s because negative or zero', self.txhash)
-            logger.info('Amount %d', self.amount)
-            return False
-
-        # cryptographic checks
-        if self.txhash != self.calculate_txhash():
-            return False
-
-        if not self._validate_signed_hash():
-            return False
-
+            raise ValueError('[%s] Invalid amount = %d', bin2hstr(self.txhash), self.amount)
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def state_validate_tx(self, tx_state, transaction_pool):
+    def validate_extended(self, tx_state, transaction_pool):
+        # FIXME: This makes sense and should be enabled back
+        # if not state.uptodate():
+        #	logger.info(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
+        #	return False
 
-        if not self.pre_condition(tx_state):
-            return False
-
-        pubhash = self.pubhash
-
+        tx_balance = tx_state[1]
         tx_pubhashes = tx_state[2]
 
-        if pubhash in tx_pubhashes:
+        if self.amount < 0:
+            logger.info('State validation failed for %s because: Negative send', self.txhash)
+            return False
+
+        if tx_balance < self.amount:
+            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('balance: %s, amount: %s', tx_balance, self.amount)
+            return False
+
+        if self.pubhash in tx_pubhashes:
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -241,7 +248,7 @@ class SimpleTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == pubhash:
+            if txn.pubhash == self.pubhash:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
@@ -339,27 +346,10 @@ class StakeTransaction(Transaction):
         transaction._data.transaction_hash = transaction.calculate_txhash()
         return transaction
 
-    def validate_tx(self):
-        # FIX: Directly combine all this
-        txhash = self.calculate_txhash()
-
-        if txhash != self.txhash:
-            logger.info('Invalid Transaction hash')
-            return False
-
-        if not self._validate_subtype(self.subtype, TX_SUBTYPE_STAKE):
-            return False
-
-        if not helper.isValidAddress(self.txfrom):
-            logger.info('Invalid From Address %s', self.txfrom)
-            return False
-
-        if not self._validate_signed_hash():
-            return False
-
+    def _validate_custom(self):
         return True
 
-    def state_validate_tx(self, tx_state):
+    def validate_extended(self, tx_state):
         if self.subtype != TX_SUBTYPE_STAKE:
             return False
 
@@ -430,8 +420,12 @@ class CoinBase(Transaction):
 
         return transaction
 
-    def validate_tx(self, chain, blockheader):
-        sv_list = chain.block_chain_buffer.stake_list_get(blockheader.blocknumber)
+    def _validate_custom(self):
+        return True
+
+    # noinspection PyBroadException
+    def validate_extended(self, sv_list, blockheader):
+        # FIXME: It is not good that we have a different signature here
         if blockheader.blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
             logger.warning('Stake validator doesnt own the Public key')
             logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
@@ -440,23 +434,7 @@ class CoinBase(Transaction):
 
         self.blockheader = blockheader
 
-        if self.txto != self.txfrom:
-            logger.warning('Non matching txto and txfrom')
-            logger.warning('txto: %s txfrom: %s', self.txto, self.txfrom)
-            return False
-
-        tmp_txhash = self.calculate_txhash()
-        if self.txhash != self.calculate_txhash():
-            logger.warning('Block_headerhash doesnt match')
-            logger.warning('Found: %s', self.txhash)
-            logger.warning('Expected: %s', tmp_txhash)
-            return False
-
-        # Slave XMSS is used to sign COINBASE txn having quite low XMSS height
-        if not self._validate_signed_hash():
-            return False
-
-        return True
+        return self.validate()
 
 
 class LatticePublicKey(Transaction):
@@ -503,19 +481,8 @@ class LatticePublicKey(Transaction):
 
         return transaction
 
-    def validate_tx(self):
-        if not self._validate_subtype(self.subtype, TX_SUBTYPE_LATTICE):
-            return False
-
-        txhash = self.calculate_txhash()
-        if self.txhash != txhash:
-            logger.info('Invalid Txhash')
-            logger.warning('Found: %s Expected: %s', self.txhash, txhash)
-            return False
-
-        if not self._validate_signed_hash():
-            return False
-
+    def _validate_custom(self):
+        # FIXME: This is missing
         return True
 
 
@@ -596,21 +563,21 @@ class DuplicateTransaction(Transaction):
 
         return transaction
 
-    def validate_tx(self):
+    def _validate_custom(self):
         if self.headerhash1 == self.headerhash2 and self.coinbase1.signature == self.coinbase2.signature:
             logger.info('Invalid DT txn')
             logger.info('coinbase1 and coinbase2 txn are same')
             return False
 
-        if not self.validate_hash(self.headerhash1, self.coinbase1):
+        if not self.validate_extended(self.headerhash1, self.coinbase1):
             return False
 
-        if not self.validate_hash(self.headerhash2, self.coinbase2):
+        if not self.validate_extended(self.headerhash2, self.coinbase2):
             return False
 
         return True
 
-    def validate_hash(self, headerhash, coinbase):
+    def validate_extended(self, headerhash, coinbase):
         self.headerhash = headerhash
         self.coinbase = coinbase
 
@@ -621,14 +588,14 @@ class DuplicateTransaction(Transaction):
             logger.warning('Found: %s Expected: %s', coinbase.txhash, txhash)
             return False
 
-        if not coinbase._validate_signed_hash(height=config.dev.slave_xmss_height):
+        if not coinbase.validate():
             return False
 
         return True
 
 
 TYPEMAP = {
-    qrl_pb2.Transaction.TRANSFER: SimpleTransaction,
+    qrl_pb2.Transaction.TRANSFER: TransferTransaction,
     qrl_pb2.Transaction.STAKE: StakeTransaction,
     qrl_pb2.Transaction.COINBASE: CoinBase,
     qrl_pb2.Transaction.LATTICE: LatticePublicKey,

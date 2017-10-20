@@ -257,7 +257,7 @@ class POS:
             tmp_num -= 1
             tx_peer = tx[1]
             tx = tx[0]
-            if not tx.validate_tx():
+            if not tx.validate():
                 logger.info('>>>TX %s failed validate_tx', tx.txhash)
                 continue
 
@@ -265,7 +265,7 @@ class POS:
             tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height(),
                                                          addr=tx.txfrom)
 
-            is_valid_state = tx.state_validate_tx(tx_state=tx_state,
+            is_valid_state = tx.validate_extended(tx_state=tx_state,
                                                   transaction_pool=self.chain.transaction_pool)
 
             if not is_valid_state:

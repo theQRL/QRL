@@ -468,8 +468,8 @@ class Chain:
         if len(self.m_blockchain) == 0:
             self.m_read_chain()
 
-        if block_obj.validate_block(chain=self) is True:
-            if self.state.add_block(self, block_obj) is True:
+        if block_obj.validate_block(chain=self):
+            if self.state.add_block(self, block_obj):
                 self.m_blockchain.append(block_obj)
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
@@ -542,7 +542,7 @@ class Chain:
 
     def validate_tx_pool(self):  # invalid transactions are auto removed from pool..
         for tr in self.transaction_pool:
-            if tr.validate_tx() is False:
+            if not tr.validate():
                 self.remove_tx_from_pool(tr)
                 logger.info(('invalid tx: ', tr, 'removed from pool'))
 

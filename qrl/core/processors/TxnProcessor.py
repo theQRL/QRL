@@ -35,13 +35,12 @@ class TxnProcessor:
 
         tx_peer = tx[1]
         tx = tx[0]
-        if not tx.validate_tx():
-            logger.info('>>>TX %s failed validate_tx', tx.txhash)
+        if not tx.validate():
             return False
 
         tx_state = self.block_chain_buffer.get_stxn_state(blocknumber=self.block_chain_buffer.height(),
                                                           addr=tx.txfrom)
-        isValidState = tx.state_validate_tx(
+        isValidState = tx.validate_extended(
             tx_state=tx_state,
             transaction_pool=self.transaction_pool
         )

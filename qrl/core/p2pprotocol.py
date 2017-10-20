@@ -313,7 +313,7 @@ class P2PProtocol(Protocol):
         tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
             blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
             addr=st.txfrom)
-        if st.validate_tx() and st.state_validate_tx(tx_state=tx_state):
+        if st.validate() and st.validate_extended(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(st)
         else:
             hashes = []
@@ -352,7 +352,7 @@ class P2PProtocol(Protocol):
             addr=duplicate_txn.coinbase1.txfrom)
 
         # TODO: State validate for duplicate_txn is pending
-        if duplicate_txn.validate_tx():
+        if duplicate_txn.validate():
             self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
         else:
             logger.warning('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
@@ -420,12 +420,13 @@ class P2PProtocol(Protocol):
                         block.blockheader.stake_selector)
             coinbase_txn = block.transactions[0]
 
-            if coinbase_txn.validate_tx(chain=self.factory.chain, blockheader=block.blockheader):
+            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
+            if coinbase_txn.validate_extended(sv_list=sv_list, blockheader=block.blockheader):
                 self.factory.master_mr.register_duplicate(block.blockheader.headerhash)
                 block2 = block_chain_buffer.get_block_n(block.blockheader.blocknumber)
 
                 duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
-                if duplicate_txn.validate_tx():
+                if duplicate_txn.validate():
                     self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
 

@@ -6,7 +6,7 @@ import simplejson as json
 from qrl.core import logger
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-from qrl.core.Transaction import Transaction, SimpleTransaction, StakeTransaction, CoinBase
+from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase
 from qrl.core.Transaction_subtypes import *
 
 logger.initialize_default(force_console_output=True)
@@ -73,46 +73,46 @@ class TestSimpleTransaction(TestCase):
 
     def test_create(self):
         # Alice sending coins to Bob
-        tx = SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
-                                      addr_to=self.bob.get_address().encode(),
-                                      amount=100,
-                                      fee=1,
-                                      xmss_pk=self.alice.pk(),
-                                      xmss_ots_index=self.alice.get_index())
+        tx = TransferTransaction.create(addr_from=self.alice.get_address().encode(),
+                                        addr_to=self.bob.get_address().encode(),
+                                        amount=100,
+                                        fee=1,
+                                        xmss_pk=self.alice.pk(),
+                                        xmss_ots_index=self.alice.get_index())
         self.assertTrue(tx)
 
     def test_create_negative_amount(self):
         with self.assertRaises(ValueError):
-            SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
-                                     addr_to=self.bob.get_address().encode(),
-                                     amount=-100,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk(),
-                                     xmss_ots_index=self.alice.get_index())
+            TransferTransaction.create(addr_from=self.alice.get_address().encode(),
+                                       addr_to=self.bob.get_address().encode(),
+                                       amount=-100,
+                                       fee=1,
+                                       xmss_pk=self.alice.pk(),
+                                       xmss_ots_index=self.alice.get_index())
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
-                                     addr_to=self.bob.get_address().encode(),
-                                     amount=-100,
-                                     fee=-1,
-                                     xmss_pk=self.alice.pk(),
-                                     xmss_ots_index=self.alice.get_index())
+            TransferTransaction.create(addr_from=self.alice.get_address().encode(),
+                                       addr_to=self.bob.get_address().encode(),
+                                       amount=-100,
+                                       fee=-1,
+                                       xmss_pk=self.alice.pk(),
+                                       xmss_ots_index=self.alice.get_index())
 
     def test_to_json(self):
-        tx = SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
-                                      addr_to=self.bob.get_address().encode(),
-                                      amount=100,
-                                      fee=1,
-                                      xmss_pk=self.alice.pk(),
-                                      xmss_ots_index=self.alice.get_index())
+        tx = TransferTransaction.create(addr_from=self.alice.get_address().encode(),
+                                        addr_to=self.bob.get_address().encode(),
+                                        amount=100,
+                                        fee=1,
+                                        xmss_pk=self.alice.pk(),
+                                        xmss_ots_index=self.alice.get_index())
         txjson = tx.to_json()
 
         self.assertEqual(json.loads(test_json_Simple), json.loads(txjson))
 
     def test_from_json(self):
         tx = Transaction.from_json(test_json_Simple)
-        self.assertIsInstance(tx, SimpleTransaction)
+        self.assertIsInstance(tx, TransferTransaction)
         self.assertEqual(tx.subtype, TX_SUBTYPE_TX)
 
         # Test that common Transaction components were copied over.
@@ -133,18 +133,18 @@ class TestSimpleTransaction(TestCase):
 
     def test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
-        tx = SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
-                                      addr_to=self.bob.get_address().encode(),
-                                      amount=100,
-                                      fee=1,
-                                      xmss_pk=self.alice.pk(),
-                                      xmss_ots_index=self.alice.get_index())
+        tx = TransferTransaction.create(addr_from=self.alice.get_address().encode(),
+                                        addr_to=self.bob.get_address().encode(),
+                                        amount=100,
+                                        fee=1,
+                                        xmss_pk=self.alice.pk(),
+                                        xmss_ots_index=self.alice.get_index())
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
 
         # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_tx())
+        self.assertTrue(tx.validate_or_raise())
 
     def test_state_validate_tx(self):
         # Test balance not enough
@@ -222,7 +222,7 @@ class TestStakeTransaction(TestCase):
         tx.sign(self.alice)
 
         # We haven't touched the tx: validation should pass
-        self.assertTrue(tx.validate_tx())
+        self.assertTrue(tx.validate_or_raise())
 
     def test_get_message_hash(self):
         tx = StakeTransaction.create(activation_blocknumber=2,
