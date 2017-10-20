@@ -198,7 +198,7 @@ class ChainBuffer:
             self._wallet_private_seeds[epoch + 1] = private_seed
             self.hash_chain[epoch + 1] = hashchain(private_seed, epoch=epoch + 1).hashchain
 
-        self.clean_mining_data(blocknum)
+        self.clean_if_required(blocknum)
 
         self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + hstr2bin(self.epoch_seed)))
 
@@ -451,6 +451,12 @@ class ChainBuffer:
         logger.info(('=' * 40))
 
     def clean_mining_data(self, blocknumber):
+        """
+        Removes the mining data from the memory.
+        :param blocknumber:
+        :return:
+        """
+
         prev_epoch = blocknumber // config.dev.blocks_per_epoch
 
         if prev_epoch in self._wallet_private_seeds:
@@ -459,6 +465,24 @@ class ChainBuffer:
             del self.hash_chain[prev_epoch]
         if prev_epoch in self.slave_xmss:
             del self.slave_xmss[prev_epoch]
+
+    def clean_if_required(self, blocknumber):
+        """
+        Checks if the mining data such as private_seeds, hash_chain, slave_xmss
+        are no more required.
+        :param blocknumber:
+        :return:
+        """
+        prev_epoch = int((blocknumber - 1) // config.dev.blocks_per_epoch)
+
+        sv_list = self.state.stake_validators_list.sv_list
+        if self.chain.mining_address in sv_list:
+            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber
+            if activation_blocknumber + config.dev.blocks_per_epoch == blocknumber:
+                self.clean_mining_data(blocknumber - 1)
+        elif prev_epoch != self.epoch:
+            self.clean_mining_data(blocknumber - 1)
+
 
     def move_to_mainchain(self, blocknum):
         block = self.blocks[blocknum][0].block
@@ -472,16 +496,10 @@ class ChainBuffer:
 
         self.epoch_seed = self.blocks[blocknum][1].next_seed
 
-        prev_epoch = int((blocknum - 1) // config.dev.blocks_per_epoch)
         self.epoch = int(blocknum // config.dev.blocks_per_epoch)
 
-        sv_list = self.state.stake_validators_list.sv_list
-        if self.chain.mining_address in sv_list:
-            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber
-            if activation_blocknumber + config.dev.blocks_per_epoch == blocknum:
-                self.clean_mining_data(blocknum - 1)
-        elif prev_epoch != self.epoch:
-            self.clean_mining_data(blocknum - 1)
+        self.clean_if_required(blocknum)
+
 
         del (self.blocks[blocknum])
         self.chain.update_last_tx(block)
@@ -550,15 +568,6 @@ class ChainBuffer:
         if blocknum <= self.chain.height():
             return False
 
-        if blocknum - 1 == self.chain.height():
-            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
-                logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
-                return
-            return True
-        elif blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
-            logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
-            return
-
         sv_list = self.stake_list_get(blocknum)
 
         if stake_selector not in sv_list:
@@ -566,6 +575,15 @@ class ChainBuffer:
 
         if sv_list[stake_selector].is_banned:
             logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
+            return
+
+        if blocknum - 1 == self.chain.height():
+            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
+                logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
+                return
+            return True
+        elif blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
+            logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return
 
         reveal_hash = data.reveal_hash

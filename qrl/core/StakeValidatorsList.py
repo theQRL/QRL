@@ -67,8 +67,6 @@ class StakeValidatorsList:
 
     def validate_hash(self, hasharg, blocknum, stake_address=None):
         if stake_address not in self.sv_list:
-            logger.info('>>> return 1')
             return False
         sv = self.sv_list[stake_address]
-        logger.info('>>> return 2')
         return sv.validate_hash(hasharg, blocknum)
