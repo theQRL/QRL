@@ -1,13 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import simplejson as json
+
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
-from qrl.core.helper import json_bytestream, get_blocks_left, ComplexEncoder
+from qrl.core.helper import get_blocks_left
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -512,12 +512,10 @@ class ChainBuffer:
 
     def send_block(self, blocknumber, transport, wrap_message):
         if blocknumber <= self.chain.height():
-            transport.write(wrap_message('PB', json_bytestream(self.chain.m_get_block(blocknumber))))
+            transport.write(wrap_message('PB', self.chain.m_get_block(blocknumber).to_json()))
         elif blocknumber in self.blocks:
-            tmp = {blocknumber: []}
             blockStateBuffer = self.blocks[blocknumber]
-            tmp[blocknumber].append(blockStateBuffer[0].block)
-            transport.write(wrap_message('PBB', json.dumps(tmp, cls=ComplexEncoder)))
+            transport.write(wrap_message('PBB', blockStateBuffer[0].block.to_json()))
 
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())

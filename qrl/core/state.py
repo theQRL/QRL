@@ -231,9 +231,7 @@ class State:
                     logger.warning('designated staker not in genesis..')
                     return False
 
-                if tx.txfrom == block.blockheader.stake_selector:
-                    self.stake_validators_list.sv_list[tx.txfrom].nonce += 1
-
+                # FIX ME: This goes to stake validator list without verifiction, Security Risk
                 self.stake_validators_list.add_sv(tx, 1)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)

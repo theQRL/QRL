@@ -87,7 +87,6 @@ class GenesisBlock(object, metaclass=Singleton):
                                                    reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
                                                    fee_reward=0)
 
-
         return self
 
     @staticmethod
