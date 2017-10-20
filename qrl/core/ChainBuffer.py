@@ -568,15 +568,6 @@ class ChainBuffer:
         if blocknum <= self.chain.height():
             return False
 
-        if blocknum - 1 == self.chain.height():
-            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
-                logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
-                return
-            return True
-        elif blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
-            logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
-            return
-
         sv_list = self.stake_list_get(blocknum)
 
         if stake_selector not in sv_list:
@@ -584,6 +575,15 @@ class ChainBuffer:
 
         if sv_list[stake_selector].is_banned:
             logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
+            return
+
+        if blocknum - 1 == self.chain.height():
+            if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
+                logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
+                return
+            return True
+        elif blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
+            logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return
 
         reveal_hash = data.reveal_hash
