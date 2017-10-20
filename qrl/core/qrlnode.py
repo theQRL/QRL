@@ -3,41 +3,76 @@ import os
 
 from decimal import Decimal
 
+import time
+
 from qrl.core import config, logger
 from qrl.core.Transaction import TransferTransaction
 from qrl.core.state import State
-from qrl.generated import qrl_pb2
+from qrl.generated.qrl_pb2 import *
 
 
 # FIXME: This will soon move to core. Split/group functionality
+
+
 class QRLNode:
     def __init__(self, db_state: State):
+        self.start_time = time.time()
+
         self.peer_addresses = []
         self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
-        self.load_peer_addresses()
+        self._load_peer_addresses()
 
         self.db_state = db_state
+        self._chain = None  # FIXME: REMOVE. This is temporary
+        self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
-        self.chain = None  # FIXME: REMOVE. This is temporary
-        self.p2pfactory = None  # FIXME: REMOVE. This is temporary
-
+    @property
+    def version(self):
         # FIXME: Move to __version__ coming from pip
-        self.version = config.dev.version_number
+        return config.dev.version_number
+
+    @property
+    def state(self):
+        # FIXME
+        return self._p2pfactory.nodeState.state.value
+
+    @property
+    def num_connections(self):
+        # FIXME
+        return self._p2pfactory.connections
+
+    @property
+    def num_known_peers(self):
+        # FIXME
+        return len(self.peer_addresses)
+
+    @property
+    def uptime(self):
+        return int(time.time() - self.start_time)
+
+    @property
+    def block_height(self):
+        # FIXME
+        return self._chain.m_blockheight()
+
+    @property
+    def staking(self):
+        return self._p2pfactory.stake
 
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain):
-        self.chain = chain
+        self._chain = chain
 
     # FIXME: REMOVE. This is temporary
     def set_p2pfactory(self, p2pfactory):
-        self.p2pfactory = p2pfactory
+        self._p2pfactory = p2pfactory
 
-    def load_peer_addresses(self)->None:
+    def _load_peer_addresses(self) -> None:
         try:
             if os.path.isfile(self.peers_path):
                 logger.info('Opening peers.qrl')
                 with open(self.peers_path, 'rb') as infile:
-                    known_peers = qrl_pb2.KnownPeers()
+                    known_peers = KnownPeers()
                     known_peers.ParseFromString(infile.read())
                     self.peer_addresses = [peer.ip for peer in known_peers.peers]
                     return
@@ -51,28 +86,28 @@ class QRLNode:
 
         logger.info('Known Peers: %s', self.peer_addresses)
 
-    def update_peer_addresses(self, peer_addresses)->None:
+    def update_peer_addresses(self, peer_addresses) -> None:
         # FIXME: Probably will be refactored
         self.peer_addresses = peer_addresses
-        known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
+        known_peers = KnownPeers()
+        known_peers.peers.extend([Peer(ip=p) for p in self.peer_addresses])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
-    def get_address_state(self, address: bytes)->qrl_pb2.AddressState:
+    def get_address_state(self, address: bytes) -> AddressState:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
         nonce, balance, pubhash_list = self.db_state.get_address(address)
         transactions = []
 
-        address_state = qrl_pb2.AddressState(address=address,
-                                             balance=balance,
-                                             nonce=nonce,
-                                             transactions=transactions)
+        address_state = AddressState(address=address,
+                                     balance=balance,
+                                     nonce=nonce,
+                                     transactions=transactions)
 
         return address_state
 
-    def get_dec_amount(self, str_amount_arg: str)->Decimal:
+    def get_dec_amount(self, str_amount_arg: str) -> Decimal:
         # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion. Quantity formats should be always clear
         # FIXME: Review. This is just relocated code. It looks odd
         # FIXME: Antipattern. Magic number.
@@ -91,10 +126,10 @@ class QRLNode:
             # FIXME: The whole idea of accepting relative (index based) wallets internally is flawed.
             # There is a risk of confusing things. Relative should be a feature of UIs
 
-            num_wallets = len(self.chain.wallet.address_bundle)
+            num_wallets = len(self._chain.wallet.address_bundle)
             addr_idx = int(addr_or_index)
             if 0 <= addr_idx < num_wallets:
-                return self.chain.wallet.address_bundle[addr_idx].address
+                return self._chain.wallet.address_bundle[addr_idx].address
             else:
                 raise ValueError("invalid address index")
 
@@ -103,14 +138,14 @@ class QRLNode:
 
         return addr_or_index
 
-    def validate_amount(self, amount_str: str)->bool:
+    def validate_amount(self, amount_str: str) -> bool:
         # FIXME: Refactored code. Review Decimal usage all over the code
         amount = Decimal(amount_str)
         return True
 
     def _find_xmss(self, key_addr: bytes):
         # FIXME: Move down the wallet management
-        for addr in self.chain.wallet.address_bundle:
+        for addr in self._chain.wallet.address_bundle:
             if addr.address == key_addr:
                 return addr.xmss
         return None
@@ -175,14 +210,14 @@ class QRLNode:
 
         tx.validate_or_raise()
 
-        block_chain_buffer = self.chain.block_chain_buffer
+        block_chain_buffer = self._chain.block_chain_buffer
         block_number = block_chain_buffer.height() + 1
         tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
-        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self.chain.transaction_pool):
+        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._chain.transaction_pool):
             raise ValueError("The transaction failed validatation (blockchain state)")
 
-        self.chain.add_tx_to_pool(tx)
-        self.chain.wallet.save_wallet()
-        self.p2pfactory.send_tx_to_peers(tx)
+        self._chain.add_tx_to_pool(tx)
+        self._chain.wallet.save_wallet()
+        self._p2pfactory.send_tx_to_peers(tx)
         return True

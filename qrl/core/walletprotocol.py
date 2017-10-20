@@ -24,27 +24,32 @@ def hexseed_to_seed(hex_seed):
 class WalletProtocol(Protocol):
     def __init__(self):
         self.cmd_mapping = {
-            "create": self._create,
-            "getnewaddress": self._getnewaddress,
-            "hexseed": self._hexseed,
-            "seed": self._seed,
-            "search": self._search,
-            "json_block": self._json_block,
-            "savenewaddress": self._savenewaddress,
-            "recoverfromhexseed": self._recoverfromhexseed,
-            "recoverfromwords": self._recoverfromwords,
-            "stake": self._stake,
+            # OBSOLETE
+            "create": self._create,                             # OBSOLETE
+            "getnewaddress": self._getnewaddress,               # OBSOLETE
+            "hexseed": self._hexseed,                           # OBSOLETE
+            "seed": self._seed,                                 # OBSOLETE
+            "savenewaddress": self._savenewaddress,             # OBSOLETE
+            "recoverfromhexseed": self._recoverfromhexseed,     # OBSOLETE
+            "recoverfromwords": self._recoverfromwords,         # OBSOLETE
+            "help": self._help,                                 # OBSOLETE
+            "quit": self._quit,                                 # OBSOLETE
+            "exit": self._quit,                                 # OBSOLETE
+
+            # PUBLIC API
+            "search": self._search,                             # search <txhash or Q-address> -> Q/TX info
+            "peers": self._peers,                               # API: GetKnownPeers
+            "blockheight": self._blockheight,                   # API: GetNodeInfo
+            "getinfo": self._getinfo,                           # API: GetNodeInfo
+            "send": self._send,                                 # API: TransferCoins/PushTransaction
+            "json_block": self._json_block,                     # Returns a full block
+
+            # ADMIN LIKE FUNCTIONALITY / These calls can be insecure and should be restricted access
+            "wallet": self._wallet,                             #
+            "reboot": self._reboot,                             #
+            "stake": self._stake,                               #
+            "mempool": self._mempool,                           #
             "stakenextepoch": self._stakenextepoch,
-            "send": self._send,
-            "mempool": self._mempool,
-            "help": self._help,
-            "quit": self._quit,
-            "exit": self._quit,
-            "wallet": self._wallet,
-            "getinfo": self._getinfo,
-            "blockheight": self._blockheight,
-            "peers": self._peers,
-            "reboot": self._reboot,
         }
         self.cmd_list = list(self.cmd_mapping.keys())
 
@@ -494,10 +499,10 @@ class WalletProtocol(Protocol):
         for peer in self.factory.p2pFactory.peer_connections:
             self.output['message'].write(
                 '>>> ' + peer.conn_identity + " [" + peer.version + "]  blockheight: " + str(
-                    peer.blockheight) + '\r\n')
+                    peer.block_height) + '\r\n')
             self.output['peers'][peer.conn_identity] = {}
             self.output['peers'][peer.conn_identity]['version'] = peer.version
-            self.output['peers'][peer.conn_identity]['blockheight'] = peer.blockheight
+            self.output['peers'][peer.conn_identity]['blockheight'] = peer.block_height
 
     def _reboot(self, args):
         if len(args) < 1:
