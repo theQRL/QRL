@@ -117,7 +117,13 @@ class QRLNode:
 
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
+        block_chain_buffer = self.chain.block_chain_buffer
+        stake_validators_list = block_chain_buffer.get_stake_validators_list(block_chain_buffer.height() + 1)
+
         xmss_from = self._find_xmss(addr_from)
+
+        if addr_from in stake_validators_list.sv_list or addr_from in stake_validators_list.future_stake_addresses:
+            raise LookupError("Source address is a Stake Validator, balance is locked while staking")
 
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")

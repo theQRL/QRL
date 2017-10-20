@@ -417,7 +417,6 @@ class ChainBuffer:
 
         return None
 
-
     def get_stake_validators_list(self, blocknumber):
         try:
             if blocknumber - 1 == self.chain.height():
