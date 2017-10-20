@@ -210,8 +210,8 @@ class sendQuanta(Resource):
         ########################
 
         try:
-            wallet_from = qrlnode.get_wallet_absolute(wallet_from)
-            wallet_to = qrlnode.get_wallet_absolute(wallet_to)
+            wallet_from = qrlnode.get_wallet_absolute(wallet_from.encode())
+            wallet_to = qrlnode.get_wallet_absolute(wallet_to.encode())
             amount = qrlnode.get_dec_amount(amount_arg)
             fee = qrlnode.get_dec_amount(fee_arg)
 

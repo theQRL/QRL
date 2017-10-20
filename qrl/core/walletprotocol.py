@@ -228,8 +228,8 @@ class WalletProtocol(Protocol):
             self.output['message'].write('>>> 5 is the txn fee\r\n')
             return
 
-        wallet_from = args[0]
-        wallet_to = args[1]
+        wallet_from = args[0].encode()
+        wallet_to = args[1].encode()
         amount_arg = args[2]
         fee_arg = 0
         if len(args) == 4:

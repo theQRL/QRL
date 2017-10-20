@@ -73,8 +73,8 @@ class TestSimpleTransaction(TestCase):
 
     def test_create(self):
         # Alice sending coins to Bob
-        tx = SimpleTransaction.create(addr_from=self.alice.get_address(),
-                                      addr_to=self.bob.get_address(),
+        tx = SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
+                                      addr_to=self.bob.get_address().encode(),
                                       amount=100,
                                       fee=1,
                                       xmss_pk=self.alice.pk(),
@@ -83,8 +83,8 @@ class TestSimpleTransaction(TestCase):
 
     def test_create_negative_amount(self):
         with self.assertRaises(ValueError):
-            SimpleTransaction.create(addr_from=self.alice.get_address(),
-                                     addr_to=self.bob.get_address(),
+            SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
+                                     addr_to=self.bob.get_address().encode(),
                                      amount=-100,
                                      fee=1,
                                      xmss_pk=self.alice.pk(),
@@ -92,16 +92,16 @@ class TestSimpleTransaction(TestCase):
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            SimpleTransaction.create(addr_from=self.alice.get_address(),
-                                     addr_to=self.bob.get_address(),
+            SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
+                                     addr_to=self.bob.get_address().encode(),
                                      amount=-100,
                                      fee=-1,
                                      xmss_pk=self.alice.pk(),
                                      xmss_ots_index=self.alice.get_index())
 
     def test_to_json(self):
-        tx = SimpleTransaction.create(addr_from=self.alice.get_address(),
-                                      addr_to=self.bob.get_address(),
+        tx = SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
+                                      addr_to=self.bob.get_address().encode(),
                                       amount=100,
                                       fee=1,
                                       xmss_pk=self.alice.pk(),
@@ -133,8 +133,8 @@ class TestSimpleTransaction(TestCase):
 
     def test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
-        tx = SimpleTransaction.create(addr_from=self.alice.get_address(),
-                                      addr_to=self.bob.get_address(),
+        tx = SimpleTransaction.create(addr_from=self.alice.get_address().encode(),
+                                      addr_to=self.bob.get_address().encode(),
                                       amount=100,
                                       fee=1,
                                       xmss_pk=self.alice.pk(),
