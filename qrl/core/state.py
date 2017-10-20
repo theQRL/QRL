@@ -275,6 +275,7 @@ class State:
         if stake_validators_list.sv_list[block.blockheader.stake_selector].is_banned:
             logger.warning('stake selector is in banned list')
             return
+
         # cycle through every tx in the new block to check state
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
@@ -296,6 +297,10 @@ class State:
                 return False
 
             if tx.subtype == TX_SUBTYPE_TX:
+                if tx.txfrom in stake_validators_list.sv_list or tx.txfrom in stake_validators_list.future_stake_addresses:
+                    logger.warning("Source address is a Stake Validator, balance is locked while staking")
+                    return False
+
                 if address_txn[tx.txfrom][1] - tx.amount < 0:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)

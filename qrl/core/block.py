@@ -139,7 +139,7 @@ class Block(object):
                                 return False
 
                 if not found:
-                    logger.warning('Stake selector snot in block.stake: failed validation')
+                    logger.warning('Stake selector not in block.stake: failed validation')
                     return False
 
             else:  # we look in stake_list for the hash terminator and hash to it..

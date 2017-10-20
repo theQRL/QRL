@@ -455,8 +455,7 @@ class WalletProtocol(Protocol):
 
     def _help(self, args):
         self.output['status'] = 0
-        self.output['message'].write(
-            '>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n')
+        self.output['message'].write('>>> QRL ledger help: try {}'.format(', '.join(self.cmd_list)) + '\r\n')
 
     def _quit(self, args):
         self.transport.loseConnection()
