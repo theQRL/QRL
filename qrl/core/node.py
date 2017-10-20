@@ -209,8 +209,8 @@ class POS:
         for tx in self.chain.transaction_pool:
             if tx.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_STAKE:
                 if tx.txfrom in genesis_info:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom],
-                                     tx.slave_public_key])
+                    tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
+                    #FIX ME: This goes to stake validator list without verifiction, Security Risk
                     self.chain.state.stake_validators_list.add_sv(tx, 1)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)

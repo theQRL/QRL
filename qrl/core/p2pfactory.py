@@ -10,7 +10,6 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import config, logger
-from qrl.core.helper import json_bytestream
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 
@@ -227,7 +226,7 @@ class P2PFactory(ServerFactory):
         logger.info('<<<Transmitting POS created block %s %s', str(block_obj.blockheader.blocknumber),
                     block_obj.blockheader.headerhash)
         for peer in self.peer_connections:
-            peer.transport.write(self.protocol.wrap_message('S4', json_bytestream(block_obj)))
+            peer.transport.write(self.protocol.wrap_message('S4', block_obj.to_json()))
         return
 
     # send/relay block to peers

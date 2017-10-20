@@ -14,26 +14,6 @@ class ComplexEncoder(json.JSONEncoder):
         return obj.__dict__
 
 
-def json_encode_complex(obj):
-    return json.dumps(obj, cls=ComplexEncoder)
-
-
-def json_bytestream(obj):
-    return json.dumps(obj.__dict__, cls=ComplexEncoder)
-
-
-def json_bytestream_tx(tx_obj):  # JSON serialise tx object
-    return json_bytestream(tx_obj)
-
-
-def json_bytestream_pb(block_obj):
-    return json_bytestream(block_obj)
-
-
-def json_bytestream_bk(block_obj):  # "" block object
-    return json_bytestream(block_obj)
-
-
 def json_print(obj):  # prettify output from JSON for export purposes
     logger.info('%s', json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False))))
 

@@ -11,7 +11,7 @@ from qrl.core.Transaction import Transaction
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
-from qrl.core.helper import json_bytestream, json_print
+from qrl.core.helper import json_print
 from qrl.crypto.misc import sha256, merkle_tx_hash
 
 import bz2
@@ -510,7 +510,7 @@ class Chain:
             return False
         b = self.m_get_block(n)
         logger.info(('Block: ', b, str(b.blockheader.blocknumber)))
-        logger.info(('Blocksize, ', str(len(json_bytestream(b)))))
+        logger.info(('Blocksize, ', str(len(b.to_json()))))
         logger.info(('Number of transactions: ', str(len(b.transactions))))
         logger.info(('Validates: ', b.validate_block(self)))
 

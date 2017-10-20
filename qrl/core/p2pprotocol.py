@@ -316,11 +316,7 @@ class P2PProtocol(Protocol):
         if st.validate() and st.validate_extended(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(st)
         else:
-            hashes = []
-            for item in st.hash:
-                hashes.append(bin2hstr(item))
-
-            logger.warning('>>>ST %s invalid state validation failed..', hashes)
+            logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(tuple(st.hash)))
             return
 
         self.factory.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
@@ -453,8 +449,6 @@ class P2PProtocol(Protocol):
         This function executes while syncing block from other peers.
         Blocks received by this function, directly added into
         chain.block_chain_buffer.
-        So it is expected to receive multiple of blocks having
-        same blocknumber.
         :return:
         """
         self.factory.pos.last_pb_time = time.time()
@@ -462,22 +456,19 @@ class P2PProtocol(Protocol):
             if self.isNoMoreBlock(data):
                 return
 
-            data = json.loads(data)
-            blocknumber = int(list(data.keys())[0].encode('ascii'))
+            block = Block.from_json(data)
+            blocknumber = block.blockheader.blocknumber
 
             if blocknumber != self.last_requested_blocknum:
                 logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.conn_identity)
                 return
 
-            for jsonBlock in data[str(blocknumber)]:
-                block = Block.from_json(json.dumps(jsonBlock))
-                logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
+            logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
 
-                status = self.factory.chain.block_chain_buffer.add_block(block)
-                if type(status) == bool and not status:
-                    logger.info("[PBB] Failed to add block by add_block, re-requesting the block #%s", blocknumber)
-                    logger.info('Skipping one block')
-                    continue
+            status = self.factory.chain.block_chain_buffer.add_block(block)
+            if type(status) == bool and not status:
+                logger.info("[PBB] Failed to add block by add_block, re-requesting the block #%s", blocknumber)
+                logger.info('Skipping one block')
 
             try:
                 reactor.download_block.cancel()
@@ -555,7 +546,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         logger.info('<<<Sending last block %s %s bytes to node %s', self.factory.chain.m_blockheight(),
-                    str(len(helper.json_bytestream(self.factory.chain.m_get_last_block()))),
+                    str(len(self.factory.chain.m_get_last_block().to_json())),
                     self.transport.getPeer().host)
 
         self.transport.write(self.wrap_message('BK', self.factory.chain.m_get_last_block()).to_json())
@@ -685,7 +676,7 @@ class P2PProtocol(Protocol):
         """
         if int(data) <= self.factory.chain.m_blockheight():
             logger.info('<<<Sending block number %s %s bytes to node: %s', int(data),
-                        len(helper.json_bytestream(self.factory.chain.m_get_block(int(data)))),
+                        len(self.factory.chain.m_get_block(int(data)).to_json()),
                         self.transport.getPeer().host)
             self.transport.write(
                 self.wrap_message('BK', self.factory.chain.m_get_block(int(data))).to_json())
