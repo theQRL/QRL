@@ -7,35 +7,40 @@ package qrl;
 
 // TODO: Avoid using timestamp until the github issue is fixed
 // import "google/protobuf/timestamp.proto";
-message Timestamp {
+message Timestamp
+{
     int64 seconds = 1;
     int32 nanos = 2;
 }
 
-service P2PNode {
-    rpc Ping (PingReq) returns (PongResp) {
-    }
-    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {
-    }
+// This service describes the P2P API
+service P2PNode
+{
+    rpc Ping (PingReq) returns (PongResp) { }
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) { }
 }
 
-service PublicAPI {
-    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {
-    }
-    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {
-    }
+// This service describes the Public API used by clients (wallet/cli/etc)
+service PublicAPI
+{
+    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp) { }
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) { }
+    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) { }
 
-    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {
-    }
-    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) {
-    }
+    rpc Search(SearchReq) returns (SearchResp) { }
+
+    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) { }
+    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) { }
 }
 
-service TestingAPI {
+// This is a place holder for testing/instrumentation APIs
+service AdminAPI
+{
 }
 
+
+////////////////////////////
 // API Messages
-
 message PingReq {
     string name = 1;
 }
@@ -77,8 +82,46 @@ message PushTransactionResp {
     string some_response = 1;
 }
 
-// Content
+message GetNodeStateReq {
+}
 
+message GetNodeStateResp {
+    NodeInfo info = 1;
+}
+
+message SearchReq {
+    bytes query = 1;
+}
+
+message SearchResp {
+    bool found = 1;
+    oneof result {
+        AddressState address_state = 2;
+        Transaction transaction = 3;
+        Block block = 4;
+    }
+}
+
+message NodeInfo
+{
+    enum State {
+        UNKNOWN = 0;
+        UNSYNCED = 1;
+        SYNCING = 2;
+        SYNCED = 3;
+        FORKED = 4;
+    }
+
+    string version = 1;
+    State  state = 2;
+    uint32 num_connections = 3;
+    uint32 num_known_peers = 4;
+    uint64 uptime = 5;                  // Uptime in seconds
+    uint64 block_height = 6;
+    bool   stake_enabled = 7;
+}
+
+// Content
 message WalletStore {
     repeated Wallet wallets = 1;
 }
@@ -103,10 +146,9 @@ message AddressState {
 
     string address = 1;
     uint64 balance = 2;
-    uint64 nonce = 3; // FIXME: Discuss. 32 or 64 bits?
+    uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
-    repeated Transaction transactions = 5;
-    // FIXME: Add stake information. Probably a reference to another obj
+    repeated Transaction transactions = 5;      // FIXME: Add stake information. Probably a reference to another obj
 }
 
 message BlockHeader {
