@@ -91,7 +91,7 @@ class Wallet:
                     if a.address != tmpxmss.get_address():
                         logger.fatal("Mnemonic and address do not match.")
                         exit(1)
-                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address().encode(), tmpxmss))
 
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
@@ -110,7 +110,7 @@ class Wallet:
                 for a in data:
                     tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip()))
                     tmpxmss.set_index(a['index'])
-                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address().encode(), tmpxmss))
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
 

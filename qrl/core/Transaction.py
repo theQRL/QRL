@@ -188,13 +188,13 @@ class SimpleTransaction(Transaction):
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from, addr_to, amount, fee, xmss_pk, xmss_ots_index):
+    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk, xmss_ots_index):
         transaction = SimpleTransaction()
 
-        transaction._data.addr_from = bytes(addr_from.encode())
+        transaction._data.addr_from = addr_from
         transaction._data.public_key = bytes(xmss_pk)
 
-        transaction._data.transfer.addr_to = bytes(addr_to.encode())
+        transaction._data.transfer.addr_to = addr_to
         transaction._data.transfer.amount = int(amount)     # FIXME: Review conversions for quantities
         transaction._data.transfer.fee = int(fee)           # FIXME: Review conversions for quantities
 

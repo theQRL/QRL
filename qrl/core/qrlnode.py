@@ -83,10 +83,8 @@ class QRLNode:
     def get_wallet_absolute(self, addr_or_index):
         # FIXME: Refactor. Define concerns, etc. Validation vs logic
         # FIXME: It is possible to receive integers instead of strings....
-        if not isinstance(addr_or_index, str):
-            addr_or_index = str(addr_or_index)
 
-        if addr_or_index == "":
+        if addr_or_index == b'':
             raise ValueError("address is empty")
 
         if addr_or_index.isdigit():
@@ -100,7 +98,7 @@ class QRLNode:
             else:
                 raise ValueError("invalid address index")
 
-        if addr_or_index[0] != 'Q':
+        if addr_or_index[0] != ord('Q'):
             raise ValueError("Invalid address")
 
         return addr_or_index
@@ -113,13 +111,14 @@ class QRLNode:
     def _find_xmss(self, key_addr: bytes):
         # FIXME: Move down the wallet management
         for addr in self.chain.wallet.address_bundle:
-            if bytes(addr.address.encode()) == key_addr:
+            if addr.address == key_addr:
                 return addr.xmss
         return None
 
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
         xmss_from = self._find_xmss(addr_from)
+
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
         xmss_pk = xmss_from.pk()
