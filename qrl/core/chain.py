@@ -612,7 +612,7 @@ class Chain:
 
         with open(self.get_chaindatafile(file_epoch), 'ab') as myfile:
             for block in writeable:
-                json_block = bytes(json_bytestream(block), 'utf-8')
+                json_block = bytes(block.to_json(), 'utf-8')
                 compressed_block = bz2.compress(json_block, config.dev.compression_level)
                 block_pos = myfile.tell()
                 block_size = len(compressed_block)
