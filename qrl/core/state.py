@@ -167,11 +167,11 @@ class State:
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
         nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
         logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                     block.blockheader.blocknumber,
-                     block.blockheader.epoch,
-                     blocks_left - 1,
-                     nonce,
-                     block.blockheader.stake_selector)
+                    block.blockheader.blocknumber,
+                    block.blockheader.epoch,
+                    blocks_left - 1,
+                    nonce,
+                    block.blockheader.stake_selector)
 
         if not self.update(block, self.stake_validators_list, address_txn):
             return
@@ -397,8 +397,9 @@ class State:
             tmphc = hashchain(xmss.get_seed_private(), epoch=block.blockheader.epoch + 1)
 
             chain.hash_chain = tmphc.hashchain
-            if not ignore_save_wallet:
-                chain.wallet.save_wallet()
+
+        if not ignore_save_wallet:
+            chain.wallet.save_wallet()
 
         self._set_blockheight(chain.height() + 1)
 

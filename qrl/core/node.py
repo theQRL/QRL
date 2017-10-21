@@ -469,6 +469,7 @@ class POS:
 
         block = self.create_new_block(my_reveal,
                                       blocknumber - 1)
+
         self.pre_block_logic(block)  # broadcast this block
 
     def post_block_logic(self, blocknumber):
@@ -539,6 +540,10 @@ class POS:
         )
 
         st.sign(signing_xmss)
+        tx_state = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, st.txfrom)
+        if not (st.validate() and st.validate_extended(tx_state)):
+            logger.info('Make St Txn failed due to validation failure, will retry next block')
+            return
 
         self.p2pFactory.send_st_to_peers(st)
         for num in range(len(self.chain.transaction_pool)):

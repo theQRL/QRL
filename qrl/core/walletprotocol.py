@@ -25,7 +25,6 @@ class WalletProtocol(Protocol):
     def __init__(self):
         self.cmd_mapping = {
             # OBSOLETE
-            "create": self._create,                             # OBSOLETE
             "getnewaddress": self._getnewaddress,               # OBSOLETE
             "hexseed": self._hexseed,                           # OBSOLETE
             "seed": self._seed,                                 # OBSOLETE
@@ -286,11 +285,6 @@ class WalletProtocol(Protocol):
         for address in list_addr:
             self.output['message'].write(str(y) + str(address) + '\r\n')
             y += 1
-
-    def _create(self, args):
-        self.factory.p2pFactory.pos.create_next_block(int(args[0]))
-        self.output['status'] = 0
-        self.output['message'].write('Creating blocknumber #' + str(args[0]))
 
     def _hexseed(self, args):
         for addr_bundle in self.factory.chain.wallet.address_bundle:
