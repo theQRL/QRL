@@ -41,8 +41,8 @@ class PublicAPIService(PublicAPIServicer):
     @grpc_exception_wrapper(TransferCoinsResp, StatusCode.UNKNOWN)
     def TransferCoins(self, request: TransferCoinsReq, context) -> TransferCoinsResp:
         logger.debug("[QRLNode] TransferCoins")
-        tx = self.qrlnode.create_send_tx(addr_from=request.address_from,
-                                         addr_to=request.address_to,
+        tx = self.qrlnode.create_send_tx(addr_from=request.address_from.encode(),
+                                         addr_to=request.address_to.encode(),
                                          amount=request.amount,
                                          fee=request.fee,
                                          xmss_pk=request.xmss_pk,
