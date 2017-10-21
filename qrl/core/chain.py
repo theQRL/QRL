@@ -236,7 +236,13 @@ class Chain:
 
             if tx.subtype == TX_SUBTYPE_STAKE:
                 if tx.txfrom in transfercoin_txn:
-                    logger.warning('Dropping st txn as transfer coin txn found in pool')
+                    logger.warning('Dropping st txn as transfer coin txn found in pool %s', tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+                # This check is to ignore multiple ST txn from same address
+                if tx.txfrom in stake_txn:
+                    logger.warning('Dropping st txn as existing Stake txn has been added %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -246,6 +252,13 @@ class Chain:
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
+                if tx.txfrom in stake_validators_list.sv_list:
+                    expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                    if tx.activation_blocknumber < expiry:
+                        logger.warning('Skipping st txn as it is already active for the given range %s', tx.txfrom)
+                        del t_pool2[txnum]
+                        total_txn -= 1
+                        continue
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
                 if tx.activation_blocknumber > self.block_chain_buffer.height() + config.dev.blocks_per_epoch + 1:
                     logger.warning('Skipping st as activation_blocknumber beyond limit')
