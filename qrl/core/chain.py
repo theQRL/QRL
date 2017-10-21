@@ -211,12 +211,14 @@ class Chain:
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
-        curr_epoch = (last_block_number + 1) // config.dev.blocks_per_epoch
         # recreate the transaction pool as in the tx_hash_list, ordered by txhash..
         tx_nonce = defaultdict(int)
         total_txn = len(t_pool2)
         txnum = 0
         stake_validators_list = self.block_chain_buffer.get_stake_validators_list(last_block_number + 1)
+        # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
+        stake_txn = set()
+        transfercoin_txn = set()
         while txnum < total_txn:
             tx = t_pool2[txnum]
             if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
@@ -225,20 +227,26 @@ class Chain:
                 continue
 
             if tx.subtype == TX_SUBTYPE_TX:
-                if tx.txfrom in stake_validators_list.sv_list or tx.txfrom in stake_validators_list.future_stake_addresses:
+                if tx.txfrom in stake_txn or tx.txfrom in stake_validators_list.sv_list or tx.txfrom in stake_validators_list.future_stake_addresses:
                     logger.warning("Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
+                transfercoin_txn.add(tx.txfrom)
 
             if tx.subtype == TX_SUBTYPE_STAKE:
-                # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
+                if tx.txfrom in transfercoin_txn:
+                    logger.warning('Dropping st txn as transfer coin txn found in pool')
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
                 if tx.txfrom in stake_validators_list.future_stake_addresses:
                     logger.warning('Skipping st as staker is already in future_stake_address')
                     logger.warning('Staker address : %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
+                # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
                 if tx.activation_blocknumber > self.block_chain_buffer.height() + config.dev.blocks_per_epoch + 1:
                     logger.warning('Skipping st as activation_blocknumber beyond limit')
                     logger.warning('Expected # less than : %s', (self.block_chain_buffer.height() + config.dev.blocks_per_epoch))
@@ -246,6 +254,7 @@ class Chain:
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
+                stake_txn.add(tx.txfrom)
 
             self.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
