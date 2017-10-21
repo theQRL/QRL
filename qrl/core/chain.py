@@ -617,7 +617,7 @@ class Chain:
         blocknumber = self.m_blockchain[-1].blockheader.blocknumber
         file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
         writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
-        logger.info('Appending data to chain')
+        logger.debug('Writing chain to disk')
 
         with open(self.get_chaindatafile(file_epoch), 'ab') as myfile:
             for block in writeable:
