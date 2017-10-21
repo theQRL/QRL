@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"+\n\tTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\x05\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\".\n\x17GetAddressStateLocalReq\x12\x13\n\x0b\x61\x64\x64ress_idx\x18\x01 \x01(\r\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"\x82\x01\n\x10TransferCoinsReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x12\n\naddress_to\x18\x02 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\x12\x16\n\x0exmss_ots_index\x18\x06 \x01(\x04\"C\n\x11TransferCoinsResp\x12.\n\x14transaction_unsigned\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"B\n\x12PushTransactionReq\x12,\n\x12transaction_signed\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\",\n\x13PushTransactionResp\x12\x15\n\rsome_response\x18\x01 \x01(\t\"\x11\n\x0fGetNodeStateReq\"/\n\x10GetNodeStateResp\x12\x1b\n\x04info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\"\x1a\n\tSearchReq\x12\r\n\x05query\x18\x01 \x01(\x0c\"\x97\x01\n\nSearchResp\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12*\n\raddress_state\x18\x02 \x01(\x0b\x32\x11.qrl.AddressStateH\x00\x12\'\n\x0btransaction\x18\x03 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\x1b\n\x05\x62lock\x18\x04 \x01(\x0b\x32\n.qrl.BlockH\x00\x42\x08\n\x06result\"\xf7\x01\n\x08NodeInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\"\n\x05state\x18\x02 \x01(\x0e\x32\x13.qrl.NodeInfo.State\x12\x17\n\x0fnum_connections\x18\x03 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x04 \x01(\r\x12\x0e\n\x06uptime\x18\x05 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x06 \x01(\x04\x12\x15\n\rstake_enabled\x18\x07 \x01(\x08\"G\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08UNSYNCED\x10\x01\x12\x0b\n\x07SYNCING\x10\x02\x12\n\n\x06SYNCED\x10\x03\x12\n\n\x06\x46ORKED\x10\x04\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"z\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x11\n\tpubhashes\x18\x04 \x03(\x0c\x12&\n\x0ctransactions\x18\x05 \x03(\x0b\x32\x10.qrl.Transaction\"\xf0\x01\n\x0b\x42lockHeader\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12!\n\ttimestamp\x18\x03 \x01(\x0b\x32\x0e.qrl.Timestamp\x12\x13\n\x0bhash_header\x18\x04 \x01(\x0c\x12\x18\n\x10hash_header_prev\x18\x05 \x01(\x0c\x12\x14\n\x0creward_block\x18\x06 \x01(\x04\x12\x12\n\nreward_fee\x18\x07 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x08 \x01(\x0c\x12\x13\n\x0bhash_reveal\x18\t \x01(\x0c\x12\x16\n\x0estake_selector\x18\n \x01(\x0c\"}\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12&\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x10.qrl.Transaction\x12*\n\x10\x64up_transactions\x18\x03 \x03(\x0b\x32\x10.qrl.Transaction\":\n\rBlockMetaData\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\"|\n\x02MR\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"\xf1\x07\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x12\n\npublic_key\x18\x04 \x01(\x0c\x12\x18\n\x10transaction_hash\x18\x05 \x01(\x0c\x12\x0f\n\x07ots_key\x18\x06 \x01(\r\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12-\n\x08transfer\x18\x08 \x01(\x0b\x32\x19.qrl.Transaction.TransferH\x00\x12\'\n\x05stake\x18\t \x01(\x0b\x32\x16.qrl.Transaction.StakeH\x00\x12-\n\x08\x63oinbase\x18\n \x01(\x0b\x32\x19.qrl.Transaction.CoinBaseH\x00\x12\x36\n\tlatticePK\x18\x0b \x01(\x0b\x32!.qrl.Transaction.LatticePublicKeyH\x00\x12/\n\tduplicate\x18\x0c \x01(\x0b\x32\x1a.qrl.Transaction.DuplicateH\x00\x1a\x38\n\x08Transfer\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x1a\x94\x01\n\x05Stake\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x02 \x01(\x04\x12\x1d\n\x15\x66inalized_blocknumber\x18\x03 \x01(\x04\x12\x1c\n\x14\x66inalized_headerhash\x18\x04 \x01(\x0c\x12\x0f\n\x07slavePK\x18\x05 \x01(\x0c\x12\x0c\n\x04hash\x18\x07 \x01(\x0c\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a\x36\n\x10LatticePublicKey\x12\x10\n\x08pk_kyber\x18\x01 \x01(\x0c\x12\x10\n\x08pk_tesla\x18\x02 \x01(\x0c\x1a\xb7\x01\n\tDuplicate\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10prev_header_hash\x18\x02 \x01(\x04\x12\x17\n\x0f\x63oinbase1_hhash\x18\x03 \x01(\x0c\x12\x17\n\x0f\x63oinbase2_hhash\x18\x04 \x01(\x0c\x12#\n\tcoinbase1\x18\x05 \x01(\x0b\x32\x10.qrl.Transaction\x12#\n\tcoinbase2\x18\x06 \x01(\x0b\x32\x10.qrl.Transaction\"V\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08TRANSFER\x10\x01\x12\t\n\x05STAKE\x10\x02\x12\x0c\n\x08\x43OINBASE\x10\x03\x12\x0b\n\x07LATTICE\x10\x04\x12\r\n\tDUPLICATE\x10\x05\x42\x11\n\x0ftransactionType2r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\x8b\x03\n\tPublicAPI\x12=\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x46\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\"\x00\x12+\n\x06Search\x12\x0e.qrl.SearchReq\x1a\x0f.qrl.SearchResp\"\x00\x12@\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\"\x00\x12\x46\n\x0fPushTransaction\x12\x17.qrl.PushTransactionReq\x1a\x18.qrl.PushTransactionResp\"\x00\x32\n\n\x08\x41\x64minAPIb\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"+\n\tTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\x05\"\x17\n\x07PingReq\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1b\n\x08PongResp\x12\x0f\n\x07message\x18\x01 \x01(\t\"\x12\n\x10GetKnownPeersReq\"9\n\x11GetKnownPeersResp\x12$\n\x0bknown_peers\x18\x01 \x01(\x0b\x32\x0f.qrl.KnownPeers\".\n\x17GetAddressStateLocalReq\x12\x13\n\x0b\x61\x64\x64ress_idx\x18\x01 \x01(\r\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"\x82\x01\n\x10TransferCoinsReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x12\n\naddress_to\x18\x02 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\x12\x16\n\x0exmss_ots_index\x18\x06 \x01(\x04\"C\n\x11TransferCoinsResp\x12.\n\x14transaction_unsigned\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"B\n\x12PushTransactionReq\x12,\n\x12transaction_signed\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\",\n\x13PushTransactionResp\x12\x15\n\rsome_response\x18\x01 \x01(\t\"\x11\n\x0fGetNodeStateReq\"/\n\x10GetNodeStateResp\x12\x1b\n\x04info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\"\x1d\n\x0cGetObjectReq\x12\r\n\x05query\x18\x01 \x01(\x0c\"\x9a\x01\n\rGetObjectResp\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12*\n\raddress_state\x18\x02 \x01(\x0b\x32\x11.qrl.AddressStateH\x00\x12\'\n\x0btransaction\x18\x03 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\x1b\n\x05\x62lock\x18\x04 \x01(\x0b\x32\n.qrl.BlockH\x00\x42\x08\n\x06result\"\xf7\x01\n\x08NodeInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\"\n\x05state\x18\x02 \x01(\x0e\x32\x13.qrl.NodeInfo.State\x12\x17\n\x0fnum_connections\x18\x03 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x04 \x01(\r\x12\x0e\n\x06uptime\x18\x05 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x06 \x01(\x04\x12\x15\n\rstake_enabled\x18\x07 \x01(\x08\"G\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08UNSYNCED\x10\x01\x12\x0b\n\x07SYNCING\x10\x02\x12\n\n\x06SYNCED\x10\x03\x12\n\n\x06\x46ORKED\x10\x04\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"&\n\nKnownPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"z\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x11\n\tpubhashes\x18\x04 \x03(\x0c\x12&\n\x0ctransactions\x18\x05 \x03(\x0b\x32\x10.qrl.Transaction\"\xf0\x01\n\x0b\x42lockHeader\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12!\n\ttimestamp\x18\x03 \x01(\x0b\x32\x0e.qrl.Timestamp\x12\x13\n\x0bhash_header\x18\x04 \x01(\x0c\x12\x18\n\x10hash_header_prev\x18\x05 \x01(\x0c\x12\x14\n\x0creward_block\x18\x06 \x01(\x04\x12\x12\n\nreward_fee\x18\x07 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x08 \x01(\x0c\x12\x13\n\x0bhash_reveal\x18\t \x01(\x0c\x12\x16\n\x0estake_selector\x18\n \x01(\x0c\"}\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12&\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x10.qrl.Transaction\x12*\n\x10\x64up_transactions\x18\x03 \x03(\x0b\x32\x10.qrl.Transaction\":\n\rBlockMetaData\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\"|\n\x02MR\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"\xf1\x07\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x12\n\npublic_key\x18\x04 \x01(\x0c\x12\x18\n\x10transaction_hash\x18\x05 \x01(\x0c\x12\x0f\n\x07ots_key\x18\x06 \x01(\r\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12-\n\x08transfer\x18\x08 \x01(\x0b\x32\x19.qrl.Transaction.TransferH\x00\x12\'\n\x05stake\x18\t \x01(\x0b\x32\x16.qrl.Transaction.StakeH\x00\x12-\n\x08\x63oinbase\x18\n \x01(\x0b\x32\x19.qrl.Transaction.CoinBaseH\x00\x12\x36\n\tlatticePK\x18\x0b \x01(\x0b\x32!.qrl.Transaction.LatticePublicKeyH\x00\x12/\n\tduplicate\x18\x0c \x01(\x0b\x32\x1a.qrl.Transaction.DuplicateH\x00\x1a\x38\n\x08Transfer\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x1a\x94\x01\n\x05Stake\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x02 \x01(\x04\x12\x1d\n\x15\x66inalized_blocknumber\x18\x03 \x01(\x04\x12\x1c\n\x14\x66inalized_headerhash\x18\x04 \x01(\x0c\x12\x0f\n\x07slavePK\x18\x05 \x01(\x0c\x12\x0c\n\x04hash\x18\x07 \x01(\x0c\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a\x36\n\x10LatticePublicKey\x12\x10\n\x08pk_kyber\x18\x01 \x01(\x0c\x12\x10\n\x08pk_tesla\x18\x02 \x01(\x0c\x1a\xb7\x01\n\tDuplicate\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10prev_header_hash\x18\x02 \x01(\x04\x12\x17\n\x0f\x63oinbase1_hhash\x18\x03 \x01(\x0c\x12\x17\n\x0f\x63oinbase2_hhash\x18\x04 \x01(\x0c\x12#\n\tcoinbase1\x18\x05 \x01(\x0b\x32\x10.qrl.Transaction\x12#\n\tcoinbase2\x18\x06 \x01(\x0b\x32\x10.qrl.Transaction\"V\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08TRANSFER\x10\x01\x12\t\n\x05STAKE\x10\x02\x12\x0c\n\x08\x43OINBASE\x10\x03\x12\x0b\n\x07LATTICE\x10\x04\x12\r\n\tDUPLICATE\x10\x05\x42\x11\n\x0ftransactionType2r\n\x07P2PNode\x12%\n\x04Ping\x12\x0c.qrl.PingReq\x1a\r.qrl.PongResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x32\x94\x03\n\tPublicAPI\x12=\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\"\x00\x12@\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\"\x00\x12\x46\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\"\x00\x12\x34\n\tGetObject\x12\x11.qrl.GetObjectReq\x1a\x12.qrl.GetObjectResp\"\x00\x12@\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\"\x00\x12\x46\n\x0fPushTransaction\x12\x17.qrl.PushTransactionReq\x1a\x18.qrl.PushTransactionResp\"\x00\x32\n\n\x08\x41\x64minAPIb\x06proto3')
 )
 
 
@@ -53,8 +53,8 @@ _NODEINFO_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1083,
-  serialized_end=1154,
+  serialized_start=1089,
+  serialized_end=1160,
 )
 _sym_db.RegisterEnumDescriptor(_NODEINFO_STATE)
 
@@ -91,8 +91,8 @@ _TRANSACTION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2911,
-  serialized_end=2997,
+  serialized_start=2917,
+  serialized_end=3003,
 )
 _sym_db.RegisterEnumDescriptor(_TRANSACTION_TYPE)
 
@@ -559,15 +559,15 @@ _GETNODESTATERESP = _descriptor.Descriptor(
 )
 
 
-_SEARCHREQ = _descriptor.Descriptor(
-  name='SearchReq',
-  full_name='qrl.SearchReq',
+_GETOBJECTREQ = _descriptor.Descriptor(
+  name='GetObjectReq',
+  full_name='qrl.GetObjectReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='query', full_name='qrl.SearchReq.query', index=0,
+      name='query', full_name='qrl.GetObjectReq.query', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -586,40 +586,40 @@ _SEARCHREQ = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=724,
-  serialized_end=750,
+  serialized_end=753,
 )
 
 
-_SEARCHRESP = _descriptor.Descriptor(
-  name='SearchResp',
-  full_name='qrl.SearchResp',
+_GETOBJECTRESP = _descriptor.Descriptor(
+  name='GetObjectResp',
+  full_name='qrl.GetObjectResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='found', full_name='qrl.SearchResp.found', index=0,
+      name='found', full_name='qrl.GetObjectResp.found', index=0,
       number=1, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='address_state', full_name='qrl.SearchResp.address_state', index=1,
+      name='address_state', full_name='qrl.GetObjectResp.address_state', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='transaction', full_name='qrl.SearchResp.transaction', index=2,
+      name='transaction', full_name='qrl.GetObjectResp.transaction', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='block', full_name='qrl.SearchResp.block', index=3,
+      name='block', full_name='qrl.GetObjectResp.block', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -637,11 +637,11 @@ _SEARCHRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='result', full_name='qrl.SearchResp.result',
+      name='result', full_name='qrl.GetObjectResp.result',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=753,
-  serialized_end=904,
+  serialized_start=756,
+  serialized_end=910,
 )
 
 
@@ -714,8 +714,8 @@ _NODEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=907,
-  serialized_end=1154,
+  serialized_start=913,
+  serialized_end=1160,
 )
 
 
@@ -745,8 +745,8 @@ _WALLETSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1156,
-  serialized_end=1199,
+  serialized_start=1162,
+  serialized_end=1205,
 )
 
 
@@ -790,8 +790,8 @@ _WALLET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1201,
-  serialized_end=1264,
+  serialized_start=1207,
+  serialized_end=1270,
 )
 
 
@@ -821,8 +821,8 @@ _KNOWNPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1266,
-  serialized_end=1304,
+  serialized_start=1272,
+  serialized_end=1310,
 )
 
 
@@ -852,8 +852,8 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1306,
-  serialized_end=1324,
+  serialized_start=1312,
+  serialized_end=1330,
 )
 
 
@@ -911,8 +911,8 @@ _ADDRESSSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1326,
-  serialized_end=1448,
+  serialized_start=1332,
+  serialized_end=1454,
 )
 
 
@@ -1005,8 +1005,8 @@ _BLOCKHEADER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1451,
-  serialized_end=1691,
+  serialized_start=1457,
+  serialized_end=1697,
 )
 
 
@@ -1050,8 +1050,8 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1693,
-  serialized_end=1818,
+  serialized_start=1699,
+  serialized_end=1824,
 )
 
 
@@ -1088,8 +1088,8 @@ _BLOCKMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1820,
-  serialized_end=1878,
+  serialized_start=1826,
+  serialized_end=1884,
 )
 
 
@@ -1154,8 +1154,8 @@ _MR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1880,
-  serialized_end=2004,
+  serialized_start=1886,
+  serialized_end=2010,
 )
 
 
@@ -1199,8 +1199,8 @@ _TRANSACTION_TRANSFER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2415,
-  serialized_end=2471,
+  serialized_start=2421,
+  serialized_end=2477,
 )
 
 _TRANSACTION_STAKE = _descriptor.Descriptor(
@@ -1264,8 +1264,8 @@ _TRANSACTION_STAKE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2474,
-  serialized_end=2622,
+  serialized_start=2480,
+  serialized_end=2628,
 )
 
 _TRANSACTION_COINBASE = _descriptor.Descriptor(
@@ -1301,8 +1301,8 @@ _TRANSACTION_COINBASE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2624,
-  serialized_end=2667,
+  serialized_start=2630,
+  serialized_end=2673,
 )
 
 _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
@@ -1338,8 +1338,8 @@ _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2669,
-  serialized_end=2723,
+  serialized_start=2675,
+  serialized_end=2729,
 )
 
 _TRANSACTION_DUPLICATE = _descriptor.Descriptor(
@@ -1403,8 +1403,8 @@ _TRANSACTION_DUPLICATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2726,
-  serialized_end=2909,
+  serialized_start=2732,
+  serialized_end=2915,
 )
 
 _TRANSACTION = _descriptor.Descriptor(
@@ -1514,8 +1514,8 @@ _TRANSACTION = _descriptor.Descriptor(
       name='transactionType', full_name='qrl.Transaction.transactionType',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=2007,
-  serialized_end=3016,
+  serialized_start=2013,
+  serialized_end=3022,
 )
 
 _GETKNOWNPEERSRESP.fields_by_name['known_peers'].message_type = _KNOWNPEERS
@@ -1523,18 +1523,18 @@ _GETADDRESSSTATERESP.fields_by_name['state'].message_type = _ADDRESSSTATE
 _TRANSFERCOINSRESP.fields_by_name['transaction_unsigned'].message_type = _TRANSACTION
 _PUSHTRANSACTIONREQ.fields_by_name['transaction_signed'].message_type = _TRANSACTION
 _GETNODESTATERESP.fields_by_name['info'].message_type = _NODEINFO
-_SEARCHRESP.fields_by_name['address_state'].message_type = _ADDRESSSTATE
-_SEARCHRESP.fields_by_name['transaction'].message_type = _TRANSACTION
-_SEARCHRESP.fields_by_name['block'].message_type = _BLOCK
-_SEARCHRESP.oneofs_by_name['result'].fields.append(
-  _SEARCHRESP.fields_by_name['address_state'])
-_SEARCHRESP.fields_by_name['address_state'].containing_oneof = _SEARCHRESP.oneofs_by_name['result']
-_SEARCHRESP.oneofs_by_name['result'].fields.append(
-  _SEARCHRESP.fields_by_name['transaction'])
-_SEARCHRESP.fields_by_name['transaction'].containing_oneof = _SEARCHRESP.oneofs_by_name['result']
-_SEARCHRESP.oneofs_by_name['result'].fields.append(
-  _SEARCHRESP.fields_by_name['block'])
-_SEARCHRESP.fields_by_name['block'].containing_oneof = _SEARCHRESP.oneofs_by_name['result']
+_GETOBJECTRESP.fields_by_name['address_state'].message_type = _ADDRESSSTATE
+_GETOBJECTRESP.fields_by_name['transaction'].message_type = _TRANSACTION
+_GETOBJECTRESP.fields_by_name['block'].message_type = _BLOCK
+_GETOBJECTRESP.oneofs_by_name['result'].fields.append(
+  _GETOBJECTRESP.fields_by_name['address_state'])
+_GETOBJECTRESP.fields_by_name['address_state'].containing_oneof = _GETOBJECTRESP.oneofs_by_name['result']
+_GETOBJECTRESP.oneofs_by_name['result'].fields.append(
+  _GETOBJECTRESP.fields_by_name['transaction'])
+_GETOBJECTRESP.fields_by_name['transaction'].containing_oneof = _GETOBJECTRESP.oneofs_by_name['result']
+_GETOBJECTRESP.oneofs_by_name['result'].fields.append(
+  _GETOBJECTRESP.fields_by_name['block'])
+_GETOBJECTRESP.fields_by_name['block'].containing_oneof = _GETOBJECTRESP.oneofs_by_name['result']
 _NODEINFO.fields_by_name['state'].enum_type = _NODEINFO_STATE
 _NODEINFO_STATE.containing_type = _NODEINFO
 _WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
@@ -1587,8 +1587,8 @@ DESCRIPTOR.message_types_by_name['PushTransactionReq'] = _PUSHTRANSACTIONREQ
 DESCRIPTOR.message_types_by_name['PushTransactionResp'] = _PUSHTRANSACTIONRESP
 DESCRIPTOR.message_types_by_name['GetNodeStateReq'] = _GETNODESTATEREQ
 DESCRIPTOR.message_types_by_name['GetNodeStateResp'] = _GETNODESTATERESP
-DESCRIPTOR.message_types_by_name['SearchReq'] = _SEARCHREQ
-DESCRIPTOR.message_types_by_name['SearchResp'] = _SEARCHRESP
+DESCRIPTOR.message_types_by_name['GetObjectReq'] = _GETOBJECTREQ
+DESCRIPTOR.message_types_by_name['GetObjectResp'] = _GETOBJECTRESP
 DESCRIPTOR.message_types_by_name['NodeInfo'] = _NODEINFO
 DESCRIPTOR.message_types_by_name['WalletStore'] = _WALLETSTORE
 DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
@@ -1700,19 +1700,19 @@ GetNodeStateResp = _reflection.GeneratedProtocolMessageType('GetNodeStateResp', 
   ))
 _sym_db.RegisterMessage(GetNodeStateResp)
 
-SearchReq = _reflection.GeneratedProtocolMessageType('SearchReq', (_message.Message,), dict(
-  DESCRIPTOR = _SEARCHREQ,
+GetObjectReq = _reflection.GeneratedProtocolMessageType('GetObjectReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETOBJECTREQ,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.SearchReq)
+  # @@protoc_insertion_point(class_scope:qrl.GetObjectReq)
   ))
-_sym_db.RegisterMessage(SearchReq)
+_sym_db.RegisterMessage(GetObjectReq)
 
-SearchResp = _reflection.GeneratedProtocolMessageType('SearchResp', (_message.Message,), dict(
-  DESCRIPTOR = _SEARCHRESP,
+GetObjectResp = _reflection.GeneratedProtocolMessageType('GetObjectResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETOBJECTRESP,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.SearchResp)
+  # @@protoc_insertion_point(class_scope:qrl.GetObjectResp)
   ))
-_sym_db.RegisterMessage(SearchResp)
+_sym_db.RegisterMessage(GetObjectResp)
 
 NodeInfo = _reflection.GeneratedProtocolMessageType('NodeInfo', (_message.Message,), dict(
   DESCRIPTOR = _NODEINFO,
@@ -1839,8 +1839,8 @@ _P2PNODE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=3018,
-  serialized_end=3132,
+  serialized_start=3024,
+  serialized_end=3138,
   methods=[
   _descriptor.MethodDescriptor(
     name='Ping',
@@ -1872,8 +1872,8 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=3135,
-  serialized_end=3530,
+  serialized_start=3141,
+  serialized_end=3545,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetNodeState',
@@ -1903,12 +1903,12 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='Search',
-    full_name='qrl.PublicAPI.Search',
+    name='GetObject',
+    full_name='qrl.PublicAPI.GetObject',
     index=3,
     containing_service=None,
-    input_type=_SEARCHREQ,
-    output_type=_SEARCHRESP,
+    input_type=_GETOBJECTREQ,
+    output_type=_GETOBJECTRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
@@ -1941,8 +1941,8 @@ _ADMINAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=2,
   options=None,
-  serialized_start=3532,
-  serialized_end=3542,
+  serialized_start=3547,
+  serialized_end=3557,
   methods=[
 ])
 _sym_db.RegisterServiceDescriptor(_ADMINAPI)
@@ -2043,10 +2043,10 @@ try:
           request_serializer=GetAddressStateReq.SerializeToString,
           response_deserializer=GetAddressStateResp.FromString,
           )
-      self.Search = channel.unary_unary(
-          '/qrl.PublicAPI/Search',
-          request_serializer=SearchReq.SerializeToString,
-          response_deserializer=SearchResp.FromString,
+      self.GetObject = channel.unary_unary(
+          '/qrl.PublicAPI/GetObject',
+          request_serializer=GetObjectReq.SerializeToString,
+          response_deserializer=GetObjectResp.FromString,
           )
       self.TransferCoins = channel.unary_unary(
           '/qrl.PublicAPI/TransferCoins',
@@ -2085,7 +2085,7 @@ try:
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
-    def Search(self, request, context):
+    def GetObject(self, request, context):
       # missing associated documentation comment in .proto file
       pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -2124,10 +2124,10 @@ try:
             request_deserializer=GetAddressStateReq.FromString,
             response_serializer=GetAddressStateResp.SerializeToString,
         ),
-        'Search': grpc.unary_unary_rpc_method_handler(
-            servicer.Search,
-            request_deserializer=SearchReq.FromString,
-            response_serializer=SearchResp.SerializeToString,
+        'GetObject': grpc.unary_unary_rpc_method_handler(
+            servicer.GetObject,
+            request_deserializer=GetObjectReq.FromString,
+            response_serializer=GetObjectResp.SerializeToString,
         ),
         'TransferCoins': grpc.unary_unary_rpc_method_handler(
             servicer.TransferCoins,
@@ -2272,7 +2272,7 @@ try:
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Search(self, request, context):
+    def GetObject(self, request, context):
       # missing associated documentation comment in .proto file
       pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
@@ -2309,11 +2309,11 @@ try:
       pass
       raise NotImplementedError()
     GetAddressState.future = None
-    def Search(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
+    def GetObject(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
       pass
       raise NotImplementedError()
-    Search.future = None
+    GetObject.future = None
     def TransferCoins(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
       pass
@@ -2336,24 +2336,24 @@ try:
       ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateReq.FromString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReq.FromString,
       ('qrl.PublicAPI', 'GetNodeState'): GetNodeStateReq.FromString,
+      ('qrl.PublicAPI', 'GetObject'): GetObjectReq.FromString,
       ('qrl.PublicAPI', 'PushTransaction'): PushTransactionReq.FromString,
-      ('qrl.PublicAPI', 'Search'): SearchReq.FromString,
       ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsReq.FromString,
     }
     response_serializers = {
       ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateResp.SerializeToString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersResp.SerializeToString,
       ('qrl.PublicAPI', 'GetNodeState'): GetNodeStateResp.SerializeToString,
+      ('qrl.PublicAPI', 'GetObject'): GetObjectResp.SerializeToString,
       ('qrl.PublicAPI', 'PushTransaction'): PushTransactionResp.SerializeToString,
-      ('qrl.PublicAPI', 'Search'): SearchResp.SerializeToString,
       ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsResp.SerializeToString,
     }
     method_implementations = {
       ('qrl.PublicAPI', 'GetAddressState'): face_utilities.unary_unary_inline(servicer.GetAddressState),
       ('qrl.PublicAPI', 'GetKnownPeers'): face_utilities.unary_unary_inline(servicer.GetKnownPeers),
       ('qrl.PublicAPI', 'GetNodeState'): face_utilities.unary_unary_inline(servicer.GetNodeState),
+      ('qrl.PublicAPI', 'GetObject'): face_utilities.unary_unary_inline(servicer.GetObject),
       ('qrl.PublicAPI', 'PushTransaction'): face_utilities.unary_unary_inline(servicer.PushTransaction),
-      ('qrl.PublicAPI', 'Search'): face_utilities.unary_unary_inline(servicer.Search),
       ('qrl.PublicAPI', 'TransferCoins'): face_utilities.unary_unary_inline(servicer.TransferCoins),
     }
     server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
@@ -2370,24 +2370,24 @@ try:
       ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateReq.SerializeToString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersReq.SerializeToString,
       ('qrl.PublicAPI', 'GetNodeState'): GetNodeStateReq.SerializeToString,
+      ('qrl.PublicAPI', 'GetObject'): GetObjectReq.SerializeToString,
       ('qrl.PublicAPI', 'PushTransaction'): PushTransactionReq.SerializeToString,
-      ('qrl.PublicAPI', 'Search'): SearchReq.SerializeToString,
       ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsReq.SerializeToString,
     }
     response_deserializers = {
       ('qrl.PublicAPI', 'GetAddressState'): GetAddressStateResp.FromString,
       ('qrl.PublicAPI', 'GetKnownPeers'): GetKnownPeersResp.FromString,
       ('qrl.PublicAPI', 'GetNodeState'): GetNodeStateResp.FromString,
+      ('qrl.PublicAPI', 'GetObject'): GetObjectResp.FromString,
       ('qrl.PublicAPI', 'PushTransaction'): PushTransactionResp.FromString,
-      ('qrl.PublicAPI', 'Search'): SearchResp.FromString,
       ('qrl.PublicAPI', 'TransferCoins'): TransferCoinsResp.FromString,
     }
     cardinalities = {
       'GetAddressState': cardinality.Cardinality.UNARY_UNARY,
       'GetKnownPeers': cardinality.Cardinality.UNARY_UNARY,
       'GetNodeState': cardinality.Cardinality.UNARY_UNARY,
+      'GetObject': cardinality.Cardinality.UNARY_UNARY,
       'PushTransaction': cardinality.Cardinality.UNARY_UNARY,
-      'Search': cardinality.Cardinality.UNARY_UNARY,
       'TransferCoins': cardinality.Cardinality.UNARY_UNARY,
     }
     stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)

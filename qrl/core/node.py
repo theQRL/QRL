@@ -508,7 +508,7 @@ class POS:
         if self.chain.mining_address in sv_list:
             activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber + config.dev.blocks_per_epoch
         else:
-            activation_blocknumber = curr_blocknumber + config.dev.blocks_per_epoch
+            activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validatior, 2 blocks after current block
 
         balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.chain.mining_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
