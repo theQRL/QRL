@@ -49,6 +49,7 @@ class State:
         except KeyError:
             pass
         except Exception as e:
+            # FIXME: Review
             logger.error('Exception in stake_list_get')
             logger.exception(e)
 
@@ -58,6 +59,7 @@ class State:
         try:
             self.db.put('stake_list', self.stake_validators_list.to_json())
         except Exception as e:
+            # FIXME: Review
             logger.warning("stake_list_put: %s %s", type(e), e)
             return False
 
@@ -65,6 +67,7 @@ class State:
         try:
             self.db.put('epoch_seed', epoch_seed)
         except Exception as e:
+            # FIXME: Review
             logger.exception(e)
             return False
 
@@ -72,6 +75,7 @@ class State:
         try:
             return self.db.get('epoch_seed')
         except Exception as e:
+            # FIXME: Review
             logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
@@ -90,6 +94,7 @@ class State:
         except KeyError:
             pass
         except Exception as e:
+            # FIXME: Review
             logger.error('Exception in get_txn_count')
             logger.exception(e)
 
@@ -99,23 +104,19 @@ class State:
         try:
             return self._get_address_state(address)
         except KeyError:
-            pass
-        except Exception as e:
-            logger.error('Exception in get_address')
-            logger.exception(e)
+            # FIXME: Check all cases where address is not found
+            return [config.dev.default_nonce, config.dev.default_account_balance, config.dev.default_pubhash_blacklist]
 
-        return [config.dev.default_nonce, config.dev.default_account_balance, config.dev.default_pubhash_blacklist]
-
-    def address_used(self, address):  # if excepts then address does not exist..
+    def address_used(self, address):
         try:
             return self._get_address_state(address)
         except KeyError:
-            pass
+            return False
         except Exception as e:
+            # FIXME: Review
             logger.error('Exception in address_used')
             logger.exception(e)
-
-        return False
+            raise
 
     def nonce(self, addr):
         nonce, balance, pubhash_list = self.get_address(addr)
@@ -135,6 +136,7 @@ class State:
         except KeyError:
             pass
         except Exception as e:
+            # FIXME: Review
             logger.error('Exception in State.hrs()')
             logger.exception(e)
 
