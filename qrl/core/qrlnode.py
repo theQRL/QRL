@@ -8,12 +8,10 @@ import time
 from qrl.core import config, logger
 from qrl.core.Transaction import TransferTransaction
 from qrl.core.state import State
-from qrl.generated.qrl_pb2 import *
+from qrl.generated import qrl_pb2
 
 
 # FIXME: This will soon move to core. Split/group functionality
-
-
 class QRLNode:
     def __init__(self, db_state: State):
         self.start_time = time.time()
@@ -72,12 +70,13 @@ class QRLNode:
             if os.path.isfile(self.peers_path):
                 logger.info('Opening peers.qrl')
                 with open(self.peers_path, 'rb') as infile:
-                    known_peers = KnownPeers()
+                    known_peers = qrl_pb2.KnownPeers()
                     known_peers.ParseFromString(infile.read())
                     self.peer_addresses = [peer.ip for peer in known_peers.peers]
                     return
         except Exception as e:
             logger.warning("Error loading peers")
+            logger.exception(e)
 
         logger.info('Creating peers.qrl')
         # Ensure the data path exists
@@ -89,21 +88,21 @@ class QRLNode:
     def update_peer_addresses(self, peer_addresses) -> None:
         # FIXME: Probably will be refactored
         self.peer_addresses = peer_addresses
-        known_peers = KnownPeers()
-        known_peers.peers.extend([Peer(ip=p) for p in self.peer_addresses])
+        known_peers = qrl_pb2.KnownPeers()
+        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
-    def get_address_state(self, address: bytes) -> AddressState:
+    def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
         nonce, balance, pubhash_list = self.db_state.get_address(address)
         transactions = []
 
-        address_state = AddressState(address=address,
-                                     balance=balance,
-                                     nonce=nonce,
-                                     transactions=transactions)
+        address_state = qrl_pb2.AddressState(address=address,
+                                             balance=balance,
+                                             nonce=nonce,
+                                             transactions=transactions)
 
         return address_state
 
@@ -152,7 +151,7 @@ class QRLNode:
 
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
-        block_chain_buffer = self.chain.block_chain_buffer
+        block_chain_buffer = self._chain.block_chain_buffer
         stake_validators_list = block_chain_buffer.get_stake_validators_list(block_chain_buffer.height() + 1)
 
         xmss_from = self._find_xmss(addr_from)
