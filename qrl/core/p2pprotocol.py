@@ -115,6 +115,7 @@ class P2PProtocol(Protocol):
         Fetch Block Headerhash List
         :return:
         """
+        return
         self.transport.write(self.wrap_message('PBHL', self.factory.chain.block_chain_buffer.height()))
         self.fork_height = self.factory.chain.block_chain_buffer.height()
         self.fork_timestamp = time.time()

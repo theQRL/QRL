@@ -20,7 +20,7 @@ class StakeValidator:
         self.slave_public_key = stake_txn.slave_public_key
         self.balance = stake_txn.balance
         self.hash = stake_txn.hash
-        self.activation_blocknumber = stake_txn.activation_blocknumber  # Blocknumber at which ST txn was added into block
+        self.activation_blocknumber = stake_txn.activation_blocknumber
 
         self.finalized_blocknumber = stake_txn.finalized_blocknumber
         self.finalized_headerhash = stake_txn.finalized_headerhash
