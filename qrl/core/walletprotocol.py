@@ -497,25 +497,3 @@ class WalletProtocol(Protocol):
             self.output['peers'][peer.conn_identity] = {}
             self.output['peers'][peer.conn_identity]['version'] = peer.version
             self.output['peers'][peer.conn_identity]['blockheight'] = peer.block_height
-
-    def _reboot(self, args):
-        if len(args) < 1:
-            self.output['message'].write('>>> reboot <password>\r\n')
-            self.output['message'].write('>>> or\r\n')
-            self.output['message'].write('>>> reboot <password> <nonce>\r\n')
-            self.output['message'].write('>>> or\r\n')
-            self.output['message'].write('>>> reboot <password> <nonce> <trim_blocknum>\r\n')
-            return True
-        json_hash, err = None, None
-        if len(args) == 3:
-            json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1], args[2])
-            self.output['message'].write(str(args[0]) + str(args[1]) + str(args[2]))
-        elif len(args) == 2:
-            json_hash, status = self.factory.chain.generate_reboot_hash(args[0], args[1])
-        else:
-            json_hash, status = self.factory.chain.generate_reboot_hash(args[0])
-
-        if json_hash:
-            self.factory.p2pFactory.send_reboot(json_hash)
-            # self.factory.state.update(NState.synced)
-        self.output['message'].write(status)

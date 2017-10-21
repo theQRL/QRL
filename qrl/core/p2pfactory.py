@@ -201,12 +201,6 @@ class P2PFactory(ServerFactory):
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())
         return
 
-    def send_reboot(self, json_hash):
-        logger.info('<<<Transmitting Reboot Command')
-        for peer in self.peer_connections:
-            peer.transport.write(self.protocol.wrap_message('reboot', json_hash))
-        return
-
     def ip_geotag_peers(self):
         logger.info('<<<IP geotag broadcast')
         for peer in self.peer_connections:
