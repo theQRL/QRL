@@ -264,8 +264,6 @@ class State:
 
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
-        blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
-
         if block.blockheader.stake_selector not in stake_validators_list.sv_list:
             logger.warning('stake selector not in stake_list_get')
             return
@@ -290,8 +288,6 @@ class State:
             if tx.pubhash in address_txn[tx.txfrom][2]:
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
-                logger.info(tx.pubhash)
-                logger.info(address_txn[tx.txfrom][2])
                 return False
 
             if tx.subtype == TX_SUBTYPE_TX:
