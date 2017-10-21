@@ -38,7 +38,7 @@ class Wallet:
         self._valid_or_create()
 
     def save_wallet(self):
-        logger.info('Syncing wallet file')
+        logger.debug('Syncing wallet file')
 
         wallet_store = qrl_pb2.WalletStore()
         wallets = []

@@ -266,8 +266,6 @@ class State:
 
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
-        blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
-
         if block.blockheader.stake_selector not in stake_validators_list.sv_list:
             logger.warning('stake selector not in stake_list_get')
             return
@@ -292,8 +290,6 @@ class State:
             if tx.pubhash in address_txn[tx.txfrom][2]:
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
-                logger.info(tx.pubhash)
-                logger.info(address_txn[tx.txfrom][2])
                 return False
 
             if tx.subtype == TX_SUBTYPE_TX:
@@ -309,6 +305,17 @@ class State:
 
             elif tx.subtype == TX_SUBTYPE_STAKE:
                 address_txn[tx.txfrom][2].append(tx.pubhash)
+                if tx.txfrom in stake_validators_list.sv_list:
+                    expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                    if tx.activation_blocknumber < expiry:
+                        logger.warning('Failed %s is already active for the given range', tx.txfrom)
+                        return False
+                    activation_limit = block.blockheader.blocknumber + config.dev.blocks_per_epoch + 1
+                    if tx.activation_blocknumber > activation_limit:
+                        logger.warning('Failed %s activation_blocknumber beyond limit', tx.txfrom)
+                        logger.warning('Found %s', tx.activation_blocknumber)
+                        logger.warning('Must be less than %s', tx.activation_limit)
+                        return False
                 future_stake_addresses = stake_validators_list.future_stake_addresses
                 if tx.txfrom not in future_stake_addresses:
                     stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
