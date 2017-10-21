@@ -21,21 +21,21 @@ from qrl.core.Transaction import Transaction
 class ApiProtocol(Protocol):
     def __init__(self):
         self.api_list = [
-            'block_data',
-            'stats',
-            'ip_geotag',
-            'txhash',
-            'address',
-            'empty',
-            'last_tx',
-            'last_unconfirmed_tx',
-            'last_block',
-            'richlist',
-            'ping',
-            'stakers',
-            'next_stakers',
-            'latency',
-            'balance'
+            'empty',                            # OBSOLETE
+            'balance'                           # OBSOLETE use GetAddressState
+            'last_tx',                          # OBSOLETE ?
+            'last_unconfirmed_tx',              # OBSOLETE ?
+            'next_stakers',                     # OBSOLETE
+            'ping',                             # Get peer latencies
+            'latency',                          # Stake validator latencies (unify?)
+            'richlist',                         # We need to maintain this in the DB and return only top addresses
+            'ip_geotag',                        # This could be done in the UI instead of the node
+            'address',                          # API: GetAddressState
+            'stats',                            # API: GetStats
+            'block_data',                       # API: GetObject (instead)
+            'txhash',                           # API: GetObject (instead)
+            'last_block',                       # API: GetStats and GetObject (instead)
+            'stakers',                          # API: GetStakers
         ]
 
     def parse_cmd(self, data):
@@ -393,19 +393,29 @@ class ApiProtocol(Protocol):
             block_time = z / len(t)
             block_time_variance = max(t) - min(t)   # FIXME: This is not the variance!
 
-        net_stats = {'status': 'ok', 'version': config.dev.version_number,
-                     'block_reward': self.factory.format_qrlamount(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
-                     'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list),
-                     'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
-                     'staked_percentage_emission': staked, 'network': 'qrl testnet',
-                     'network_uptime': network_uptime,
-                     'block_time': block_time,
-                     'block_time_variance': block_time_variance,
-                     'blockheight': self.factory.chain.m_blockheight(),
-                     'nodes': len(self.factory.peers) + 1,
-                     # FIXME: Magic number? Unify
-                     'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
-                     'unmined': config.dev.total_coin_supply - float(self._format_qrlamount(self.factory.state.total_coin_supply()))}
+        net_stats = {
+            # Exposed by NodeInfo
+            'status': 'ok',
+            'version': config.dev.version_number,
+            'nodes': len(self.factory.peers) + 1,
+            'blockheight': self.factory.chain.m_blockheight(),
+            'network': 'qrl testnet',
+
+            # Part of
+            'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
+            'network_uptime': network_uptime,
+
+            'block_reward': self.factory.format_qrlamount(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
+            'block_time': block_time,
+            'block_time_variance': block_time_variance,
+
+            'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list), # Use GetStakers instead
+
+            # FIXME: Magic number? Unify
+            'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
+            'staked_percentage_emission': staked,
+            'unmined': config.dev.total_coin_supply - float(self._format_qrlamount(self.factory.state.total_coin_supply()))
+    }
 
         return json_print_telnet(net_stats)
 

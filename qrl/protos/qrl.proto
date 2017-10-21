@@ -17,20 +17,21 @@ message Timestamp
 service P2PNode
 {
     rpc Ping (PingReq) returns (PongResp) { }
-    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) { }
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
 }
 
 // This service describes the Public API used by clients (wallet/cli/etc)
 service PublicAPI
 {
-    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp) { }
-    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) { }
-    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) { }
+    rpc GetStats (GetStatsReq) returns (GetStatsResp);
+    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
+    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
 
-    rpc Search(SearchReq) returns (SearchResp) { }
+    rpc Search(SearchReq) returns (SearchResp);
 
-    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) { }
-    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) { }
+    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
+    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -82,8 +83,23 @@ message PushTransactionResp {
     string some_response = 1;
 }
 
-message GetNodeStateReq {
+message GetStatsReq { }
+message GetStatsResp {
+    NodeInfo node_info = 1;
+    uint64 epoch = 2;
+    uint64 uptime_network = 3;
+
+    uint64 stakers_count = 4;
+    bytes block_last_reward = 5;
+    uint64 block_time = 6;
+    uint64 block_time_sd = 7;
+
+    uint64 coins_total_supply = 8;
+    uint64 coins_emmited = 9;
+    uint64 coins_atstake = 10;
 }
+
+message GetNodeStateReq { }
 
 message GetNodeStateResp {
     NodeInfo info = 1;
@@ -118,7 +134,9 @@ message NodeInfo
     uint32 num_known_peers = 4;
     uint64 uptime = 5;                  // Uptime in seconds
     uint64 block_height = 6;
-    bool   stake_enabled = 7;
+    bytes  block_last_hash = 7;
+    bool   stake_enabled = 8;
+    string network_id = 9;
 }
 
 // Content
