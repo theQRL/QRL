@@ -64,8 +64,8 @@ message GetAddressStateResp {
 }
 
 message TransferCoinsReq {
-    string address_from = 1;
-    string address_to = 2;
+    bytes address_from = 1;
+    bytes address_to = 2;
     uint64 amount = 3; // IMPORTANT: These should be expressed in Shor
     uint64 fee = 4; // IMPORTANT: These should be expressed in Shor
     bytes xmss_pk = 5;
