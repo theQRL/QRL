@@ -96,6 +96,11 @@ class QRLNode:
     def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
+
+        # TODO: Validate address format
+        if address[0] != b'Q':
+            return None
+
         nonce, balance, pubhash_list = self.db_state.get_address(address)
         transactions = []
 
@@ -220,3 +225,6 @@ class QRLNode:
         self._chain.wallet.save_wallet()
         self._p2pfactory.send_tx_to_peers(tx)
         return True
+
+    def get_object(self, query):
+        pass

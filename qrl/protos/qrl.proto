@@ -27,7 +27,7 @@ service PublicAPI
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) { }
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) { }
 
-    rpc Search(SearchReq) returns (SearchResp) { }
+    rpc GetObject(GetObjectReq) returns (GetObjectResp) { }
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) { }
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) { }
@@ -89,11 +89,11 @@ message GetNodeStateResp {
     NodeInfo info = 1;
 }
 
-message SearchReq {
+message GetObjectReq {
     bytes query = 1;
 }
 
-message SearchResp {
+message GetObjectResp {
     bool found = 1;
     oneof result {
         AddressState address_state = 2;
