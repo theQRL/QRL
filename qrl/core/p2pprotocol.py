@@ -22,8 +22,7 @@ from queue import PriorityQueue
 class P2PProtocol(Protocol):
     def __init__(self):
         # TODO: Comment with some names the services
-        self.service = {'reboot': self.reboot,
-                        'MR': self.MR,  # Message Receipt
+        self.service = {'MR': self.MR,  # Message Receipt
                         'SFM': self.SFM,  # Send Full Message
                         'TX': self.TX,  # Transaction
                         'ST': self.ST,  # Stake Transaction
@@ -85,30 +84,6 @@ class P2PProtocol(Protocol):
         except Exception as e:
             logger.error("executing [%s]", func_name)
             logger.exception(e)
-
-    def reboot(self, data):
-        hash_dict = json.loads(data)
-        if not ('hash' in hash_dict and 'nonce' in hash_dict and 'blocknumber' in hash_dict):
-            return
-        status, error = self.factory.chain.validate_reboot(hash_dict['hash'], hash_dict['nonce'])
-        if not status:
-            logger.info('status %s', status)
-            logger.info('error %s', error)
-            return
-        for peer in self.factory.peers:
-            if peer != self:
-                peer.transport.write(self.wrap_message('reboot', data))
-        reboot_data = ['2920c8ec34f04f59b7df4284a4b41ca8cbec82ccdde331dd2d64cc89156af653', hash_dict['nonce']]
-        self.factory.chain.state.db.put('reboot_data', reboot_data)
-        blocknumber = hash_dict['blocknumber']
-        logger.info('Initiating Reboot Sequence..... #%s', blocknumber)
-        if blocknumber != 0:
-            if blocknumber <= self.factory.chain.height():
-                self.factory.pos.update_node_state(NState.unsynced)
-                del self.factory.chain.m_blockchain[blocknumber:]
-                self.factory.chain.f_write_m_blockchain()
-                self.factory.chain.m_load_chain()
-                self.factory.pos.update_node_state(NState.synced)
 
     def FBHL(self):
         """

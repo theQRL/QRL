@@ -88,10 +88,10 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetAddressStateReq.SerializeToString,
         response_deserializer=qrl__pb2.GetAddressStateResp.FromString,
         )
-    self.Search = channel.unary_unary(
-        '/qrl.PublicAPI/Search',
-        request_serializer=qrl__pb2.SearchReq.SerializeToString,
-        response_deserializer=qrl__pb2.SearchResp.FromString,
+    self.GetObject = channel.unary_unary(
+        '/qrl.PublicAPI/GetObject',
+        request_serializer=qrl__pb2.GetObjectReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetObjectResp.FromString,
         )
     self.TransferCoins = channel.unary_unary(
         '/qrl.PublicAPI/TransferCoins',
@@ -130,7 +130,7 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def Search(self, request, context):
+  def GetObject(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -169,10 +169,10 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.GetAddressStateReq.FromString,
           response_serializer=qrl__pb2.GetAddressStateResp.SerializeToString,
       ),
-      'Search': grpc.unary_unary_rpc_method_handler(
-          servicer.Search,
-          request_deserializer=qrl__pb2.SearchReq.FromString,
-          response_serializer=qrl__pb2.SearchResp.SerializeToString,
+      'GetObject': grpc.unary_unary_rpc_method_handler(
+          servicer.GetObject,
+          request_deserializer=qrl__pb2.GetObjectReq.FromString,
+          response_serializer=qrl__pb2.GetObjectResp.SerializeToString,
       ),
       'TransferCoins': grpc.unary_unary_rpc_method_handler(
           servicer.TransferCoins,

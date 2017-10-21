@@ -40,7 +40,7 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
 
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
-        logger.debug("[QRLNode] TransferCoins")
+        logger.debug("[PublicAPI] TransferCoins")
         tx = self.qrlnode.create_send_tx(addr_from=request.address_from,
                                          addr_to=request.address_to,
                                          amount=request.amount,
@@ -52,7 +52,7 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
 
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
-        logger.debug("[QRLNode] PushTransaction")
+        logger.debug("[PublicAPI] PushTransaction")
         tx = Transaction.from_pbdata(request.transaction_signed)
         submitted = self.qrlnode.submit_send_tx(tx)
 
@@ -60,4 +60,33 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         # Prepare response
         answer = qrl_pb2.PushTransactionResp()
         answer.some_response = str(submitted)
+        return answer
+
+    @grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
+    def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
+        logger.debug("[PublicAPI] GetObject")
+        answer = qrl_pb2.GetObjectResp
+
+        # FIXME: encapsulate in qrlnode. Queries should be just hashes
+
+        # FIXME: We need a unified way to access and validate data.
+        query = bytes(request.query)    # query will be as a string, if Q is detected convert, etc.
+
+        address_state = self.qrlnode.get_address_state(query)
+        if address_state is not None:
+            answer.found = True
+            answer.address_state = address_state
+            return answer
+
+        # TODO: Search tx hash
+        # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
+        # FIXME: workaround to provide functionality
+        for tx in self.qrlnode._chain.transaction_pool:
+            if tx.txhash == query:
+                answer.found = True
+                answer.transaction = tx
+                return answer
+
+        # TODO: Get tx from db (they should be stored as pb)
+
         return answer
