@@ -351,9 +351,6 @@ class StakeTransaction(Transaction):
         return True
 
     def validate_extended(self, tx_state):
-        if self.subtype != TX_SUBTYPE_STAKE:
-            return False
-
         state_balance = tx_state[1]
         state_pubhashes = tx_state[2]
 
@@ -382,10 +379,6 @@ class DestakeTransaction(Transaction):
         super(DestakeTransaction, self).__init__(protobuf_transaction)
         self._data.type = qrl_pb2.Transaction.DESTAKE
 
-    @property
-    def activation_blocknumber(self):
-        return self._data.stake.activation_blocknumber
-
     def _get_hashable_bytes(self):
         """
         This method should return bytes that are to be hashed and represent the transaction
@@ -393,15 +386,14 @@ class DestakeTransaction(Transaction):
         :rtype: bytes
         """
         # FIXME: Avoid all intermediate conversions
-        tmptxhash = str2bin(bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
-                            + bin2hstr(sha2_256(bytes(self.subtype))))
+        tmptxhash = str2bin(bin2hstr(sha2_256(bytes(self.subtype))))
         return bytes(tmptxhash)
 
     @staticmethod
-    def create(activation_blocknumber, xmss):
+    def create(xmss):
         """
         >>> s = DestakeTransaction()
-        >>> isinstance(s.create(0, XMSS(4)), DestakeTransaction)
+        >>> isinstance(s.create(XMSS(4)), DestakeTransaction)
         True
         """
 
@@ -409,9 +401,6 @@ class DestakeTransaction(Transaction):
 
         transaction._data.addr_from = bytes(xmss.get_address().encode())
         transaction._data.public_key = bytes(xmss.pk())
-
-        # Destake specific
-        transaction._data.stake.activation_blocknumber = activation_blocknumber
 
         # WARNING: These fields need to the calculated once all other fields are set
         transaction._data.ots_key = xmss.get_index()
@@ -422,9 +411,6 @@ class DestakeTransaction(Transaction):
         return True
 
     def validate_extended(self, tx_state):
-        if self.subtype != TX_SUBTYPE_DESTAKE:
-            return False
-
         state_pubhashes = tx_state[2]
 
         if self.pubhash in state_pubhashes:
@@ -590,9 +576,6 @@ class DuplicateTransaction(Transaction):
     @property
     def coinbase2(self):
         return self._data.duplicate.coinbase2
-
-    # def get_message_hash(self):
-    #     return self.headerhash1 + self.headerhash2
 
     def _get_hashable_bytes(self):
         """

@@ -10,12 +10,12 @@ from functools import reduce
 from pyqrllib.pyqrllib import bin2hstr, sha2_256
 from twisted.internet import reactor
 
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.core import logger, config, fork
 from qrl.core.fork import fork_recovery
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
-from qrl.core.Transaction import StakeTransaction
+from qrl.core.Transaction import StakeTransaction, DestakeTransaction
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 
@@ -508,7 +508,7 @@ class POS:
         if self.chain.mining_address in sv_list:
             activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber + config.dev.blocks_per_epoch
         else:
-            activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validatior, 2 blocks after current block
+            activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
         balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.chain.mining_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
@@ -557,18 +557,36 @@ class POS:
         self.chain.add_tx_to_pool(st)
         self.chain.wallet.save_wallet()
 
-    # FIXME: Remove?
-    # def schedule_prepare_winners(self, our_reveal, last_block_number, delay=0):
-    #     try:
-    #         reactor.prepare_winners.cancel()
-    #     except Exception:  # No need to log this Exception
-    #         pass
-    #
-    #     reactor.prepare_winners = reactor.callLater(
-    #         delay,
-    #         self.prepare_winners,                       # FIXME: This is unknown
-    #         our_reveal=our_reveal,
-    #         last_block_number=last_block_number)
+    def make_destake_tx(self):
+        curr_blocknumber = self.chain.height()
+        stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(curr_blocknumber)
+
+        # No destake txn required if mining address is not in stake_validator_list
+        if self.chain.mining_address not in stake_validators_list.sv_list and \
+                        self.chain.mining_address not in stake_validators_list.future_sv_list:
+            return
+
+        signing_xmss = self.chain.wallet.address_bundle[0].xmss
+
+        de_stake_txn = DestakeTransaction.create(xmss=signing_xmss)
+
+        de_stake_txn.sign(signing_xmss)
+        tx_state = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, de_stake_txn.txfrom)
+        if not (de_stake_txn.validate() and de_stake_txn.validate_extended(tx_state)):
+            logger.info('Make DeStake Txn failed due to validation failure')
+            return
+
+        self.p2pFactory.send_st_to_peers(de_stake_txn)
+        for num in range(len(self.chain.transaction_pool)):
+            t = self.chain.transaction_pool[num]
+            if t.subtype == TX_SUBTYPE_DESTAKE and de_stake_txn.hash == t.hash:
+                if de_stake_txn.get_message_hash() == t.get_message_hash():
+                    return
+                self.chain.remove_tx_from_pool(t)
+                break
+
+        self.chain.add_tx_to_pool(de_stake_txn)
+        self.chain.wallet.save_wallet()
 
     def randomize_block_fetch(self, blocknumber):
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():
