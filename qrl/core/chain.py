@@ -177,7 +177,7 @@ class Chain:
                     total_txn -= 1
                     continue
                 if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
-                    logger.warning('Dropping destake txn as stake txn has been added %s', tx.txfrom)
+                    logger.warning('Dropping destake txn as %s not found in stake validator list', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue

@@ -45,7 +45,6 @@ class WalletProtocol(Protocol):
 
             # ADMIN LIKE FUNCTIONALITY / These calls can be insecure and should be restricted access
             "wallet": self._wallet,                             #
-            "reboot": self._reboot,                             #
             "stake": self._stake,                               #
             "destake": self._destake,
             "mempool": self._mempool,                           #
@@ -435,7 +434,7 @@ class WalletProtocol(Protocol):
     def _destake(self, args):
         self.output['status'] = 0
         self.output['message'].write(
-            '>>> Sending a destake transaction for address: ' + self.factory.chain.mining_address + '\r\n')
+            '>>> Sending a destake transaction for address: ' + str(self.factory.chain.mining_address) + '\r\n')
 
         logger.info('Broadcasting DESTAKE for address: %s', self.factory.chain.mining_address)
 

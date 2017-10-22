@@ -196,6 +196,11 @@ class P2PFactory(ServerFactory):
         self.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
         return
 
+    def send_destake_txn_to_peers(self, destake_txn):
+        logger.info('<<<Transmitting Destake Txn: %s', destake_txn.txfrom)
+        self.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
+        return
+
     def send_tx_to_peers(self, tx):
         logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())

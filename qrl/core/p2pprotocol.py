@@ -26,6 +26,7 @@ class P2PProtocol(Protocol):
                         'SFM': self.SFM,  # Send Full Message
                         'TX': self.TX,  # Transaction
                         'ST': self.ST,  # Stake Transaction
+                        'DST': self.DST, # Destake Transaction
                         'DT': self.DT,  # Duplicate Transaction
                         'BM': self.BM,  # Block Height Map
                         'BK': self.BK,  # Block
@@ -296,6 +297,48 @@ class P2PProtocol(Protocol):
             return
 
         self.factory.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
+        return
+
+    def DST(self, data):
+        """
+        Destake Transaction
+        This function processes whenever a Transaction having
+        subtype DESTAKE is received.
+        :return:
+        """
+        try:
+            destake_txn = Transaction.from_json(data)
+        except Exception as e:
+            logger.error('de stake rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(destake_txn.get_message_hash(), self):
+            return
+
+        for t in self.factory.chain.transaction_pool:
+            if destake_txn.get_message_hash() == t.get_message_hash():
+                return
+
+        txfrom = destake_txn.txfrom
+        height = self.factory.chain.block_chain_buffer.height() + 1
+        stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(height)
+
+        if txfrom not in stake_validators_list.sv_list and txfrom not in stake_validators_list.future_stake_addresses:
+            logger.warning('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
+            return
+
+        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
+            blocknumber=height,
+            addr=txfrom)
+        if destake_txn.validate() and destake_txn.validate_extended(tx_state=tx_state):
+            self.factory.chain.add_tx_to_pool(destake_txn)
+        else:
+            logger.warning('>>>Destake %s invalid state validation failed..', txfrom)
+            return
+
+        self.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
         return
 
     def DT(self, data):
