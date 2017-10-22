@@ -34,7 +34,7 @@ def remaining_emission(N_tot, block_n):
     Decimal('0.99999996')
     """
     # TODO: Verify these values and formula
-    coeff = calc_coeff(config.dev.total_coin_supply, 420480000)
+    coeff = calc_coeff(config.dev.max_coin_supply, 420480000)
 
     # FIXME: Magic number? Unify
     return decimal.Decimal(N_tot * decimal.Decimal(-coeff * block_n).exp()) \
@@ -48,5 +48,5 @@ def block_reward_calc(block_number):
     """
 
     # FIXME: Magic number? Unify
-    return int((remaining_emission(config.dev.total_coin_supply, block_number - 1)
-                - remaining_emission(config.dev.total_coin_supply, block_number)) * 100000000)
+    return int((remaining_emission(config.dev.max_coin_supply, block_number - 1)
+                - remaining_emission(config.dev.max_coin_supply, block_number)) * 100000000)

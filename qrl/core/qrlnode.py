@@ -57,6 +57,54 @@ class QRLNode:
     def staking(self):
         return self._p2pfactory.stake
 
+    @property
+    def epoch(self):
+        return self._chain.m_blockchain[-1].blockheader.epoch
+
+    @property
+    def uptime_network(self):
+        block_one = self._chain.m_get_block(1)
+        network_uptime = 0
+        if block_one:
+            network_uptime = time.time() - block_one.blockheader.timestamp
+        return network_uptime
+
+    @property
+    def stakers_count(self):
+        return len(self._chain.state.stake_validators_list.sv_list)
+
+    @property
+    def block_last_reward(self):
+        return self._chain.m_blockchain[-1].blockheader.block_reward
+
+    @property
+    def block_time_mean(self):
+        # FIXME: Keep a moving mean
+        return 0
+
+    @property
+    def block_time_sd(self):
+        # FIXME: Keep a moving var
+        return 0
+
+    @property
+    def coin_supply(self):
+        # FIXME: Keep a moving var
+        return self.db_state.total_coin_supply()
+
+    @property
+    def coin_supply_max(self):
+        # FIXME: Keep a moving var
+        return config.dev.max_coin_supply
+
+    @property
+    def coin_atstake(self):
+        # FIXME: This is very time consuming.. (moving from old code) improve/cache
+        total_at_stake = 0
+        for staker in self._chain.state.stake_validators_list.sv_list:
+            total_at_stake += self._chain.state.state.balance(staker)
+        return total_at_stake
+
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain):
         self._chain = chain

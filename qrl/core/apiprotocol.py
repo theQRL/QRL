@@ -414,7 +414,7 @@ class ApiProtocol(Protocol):
             # FIXME: Magic number? Unify
             'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
             'staked_percentage_emission': staked,
-            'unmined': config.dev.total_coin_supply - float(self._format_qrlamount(self.factory.state.total_coin_supply()))
+            'unmined': config.dev.max_coin_supply - float(self._format_qrlamount(self.factory.state.total_coin_supply()))
     }
 
         return json_print_telnet(net_stats)

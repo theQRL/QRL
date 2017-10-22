@@ -15,8 +15,7 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
 
-    @grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
-    def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
+    def _getNodeInfo(self):
         info = qrl_pb2.NodeInfo()
         info.version = self.qrlnode.version
         info.state = self.qrlnode.state
@@ -24,8 +23,31 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         info.num_known_peers = self.qrlnode.num_known_peers
         info.uptime = self.qrlnode.uptime
         info.block_height = self.qrlnode.block_height
+        info.block_last_hash = b''                              # FIXME
         info.stake_enabled = self.qrlnode.staking
-        return qrl_pb2.GetNodeStateResp(info=info)
+        info.network_id = '???'                                 # FIXME
+        return info
+
+    @grpc_exception_wrapper(qrl_pb2.GetStatsResp, StatusCode.UNKNOWN)
+    def GetStats(self, request: qrl_pb2.GetStatsReq, context) -> qrl_pb2.GetStatsResp:
+        response = qrl_pb2.GetStatsResp()
+        response.info = self._getNodeInfo()
+
+        response.epoch = self.qrlnode.epoch
+        response.uptime_network = self.qrlnode.uptime_network
+        response.stakers_count = self.qrlnode.stakers_count
+        response.block_last_reward = self.qrlnode.block_last_reward
+        response.block_time = self.qrlnode.block_time_mean
+        response.block_sd = self.qrlnode.block_time_sd
+        response.coins_total_supply = self.qrlnode.coin_supply_max      # FIXME
+        response.coins_emitted = self.qrlnode.coin_supply
+        response.coins_atstake = self.qrlnode.coin_atstake
+
+        return response
+
+    @grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
+    def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
+        return qrl_pb2.GetNodeStateResp(info=self._getNodeInfo())
 
     @grpc_exception_wrapper(qrl_pb2.GetKnownPeersResp, StatusCode.UNKNOWN)
     def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:

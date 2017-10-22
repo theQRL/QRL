@@ -96,7 +96,7 @@ class DevConfig(object):
         self.version_number = "0.54.0a"
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
-        self.total_coin_supply = 105000000
+        self.max_coin_supply = 105000000
         self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
         self.timestamp_error = 5 # Error in second
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
