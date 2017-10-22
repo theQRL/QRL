@@ -563,7 +563,7 @@ class POS:
 
         # No destake txn required if mining address is not in stake_validator_list
         if self.chain.mining_address not in stake_validators_list.sv_list and \
-                        self.chain.mining_address not in stake_validators_list.future_sv_list:
+                        self.chain.mining_address not in stake_validators_list.future_stake_addresses:
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss

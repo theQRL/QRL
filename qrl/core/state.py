@@ -11,7 +11,7 @@ from qrl.core import db, logger, config, helper
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
@@ -319,6 +319,15 @@ class State:
                 future_stake_addresses = stake_validators_list.future_stake_addresses
                 if tx.txfrom not in future_stake_addresses:
                     stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
+
+            elif tx.subtype == TX_SUBTYPE_DESTAKE:
+                if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
+                    logger.warning('Failed due to destake %s is not a stake validator', tx.txfrom)
+                    return False
+                if tx.txfrom in stake_validators_list.sv_list:
+                    stake_validators_list.sv_list[tx.txfrom].is_active = False
+                if tx.txfrom in stake_validators_list.future_stake_addresses:
+                    stake_validators_list.future_stake_addresses[tx.txfrom].is_active = False
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
                 address_txn[tx.txfrom][0] += 1

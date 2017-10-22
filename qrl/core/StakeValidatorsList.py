@@ -16,7 +16,7 @@ class StakeValidatorsList:
         self.sv_list = OrderedDict()  # Active stake validator objects
         self.expiry = defaultdict(set)  # Maintains the blocknumber as key at which Stake validator has to be expired
         self.future_sv_list = defaultdict(set)
-        self.future_stake_addresses = set()
+        self.future_stake_addresses = dict()
         self.isOrderedLength = 0
 
     def calc_seed(self):
@@ -44,7 +44,7 @@ class StakeValidatorsList:
 
     def add_future_sv(self, stake_txn):
         self.future_sv_list[stake_txn.activation_blocknumber].add(stake_txn)
-        self.future_stake_addresses.add(stake_txn.txfrom)
+        self.future_stake_addresses[stake_txn.txfrom] = stake_txn
 
     def update_sv(self, blocknumber):
         next_blocknumber = blocknumber + 1
@@ -57,7 +57,7 @@ class StakeValidatorsList:
             sv_set = self.future_sv_list[next_blocknumber]
             for stake_txn in sv_set:
                 self.activate_sv(stake_txn=stake_txn)
-                self.future_stake_addresses.remove(stake_txn.txfrom)
+                del self.future_stake_addresses[stake_txn.txfrom]
             del self.future_sv_list[next_blocknumber]
 
     def get_sv_list(self, txfrom):
