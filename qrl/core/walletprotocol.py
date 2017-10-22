@@ -47,6 +47,7 @@ class WalletProtocol(Protocol):
             "wallet": self._wallet,                             #
             "reboot": self._reboot,                             #
             "stake": self._stake,                               #
+            "destake": self._destake,
             "mempool": self._mempool,                           #
             "stakenextepoch": self._stakenextepoch,
         }
@@ -431,6 +432,15 @@ class WalletProtocol(Protocol):
         self.output['keys'] += ['stake']
         self.output['stake'] = self.factory.p2pFactory.stake
 
+    def _destake(self, args):
+        self.output['status'] = 0
+        self.output['message'].write(
+            '>>> Sending a destake transaction for address: ' + self.factory.chain.mining_address + '\r\n')
+
+        logger.info('Broadcasting DESTAKE for address: %s', self.factory.chain.mining_address)
+
+        self.factory.p2pFactory.pos.make_destake_tx()
+
     def _stakenextepoch(self, args):
         self.output['status'] = 0
         self.output['message'].write(
@@ -443,7 +453,7 @@ class WalletProtocol(Protocol):
         logger.info(('STAKE for address:', self.factory.chain.mining_address))
 
         blocknumber = self.factory.chain.block_chain_buffer.height() + 1
-        self.factory.p2pFactory.pos.make_st_tx(blocknumber=blocknumber, first_hash=None)
+        self.factory.p2pFactory.pos.make_st_tx(blocknumber=blocknumber)
 
     def _mempool(self, args):
         self.output['status'] = 0
