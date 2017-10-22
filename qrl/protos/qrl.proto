@@ -210,9 +210,10 @@ message Transaction {
         UNKNOWN = 0;
         TRANSFER = 1;
         STAKE = 2;
-        COINBASE = 3;
-        LATTICE = 4;
-        DUPLICATE = 5;
+        DESTAKE = 3;
+        COINBASE = 4;
+        LATTICE = 5;
+        DUPLICATE = 6;
     }
 
     Type type = 1;
@@ -246,6 +247,10 @@ message Transaction {
         bytes finalized_headerhash = 4;
         bytes slavePK = 5;
         bytes hash = 7;
+    }
+
+    message Destake {
+        uint64 activation_blocknumber = 1;
     }
 
     message CoinBase {
