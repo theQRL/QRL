@@ -192,8 +192,12 @@ class QRLNode:
 
         xmss_from = self._find_xmss(addr_from)
 
-        if addr_from in stake_validators_list.sv_list or addr_from in stake_validators_list.future_stake_addresses:
+        if addr_from in stake_validators_list.sv_list and stake_validators_list.sv_list[addr_from].is_active:
             raise LookupError("Source address is a Stake Validator, balance is locked while staking")
+
+        if (addr_from in stake_validators_list.future_stake_addresses and
+                stake_validators_list.future_stake_addresses[addr_from].is_active):
+            raise LookupError("Source address is a Future Stake Validator, balance is locked")
 
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
