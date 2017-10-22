@@ -482,19 +482,21 @@ class POS:
         """
 
         if self.p2pFactory.stake:
+            mining_address = self.chain.mining_address
+
             future_stake_addresses = self.chain.block_chain_buffer.future_stake_addresses(blocknumber)
 
-            if self.chain.mining_address not in future_stake_addresses:
+            if mining_address not in future_stake_addresses:
                 self.make_st_tx(blocknumber)
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
 
             delay = config.dev.minimum_minting_delay
-            if self.chain.mining_address in stake_list:
-                if stake_list[self.chain.mining_address].is_banned:
+            if  mining_address in stake_list and stake_list[mining_address].is_active:
+                if stake_list[mining_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
-                    activation_blocknumber = stake_list[self.chain.mining_address].activation_blocknumber
+                    activation_blocknumber = stake_list[mining_address].activation_blocknumber
                     self.create_next_block(blocknumber, activation_blocknumber)
                     delay = None
 

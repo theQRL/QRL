@@ -274,6 +274,15 @@ class State:
             logger.warning('stake selector is in banned list')
             return
 
+        if not stake_validators_list.sv_list[block.blockheader.stake_selector].is_active:
+            logger.warning('stake selector is in inactive')
+            return
+
+        # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
+        stake_txn = set()
+        transfercoin_txn = set()
+        destake_txn = set()
+
         # cycle through every tx in the new block to check state
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
@@ -293,8 +302,17 @@ class State:
                 return False
 
             if tx.subtype == TX_SUBTYPE_TX:
-                if tx.txfrom in stake_validators_list.sv_list or tx.txfrom in stake_validators_list.future_stake_addresses:
+                if tx.txfrom in stake_txn:
+                    logger.warning("Transfer coin done by %s address is a Stake Validator", tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_list.sv_list and stake_validators_list.sv_list[tx.txfrom].is_active:
                     logger.warning("Source address is a Stake Validator, balance is locked while staking")
+                    return False
+
+                if (tx.txfrom in stake_validators_list.future_stake_addresses and
+                        stake_validators_list.future_stake_addresses[tx.txfrom].is_active):
+                    logger.warning("Source address is in Future Stake Validator List, balance is locked")
                     return False
 
                 if address_txn[tx.txfrom][1] - tx.amount < 0:
@@ -303,31 +321,63 @@ class State:
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
                     return False
 
+                transfercoin_txn.add(tx.txfrom)
+
             elif tx.subtype == TX_SUBTYPE_STAKE:
+                if tx.txfrom in transfercoin_txn:
+                    logger.warning('Block cannot have both st txn & transfer coin txn from same address %s', tx.txfrom)
+                    return False
+                if tx.txfrom in stake_txn:
+                    logger.warning('Block cannot have multiple Stake Txn from same address %s', tx.txfrom)
+                    return False
+                if tx.txfrom in destake_txn:
+                    logger.warning('Block may not have both Stake and Destake txn of same address %s', tx.txfrom)
+                    return False
+
                 address_txn[tx.txfrom][2].append(tx.pubhash)
+
                 if tx.txfrom in stake_validators_list.sv_list:
                     expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+
                     if tx.activation_blocknumber < expiry:
                         logger.warning('Failed %s is already active for the given range', tx.txfrom)
                         return False
+
                     activation_limit = block.blockheader.blocknumber + config.dev.blocks_per_epoch + 1
+
                     if tx.activation_blocknumber > activation_limit:
                         logger.warning('Failed %s activation_blocknumber beyond limit', tx.txfrom)
                         logger.warning('Found %s', tx.activation_blocknumber)
                         logger.warning('Must be less than %s', tx.activation_limit)
                         return False
+
                 future_stake_addresses = stake_validators_list.future_stake_addresses
+
                 if tx.txfrom not in future_stake_addresses:
                     stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
 
+                stake_txn.add(tx.txfrom)
+
             elif tx.subtype == TX_SUBTYPE_DESTAKE:
+                if tx.txfrom in stake_txn:
+                    logger.warning('Block may not have both Destake and Stake txn of same address %s', tx.txfrom)
+                    return False
+
+                if tx.txfrom in destake_txn:
+                    logger.warning('Block cannot have multiple Destake Txn from same address %s', tx.txfrom)
+                    return False
+
                 if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
                     logger.warning('Failed due to destake %s is not a stake validator', tx.txfrom)
                     return False
+
                 if tx.txfrom in stake_validators_list.sv_list:
                     stake_validators_list.sv_list[tx.txfrom].is_active = False
+
                 if tx.txfrom in stake_validators_list.future_stake_addresses:
                     stake_validators_list.future_stake_addresses[tx.txfrom].is_active = False
+
+                destake_txn.add(tx.txfrom)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
                 address_txn[tx.txfrom][0] += 1

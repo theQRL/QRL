@@ -103,8 +103,21 @@ class Chain:
                 continue
 
             if tx.subtype == TX_SUBTYPE_TX:
-                if tx.txfrom in stake_txn or tx.txfrom in stake_validators_list.sv_list or tx.txfrom in stake_validators_list.future_stake_addresses:
+                if tx.txfrom in stake_txn:
                     logger.warning("Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if tx.txfrom in stake_validators_list.sv_list and stake_validators_list.sv_list[tx.txfrom].is_active:
+                    logger.warning("Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if (tx.txfrom in stake_validators_list.future_stake_addresses and
+                        stake_validators_list.future_stake_addresses[tx.txfrom].is_active):
+                    logger.warning("Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue

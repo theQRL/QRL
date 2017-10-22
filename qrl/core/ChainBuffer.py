@@ -570,6 +570,10 @@ class ChainBuffer:
             logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
             return
 
+        if not sv_list[stake_selector].is_active:
+            logger.warning('Rejecting block created by inactive stake selector %s', stake_selector)
+            return
+
         if blocknum - 1 == self.chain.height():
             if prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
