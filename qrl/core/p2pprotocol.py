@@ -323,7 +323,7 @@ class P2PProtocol(Protocol):
 
         txfrom = destake_txn.txfrom
         height = self.factory.chain.block_chain_buffer.height() + 1
-        stake_validators_list = self.factory.block_chain_buffer.get_stake_validators_list(height)
+        stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(height)
 
         if txfrom not in stake_validators_list.sv_list and txfrom not in stake_validators_list.future_stake_addresses:
             logger.warning('P2P Dropping destake txn as %s not found in stake validator list', txfrom)

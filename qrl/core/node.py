@@ -581,7 +581,7 @@ class POS:
         self.p2pFactory.send_destake_txn_to_peers(de_stake_txn)
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
-            if t.subtype == TX_SUBTYPE_DESTAKE and de_stake_txn.hash == t.hash:
+            if t.subtype == TX_SUBTYPE_DESTAKE:
                 if de_stake_txn.get_message_hash() == t.get_message_hash():
                     return
                 self.chain.remove_tx_from_pool(t)
