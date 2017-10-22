@@ -79,7 +79,6 @@ class POS:
         if (self.nodeState.state == NState.synced or self.nodeState.state == NState.unsynced) and 90 < time_diff:
             if self.nodeState.state == NState.synced:
                 self.stop_post_block_logic()
-                self.reset_everything()
                 self.update_node_state(NState.unsynced)
                 self.epoch_diff = -1
             elif time.time() - self.last_bk_time > 120:
@@ -89,7 +88,6 @@ class POS:
 
         if self.nodeState.state == NState.syncing and time.time() - self.last_pb_time > 60:
             self.stop_post_block_logic()
-            self.reset_everything()
             self.update_node_state(NState.unsynced)
             self.epoch_diff = -1
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
@@ -291,14 +289,6 @@ class POS:
         block_obj = self.chain.create_stake_block(reveal_hash, last_block_number)
 
         return block_obj
-
-    def reset_everything(self):
-        logger.info('** resetting loops and emptying chain.stake_reveal_one and chain.expected_winner ')
-        for r in self.chain.stake_reveal_one:
-            msg_hash = r[5]
-            self.master_mr.deregister(msg_hash, 'R1')
-
-        del self.chain.stake_reveal_one[:]
 
     def filter_reveal_one_two(self, blocknumber=None):
         if not blocknumber:
@@ -560,12 +550,21 @@ class POS:
         self.chain.wallet.save_wallet()
 
     def make_destake_tx(self):
-        curr_blocknumber = self.chain.block_chain_buffer.height()
+        curr_blocknumber = self.chain.block_chain_buffer.height() + 1
         stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(curr_blocknumber)
 
+        mining_address = self.chain.mining_address
+
         # No destake txn required if mining address is not in stake_validator_list
-        if self.chain.mining_address not in stake_validators_list.sv_list and \
+        if mining_address not in stake_validators_list.sv_list and \
                         self.chain.mining_address not in stake_validators_list.future_stake_addresses:
+            logger.warning('%s Not found in Stake Validator list, destake txn note required', mining_address)
+            return
+
+        # Skip if mining address is not active in either stake validator list
+        if not ((mining_address in stake_validators_list.sv_list and stake_validators_list.sv_list[mining_address].is_active)
+                or (mining_address in stake_validators_list.future_stake_addresses and stake_validators_list.future_stake_addresses[mining_address].is_active)):
+            logger.warning('%s is already inactive in Stake validator list, destake txn not required', mining_address)
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
@@ -575,7 +574,7 @@ class POS:
         de_stake_txn.sign(signing_xmss)
         tx_state = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, de_stake_txn.txfrom)
         if not (de_stake_txn.validate() and de_stake_txn.validate_extended(tx_state)):
-            logger.info('Make DeStake Txn failed due to validation failure')
+            logger.warning('Make DeStake Txn failed due to validation failure')
             return
 
         self.p2pFactory.send_destake_txn_to_peers(de_stake_txn)
@@ -589,6 +588,8 @@ class POS:
 
         self.chain.add_tx_to_pool(de_stake_txn)
         self.chain.wallet.save_wallet()
+
+        return True
 
     def randomize_block_fetch(self, blocknumber):
         if self.nodeState.state != NState.syncing or blocknumber <= self.chain.height():

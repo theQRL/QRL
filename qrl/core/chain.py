@@ -104,20 +104,20 @@ class Chain:
 
             if tx.subtype == TX_SUBTYPE_TX:
                 if tx.txfrom in stake_txn:
-                    logger.warning("Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
                 if tx.txfrom in stake_validators_list.sv_list and stake_validators_list.sv_list[tx.txfrom].is_active:
-                    logger.warning("Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
                 if (tx.txfrom in stake_validators_list.future_stake_addresses and
                         stake_validators_list.future_stake_addresses[tx.txfrom].is_active):
-                    logger.warning("Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    logger.debug("Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -126,39 +126,39 @@ class Chain:
 
             if tx.subtype == TX_SUBTYPE_STAKE:
                 if tx.txfrom in transfercoin_txn:
-                    logger.warning('Dropping st txn as transfer coin txn found in pool %s', tx.txfrom)
+                    logger.debug('Dropping st txn as transfer coin txn found in pool %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
                 # This check is to ignore multiple ST txn from same address
                 if tx.txfrom in stake_txn:
-                    logger.warning('Dropping st txn as existing Stake txn has been added %s', tx.txfrom)
+                    logger.debug('Dropping st txn as existing Stake txn has been added %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
                 if tx.txfrom in destake_txn:
-                    logger.warning('Dropping st txn as Destake txn has been added %s', tx.txfrom)
+                    logger.debug('Dropping st txn as Destake txn has been added %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
                 if tx.txfrom in stake_validators_list.future_stake_addresses:
-                    logger.warning('Skipping st as staker is already in future_stake_address')
-                    logger.warning('Staker address : %s', tx.txfrom)
+                    logger.debug('Skipping st as staker is already in future_stake_address')
+                    logger.debug('Staker address : %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
                 if tx.txfrom in stake_validators_list.sv_list:
                     expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
                     if tx.activation_blocknumber < expiry:
-                        logger.warning('Skipping st txn as it is already active for the given range %s', tx.txfrom)
+                        logger.debug('Skipping st txn as it is already active for the given range %s', tx.txfrom)
                         del t_pool2[txnum]
                         total_txn -= 1
                         continue
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
                 if tx.activation_blocknumber > self.block_chain_buffer.height() + config.dev.blocks_per_epoch + 1:
-                    logger.warning('Skipping st as activation_blocknumber beyond limit')
-                    logger.warning('Expected # less than : %s', (self.block_chain_buffer.height() + config.dev.blocks_per_epoch))
-                    logger.warning('Found activation_blocknumber : %s', tx.activation_blocknumber)
+                    logger.debug('Skipping st as activation_blocknumber beyond limit')
+                    logger.debug('Expected # less than : %s', (self.block_chain_buffer.height() + config.dev.blocks_per_epoch))
+                    logger.debug('Found activation_blocknumber : %s', tx.activation_blocknumber)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -167,17 +167,17 @@ class Chain:
 
             if tx.subtype == TX_SUBTYPE_DESTAKE:
                 if tx.txfrom in stake_txn:
-                    logger.warning('Dropping destake txn as stake txn has been added %s', tx.txfrom)
+                    logger.debug('Dropping destake txn as stake txn has been added %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
                 if tx.txfrom in destake_txn:
-                    logger.warning('Dropping destake txn as destake txn has already been added for %s', tx.txfrom)
+                    logger.debug('Dropping destake txn as destake txn has already been added for %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
                 if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
-                    logger.warning('Dropping destake txn as %s not found in stake validator list', tx.txfrom)
+                    logger.debug('Dropping destake txn as %s not found in stake validator list', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue

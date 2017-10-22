@@ -283,6 +283,23 @@ class P2PProtocol(Protocol):
                                 st.activation_blocknumber > self.factory.chain.height() + config.dev.blocks_per_epoch:
             return
 
+        height = self.factory.chain.block_chain_buffer.height() + 1
+        stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(height)
+
+        if st.txfrom in stake_validators_list.future_stake_addresses:
+            logger.warning('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
+            return
+
+        if st.txfrom in stake_validators_list.sv_list:
+            expiry = stake_validators_list.sv_list[st.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+            if st.activation_blocknumber < expiry:
+                logger.warning('P2P dropping st txn as it is already active for the given range %s', st.txfrom)
+                return
+
+        if st.activation_blocknumber > height + config.dev.blocks_per_epoch:
+            logger.warning('P2P dropping st as activation_blocknumber beyond limit')
+            return False
+
         for t in self.factory.chain.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return

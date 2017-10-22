@@ -436,9 +436,12 @@ class WalletProtocol(Protocol):
         self.output['message'].write(
             '>>> Sending a destake transaction for address: ' + str(self.factory.chain.mining_address) + '\r\n')
 
-        logger.info('Broadcasting DESTAKE for address: %s', self.factory.chain.mining_address)
+        status = self.factory.p2pFactory.pos.make_destake_tx()
+        if status:
+            logger.info('Successfully broadcasted DESTAKE txn for address: %s', self.factory.chain.mining_address)
+        else:
+            logger.warning('Failed to Broadcast DESTAKE for address: %s', self.factory.chain.mining_address)
 
-        self.factory.p2pFactory.pos.make_destake_tx()
 
     def _stakenextepoch(self, args):
         self.output['status'] = 0
