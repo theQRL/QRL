@@ -54,7 +54,6 @@ class GenesisBlock(object, metaclass=Singleton):
     def stake_list(self):
         return self._data.stake_list
 
-
     def set_chain(self, chain):
         # FIXME: It is odd that we have a hash equal to 'genesis'
         """
@@ -86,6 +85,8 @@ class GenesisBlock(object, metaclass=Singleton):
                                                    hashedtransactions=bytes(sha2_256(b'0')),
                                                    reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
                                                    fee_reward=0)
+
+        self._data.header.MergeFrom(self.blockheader._data)
 
         return self
 
