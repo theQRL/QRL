@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_DESTAKE
 from collections import OrderedDict
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger
@@ -94,6 +94,7 @@ class Chain:
         # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
         stake_txn = set()
         transfercoin_txn = set()
+        destake_txn = set()
         while txnum < total_txn:
             tx = t_pool2[txnum]
             if self.block_chain_buffer.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
@@ -107,6 +108,7 @@ class Chain:
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
+
                 transfercoin_txn.add(tx.txfrom)
 
             if tx.subtype == TX_SUBTYPE_STAKE:
@@ -118,6 +120,11 @@ class Chain:
                 # This check is to ignore multiple ST txn from same address
                 if tx.txfrom in stake_txn:
                     logger.warning('Dropping st txn as existing Stake txn has been added %s', tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+                if tx.txfrom in destake_txn:
+                    logger.warning('Dropping st txn as Destake txn has been added %s', tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -142,7 +149,27 @@ class Chain:
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
+
                 stake_txn.add(tx.txfrom)
+
+            if tx.subtype == TX_SUBTYPE_DESTAKE:
+                if tx.txfrom in stake_txn:
+                    logger.warning('Dropping destake txn as stake txn has been added %s', tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+                if tx.txfrom in destake_txn:
+                    logger.warning('Dropping destake txn as destake txn has already been added for %s', tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+                if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
+                    logger.warning('Dropping destake txn as stake txn has been added %s', tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                destake_txn.add(tx.txfrom)
 
             self.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
@@ -155,6 +182,7 @@ class Chain:
         self.transaction_pool = copy.deepcopy(t_pool2)
 
         return block_obj
+
 
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
