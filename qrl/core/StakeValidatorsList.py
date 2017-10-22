@@ -37,8 +37,8 @@ class StakeValidatorsList:
         self.expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
     def activate_future_sv(self, sv):
-        self.sv_list[sv.txfrom] = sv
-        self.expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].add(sv.txfrom)
+        self.sv_list[sv.stake_validator] = sv
+        self.expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].add(sv.stake_validator)
 
     def add_sv(self, stake_txn, blocknumber):
         if stake_txn.activation_blocknumber > blocknumber:
@@ -62,7 +62,7 @@ class StakeValidatorsList:
             sv_set = self.future_sv_list[next_blocknumber]
             for sv in sv_set:
                 self.activate_future_sv(sv)
-                del self.future_stake_addresses[sv.txfrom]
+                del self.future_stake_addresses[sv.stake_validator]
             del self.future_sv_list[next_blocknumber]
 
     def get_sv_list(self, txfrom):
