@@ -38,7 +38,6 @@ service AdminAPI
 {
 }
 
-
 ////////////////////////////
 // API Messages
 message PingReq {
@@ -89,12 +88,12 @@ message GetStatsResp {
     uint64 uptime_network = 3;
 
     uint64 stakers_count = 4;
-    bytes block_last_reward = 5;
-    uint64 block_time = 6;
+    uint64 block_last_reward = 5;
+    uint64 block_time_mean = 6;
     uint64 block_time_sd = 7;
 
     uint64 coins_total_supply = 8;
-    uint64 coins_emmited = 9;
+    uint64 coins_emitted = 9;
     uint64 coins_atstake = 10;
 }
 
@@ -273,4 +272,3 @@ message Transaction {
     }
 
 }
-
