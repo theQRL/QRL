@@ -13,6 +13,14 @@ message Timestamp
     int32 nanos = 2;
 }
 
+////////////////////////////
+////////////////////////////
+////////////////////////////
+//////     API       ///////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+
 // This service describes the P2P API
 service P2PNode
 {
@@ -29,6 +37,8 @@ service PublicAPI
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
     rpc GetObject(GetObjectReq) returns (GetObjectResp);
 
+    rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp);
+
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 }
@@ -39,7 +49,13 @@ service AdminAPI
 }
 
 ////////////////////////////
-// API Messages
+////////////////////////////
+////////////////////////////
+//    Request/Response    //
+////////////////////////////
+////////////////////////////
+////////////////////////////
+
 message PingReq {
     string name = 1;
 }
@@ -52,34 +68,13 @@ message GetKnownPeersResp {
     KnownPeers known_peers = 1;
 }
 
-message GetAddressStateLocalReq {
-    uint32 address_idx = 1;
-}
-message GetAddressStateReq {
-    string address = 1;
-}
-message GetAddressStateResp {
-    AddressState state = 1;
-}
-
-message TransferCoinsReq {
-    bytes address_from = 1;
-    bytes address_to = 2;
-    uint64 amount = 3; // IMPORTANT: These should be expressed in Shor
-    uint64 fee = 4; // IMPORTANT: These should be expressed in Shor
-    bytes xmss_pk = 5;
-    uint64 xmss_ots_index = 6;
-}
-message TransferCoinsResp {
-    Transaction transaction_unsigned = 1;
-}
-
-message PushTransactionReq {
-    Transaction transaction_signed = 1;
-}
-message PushTransactionResp {
-    string some_response = 1;
-}
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
 
 message GetStatsReq { }
 message GetStatsResp {
@@ -98,15 +93,16 @@ message GetStatsResp {
 }
 
 message GetNodeStateReq { }
-
 message GetNodeStateResp {
     NodeInfo info = 1;
 }
 
-message GetObjectReq {
-    bytes query = 1;
+message GetAddressStateReq {    string address = 1; }
+message GetAddressStateResp {
+    AddressState state = 1;
 }
 
+message GetObjectReq {  bytes query = 1;    }
 message GetObjectResp {
     bool found = 1;
     oneof result {
@@ -115,6 +111,38 @@ message GetObjectResp {
         Block block = 4;
     }
 }
+
+message GetLatestDataReq { }
+message GetLatestDataResp {
+    repeated Block blocks = 1;
+    repeated Transaction transactions = 2;
+    repeated Transaction transactions_unconfirmed = 3;
+}
+
+message TransferCoinsReq {
+    bytes address_from = 1;
+    bytes address_to = 2;
+    uint64 amount = 3; // IMPORTANT: These should be expressed in Shor
+    uint64 fee = 4; // IMPORTANT: These should be expressed in Shor
+    bytes xmss_pk = 5;
+    uint64 xmss_ots_index = 6;
+}
+message TransferCoinsResp {
+    Transaction transaction_unsigned = 1;
+}
+
+message PushTransactionReq {    Transaction transaction_signed = 1;     }
+message PushTransactionResp {
+    string some_response = 1;
+}
+
+////////////////////////////
+////////////////////////////
+////////////////////////////
+//         Content        //
+////////////////////////////
+////////////////////////////
+////////////////////////////
 
 message NodeInfo
 {
@@ -137,7 +165,6 @@ message NodeInfo
     string network_id = 9;
 }
 
-// Content
 message WalletStore {
     repeated Wallet wallets = 1;
 }

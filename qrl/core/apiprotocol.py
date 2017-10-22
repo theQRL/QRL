@@ -23,18 +23,19 @@ class ApiProtocol(Protocol):
         self.api_list = [
             'empty',                            # OBSOLETE
             'balance'                           # OBSOLETE use GetAddressState
-            'last_tx',                          # OBSOLETE ?
-            'last_unconfirmed_tx',              # OBSOLETE ?
             'next_stakers',                     # OBSOLETE
             'ping',                             # Get peer latencies
             'latency',                          # Stake validator latencies (unify?)
             'richlist',                         # We need to maintain this in the DB and return only top addresses
             'ip_geotag',                        # This could be done in the UI instead of the node
+
             'address',                          # API: GetAddressState
             'stats',                            # API: GetStats
             'block_data',                       # API: GetObject (instead)
             'txhash',                           # API: GetObject (instead)
             'last_block',                       # API: GetStats and GetObject (instead)
+            'last_tx',                          # API: GetLatestData
+            'last_unconfirmed_tx',              # API: GetLatestData
             'stakers',                          # API: GetStakers
         ]
 
@@ -264,6 +265,7 @@ class ApiProtocol(Protocol):
         return json_print_telnet(addr)
 
     def last_tx(self, data=None):
+        #FIXME: Remove
         logger.info('<<< API last_tx call')
 
         if not data:
@@ -303,27 +305,6 @@ class ApiProtocol(Protocol):
 
         return json_print_telnet(addr)
 
-    def ip_geotag(self, data=None):
-        logger.info('<<< API ip_geotag call')
-        self.factory.pos.p2pFactory.ip_geotag_peers()
-        ip = {'status': 'ok',
-              'ip_geotag': self.factory.chain.ip_list}
-
-        x = 0
-        for i in self.factory.chain.ip_list:
-            ip['ip_geotag'][x] = i
-            x += 1
-
-        return json_print_telnet(ip)
-
-    def empty(self, data=None):
-        error = {
-            'status': 'error',
-            'error': 'no method supplied',
-            'methods available': self.api_list
-        }
-        return json_print_telnet(error)
-
     def block_data(self, data=None):  # if no data = last block ([-1])			#change this to add error..
         error = {
             'status': 'error',
@@ -351,6 +332,27 @@ class ApiProtocol(Protocol):
             self.factory.reformat_block(js_bk1)
 
             return json_print_telnet(js_bk1)
+
+    def ip_geotag(self, data=None):
+        logger.info('<<< API ip_geotag call')
+        self.factory.pos.p2pFactory.ip_geotag_peers()
+        ip = {'status': 'ok',
+              'ip_geotag': self.factory.chain.ip_list}
+
+        x = 0
+        for i in self.factory.chain.ip_list:
+            ip['ip_geotag'][x] = i
+            x += 1
+
+        return json_print_telnet(ip)
+
+    def empty(self, data=None):
+        error = {
+            'status': 'error',
+            'error': 'no method supplied',
+            'methods available': self.api_list
+        }
+        return json_print_telnet(error)
 
     def stats(self, data=None):
         logger.info('<<< API stats call')
@@ -467,33 +469,7 @@ class ApiProtocol(Protocol):
         logger.info("Connection lost: %s", reason)
 
     def latency(self, mtype=None):
-        output = {}
-        if mtype and mtype.lower() in ['mean', 'median', 'last']:
-            for block_num in list(self.factory.chain.stake_validator_latency.keys()):
-                output[block_num] = {}
-                for stake in list(self.factory.chain.stake_validator_latency[block_num].keys()):
-                    time_list = self.factory.chain.stake_validator_latency[block_num][stake]
-                    logger.info(time_list)
-                    output[block_num][stake] = {}
-                    if 'r2_time_diff' in time_list:
-                        return
-                    if mtype.lower() == 'mean':
-                        output[block_num][stake]['r1_time_diff'] = statistics.mean(
-                            time_list['r1_time_diff'])
-                        output[block_num][stake]['r2_time_diff'] = statistics.mean(
-                            time_list['r2_time_diff'])
-                    elif mtype.lower() == 'last':
-                        output[block_num][stake]['r1_time_diff'] = time_list['r1_time_diff'][-1]
-                        output[block_num][stake]['r2_time_diff'] = time_list['r2_time_diff'][-1]
-                    elif mtype.lower() == 'median':
-                        output[block_num][stake]['r1_time_diff'] = statistics.median(
-                            time_list['r1_time_diff'])
-                        output[block_num][stake]['r2_time_diff'] = statistics.median(
-                            time_list['r2_time_diff'])
-        else:
-            output = self.factory.chain.stake_validator_latency
-        output = json.dumps(output)
-        return output
+        return {}
 
     ##########################
 

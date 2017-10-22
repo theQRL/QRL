@@ -5,8 +5,9 @@ from decimal import Decimal
 
 import time
 
-from qrl.core import config, logger
+from qrl.core import config, logger, Transaction
 from qrl.core.Transaction import TransferTransaction
+from qrl.core.block import Block
 from qrl.core.state import State
 from qrl.generated import qrl_pb2
 
@@ -51,7 +52,7 @@ class QRLNode:
     @property
     def block_height(self):
         # FIXME
-        return self._chain.m_blockheight()
+        return self._chain.height()
 
     @property
     def staking(self):
@@ -140,24 +141,6 @@ class QRLNode:
         known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
-
-    def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
-        # FIXME: Refactor. Define concerns, etc.
-        # FIXME: Unnecessary double conversion
-
-        # TODO: Validate address format
-        if address[0] != b'Q':
-            return None
-
-        nonce, balance, pubhash_list = self.db_state.get_address(address)
-        transactions = []
-
-        address_state = qrl_pb2.AddressState(address=address,
-                                             balance=balance,
-                                             nonce=nonce,
-                                             transactions=transactions)
-
-        return address_state
 
     def get_dec_amount(self, str_amount_arg: str) -> Decimal:
         # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion. Quantity formats should be always clear
@@ -274,5 +257,73 @@ class QRLNode:
         self._p2pfactory.send_tx_to_peers(tx)
         return True
 
-    def get_object(self, query):
-        pass
+    def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
+        # FIXME: Refactor. Define concerns, etc.
+        # FIXME: Unnecessary double conversion
+        # TODO: Validate address format
+        if address[0] != b'Q':
+            return None
+
+        nonce, balance, pubhash_list = self.db_state.get_address(address)
+        transactions = []
+
+        address_state = qrl_pb2.AddressState(address=address,
+                                             balance=balance,
+                                             nonce=nonce,
+                                             transactions=transactions)
+
+        return address_state
+
+    def get_transaction(self, query_hash: bytes) -> Transaction:
+        """
+        This method returns an object that matches the query hash
+        """
+        # FIXME: At some point, all objects in DB will indexed by a hash
+        # TODO: Search tx hash
+        # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
+        # FIXME: This is just a workaround to provide functionality
+        for tx in self._chain.transaction_pool:
+            if tx.txhash == query_hash:
+                return tx.pbdata
+        return None
+
+    def get_block(self, query_hash: bytes) -> Block:
+        """
+        This method returns an object that matches the query hash
+        """
+        # FIXME: At some point, all objects in DB will indexed by a hash
+        raise NotImplementedError()
+
+    def get_latest_blocks(self, count=5):
+        # FIXME: Simplify this
+        answer = []
+        end = self.block_height
+        start = max(0, end - count)
+        for blk_idx in range(start, end):
+            answer.append(self._chain.m_get_block(blk_idx))
+
+        return answer
+
+    def get_latest_transactions(self, count=5):
+        # FIXME: Moved code. Breaking encapsulation. Refactor
+
+        answer = []
+        for pbtx in self._chain.self.m_blockchain[-1].transactions[-20:]:
+            tx = Transaction.from_pbdata(pbtx)
+            if isinstance(tx, TransferTransaction):
+                answer.append(tx)
+                if len(answer) >= count:
+                    break
+
+        return answer
+
+    def get_latest_transactions_unconfirmed(self, count=5):
+        answer = []
+        for tx in reversed(self._chain.transaction_pool):
+            if isinstance(tx, TransferTransaction):
+                answer.append(tx)
+                if len(answer) >= count:
+                    break
+
+        return answer
+

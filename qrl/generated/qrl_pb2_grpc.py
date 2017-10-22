@@ -5,7 +5,15 @@ import qrl.generated.qrl_pb2 as qrl__pb2
 
 
 class P2PNodeStub(object):
-  """This service describes the P2P API
+  """//////////////////////////
+  //////////////////////////
+  //////////////////////////
+  ////     API       ///////
+  //////////////////////////
+  //////////////////////////
+  //////////////////////////
+
+  This service describes the P2P API
   """
 
   def __init__(self, channel):
@@ -27,7 +35,15 @@ class P2PNodeStub(object):
 
 
 class P2PNodeServicer(object):
-  """This service describes the P2P API
+  """//////////////////////////
+  //////////////////////////
+  //////////////////////////
+  ////     API       ///////
+  //////////////////////////
+  //////////////////////////
+  //////////////////////////
+
+  This service describes the P2P API
   """
 
   def Ping(self, request, context):
@@ -98,6 +114,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetObjectReq.SerializeToString,
         response_deserializer=qrl__pb2.GetObjectResp.FromString,
         )
+    self.GetLatestData = channel.unary_unary(
+        '/qrl.PublicAPI/GetLatestData',
+        request_serializer=qrl__pb2.GetLatestDataReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetLatestDataResp.FromString,
+        )
     self.TransferCoins = channel.unary_unary(
         '/qrl.PublicAPI/TransferCoins',
         request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
@@ -149,6 +170,13 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetLatestData(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def TransferCoins(self, request, context):
     # missing associated documentation comment in .proto file
     pass
@@ -190,6 +218,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetObject,
           request_deserializer=qrl__pb2.GetObjectReq.FromString,
           response_serializer=qrl__pb2.GetObjectResp.SerializeToString,
+      ),
+      'GetLatestData': grpc.unary_unary_rpc_method_handler(
+          servicer.GetLatestData,
+          request_deserializer=qrl__pb2.GetLatestDataReq.FromString,
+          response_serializer=qrl__pb2.GetLatestDataResp.SerializeToString,
       ),
       'TransferCoins': grpc.unary_unary_rpc_method_handler(
           servicer.TransferCoins,
