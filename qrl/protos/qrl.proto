@@ -29,7 +29,7 @@ service PublicAPI
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
     rpc GetObject(GetObjectReq) returns (GetObjectResp);
 
-rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
+    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 }
 

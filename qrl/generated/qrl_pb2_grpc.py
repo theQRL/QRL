@@ -73,6 +73,11 @@ class PublicAPIStub(object):
     Args:
       channel: A grpc.Channel.
     """
+    self.GetStats = channel.unary_unary(
+        '/qrl.PublicAPI/GetStats',
+        request_serializer=qrl__pb2.GetStatsReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetStatsResp.FromString,
+        )
     self.GetNodeState = channel.unary_unary(
         '/qrl.PublicAPI/GetNodeState',
         request_serializer=qrl__pb2.GetNodeStateReq.SerializeToString,
@@ -108,6 +113,13 @@ class PublicAPIStub(object):
 class PublicAPIServicer(object):
   """This service describes the Public API used by clients (wallet/cli/etc)
   """
+
+  def GetStats(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
 
   def GetNodeState(self, request, context):
     # missing associated documentation comment in .proto file
@@ -154,6 +166,11 @@ class PublicAPIServicer(object):
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
+      'GetStats': grpc.unary_unary_rpc_method_handler(
+          servicer.GetStats,
+          request_deserializer=qrl__pb2.GetStatsReq.FromString,
+          response_serializer=qrl__pb2.GetStatsResp.SerializeToString,
+      ),
       'GetNodeState': grpc.unary_unary_rpc_method_handler(
           servicer.GetNodeState,
           request_deserializer=qrl__pb2.GetNodeStateReq.FromString,
