@@ -23,9 +23,9 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         info.num_known_peers = self.qrlnode.num_known_peers
         info.uptime = self.qrlnode.uptime
         info.block_height = self.qrlnode.block_height
-        info.block_last_hash = b''                              # FIXME
+        info.block_last_hash = b''  # FIXME
         info.stake_enabled = self.qrlnode.staking
-        info.network_id = '???'                                 # FIXME
+        info.network_id = '???'  # FIXME
         return info
 
     @grpc_exception_wrapper(qrl_pb2.GetStatsResp, StatusCode.UNKNOWN)
@@ -39,7 +39,7 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         response.block_last_reward = self.qrlnode.block_last_reward
         response.block_time = self.qrlnode.block_time_mean
         response.block_sd = self.qrlnode.block_time_sd
-        response.coins_total_supply = self.qrlnode.coin_supply_max      # FIXME
+        response.coins_total_supply = self.qrlnode.coin_supply_max  # FIXME
         response.coins_emitted = self.qrlnode.coin_supply
         response.coins_atstake = self.qrlnode.coin_atstake
 
@@ -88,11 +88,10 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
         logger.debug("[PublicAPI] GetObject")
         answer = qrl_pb2.GetObjectResp
-
-        # FIXME: encapsulate in qrlnode. Queries should be just hashes
+        answer.found = False
 
         # FIXME: We need a unified way to access and validate data.
-        query = bytes(request.query)    # query will be as a string, if Q is detected convert, etc.
+        query = bytes(request.query)  # query will be as a string, if Q is detected convert, etc.
 
         address_state = self.qrlnode.get_address_state(query)
         if address_state is not None:
@@ -100,15 +99,32 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
             answer.address_state = address_state
             return answer
 
-        # TODO: Search tx hash
-        # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
-        # FIXME: workaround to provide functionality
-        for tx in self.qrlnode._chain.transaction_pool:
-            if tx.txhash == query:
-                answer.found = True
-                answer.transaction = tx
-                return answer
+        transaction = self.qrlnode.get_transaction(query)
+        if transaction is not None:
+            answer.found = True
+            answer.transaction = transaction.pbdata
+            return answer
 
-        # TODO: Get tx from db (they should be stored as pb)
+        try:
+            block = self.qrlnode.get_transaction(query)
+            if block is not None:
+                answer.found = True
+                answer.block = block.pbdata
+                return answer
+        except NotImplementedError as e:
+            # FIXME: implementation missing
+            answer.found = True
+            pass
 
         return answer
+
+    @grpc_exception_wrapper(qrl_pb2.GetLatestDataResp, StatusCode.UNKNOWN)
+    def GetLatestData(self, request: qrl_pb2.GetLatestDataReq, context) -> qrl_pb2.GetLatestDataResp:
+        logger.debug("[PublicAPI] GetLatestData")
+        response = qrl_pb2.GetLatestDataResp()
+
+        response.blocks.extend([blk.pbdata for blk in self.qrlnode.get_latest_blocks()])
+        response.transactions.extend([tx.pbdata for tx in self.qrlnode.get_latest_transactions()])
+        response.transactions_unconfirmed.extend([tx.pbdata for tx in self.qrlnode.get_latest_transactions_unconfirmed()])
+
+        return response

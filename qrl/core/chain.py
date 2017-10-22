@@ -174,6 +174,7 @@ class Chain:
         return
 
     def update_last_tx(self, block):
+        # FIXME: remove
         if len(block.transactions) == 0:
             return
         last_txn = []

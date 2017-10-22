@@ -265,6 +265,7 @@ class ApiProtocol(Protocol):
         return json_print_telnet(addr)
 
     def last_tx(self, data=None):
+        #FIXME: Remove
         logger.info('<<< API last_tx call')
 
         if not data:

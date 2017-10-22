@@ -116,6 +116,7 @@ message GetLatestDataReq { }
 message GetLatestDataResp {
     repeated Block blocks = 1;
     repeated Transaction transactions = 2;
+    repeated Transaction transactions_unconfirmed = 3;
 }
 
 message TransferCoinsReq {
