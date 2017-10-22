@@ -560,7 +560,7 @@ class POS:
         self.chain.wallet.save_wallet()
 
     def make_destake_tx(self):
-        curr_blocknumber = self.chain.height()
+        curr_blocknumber = self.chain.block_chain_buffer.height()
         stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(curr_blocknumber)
 
         # No destake txn required if mining address is not in stake_validator_list
@@ -578,7 +578,7 @@ class POS:
             logger.info('Make DeStake Txn failed due to validation failure')
             return
 
-        self.p2pFactory.send_st_to_peers(de_stake_txn)
+        self.p2pFactory.send_destake_txn_to_peers(de_stake_txn)
         for num in range(len(self.chain.transaction_pool)):
             t = self.chain.transaction_pool[num]
             if t.subtype == TX_SUBTYPE_DESTAKE and de_stake_txn.hash == t.hash:
