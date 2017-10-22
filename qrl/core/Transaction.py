@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import sha2_256, getAddress, bin2hstr, str2bin
 
-from qrl.core import helper, config, logger
+from qrl.core import config, logger
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain_reveal
 from qrl.crypto.misc import sha256
@@ -73,6 +73,7 @@ class Transaction(object, metaclass=ABCMeta):
         id_name = {
             qrl_pb2.Transaction.TRANSFER: 'TX',
             qrl_pb2.Transaction.STAKE: 'STAKE',
+            qrl_pb2.Transaction.DESTAKE: 'DESTAKE',
             qrl_pb2.Transaction.COINBASE: 'COINBASE',
             qrl_pb2.Transaction.LATTICE: 'LATTICE',
             qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE'
@@ -371,6 +372,68 @@ class StakeTransaction(Transaction):
         return True
 
 
+class DestakeTransaction(Transaction):
+    """
+    DestakeTransaction performed by the nodes who would not like
+    to stake.
+    """
+
+    def __init__(self, protobuf_transaction=None):
+        super(DestakeTransaction, self).__init__(protobuf_transaction)
+        self._data.type = qrl_pb2.Transaction.DESTAKE
+
+    @property
+    def activation_blocknumber(self):
+        return self._data.stake.activation_blocknumber
+
+    def _get_hashable_bytes(self):
+        """
+        This method should return bytes that are to be hashed and represent the transaction
+        :return: hashable bytes
+        :rtype: bytes
+        """
+        # FIXME: Avoid all intermediate conversions
+        tmptxhash = str2bin(bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
+                            + bin2hstr(sha2_256(bytes(self.subtype))))
+        return bytes(tmptxhash)
+
+    @staticmethod
+    def create(activation_blocknumber, xmss):
+        """
+        >>> s = DestakeTransaction()
+        >>> isinstance(s.create(0, XMSS(4)), DestakeTransaction)
+        True
+        """
+
+        transaction = DestakeTransaction()
+
+        transaction._data.addr_from = bytes(xmss.get_address().encode())
+        transaction._data.public_key = bytes(xmss.pk())
+
+        # Destake specific
+        transaction._data.stake.activation_blocknumber = activation_blocknumber
+
+        # WARNING: These fields need to the calculated once all other fields are set
+        transaction._data.ots_key = xmss.get_index()
+        transaction._data.transaction_hash = transaction.calculate_txhash()
+        return transaction
+
+    def _validate_custom(self):
+        return True
+
+    def validate_extended(self, tx_state):
+        if self.subtype != TX_SUBTYPE_DESTAKE:
+            return False
+
+        state_pubhashes = tx_state[2]
+
+        if self.pubhash in state_pubhashes:
+            logger.info('State validation failed for %s because: OTS Public key re-use detected')
+            return False
+
+        return True
+
+
 class CoinBase(Transaction):
     """
     CoinBase is the type of transaction to credit the block_reward to
@@ -597,6 +660,7 @@ class DuplicateTransaction(Transaction):
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: TransferTransaction,
     qrl_pb2.Transaction.STAKE: StakeTransaction,
+    qrl_pb2.Transaction.DESTAKE: DestakeTransaction,
     qrl_pb2.Transaction.COINBASE: CoinBase,
     qrl_pb2.Transaction.LATTICE: LatticePublicKey,
     qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction
