@@ -100,7 +100,7 @@ class MessageReceipt(object):
 
         params = self.requested_hash[msg_hash].params
 
-        if block.transactions[0].txfrom != params['stake_selector']:
+        if block.transactions[0].addr_from != params['stake_selector']:
             return False
 
         if block.blockheader.blocknumber != params['blocknumber']:
