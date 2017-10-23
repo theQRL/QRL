@@ -5,12 +5,15 @@
 import sys
 import logging
 import traceback
+
 from colorlog import ColoredFormatter
 from logging.handlers import RotatingFileHandler
 
+from qrl.core import config
+
 LOG_NAME = 'qrl'
 
-LOG_FILENAME_DEFAULT = 'qrl.log'
+LOG_FILENAME_DEFAULT = config.user.log_path
 LOG_MAXBYTES = 100 * 1024 * 1024
 LOG_FORMAT_FULL = '%(asctime)s - %(levelname)s -  %(message)s'
 LOG_FORMAT_SMALL = '%(asctime)s - %(message)s'

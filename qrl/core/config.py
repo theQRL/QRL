@@ -35,11 +35,15 @@ class UserConfig(object):
         self.ping_timeout = 180
         self.ping_frequency = 20  # How frequently a node should ping (in seconds)
         # must be less than ping_timeout
-        self.data_path = expanduser("~/.qrl/data")
-        self.wallet_path = expanduser("~/.qrl/wallet")
-        self.config_path = '~/.qrl/config.yml'
 
-        self.load_yaml(expanduser(self.config_path))
+        self.qrl_dir = os.path.join(expanduser("~"), ".qrl")
+
+        self.data_path = os.path.join(self.qrl_dir, "data")
+        self.wallet_path = os.path.join(self.qrl_dir, "wallet")
+        self.config_path = os.path.join(self.qrl_dir, "config.yml")
+        self.log_path = os.path.join(self.qrl_dir, "qrl.log")
+
+        self.load_yaml(self.config_path)
 
     @staticmethod
     def getInstance():
@@ -99,13 +103,13 @@ class DevConfig(object):
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.max_coin_supply = 105000000
-        self.minimum_minting_delay = 45 # Minimum delay in second before a block is being created
-        self.timestamp_error = 5 # Error in second
+        self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
+        self.timestamp_error = 5  # Error in second
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.slave_xmss_height = self.slave_xmss_height + (self.slave_xmss_height & 0x1)
         self.xmss_tree_height = 10
         self.default_nonce = 0
-        self.default_account_balance = 100*(10**8)
+        self.default_account_balance = 100 * (10 ** 8)
         self.default_pubhash_blacklist = []
 
         self.db_name = 'state'
