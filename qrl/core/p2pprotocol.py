@@ -179,7 +179,11 @@ class P2PProtocol(Protocol):
         :return:
         """
         mr_data = qrl_pb2.MR()
-        Parse(data, mr_data)
+        try:
+            Parse(data, mr_data)
+        except Exception as e:  # Disconnect peer not following protocol
+            logger.debug('Disconnected peer %s not following protocol in MR %s', self.conn_identity, e)
+            self.transport.loseConnection()
         msg_hash = mr_data.hash
 
         if mr_data.type not in MessageReceipt.allowed_types:
@@ -668,7 +672,13 @@ class P2PProtocol(Protocol):
         >>> p.CB(jsonData)
         """
         data = qrl_pb2.BlockMetaData()
-        Parse(raw_data, data)
+
+        try:
+            Parse(raw_data, data)
+        except Exception as e:  # Disconnect peers not following protocol
+            logger.debug('Disconnected peer %s not following protocol in MR %s', self.conn_identity, e)
+            self.transport.loseConnection()
+
         block_number = data.block_number
         headerhash = data.hash_header
 
