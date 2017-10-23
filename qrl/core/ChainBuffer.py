@@ -566,6 +566,9 @@ class ChainBuffer:
 
         sv_list = self.stake_list_get(blocknum)
 
+        if not sv_list:
+            return
+
         if stake_selector not in sv_list:
             return
 
