@@ -458,7 +458,7 @@ class P2PProtocol(Protocol):
                         block.blockheader.stake_selector)
             coinbase_txn = block.transactions[0]
 
-            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
+            sv_list = self.factory.chain.block_chain_buffer.stake_list_get(block.blockheader.blocknumber)
             if coinbase_txn.validate_extended(sv_list=sv_list, blockheader=block.blockheader):
                 self.factory.master_mr.register_duplicate(block.blockheader.headerhash)
                 block2 = block_chain_buffer.get_block_n(block.blockheader.blocknumber)
