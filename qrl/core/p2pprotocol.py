@@ -97,7 +97,7 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('PBHL', self.factory.chain.block_chain_buffer.height()))
         self.fork_height = self.factory.chain.block_chain_buffer.height()
         self.fork_timestamp = time.time()
-        logger.info('-->>FBHL called')
+        logger.debug('-->>FBHL called')
 
     def PBHL(self, blocknumber):
         """
@@ -289,17 +289,17 @@ class P2PProtocol(Protocol):
         stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(height)
 
         if st.txfrom in stake_validators_list.future_stake_addresses:
-            logger.warning('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
+            logger.debug('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
             return
 
         if st.txfrom in stake_validators_list.sv_list:
             expiry = stake_validators_list.sv_list[st.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
             if st.activation_blocknumber < expiry:
-                logger.warning('P2P dropping st txn as it is already active for the given range %s', st.txfrom)
+                logger.debug('P2P dropping st txn as it is already active for the given range %s', st.txfrom)
                 return
 
         if st.activation_blocknumber > height + config.dev.blocks_per_epoch:
-            logger.warning('P2P dropping st as activation_blocknumber beyond limit')
+            logger.debug('P2P dropping st as activation_blocknumber beyond limit')
             return False
 
         for t in self.factory.chain.transaction_pool:
@@ -345,7 +345,7 @@ class P2PProtocol(Protocol):
         stake_validators_list = self.factory.chain.block_chain_buffer.get_stake_validators_list(height)
 
         if txfrom not in stake_validators_list.sv_list and txfrom not in stake_validators_list.future_stake_addresses:
-            logger.warning('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
+            logger.debug('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
             return
 
         tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
@@ -354,7 +354,7 @@ class P2PProtocol(Protocol):
         if destake_txn.validate() and destake_txn.validate_extended(tx_state=tx_state):
             self.factory.chain.add_tx_to_pool(destake_txn)
         else:
-            logger.warning('>>>Destake %s invalid state validation failed..', txfrom)
+            logger.debug('>>>Destake %s invalid state validation failed..', txfrom)
             return
 
         self.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
@@ -389,7 +389,7 @@ class P2PProtocol(Protocol):
         if duplicate_txn.validate():
             self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
         else:
-            logger.warning('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
+            logger.debug('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
             return
 
         self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
