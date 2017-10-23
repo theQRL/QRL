@@ -99,11 +99,15 @@ class P2PProtocol(Protocol):
         self.fork_timestamp = time.time()
         logger.debug('-->>FBHL called')
 
-    def PBHL(self, blocknumber):
+    def PBHL(self, blocknumber=None):
         """
         Push Block Headerhash List
         :return:
         """
+        if not blocknumber:
+            logger.debug('PBHL blocknumber None by %s', self.conn_identity)
+            return
+
         logger.debug('PBHL received by %s', self.conn_identity)
         blocknum_headerhash = qrl_pb2.BlockMetaDataList()
         for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber + 1):
