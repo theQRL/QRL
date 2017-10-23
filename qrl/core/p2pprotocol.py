@@ -86,7 +86,7 @@ class P2PProtocol(Protocol):
             else:
                 func()
         except Exception as e:
-            logger.error("executing [%s]", func_name)
+            logger.debug("executing [%s] by %s", func_name, self.conn_identity)
             logger.exception(e)
 
     def FBHL(self):
@@ -388,10 +388,6 @@ class P2PProtocol(Protocol):
 
         if duplicate_txn.get_message_hash() in self.factory.chain.duplicate_tx_pool:
             return
-
-        tx_state = self.factory.chain.block_chain_buffer.get_stxn_state(
-            blocknumber=self.factory.chain.block_chain_buffer.height() + 1,
-            addr=duplicate_txn.coinbase1.txfrom)
 
         # TODO: State validate for duplicate_txn is pending
         if duplicate_txn.validate():
