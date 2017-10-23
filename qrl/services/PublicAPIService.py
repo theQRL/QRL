@@ -31,14 +31,14 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
     @grpc_exception_wrapper(qrl_pb2.GetStatsResp, StatusCode.UNKNOWN)
     def GetStats(self, request: qrl_pb2.GetStatsReq, context) -> qrl_pb2.GetStatsResp:
         response = qrl_pb2.GetStatsResp()
-        response.info = self._getNodeInfo()
+        response.node_info.CopyFrom(self._getNodeInfo())
 
         response.epoch = self.qrlnode.epoch
         response.uptime_network = self.qrlnode.uptime_network
         response.stakers_count = self.qrlnode.stakers_count
         response.block_last_reward = self.qrlnode.block_last_reward
-        response.block_time = self.qrlnode.block_time_mean
-        response.block_sd = self.qrlnode.block_time_sd
+        response.block_time_mean = self.qrlnode.block_time_mean
+        response.block_time_sd = self.qrlnode.block_time_sd
         response.coins_total_supply = self.qrlnode.coin_supply_max  # FIXME
         response.coins_emitted = self.qrlnode.coin_supply
         response.coins_atstake = self.qrlnode.coin_atstake

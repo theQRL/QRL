@@ -60,6 +60,8 @@ class QRLNode:
 
     @property
     def epoch(self):
+        if len(self._chain.m_blockchain) == 0:
+            return 0
         return self._chain.m_blockchain[-1].blockheader.epoch
 
     @property
@@ -72,10 +74,13 @@ class QRLNode:
 
     @property
     def stakers_count(self):
-        return len(self._chain.state.stake_validators_list.sv_list)
+        return len(self.db_state.stake_validators_list.sv_list)
 
     @property
     def block_last_reward(self):
+        if len(self._chain.m_blockchain) == 0:
+            return 0
+
         return self._chain.m_blockchain[-1].blockheader.block_reward
 
     @property
@@ -102,8 +107,8 @@ class QRLNode:
     def coin_atstake(self):
         # FIXME: This is very time consuming.. (moving from old code) improve/cache
         total_at_stake = 0
-        for staker in self._chain.state.stake_validators_list.sv_list:
-            total_at_stake += self._chain.state.state.balance(staker)
+        for staker in self.db_state.stake_validators_list.sv_list:
+            total_at_stake += self.db_state.balance(staker)
         return total_at_stake
 
     # FIXME: REMOVE. This is temporary
@@ -265,8 +270,11 @@ class QRLNode:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
         # TODO: Validate address format
+        if len(address)<1:
+            raise ValueError("Invalid Address")
+
         if address[0] != b'Q':
-            return None
+            raise ValueError("Invalid Address")
 
         nonce, balance, pubhash_list = self.db_state.get_address(address)
         transactions = []
