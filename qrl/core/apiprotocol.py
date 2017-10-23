@@ -398,7 +398,7 @@ class ApiProtocol(Protocol):
         net_stats = {
             # Exposed by NodeInfo
             'status': 'ok',
-            'version': config.dev.version_number,
+            'version': config.dev.version,
             'nodes': len(self.factory.peers) + 1,
             'blockheight': self.factory.chain.m_blockheight(),
             'network': 'qrl testnet',

@@ -144,7 +144,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 try:
-    from qrl.core import __version__ as version
+    from qrl import __version__ as version
 except ImportError:
     version = "unknown"
 else:

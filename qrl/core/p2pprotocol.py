@@ -834,7 +834,7 @@ class P2PProtocol(Protocol):
         """
         if not data:
             version_details = {
-                'version': config.dev.version_number,
+                'version': config.dev.version,
                 'genesis_prev_headerhash': config.dev.genesis_prev_headerhash
             }
             self.transport.write(self.wrap_message('VE', json.dumps(version_details)))
