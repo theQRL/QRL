@@ -217,6 +217,10 @@ message Block {
     repeated Transaction dup_transactions = 3; // TODO: Review this
 }
 
+message BlockMetaDataList {
+    repeated BlockMetaData block_number_hashes = 1;
+}
+
 message BlockMetaData {
     uint64 block_number = 1;
     bytes hash_header = 2;

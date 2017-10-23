@@ -91,25 +91,28 @@ class P2PProtocol(Protocol):
         Fetch Block Headerhash List
         :return:
         """
-        return
         self.transport.write(self.wrap_message('PBHL', self.factory.chain.block_chain_buffer.height()))
         self.fork_height = self.factory.chain.block_chain_buffer.height()
         self.fork_timestamp = time.time()
-        logger.debug('-->>FBHL called')
+        logger.info('-->>FBHL called')
 
     def PBHL(self, blocknumber):
         """
         Push Block Headerhash List
         :return:
         """
-        blocknum_headerhash = {}
+        logger.info('PBHL received by %s', self.conn_identity)
+        blocknum_headerhash = qrl_pb2.BlockMetaDataList()
         for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber):
+            blockmetadata = qrl_pb2.BlockMetaData()
             block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
             if not block:
                 break
-            blocknum_headerhash[blocknum] = block.blockheader.headerhash
+            blockmetadata.block_number = blocknum
+            blockmetadata.hash_header = block.blockheader.headerhash
+            blocknum_headerhash.block_number_hashes.extend([blockmetadata])
 
-        self.transport.write(self.wrap_message('EBHL', json.dumps(blocknum_headerhash)))
+        self.transport.write(self.wrap_message('EBHL', MessageToJson(blocknum_headerhash)))
         self.fork_timestamp = time.time()
 
     def EBHL(self, data):
@@ -117,35 +120,28 @@ class P2PProtocol(Protocol):
         Evaluate Block Headerhash List
         :return:
         """
-        logger.debug('-->>EBHL received')
+        logger.info('-->>EBHL received by %s', self.conn_identity)
         if time.time() - self.fork_timestamp > 120:  # Reject if replied after 2 minutes
             return
 
-        logger.debug('-->>EBHL processing')
-        blocknum_headerhash = json.loads(data)
-        blocknum_headerhash = {int(k): v for k, v in blocknum_headerhash.items()}
-
-        blocknum = min(blocknum_headerhash)
-
-        if blocknum > self.factory.chain.block_chain_buffer.height():
-            return
+        logger.info('-->>EBHL processing')
+        blocknum_headerhash = qrl_pb2.BlockMetaDataList()
+        Parse(data, blocknum_headerhash)
 
         last_matching_blocknum = None
-        while blocknum in blocknum_headerhash:
-            if blocknum > self.factory.chain.block_chain_buffer.height():
+        for blockmetadata in blocknum_headerhash.block_number_hashes:
+            if blockmetadata.block_number > self.factory.chain.block_chain_buffer.height():
                 return
 
-            block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
+            block = self.factory.chain.block_chain_buffer.get_block_n(blockmetadata.block_number)
 
-            if blocknum_headerhash[blocknum] != block.blockheader.headerhash:
+            if blockmetadata.hash_header != block.blockheader.headerhash:
                 if last_matching_blocknum:
                     # Check if the forked point is within chainbuffer
-                    if blocknum in self.factory.chain.block_chain_buffer.blocks:
-                        self.transport.write(self.wrap_message('resend_BKMR', blocknum))
+                    if blockmetadata.block_number in self.factory.chain.block_chain_buffer.blocks:
+                        self.transport.write(self.wrap_message('resend_BKMR', blockmetadata.block_number))
                 return
-            last_matching_blocknum = blocknum
-
-            blocknum += 1
+            last_matching_blocknum = blockmetadata.block_number
 
         self.fork_timestamp = time.time()
 
@@ -156,14 +152,17 @@ class P2PProtocol(Protocol):
 
         block = block_chain_buffer.get_block_n(blocknum)
 
-        data = {'hash': block.blockheader.headerhash,
-                'type': 'BK',
-                'stake_selector': block.transactions[0].txto,
-                'blocknumber': block.blockheader.blocknumber,
-                'prev_headerhash': block.blockheader.prev_blockheaderhash,
-                'reveal_hash': block.blockheader.reveal_hash, }
+        data = qrl_pb2.MR()
+        data.stake_selector = block.transactions[0].addr_from
+        data.block_number = block.blockheader.blocknumber
+        data.prev_headerhash = bytes(block.blockheader.prev_blockheaderhash)
+        data.hash = block.blockheader.headerhash
+        data.type = 'BK'
 
-        self.transport.write(self.protocol.wrap_message('MR', json.dumps(data)))
+        if block.blockheader.blocknumber > 1:
+            data.reveal_hash = block.blockheader.reveal_hash
+
+        self.transport.write(self.protocol.wrap_message('MR', MessageToJson(data)))
 
         return
 

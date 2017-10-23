@@ -233,7 +233,6 @@ class P2PFactory(ServerFactory):
     def send_block_to_peers(self, block):
         # logger.info('<<<Transmitting block: ', block.blockheader.headerhash)
         data = qrl_pb2.MR()
-        k = qrl_pb2.Transaction()
         data.stake_selector = block.transactions[0].addr_from
         data.block_number = block.blockheader.blocknumber
         data.prev_headerhash = bytes(block.blockheader.prev_blockheaderhash)
