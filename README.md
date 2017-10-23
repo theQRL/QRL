@@ -1,4 +1,4 @@
-[![GitHub version](https://badge.fury.io/gh/theqrl%2Fqrl.svg)](https://badge.fury.io/gh/theqrl%2Fqrl)
+[![PyPI version](https://badge.fury.io/py/qrl.svg)](https://badge.fury.io/py/qrl)
 [![Build Status](https://travis-ci.org/theQRL/QRL.svg?branch=master)](https://travis-ci.org/theQRL/QRL)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/37ffe8d11be94eb5aeb5d29379dd3543)](https://www.codacy.com/app/jleni/QRL?utm_source=github.com&utm_medium=referral&utm_content=theQRL/QRL&utm_campaign=badger)
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/37ffe8d11be94eb5aeb5d29379dd3543)](https://www.codacy.com/app/jleni/QRL?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=theQRL/QRL&amp;utm_campaign=Badge_Coverage)
@@ -36,10 +36,8 @@ sudo apt -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-co
 To get the source and start the node, use the following:
 
 ```bash
-git clone https://github.com/theQRL/QRL.git
-cd QRL/
-sudo pip3 install -r requirements.txt
-python3 start_qrl.py
+pip3 install -U qrl
+start_qrl.py
 ```
 
 ## Debian Jessie :white_check_mark:
@@ -60,10 +58,8 @@ echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /e
 To get the source and start the node, use the following:
 
 ```bash
-git clone https://github.com/theQRL/QRL.git
-cd QRL/
-sudo pip3 install -r requirements.txt
-python3 start_qrl.py
+pip3 install -U qrl
+start_qrl.py
 ```
 
 ## OSX :white_check_mark:
@@ -79,10 +75,8 @@ brew install cmake python3 swig boost
 To get the source and start the node, use the following:
 
 ```bash
-git clone https://github.com/theQRL/QRL.git
-cd QRL/
-sudo pip3 install -r requirements.txt
-python3 start_qrl.py
+pip3 install -U qrl
+start_qrl.py
 ```
 
 ## Raspberry Pi (Raspbian Stretch) :white_check_mark:
@@ -97,10 +91,8 @@ sudo pip3 install -U setuptools pip
 To get the source and start the node, use the following:
 
 ```bash
-git clone https://github.com/theQRL/QRL.git
-cd QRL/
-sudo pip3 install -r requirements.txt
-python3 start_qrl.py
+pip3 install -U qrl
+start_qrl.py
 ```
 
 ## Raspberry Pi (Raspbian Jessie) :seedling:
@@ -122,10 +114,8 @@ echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /e
 To get the source and start the node, use the following:
 
 ```bash
-git clone https://github.com/theQRL/QRL.git
-cd QRL/
-sudo pip3 install -r requirements.txt
-python3 start_qrl.py
+pip3 install -U qrl
+start_qrl.py
 ```
 
 If you get the following error:
