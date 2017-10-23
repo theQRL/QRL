@@ -1,5 +1,5 @@
 #Download base ubuntu image
-FROM ubuntu:16.04
+FROM ubuntu:14.04
 RUN apt-get update && \
     apt-get -y install software-properties-common python-software-properties && \
     apt-get -y install ca-certificates curl && \
@@ -8,6 +8,7 @@ RUN apt-get update && \
 # Prepare python
 RUN apt-get -y install swig3.0 python3 python3-dev python3-pip
 
+RUN pip3 install -U scikit-build
 RUN pip3 install --upgrade pip cmake virtualenv setuptools PyScaffold==2.5.8
 
 RUN echo "ALL ALL=NOPASSWD: ALL" >> /etc/sudoers
@@ -16,9 +17,11 @@ RUN echo "ALL ALL=NOPASSWD: ALL" >> /etc/sudoers
 # TODO: define any required environment variables
 
 # COPY - Copy configuration/scripts
-COPY travis/xenial/build.sh /build.sh
+COPY travis/trusty/build.sh /build.sh
 
 # VOLUME - link directories to host
+
+# TODO: Map to host directory to keep wallets outside
 
 # START SCRIPT - The script is started from travis with the appropriate environment variables
 
