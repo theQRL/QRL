@@ -13,8 +13,9 @@ class grpc_exception_wrapper(object):
             try:
                 return f(caller_self, request, context)
             except Exception as e:
-                context.set_code(self.state_code)
-                context.set_details(str(e))
+                if context is not None:
+                    context.set_code(self.state_code)
+                    context.set_details(str(e))
                 return self.response_type()
 
         return wrap_f

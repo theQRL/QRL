@@ -1,4 +1,6 @@
 # coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import json
 import struct
 import time
@@ -1068,12 +1070,11 @@ class P2PProtocol(Protocol):
         :return:
         :rtype: bool
 
-        >>> from qrl.core.doctest_data import wrap_message_expected1
         >>> p=P2PProtocol()
-        >>> p.buffer = wrap_message_expected1
+        >>> p.buffer = bytes(hstr2bin("ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff"))
         >>> found_message = p.parse_buffer()
         >>> p.messages
-        [bytearray(b'{"data": 12345, "type": "TESTKEY_1234"}')]
+        [b'{"data": 12345, "type": "TESTKEY_1234"}']
         """
         # FIXME
         if len(self.buffer) == 0:
@@ -1158,10 +1159,9 @@ class P2PProtocol(Protocol):
         :rtype: None
 
         >>> from unittest.mock import MagicMock
-        >>> from qrl.core.doctest_data import wrap_message_expected1
         >>> p=P2PProtocol()
         >>> p.service['TESTKEY_1234'] = MagicMock(side_effect=(lambda x: x))
-        >>> p.dataReceived(wrap_message_expected1)
+        >>> p.dataReceived(bytes(hstr2bin("ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff")))
         >>> p.service['TESTKEY_1234'].call_args
         call(12345)
         >>> from unittest.mock import MagicMock
