@@ -3,7 +3,7 @@ dist: trusty
 services: docker
 language: cpp
 python:
-- '3.4'
+- '3.5'
 cache:
   timeout: 600
 
@@ -41,7 +41,8 @@ jobs:
       - PLATFORM='xenial'
       - DEPLOY='TRUE'
       script:
-      - sudo pip install -U pip setuptools twine
+      - sudo apt install -y python-dev libssl-dev libffi-dev
+      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1
       - "./travis/build.sh"
 
       deploy:
