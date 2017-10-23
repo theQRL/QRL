@@ -323,6 +323,7 @@ class ChainBuffer:
         stake_validators_list.update_sv(blocknumber)
 
     def get_strongest_block(self, blocknumber):
+        # FIXME: Obsolete?
         try:
             if blocknumber <= self.chain.height():
                 return self.chain.m_get_block(blocknumber)
@@ -336,6 +337,7 @@ class ChainBuffer:
         return None
 
     def get_strongest_headerhash(self, blocknumber):
+        # FIXME: Obsolete?
         try:
             if blocknumber <= self.chain.height():
                 return self.chain.m_get_block(blocknumber).blockheader.headerhash
@@ -427,6 +429,7 @@ class ChainBuffer:
         return None
 
     def describe(self):
+        # FIXME: Obsolete?
         """
         For debugging purpose only
         :return:

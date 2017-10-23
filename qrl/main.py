@@ -48,6 +48,15 @@ def main():
 
     args = parser.parse_args()
 
+    logger.debug("=====================================================================================")
+
+    logger.info("Data Path: %s", args.data_path)
+    logger.info("Wallet Path: %s", args.wallet_path)
+    config.user.data_path = args.data_path
+    config.user.wallet_path = args.wallet_path
+    config.create_path(config.user.data_path)
+    config.create_path(config.user.wallet_path)
+
     node_state = NodeState()
 
     # Logging configuration
@@ -66,15 +75,6 @@ def main():
     logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
     logger.set_unhandled_exception_handler()
     logger_twisted.enable_twisted_log_observer()
-
-    logger.debug("=====================================================================================")
-
-    logger.info("Data Path: %s", args.data_path)
-    logger.info("Wallet Path: %s", args.wallet_path)
-    config.user.data_path = args.data_path
-    config.user.wallet_path = args.wallet_path
-    config.create_path(config.user.data_path)
-    config.create_path(config.user.wallet_path)
 
     ntp.setDrift()
 
