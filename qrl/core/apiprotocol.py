@@ -1,13 +1,11 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import copy
-import json
+
 import time
 from operator import itemgetter
 
-import statistics
-from unicodedata import decimal
+from decimal import Decimal
 
 from twisted.internet.protocol import Protocol, connectionDone
 
@@ -22,7 +20,7 @@ class ApiProtocol(Protocol):
     def __init__(self):
         self.api_list = [
             'empty',                            # OBSOLETE
-            'balance'                           # OBSOLETE use GetAddressState
+            'balance',                          # OBSOLETE use GetAddressState
             'next_stakers',                     # OBSOLETE
             'ping',                             # Get peer latencies
             'latency',                          # Stake validator latencies (unify?)
@@ -112,13 +110,11 @@ class ApiProtocol(Protocol):
 
         for staker in self.factory.state.stake_validators_list.sv_list:
             sv = self.factory.state.stake_validators_list.sv_list[staker]
-            tmp_stakers = {'address': sv.stake_validator,
+            tmp_stakers = {'address': sv.stake_validator.decode(),
+                           'activation_blocknumber': sv.activation_blocknumber,
                            'balance': self.factory.format_qrlamount(sv.balance),
-                           'hash_terminator': [],
+                           'hash_terminator': bin2hstr(tuple(sv.hash)),
                            'nonce': sv.nonce}
-
-            for i in range(len(sv.hashchain_terminators)):
-                tmp_stakers['hash_terminator'].append(bin2hstr(sv.hashchain_terminators[i]))
 
             stakers['stake_list'].append(tmp_stakers)
 
@@ -130,16 +126,13 @@ class ApiProtocol(Protocol):
         next_stakers = {'status': 'ok',
                         'stake_list': []}
 
-        for staker in self.factory.state.stake_validators_list.next_sv_list:
-            sv = self.factory.state.stake_validators_list.next_sv_list[staker]
-            tmp_stakers = {'address': sv.stake_validator,
+        for staker in self.factory.state.stake_validators_list.future_stake_addresses:
+            sv = self.factory.state.stake_validators_list.future_stake_addresses[staker]
+            tmp_stakers = {'activation_blocknumber': sv.activation_blocknumber,
+                           'address': sv.stake_validator,
                            'balance': self.factory.format_qrlamount(sv.balance),
-                           'hash_terminator': [],
+                           'hash_terminator': bin2hstr(tuple(sv.hash)),
                            'nonce': sv.nonce}
-
-
-            for i in range(len(sv.hashchain_terminators)):
-                tmp_stakers['hash_terminator'].append(bin2hstr(sv.hashchain_terminators[i]))
 
             next_stakers['stake_list'].append(tmp_stakers)
 
@@ -321,17 +314,18 @@ class ApiProtocol(Protocol):
         except:
             return json_print_telnet(error)
 
-        js_bk = self.factory.chain.m_get_block(int(data))
+        bk = self.factory.chain.m_get_block(int(data))
 
-        if not js_bk:
+        if not bk:
             return json_print_telnet(error)
         else:
-            js_bk1 = copy.deepcopy(js_bk)
-            js_bk1.number_transactions = len(js_bk1.transactions)
-            js_bk1.status = 'ok'
-            self.factory.reformat_block(js_bk1)
+            js_bk1 = bk.to_json()
+            #js_bk1['number_transactions'] = str(len(bk.transactions)).encode()
+            #js_bk1['status'] = b'ok'
+            #self.factory.reformat_block(js_bk1)
 
-            return json_print_telnet(js_bk1)
+            return js_bk1
+            #return js_bk1.to_json()
 
     def ip_geotag(self, data=None):
         logger.info('<<< API ip_geotag call')
@@ -475,7 +469,7 @@ class ApiProtocol(Protocol):
 
     def _format_qrlamount(self, balance):
         # FIXME: Magic number? Unify
-        return format(float(balance / decimal(100000000.00000000)), '.8f')
+        return format(float(balance / Decimal(100000000.00000000)), '.8f')
 
     def _search_address(self, address):
         return self.factory.search_address(address)
