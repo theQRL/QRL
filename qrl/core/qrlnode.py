@@ -28,7 +28,7 @@ class QRLNode:
     @property
     def version(self):
         # FIXME: Move to __version__ coming from pip
-        return config.dev.version_number
+        return config.dev.version
 
     @property
     def state(self):

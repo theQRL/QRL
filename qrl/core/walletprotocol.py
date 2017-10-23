@@ -473,7 +473,7 @@ class WalletProtocol(Protocol):
 
     def _getinfo(self, args):
         self.output['status'] = 0
-        self.output['message'].write('>>> Version: ' + config.dev.version_number + '\r\n')
+        self.output['message'].write('>>> Version: ' + config.dev.version + '\r\n')
         self.output['message'].write('>>> Uptime: ' + str(time.time() - self.factory.start_time) + '\r\n')
         self.output['message'].write(
             '>>> Nodes connected: ' + str(len(self.factory.p2pFactory.peer_connections)) + '\r\n')
@@ -481,7 +481,7 @@ class WalletProtocol(Protocol):
         self.output['message'].write('>>> Sync status: ' + self.factory.p2pFactory.nodeState.state.name + '\r\n')
 
         self.output['keys'] += ['version', 'uptime', 'nodes_connected', 'staking_status', 'sync_status']
-        self.output['version'] = config.dev.version_number
+        self.output['version'] = config.dev.version
         self.output['uptime'] = str(time.time() - self.factory.start_time)
         self.output['nodes_connected'] = str(len(self.factory.p2pFactory.peer_connections))
         self.output['staking_status'] = str(self.factory.p2pFactory.stake)
