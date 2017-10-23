@@ -64,6 +64,7 @@ class UserConfig(object):
 
 
 def create_path(path):
+    # FIXME: Obsolete. Refactor/remove. Use makedirs from python3
     tmp_path = os.path.join(path)
     if not os.path.isdir(tmp_path):
         os.makedirs(tmp_path)

@@ -6,6 +6,7 @@ import sys
 import logging
 import traceback
 
+import os
 from colorlog import ColoredFormatter
 from logging.handlers import RotatingFileHandler
 
@@ -36,6 +37,8 @@ def initialize_default(force_console_output=False, log_level=logging.DEBUG):
 
 
 def log_to_file(filename=LOG_FILENAME_DEFAULT):
+    dir_path = os.path.dirname(os.path.realpath(filename))
+    os.makedirs(dir_path, exist_ok=True)
     handler = RotatingFileHandler(filename,
                                   mode='a',
                                   maxBytes=LOG_MAXBYTES,
