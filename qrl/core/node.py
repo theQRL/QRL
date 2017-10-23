@@ -382,6 +382,7 @@ class POS:
         for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
             self.p2pFactory.target_peers[peer.conn_identity] = peer
         self.update_node_state(NState.syncing)
+        logger.info('Initializing download from %s', self.chain.height()+1)
         self.randomize_block_fetch(self.chain.height() + 1)
 
     def pre_block_logic(self, block):

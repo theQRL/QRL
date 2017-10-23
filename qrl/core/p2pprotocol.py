@@ -51,7 +51,8 @@ class P2PProtocol(Protocol):
                         'IP': self.IP,  # Get IP (geotagging?)
                         'FBHL': self.FBHL,  # Fetch Blockheaderhash List
                         'PBHL': self.PBHL,  # Push Blockheaderhash List
-                        'EBHL': self.EBHL  # Evaluate Blockheaderhash List
+                        'EBHL': self.EBHL,  # Evaluate Blockheaderhash List
+                        'resend_SFM': self.resend_SFM  # resend Block from the point of fork
                         }
         self.buffer = b''
         self.messages = []
@@ -103,9 +104,9 @@ class P2PProtocol(Protocol):
         Push Block Headerhash List
         :return:
         """
-        logger.info('PBHL received by %s', self.conn_identity)
+        logger.debug('PBHL received by %s', self.conn_identity)
         blocknum_headerhash = qrl_pb2.BlockMetaDataList()
-        for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber):
+        for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber + 1):
             blockmetadata = qrl_pb2.BlockMetaData()
             block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
             if not block:
@@ -122,11 +123,10 @@ class P2PProtocol(Protocol):
         Evaluate Block Headerhash List
         :return:
         """
-        logger.info('-->>EBHL received by %s', self.conn_identity)
+        logger.debug('EBHL received by %s', self.conn_identity)
         if time.time() - self.fork_timestamp > 120:  # Reject if replied after 2 minutes
             return
 
-        logger.info('-->>EBHL processing')
         blocknum_headerhash = qrl_pb2.BlockMetaDataList()
         Parse(data, blocknum_headerhash)
 
@@ -141,30 +141,31 @@ class P2PProtocol(Protocol):
                 if last_matching_blocknum:
                     # Check if the forked point is within chainbuffer
                     if blockmetadata.block_number in self.factory.chain.block_chain_buffer.blocks:
-                        self.transport.write(self.wrap_message('resend_BKMR', blockmetadata.block_number))
+                        logger.debug('Calling peer resend_SFM %s', blockmetadata.block_number)
+                        self.transport.write(self.wrap_message('resend_SFM', blockmetadata.block_number))
                 return
             last_matching_blocknum = blockmetadata.block_number
 
         self.fork_timestamp = time.time()
 
-    def resend_BKMR(self, blocknum):
+    def resend_SFM(self, blocknum):
+        logger.debug('Resending SFM %s', blocknum)
         block_chain_buffer = self.factory.chain.block_chain_buffer
         if blocknum > block_chain_buffer.height():
             return
 
-        block = block_chain_buffer.get_block_n(blocknum)
+        max_blocknum = min(block_chain_buffer.height()+1, blocknum+config.dev.blocks_per_epoch)
+        for blocknumber in range(blocknum, max_blocknum):
+            block = block_chain_buffer.get_block_n(blocknumber)
 
-        data = qrl_pb2.MR()
-        data.stake_selector = block.transactions[0].addr_from
-        data.block_number = block.blockheader.blocknumber
-        data.prev_headerhash = bytes(block.blockheader.prev_blockheaderhash)
-        data.hash = block.blockheader.headerhash
-        data.type = 'BK'
+            data = qrl_pb2.MR()
+            data.hash = block.blockheader.headerhash
+            data.type = 'BK'
 
-        if block.blockheader.blocknumber > 1:
-            data.reveal_hash = block.blockheader.reveal_hash
+            if block.blockheader.blocknumber > 1:
+                data.reveal_hash = block.blockheader.reveal_hash
 
-        self.transport.write(self.protocol.wrap_message('MR', MessageToJson(data)))
+            self.SFM(MessageToJson(data))
 
         return
 
