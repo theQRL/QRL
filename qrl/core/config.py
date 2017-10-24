@@ -111,7 +111,7 @@ class DevConfig(object):
         self.xmss_tree_height = 10
         self.default_nonce = 0
         self.default_account_balance = 100 * (10 ** 8)
-        self.default_pubhash_blacklist = []
+        #self.default_pubhash_blacklist = []  Only constants should be the part of config. List is not constant.
 
         self.db_name = 'state'
         self.peers_filename = 'peers.qrl'

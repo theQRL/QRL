@@ -105,7 +105,7 @@ class State:
             return self._get_address_state(address)
         except KeyError:
             # FIXME: Check all cases where address is not found
-            return [config.dev.default_nonce, config.dev.default_account_balance, config.dev.default_pubhash_blacklist]
+            return [config.dev.default_nonce, config.dev.default_account_balance, []]
 
     def address_used(self, address):
         try:
@@ -333,8 +333,6 @@ class State:
                 if tx.txfrom in destake_txn:
                     logger.warning('Block may not have both Stake and Destake txn of same address %s', tx.txfrom)
                     return False
-
-                address_txn[tx.txfrom][2].append(tx.pubhash)
 
                 if tx.txfrom in stake_validators_list.sv_list:
                     expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch

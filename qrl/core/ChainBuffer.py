@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr, XmssPool
+from pyqrllib.pyqrllib import str2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
@@ -200,7 +200,7 @@ class ChainBuffer:
 
         self.clean_if_required(blocknum)
 
-        self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + hstr2bin(self.epoch_seed)))
+        self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + str2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
         chain.update_tx_metadata(block)
