@@ -15,7 +15,7 @@ from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState
 from qrl.core.nstate import NState
-from qrl.core.Transaction import DuplicateTransaction, Transaction
+from qrl.core.Transaction import DuplicateTransaction, Transaction, CoinBase
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.generated import qrl_pb2
 from queue import PriorityQueue
@@ -237,7 +237,7 @@ class P2PProtocol(Protocol):
 
             if not block_chain_buffer.verify_BK_hash(mr_data, self.conn_identity):
                 if block_chain_buffer.is_duplicate_block(blocknum=mr_data.block_number,
-                                                         prev_blockheaderhash=tuple(mr_data.prev_headerhash),
+                                                         prev_blockheaderhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
                 elif mr_data.block_number > self.factory.chain.block_chain_buffer.height() - config.dev.reorg_limit:
@@ -477,9 +477,11 @@ class P2PProtocol(Protocol):
             logger.info('Found duplicate block #%s by %s',
                         block.blockheader.blocknumber,
                         block.blockheader.stake_selector)
-            coinbase_txn = block.transactions[0]
+            coinbase_txn = CoinBase.from_pbdata(block.transactions[0])
 
             sv_list = self.factory.chain.block_chain_buffer.stake_list_get(block.blockheader.blocknumber)
+            # FIXME : Commented for now, need to re-enable once DT txn has been fixed
+            '''
             if coinbase_txn.validate_extended(sv_list=sv_list, blockheader=block.blockheader):
                 self.factory.master_mr.register_duplicate(block.blockheader.headerhash)
                 block2 = block_chain_buffer.get_block_n(block.blockheader.blocknumber)
@@ -488,7 +490,7 @@ class P2PProtocol(Protocol):
                 if duplicate_txn.validate():
                     self.factory.chain.add_tx_to_duplicate_pool(duplicate_txn)
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
-
+            '''
         self.factory.pos.pre_block_logic(block)
         self.factory.master_mr.register(block.blockheader.headerhash, data, 'BK')
         return

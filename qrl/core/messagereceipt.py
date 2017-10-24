@@ -7,7 +7,7 @@ from collections import OrderedDict
 from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
-
+from qrl.core.Transaction import CoinBase
 
 class MessageReceipt(object):
     """
@@ -99,20 +99,17 @@ class MessageReceipt(object):
             return False
 
         params = self.requested_hash[msg_hash].params
-
-        if block.transactions[0].addr_from != params['stake_selector']:
+        coinbase_tx = CoinBase.from_pbdata(block.transactions[0])
+        if coinbase_tx.txfrom != params.stake_selector:
             return False
 
-        if block.blockheader.blocknumber != params['blocknumber']:
+        if block.blockheader.blocknumber != params.block_number:
             return False
 
-        if block.blockheader.prev_blockheaderhash != params['prev_headerhash']:
+        if block.blockheader.prev_blockheaderhash != params.prev_headerhash:
             return False
 
-        if block.blockheader.reveal_hash != params['reveal_hash']:
-            return False
-
-        if block.blockheader.vote_hash != params['vote_hash']:
+        if block.blockheader.reveal_hash != params.reveal_hash:
             return False
 
         return True
