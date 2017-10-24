@@ -32,6 +32,11 @@ class P2PNodeStub(object):
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
+    self.GetInfo = channel.unary_unary(
+        '/qrl.P2PNode/GetInfo',
+        request_serializer=qrl__pb2.GetInfoReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetInfoResp.FromString,
+        )
 
 
 class P2PNodeServicer(object):
@@ -60,6 +65,13 @@ class P2PNodeServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetInfo(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_P2PNodeServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -72,6 +84,11 @@ def add_P2PNodeServicer_to_server(servicer, server):
           servicer.GetKnownPeers,
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
           response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
+      ),
+      'GetInfo': grpc.unary_unary_rpc_method_handler(
+          servicer.GetInfo,
+          request_deserializer=qrl__pb2.GetInfoReq.FromString,
+          response_serializer=qrl__pb2.GetInfoResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

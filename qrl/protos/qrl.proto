@@ -26,6 +26,7 @@ service P2PNode
 {
     rpc Ping (PingReq) returns (PongResp) { }
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
+    rpc GetInfo (GetInfoReq) returns (GetInfoResp);
 }
 
 // This service describes the Public API used by clients (wallet/cli/etc)
@@ -56,16 +57,17 @@ service AdminAPI
 ////////////////////////////
 ////////////////////////////
 
-message PingReq {
-    string name = 1;
-}
-message PongResp {
-    string message = 1;
-}
-message GetKnownPeersReq {
-}
+message PingReq     {   string name = 1;        }
+message PongResp    {   string message = 1;     }
+
+message GetKnownPeersReq { }
 message GetKnownPeersResp {
     KnownPeers known_peers = 1;
+}
+
+message GetInfoReq { }
+message GetInfoResp {
+    NodeInfo info = 1;
 }
 
 ////////////////////////////

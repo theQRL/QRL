@@ -17,7 +17,7 @@ class QRLNode:
     def __init__(self, db_state: State):
         self.start_time = time.time()
 
-        self.peer_addresses = []
+        self._peer_addresses = []
         self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
         self._load_peer_addresses()
 
@@ -43,7 +43,7 @@ class QRLNode:
     @property
     def num_known_peers(self):
         # FIXME
-        return len(self.peer_addresses)
+        return len(self._peer_addresses)
 
     @property
     def uptime(self):
@@ -111,6 +111,10 @@ class QRLNode:
             total_at_stake += self.db_state.balance(staker)
         return total_at_stake
 
+    @property
+    def peer_addresses(self):
+        return self._peer_addresses
+
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain):
         self._chain = chain
@@ -126,7 +130,7 @@ class QRLNode:
                 with open(self.peers_path, 'rb') as infile:
                     known_peers = qrl_pb2.KnownPeers()
                     known_peers.ParseFromString(infile.read())
-                    self.peer_addresses = [peer.ip for peer in known_peers.peers]
+                    self._peer_addresses = [peer.ip for peer in known_peers.peers]
                     return
         except Exception as e:
             logger.warning("Error loading peers")
@@ -137,13 +141,13 @@ class QRLNode:
         config.create_path(config.user.data_path)
         self.update_peer_addresses(config.user.peer_list)
 
-        logger.info('Known Peers: %s', self.peer_addresses)
+        logger.info('Known Peers: %s', self._peer_addresses)
 
     def update_peer_addresses(self, peer_addresses) -> None:
         # FIXME: Probably will be refactored
-        self.peer_addresses = peer_addresses
+        self._peer_addresses = peer_addresses
         known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.peer_addresses])
+        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
@@ -343,3 +347,16 @@ class QRLNode:
                     break
 
         return answer
+
+    def getNodeInfo(self)->qrl_pb2.NodeInfo:
+        info = qrl_pb2.NodeInfo()
+        info.version = self.version
+        info.state = self.state
+        info.num_connections = self.num_connections
+        info.num_known_peers = self.num_known_peers
+        info.uptime = self.uptime
+        info.block_height = self.block_height
+        info.block_last_hash = b''  # FIXME
+        info.stake_enabled = self.staking
+        info.network_id = config.dev.genesis_prev_headerhash  # FIXME
+        return info

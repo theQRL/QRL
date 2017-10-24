@@ -102,7 +102,7 @@ class PublicAPITest(TestCase):
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(chain)
-        qrlnode.peer_addresses = ['127.0.0.1', '192.168.1.1']
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
         response = service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
@@ -124,7 +124,7 @@ class PublicAPITest(TestCase):
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(chain)
-        qrlnode.peer_addresses = ['127.0.0.1', '192.168.1.1']
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
 

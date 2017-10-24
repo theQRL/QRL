@@ -7,7 +7,7 @@ import logging
 from twisted.internet import reactor
 
 from qrl.core.qrlnode import QRLNode
-from qrl.services.services import start_services
+from qrl.services.services import start_services, start_client
 from . import webwallet
 from .core import logger, ntp, config
 from .core.apifactory import ApiFactory
@@ -98,6 +98,7 @@ def main():
     #######
     # NOTE: Keep assigned to a variable or it will be collected
     qrlserver = start_services(qrlnode)
+    qrlclient = start_client(qrlnode)
     #######
 
 

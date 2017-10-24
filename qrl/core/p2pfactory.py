@@ -254,8 +254,8 @@ class P2PFactory(ServerFactory):
         :return:
         :rtype: None
         """
-        logger.info('<<<Reconnecting to peer list: %s', self.node.peer_addresses)
-        for peer_address in self.node.peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self.node._peer_addresses)
+        for peer_address in self.node._peer_addresses:
             # FIXME: Refactor search
             found = False
             for peer_conn in self.peer_connections:
