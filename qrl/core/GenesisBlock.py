@@ -75,9 +75,9 @@ class GenesisBlock(object, metaclass=Singleton):
         >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
         b'\\x00\\x00\\x00\\x00\\x00\\x00'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
-        '330f7ecf68a1bc4b8d0fdfe4343ad18a67b5b798c2226c2efac0195aaee530fb'
+        '82a1be60d16457909930a0987547d59320ff5be982cf172440cada812451f66d'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
-        'ad2395bfce6b1efe52330237d7faff3e9efe98500c3c283f1fb7ca71b8f64d5e'
+        '3db80b421931369dfdf3fd19b401e789decac370afcd1f3a50acf2c915545d6e'
         """
         self.blockheader = self.blockheader.create(chain=chain,
                                                    blocknumber=0,
