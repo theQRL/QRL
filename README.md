@@ -37,7 +37,7 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
-start_qrl.py
+start_qrl
 ```
 
 ## Debian Jessie :white_check_mark:
@@ -59,7 +59,7 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
-start_qrl.py
+start_qrl
 ```
 
 ## OSX :white_check_mark:
@@ -76,7 +76,7 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
-start_qrl.py
+start_qrl
 ```
 
 ## Raspberry Pi (Raspbian Stretch) :white_check_mark:
@@ -92,7 +92,7 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
-start_qrl.py
+start_qrl
 ```
 
 ## Raspberry Pi (Raspbian Jessie) :seedling:
@@ -115,7 +115,7 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
-start_qrl.py
+start_qrl
 ```
 
 If you get the following error:
