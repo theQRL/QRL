@@ -8,6 +8,7 @@ import time
 from qrl.core import config, logger, Transaction
 from qrl.core.Transaction import TransferTransaction
 from qrl.core.block import Block
+from qrl.core.nstate import NState
 from qrl.core.state import State
 from qrl.generated import qrl_pb2
 
@@ -32,7 +33,9 @@ class QRLNode:
 
     @property
     def state(self):
-        # FIXME
+        if self._p2pfactory is None:
+            return NState.unknown.value
+
         return self._p2pfactory.nodeState.state.value
 
     @property
@@ -131,6 +134,7 @@ class QRLNode:
                     known_peers = qrl_pb2.KnownPeers()
                     known_peers.ParseFromString(infile.read())
                     self._peer_addresses = [peer.ip for peer in known_peers.peers]
+                    self._peer_addresses.extend(config.user.peer_list)
                     return
         except Exception as e:
             logger.warning("Error loading peers")

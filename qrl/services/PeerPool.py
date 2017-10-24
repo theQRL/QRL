@@ -22,6 +22,7 @@ class PeerPool(object):
         # TODO: Create a bloom filter (as a black list) to avoid frequent reconnections
 
     def add(self, addr_list):
+        # FIXM
         with self._lock:
             # FIXME: Limit amount of connections
             for peer_ip in addr_list:
@@ -42,7 +43,7 @@ class PeerPool(object):
             # FIXME: Flush very old connections to promote change, swap peers, etc. Use hash logic
             pass
 
-    def stable_stubs(self)->list:
+    def stable_stubs(self) -> list:
         with self._lock:
             # FIXME: Improve look up
             tmp = []
@@ -65,18 +66,24 @@ class PeerPool(object):
                 try:
                     def add_peers_callback(f):
                         if f.code() == grpc.StatusCode.OK:
-                            peer_list = (peer.ip for peer in f.result().known_peers.peers)
+                            res = f.result()
+                            peer_list = (peer.ip for peer in res.known_peers)
                             # TODO: Make a second call to check version or remove node
+                            print(res.version)
                             self.add(peer_list)
                         else:
                             # FIXME: Open PR to expose this or keep a relation between future/peer
                             self.remove([f._call.peer().decode()])
 
-                    stub.GetKnownPeers.future(qrl_pb2.GetKnownPeersReq(),
-                                              timeout=PeerPool.TIMEOUT_SECS).add_done_callback(add_peers_callback)
+                    stub.GetInfo.future(qrl_pb2.GetInfoReq(),
+                                        timeout=PeerPool.TIMEOUT_SECS).add_done_callback(add_peers_callback)
 
                 except grpc.RpcError as e:
                     pass
 
-            print("Peers  {} ({})".format(len(self.stable_stubs()), len(self._p2p_stubs)))
+            print("Peers  {:4} ({:4})".format(len(self.stable_stubs()), len(self._p2p_stubs)), end=" ")
+            for k, v in self._p2p_time.items():
+                if time() - v > PeerPool.STABILITY_TIME_SECS:
+                    print(k, end=' ')
+            print()
             sleep(PeerPool.DISCOVERY_TIME_SECS)

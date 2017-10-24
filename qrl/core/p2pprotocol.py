@@ -31,14 +31,14 @@ class P2PProtocol(Protocol):
         # TODO: Comment with some names the services
         self.service = {
             # OBSOLETE?
+            'IP': self.IP,  # SEND/RECV         Get IP (geotagging?)
 
             ######################
-            'VE': self.VE,              # SEND/RECV         Version
-            'IP': self.IP,              # SEND/RECV         Get IP (geotagging?)
-            'PE': self.PE,              # SEND              Peers List (connected peers)
-            'PL': self.PL,              # RECV              Peers List
-            #PING                       # SEND              Pong
-            'PONG': self.PONG,          # RECV/DSEND        Pong
+            'VE': self.VE,              #X SEND/RECV         Version
+            'PE': self.PE,              #X SEND              Peers List (connected peers)
+            'PL': self.PL,              #X RECV              Peers List
+            #PING                       #X SEND              Pong
+            'PONG': self.PONG,          #X RECV/DSEND        Pong
 
             ######################
             'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage

@@ -3,6 +3,7 @@ from enum import Enum
 
 
 class NState(Enum):
+    unknown = 0
     unsynced = 1
     syncing = 2
     synced = 3

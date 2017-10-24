@@ -67,7 +67,8 @@ message GetKnownPeersResp {
 
 message GetInfoReq { }
 message GetInfoResp {
-    NodeInfo info = 1;
+    NodeInfo node_info = 1;
+    repeated Peer known_peers = 2;
 }
 
 ////////////////////////////
