@@ -97,7 +97,7 @@ message GetNodeStateResp {
     NodeInfo info = 1;
 }
 
-message GetAddressStateReq {    string address = 1; }
+message GetAddressStateReq {   bytes address = 1; }
 message GetAddressStateResp {
     AddressState state = 1;
 }
@@ -170,7 +170,7 @@ message WalletStore {
 }
 
 message Wallet {
-    string address = 1;
+    string address = 1;        // FIXME move to bytes
     string mnemonic = 2;
     int32 xmss_index = 3;
 }
@@ -187,7 +187,7 @@ message AddressState {
     //    int64 range = [                                   -9223372036854775808 to 9223372036854775807 ]
     //    QRL coins = 105M - 10^-8 = 104999999.99999999 =>     10499999999999999
 
-    string address = 1;
+    bytes address = 1;
     uint64 balance = 2;
     uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;

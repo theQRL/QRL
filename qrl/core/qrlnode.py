@@ -270,7 +270,7 @@ class QRLNode:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
         # TODO: Validate address format
-        if len(address)<1:
+        if len(address) < 1:
             raise ValueError("Invalid Address")
 
         if address[0] != b'Q':
@@ -338,4 +338,3 @@ class QRLNode:
                     break
 
         return answer
-
