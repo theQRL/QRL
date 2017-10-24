@@ -20,40 +20,61 @@ from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.generated import qrl_pb2
 from queue import PriorityQueue
 
+# SubService Network (Discovery/Health)
+# SubService Synchronization (Block Chain/ForkHealing/etc)
+# SubService POS Controller
+# SubService TX Propagation
+
 
 class P2PProtocol(Protocol):
     def __init__(self):
         # TODO: Comment with some names the services
-        self.service = {'MR': self.MR,  # Message Receipt
-                        'SFM': self.SFM,  # Send Full Message
-                        'TX': self.TX,  # Transaction
-                        'ST': self.ST,  # Stake Transaction
-                        'DST': self.DST, # Destake Transaction
-                        'DT': self.DT,  # Duplicate Transaction
-                        'BM': self.BM,  # Block Height Map
-                        'BK': self.BK,  # Block
-                        'PBB': self.PBB,  # Push Block Buffer
-                        'PB': self.PB,  # Push Block
-                        'PH': self.PH,  # Push Headerhash
-                        'LB': self.LB,  # Last Block
-                        'FMBH': self.FMBH,  # Fetch maximum block height
-                        'PMBH': self.PMBH,  # Push Maximum Block Height
-                        'MB': self.MB,  # Maximum Block Height
-                        'CB': self.CB,  # Check Block Height
-                        'BN': self.BN,  # Block Number
-                        'FB': self.FB,  # Fetch request for block
-                        'FH': self.FH,  # Fetch block header hash
-                        'PONG': self.PONG,  # Ping-Pong
-                        'PL': self.PL,  # Peers List
-                        'RT': self.RT,  # Transaction pool to peer
-                        'PE': self.PE,  # Peers (get a list of connected peers)
-                        'VE': self.VE,  # Version
-                        'IP': self.IP,  # Get IP (geotagging?)
-                        'FBHL': self.FBHL,  # Fetch Blockheaderhash List
-                        'PBHL': self.PBHL,  # Push Blockheaderhash List
-                        'EBHL': self.EBHL,  # Evaluate Blockheaderhash List
-                        'resend_SFM': self.resend_SFM  # resend Block from the point of fork
-                        }
+        self.service = {
+            # OBSOLETE?
+
+            ######################
+            'VE': self.VE,              # SEND/RECV         Version
+            'IP': self.IP,              # SEND/RECV         Get IP (geotagging?)
+            'PE': self.PE,              # SEND              Peers List (connected peers)
+            'PL': self.PL,              # RECV              Peers List
+            #PING                       # SEND              Pong
+            'PONG': self.PONG,          # RECV/DSEND        Pong
+
+            ######################
+            'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
+            'SFM': self.SFM,            # RECV=>SEND        Send Full Message
+
+            'BM': self.BM,              # SEND/RECV Block Height Map
+            'FMBH': self.FMBH,          # Fetch maximum block height
+            'PMBH': self.PMBH,          # Push Maximum Block Height
+            'MB': self.MB,              # SEND      Maximum Block Height
+            'CB': self.CB,              # RECV      Check Block Height
+
+            'BN': self.BN,              # Block Number
+            'FB': self.FB,              # Fetch request for block
+            'BK': self.BK,              # Block
+            'PB': self.PB,              # Push Block
+            'LB': self.LB,              # Last Block
+
+            'PBB': self.PBB,            # Push Block Buffer
+
+            'PH': self.PH,              # Push Headerhash
+            'FH': self.FH,              # Fetch block header hash
+            'FBHL': self.FBHL,          # Fetch Blockheaderhash List
+            'PBHL': self.PBHL,          # Push Blockheaderhash List
+            'EBHL': self.EBHL,          # Evaluate Blockheaderhash List
+
+            'resend_SFM': self.resend_SFM,  # resend Block from the point of fork
+
+            ############################
+            'ST': self.ST,              # RECV/BCAST        Stake Transaction
+            'DST': self.DST,            # Destake Transaction
+            'DT': self.DT,              # Duplicate Transaction
+
+            ############################
+            'TX': self.TX,  # RECV Transaction
+        }
+
         self.buffer = b''
         self.messages = []
         self.conn_identity = None
@@ -816,22 +837,13 @@ class P2PProtocol(Protocol):
         """
         self.recv_peers(data)
 
-    def RT(self):
-        """
-        Transaction_pool to peer
-        :return:
-        """
-        for t in self.factory.chain.transaction_pool:
-            self.f.send_tx_to_peers(t)
-        return
-
     def PE(self):  # get a list of connected peers..need to add some ddos and type checking proteection here..
         """
         Peers
         Sends the list of all connected peers.
         :return:
         """
-        self.get_peers()
+        self.send_peers()
         return
 
     def VE(self, data=None):
@@ -917,15 +929,6 @@ class P2PProtocol(Protocol):
         self.factory.node.update_peer_addresses(peer_addresses)
         return
 
-    def get_latest_block_from_connection(self):
-        """
-        Get Latest Block
-        Sends the request for the last block in the mainchain.
-        :return:
-        """
-        logger.info('<<<Requested last block from %s', self.transport.getPeer().host)
-        self.transport.write(self.wrap_message('LB'))
-        return
 
     def get_m_blockheight_from_connection(self):
         """
@@ -975,7 +978,7 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('VE'))
         return
 
-    def get_peers(self):
+    def send_peers(self):
         """
         Get Peers
         Sends the peers list.
@@ -1246,7 +1249,7 @@ class P2PProtocol(Protocol):
                     str(self.transport.getPeer().port))
 
         self.get_m_blockheight_from_connection()
-        self.get_peers()
+        self.send_peers()
         self.get_version()
         self.disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
         self.ping_callLater = reactor.callLater(1, self.PING)

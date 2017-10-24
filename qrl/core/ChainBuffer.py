@@ -511,9 +511,12 @@ class ChainBuffer:
 
     def send_block(self, blocknumber, transport, wrap_message):
         if blocknumber <= self.chain.height():
+            # FIXME: Breaking encapsulation
             transport.write(wrap_message('PB', self.chain.m_get_block(blocknumber).to_json()))
         elif blocknumber in self.blocks:
             blockStateBuffer = self.blocks[blocknumber]
+
+            # FIXME: Breaking encapsulation
             transport.write(wrap_message('PBB', blockStateBuffer[0].block.to_json()))
 
     def process_pending_blocks(self):
