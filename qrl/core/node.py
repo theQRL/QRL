@@ -276,6 +276,7 @@ class POS:
             txn_msg = tx_peer.wrap_message('TX', tx.to_json())
             for peer in tx_peer.factory.peer_connections:
                 if peer != tx_peer:
+                    # FIXME: Breaks encapsulation
                     peer.transport.write(txn_msg)
 
         for i in range(num - tmp_num):
