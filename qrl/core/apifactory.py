@@ -1,6 +1,7 @@
 # coding=utf-8
 import copy
 from pyqrllib.pyqrllib import bin2hstr
+from google.protobuf.json_format import MessageToJson
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import logger
@@ -151,8 +152,7 @@ class ApiFactory(ServerFactory):
             if tx.txhash == txhash:
                 logger.info('%s found in transaction pool..', txhash)
                 tx_new = copy.deepcopy(tx)
-                self.reformat_txn(tx_new)
-                return json_print_telnet(tx_new)
+                return tx_new.to_json()
 
         try:
             txn_metadata = self.chain.state.db.get(txhash)
@@ -165,8 +165,6 @@ class ApiFactory(ServerFactory):
         tx.confirmations = self.chain.height() - tx.blocknumber
         tx.timestamp = txn_metadata[2]
 
-        tx_new = copy.deepcopy(tx)
-        self.reformat_txn(tx_new)
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))
-        tx_new.status = 'ok'
-        return json_print_telnet(tx_new)
+        tx.status = 'ok'
+        return tx.to_json()
