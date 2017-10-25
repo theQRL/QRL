@@ -36,4 +36,10 @@ class P2PNodeService(P2PNodeServicer):
     def GetBlock(self, request: qrl_pb2.GetBlockReq, context) -> qrl_pb2.GetBlockResp:
         response = qrl_pb2.GetBlockResp()
         response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
+
+        if request.HasField("index"):
+            response.block.CopyFrom(self.qrlnode.get_block_from_index(request.index).pbdata)
+        else:
+            raise NotImplementedError()
+
         return response

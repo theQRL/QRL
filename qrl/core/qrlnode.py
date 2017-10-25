@@ -318,12 +318,19 @@ class QRLNode:
                 return tx
         return None
 
-    def get_block(self, query_hash: bytes) -> Block:
+    def get_block_from_hash(self, query_hash: bytes) -> Block:
         """
         This method returns an object that matches the query hash
         """
         # FIXME: At some point, all objects in DB will indexed by a hash
         raise NotImplementedError()
+
+    def get_block_from_index(self, index: int) -> Block:
+        """
+        This method returns an object that matches the query hash
+        """
+        # FIXME: At some point, all objects in DB will indexed by a hash
+        return self._chain.m_get_block(index)
 
     def get_latest_blocks(self, count=5):
         # FIXME: Simplify this

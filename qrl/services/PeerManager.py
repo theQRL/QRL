@@ -44,6 +44,16 @@ class PeerManager(object):
         # TODO: Create a bloom filter (as a black list) to avoid frequent reconnections
         # TODO: Define a banning time to avoid reconnecting to certain ips
 
+    @property
+    def peer_count(self):
+        with self._lock:
+            return len(self._peers)
+
+    @property
+    def stable_peer_count(self):
+        with self._lock:
+            return sum(1 for v in self._peers.values() if v.is_stable)
+
     def add(self, addr_list):
         # FIXME Get new peers every time there is a new connection
         with self._lock:
@@ -102,26 +112,27 @@ class PeerManager(object):
 
     def _maintain_peers(self):
         while True:
-            for peer_metadata in self._all_peers():
-                if peer_metadata.peers_needs_refresh:
-                    f = peer_metadata.stub.GetKnownPeers.future(qrl_pb2.GetKnownPeersReq(),
-                                                                timeout=PeerManager.TIMEOUT_SECS)
-                    f.pm = peer_metadata
-                    f.add_done_callback(self._add_peers_callback)
-                else:
-                    f = peer_metadata.stub.GetNodeState.future(qrl_pb2.GetNodeStateReq(),
-                                                               timeout=PeerManager.TIMEOUT_SECS)
-                    f.pm = peer_metadata
-                    f.add_done_callback(self._update_state_callback)
+            try:
+                for peer_metadata in self._all_peers():
+                    if peer_metadata.peers_needs_refresh:
+                        f = peer_metadata.stub.GetKnownPeers.future(qrl_pb2.GetKnownPeersReq(),
+                                                                    timeout=PeerManager.TIMEOUT_SECS)
+                        f.pm = peer_metadata
+                        f.add_done_callback(self._add_peers_callback)
+                    else:
+                        f = peer_metadata.stub.GetNodeState.future(qrl_pb2.GetNodeStateReq(),
+                                                                   timeout=PeerManager.TIMEOUT_SECS)
+                        f.pm = peer_metadata
+                        f.add_done_callback(self._update_state_callback)
 
+                # FIXME: QRLNode should probably depend on this
+                tmp = []
+                for peer_metadata in self.stable_peers():
+                    addr = peer_metadata.conn_addr.split(':')[0]
+                    tmp.append(addr)
+                #self.qrlnode.update_peer_addresses(tmp)
 
-            # FIXME: Node should probably depend on this
-            # Update qrl node
-            tmp = []
-            for peer_metadata in self.stable_peers():
-                addr = peer_metadata.conn_addr.split(':')[0]
-                tmp.append(addr)
-            self.qrlnode.update_peer_addresses(tmp)
-
-            sleep(self.REFRESH_CYCLE_SECS)
-            self.recycle()
+                sleep(self.REFRESH_CYCLE_SECS)
+                self.recycle()
+            except Exception as e:
+                logger.exception(e)
