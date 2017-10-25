@@ -360,7 +360,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_list.sv_list:
             total_at_stake += self.factory.state.balance(staker)
 
-        staked = 100 * total_at_stake / total_supply
+        staked = str(round(100 * total_at_stake / total_supply, 2))
 
         # calculate average blocktime over last 100 blocks..
         z = 0
