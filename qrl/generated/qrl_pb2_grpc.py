@@ -22,20 +22,20 @@ class P2PNodeStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.Ping = channel.unary_unary(
-        '/qrl.P2PNode/Ping',
-        request_serializer=qrl__pb2.PingReq.SerializeToString,
-        response_deserializer=qrl__pb2.PongResp.FromString,
+    self.GetNodeState = channel.unary_unary(
+        '/qrl.P2PNode/GetNodeState',
+        request_serializer=qrl__pb2.GetNodeStateReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetNodeStateResp.FromString,
         )
     self.GetKnownPeers = channel.unary_unary(
         '/qrl.P2PNode/GetKnownPeers',
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
-    self.GetInfo = channel.unary_unary(
-        '/qrl.P2PNode/GetInfo',
-        request_serializer=qrl__pb2.GetInfoReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetInfoResp.FromString,
+    self.GetBlock = channel.unary_unary(
+        '/qrl.P2PNode/GetBlock',
+        request_serializer=qrl__pb2.GetBlockReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetBlockResp.FromString,
         )
 
 
@@ -51,7 +51,7 @@ class P2PNodeServicer(object):
   This service describes the P2P API
   """
 
-  def Ping(self, request, context):
+  def GetNodeState(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -65,9 +65,9 @@ class P2PNodeServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetInfo(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
+  def GetBlock(self, request, context):
+    """rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp);
+    """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -75,20 +75,20 @@ class P2PNodeServicer(object):
 
 def add_P2PNodeServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'Ping': grpc.unary_unary_rpc_method_handler(
-          servicer.Ping,
-          request_deserializer=qrl__pb2.PingReq.FromString,
-          response_serializer=qrl__pb2.PongResp.SerializeToString,
+      'GetNodeState': grpc.unary_unary_rpc_method_handler(
+          servicer.GetNodeState,
+          request_deserializer=qrl__pb2.GetNodeStateReq.FromString,
+          response_serializer=qrl__pb2.GetNodeStateResp.SerializeToString,
       ),
       'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
           servicer.GetKnownPeers,
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
           response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
       ),
-      'GetInfo': grpc.unary_unary_rpc_method_handler(
-          servicer.GetInfo,
-          request_deserializer=qrl__pb2.GetInfoReq.FromString,
-          response_serializer=qrl__pb2.GetInfoResp.SerializeToString,
+      'GetBlock': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBlock,
+          request_deserializer=qrl__pb2.GetBlockReq.FromString,
+          response_serializer=qrl__pb2.GetBlockResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
@@ -111,15 +111,15 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetNodeStateReq.SerializeToString,
         response_deserializer=qrl__pb2.GetNodeStateResp.FromString,
         )
-    self.GetStats = channel.unary_unary(
-        '/qrl.PublicAPI/GetStats',
-        request_serializer=qrl__pb2.GetStatsReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetStatsResp.FromString,
-        )
     self.GetKnownPeers = channel.unary_unary(
         '/qrl.PublicAPI/GetKnownPeers',
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
+        )
+    self.GetStats = channel.unary_unary(
+        '/qrl.PublicAPI/GetStats',
+        request_serializer=qrl__pb2.GetStatsReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetStatsResp.FromString,
         )
     self.GetAddressState = channel.unary_unary(
         '/qrl.PublicAPI/GetAddressState',
@@ -159,14 +159,14 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetStats(self, request, context):
+  def GetKnownPeers(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetKnownPeers(self, request, context):
+  def GetStats(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -216,15 +216,15 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.GetNodeStateReq.FromString,
           response_serializer=qrl__pb2.GetNodeStateResp.SerializeToString,
       ),
-      'GetStats': grpc.unary_unary_rpc_method_handler(
-          servicer.GetStats,
-          request_deserializer=qrl__pb2.GetStatsReq.FromString,
-          response_serializer=qrl__pb2.GetStatsResp.SerializeToString,
-      ),
       'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
           servicer.GetKnownPeers,
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
           response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
+      ),
+      'GetStats': grpc.unary_unary_rpc_method_handler(
+          servicer.GetStats,
+          request_deserializer=qrl__pb2.GetStatsReq.FromString,
+          response_serializer=qrl__pb2.GetStatsResp.SerializeToString,
       ),
       'GetAddressState': grpc.unary_unary_rpc_method_handler(
           servicer.GetAddressState,

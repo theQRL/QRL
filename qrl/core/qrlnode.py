@@ -35,11 +35,13 @@ class QRLNode:
     def state(self):
         if self._p2pfactory is None:
             return NState.unknown.value
-
+        # FIXME
         return self._p2pfactory.nodeState.state.value
 
     @property
     def num_connections(self):
+        if self._p2pfactory is None:
+            return 0
         # FIXME
         return self._p2pfactory.connections
 
@@ -54,11 +56,15 @@ class QRLNode:
 
     @property
     def block_height(self):
+        if self._chain.height() < 0:
+            return 0
         # FIXME
         return self._chain.height()
 
     @property
     def staking(self):
+        if self._p2pfactory is None:
+            return False
         return self._p2pfactory.stake
 
     @property
@@ -131,7 +137,7 @@ class QRLNode:
             if os.path.isfile(self.peers_path):
                 logger.info('Opening peers.qrl')
                 with open(self.peers_path, 'rb') as infile:
-                    known_peers = qrl_pb2.KnownPeers()
+                    known_peers = qrl_pb2.StoredPeers()
                     known_peers.ParseFromString(infile.read())
                     self._peer_addresses = [peer.ip for peer in known_peers.peers]
                     self._peer_addresses.extend(config.user.peer_list)
@@ -150,7 +156,7 @@ class QRLNode:
     def update_peer_addresses(self, peer_addresses) -> None:
         # FIXME: Probably will be refactored
         self._peer_addresses = peer_addresses
-        known_peers = qrl_pb2.KnownPeers()
+        known_peers = qrl_pb2.StoredPeers()
         known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
@@ -352,7 +358,7 @@ class QRLNode:
 
         return answer
 
-    def getNodeInfo(self)->qrl_pb2.NodeInfo:
+    def getNodeInfo(self) -> qrl_pb2.NodeInfo:
         info = qrl_pb2.NodeInfo()
         info.version = self.version
         info.state = self.state

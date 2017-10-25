@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from grpc import StatusCode
 
+from qrl.core import logger
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import P2PNodeServicer
@@ -12,21 +13,27 @@ from qrl.services.grpcHelper import grpc_exception_wrapper
 class P2PNodeService(P2PNodeServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, node: QRLNode):
-        self.node = node
+        self.qrlnode = node
+        self.context_observer = None
 
-    @grpc_exception_wrapper(qrl_pb2.PongResp, StatusCode.UNKNOWN)
-    def Ping(self, request: qrl_pb2.PingReq, context: object) -> qrl_pb2.PongResp:
-        return qrl_pb2.PongResp(message='Hello, %s!' % request.name)
+    @grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
+    def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
+        if self.context_observer is not None:
+            self.context_observer(context)
+        logger.debug("[GetNodeState]")
+        return qrl_pb2.GetNodeStateResp(info=self.qrlnode.getNodeInfo())
 
     @grpc_exception_wrapper(qrl_pb2.GetKnownPeersResp, StatusCode.UNKNOWN)
     def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
-        known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.node._peer_addresses])
-        return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
+        if self.context_observer is not None:
+            self.context_observer(context)
+        response = qrl_pb2.GetKnownPeersResp()
+        response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
+        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode._peer_addresses])
+        return response
 
-    @grpc_exception_wrapper(qrl_pb2.GetInfoResp, StatusCode.UNKNOWN)
-    def GetInfo(self, request: qrl_pb2.GetInfoReq, context) -> qrl_pb2.GetInfoResp:
-        response = qrl_pb2.GetInfoResp()
-        response.node_info.CopyFrom(self.node.getNodeInfo())
-        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.node._peer_addresses])
+    @grpc_exception_wrapper(qrl_pb2.GetBlockResp, StatusCode.UNKNOWN)
+    def GetBlock(self, request: qrl_pb2.GetBlockReq, context) -> qrl_pb2.GetBlockResp:
+        response = qrl_pb2.GetBlockResp()
+        response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
         return response

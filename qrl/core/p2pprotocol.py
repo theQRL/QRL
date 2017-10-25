@@ -44,18 +44,17 @@ class P2PProtocol(Protocol):
             'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
             'SFM': self.SFM,            # RECV=>SEND        Send Full Message
 
-            'BM': self.BM,              # SEND/RECV Block Height Map
             'FMBH': self.FMBH,          # Fetch maximum block height
             'PMBH': self.PMBH,          # Push Maximum Block Height
             'MB': self.MB,              # SEND      Maximum Block Height
+            'BM': self.BM,              # SEND/RECV Block Height Map
             'CB': self.CB,              # RECV      Check Block Height
 
-            'BN': self.BN,              # Block Number
+            'BN': self.BN,              # SEND      Block Number
+            'BK': self.BK,              # RECV      Block
             'FB': self.FB,              # Fetch request for block
-            'BK': self.BK,              # Block
             'PB': self.PB,              # Push Block
-            'LB': self.LB,              # Last Block
-
+            'LB': self.LB,              # Last Block                        # OBSOLETE
             'PBB': self.PBB,            # Push Block Buffer
 
             'PH': self.PH,              # Push Headerhash

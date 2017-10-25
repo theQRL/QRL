@@ -15,6 +15,18 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
 
+    @grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
+    def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
+        return qrl_pb2.GetNodeStateResp(info=self.qrlnode.getNodeInfo())
+
+    @grpc_exception_wrapper(qrl_pb2.GetKnownPeersResp, StatusCode.UNKNOWN)
+    def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
+        response = qrl_pb2.GetKnownPeersResp()
+        response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
+        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode._peer_addresses])
+
+        return response
+
     @grpc_exception_wrapper(qrl_pb2.GetStatsResp, StatusCode.UNKNOWN)
     def GetStats(self, request: qrl_pb2.GetStatsReq, context) -> qrl_pb2.GetStatsResp:
         response = qrl_pb2.GetStatsResp()
@@ -31,16 +43,6 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         response.coins_atstake = self.qrlnode.coin_atstake
 
         return response
-
-    @grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
-    def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
-        return qrl_pb2.GetNodeStateResp(info=self.qrlnode.getNodeInfo())
-
-    @grpc_exception_wrapper(qrl_pb2.GetKnownPeersResp, StatusCode.UNKNOWN)
-    def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
-        known_peers = qrl_pb2.KnownPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode._peer_addresses])
-        return qrl_pb2.GetKnownPeersResp(known_peers=known_peers)
 
     @grpc_exception_wrapper(qrl_pb2.GetAddressStateResp, StatusCode.UNKNOWN)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:

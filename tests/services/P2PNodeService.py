@@ -43,7 +43,7 @@ class PublicAPITest(TestCase):
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = P2PNodeService(qrlnode)
-        response = service.GetInfo(request=qrl_pb2.GetInfoReq, context=None)
+        response = service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
 
         self.assertEqual('local-dev', response.node_info.version)
 

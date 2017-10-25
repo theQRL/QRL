@@ -24,17 +24,20 @@ message Timestamp
 // This service describes the P2P API
 service P2PNode
 {
-    rpc Ping (PingReq) returns (PongResp) { }
+    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
-    rpc GetInfo (GetInfoReq) returns (GetInfoResp);
+
+    rpc GetBlock(GetBlockReq) returns (GetBlockResp);
+//    rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp);
 }
 
 // This service describes the Public API used by clients (wallet/cli/etc)
 service PublicAPI
 {
     rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
-    rpc GetStats (GetStatsReq) returns (GetStatsResp);
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
+
+    rpc GetStats (GetStatsReq) returns (GetStatsResp);
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
     rpc GetObject(GetObjectReq) returns (GetObjectResp);
 
@@ -57,18 +60,29 @@ service AdminAPI
 ////////////////////////////
 ////////////////////////////
 
-message PingReq     {   string name = 1;        }
-message PongResp    {   string message = 1;     }
+message PingReq     { }
+message PongResp    { }
+
+message GetNodeStateReq { }
+message GetNodeStateResp {
+    NodeInfo info = 1;
+}
 
 message GetKnownPeersReq { }
 message GetKnownPeersResp {
-    KnownPeers known_peers = 1;
-}
-
-message GetInfoReq { }
-message GetInfoResp {
     NodeInfo node_info = 1;
     repeated Peer known_peers = 2;
+}
+
+message GetBlockReq {
+    oneof query {
+        uint64 index = 1;               // Indicates the index number in mainchain
+        bytes after_hash = 2;           // request the node that comes after hash
+    }
+}
+message GetBlockResp {
+    NodeInfo node_info = 1;
+    Block block = 2;
 }
 
 ////////////////////////////
@@ -93,11 +107,6 @@ message GetStatsResp {
     uint64 coins_total_supply = 8;
     uint64 coins_emitted = 9;
     uint64 coins_atstake = 10;
-}
-
-message GetNodeStateReq { }
-message GetNodeStateResp {
-    NodeInfo info = 1;
 }
 
 message GetAddressStateReq {   bytes address = 1; }
@@ -161,7 +170,7 @@ message NodeInfo
     State  state = 2;
     uint32 num_connections = 3;
     uint32 num_known_peers = 4;
-    uint64 uptime = 5;                  // Uptime in seconds
+    uint64 uptime = 5;               // Uptime in seconds
     uint64 block_height = 6;
     bytes  block_last_hash = 7;
     bool   stake_enabled = 8;
@@ -178,7 +187,7 @@ message Wallet {
     int32 xmss_index = 3;
 }
 
-message KnownPeers {
+message StoredPeers {
     repeated Peer peers = 1;
 }
 
