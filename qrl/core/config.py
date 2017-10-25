@@ -121,7 +121,7 @@ class DevConfig(object):
 
         self.slave_dat_filename = 'slave.json'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = 'Quantum-Titans-Testnet'
+        self.genesis_prev_headerhash = 'Quantum-Super-Nova-Testnet'
 
     @staticmethod
     def getInstance():
