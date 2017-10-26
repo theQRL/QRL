@@ -44,5 +44,5 @@ class TestWallet(TestCase):
                 '7bf1e7c1c84be2c820211572d990c0430e09401053ce2af489ee3e4d030c027464d9cac1fff449a2405b7f3fc63018a4')
             address = wallet.get_new_address(seed=S1)
             self.assertIsNotNone(address.address)
-            self.assertEqual('Q56e5d6410a5716e548d89ca27b8f057122af9560ba3cd8aa99879f32758330267811af83',
+            self.assertEqual(b'Q56e5d6410a5716e548d89ca27b8f057122af9560ba3cd8aa99879f32758330267811af83',
                              address.address)
