@@ -203,7 +203,7 @@ class ChainBuffer:
         self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + str2bin(self.epoch_seed)))
 
         chain.update_last_tx(block)
-        chain.update_tx_metadata(block)
+        chain.state.update_tx_metadata(block)
         self.epoch = epoch
         return True
 
@@ -501,7 +501,7 @@ class ChainBuffer:
 
         del (self.blocks[blocknum])
         self.chain.update_last_tx(block)
-        self.chain.update_tx_metadata(block)
+        self.chain.state.update_tx_metadata(block)
         return True
 
     def height(self):

@@ -27,25 +27,25 @@ class State:
 
     def __init__(self):
         """
-        >>> State().db is not None
+        >>> State()._db is not None
         True
         >>> State().stake_validators_list is not None
         True
         """
-        self.db = db.DB()  # generate db object here
+        self._db = db.DB()  # generate db object here
         self.stake_validators_list = StakeValidatorsList()
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.db is not None:
-            del self.db
-            self.db = None
+        if self._db is not None:
+            del self._db
+            self._db = None
 
     def stake_list_get(self):
         try:
-            return self.db.get('stake_list')
+            return self._db.get('stake_list')
         except KeyError:
             pass
         except Exception as e:
@@ -57,7 +57,7 @@ class State:
 
     def stake_list_put(self, sl):
         try:
-            self.db.put('stake_list', self.stake_validators_list.to_json())
+            self._db.put('stake_list', self.stake_validators_list.to_json())
         except Exception as e:
             # FIXME: Review
             logger.warning("stake_list_put: %s %s", type(e), e)
@@ -65,7 +65,7 @@ class State:
 
     def put_epoch_seed(self, epoch_seed):
         try:
-            self.db.put('epoch_seed', epoch_seed)
+            self._db.put('epoch_seed', epoch_seed)
         except Exception as e:
             # FIXME: Review
             logger.exception(e)
@@ -73,7 +73,7 @@ class State:
 
     def get_epoch_seed(self):
         try:
-            return self.db.get('epoch_seed')
+            return self._db.get('epoch_seed')
         except Exception as e:
             # FIXME: Review
             logger.warning("get_epoch_seed: %s %s", type(e), e)
@@ -83,14 +83,14 @@ class State:
         return height == self._blockheight()
 
     def _blockheight(self):
-        return self.db.get('blockheight')
+        return self._db.get('blockheight')
 
     def _set_blockheight(self, height):
-        return self.db.put('blockheight', height)
+        return self._db.put('blockheight', height)
 
     def get_txn_count(self, addr):
         try:
-            return self.db.get((b'txn_count_' + addr))
+            return self._db.get((b'txn_count_' + addr))
         except KeyError:
             pass
         except Exception as e:
@@ -132,7 +132,7 @@ class State:
 
     def hrs(self, hrs):
         try:
-            return self.db.get('hrs{}'.format(hrs))
+            return self._db.get('hrs{}'.format(hrs))
         except KeyError:
             pass
         except Exception as e:
@@ -390,9 +390,45 @@ class State:
 
         return True
 
+    def update_wallet_tx_metadata(self, addr, new_txhash):
+        try:
+            # FIXME: Accessing DB directly
+            txhash = self._db.get('txn_' + str(addr))
+        except Exception:
+            txhash = []
+        txhash.append(bin2hstr(new_txhash))
+        # FIXME: Accessing DB directly
+        self._db.put('txn_' + str(addr), txhash)
+
+    def update_txn_count(self, txto, txfrom):
+        last_count = self.get_txn_count(txto)
+        # FIXME: Accessing DB directly
+        self._db.put('txn_count_' + str(txto), last_count + 1)
+        last_count = self.get_txn_count(txfrom)
+        # FIXME: Accessing DB directly
+        self._db.put('txn_count_' + str(txfrom), last_count + 1)
+
+    def update_tx_metadata(self, block):
+        if len(block.transactions) == 0:
+            return
+
+        for protobuf_txn in block.transactions:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                # FIXME: Accessing DB directly
+                self._db.put(bin2hstr(txn.txhash),
+                             [txn.to_json(),
+                                   block.blockheader.blocknumber,
+                                   block.blockheader.timestamp])
+
+                if txn.subtype == TX_SUBTYPE_TX:
+                    self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
+                self.update_wallet_tx_metadata(txn.txto, txn.txhash)
+                self.update_txn_count(txn.txto, txn.txfrom)
+
     def _get_address_state(self, address):
         address_state = qrl_pb2.AddressState()
-        data = self.db.get_raw(address)
+        data = self._db.get_raw(address)
         if data is None:
             raise KeyError("{} not found".format(address))
 
@@ -415,19 +451,19 @@ class State:
         # FIXME: Keep internally all hashes as bytearrays
         address_state.pubhashes.extend([bytes(b) for b in state[2]])
 
-        self.db.put_raw(address, address_state.SerializeToString())
+        self._db.put_raw(address, address_state.SerializeToString())
 
     def return_all_addresses(self):
         addresses = []
         address_state = qrl_pb2.AddressState()
-        for k, v in self.db.RangeIter(b'Q', b'Qz'):
+        for k, v in self._db.RangeIter(b'Q', b'Qz'):
             address_state.ParseFromString(v)
             addresses.append([k, Decimal(address_state.balance)])
         return addresses
 
     def zero_all_addresses(self):
-        for k, v in self.db.RangeIter(b'Q', b'Qz'):
-            self.db.delete(k)
+        for k, v in self._db.RangeIter(b'Q', b'Qz'):
+            self._db.delete(k)
         logger.info('Reset Finished')
         self._set_blockheight(0)
         return
@@ -436,7 +472,7 @@ class State:
         # FIXME: This is temporary code. NOT SCALABLE. It is easy to keep a global count
         coins = Decimal(0)
         address_state = qrl_pb2.AddressState()
-        for k, v in self.db.RangeIter(b'Q', b'Qz'):
+        for k, v in self._db.RangeIter(b'Q', b'Qz'):
             address_state.ParseFromString(v)
             coins = coins + Decimal(address_state.balance)  # FIXME: decimal math?
         return coins
@@ -523,7 +559,7 @@ class State:
             # update coinbase address state
             stake_master = self.get_address(block.blockheader.stake_selector)
             stake_master[1] += block.transactions[0].amount
-            self.db.put(block.blockheader.stake_selector, stake_master)
+            self._db.put(block.blockheader.stake_selector, stake_master)
 
             for tx in block.transactions:
                 pubhash = tx.pubhash

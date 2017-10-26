@@ -235,42 +235,6 @@ class Chain:
         # FIXME: Accessing DB directly
         self.state.db.put('last_txn', last_txn)
 
-    def update_wallet_tx_metadata(self, addr, new_txhash):
-        try:
-            # FIXME: Accessing DB directly
-            txhash = self.state.db.get('txn_' + str(addr))
-        except Exception:
-            txhash = []
-        txhash.append(bin2hstr(new_txhash))
-        # FIXME: Accessing DB directly
-        self.state.db.put('txn_' + str(addr), txhash)
-
-    def update_txn_count(self, txto, txfrom):
-        last_count = self.state.get_txn_count(txto)
-        # FIXME: Accessing DB directly
-        self.state.db.put('txn_count_' + str(txto), last_count + 1)
-        last_count = self.state.get_txn_count(txfrom)
-        # FIXME: Accessing DB directly
-        self.state.db.put('txn_count_' + str(txfrom), last_count + 1)
-
-    def update_tx_metadata(self, block):
-        if len(block.transactions) == 0:
-            return
-
-        for protobuf_txn in block.transactions:
-            txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                # FIXME: Accessing DB directly
-                self.state.db.put(bin2hstr(txn.txhash),
-                                  [txn.to_json(),
-                                   block.blockheader.blocknumber,
-                                   block.blockheader.timestamp])
-
-                if txn.subtype == TX_SUBTYPE_TX:
-                    self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
-                self.update_wallet_tx_metadata(txn.txto, txn.txhash)
-                self.update_txn_count(txn.txto, txn.txfrom)
-
     ######## CHAIN RELATED
 
     def add_block_mainchain(self, block, validate=True):
