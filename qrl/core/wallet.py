@@ -203,4 +203,4 @@ class Wallet:
             raise Exception('OTS type not recognised')
 
         xmss = XMSS(tree_height=signature_tree_height, seed=seed)
-        return AddressBundle(xmss.get_address(), xmss)
+        return AddressBundle(xmss.get_address().encode(), xmss)
