@@ -273,7 +273,7 @@ class QRLNode:
         if len(address) < 1:
             raise ValueError("Invalid Address")
 
-        if address[0] != b'Q':
+        if address[0] != ord('Q'):
             raise ValueError("Invalid Address")
 
         nonce, balance, pubhash_list = self.db_state.get_address(address)
