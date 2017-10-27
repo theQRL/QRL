@@ -12,12 +12,16 @@ from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 
 
 class State:
+    # FIXME: Rename to PersistentState
+    # FIXME: Move blockchain caching/storage over here
+    # FIXME: Improve key generation
+
     """
         state functions
         first iteration - state data stored in leveldb file
@@ -100,14 +104,16 @@ class State:
 
         return 0
 
-    def get_address(self, address):
+    def get_address(self, address: bytes):
+        # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
         try:
             return self._get_address_state(address)
         except KeyError:
             # FIXME: Check all cases where address is not found
             return [config.dev.default_nonce, config.dev.default_account_balance, []]
 
-    def address_used(self, address):
+    def address_used(self, address: bytes):
+        # FIXME: Probably obsolete
         try:
             return self._get_address_state(address)
         except KeyError:
@@ -118,45 +124,20 @@ class State:
             logger.exception(e)
             raise
 
-    def nonce(self, addr):
+    def nonce(self, addr: bytes):
         nonce, balance, pubhash_list = self.get_address(addr)
         return nonce
 
-    def balance(self, addr):
+    def balance(self, addr: bytes):
         nonce, balance, pubhash_list = self.get_address(addr)
         return balance
 
-    def pubhash(self, addr):
+    def pubhash(self, addr: bytes):
         nonce, balance, pubhash_list = self.get_address(addr)
         return pubhash_list
 
-    def hrs(self, hrs):
-        try:
-            return self._db.get('hrs{}'.format(hrs))
-        except KeyError:
-            pass
-        except Exception as e:
-            # FIXME: Review
-            logger.error('Exception in State.hrs()')
-            logger.exception(e)
-
-        return False
-
-    def validate_tx_pool(self, chain):
-        result = True
-
-        for tx in chain.transaction_pool:
-            block_chain_buffer = chain.block_chain_buffer
-            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height() + 1,
-                                                         addr=tx.txfrom)
-            if not tx.validate_extended(tx_state=tx_state):
-                result = False
-                logger.warning('tx %s failed', tx.txhash)
-                chain.remove_tx_from_pool(tx)
-
-        return result
-
     def add_block(self, chain, block, ignore_save_wallet=False):
+        # FIXME: This does not seem to be related to persistance
         address_txn = dict()
         self.load_address_state(chain, block, address_txn)  # FIXME: Bottleneck
 
@@ -169,11 +150,11 @@ class State:
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
         nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
         logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                    block.blockheader.blocknumber,
-                    block.blockheader.epoch,
-                    blocks_left - 1,
-                    nonce,
-                    block.blockheader.stake_selector)
+                     block.blockheader.blocknumber,
+                     block.blockheader.epoch,
+                     blocks_left - 1,
+                     nonce,
+                     block.blockheader.stake_selector)
 
         if not self.update(block, self.stake_validators_list, address_txn):
             return
@@ -183,7 +164,9 @@ class State:
         return True
 
     # Loads the state of the addresses mentioned into txn
-    def load_address_state(self, chain, block, address_txn):
+    @staticmethod
+    def load_address_state(chain, block, address_txn):
+        # FIXME: This does not seem to be related to persistance
         blocknumber = block.blockheader.blocknumber
 
         for protobuf_tx in block.transactions:
@@ -198,6 +181,7 @@ class State:
         return address_txn
 
     def update_genesis(self, chain, block, address_txn):
+        # FIXME: This does not seem to be related to persistance
         # Start Updating coin base txn
         protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
         tx = CoinBase.from_pbdata(protobuf_tx)
@@ -262,8 +246,9 @@ class State:
         chain.wallet.save_wallet()
         return True
 
-    def update(self, block, stake_validators_list, address_txn):
-
+    @staticmethod
+    def update(block, stake_validators_list, address_txn):
+        # FIXME: This does not seem to be related to persistance
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
         if block.blockheader.stake_selector not in stake_validators_list.sv_list:
@@ -335,7 +320,8 @@ class State:
                     return False
 
                 if tx.txfrom in stake_validators_list.sv_list:
-                    expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                    expiry = stake_validators_list.sv_list[
+                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
 
                     if tx.activation_blocknumber < expiry:
                         logger.warning('Failed %s is already active for the given range', tx.txfrom)
@@ -390,43 +376,45 @@ class State:
 
         return True
 
-    def update_wallet_tx_metadata(self, addr, new_txhash):
-        try:
-            # FIXME: Accessing DB directly
-            txhash = self._db.get('txn_' + str(addr))
-        except Exception:
-            txhash = []
+    def update_address_tx_hashes(self, addr: bytes, new_txhash: bytes):
+        txhash = self.get_address_tx_hashes(addr)
         txhash.append(bin2hstr(new_txhash))
-        # FIXME: Accessing DB directly
-        self._db.put('txn_' + str(addr), txhash)
+        self._db.put(b'txn_' + addr, txhash)
 
-    def update_txn_count(self, txto, txfrom):
-        last_count = self.get_txn_count(txto)
-        # FIXME: Accessing DB directly
-        self._db.put('txn_count_' + str(txto), last_count + 1)
-        last_count = self.get_txn_count(txfrom)
-        # FIXME: Accessing DB directly
-        self._db.put('txn_count_' + str(txfrom), last_count + 1)
+    def get_address_tx_hashes(self, addr: bytes):
+        try:
+            txhash = self._db.get(b'txn_' + addr)
+        except KeyError:
+            txhash = []
+
+        return [hstr2bin(h) for h in txhash]
+
+    def increase_txn_count(self, addr: bytes):
+        # FIXME: This should be transactional
+        last_count = self.get_txn_count(addr)
+        self._db.put(b'txn_count_' + addr, last_count + 1)
 
     def update_tx_metadata(self, block):
         if len(block.transactions) == 0:
             return
 
+        # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                # FIXME: Accessing DB directly
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(),
-                                   block.blockheader.blocknumber,
-                                   block.blockheader.timestamp])
+                              block.blockheader.blocknumber,
+                              block.blockheader.timestamp])
 
                 if txn.subtype == TX_SUBTYPE_TX:
-                    self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
-                self.update_wallet_tx_metadata(txn.txto, txn.txhash)
-                self.update_txn_count(txn.txto, txn.txfrom)
+                    self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
-    def _get_address_state(self, address):
+                self.update_address_tx_hashes(txn.txto, txn.txhash)
+                self.increase_txn_count(txn.txto)
+                self.increase_txn_count(txn.txfrom)
+
+    def _get_address_state(self, address: bytes):
         address_state = qrl_pb2.AddressState()
         data = self._db.get_raw(address)
         if data is None:
@@ -441,7 +429,7 @@ class State:
                 address_state.balance,
                 tmp]
 
-    def _save_address_state(self, address, state):
+    def _save_address_state(self, address: bytes, state):
         # FIXME: internally keep data in byte form
         address_state = qrl_pb2.AddressState()
         address_state.address = address
@@ -458,7 +446,7 @@ class State:
         address_state = qrl_pb2.AddressState()
         for k, v in self._db.RangeIter(b'Q', b'Qz'):
             address_state.ParseFromString(v)
-            addresses.append([k, Decimal(address_state.balance)])
+            addresses.append([k, Decimal(address_state.balance)])  # FIXME: Why Decimal?
         return addresses
 
     def zero_all_addresses(self):
@@ -478,7 +466,6 @@ class State:
         return coins
 
     def commit(self, chain, block, address_txn, ignore_save_wallet=False):
-
         # FIXME: This indexing approach is very inefficient
         blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
 
@@ -510,7 +497,9 @@ class State:
         logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
-    def calc_seed(self, sl, verbose=False):
+    @staticmethod
+    def calc_seed(sl, verbose=False):
+        # FIXME: Does this belong here?
         if verbose:
             logger.info('stake_list --> ')
             for s in sl:
@@ -533,7 +522,7 @@ class State:
             logger.info("Loading genesis from %s", genesis_data_path)
             data_map = yaml.safe_load(f)
             for key in data_map['genesis_info']:
-                genesis_info[key.encode()] = data_map['genesis_info'][key] * (10**8)
+                genesis_info[key.encode()] = data_map['genesis_info'][key] * (10 ** 8)
 
         return genesis_info
 

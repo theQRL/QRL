@@ -242,6 +242,20 @@ class Chain:
                                                            block=block,
                                                            validate=validate)
 
+    def validate_tx_pool(self):
+        result = True
+
+        for tx in self.transaction_pool:
+            block_chain_buffer = self.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height() + 1,
+                                                         addr=tx.txfrom)
+            if not tx.validate_extended(tx_state=tx_state):
+                result = False
+                logger.warning('tx %s failed', tx.txhash)
+                self.remove_tx_from_pool(tx)
+
+        return result
+
     def m_add_block(self, block_obj):
         if len(self.m_blockchain) == 0:
             self.m_read_chain()
@@ -252,7 +266,7 @@ class Chain:
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
                 logger.info('last block failed state/stake checks, removed from chain')
-                self.state.validate_tx_pool(self)
+                self.validate_tx_pool()
                 return False
         else:
             logger.info('m_add_block failed - block failed validation.')

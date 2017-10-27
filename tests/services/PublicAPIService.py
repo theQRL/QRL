@@ -7,15 +7,18 @@ import pytest
 from grpc import ServicerContext
 from grpc._server import _Context
 from mock import Mock, MagicMock, __version__
+from pyqrllib.pyqrllib import sha2_256
 
 from qrl.core import logger
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
+from qrl.core.Transaction import TransferTransaction
 from qrl.core.chain import Chain
 from qrl.core.node import NodeState
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
 from qrl.core.state import State
+from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
 
@@ -112,6 +115,9 @@ class PublicAPITest(TestCase):
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
+        db_state.get_address = MagicMock(return_value=(25, 10, [sha256(b'a'), sha256(b'b')]))
+        db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
+
         p2p_factory = Mock(spec=P2PFactory)
         chain = Mock(spec=Chain)
 
@@ -125,9 +131,87 @@ class PublicAPITest(TestCase):
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
         response = service.GetAddressState(request=request, context=context)
-
         context.set_code.assert_called()
         context.set_details.assert_called()
 
+        context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
+        request.address = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6'
         response = service.GetAddressState(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertEqual(b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6',
+                         response.state.address)
+        self.assertEqual(25, response.state.nonce)
+        self.assertEqual(10, response.state.balance)
+        self.assertEqual([sha256(b'a'), sha256(b'b')], response.state.pubhashes)
+        self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
+
+    def test_getObject(self):
+        SOME_ADDR1 = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6'
+        SOME_ADDR2 = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd7'
+
+        db_state = Mock(spec=State)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        chain = Mock(spec=Chain)
+
+        qrlnode = QRLNode(db_state)
+        qrlnode.set_p2pfactory(p2p_factory)
+        qrlnode.set_chain(chain)
+        qrlnode.peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetObjectReq()
+        response = service.GetObject(request=request, context=context)
+        context.set_code.assert_called()
+        context.set_details.assert_called()
+
+        # Find an address
+        db_state.get_address = MagicMock(return_value=(25, 10, [sha256(b'a'), sha256(b'b')]))
+        db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetObjectReq()
+        request.query = SOME_ADDR1
+        response = service.GetObject(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertTrue(response.found)
+        self.assertIsNotNone(response.address_state)
+        self.assertEqual(SOME_ADDR1,
+                         response.address_state.address)
+        self.assertEqual(25, response.address_state.nonce)
+        self.assertEqual(10, response.address_state.balance)
+        self.assertEqual([sha256(b'a'), sha256(b'b')], response.address_state.pubhashes)
+        self.assertEqual([sha256(b'0'), sha256(b'1')], response.address_state.transaction_hashes)
+
+        # Find a transaction
+        db_state.address_used = MagicMock(return_value=False)
+        tx1 = TransferTransaction.create(addr_from=SOME_ADDR1,
+                                         addr_to=SOME_ADDR2,
+                                         amount=125,
+                                         fee=19,
+                                         xmss_pk=sha256(b'pk'),
+                                         xmss_ots_index=13)
+        chain.transaction_pool = [ tx1 ]
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetObjectReq()
+        request.query = tx1.txhash
+        response = service.GetObject(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertTrue(response.found)
+        self.assertIsNotNone(response.transaction)
+        self.assertEqual(qrl_pb2.Transaction.TRANSFER, response.transaction.type)
+        self.assertEqual(SOME_ADDR1, response.transaction.addr_from)
+        self.assertEqual(sha256(b'pk'), response.transaction.public_key)
+        self.assertEqual(tx1.txhash, response.transaction.transaction_hash)
+        self.assertEqual(13, response.transaction.ots_key)
+        self.assertEqual(b'', response.transaction.signature)
+
+        self.assertEqual(SOME_ADDR2, response.transaction.transfer.addr_to)
+        self.assertEqual(125, response.transaction.transfer.amount)
+        self.assertEqual(19, response.transaction.transfer.fee)
+
+        # Find a block
