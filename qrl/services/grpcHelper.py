@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from qrl.core import logger
 
 
 class grpc_exception_wrapper(object):
@@ -12,10 +13,18 @@ class grpc_exception_wrapper(object):
         def wrap_f(caller_self, request, context):
             try:
                 return f(caller_self, request, context)
+            except ValueError as e:
+                if context is not None:
+                    context.set_code(self.state_code)
+                    context.set_details(str(e))
+                logger.info(str(e))
+                return self.response_type()
+
             except Exception as e:
                 if context is not None:
                     context.set_code(self.state_code)
                     context.set_details(str(e))
+                logger.exception(e)
                 return self.response_type()
 
         return wrap_f

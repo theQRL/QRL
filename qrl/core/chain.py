@@ -235,48 +235,26 @@ class Chain:
         # FIXME: Accessing DB directly
         self.state.db.put('last_txn', last_txn)
 
-    def update_wallet_tx_metadata(self, addr, new_txhash):
-        try:
-            # FIXME: Accessing DB directly
-            txhash = self.state.db.get('txn_' + str(addr))
-        except Exception:
-            txhash = []
-        txhash.append(bin2hstr(new_txhash))
-        # FIXME: Accessing DB directly
-        self.state.db.put('txn_' + str(addr), txhash)
-
-    def update_txn_count(self, txto, txfrom):
-        last_count = self.state.get_txn_count(txto)
-        # FIXME: Accessing DB directly
-        self.state.db.put('txn_count_' + str(txto), last_count + 1)
-        last_count = self.state.get_txn_count(txfrom)
-        # FIXME: Accessing DB directly
-        self.state.db.put('txn_count_' + str(txfrom), last_count + 1)
-
-    def update_tx_metadata(self, block):
-        if len(block.transactions) == 0:
-            return
-
-        for protobuf_txn in block.transactions:
-            txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                # FIXME: Accessing DB directly
-                self.state.db.put(bin2hstr(txn.txhash),
-                                  [txn.to_json(),
-                                   block.blockheader.blocknumber,
-                                   block.blockheader.timestamp])
-
-                if txn.subtype == TX_SUBTYPE_TX:
-                    self.update_wallet_tx_metadata(txn.txfrom, txn.txhash)
-                self.update_wallet_tx_metadata(txn.txto, txn.txhash)
-                self.update_txn_count(txn.txto, txn.txfrom)
-
     ######## CHAIN RELATED
 
     def add_block_mainchain(self, block, validate=True):
         return self.block_chain_buffer.add_block_mainchain(chain=self,
                                                            block=block,
                                                            validate=validate)
+
+    def validate_tx_pool(self):
+        result = True
+
+        for tx in self.transaction_pool:
+            block_chain_buffer = self.block_chain_buffer
+            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height() + 1,
+                                                         addr=tx.txfrom)
+            if not tx.validate_extended(tx_state=tx_state):
+                result = False
+                logger.warning('tx %s failed', tx.txhash)
+                self.remove_tx_from_pool(tx)
+
+        return result
 
     def m_add_block(self, block_obj):
         if len(self.m_blockchain) == 0:
@@ -288,7 +266,7 @@ class Chain:
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
                 logger.info('last block failed state/stake checks, removed from chain')
-                self.state.validate_tx_pool(self)
+                self.validate_tx_pool()
                 return False
         else:
             logger.info('m_add_block failed - block failed validation.')
