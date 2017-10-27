@@ -24,9 +24,9 @@ class TestState(TestCase):
             block_position = 234
             block_size = 345
 
-            state.db.put('block_{}'.format(block_number), [block_position, block_size])
+            state._db.put('block_{}'.format(block_number), [block_position, block_size])
 
-            pos_size = state.db.get('block_{}'.format(block_number))
+            pos_size = state._db.get('block_{}'.format(block_number))
             read_position, read_size = pos_size
 
             self.assertEqual(block_position, read_position)

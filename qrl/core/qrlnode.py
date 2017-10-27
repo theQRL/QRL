@@ -266,6 +266,9 @@ class QRLNode:
         self._p2pfactory.send_tx_to_peers(tx)
         return True
 
+    def get_address_is_used(self, address: bytes)->bool:
+        return self.db_state.address_used(address)
+
     def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
         # FIXME: Refactor. Define concerns, etc.
         # FIXME: Unnecessary double conversion
@@ -277,12 +280,14 @@ class QRLNode:
             raise ValueError("Invalid Address")
 
         nonce, balance, pubhash_list = self.db_state.get_address(address)
-        transactions = []
+        transaction_hashes = None
+        transaction_hashes = self.db_state.get_address_tx_hashes(address)
 
         address_state = qrl_pb2.AddressState(address=address,
                                              balance=balance,
                                              nonce=nonce,
-                                             transactions=transactions)
+                                             pubhashes=pubhash_list,
+                                             transaction_hashes=transaction_hashes)
 
         return address_state
 
@@ -296,7 +301,7 @@ class QRLNode:
         # FIXME: This is just a workaround to provide functionality
         for tx in self._chain.transaction_pool:
             if tx.txhash == query_hash:
-                return tx.pbdata
+                return tx
         return None
 
     def get_block(self, query_hash: bytes) -> Block:
