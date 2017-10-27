@@ -12,6 +12,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_print
+from qrl.crypto.misc import sha256
 
 import bz2
 from time import time
@@ -67,10 +68,8 @@ class Chain:
             logger.info(' balance 0 so score none ')
             logger.info(' stake_address %s', stake_address)
             return None
-
-        reveal_one_number = int(bin2hstr(reveal_one), 16)
-        score = (Decimal(config.dev.N) - (Decimal(reveal_one_number | seed).log10() / Decimal(2).log10())) / Decimal(
-            balance)
+        reveal_seed = bin2hstr(sha256(str(reveal_one).encode() + str(seed).encode()))
+        score = (Decimal(config.dev.N) - (Decimal(int(reveal_seed, 16)).log10() / Decimal(2).log10())) / Decimal(balance)
 
         if verbose:
             logger.info('=' * 10)
