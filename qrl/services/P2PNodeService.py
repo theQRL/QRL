@@ -4,6 +4,7 @@
 from grpc import StatusCode
 
 from qrl.core import logger
+from qrl.core.block import Block
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import P2PNodeServicer
@@ -38,7 +39,9 @@ class P2PNodeService(P2PNodeServicer):
         response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
 
         if request.HasField("index"):
-            response.block.CopyFrom(self.qrlnode.get_block_from_index(request.index).pbdata)
+            block = self.qrlnode.get_block_from_index(request.index)
+            if isinstance(block, Block):
+                response.block.CopyFrom(block.pbdata)
         else:
             raise NotImplementedError()
 

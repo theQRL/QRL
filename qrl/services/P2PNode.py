@@ -1,6 +1,8 @@
 import threading
 from time import sleep
 
+import grpc
+
 from qrl.core import logger
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
@@ -18,7 +20,17 @@ class BlockChainManager(object):
         self.thread.start()
 
     def _block_received(self, response_future):
-        logger.info("[{:20}] _block_received".format(response_future.pm.conn_addr))
+        if response_future.code() == grpc.StatusCode.OK:
+            logger.info("[{:20}] _block_received {}".format(response_future.pm.conn_addr, response_future.index))
+            self._get_blockchain(response_future.pm, response_future.index+1)
+
+    def _get_blockchain(self, peer_metadata, start_index):
+        req = qrl_pb2.GetBlockReq()
+        req.index = start_index
+        f = peer_metadata.stub.GetBlock.future(req, timeout=PeerManager.TIMEOUT_SECS)
+        f.pm = peer_metadata
+        f.index = start_index
+        f.add_done_callback(self._block_received)
 
     def _synchronize_chain(self):
         while True:
@@ -28,11 +40,7 @@ class BlockChainManager(object):
                                                  peer_metadata.node_info.block_height))
 
             for peer_metadata in self.peer_manager.stable_peers():
-                req = qrl_pb2.GetBlockReq()
-                req.index = 1
-                f = peer_metadata.stub.GetBlock.future(req, timeout=PeerManager.TIMEOUT_SECS)
-                f.pm = peer_metadata
-                f.add_done_callback(self._block_received)
+                self._get_blockchain(peer_metadata, 0)
 
             sleep(2)
 

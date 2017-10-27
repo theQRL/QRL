@@ -252,7 +252,7 @@ class Chain:
         self.m_f_sync_chain()
         return True
 
-    def m_get_block(self, n):
+    def m_get_block(self, n: int):
         if len(self.m_blockchain) == 0:
             return []
 
@@ -376,7 +376,7 @@ class Chain:
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
         self.block_framedata[block_number] = [block_position, block_size]
 
-    def get_block_metadata(self, block_number):
+    def get_block_metadata(self, block_number: int):
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
         return self.block_framedata[block_number]
 

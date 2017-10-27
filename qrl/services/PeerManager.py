@@ -87,10 +87,10 @@ class PeerManager(object):
             tmp = list(self._peers.values())
         return iter(tmp)
 
-    def _add_peers_callback(self, respose_future):
-        if respose_future.code() == grpc.StatusCode.OK:
-            res = respose_future.result()
-            respose_future.pm.node_info = res.node_info
+    def _add_peers_callback(self, response_future):
+        if response_future.code() == grpc.StatusCode.OK:
+            res = response_future.result()
+            response_future.pm.node_info = res.node_info
             peer_list = (peer.ip for peer in res.known_peers)
             self.add(peer_list)
 
@@ -98,7 +98,7 @@ class PeerManager(object):
             # res.node_info.version
             # res.node_info.network_id
         else:
-            self.remove([respose_future.pm.conn_addr])
+            self.remove([response_future.pm.conn_addr])
 
     def _update_state_callback(self, respose_future):
         if respose_future.code() == grpc.StatusCode.OK:
