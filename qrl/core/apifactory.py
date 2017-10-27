@@ -78,12 +78,12 @@ class ApiFactory(ServerFactory):
 
         my_txn = []
         try:
-            my_txn = self.state.db.get('txn_' + address)
+            my_txn = self.state._db.get('txn_' + address)
         except:
             pass
 
         for txn_hash in my_txn:
-            txn_metadata = self.state.db.get(txn_hash)
+            txn_metadata = self.state._db.get(txn_hash)
             tx = Transaction.from_json(txn_metadata[0])
 
             if (tx.txto == address or tx.txfrom == address) and tx.txhash not in txnhash_added:
@@ -155,7 +155,7 @@ class ApiFactory(ServerFactory):
                 return tx_new.to_json()
 
         try:
-            txn_metadata = self.chain.state.db.get(txhash)
+            txn_metadata = self.chain.state._db.get(txhash)
         except:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return json_print_telnet(err)

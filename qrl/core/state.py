@@ -376,6 +376,26 @@ class State:
 
         return True
 
+    def update_last_tx(self, block):
+        if len(block.transactions) == 0:
+            return
+        last_txn = []
+
+        try:
+            last_txn = self._db.get('last_txn')
+        except:
+            pass
+
+        for protobuf_txn in block.transactions[-20:]:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            if txn.subtype == TX_SUBTYPE_TX:
+                last_txn.insert(0, [txn.to_json(),
+                                    block.blockheader.blocknumber,
+                                    block.blockheader.timestamp])
+
+        del last_txn[20:]
+        self._db.put('last_txn', last_txn)
+
     def update_address_tx_hashes(self, addr: bytes, new_txhash: bytes):
         txhash = self.get_address_tx_hashes(addr)
         txhash.append(bin2hstr(new_txhash))

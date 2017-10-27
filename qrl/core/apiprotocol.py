@@ -277,7 +277,8 @@ class ApiProtocol(Protocol):
             return json_print_telnet(error)
 
         try:
-            last_txn = self.factory.state.db.get('last_txn')
+            # FIXME: Direct access to DB
+            last_txn = self.factory.state._db.get('last_txn')
         except Exception:
             error['error'] = 'txnhash not found'
             return json_print_telnet(error)

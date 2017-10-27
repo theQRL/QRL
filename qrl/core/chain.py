@@ -213,27 +213,6 @@ class Chain:
                         json_print(tx)
         return
 
-    def update_last_tx(self, block):
-        # FIXME: remove
-        if len(block.transactions) == 0:
-            return
-        last_txn = []
-
-        try:
-            # FIXME: Accessing DB directly
-            last_txn = self.state.db.get('last_txn')
-        except:
-            pass
-
-        for protobuf_txn in block.transactions[-20:]:
-            txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype == TX_SUBTYPE_TX:
-                last_txn.insert(0,
-                                [txn.to_json(), block.blockheader.blocknumber, block.blockheader.timestamp])
-        del last_txn[20:]
-        # FIXME: Accessing DB directly
-        self.state.db.put('last_txn', last_txn)
-
     ######## CHAIN RELATED
 
     def add_block_mainchain(self, block, validate=True):
