@@ -191,7 +191,7 @@ message AddressState {
     uint64 balance = 2;
     uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
-    repeated Transaction transactions = 5;      // FIXME: Add stake information. Probably a reference to another obj
+    repeated bytes transaction_hashes = 5;
 }
 
 message BlockHeader {
