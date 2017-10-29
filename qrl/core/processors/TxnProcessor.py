@@ -33,7 +33,6 @@ class TxnProcessor:
 
         tx = self.pending_tx_pool.pop(0)
 
-        tx_peer = tx[1]
         tx = tx[0]
         if not tx.validate():
             return False
