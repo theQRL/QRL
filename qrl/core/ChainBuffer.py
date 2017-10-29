@@ -20,16 +20,14 @@ class ChainBuffer:
         self.blocks = dict()
         self.size = config.dev.reorg_limit
         self.pending_blocks = dict()
+
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
 
-        # FIXME: _wallet_private_seeds and hash_chain seem not to be used
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
         self.hash_chain = dict()
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
-        self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
-        # FIXME: REMOVE ALL THIS?
 
         if self.chain.height() > 0:
             self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
@@ -72,24 +70,6 @@ class ChainBuffer:
         self._wallet_private_seeds[epoch] = prev_private_seed
         self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
-    def _add_txns_buffer(self):
-        if len(self.blocks) == 0:
-            return
-        del self.tx_buffer
-        self.tx_buffer = {}
-
-        min_blocknum = self.chain.height() + 1
-        max_blocknum = max(self.blocks.keys())
-
-        for blocknum in range(min_blocknum, max_blocknum + 1):
-            block_state_buffer = self.blocks[blocknum]
-            block = block_state_buffer[0].block
-
-            self.tx_buffer[blocknum] = []
-
-            for tx in block.transactions:
-                self.tx_buffer[blocknum].append(tx.transaction_hash)
-
     def add_block_mainchain(self, chain, block, validate=True):
         # TODO : minimum block validation in unsynced _state
         blocknum = block.blockheader.blocknumber
@@ -120,7 +100,6 @@ class ChainBuffer:
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
-        self._add_txns_buffer()
         if block_left == 1:
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
@@ -218,7 +197,6 @@ class ChainBuffer:
                     if blocknum + 1 in self.blocks:
                         self._remove_blocks(blocknum + 1)
 
-        self._add_txns_buffer()
         return True
 
     def _remove_blocks(self, blocknumber):
