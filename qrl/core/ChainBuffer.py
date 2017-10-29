@@ -18,7 +18,6 @@ class ChainBuffer:
         self.chain = chain
 
         self.blocks = dict()
-        self.size = config.dev.reorg_limit
         self.pending_blocks = dict()
 
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
@@ -35,18 +34,21 @@ class ChainBuffer:
     def add_pending_block(self, block):
         # TODO : minimum block validation in unsynced state
 
-        blocknum = block.blockheader.blocknumber
-        self.pending_blocks[blocknum] = block
+        block_idx = block.blockheader.blocknumber
+        self.pending_blocks[block_idx] = block
 
         return True
 
     def get_last_block(self):
         if len(self.blocks) == 0:
             return self.chain.m_get_last_block()
-        last_blocknum = max(self.blocks)
-        return self.blocks[last_blocknum][0].block
+
+        last_blocknum = max(self.blocks)                # FIXME: Should this run max on the keys only? Or better keep track of the value..
+
+        return self.blocks[last_blocknum][0].block      # FIXME: What does [0] refers to?
 
     def get_block_n(self, blocknumber):
+        # FIXME: THis should be in chain and only come to buffer when not found
         try:
             if self.chain.height() == -1:
                 self.chain.m_read_chain()
@@ -71,6 +73,7 @@ class ChainBuffer:
         self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
     def add_block_mainchain(self, chain, block, validate=True):
+        # FIXME: Define ownership / chain-chainbuffer relation
         # TODO : minimum block validation in unsynced _state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // config.dev.blocks_per_epoch)
@@ -146,6 +149,7 @@ class ChainBuffer:
         stake_reward = {}
 
         state_buffer = StateBuffer()
+
         block_buffer = None
         if blocknum - 1 == self.chain.height():
             stake_validators_list = deepcopy(self.chain.state.stake_validators_list)
@@ -267,17 +271,7 @@ class ChainBuffer:
     def height(self):
         if len(self.blocks) == 0:
             return self.chain.height()
-        return max(self.blocks)
-
-    def send_block(self, blocknumber, transport, wrap_message):
-        if blocknumber <= self.chain.height():
-            # FIXME: Breaking encapsulation
-            transport.write(wrap_message('PB', self.chain.m_get_block(blocknumber).to_json()))
-        elif blocknumber in self.blocks:
-            blockStateBuffer = self.blocks[blocknumber]
-
-            # FIXME: Breaking encapsulation
-            transport.write(wrap_message('PBB', blockStateBuffer[0].block.to_json()))
+        return max(self.blocks)             # FIXME: max over a dictionary?
 
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
