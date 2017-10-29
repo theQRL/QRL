@@ -1,6 +1,5 @@
 # coding=utf-8
 import queue
-import random
 import time
 from collections import defaultdict
 

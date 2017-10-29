@@ -5,8 +5,8 @@ from decimal import Decimal
 
 import time
 
-from qrl.core import config, logger, Transaction
-from qrl.core.Transaction import TransferTransaction
+from qrl.core import config, logger
+from qrl.core.Transaction import TransferTransaction, Transaction
 from qrl.core.block import Block
 from qrl.core.nstate import NState
 from qrl.core.state import State

@@ -1166,9 +1166,9 @@ class P2PProtocol(Protocol):
         self.buffer = self.buffer[12 + m + 3:]  # reset the buffer to after the msg
         return True
 
-    def dataReceived(self,
-                     data: bytearray) -> None:  # adds data received to buffer. then tries to parse the buffer twice..
+    def dataReceived(self, data: bytes) -> None:
         """
+        adds data received to buffer. then tries to parse the buffer twice..
         :param data:Message data without initiator
         :return:
         :rtype: None

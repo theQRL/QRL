@@ -1,5 +1,4 @@
 import threading
-from collections import namedtuple
 from time import time, sleep
 
 import grpc

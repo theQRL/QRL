@@ -1,7 +1,6 @@
 # coding=utf-8
 import copy
 from pyqrllib.pyqrllib import bin2hstr
-from google.protobuf.json_format import MessageToJson
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import logger
