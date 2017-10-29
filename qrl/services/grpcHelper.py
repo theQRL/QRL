@@ -9,21 +9,22 @@ class grpc_exception_wrapper(object):
         self.response_type = response_type
         self.state_code = state_code
 
+    def _set_context(self, context, exception):
+        if context is not None:
+            context.set_code(self.state_code)
+            context.set_details(str(exception))
+
     def __call__(self, f):
         def wrap_f(caller_self, request, context):
             try:
                 return f(caller_self, request, context)
             except ValueError as e:
-                if context is not None:
-                    context.set_code(self.state_code)
-                    context.set_details(str(e))
+                self._set_context(context, e)
                 logger.info(str(e))
                 return self.response_type()
-
+            
             except Exception as e:
-                if context is not None:
-                    context.set_code(self.state_code)
-                    context.set_details(str(e))
+                self._set_context(context, e)
                 logger.exception(e)
                 return self.response_type()
 
