@@ -92,12 +92,11 @@ sudo pip3 install -U setuptools pip
 To get the source and start the node, use the following:
 
 ```bash
-pip3 install -U qrl
+sudo pip3 install -U qrl
 start_qrl
 ```
 
-## Raspberry Pi (Raspbian Jessie) :seedling:
-**NOT TESTED. Your feedback is appreciated!**
+## Raspberry Pi (Raspbian Jessie) :white_check_mark:
 
 Debian has some issues in old packages, so you need to install some backports.
 Debian does not have `sudo` by default, if you have not installed `sudo`, the use `su` and later do not forget to `exit`.
@@ -115,7 +114,7 @@ echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /e
 To get the source and start the node, use the following:
 
 ```bash
-pip3 install -U qrl
+sudo pip3 install -U qrl
 start_qrl
 ```
 
