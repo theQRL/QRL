@@ -31,31 +31,30 @@ class P2PProtocol(Protocol):
         # TODO: Comment with some names the services
         self.service = {
             # OBSOLETE?
+            'IP': self.IP,  # SEND/RECV         Get IP (geotagging?)
 
             ######################
-            'VE': self.VE,              # SEND/RECV         Version
-            'IP': self.IP,              # SEND/RECV         Get IP (geotagging?)
-            'PE': self.PE,              # SEND              Peers List (connected peers)
-            'PL': self.PL,              # RECV              Peers List
-            #PING                       # SEND              Pong
-            'PONG': self.PONG,          # RECV/DSEND        Pong
+            'VE': self.VE,              #X SEND/RECV         Version
+            'PE': self.PE,              #X SEND              Peers List (connected peers)
+            'PL': self.PL,              #X RECV              Peers List
+            #PING                       #X SEND              Pong
+            'PONG': self.PONG,          #X RECV/DSEND        Pong
 
             ######################
             'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
             'SFM': self.SFM,            # RECV=>SEND        Send Full Message
 
-            'BM': self.BM,              # SEND/RECV Block Height Map
             'FMBH': self.FMBH,          # Fetch maximum block height
             'PMBH': self.PMBH,          # Push Maximum Block Height
             'MB': self.MB,              # SEND      Maximum Block Height
+            'BM': self.BM,              # SEND/RECV Block Height Map
             'CB': self.CB,              # RECV      Check Block Height
 
-            'BN': self.BN,              # Block Number
+            'BN': self.BN,              # SEND      Block Number
+            'BK': self.BK,              # RECV      Block
             'FB': self.FB,              # Fetch request for block
-            'BK': self.BK,              # Block
             'PB': self.PB,              # Push Block
-            'LB': self.LB,              # Last Block
-
+            'LB': self.LB,              # Last Block                        # OBSOLETE
             'PBB': self.PBB,            # Push Block Buffer
 
             'PH': self.PH,              # Push Headerhash

@@ -17,6 +17,15 @@ class BlockHeader(object):
             self._data = qrl_pb2.BlockHeader()
 
     @property
+    def pbdata(self):
+        """
+        Returns a protobuf object that contains persistable data representing this object
+        :return: A protobuf BlockHeader object
+        :rtype: qrl_pb2.BlockHeader
+        """
+        return self._data
+
+    @property
     def blocknumber(self):
         return self._data.block_number
 

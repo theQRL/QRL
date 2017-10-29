@@ -18,16 +18,18 @@ from .core.state import State
 from .core.walletfactory import WalletFactory
 from qrl.core import logger_twisted
 
-LOG_FORMAT_CUSTOM = '%(asctime)s |%(node_state)s| %(levelname)s : %(message)s'
+LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
 
 
 class ContextFilter(logging.Filter):
-    def __init__(self, node_state):
+    def __init__(self, node_state, version):
         super(ContextFilter, self).__init__()
         self.node_state = node_state
+        self.version = version
 
     def filter(self, record):
         record.node_state = self.node_state.state.name
+        record.version = self.version
         return True
 
 
@@ -66,7 +68,7 @@ def main():
 
     logger.initialize_default(force_console_output=not args.quiet).setLevel(log_level)
 
-    custom_filter = ContextFilter(node_state)
+    custom_filter = ContextFilter(node_state, config.dev.version)
     logger.logger.addFilter(custom_filter)
     file_handler = logger.log_to_file()
     file_handler.addFilter(custom_filter)
@@ -97,9 +99,8 @@ def main():
 
     #######
     # NOTE: Keep assigned to a variable or it will be collected
-    qrlserver = start_services(qrlnode)
+    grpc_service, p2p_node = start_services(qrlnode)
     #######
-
 
     logger.info('Reading chain..')
     chain_obj.m_load_chain()
