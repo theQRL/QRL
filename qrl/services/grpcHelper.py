@@ -22,7 +22,6 @@ class grpc_exception_wrapper(object):
                 self._set_context(context, e)
                 logger.info(str(e))
                 return self.response_type()
-            
             except Exception as e:
                 self._set_context(context, e)
                 logger.exception(e)

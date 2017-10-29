@@ -10,7 +10,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 from google.protobuf.json_format import MessageToJson, Parse
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-from qrl.core import config, logger, fork
+from qrl.core import config, logger
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import NodeState
@@ -488,7 +488,7 @@ class P2PProtocol(Protocol):
         return
 
     def isNoMoreBlock(self, data):
-        if type(data) == int:
+        if isinstance(data, int):
             blocknumber = data
             if blocknumber != self.last_requested_blocknum:
                 return True
@@ -523,7 +523,7 @@ class P2PProtocol(Protocol):
             logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
 
             status = self.factory.chain.block_chain_buffer.add_block(block)
-            if type(status) == bool and not status:
+            if isinstance(status, bool) and not status:
                 logger.info("[PBB] Failed to add block by add_block, re-requesting the block #%s", blocknumber)
                 logger.info('Skipping one block')
 

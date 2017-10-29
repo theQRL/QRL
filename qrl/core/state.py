@@ -12,7 +12,7 @@ from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 
