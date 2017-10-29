@@ -46,6 +46,7 @@ class Chain:
         self.duplicate_tx_pool = OrderedDict()
 
     def select_hashchain(self, stake_address=None, hashchain=None, blocknumber=None):
+        # NOTE: Users POS / Block
 
         if not hashchain:
             for s in self.block_chain_buffer.stake_list_get(blocknumber):
@@ -82,6 +83,8 @@ class Chain:
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
     def create_stake_block(self, reveal_hash, last_block_number):
+        # NOTE: Users POS
+
         t_pool2 = copy.deepcopy(self.transaction_pool)
 
         del self.transaction_pool[:]
@@ -195,7 +198,6 @@ class Chain:
 
         return block_obj
 
-
     def search(self, txcontains, islong=1):
         for tx in self.transaction_pool:
             if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
@@ -220,13 +222,19 @@ class Chain:
                                                            block=block,
                                                            validate=validate)
 
-    def validate_tx_pool(self):
+    def _validate_tx_pool(self):
         result = True
 
         for tx in self.transaction_pool:
-            block_chain_buffer = self.block_chain_buffer
-            tx_state = block_chain_buffer.get_stxn_state(blocknumber=block_chain_buffer.height() + 1,
-                                                         addr=tx.txfrom)
+            if not tx.validate():
+                result = False
+                self.remove_tx_from_pool(tx)
+                logger.info(('invalid tx: ', tx, 'removed from pool'))
+                continue
+
+            tx_state = self.block_chain_buffer.get_stxn_state(blocknumber=self.block_chain_buffer.height() + 1,
+                                                              addr=tx.txfrom)
+
             if not tx.validate_extended(tx_state=tx_state):
                 result = False
                 logger.warning('tx %s failed', tx.txhash)
@@ -244,7 +252,7 @@ class Chain:
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
                 logger.info('last block failed state/stake checks, removed from chain')
-                self.validate_tx_pool()
+                self._validate_tx_pool()
                 return False
         else:
             logger.info('m_add_block failed - block failed validation.')
@@ -332,14 +340,6 @@ class Chain:
 
     def flush_tx_pool(self):
         del self.transaction_pool[:]
-
-    def validate_tx_pool(self):  # invalid transactions are auto removed from pool..
-        for tr in self.transaction_pool:
-            if not tr.validate():
-                self.remove_tx_from_pool(tr)
-                logger.info(('invalid tx: ', tr, 'removed from pool'))
-
-        return True
 
     ####### CHAIN PERSISTANCE
 

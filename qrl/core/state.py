@@ -404,10 +404,14 @@ class State:
     def get_address_tx_hashes(self, addr: bytes):
         try:
             txhash = self._db.get(b'txn_' + addr)
+            res = [hstr2bin(h) for h in txhash]
         except KeyError:
-            txhash = []
+            res = []
+        except Exception as e:
+            logger.exception(e)
+            res = []
 
-        return [hstr2bin(h) for h in txhash]
+        return res
 
     def increase_txn_count(self, addr: bytes):
         # FIXME: This should be transactional
