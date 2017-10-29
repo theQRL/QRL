@@ -161,7 +161,8 @@ class QRLNode:
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
-    def get_dec_amount(self, str_amount_arg: str) -> Decimal:
+    @staticmethod
+    def get_dec_amount(str_amount_arg: str) -> Decimal:
         # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion. Quantity formats should be always clear
         # FIXME: Review. This is just relocated code. It looks odd
         # FIXME: Antipattern. Magic number.
@@ -192,7 +193,8 @@ class QRLNode:
 
         return addr_or_index
 
-    def validate_amount(self, amount_str: str) -> bool:
+    @staticmethod
+    def validate_amount(amount_str: str) -> bool:
         # FIXME: Refactored code. Review Decimal usage all over the code
         amount = Decimal(amount_str)
         return True

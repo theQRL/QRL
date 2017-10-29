@@ -103,8 +103,7 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
                 return answer
         except NotImplementedError as e:
             # FIXME: implementation missing
-            answer.found = True
-            pass
+            answer.found = False
 
         return answer
 
