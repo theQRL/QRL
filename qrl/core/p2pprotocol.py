@@ -47,7 +47,6 @@ class P2PProtocol(Protocol):
             'BM': self.BM,              # SEND/RECV Block Height Map
             'CB': self.CB,              # RECV      Check Block Height
 
-            #'BN': self.BN,              # SEND      Block Number
             'BK': self.BK,              # RECV      Block
             'FB': self.FB,              # Fetch request for block
             'PB': self.PB,              # Push Block
