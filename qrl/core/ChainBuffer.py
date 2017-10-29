@@ -16,20 +16,17 @@ from copy import deepcopy
 class ChainBuffer:
     def __init__(self, chain):
         self.chain = chain
-        self.state = self.chain.state
+
         self.blocks = dict()
-        self.size = config.dev.reorg_limit
         self.pending_blocks = dict()
+
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
 
-        # FIXME: _wallet_private_seeds and hash_chain seem not to be used
         private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
         self.hash_chain = dict()
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
-        self.tx_buffer = dict()  # maintain the list of tx transaction that has been confirmed in buffer
-        # FIXME: REMOVE ALL THIS?
 
         if self.chain.height() > 0:
             self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
@@ -37,18 +34,21 @@ class ChainBuffer:
     def add_pending_block(self, block):
         # TODO : minimum block validation in unsynced state
 
-        blocknum = block.blockheader.blocknumber
-        self.pending_blocks[blocknum] = block
+        block_idx = block.blockheader.blocknumber
+        self.pending_blocks[block_idx] = block
 
         return True
 
     def get_last_block(self):
         if len(self.blocks) == 0:
             return self.chain.m_get_last_block()
-        last_blocknum = max(self.blocks)
-        return self.blocks[last_blocknum][0].block
+
+        last_blocknum = max(self.blocks)                # FIXME: Should this run max on the keys only? Or better keep track of the value..
+
+        return self.blocks[last_blocknum][0].block      # FIXME: What does [0] refers to?
 
     def get_block_n(self, blocknumber):
+        # FIXME: THis should be in chain and only come to buffer when not found
         try:
             if self.chain.height() == -1:
                 self.chain.m_read_chain()
@@ -72,25 +72,8 @@ class ChainBuffer:
         self._wallet_private_seeds[epoch] = prev_private_seed
         self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
-    def _add_txns_buffer(self):
-        if len(self.blocks) == 0:
-            return
-        del self.tx_buffer
-        self.tx_buffer = {}
-
-        min_blocknum = self.chain.height() + 1
-        max_blocknum = max(self.blocks.keys())
-
-        for blocknum in range(min_blocknum, max_blocknum + 1):
-            block_state_buffer = self.blocks[blocknum]
-            block = block_state_buffer[0].block
-
-            self.tx_buffer[blocknum] = []
-
-            for tx in block.transactions:
-                self.tx_buffer[blocknum].append(tx.transaction_hash)
-
     def add_block_mainchain(self, chain, block, validate=True):
+        # FIXME: Define ownership / chain-chainbuffer relation
         # TODO : minimum block validation in unsynced _state
         blocknum = block.blockheader.blocknumber
         epoch = int(blocknum // config.dev.blocks_per_epoch)
@@ -114,13 +97,12 @@ class ChainBuffer:
                 logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
                 return
         else:
-            if self.state.add_block(chain, block, ignore_save_wallet=True) is True:
+            if self.chain.state.add_block(chain, block, ignore_save_wallet=True) is True:
                 chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
-        self._add_txns_buffer()
         if block_left == 1:
             private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[epoch + 1] = private_seed
@@ -167,9 +149,10 @@ class ChainBuffer:
         stake_reward = {}
 
         state_buffer = StateBuffer()
+
         block_buffer = None
         if blocknum - 1 == self.chain.height():
-            stake_validators_list = deepcopy(self.state.stake_validators_list)
+            stake_validators_list = deepcopy(self.chain.state.stake_validators_list)
             stxn_state = dict()
             # TODO: Optimization required
             if not self._state_add_block_buffer(block, stake_validators_list, stxn_state):
@@ -183,7 +166,7 @@ class ChainBuffer:
             state_buffer.set_next_seed(block.blockheader.reveal_hash, self.epoch_seed)
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update_stxn_state(self.state)
+            state_buffer.update_stxn_state(self.chain.state)
         else:
             block_state_buffer = self.blocks[blocknum - 1]
             parent_state_buffer = block_state_buffer[1]
@@ -199,7 +182,7 @@ class ChainBuffer:
                                                             block.blockheader.blocknumber))
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update(self.state, parent_state_buffer, block)
+            state_buffer.update(self.chain.state, parent_state_buffer, block)
 
         if blocknum not in self.blocks:
             self.blocks[blocknum] = [block_buffer, state_buffer]
@@ -218,7 +201,6 @@ class ChainBuffer:
                     if blocknum + 1 in self.blocks:
                         self._remove_blocks(blocknum + 1)
 
-        self._add_txns_buffer()
         return True
 
     def _remove_blocks(self, blocknumber):
@@ -266,7 +248,7 @@ class ChainBuffer:
 
     def _move_to_mainchain(self, blocknum):
         block = self.blocks[blocknum][0].block
-        if not self.state.add_block(self.chain, block):
+        if not self.chain.state.add_block(self.chain, block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 
@@ -289,17 +271,7 @@ class ChainBuffer:
     def height(self):
         if len(self.blocks) == 0:
             return self.chain.height()
-        return max(self.blocks)
-
-    def send_block(self, blocknumber, transport, wrap_message):
-        if blocknumber <= self.chain.height():
-            # FIXME: Breaking encapsulation
-            transport.write(wrap_message('PB', self.chain.m_get_block(blocknumber).to_json()))
-        elif blocknumber in self.blocks:
-            blockStateBuffer = self.blocks[blocknumber]
-
-            # FIXME: Breaking encapsulation
-            transport.write(wrap_message('PBB', blockStateBuffer[0].block.to_json()))
+        return max(self.blocks)             # FIXME: max over a dictionary?
 
     def process_pending_blocks(self):
         min_blocknum = min(self.pending_blocks.keys())
@@ -446,8 +418,8 @@ class ChainBuffer:
 
         try:
             if blocknumber - 1 == self.chain.height():
-                if stake_address in self.state.stake_validators_list.sv_list:
-                    return self.state.stake_validators_list.sv_list[stake_address].balance
+                if stake_address in self.chain.state.stake_validators_list.sv_list:
+                    return self.chain.state.stake_validators_list.sv_list[stake_address].balance
                 logger.info('Blocknumber not found')
                 return None
 
@@ -462,7 +434,7 @@ class ChainBuffer:
     def get_stxn_state(self, blocknumber, addr):
         try:
             if blocknumber - 1 == self.chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
-                tmp_state = self.state.get_address(addr)
+                tmp_state = self.chain.state.get_address(addr)
                 return tmp_state
 
             stateBuffer = self.blocks[blocknumber - 1][1]
@@ -470,7 +442,7 @@ class ChainBuffer:
             if addr in stateBuffer.stxn_state:
                 return deepcopy(stateBuffer.stxn_state[addr])  # FIXME: Why deepcopy?
 
-            return self.state.get_address(addr)
+            return self.chain.state.get_address(addr)
         except KeyError:
             self.error_msg('get_stxn_state', blocknumber)
         except Exception as e:
@@ -484,7 +456,7 @@ class ChainBuffer:
                 return None
 
             if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.sv_list
+                return self.chain.state.stake_validators_list.sv_list
 
             stateBuffer = self.blocks[blocknumber - 1][1]
 
@@ -499,7 +471,7 @@ class ChainBuffer:
     def future_stake_addresses(self, blocknumber):
         try:
             if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list.future_stake_addresses
+                return self.chain.state.stake_validators_list.future_stake_addresses
 
             stateBuffer = self.blocks[blocknumber - 1][1]
 
@@ -514,7 +486,7 @@ class ChainBuffer:
     def get_stake_validators_list(self, blocknumber):
         try:
             if blocknumber - 1 == self.chain.height():
-                return self.state.stake_validators_list
+                return self.chain.state.stake_validators_list
 
             return self.blocks[blocknumber - 1][1].stake_validators_list
         except KeyError:
@@ -552,7 +524,7 @@ class ChainBuffer:
         """
         prev_epoch = int((blocknumber - 1) // config.dev.blocks_per_epoch)
 
-        sv_list = self.state.stake_validators_list.sv_list
+        sv_list = self.chain.state.stake_validators_list.sv_list
         if self.chain.mining_address in sv_list:
             activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber
             if activation_blocknumber + config.dev.blocks_per_epoch == blocknumber:

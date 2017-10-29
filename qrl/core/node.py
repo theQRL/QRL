@@ -46,6 +46,8 @@ class POS:
         self.fmbh_allowed_peers = {}
         self.fmbh_blockhash_peers = {}
 
+        self.blockheight_map = []
+
         self.p2pFactory = p2pFactory
 
     def update_node_state(self, state):
@@ -579,16 +581,16 @@ class POS:
         # i = [block_number, headerhash, self.transport.getPeer().host]
 
         logger.info('blockheight_map:')
-        logger.info(self.chain.blockheight_map)
+        logger.info(self.blockheight_map)
 
         # first strip out any laggards..
-        self.chain.blockheight_map = [q for q in self.chain.blockheight_map if q[0] >= self.chain.m_blockheight()]
+        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.chain.m_blockheight()]
 
         result = True
 
         # next identify any node entries which are not exactly correct..
 
-        for s in self.chain.blockheight_map:
+        for s in self.blockheight_map:
             if s[0] == self.chain.m_blockheight():
                 if s[1] == self.chain.m_blockchain[-1].blockheader.headerhash:
                     logger.info(('node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
@@ -598,6 +600,6 @@ class POS:
 
         # wipe it..
 
-        del self.chain.blockheight_map[:]
+        del self.blockheight_map[:]
 
         return result

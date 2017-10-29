@@ -436,8 +436,8 @@ class P2PProtocol(Protocol):
 
             i = [block_number, headerhash, self.transport.getPeer().host]
             logger.info('%s', i)
-            if i not in self.factory.chain.blockheight_map:
-                self.factory.chain.blockheight_map.append(i)
+            if i not in self.factory.pos.blockheight_map:
+                self.factory.pos.blockheight_map.append(i)
             return
 
     def BK(self, data):  # block received
@@ -707,22 +707,38 @@ class P2PProtocol(Protocol):
         elif self.factory.chain.height() == 1 and self.factory.genesis == 1:
             return
 
+    def send_block(self, blocknumber):
+        # FIXME: Merge. Temporarily here
+        message = None
+        if blocknumber <= self.factory.chain.height():
+            # FIXME: Breaking encapsulation
+            message = self.wrap_message('PB', self.factory.chain.m_get_block(blocknumber).to_json())
+            self.transport.write()
+        elif blocknumber in self.factory.chain.block_chain_buffer.blocks:
+            blockStateBuffer = self.blocks[blocknumber]
+
+            # FIXME: Breaking encapsulation
+            message = self.wrap_message('PBB', blockStateBuffer[0].block.to_json())
+
+        if message is not None:
+            self.transport.write(message)
+
     def FB(self, data):  # Fetch Request for block
         """
         Fetch Block
         Sends the request for the block.
         :return:
         """
-        data = int(data)
-        logger.info(' Request for %s by %s', data, self.conn_identity)
-        if 0 < data <= self.factory.chain.block_chain_buffer.height():
-            self.factory.chain.block_chain_buffer.send_block(data, self.transport, self.wrap_message)
+        idx = int(data)
+        logger.info(' Request for %s by %s', idx, self.conn_identity)
+        if 0 < idx <= self.factory.chain.block_chain_buffer.height():
+            self.send_block(idx)
         else:
-            self.transport.write(self.wrap_message('PB', data))
-            if data > self.factory.chain.height():
+            self.transport.write(self.wrap_message('PB', idx))
+            if idx > self.factory.chain.height():
                 logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
-            logger.info(' Send for blocmnumber #%s to %s', data, self.conn_identity)
+            logger.info(' Send for blocmnumber #%s to %s', idx, self.conn_identity)
         return
 
     def PO(self, data):
