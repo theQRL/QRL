@@ -30,9 +30,6 @@ class P2PProtocol(Protocol):
     def __init__(self):
         # TODO: Comment with some names the services
         self.service = {
-            # OBSOLETE?
-            'IP': self.IP,  # SEND/RECV         Get IP (geotagging?)
-
             ######################
             'VE': self.VE,              #X SEND/RECV         Version
             'PE': self.PE,              #X SEND              Peers List (connected peers)
@@ -50,15 +47,12 @@ class P2PProtocol(Protocol):
             'BM': self.BM,              # SEND/RECV Block Height Map
             'CB': self.CB,              # RECV      Check Block Height
 
-            'BN': self.BN,              # SEND      Block Number
+            #'BN': self.BN,              # SEND      Block Number
             'BK': self.BK,              # RECV      Block
             'FB': self.FB,              # Fetch request for block
             'PB': self.PB,              # Push Block
-            'LB': self.LB,              # Last Block                        # OBSOLETE
             'PBB': self.PBB,            # Push Block Buffer
 
-            'PH': self.PH,              # Push Headerhash
-            'FH': self.FH,              # Fetch block header hash
             'FBHL': self.FBHL,          # Fetch Blockheaderhash List
             'PBHL': self.PBHL,          # Push Blockheaderhash List
             'EBHL': self.EBHL,          # Evaluate Blockheaderhash List
@@ -591,31 +585,6 @@ class P2PProtocol(Protocol):
             logger.exception(e)
         return
 
-    def PH(self, data):
-        """
-        Push Headerhash
-        :return:
-        """
-        if self.factory.nodeState.state == NState.forked:
-            fork.verify(data, self.conn_identity, self.chain, self.randomize_headerhash_fetch)
-        else:
-            mini_block = json.loads(data)
-            self.blocknumber_headerhash[mini_block['blocknumber']] = hstr2bin(mini_block['headerhash'])
-        return
-
-    def LB(self):  # request for last block to be sent
-        """
-        Last BLock
-        Sends the last block from the main chain.
-        :return:
-        """
-        logger.info('<<<Sending last block %s %s bytes to node %s', self.factory.chain.m_blockheight(),
-                    str(len(self.factory.chain.m_get_last_block().to_json())),
-                    self.transport.getPeer().host)
-
-        self.transport.write(self.wrap_message('BK', self.factory.chain.m_get_last_block()).to_json())
-        return
-
     def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
         """
         Fetch Maximum Blockheight and HeaderHash
@@ -739,25 +708,6 @@ class P2PProtocol(Protocol):
         elif self.factory.chain.height() == 1 and self.factory.genesis == 1:
             return
 
-    def BN(self, data):  # request for block (n)
-        """Block(n)
-        Sends the nth block from mainchain.
-        :return:
-        """
-        if int(data) <= self.factory.chain.m_blockheight():
-            logger.info('<<<Sending block number %s %s bytes to node: %s', int(data),
-                        len(self.factory.chain.m_get_block(int(data)).to_json()),
-                        self.transport.getPeer().host)
-            self.transport.write(
-                self.wrap_message('BK', self.factory.chain.m_get_block(int(data))).to_json())
-        else:
-            if int(data) >= self.factory.chain.m_blockheight():
-                logger.info('BN for a blockheight greater than local chain length..')
-            else:
-                logger.info('BN request without valid block number %s - closing connection', str(data))
-                self.transport.loseConnection()
-        return
-
     def FB(self, data):  # Fetch Request for block
         """
         Fetch Block
@@ -774,25 +724,6 @@ class P2PProtocol(Protocol):
                 logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
             logger.info(' Send for blocmnumber #%s to %s', data, self.conn_identity)
-        return
-
-    def FH(self, data):  # Fetch Block Headerhash
-        """
-        Fetch Block Headerhash
-        Sends the request for the blockheaderhash of a given blocknumber.
-        :return:
-        """
-        data = int(data)
-        if 0 < data <= self.factory.chain.height():
-            mini_block = {}
-            logger.info('<<<Pushing block headerhash of block number %s to node: %s',
-                        str(data), self.transport.getPeer().host)
-            mini_block['headerhash'] = self.factory.chain.m_get_block(data).blockheader.headerhash
-            mini_block['blocknumber'] = data
-            self.transport.write(self.wrap_message('PH', json.dumps(mini_block)))
-        else:
-            if data > self.factory.chain.height():
-                logger.info('FH for a blocknumber is greater than the local chain length..')
         return
 
     def PO(self, data):
@@ -883,28 +814,6 @@ class P2PProtocol(Protocol):
 
         return
 
-    def IP(self, data):  # fun feature to allow geo-tagging on qrl explorer of test nodes..reveals IP so optional..
-        """
-        IP
-        If data is None, node sends its own IP.
-        Otherwise, append the received IP into ip_list
-        and also broadcast it to all other connected peers
-        :return:
-        """
-        if not data:
-            if self.factory.ip_geotag == 1:
-                for peer in self.factory.peers:
-                    if peer != self:
-                        peer.transport.write(self.wrap_message('IP', self.transport.getHost().host))
-        else:
-            if data not in self.factory.chain.ip_list:
-                self.factory.chain.ip_list.append(data)
-                for peer in self.factory.peers:
-                    if peer != self:
-                        peer.transport.write(self.wrap_message('IP', self.transport.getHost().host))
-
-        return
-
     def recv_peers(self, json_data):
         """
         Receive Peers
@@ -992,16 +901,6 @@ class P2PProtocol(Protocol):
         self.transport.write(self.wrap_message('PL', json.dumps(peers_list)))
         return
 
-    def get_block_n(self, n):
-        """
-        Get Block n
-        Sends request for the block number n.
-        :return:
-        """
-        logger.info('<<<Requested block: %s from %s', n, self.transport.getPeer().host)
-        self.transport.write(self.wrap_message('BN', str(n)))
-        return
-
     def fetch_block_n(self, n):
         """
         Fetch Block n
@@ -1024,16 +923,6 @@ class P2PProtocol(Protocol):
         """
         logger.info('<<<Fetching FMBH from : %s', self.conn_identity)
         self.transport.write(self.wrap_message('FMBH'))
-
-    def fetch_headerhash_n(self, n):
-        """
-        Fetch Headerhash n
-        Sends request for the headerhash of blocknumber n.
-        :return:
-        """
-        logger.info('<<<Fetching headerhash of block: %s from %s', n, self.conn_identity)
-        self.transport.write(self.wrap_message('FH', str(n)))
-        return
 
     MSG_INITIATOR = bytearray(b'\xff\x00\x00')
     MSG_TERMINATOR = bytearray(b'\x00\x00\xff')
