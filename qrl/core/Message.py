@@ -4,16 +4,10 @@
 
 
 class Message:
-    def __init__(self):
-        self.msg = None
-        self.msg_type = None
-
-    def create(self, msg, msg_type):
+    def __init__(self, msg, msg_type):
         self.msg = msg
         self.msg_type = msg_type
-        return self
 
     def add_peer(self, msg_type):
         self.msg_type = msg_type
-
         return self
