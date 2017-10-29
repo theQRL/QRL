@@ -34,7 +34,6 @@ class Chain:
         self.mining_address = self.wallet.address_bundle[0].xmss.get_address().encode()
 
         self.ping_list = []                     # FIXME: This has nothing to do with chain. Used by p2pprotocol
-        self.blockheight_map = []               # FIXME: ?? This stays here but is handled by POS
 
         self._block_framedata = dict()
 

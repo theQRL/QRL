@@ -436,8 +436,8 @@ class P2PProtocol(Protocol):
 
             i = [block_number, headerhash, self.transport.getPeer().host]
             logger.info('%s', i)
-            if i not in self.factory.chain.blockheight_map:
-                self.factory.chain.blockheight_map.append(i)
+            if i not in self.factory.pos.blockheight_map:
+                self.factory.pos.blockheight_map.append(i)
             return
 
     def BK(self, data):  # block received
