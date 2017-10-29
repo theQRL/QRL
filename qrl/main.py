@@ -8,14 +8,12 @@ from twisted.internet import reactor
 
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
-from . import webwallet
 from .core import logger, ntp, config
 from .core.apifactory import ApiFactory
 from .core.chain import Chain
 from .core.node import NodeState, POS
 from .core.p2pfactory import P2PFactory
 from .core.state import State
-from .core.walletfactory import WalletFactory
 from qrl.core import logger_twisted
 
 LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
@@ -116,21 +114,12 @@ def main():
 
     qrlnode.set_p2pfactory(p2p_factory)
 
-
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
     api_factory = ApiFactory(pos, chain_obj, state_obj, p2p_factory.peer_connections)
 
-    welcome = 'QRL node connection established. Try starting with "help"\r\n'
-
-    # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    wallet_factory = WalletFactory(welcome, chain_obj, state_obj, p2p_factory, api_factory, qrlnode)
-
     logger.info('>>>Listening..')
-    reactor.listenTCP(2000, wallet_factory, interface='127.0.0.1')
     reactor.listenTCP(9000, p2p_factory)
     reactor.listenTCP(8080, api_factory)
-
-    webwallet.WebWallet(chain_obj, state_obj, p2p_factory, qrlnode)
 
     pos.restart_monitor_bk(80)
 
