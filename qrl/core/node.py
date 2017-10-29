@@ -11,8 +11,7 @@ from pyqrllib.pyqrllib import bin2hstr, sha2_256
 from twisted.internet import reactor
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
-from qrl.core import logger, config, fork
-from qrl.core.fork import fork_recovery
+from qrl.core import logger, config
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, DestakeTransaction
@@ -92,33 +91,8 @@ class POS:
             self.epoch_diff = -1
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def peers_blockheight_headerhash(self):
-        for peer in self.p2pFactory.peers:
-            peer.fetch_headerhash_n(self.chain.m_blockheight())
-
-    def check_fork_status(self):
-        current_height = self.chain.m_blockheight()
-        block_hash_counter = Counter()
-        for peer in self.p2pFactory.peers:
-            if current_height in list(peer.blocknumber_headerhash.keys()):
-                block_hash_counter[peer.blocknumber_headerhash[current_height]] += 1
-
-        blockhash = block_hash_counter.most_common(1)
-        if blockhash:
-            blockhash = blockhash[0][0]
-            actual_blockhash = self.chain.m_get_block(current_height).blockheader.headerhash
-            if actual_blockhash != blockhash:
-                logger.info('Blockhash didnt matched in peers_blockheight()')
-                logger.info('Local blockhash - %s', actual_blockhash)
-                logger.info('Consensus blockhash - %s', blockhash)
-                fork_recovery(current_height, self.chain, self.randomize_headerhash_fetch)
-                return True
-        return
-
     def peers_blockheight(self):
         if self.nodeState.state == NState.syncing:
-            return
-        if self.check_fork_status():
             return
 
         block_height_counter = Counter()
@@ -140,20 +114,6 @@ class POS:
             self.update_node_state(NState.syncing)
             self.randomize_block_fetch(self.chain.height() + 1)
         return
-
-    def schedule_peers_blockheight(self, delay=100):
-        try:
-            reactor.peers_blockheight.cancel()
-        except Exception:  # No need to log this exception
-            pass
-
-        reactor.peers_blockheight = reactor.callLater(delay, self.peers_blockheight)
-        try:
-            reactor.peers_blockheight_headerhash.cancel()  # No need to log this exception
-        except Exception as e:
-            pass
-
-        reactor.peers_blockheight_headerhash = reactor.callLater(70, self.peers_blockheight_headerhash)
 
     # pos functions. an asynchronous loop.
 
@@ -606,36 +566,6 @@ class POS:
 
         random_peer = self.p2pFactory.target_peers[random.choice(list(self.p2pFactory.target_peers.keys()))]
         random_peer.fetch_block_n(blocknumber)
-
-    def randomize_headerhash_fetch(self, block_number):
-        if self.nodeState.state != NState.forked:
-            return
-        if block_number not in fork.pending_blocks or fork.pending_blocks[block_number][1] <= 10:  # retry only 11 times
-            headerhash_monitor = reactor.callLater(15, self.randomize_headerhash_fetch, block_number)
-            if len(self.p2pFactory.peers) > 0:
-                try:
-                    if len(self.p2pFactory.fork_target_peers) == 0:
-                        for peer in self.p2pFactory.peers:
-                            self.p2pFactory.fork_target_peers[peer.conn_identity] = peer
-                    if len(self.p2pFactory.fork_target_peers) > 0:
-                        random_peer = self.p2pFactory.fork_target_peers[
-                            random.choice(
-                                list(self.p2pFactory.fork_target_peers.keys())
-                            )
-                        ]
-                        count = 0
-                        if block_number in fork.pending_blocks:
-                            count = fork.pending_blocks[block_number][1] + 1
-                        fork.pending_blocks[block_number] = [
-                            random_peer.conn_identity, count, None, headerhash_monitor
-                        ]
-                        random_peer.fetch_headerhash_n(block_number)
-                except Exception as e:
-                    logger.warning('Exception at randomize_headerhash_fetch %s', e)
-            else:
-                logger.info('No peers connected.. Will try again... randomize_headerhash_fetch: %s', block_number)
-        else:
-            self.update_node_state(NState.unsynced)
 
     def blockheight_map(self):
         """
