@@ -3,7 +3,7 @@ from __future__ import print_function
 import grpc
 
 from qrl.generated import qrl_pb2
-from qrl.generated.qrl_pb2 import PingReq, GetNodeStateReq
+from qrl.generated.qrl_pb2 import GetNodeStateReq
 
 
 def run():

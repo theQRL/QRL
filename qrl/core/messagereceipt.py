@@ -64,7 +64,7 @@ class MessageReceipt(object):
         if len(self.hash_msg) >= config.dev.message_q_size:
             self.__remove__(self.hash_msg)
 
-        message = Message().create(msg_obj, msg_type)
+        message = Message(msg_obj, msg_type)
 
         self.hash_msg[msg_hash] = message
 
