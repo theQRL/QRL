@@ -3,14 +3,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-import pytest
-from grpc import ServicerContext, StatusCode
-from grpc._server import _Context
-from mock import Mock, MagicMock, __version__
+from mock import Mock, MagicMock
 
 from qrl.core import logger
-from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.core.chain import Chain
 from qrl.core.node import NodeState
 from qrl.core.p2pfactory import P2PFactory
@@ -18,7 +13,6 @@ from qrl.core.qrlnode import QRLNode
 from qrl.core.state import State
 from qrl.generated import qrl_pb2
 from qrl.services.P2PNodeService import P2PNodeService
-from qrl.services.PublicAPIService import PublicAPIService
 
 logger.initialize_default(force_console_output=True)
 

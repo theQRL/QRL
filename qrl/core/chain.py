@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE, TX_SUBTYPE_DESTAKE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_DESTAKE
 from collections import OrderedDict
 from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config, logger
