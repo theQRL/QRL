@@ -29,7 +29,6 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     import inspect
     from sphinx import apidoc
-    import sys
 
     __location__ = os.path.join(os.getcwd(), os.path.dirname(
         inspect.getfile(inspect.currentframe())))
