@@ -3,14 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-import pytest
 from grpc import ServicerContext
-from grpc._server import _Context
-from mock import Mock, MagicMock, __version__
-from pyqrllib.pyqrllib import sha2_256
+from mock import Mock, MagicMock
 
 from qrl.core import logger
-from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.core.Transaction import TransferTransaction
 from qrl.core.chain import Chain

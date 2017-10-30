@@ -636,32 +636,6 @@ class P2PProtocol(Protocol):
         """
         Check Blockheight
         :return:
-        # FIXME: This test grew too much. Convert doctest into unit test using mocks
-        >>> from collections import namedtuple, defaultdict
-        >>> from qrl.generated import qrl_pb2
-        >>> p=P2PProtocol()
-        >>> Transport = namedtuple("Transport", "getPeer write")
-        >>> Peer = namedtuple("Peer", "host port")
-        >>> Factory = namedtuple("Factory", "peers_blockheight chain nodeState")
-        >>> Chain = namedtuple("Chain", "m_blockchain m_blockheight")
-        >>> def getPeer():
-        ...     return Peer("host", 1234)
-        >>> message = None
-        >>> def write(msg):
-        ...     global message
-        ...     message = msg
-        >>> def m_blockheight():
-        ...     return 0
-        >>> p.transport = Transport(getPeer, write)
-        >>> p.chain = Chain([], m_blockheight)
-        >>> tmp = NodeState()
-        >>> tmp.state = NState.synced
-        >>> p.factory = Factory(defaultdict(), p.chain, tmp)
-        >>> data = qrl_pb2.BlockMetaData()
-        >>> data.block_number = 3
-        >>> data.hash_header = bytes((53, 130, 168, 57, 183, 215, 120, 178, 209, 30, 194, 223, 221, 58, 72, 124, 62, 148, 110, 81, 19, 189, 27, 243, 218, 87, 217, 203, 198, 97, 84, 19))
-        >>> jsonData = MessageToJson(data)
-        >>> p.CB(jsonData)
         """
         data = qrl_pb2.BlockMetaData()
 
