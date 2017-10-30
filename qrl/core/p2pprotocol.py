@@ -519,7 +519,7 @@ class P2PProtocol(Protocol):
             blocknumber = block.blockheader.blocknumber
 
             if blocknumber != self.last_requested_blocknum:
-                logger.info('Blocknumber not found in pending_blocks %s %s', blocknumber, self.conn_identity)
+                logger.info('Blocknumber not found in pending_blocks %s %s', block.blockheader.blocknumber, self.conn_identity)
                 return
 
             logger.info('>>>Received Block #%s', block.blockheader.blocknumber)
@@ -534,13 +534,14 @@ class P2PProtocol(Protocol):
             except Exception:
                 pass
 
-            # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
-            # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
-            # TODO: requires a better fix
-            if len(self.factory.chain.block_chain_buffer.pending_blocks) > 0 and min(
-                    self.factory.chain.block_chain_buffer.pending_blocks.keys()) == blocknumber:
+            if len(self.factory.chain.block_chain_buffer._pending_blocks) > 0 and \
+                min(self.factory.chain.block_chain_buffer._pending_blocks.keys()) == blocknumber:
+                # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
+                # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
+                # TODO: requires a better fix
                 self.factory.chain.block_chain_buffer.process_pending_blocks()
                 return
+
             self.factory.pos.randomize_block_fetch(blocknumber + 1)
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)

@@ -18,8 +18,8 @@ class Block(object):
         self._data = protobuf_block
         if protobuf_block is None:
             self._data = qrl_pb2.Block()
-        else:
-            self.blockheader = BlockHeader(protobuf_block.header)
+
+        self.blockheader = BlockHeader(self._data.header)
 
     @property
     def pbdata(self):
