@@ -75,7 +75,7 @@ class QRLNode:
 
     @property
     def uptime_network(self):
-        block_one = self._chain.m_get_block(1)
+        block_one = self._chain.get_block(1)
         network_uptime = 0
         if block_one:
             network_uptime = time.time() - block_one.blockheader.timestamp
@@ -332,7 +332,7 @@ class QRLNode:
         This method returns an object that matches the query hash
         """
         # FIXME: At some point, all objects in DB will indexed by a hash
-        return self._chain.m_get_block(index)
+        return self._chain.get_block(index)
 
     def get_latest_blocks(self, count=5):
         # FIXME: Simplify this
@@ -340,7 +340,7 @@ class QRLNode:
         end = self.block_height
         start = max(0, end - count)
         for blk_idx in range(start, end):
-            answer.append(self._chain.m_get_block(blk_idx))
+            answer.append(self._chain.get_block(blk_idx))
 
         return answer
 

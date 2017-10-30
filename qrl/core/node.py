@@ -201,7 +201,7 @@ class POS:
             reveal_hash = self.chain.select_hashchain(self.chain.mining_address,
                                                       tmphc.hashchain,
                                                       blocknumber=1)
-            b = self.chain.m_create_block(reveal_hash[-2])
+            b = self.chain.create_block(reveal_hash[-2])
             self.pre_block_logic(b)
         else:
             logger.info('await block creation by stake validator: %s', self.chain.stake_list[0][0])
@@ -399,7 +399,7 @@ class POS:
             blocknumber = self.chain.block_chain_buffer.height() + 1
 
         if not delay:
-            last_block = self.chain.block_chain_buffer.get_block_n(blocknumber - 1)
+            last_block = self.chain.block_chain_buffer.get_block(blocknumber - 1)
             last_block_timestamp = last_block.blockheader.timestamp
             curr_timestamp = int(self.ntp.getTime())
 
@@ -594,17 +594,17 @@ class POS:
         logger.info(self.blockheight_map)
 
         # first strip out any laggards..
-        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.chain.m_blockheight()]
+        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.chain.blockheight()]
 
         result = True
 
         # next identify any node entries which are not exactly correct..
 
         for s in self.blockheight_map:
-            if s[0] == self.chain.m_blockheight():
+            if s[0] == self.chain.blockheight():
                 if s[1] == self.chain.m_blockchain[-1].blockheader.headerhash:
                     logger.info(('node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
-            elif s[0] > self.chain.m_blockheight():
+            elif s[0] > self.chain.blockheight():
                 logger.info(('warning..', s[2], 'at blockheight', s[0]))
                 result = False
 

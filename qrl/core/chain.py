@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from typing import Optional
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_DESTAKE
 from collections import OrderedDict
@@ -36,11 +37,11 @@ class Chain:
         self._block_framedata = dict()
 
         self.transaction_pool = []              # FIXME: Everyone is touching this
-        self.txhash_timestamp = []
-        self.m_blockchain = []                  # FIXME: Everyone is touching this
+        self.txhash_timestamp = []              # FIXME: Seems obsolete? Delete?
+        self.blockchain = []                    # FIXME: Everyone is touching this
 
         # FIXME: block_chain_buffer is initialized by node.py??
-        self.block_chain_buffer = None  # type: ChainBuffer
+        self.block_chain_buffer = None          # type: ChainBuffer
 
         self.prev_txpool = [None] * 1000        # TODO: use python dequeue
         self.pending_tx_pool = []
@@ -245,7 +246,7 @@ class Chain:
             txnum += 1
 
         # create the block..
-        block_obj = self.m_create_block(reveal_hash, last_block_number)
+        block_obj = self.create_block(reveal_hash, last_block_number)
         # reset the pool back
         self.transaction_pool = copy.deepcopy(t_pool2)
 
@@ -258,7 +259,7 @@ class Chain:
                 if islong == 1:
                     json_print(tx)
 
-        for block in self.m_blockchain:
+        for block in self.blockchain:
             for protobuf_tx in block.transactions:
                 tx = Transaction.from_pbdata(protobuf_tx)
                 if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
@@ -269,11 +270,6 @@ class Chain:
                         json_print(tx)
 
     ######## CHAIN RELATED
-
-    def add_block_mainchain(self, block, validate=True):
-        return self.block_chain_buffer.add_block_mainchain(chain=self,
-                                                           block=block,
-                                                           validate=validate)
 
     def _validate_tx_pool(self):
         result = True
@@ -295,13 +291,19 @@ class Chain:
 
         return result
 
+    def add_block_mainchain(self, block, validate=True):
+        # FIXME: This delegation is too strange
+        return self.block_chain_buffer.add_block_mainchain(chain=self,
+                                                           block=block,
+                                                           validate=validate)
+
     def m_add_block(self, block_obj):
-        if len(self.m_blockchain) == 0:
+        if len(self.blockchain) == 0:
             self.m_read_chain()
 
         if block_obj.validate_block(chain=self):
             if self.state.add_block(self, block_obj):
-                self.m_blockchain.append(block_obj)
+                self.blockchain.append(block_obj)
                 self.remove_tx_in_block_from_pool(block_obj)
             else:
                 logger.info('last block failed state/stake checks, removed from chain')
@@ -314,47 +316,68 @@ class Chain:
         self.m_f_sync_chain()
         return True
 
-    def m_get_block(self, n: int):
-        if len(self.m_blockchain) == 0:
-            return []
-
-        beginning_blocknum = self.m_blockchain[0].blockheader.blocknumber
-        diff = n - beginning_blocknum
-
-        if diff < 0:
-            return self._load_from_file(n)
-
-        if diff < len(self.m_blockchain):
-            return self.m_blockchain[diff]
-
-        return []
-
-    def m_get_last_block(self):
-        if len(self.m_blockchain) == 0:
-            return False
-        return self.m_blockchain[-1]
-
-    def m_create_block(self, reveal_hash, last_block_number=-1):
+    def create_block(self, reveal_hash, last_block_number=-1)->Optional[Block]:
         tmp_block = Block()
         tmp_block.create(self, reveal_hash, last_block_number)
-
         slave_xmss = self.get_slave_xmss(last_block_number + 1)
-        if not slave_xmss:
-            return
 
+        if not slave_xmss:
+            return None
+
+        # FIXME: Why is it necessary to access the wallet here? Unexpected side effect
         self.wallet.save_slave(slave_xmss)
+
         return tmp_block
 
-    def m_blockheight(self):
+    def blockheight(self):
         # FIXME: Unify with height
         # return len(self.m_read_chain()) - 1
         return self.height()
 
     def height(self):
-        if len(self.m_blockchain):
-            return self.m_blockchain[-1].blockheader.blocknumber
+        if len(self.blockchain):
+            return self.blockchain[-1].blockheader.blocknumber
         # FIXME: Height cannot be negative. In case this is used as index the code needs refactoring
         return -1
+
+    def get_block(self, block_idx: int, consider_buffer=False)->Optional[Block]:
+        # Block chain has not been loaded?
+        if len(self.blockchain) == 0:
+            self.m_read_chain()
+
+        if len(self.blockchain) > 0:
+            # FIXME: The logic here is not very clear
+            inmem_start_idx = self.blockchain[-1].blockheader.blocknumber
+            inmem_offset = block_idx - inmem_start_idx
+
+            if inmem_offset < 0:
+                return self._load_from_file(block_idx)
+
+            if inmem_offset < len(self.blockchain):
+                return self.blockchain[inmem_offset]
+
+        if consider_buffer:
+            return self.block_chain_buffer.get_block(block_idx)
+
+        return None
+
+    def get_last_block(self, consider_buffer=False)->Optional[Block]:
+        """
+        Returns the last block in the chain. It is optional to consider the buffer
+        :param consider_buffer:  Indicates if the chain buffer should be considered
+        :type consider_buffer: bool
+        :return: Returns the last block in the chain
+        :rtype: Optional[Block]
+        """
+        if consider_buffer:
+            last = self.block_chain_buffer.get_last_block()
+            if last is not None:
+                return last
+
+        if len(self.blockchain) == 0:
+            return None
+
+        return self.blockchain[-1]
 
     # TODO: Unclear what this comment refers to
     # validate and update stake+state for newly appended block.
@@ -396,19 +419,19 @@ class Chain:
     ####### CHAIN PERSISTANCE
 
     def m_read_chain(self):
-        if not self.m_blockchain:
+        if not self.blockchain:
             self.m_load_chain()
-        return self.m_blockchain
+        return self.blockchain
 
     def m_f_sync_chain(self):
-        if (self.m_blockchain[-1].blockheader.blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
+        if (self.blockchain[-1].blockheader.blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
             self._f_write_m_blockchain()
         return
 
     def _load_chain_by_epoch(self, epoch):
 
         chains = self._f_read_chain(epoch)
-        self.m_blockchain.append(chains[0])
+        self.blockchain.append(chains[0])
 
         self.state.read_genesis()
         self.block_chain_buffer = ChainBuffer(self)
@@ -416,7 +439,7 @@ class Chain:
         for block in chains[1:]:
             self.add_block_mainchain(block, validate=False)
 
-        return self.m_blockchain
+        return self.blockchain
 
     @staticmethod
     def _get_chaindatafile(epoch):
@@ -433,9 +456,9 @@ class Chain:
         return self._block_framedata[block_number]
 
     def _f_write_m_blockchain(self):
-        blocknumber = self.m_blockchain[-1].blockheader.blocknumber
+        blocknumber = self.blockchain[-1].blockheader.blocknumber
         file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
-        writeable = self.m_blockchain[-config.dev.disk_writes_after_x_blocks:]
+        writeable = self.blockchain[-config.dev.disk_writes_after_x_blocks:]
         logger.debug('Writing chain to disk')
 
         with open(self._get_chaindatafile(file_epoch), 'ab') as myfile:
@@ -450,7 +473,7 @@ class Chain:
                 myfile.write(compressed_block)
                 myfile.write(config.dev.binary_file_delimiter)
 
-        del self.m_blockchain[:-1]
+        del self.blockchain[:-1]
 
     def _load_from_file(self, blocknum):
         epoch = int(blocknum // config.dev.blocks_per_chain_file)
@@ -519,17 +542,17 @@ class Chain:
         return block_list
 
     def m_load_chain(self):
-        del self.m_blockchain[:]
+        del self.blockchain[:]
         self.state.zero_all_addresses()
 
         self._load_chain_by_epoch(0)
 
-        if len(self.m_blockchain) < config.dev.blocks_per_chain_file:
-            return self.m_blockchain
+        if len(self.blockchain) < config.dev.blocks_per_chain_file:
+            return self.blockchain
 
         epoch = 1
         while os.path.isfile(self._get_chaindatafile(epoch)):
-            del self.m_blockchain[:-1]
+            del self.blockchain[:-1]
             chains = self._f_read_chain(epoch)
 
             for block in chains:
@@ -538,4 +561,4 @@ class Chain:
             epoch += 1
         self.wallet.save_wallet()
 
-        return self.m_blockchain
+        return self.blockchain

@@ -127,7 +127,7 @@ class P2PProtocol(Protocol):
         blocknum_headerhash = qrl_pb2.BlockMetaDataList()
         for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber + 1):
             blockmetadata = qrl_pb2.BlockMetaData()
-            block = self.factory.chain.block_chain_buffer.get_block_n(blocknum)
+            block = self.factory.chain.block_chain_buffer.get_block(blocknum)
             if not block:
                 break
             blockmetadata.block_number = blocknum
@@ -154,7 +154,7 @@ class P2PProtocol(Protocol):
             if blockmetadata.block_number > self.factory.chain.block_chain_buffer.height():
                 return
 
-            block = self.factory.chain.block_chain_buffer.get_block_n(blockmetadata.block_number)
+            block = self.factory.chain.block_chain_buffer.get_block(blockmetadata.block_number)
 
             if blockmetadata.hash_header != block.blockheader.headerhash:
                 if last_matching_blocknum:
@@ -175,7 +175,7 @@ class P2PProtocol(Protocol):
 
         max_blocknum = min(block_chain_buffer.height()+1, blocknum+config.dev.blocks_per_epoch)
         for blocknumber in range(blocknum, max_blocknum):
-            block = block_chain_buffer.get_block_n(blocknumber)
+            block = block_chain_buffer.get_block(blocknumber)
 
             data = qrl_pb2.MR()
             data.hash = block.blockheader.headerhash
@@ -680,14 +680,14 @@ class P2PProtocol(Protocol):
         self.blockheight = block_number
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
                     self.transport.getPeer().host, block_number,
-                    self.factory.chain.m_blockheight(), str(time.time()))
+                    self.factory.chain.blockheight(), str(time.time()))
 
         if self.factory.nodeState.state == NState.syncing:
             return
 
-        if block_number == self.factory.chain.m_blockheight():
+        if block_number == self.factory.chain.blockheight():
             # if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
-            if self.factory.chain.m_get_block(block_number).blockheader.headerhash != headerhash:
+            if self.factory.chain.get_block(block_number).blockheader.headerhash != headerhash:
                 logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
 
                 # initiate fork recovery and protection code here..
@@ -695,7 +695,7 @@ class P2PProtocol(Protocol):
                 # again need to think this one through in detail..
                 return
 
-        if block_number > self.factory.chain.m_blockheight():
+        if block_number > self.factory.chain.blockheight():
             return
 
         if self.factory.chain.height() == 0 and self.factory.genesis == 0:
@@ -714,7 +714,7 @@ class P2PProtocol(Protocol):
         message = None
         if blocknumber <= self.factory.chain.height():
             # FIXME: Breaking encapsulation
-            message = self.wrap_message('PB', self.factory.chain.m_get_block(blocknumber).to_json())
+            message = self.wrap_message('PB', self.factory.chain.get_block(blocknumber).to_json())
             self.transport.write()
         elif blocknumber in self.factory.chain.block_chain_buffer.blocks:
             blockStateBuffer = self.blocks[blocknumber]

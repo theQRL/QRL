@@ -39,7 +39,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
             logger.exception(e)
 
         del pending_blocks[blocknumber]
-        if mini_block['headerhash'] == chain.m_get_block(
+        if mini_block['headerhash'] == chain.get_block(
                 blocknumber).blockheader.headerhash:  # Matched so fork root is the block next to it
             unfork(blocknumber + 1, chain)
             return

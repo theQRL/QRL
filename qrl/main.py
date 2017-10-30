@@ -102,7 +102,7 @@ def main():
 
     logger.info('Reading chain..')
     chain_obj.m_load_chain()
-    logger.info(str(len(chain_obj.m_blockchain)) + ' blocks')
+    logger.info(str(len(chain_obj.blockchain)) + ' blocks')
     logger.info('Verifying chain')
     logger.info('Building state leveldb')
 

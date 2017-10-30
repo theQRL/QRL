@@ -161,7 +161,7 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        if not self.factory.state.uptodate(self.factory.chain.m_blockheight()):
+        if not self.factory.state.uptodate(self.factory.chain.blockheight()):
             return json_print_telnet({'status': 'error',
                                       'error': 'leveldb failed',
                                       'method': 'richlist'})
@@ -202,7 +202,7 @@ class ApiProtocol(Protocol):
         lb = []
         beginning = self.factory.chain.height() - n
         for blocknum in range(self.factory.chain.height(), beginning - 1, -1):
-            block = self.factory.chain.m_get_block(blocknum)
+            block = self.factory.chain.get_block(blocknum)
             lb.append(block)
 
         last_blocks = {'blocks': []}
@@ -314,7 +314,7 @@ class ApiProtocol(Protocol):
         except:
             return json_print_telnet(error)
 
-        bk = self.factory.chain.m_get_block(int(data))
+        bk = self.factory.chain.get_block(int(data))
 
         if not bk:
             return json_print_telnet(error)
@@ -372,13 +372,13 @@ class ApiProtocol(Protocol):
         for _ in range(last_n_block):
             if last_block.blockheader.blocknumber <= 0:
                 break
-            prev_block = self.factory.chain.m_get_block(last_block.blockheader.blocknumber - 1)
+            prev_block = self.factory.chain.get_block(last_block.blockheader.blocknumber - 1)
             x = last_block.blockheader.timestamp - prev_block.blockheader.timestamp
             last_block = prev_block
             t.append(x)
             z += x
 
-        block_one = self.factory.chain.m_get_block(1)
+        block_one = self.factory.chain.get_block(1)
         network_uptime = 0
         if block_one:
             network_uptime = time.time() - block_one.blockheader.timestamp
@@ -394,7 +394,7 @@ class ApiProtocol(Protocol):
             'status': 'ok',
             'version': config.dev.version,
             'nodes': len(self.factory.peers) + 1,
-            'blockheight': self.factory.chain.m_blockheight(),
+            'blockheight': self.factory.chain.blockheight(),
             'network': 'qrl testnet',
 
             # Part of

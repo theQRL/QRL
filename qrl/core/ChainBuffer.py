@@ -1,12 +1,14 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from typing import Optional
 
 from pyqrllib.pyqrllib import str2bin, bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
+from qrl.core.block import Block
 from qrl.core.helper import get_blocks_left
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
@@ -17,7 +19,7 @@ class ChainBuffer:
     def __init__(self, chain):
         self.chain = chain
 
-        self.blocks = dict()
+        self.blocks = dict()                                        # FIXME: Using a dict is much more inefficient
         self.pending_blocks = dict()
 
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
@@ -39,28 +41,20 @@ class ChainBuffer:
 
         return True
 
-    def get_last_block(self):
+    def get_last_block(self)->Optional[Block]:
         if len(self.blocks) == 0:
-            return self.chain.m_get_last_block()
+            return None
 
-        last_blocknum = max(self.blocks)                # FIXME: Should this run max on the keys only? Or better keep track of the value..
+        # FIXME: Should this run max on the keys only? Or better keep track of the value..
+        last_blocknum = max(self.blocks.keys())
 
         return self.blocks[last_blocknum][0].block      # FIXME: What does [0] refers to?
 
-    def get_block_n(self, blocknumber):
-        # FIXME: THis should be in chain and only come to buffer when not found
+    def get_block(self, block_idx: int)->Optional[Block]:
         try:
-            if self.chain.height() == -1:
-                self.chain.m_read_chain()
-
-            if blocknumber <= self.chain.height():
-                return self.chain.m_get_block(blocknumber)
-
-            return self.blocks[blocknumber][0].block
-        except KeyError:
-            self.error_msg('get_block_n', blocknumber)
+            return self.blocks[block_idx][0].block
         except Exception as e:
-            self.error_msg('get_block_n', blocknumber, e)
+            self.error_msg('ChainBuffer.get_block', block_idx, e)
 
         return None
 
@@ -400,7 +394,7 @@ class ChainBuffer:
         if blocknum > self.height():
             return
 
-        best_block = self.get_block_n(blocknum)
+        best_block = self.get_block(blocknum)
         best_blockheader = best_block.blockheader
 
         if best_blockheader.prev_blockheaderhash != prev_blockheaderhash:

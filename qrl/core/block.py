@@ -50,7 +50,7 @@ class Block(object):
         if last_block_number == -1:
             data = chain.block_chain_buffer.get_last_block()  # m_get_last_block()
         else:
-            data = chain.block_chain_buffer.get_block_n(last_block_number)
+            data = chain.block_chain_buffer.get_block(last_block_number)
 
         last_block_number = data.blockheader.blocknumber
         prev_blockheaderhash = data.blockheader.headerhash
@@ -105,7 +105,7 @@ class Block(object):
         try:
             blk_header = self.blockheader
             last_blocknum = blk_header.blocknumber - 1
-            last_block = chain.block_chain_buffer.get_block_n(last_blocknum)
+            last_block = chain.block_chain_buffer.get_block(last_blocknum)
 
             if not self.blockheader.validate(last_block.blockheader):
                 return False
