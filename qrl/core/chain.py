@@ -5,14 +5,15 @@ from typing import Optional
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_TX, TX_SUBTYPE_DESTAKE
 from collections import OrderedDict
-from pyqrllib.pyqrllib import bin2hstr, XmssPool
+from pyqrllib.pyqrllib import bin2hstr, XmssPool, str2bin
 from qrl.core import config, logger
-from qrl.core.ChainBuffer import ChainBuffer
+from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import Transaction
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.wallet import Wallet
 from qrl.core.block import Block
 from qrl.core.helper import json_print
+from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 
 import bz2
@@ -27,31 +28,330 @@ from qrl.crypto.xmss import XMSS
 
 class Chain:
     def __init__(self, state):
-        self.state = state
-        self.wallet = Wallet()              # FIXME: Why chain needs access to the wallet?
+        self.pstate = state                      # FIXME: Is this really a parameter?
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
-        # FIXME: should self.mining_address be self.staking_address
-        self.mining_address = self.wallet.address_bundle[0].xmss.get_address().encode()
+        self.wallet = Wallet()                  # FIXME: Why chain needs access to the wallet?
+        self.staking_address = self.wallet.address_bundle[0].xmss.get_address().encode()
 
-        self._block_framedata = dict()
+        self.blockchain = []                    # FIXME: Everyone is touching this
+                                                # FIXME: Remove completely and trust the db memcache for this
 
         self.transaction_pool = []              # FIXME: Everyone is touching this
-        self.txhash_timestamp = []              # FIXME: Seems obsolete? Delete?
-        self.blockchain = []                    # FIXME: Everyone is touching this
-
-        # FIXME: block_chain_buffer is initialized by node.py??
-        self.block_chain_buffer = None          # type: ChainBuffer
-
         self.prev_txpool = [None] * 1000        # TODO: use python dequeue
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
         self.duplicate_tx_pool = OrderedDict()  # FIXME: Everyone is touching this
 
+        # OBSOLETE ????
+        self._block_framedata = dict()          # FIXME: this is used to access file chunks. Delete once we move to DB
+        self.ping_list = []                     # FIXME: This has nothing to do with chain. Used by p2pprotocol
+        self.txhash_timestamp = []              # FIXME: Seems obsolete? Delete?
+
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()
         self.slave_xmsspool = None
         self._init_slave_xmsspool(0)
+
+    @property
+    def height(self):
+        # FIXME: This will probably get replaced by using rocksdb
+        if len(self.blockchain):
+            return self.blockchain[-1].blocknumber
+        # FIXME: Height cannot be negative. In case this is used as index the code needs refactoring
+        return -1
+
+    ######## CHAIN RELATED
+
+    def add_block(self, block: Block, validate=True)->bool:
+        # TODO : minimum block validation in unsynced _state
+        if block.blocknumber <= self.height():
+            logger.warning("Block already in the chain")
+            return False
+
+        if block.blocknumber - 1 == self.height():
+            if block.prev_headerhash != self.blockchain[-1].headerhash:
+                logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
+                return False
+        elif block.blocknumber - 1 > 0:
+            if block.blocknumber - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.blocknumber - 1][0].block.headerhash:
+                logger.info('No block found in buffer that matches with the prev_headerhash of received block')
+                return False
+
+        # FIXME: Combine all this with _add_block
+        if validate:
+            if not self._add_block(block):
+                logger.info("Failed to add block by add_block, re-requesting the block #%s", block.blocknumber)
+                return False
+        else:
+            if self.pstate.add_block(self, block, ignore_save_wallet=True) is True:
+                self.blockchain.append(block)
+
+        self.pstate.update_last_tx(block)
+        self.pstate.update_tx_metadata(block)
+
+        block_left = config.dev.blocks_per_epoch - (block.blocknumber - (block.epoch * config.dev.blocks_per_epoch))
+        if block_left == 1:
+            private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+            self._wallet_private_seeds[block.epoch + 1] = private_seed
+            self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
+
+        self._clean_if_required(block.blocknumber)
+
+        return True
+
+    def _add_block(self, block: Block)->bool:
+        if block.validate_block(chain=self):
+            if self.pstate.add_block(self, block):
+                self.blockchain.append(block)
+                self.remove_tx_in_block_from_pool(block)
+            else:
+                logger.info('last block failed state/stake checks, removed from chain')
+                self._validate_tx_pool()
+                return False
+        else:
+            logger.info('add_block failed - block failed validation.')
+            return False
+
+        self.m_f_sync_chain()
+        return True
+
+    def create_block(self, reveal_hash, last_block_number=-1)->Optional[Block]:
+        tmp_block = Block().create(self, reveal_hash, last_block_number)
+        slave_xmss = self.get_slave_xmss(last_block_number + 1)
+
+        if not slave_xmss:
+            return None
+
+        # FIXME: Why is it necessary to access the wallet here? Unexpected side effect
+        self.wallet.save_slave(slave_xmss)
+
+        return tmp_block
+
+    def get_block(self, block_idx: int)->Optional[Block]:
+        # Block chain has not been loaded yet?
+        if len(self.blockchain) == 0:
+            self.m_read_chain()
+
+        if len(self.blockchain) > 0:
+            # FIXME: The logic here is not very clear
+            inmem_start_idx = self.blockchain[-1].blocknumber
+            inmem_offset = block_idx - inmem_start_idx
+
+            if inmem_offset < 0:
+                return self._load_from_file(block_idx)
+
+            if inmem_offset < len(self.blockchain):
+                return self.blockchain[inmem_offset]
+
+        return None
+
+    def get_last_block(self)->Optional[Block]:
+        if len(self.blockchain) == 0:
+            return None
+        return self.blockchain[-1]
+
+    ######## TX POOL RELATED
+
+    def add_tx_to_duplicate_pool(self, duplicate_txn):
+        if len(self.duplicate_tx_pool) >= config.dev.transaction_pool_size:
+            self.duplicate_tx_pool.popitem(last=False)
+
+        self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
+
+    def update_pending_tx_pool(self, tx, peer):
+        if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
+            del self.pending_tx_pool[0]
+            del self.pending_tx_pool_hash[0]
+        self.pending_tx_pool.append([tx, peer])
+        self.pending_tx_pool_hash.append(tx.txhash)
+
+    def add_tx_to_pool(self, tx_class_obj):
+        self.transaction_pool.append(tx_class_obj)
+        self.txhash_timestamp.append(tx_class_obj.txhash)
+        self.txhash_timestamp.append(time())
+
+    def remove_tx_from_pool(self, tx_class_obj):
+        self.transaction_pool.remove(tx_class_obj)
+        self.txhash_timestamp.pop(self.txhash_timestamp.index(tx_class_obj.txhash) + 1)
+        self.txhash_timestamp.remove(tx_class_obj.txhash)
+
+    def remove_tx_in_block_from_pool(self, block_obj):
+        for protobuf_tx in block_obj.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
+            for txn in self.transaction_pool:
+                if tx.txhash == txn.txhash:
+                    self.remove_tx_from_pool(txn)
+
+    def _validate_tx_pool(self):
+        result = True
+
+        for tx in self.transaction_pool:
+            if not tx.validate():
+                result = False
+                self.remove_tx_from_pool(tx)
+                logger.info(('invalid tx: ', tx, 'removed from pool'))
+                continue
+
+            # FIXME: reference to a buffer
+            tx_state = self.block_chain_buffer.get_stxn_state(blocknumber=self.block_chain_buffer.height() + 1,
+                                                              addr=tx.txfrom)
+
+            if not tx.validate_extended(tx_state=tx_state):
+                result = False
+                logger.warning('tx %s failed', tx.txhash)
+                self.remove_tx_from_pool(tx)
+
+        return result
+
+    ####### CHAIN PERSISTANCE
+
+    def m_read_chain(self):
+        if not self.blockchain:
+            self.m_load_chain()
+        return self.blockchain
+
+    def m_f_sync_chain(self):
+        if (self.blockchain[-1].blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
+            self._f_write_m_blockchain()
+        return
+
+    def _load_chain_by_epoch(self, epoch):
+
+        chains = self._f_read_chain(epoch)
+        self.blockchain.append(chains[0])
+
+        self.pstate.read_genesis()
+        self.block_chain_buffer = BufferedChain(self)
+
+        for block in chains[1:]:
+            self.add_block_mainchain(block, validate=False)
+
+        return self.blockchain
+
+    @staticmethod
+    def _get_chain_datafile(epoch):
+        base_dir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
+        config.create_path(base_dir)
+        return os.path.join(base_dir, 'chain.da' + str(epoch))
+
+    def _update_block_metadata(self, block_number, block_position, block_size):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        self._block_framedata[block_number] = [block_position, block_size]
+
+    def _get_block_metadata(self, block_number: int):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        return self._block_framedata[block_number]
+
+    def _f_write_m_blockchain(self):
+        blocknumber = self.blockchain[-1].blocknumber
+        file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
+        writeable = self.blockchain[-config.dev.disk_writes_after_x_blocks:]
+        logger.debug('Writing chain to disk')
+
+        with open(self._get_chain_datafile(file_epoch), 'ab') as myfile:
+            for block in writeable:
+                json_block = bytes(block.to_json(), 'utf-8')
+                compressed_block = bz2.compress(json_block, config.dev.compression_level)
+                block_pos = myfile.tell()
+                block_size = len(compressed_block)
+
+                self._update_block_metadata(block.blocknumber, block_pos, block_size)
+
+                myfile.write(compressed_block)
+                myfile.write(config.dev.binary_file_delimiter)
+
+        del self.blockchain[:-1]
+
+    def _load_from_file(self, blocknum):
+        epoch = int(blocknum // config.dev.blocks_per_chain_file)
+
+        block_offset, block_size = self._get_block_metadata(blocknum)
+
+        with open(self._get_chain_datafile(epoch), 'rb') as f:
+            f.seek(block_offset)
+            json_block = bz2.decompress(f.read(block_size))
+
+            block = Block.from_json(json_block)
+            return block
+
+    def _f_read_chain(self, epoch):
+        delimiter = config.dev.binary_file_delimiter
+
+        block_list = []
+        if not os.path.isfile(self._get_chain_datafile(epoch)):
+            if epoch != 0:
+                return []
+
+            logger.info('Creating new chain file')
+            genesis_block = GenesisBlock().set_staking_address(self.staking_address)
+            block_list.append(genesis_block)
+            return block_list
+
+        try:
+            with open(self._get_chain_datafile(epoch), 'rb') as myfile:
+                json_block = bytearray()
+                tmp = bytearray()
+                count = 0
+                offset = 0
+                while True:
+                    chars = myfile.read(config.dev.chain_read_buffer_size)
+                    for char in chars:
+                        offset += 1
+                        if count > 0 and char != delimiter[count]:
+                            count = 0
+                            json_block += tmp
+                            tmp = bytearray()
+                        if char == delimiter[count]:
+                            tmp.append(delimiter[count])
+                            count += 1
+                            if count < len(delimiter):
+                                continue
+                            tmp = bytearray()
+                            count = 0
+                            pos = offset - len(delimiter) - len(json_block)
+                            json_block = bz2.decompress(json_block)
+
+                            block = Block.from_json(json_block)
+
+                            self._update_block_metadata(block.blocknumber, pos, len(json_block))
+
+                            block_list.append(block)
+
+                            json_block = bytearray()
+                            continue
+                        json_block.append(char)
+                    if len(chars) < config.dev.chain_read_buffer_size:
+                        break
+        except Exception as e:
+            logger.error('IO error %s', e)
+            return []
+
+        return block_list
+
+    def m_load_chain(self):
+        del self.blockchain[:]
+        self.pstate.zero_all_addresses()
+
+        self._load_chain_by_epoch(0)
+
+        if len(self.blockchain) < config.dev.blocks_per_chain_file:
+            return self.blockchain
+
+        epoch = 1
+        while os.path.isfile(self._get_chain_datafile(epoch)):
+            del self.blockchain[:-1]
+            chains = self._f_read_chain(epoch)
+
+            for block in chains:
+                self.add_block_mainchain(block, validate=False)
+
+            epoch += 1
+        self.wallet.save_wallet()
+
+        return self.blockchain
+
+    ####### MISC.. PROBABLY NEED TO REFACTOR
 
     @staticmethod
     def score(stake_address, reveal_one, balance=0, seed=None, verbose=False):
@@ -110,8 +410,8 @@ class Chain:
 
         epoch = blocknumber // config.dev.blocks_per_epoch
 
-        if sv_list and self.mining_address in sv_list:
-            activation_blocknumber = sv_list[self.mining_address].activation_blocknumber
+        if sv_list and self.staking_address in sv_list:
+            activation_blocknumber = sv_list[self.staking_address].activation_blocknumber
             if activation_blocknumber + config.dev.blocks_per_epoch > blocknumber:
                 epoch = activation_blocknumber // config.dev.blocks_per_epoch
 
@@ -252,313 +552,20 @@ class Chain:
 
         return block_obj
 
-    def search(self, txcontains, islong=1):
+    def search(self, query, islong=1):
+        # FIXME: Refactor this. Prepare a look up
         for tx in self.transaction_pool:
-            if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
-                logger.info('%s found in transaction pool..', txcontains)
+            if tx.txhash == query or tx.txfrom == query or tx.txto == query:
+                logger.info('%s found in transaction pool..', query)
                 if islong == 1:
                     json_print(tx)
 
         for block in self.blockchain:
             for protobuf_tx in block.transactions:
                 tx = Transaction.from_pbdata(protobuf_tx)
-                if tx.txhash == txcontains or tx.txfrom == txcontains or tx.txto == txcontains:
-                    logger.info('%s found in block %s', txcontains, str(block.blockheader.blocknumber))
+                if tx.txhash == query or tx.txfrom == query or tx.txto == query:
+                    logger.info('%s found in block %s', query, str(block.blocknumber))
                     if islong == 0:
                         logger.info(('<tx:txhash> ' + tx.txhash))
                     if islong == 1:
                         json_print(tx)
-
-    ######## CHAIN RELATED
-
-    def _validate_tx_pool(self):
-        result = True
-
-        for tx in self.transaction_pool:
-            if not tx.validate():
-                result = False
-                self.remove_tx_from_pool(tx)
-                logger.info(('invalid tx: ', tx, 'removed from pool'))
-                continue
-
-            tx_state = self.block_chain_buffer.get_stxn_state(blocknumber=self.block_chain_buffer.height() + 1,
-                                                              addr=tx.txfrom)
-
-            if not tx.validate_extended(tx_state=tx_state):
-                result = False
-                logger.warning('tx %s failed', tx.txhash)
-                self.remove_tx_from_pool(tx)
-
-        return result
-
-    def add_block_mainchain(self, block, validate=True):
-        # FIXME: This delegation is too strange
-        return self.block_chain_buffer.add_block_mainchain(chain=self,
-                                                           block=block,
-                                                           validate=validate)
-
-    def m_add_block(self, block_obj):
-        if len(self.blockchain) == 0:
-            self.m_read_chain()
-
-        if block_obj.validate_block(chain=self):
-            if self.state.add_block(self, block_obj):
-                self.blockchain.append(block_obj)
-                self.remove_tx_in_block_from_pool(block_obj)
-            else:
-                logger.info('last block failed state/stake checks, removed from chain')
-                self._validate_tx_pool()
-                return False
-        else:
-            logger.info('m_add_block failed - block failed validation.')
-            return False
-
-        self.m_f_sync_chain()
-        return True
-
-    def create_block(self, reveal_hash, last_block_number=-1)->Optional[Block]:
-        tmp_block = Block()
-        tmp_block.create(self, reveal_hash, last_block_number)
-        slave_xmss = self.get_slave_xmss(last_block_number + 1)
-
-        if not slave_xmss:
-            return None
-
-        # FIXME: Why is it necessary to access the wallet here? Unexpected side effect
-        self.wallet.save_slave(slave_xmss)
-
-        return tmp_block
-
-    def blockheight(self):
-        # FIXME: Unify with height
-        # return len(self.m_read_chain()) - 1
-        return self.height()
-
-    def height(self):
-        if len(self.blockchain):
-            return self.blockchain[-1].blockheader.blocknumber
-        # FIXME: Height cannot be negative. In case this is used as index the code needs refactoring
-        return -1
-
-    def get_block(self, block_idx: int, consider_buffer=False)->Optional[Block]:
-        # Block chain has not been loaded?
-        if len(self.blockchain) == 0:
-            self.m_read_chain()
-
-        if len(self.blockchain) > 0:
-            # FIXME: The logic here is not very clear
-            inmem_start_idx = self.blockchain[-1].blockheader.blocknumber
-            inmem_offset = block_idx - inmem_start_idx
-
-            if inmem_offset < 0:
-                return self._load_from_file(block_idx)
-
-            if inmem_offset < len(self.blockchain):
-                return self.blockchain[inmem_offset]
-
-        if consider_buffer:
-            return self.block_chain_buffer.get_block(block_idx)
-
-        return None
-
-    def get_last_block(self, consider_buffer=False)->Optional[Block]:
-        """
-        Returns the last block in the chain. It is optional to consider the buffer
-        :param consider_buffer:  Indicates if the chain buffer should be considered
-        :type consider_buffer: bool
-        :return: Returns the last block in the chain
-        :rtype: Optional[Block]
-        """
-        if consider_buffer:
-            last = self.block_chain_buffer.get_last_block()
-            if last is not None:
-                return last
-
-        if len(self.blockchain) == 0:
-            return None
-
-        return self.blockchain[-1]
-
-    # TODO: Unclear what this comment refers to
-    # validate and update stake+state for newly appended block.
-    # can be streamlined to reduce repetition in the added components..
-    # finish next epoch code..
-
-    ######## TX POOL RELATED
-
-    def add_tx_to_duplicate_pool(self, duplicate_txn):
-        if len(self.duplicate_tx_pool) >= config.dev.transaction_pool_size:
-            self.duplicate_tx_pool.popitem(last=False)
-
-        self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
-
-    def update_pending_tx_pool(self, tx, peer):
-        if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
-            del self.pending_tx_pool[0]
-            del self.pending_tx_pool_hash[0]
-        self.pending_tx_pool.append([tx, peer])
-        self.pending_tx_pool_hash.append(tx.txhash)
-
-    def add_tx_to_pool(self, tx_class_obj):
-        self.transaction_pool.append(tx_class_obj)
-        self.txhash_timestamp.append(tx_class_obj.txhash)
-        self.txhash_timestamp.append(time())
-
-    def remove_tx_from_pool(self, tx_class_obj):
-        self.transaction_pool.remove(tx_class_obj)
-        self.txhash_timestamp.pop(self.txhash_timestamp.index(tx_class_obj.txhash) + 1)
-        self.txhash_timestamp.remove(tx_class_obj.txhash)
-
-    def remove_tx_in_block_from_pool(self, block_obj):
-        for protobuf_tx in block_obj.transactions:
-            tx = Transaction.from_pbdata(protobuf_tx)
-            for txn in self.transaction_pool:
-                if tx.txhash == txn.txhash:
-                    self.remove_tx_from_pool(txn)
-
-    ####### CHAIN PERSISTANCE
-
-    def m_read_chain(self):
-        if not self.blockchain:
-            self.m_load_chain()
-        return self.blockchain
-
-    def m_f_sync_chain(self):
-        if (self.blockchain[-1].blockheader.blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
-            self._f_write_m_blockchain()
-        return
-
-    def _load_chain_by_epoch(self, epoch):
-
-        chains = self._f_read_chain(epoch)
-        self.blockchain.append(chains[0])
-
-        self.state.read_genesis()
-        self.block_chain_buffer = ChainBuffer(self)
-
-        for block in chains[1:]:
-            self.add_block_mainchain(block, validate=False)
-
-        return self.blockchain
-
-    @staticmethod
-    def _get_chaindatafile(epoch):
-        base_dir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
-        config.create_path(base_dir)
-        return os.path.join(base_dir, 'chain.da' + str(epoch))
-
-    def _update_block_metadata(self, block_number, block_position, block_size):
-        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        self._block_framedata[block_number] = [block_position, block_size]
-
-    def _get_block_metadata(self, block_number: int):
-        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        return self._block_framedata[block_number]
-
-    def _f_write_m_blockchain(self):
-        blocknumber = self.blockchain[-1].blockheader.blocknumber
-        file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
-        writeable = self.blockchain[-config.dev.disk_writes_after_x_blocks:]
-        logger.debug('Writing chain to disk')
-
-        with open(self._get_chaindatafile(file_epoch), 'ab') as myfile:
-            for block in writeable:
-                json_block = bytes(block.to_json(), 'utf-8')
-                compressed_block = bz2.compress(json_block, config.dev.compression_level)
-                block_pos = myfile.tell()
-                block_size = len(compressed_block)
-
-                self._update_block_metadata(block.blockheader.blocknumber, block_pos, block_size)
-
-                myfile.write(compressed_block)
-                myfile.write(config.dev.binary_file_delimiter)
-
-        del self.blockchain[:-1]
-
-    def _load_from_file(self, blocknum):
-        epoch = int(blocknum // config.dev.blocks_per_chain_file)
-
-        block_offset, block_size = self._get_block_metadata(blocknum)
-
-        with open(self._get_chaindatafile(epoch), 'rb') as f:
-            f.seek(block_offset)
-            json_block = bz2.decompress(f.read(block_size))
-
-            block = Block.from_json(json_block)
-            return block
-
-    def _f_read_chain(self, epoch):
-        delimiter = config.dev.binary_file_delimiter
-
-        block_list = []
-        if not os.path.isfile(self._get_chaindatafile(epoch)):
-            if epoch != 0:
-                return []
-
-            logger.info('Creating new chain file')
-            genesis_block = GenesisBlock().set_chain(self)
-            block_list.append(genesis_block)
-            return block_list
-
-        try:
-            with open(self._get_chaindatafile(epoch), 'rb') as myfile:
-                json_block = bytearray()
-                tmp = bytearray()
-                count = 0
-                offset = 0
-                while True:
-                    chars = myfile.read(config.dev.chain_read_buffer_size)
-                    for char in chars:
-                        offset += 1
-                        if count > 0 and char != delimiter[count]:
-                            count = 0
-                            json_block += tmp
-                            tmp = bytearray()
-                        if char == delimiter[count]:
-                            tmp.append(delimiter[count])
-                            count += 1
-                            if count < len(delimiter):
-                                continue
-                            tmp = bytearray()
-                            count = 0
-                            pos = offset - len(delimiter) - len(json_block)
-                            json_block = bz2.decompress(json_block)
-
-                            block = Block.from_json(json_block)
-
-                            self._update_block_metadata(block.blockheader.blocknumber, pos, len(json_block))
-
-                            block_list.append(block)
-
-                            json_block = bytearray()
-                            continue
-                        json_block.append(char)
-                    if len(chars) < config.dev.chain_read_buffer_size:
-                        break
-        except Exception as e:
-            logger.error('IO error %s', e)
-            return []
-
-        return block_list
-
-    def m_load_chain(self):
-        del self.blockchain[:]
-        self.state.zero_all_addresses()
-
-        self._load_chain_by_epoch(0)
-
-        if len(self.blockchain) < config.dev.blocks_per_chain_file:
-            return self.blockchain
-
-        epoch = 1
-        while os.path.isfile(self._get_chaindatafile(epoch)):
-            del self.blockchain[:-1]
-            chains = self._f_read_chain(epoch)
-
-            for block in chains:
-                self.add_block_mainchain(block, validate=False)
-
-            epoch += 1
-        self.wallet.save_wallet()
-
-        return self.blockchain

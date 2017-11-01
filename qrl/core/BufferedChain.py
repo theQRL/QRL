@@ -9,15 +9,16 @@ from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.block import Block
+from qrl.core.chain import Chain
 from qrl.core.helper import get_blocks_left
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from copy import deepcopy
 
 
-class ChainBuffer:
-    def __init__(self, chain):
-        self.chain = chain                      # FIXME: cross-dependency
+class BufferedChain:
+    def __init__(self, chain=None):
+        self.chain = chain
 
         self.blocks = dict()                    # FIXME: Using a dict is very inefficient when index are a sequence
         self._pending_blocks = dict()
@@ -33,84 +34,105 @@ class ChainBuffer:
         if self.chain.height() > 0:
             self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
 
-    def add_pending_block(self, block)->bool:
-        # TODO : minimum block validation in unsynced state
+    @property
+    def staking_address(self):
+        return self.chain.staking_address
 
+    @property
+    def wallet(self):
+        return self.chain.wallet
+
+    @property
+    def state(self):
+        return self.chain.state
+
+    @property
+    def transaction_pool(self):
+        return self.chain.transaction_pool
+
+    @property
+    def length(self):
+        return len(self.chain.blockchain)
+
+    def add_pending_block(self, block)->bool:
+        # FIXME: only used by POS (pre_block_logic) . Make obsolete
+        # TODO : minimum block validation in unsynced state
         block_idx = block.blockheader.blocknumber
         self._pending_blocks[block_idx] = block
+        return True
+
+    def process_pending_blocks(self, block_expected_min: int):
+        # FIXME: Pending blocks are not really used my. Why this?
+
+        min_blocknum = min(self._pending_blocks.keys())
+        max_blocknum = max(self._pending_blocks.keys())
+
+        if not(len(self._pending_blocks) > 0 and min_blocknum == block_expected_min):
+            return False
+
+        # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
+        # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
+
+        # FIXME: both min/max. Two passes
+        logger.info('Processing pending blocks %s %s', min_blocknum, max_blocknum)
+
+        # FIXME: avoid iterating by using keys
+        for blocknum in range(min_blocknum, max_blocknum + 1):
+            self.add_block(self._pending_blocks[blocknum])
+
+        self._pending_blocks = dict()
 
         return True
 
-    def process_pending_blocks(self):
-        min_blocknum = min(self._pending_blocks.keys())
-        max_blocknum = max(self._pending_blocks.keys())
-        logger.info('Processing pending blocks %s %s', min_blocknum, max_blocknum)
-        for blocknum in range(min_blocknum, max_blocknum + 1):
-            self.add_block(self._pending_blocks[blocknum])
-            del self._pending_blocks[blocknum]
-
     def get_last_block(self)->Optional[Block]:
         if len(self.blocks) == 0:
-            return None
+            return self.chain.get_last_block()
 
         # FIXME: Should this run max on the keys only? Or better keep track of the value..
         last_blocknum = max(self.blocks.keys())
-
         return self.blocks[last_blocknum][0].block      # FIXME: What does [0] refers to?
 
     def get_block(self, block_idx: int)->Optional[Block]:
-        try:
-            return self.blocks[block_idx][0].block
-        except KeyError as e:
-            logger.warning("ChainBuffer.get_block - Block {} not found".format(block_idx))
-        except Exception as e:
-            self.error_msg('ChainBuffer.get_block', block_idx, e)
+        if block_idx in self.blocks:
+            return self.blocks[block_idx][0].block      # FIXME: What does [0] refers to?
+        return self.chain.get_block(block_idx)
 
-        return None
-
-    def add_block_mainchain(self, chain, block, validate=True):
-        # FIXME: Define ownership / chain-chainbuffer relation
-        # TODO : minimum block validation in unsynced _state
-        blocknum = block.blockheader.blocknumber
-        epoch = int(blocknum // config.dev.blocks_per_epoch)
-        prev_headerhash = block.blockheader.prev_blockheaderhash
-
-        # FIXME: Chain should be checking this. Avoid complex references
-        if blocknum <= chain.height():
+    def add_block_mainchain(self, block, validate=True):
+        if block.blocknumber <= self.chain.height():
             return
 
-        if blocknum - 1 == chain.height():
-            if prev_headerhash != chain.m_blockchain[-1].blockheader.headerhash:
+        if block.blocknumber - 1 == self.chain.height():
+            if block.prev_headerhash != self.chain.m_blockchain[-1].headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
                 return
-        elif blocknum - 1 > 0:
-            if blocknum - 1 not in self.blocks or prev_headerhash != self.blocks[blocknum - 1][0].block.blockheader.headerhash:
+        elif block.blocknumber - 1 > 0:
+            if block.blocknumber - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.blocknumber - 1][0].block.headerhash:
                 logger.info('No block found in buffer that matches with the prev_headerhash of received block')
                 return
 
         if validate:
-            if not chain.m_add_block(block):
-                logger.info("Failed to add block by m_add_block, re-requesting the block #%s", blocknum)
+            if not self.chain.add_block(block):
+                logger.info("Failed to add block by add_block, re-requesting the block #%s", block.blocknumber)
                 return
         else:
-            if self.chain.state.add_block(chain, block, ignore_save_wallet=True) is True:
-                chain.m_blockchain.append(block)
+            if self.chain.state.add_block(self.chain, block, ignore_save_wallet=True) is True:
+                self.chain.m_blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.blockheader.blocknumber - (block.blockheader.epoch * config.dev.blocks_per_epoch))
 
         if block_left == 1:
-            private_seed = chain.wallet.address_bundle[0].xmss.get_seed_private()
-            self._wallet_private_seeds[epoch + 1] = private_seed
-            self.hash_chain[epoch + 1] = hashchain(private_seed, epoch=epoch + 1).hashchain
+            private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
+            self._wallet_private_seeds[block.epoch + 1] = private_seed
+            self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
 
-        self._clean_if_required(blocknum)
+        self._clean_if_required(block.blocknumber)
 
         self.epoch_seed = bin2hstr(sha256(tuple(block.blockheader.reveal_hash) + str2bin(self.epoch_seed)))
 
-        chain.state.update_last_tx(block)
-        chain.state.update_tx_metadata(block)
-        self.epoch = epoch
+        self.chain.state.update_last_tx(block)
+        self.chain.state.update_tx_metadata(block)
+        self.epoch = block.epoch
         return True
 
     def add_block(self, block: Block)->bool:
@@ -131,8 +153,7 @@ class ChainBuffer:
             if block_prev_headerhash != self.chain.m_blockchain[-1].blockheader.headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
-        elif block_idx - 1 not in self.blocks or block_prev_headerhash != self.blocks[block_idx - 1][
-            0].block.blockheader.headerhash:
+        elif block_idx - 1 not in self.blocks or block_prev_headerhash != self.blocks[block_idx - 1][0].block.blockheader.headerhash:
             logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
@@ -525,8 +546,8 @@ class ChainBuffer:
         prev_epoch = int((blocknumber - 1) // config.dev.blocks_per_epoch)
 
         sv_list = self.chain.state.stake_validators_list.sv_list
-        if self.chain.mining_address in sv_list:
-            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber
+        if self.self.chain.state in sv_list:
+            activation_blocknumber = sv_list[self.self.chain.state].activation_blocknumber
             if activation_blocknumber + config.dev.blocks_per_epoch == blocknumber:
                 self._clean_mining_data(blocknumber - 1)
         elif prev_epoch != self.epoch:
@@ -548,3 +569,6 @@ class ChainBuffer:
         if self.blocks:
             logger.error('Min block num %s', min(self.blocks))
             logger.error('Max block num %s', max(self.blocks))
+
+    def load(self):
+        self.chain.m_load_chain()

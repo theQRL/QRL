@@ -3,15 +3,12 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-import pytest
 from mock import Mock, MagicMock
-from timeout_decorator import timeout_decorator
 
 from qrl.core import logger
-from qrl.core.ChainBuffer import ChainBuffer
+from qrl.core.BufferedChain import BufferedChain
 from qrl.core.block import Block
 from qrl.core.chain import Chain
-from qrl.core.state import State
 from qrl.core.wallet import Wallet
 from tests.misc.helper import setWalletDir
 
@@ -28,7 +25,7 @@ class TestChainBuffer(TestCase):
             chain = Mock(spec=Chain)
             chain.height = MagicMock(return_value=0)
             chain.wallet = Wallet()
-            cb = ChainBuffer(chain)
+            cb = BufferedChain(chain)
 
             self.assertEqual(0, cb.height())
 
@@ -43,10 +40,11 @@ class TestChainBuffer(TestCase):
             chain = Mock(spec=Chain)
             chain.height = MagicMock(return_value=0)
             chain.wallet = Wallet()
-            chain_buffer = ChainBuffer(chain)
+            chain_buffer = BufferedChain(chain)
 
             b0 = chain_buffer.get_block(0)
             self.assertIsNone(b0)
 
             tmp_block = Block()
             chain_buffer.add_pending_block(tmp_block)
+            chain_buffer.process_pending_blocks(0)

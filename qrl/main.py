@@ -6,6 +6,7 @@ import logging
 
 from twisted.internet import reactor
 
+from qrl.core.BufferedChain import BufferedChain
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from .core import logger, ntp, config
@@ -80,17 +81,16 @@ def main():
 
     logger.info('Initializing chain..')
     state_obj = State()
-    chain_obj = Chain(state=state_obj)
+    buffered_chain = BufferedChain(Chain(state=state_obj))
 
     qrlnode = QRLNode(db_state=state_obj)
-    qrlnode.set_chain(chain_obj)
+    qrlnode.set_chain(buffered_chain)
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', chain_obj.mining_address)
+    logger.info('mining/staking address %s', buffered_chain.staking_address)
 
     if args.get_wallets:
-        address_data = chain_obj.wallet.list_addresses(chain_obj.state,
-                                                       chain_obj.transaction_pool)
+        address_data = buffered_chain.wallet.list_addresses(buffered_chain.state, buffered_chain.transaction_pool)
         addresses = [a[0] for a in address_data]
         print((addresses[0]))
         return
@@ -101,21 +101,20 @@ def main():
     #######
 
     logger.info('Reading chain..')
-    chain_obj.m_load_chain()
-    logger.info(str(len(chain_obj.blockchain)) + ' blocks')
+    buffered_chain.load()
+    logger.info('{} blocks'.format(buffered_chain.length))
     logger.info('Verifying chain')
     logger.info('Building state leveldb')
 
-
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    p2p_factory = P2PFactory(chain=chain_obj, nodeState=node_state, node=qrlnode)
-    pos = POS(chain=chain_obj, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
+    p2p_factory = P2PFactory(chain=buffered_chain, nodeState=node_state, node=qrlnode)
+    pos = POS(chain=buffered_chain, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
     p2p_factory.setPOS(pos)
 
     qrlnode.set_p2pfactory(p2p_factory)
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    api_factory = ApiFactory(pos, chain_obj, state_obj, p2p_factory.peer_connections)
+    api_factory = ApiFactory(pos, buffered_chain, state_obj, p2p_factory.peer_connections)
 
     logger.info('>>>Listening..')
     reactor.listenTCP(9000, p2p_factory)

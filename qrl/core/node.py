@@ -125,11 +125,11 @@ class POS:
         logger.info('pre_pos_1')
         # are we a staker in the stake list?
         genesis_info = self.chain.state.load_genesis_info()
-        if self.chain.mining_address not in genesis_info:
-            logger.info('%s %s', self.chain.mining_address, genesis_info)
+        if self.chain.staking_address not in genesis_info:
+            logger.info('%s %s', self.chain.staking_address, genesis_info)
             return
 
-        logger.info('mining address: %s in the genesis.stake_list', self.chain.mining_address)
+        logger.info('mining address: %s in the genesis.stake_list', self.chain.staking_address)
         xmss = self.chain.wallet.address_bundle[0].xmss
         tmphc = hashchain(xmss.get_seed_private(), epoch=0)
         self.chain.hash_chain = tmphc.hashchain
@@ -184,7 +184,7 @@ class POS:
         self.chain.block_chain_buffer.epoch_seed = format(self.chain.block_chain_buffer.epoch_seed, 'x')
 
         logger.info('genesis stakers ready = %s / %s', len(self.chain.stake_list), config.dev.minimum_required_stakers)
-        logger.info('node address: %s', self.chain.mining_address)
+        logger.info('node address: %s', self.chain.staking_address)
 
         if len(self.chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
             self.p2pFactory.send_st_to_peers(data)
@@ -192,13 +192,13 @@ class POS:
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
 
-        if self.chain.mining_address == self.chain.stake_list[0][0]:
+        if self.chain.staking_address == self.chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
             tmphc = hashchain(self.chain.wallet.address_bundle[0].xmss.get_seed_private())
 
             # create the genesis block 2 here..
-            reveal_hash = self.chain.select_hashchain(self.chain.mining_address,
+            reveal_hash = self.chain.select_hashchain(self.chain.staking_address,
                                                       tmphc.hashchain,
                                                       blocknumber=1)
             b = self.chain.create_block(reveal_hash[-2])
@@ -434,21 +434,21 @@ class POS:
         """
 
         if self.p2pFactory.stake:
-            mining_address = self.chain.mining_address
+            chain.staking_address = self.chain.staking_address
 
             future_stake_addresses = self.chain.block_chain_buffer.future_stake_addresses(blocknumber)
 
-            if mining_address not in future_stake_addresses:
+            if chain.staking_address not in future_stake_addresses:
                 self.make_st_tx(blocknumber)
 
             stake_list = self.chain.block_chain_buffer.stake_list_get(blocknumber)
 
             delay = config.dev.minimum_minting_delay
-            if  mining_address in stake_list and stake_list[mining_address].is_active:
-                if stake_list[mining_address].is_banned:
+            if  chain.staking_address in stake_list and stake_list[chain.staking_address].is_active:
+                if stake_list[chain.staking_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
-                    activation_blocknumber = stake_list[mining_address].activation_blocknumber
+                    activation_blocknumber = stake_list[chain.staking_address].activation_blocknumber
                     self.create_next_block(blocknumber, activation_blocknumber)
                     delay = None
 
@@ -467,12 +467,12 @@ class POS:
 
     def make_st_tx(self, curr_blocknumber):
         sv_list = self.chain.block_chain_buffer.stake_list_get(curr_blocknumber)
-        if self.chain.mining_address in sv_list:
-            activation_blocknumber = sv_list[self.chain.mining_address].activation_blocknumber + config.dev.blocks_per_epoch
+        if self.chain._address in sv_list:
+            activation_blocknumber = sv_list[self.self.chain.state].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
-        balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.chain.mining_address)[1]
+        balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.self.chain.state)[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
@@ -527,18 +527,18 @@ class POS:
         curr_blocknumber = self.chain.block_chain_buffer.height() + 1
         stake_validators_list = self.chain.block_chain_buffer.get_stake_validators_list(curr_blocknumber)
 
-        mining_address = self.chain.mining_address
+        chain.staking_address = self.chain.staking_address
 
         # No destake txn required if mining address is not in stake_validator_list
-        if mining_address not in stake_validators_list.sv_list and \
-                        self.chain.mining_address not in stake_validators_list.future_stake_addresses:
-            logger.warning('%s Not found in Stake Validator list, destake txn note required', mining_address)
+        if chain.staking_address not in stake_validators_list.sv_list and \
+                        self.self.chain.state not in stake_validators_list.future_stake_addresses:
+            logger.warning('%s Not found in Stake Validator list, destake txn note required', chain.staking_address)
             return
 
         # Skip if mining address is not active in either stake validator list
-        if not ((mining_address in stake_validators_list.sv_list and stake_validators_list.sv_list[mining_address].is_active)
-                or (mining_address in stake_validators_list.future_stake_addresses and stake_validators_list.future_stake_addresses[mining_address].is_active)):
-            logger.warning('%s is already inactive in Stake validator list, destake txn not required', mining_address)
+        if not ((chain.staking_address in stake_validators_list.sv_list and stake_validators_list.sv_list[chain.staking_address].is_active)
+                or (chain.staking_address in stake_validators_list.future_stake_addresses and stake_validators_list.future_stake_addresses[chain.staking_address].is_active)):
+            logger.warning('%s is already inactive in Stake validator list, destake txn not required', chain.staking_address)
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
@@ -594,17 +594,17 @@ class POS:
         logger.info(self.blockheight_map)
 
         # first strip out any laggards..
-        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.chain.blockheight()]
+        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.height()]
 
         result = True
 
         # next identify any node entries which are not exactly correct..
 
         for s in self.blockheight_map:
-            if s[0] == self.chain.blockheight():
+            if s[0] == self.height():
                 if s[1] == self.chain.m_blockchain[-1].blockheader.headerhash:
                     logger.info(('node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
-            elif s[0] > self.chain.blockheight():
+            elif s[0] > self.height():
                 logger.info(('warning..', s[2], 'at blockheight', s[0]))
                 result = False
 

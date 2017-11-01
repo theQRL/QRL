@@ -24,7 +24,7 @@ class TestChain(TestCase):
                 chain = Chain(state)
                 self.assertIsNotNone(chain)
 
-                self.assertEqual(chain.mining_address,
+                self.assertEqual(chain.staking_address,
                                  'Q5897606f1c347afc1c099b08cd09d72626a6c4b503a3a1207e1b189c0a2bbab618f7')
 
                 self.assertEqual(chain.wallet.address_bundle[0].address,

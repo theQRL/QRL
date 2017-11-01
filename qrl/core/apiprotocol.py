@@ -161,7 +161,7 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        if not self.factory.state.uptodate(self.factory.chain.blockheight()):
+        if not self.factory.state.uptodate(self.factory.height()):
             return json_print_telnet({'status': 'error',
                                       'error': 'leveldb failed',
                                       'method': 'richlist'})
@@ -394,7 +394,7 @@ class ApiProtocol(Protocol):
             'status': 'ok',
             'version': config.dev.version,
             'nodes': len(self.factory.peers) + 1,
-            'blockheight': self.factory.chain.blockheight(),
+            'blockheight': self.factory.height(),
             'network': 'qrl testnet',
 
             # Part of

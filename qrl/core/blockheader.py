@@ -66,7 +66,7 @@ class BlockHeader(object):
         return self._data.stake_selector
 
     def create(self,
-               chain,
+               staking_address,
                blocknumber,
                prev_blockheaderhash,
                hashedtransactions,
@@ -108,7 +108,7 @@ class BlockHeader(object):
         self._data.reward_block = 0
 
         if self._data.block_number != 0:
-            self._data.stake_selector = chain.mining_address
+            self._data.stake_selector = staking_address
             self._data.reward_block = self.block_reward_calc()
 
         self._data.hash_header = self.generate_headerhash()

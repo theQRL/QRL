@@ -6,7 +6,7 @@ from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
-from qrl.core import logger
+from qrl.core import logger, config
 from qrl.core.blockheader import BlockHeader
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.crypto.misc import sha256, merkle_tx_hash
@@ -31,6 +31,22 @@ class Block(object):
         return self._data
 
     @property
+    def blocknumber(self):
+        return self._data.blockheader.blocknumber
+
+    @property
+    def epoch(self):
+        return int(self.blocknumber // config.dev.blocks_per_epoch)
+
+    @property
+    def headerhash(self):
+        return self.blockheader.headerhash
+
+    @property
+    def prev_headerhash(self):
+        return self.blockheader.prev_blockheaderhash
+
+    @property
     def transactions(self):
         return self._data.transactions
 
@@ -47,6 +63,7 @@ class Block(object):
         return self._data.stake_list
 
     def create(self, chain, reveal_hash, last_block_number=-1):
+        # Make static
         if last_block_number == -1:
             data = chain.block_chain_buffer.get_last_block()  # m_get_last_block()
         else:
@@ -74,7 +91,7 @@ class Block(object):
 
         hashedtransactions = merkle_tx_hash(hashedtransactions)
 
-        self.blockheader = BlockHeader().create(chain=chain,
+        self.blockheader = BlockHeader().create(staking_address=self.chain.state,
                                                 blocknumber=last_block_number + 1,
                                                 reveal_hash=reveal_hash,
                                                 prev_blockheaderhash=prev_blockheaderhash,
@@ -89,7 +106,7 @@ class Block(object):
         coinbase_tx = CoinBase.create(self.blockheader, signing_xmss)
 
         sv_list = chain.block_chain_buffer.get_stake_validators_list(last_block_number + 1).sv_list
-        coinbase_tx.pbdata.nonce = sv_list[chain.mining_address].nonce + 1
+        coinbase_tx.pbdata.nonce = sv_list[self.chain.state].nonce + 1
 
         coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
 
@@ -103,6 +120,8 @@ class Block(object):
         """
 
         try:
+            # FIXME: review this.. Too complicated
+
             blk_header = self.blockheader
             last_blocknum = blk_header.blocknumber - 1
             last_block = chain.block_chain_buffer.get_block(last_blocknum)
@@ -114,6 +133,8 @@ class Block(object):
                 logger.warning('BLOCK : There must be atleast 1 txn')
                 return False
 
+            # Validate coinbase
+            # FIXME: Check if it is possible to delegate validation to coinbase transaction. Why the code is in Block?
             coinbase_tx = CoinBase(self.transactions[0])
 
             if coinbase_tx.subtype != TX_SUBTYPE_COINBASE:
@@ -140,9 +161,7 @@ class Block(object):
                     if tx.subtype == TX_SUBTYPE_STAKE:
                         if tx.txfrom == blk_header.stake_selector:
                             found = True
-                            reveal_hash = chain.select_hashchain(coinbase_tx.txto,
-                                                                 tx.hash, blocknumber=1)
-
+                            reveal_hash = chain.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
                             if sha256(bin2hstr(tuple(blk_header.reveal_hash)).encode()) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
                                 return False
@@ -175,6 +194,8 @@ class Block(object):
 
     def _validate_tx_in_block(self, chain):
         # Validating coinbase txn
+
+        # FIXME: Again checking coinbase here?
         coinbase_txn = CoinBase(self.transactions[0])
 
         sv_list = chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)

@@ -54,7 +54,7 @@ class GenesisBlock(object, metaclass=Singleton):
     def stake_list(self):
         return self._data.stake_list
 
-    def set_chain(self, chain):
+    def set_staking_address(self, staking_address):
         # FIXME: It is odd that we have a hash equal to 'genesis'
         """
         :param chain:
@@ -62,24 +62,24 @@ class GenesisBlock(object, metaclass=Singleton):
         :return:
         :rtype:
 
-        >>> GenesisBlock().set_chain(None) is not None
+        >>> GenesisBlock().set_staking_address(None) is not None
         True
-        >>> GenesisBlock().set_chain(None).blockheader.epoch
+        >>> GenesisBlock().set_staking_address(None).blockheader.epoch
         0
-        >>> GenesisBlock().set_chain(None).blockheader.block_reward
+        >>> GenesisBlock().set_staking_address(None).blockheader.block_reward
         0
-        >>> GenesisBlock().set_chain(None).blockheader.blocknumber
+        >>> GenesisBlock().set_staking_address(None).blockheader.blocknumber
         0
-        >>> GenesisBlock().set_chain(None).blockheader.fee_reward
+        >>> GenesisBlock().set_staking_address(None).blockheader.fee_reward
         0
-        >>> GenesisBlock().set_chain(None).blockheader.reveal_hash
+        >>> GenesisBlock().set_staking_address(None).blockheader.reveal_hash
         b'\\x00\\x00\\x00\\x00\\x00\\x00'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
         '42598eed69acbd031bd30f980f1e383a271d52c954376c184621d73476eb9dda'
         >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
         '584742ee81a520c76ac376f29b9eebd4b73ef0b990e7ff4b994a06be3399be67'
         """
-        self.blockheader = self.blockheader.create(chain=chain,
+        self.blockheader = self.blockheader.create(staking_address=staking_address,
                                                    blocknumber=0,
                                                    prev_blockheaderhash=bytes(sha2_256(config.dev.genesis_prev_headerhash.encode())),
                                                    hashedtransactions=bytes(sha2_256(b'0')),

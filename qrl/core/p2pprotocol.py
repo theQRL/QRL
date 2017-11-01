@@ -534,19 +534,13 @@ class P2PProtocol(Protocol):
             except Exception:
                 pass
 
-            if len(self.factory.chain.block_chain_buffer._pending_blocks) > 0 and \
-                min(self.factory.chain.block_chain_buffer._pending_blocks.keys()) == blocknumber:
-                # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
-                # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
-                # TODO: requires a better fix
-                self.factory.chain.block_chain_buffer.process_pending_blocks()
+            if self.factory.chain.block_chain_buffer.process_pending_blocks(blocknumber):
                 return
 
             self.factory.pos.randomize_block_fetch(blocknumber + 1)
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
-        return
 
     def PB(self, data):
         """
@@ -655,12 +649,12 @@ class P2PProtocol(Protocol):
         self.blockheight = block_number
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
                     self.transport.getPeer().host, block_number,
-                    self.factory.chain.blockheight(), str(time.time()))
+                    self.factory.height(), str(time.time()))
 
         if self.factory.nodeState.state == NState.syncing:
             return
 
-        if block_number == self.factory.chain.blockheight():
+        if block_number == self.factory.height():
             # if self.factory.chain.m_blockchain[block_number].blockheader.headerhash != headerhash:
             if self.factory.chain.get_block(block_number).blockheader.headerhash != headerhash:
                 logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
@@ -670,7 +664,7 @@ class P2PProtocol(Protocol):
                 # again need to think this one through in detail..
                 return
 
-        if block_number > self.factory.chain.blockheight():
+        if block_number > self.factory.height():
             return
 
         if self.factory.chain.height() == 0 and self.factory.genesis == 0:

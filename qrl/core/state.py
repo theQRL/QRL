@@ -172,10 +172,12 @@ class State:
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.txfrom not in address_txn:
+                # FIXME: Access to chain buffer from here
                 address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
 
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 if tx.txto not in address_txn:
+                    # FIXME: Access to chain buffer from here
                     address_txn[tx.txto] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txto)
 
         return address_txn
