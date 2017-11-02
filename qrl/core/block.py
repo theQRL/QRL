@@ -112,10 +112,10 @@ class Block(object):
 
         self._data.transactions[0].CopyFrom(coinbase_tx.pbdata)
 
-    def validate_block(self, chain):  # check validity of new block..
+    def validate_block(self, buffered_chain):  # check validity of new block..
         """
         block validation
-        :param chain:
+        :param buffered_chain:
         :return:
         """
 
@@ -124,7 +124,7 @@ class Block(object):
 
             blk_header = self.blockheader
             last_blocknum = blk_header.blocknumber - 1
-            last_block = chain.block_chain_buffer.get_block(last_blocknum)
+            last_block = buffered_chain.get_block(last_blocknum)
 
             if not self.blockheader.validate(last_block.blockheader):
                 return False
@@ -161,7 +161,7 @@ class Block(object):
                     if tx.subtype == TX_SUBTYPE_STAKE:
                         if tx.txfrom == blk_header.stake_selector:
                             found = True
-                            reveal_hash = chain.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
+                            reveal_hash = buffered_chain.chain.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
                             if sha256(bin2hstr(tuple(blk_header.reveal_hash)).encode()) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
                                 return False
@@ -171,7 +171,7 @@ class Block(object):
                     return False
 
             else:  # we look in stake_list for the hash terminator and hash to it..
-                stake_validators_list = chain.block_chain_buffer.get_stake_validators_list(self.blockheader.blocknumber)
+                stake_validators_list = buffered_chain.get_stake_validators_list(self.blockheader.blocknumber)
                 if coinbase_tx.txto not in stake_validators_list.sv_list:
                     logger.warning('Stake selector not in stake_list for this epoch..')
                     return False
@@ -182,7 +182,7 @@ class Block(object):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
 
-            if not self._validate_tx_in_block(chain):
+            if not self._validate_tx_in_block(buffered_chain):
                 logger.warning('Block validate_tx_in_block error: failed validation')
                 return False
 
@@ -192,13 +192,13 @@ class Block(object):
 
         return True
 
-    def _validate_tx_in_block(self, chain):
+    def _validate_tx_in_block(self, buffered_chain):
         # Validating coinbase txn
 
         # FIXME: Again checking coinbase here?
         coinbase_txn = CoinBase(self.transactions[0])
 
-        sv_list = chain.block_chain_buffer.stake_list_get(self.blockheader.blocknumber)
+        sv_list = buffered_chain.stake_list_get(self.blockheader.blocknumber)
         valid = coinbase_txn.validate_extended(sv_list=sv_list, blockheader=self.blockheader)
 
         if not valid:

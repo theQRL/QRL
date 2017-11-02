@@ -1,11 +1,14 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import bz2
 from typing import Optional
 
+import os
 from pyqrllib.pyqrllib import str2bin, bin2hstr
 
 from qrl.core import config, logger
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.block import Block
@@ -32,6 +35,10 @@ class BufferedChain:
 
         if self.chain.height() > 0:
             self.epoch = self.chain.m_blockchain[-1].blockheader.blocknumber // config.dev.blocks_per_epoch
+
+        # OBSOLETE ????
+        self._block_framedata = dict()          # FIXME: this is used to access file chunks. Delete once we move to DB
+
 
     @property
     def staking_address(self):
@@ -66,22 +73,22 @@ class BufferedChain:
         min_blocknum = min(self._pending_blocks.keys())
         max_blocknum = max(self._pending_blocks.keys())
 
-        if not(len(self._pending_blocks) > 0 and min_blocknum == block_expected_min):
-            return False
+        if len(self._pending_blocks) > 0 and min_blocknum == block_expected_min:
+            # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
+            # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
 
-        # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
-        # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
+            # FIXME: both min/max. Two passes
+            logger.info('Processing pending blocks %s %s', min_blocknum, max_blocknum)
 
-        # FIXME: both min/max. Two passes
-        logger.info('Processing pending blocks %s %s', min_blocknum, max_blocknum)
+            # FIXME: avoid iterating by using keys
+            for blocknum in range(min_blocknum, max_blocknum + 1):
+                self.add_block(self._pending_blocks[blocknum])
 
-        # FIXME: avoid iterating by using keys
-        for blocknum in range(min_blocknum, max_blocknum + 1):
-            self.add_block(self._pending_blocks[blocknum])
+            self._pending_blocks = dict()
 
-        self._pending_blocks = dict()
+            return True
 
-        return True
+        return False
 
     def get_last_block(self)->Optional[Block]:
         if len(self.blocks) == 0:
@@ -135,7 +142,7 @@ class BufferedChain:
         return True
 
     def add_block(self, block: Block)->bool:
-        if not block.validate_block(self.chain):                        # This is here because of validators, etc
+        if not block.validate_block(self):                        # This is here because of validators, etc
             logger.info('Block validation failed')
             logger.info('Block #%s', block.blockheader.blocknumber)
             logger.info('Stake_selector %s', block.blockheader.stake_selector)
@@ -570,4 +577,91 @@ class BufferedChain:
             logger.error('Max block num %s', max(self.blocks))
 
     def load(self):
-        self.chain.m_load_chain()
+        self.blockchain = []
+
+        # FIXME: Adds an empty block, later ignores and overwrites.. A complete genesis block should be here
+        genesis_block = GenesisBlock().set_staking_address(self.staking_address)
+        self.chain.pstate.zero_all_addresses()
+        self.chain.pstate.read_genesis()
+
+        # FIXME: Direct access - Breaks encapsulation
+        self.chain.blockchain.append(genesis_block)                       # FIXME: Adds without checking???
+
+        # FIXME: it is not nice how genesis block is ignored
+        tmp_chain = self._f_read_chain(0)
+        if len(tmp_chain) > 0:
+            for block in tmp_chain[1:]:
+                self.add_block_mainchain(block, validate=False)
+
+        epoch = 1
+        # FIXME: Avoid checking files here..
+        while os.path.isfile(self._get_chain_datafile(epoch)):
+            del self.blockchain[:-1]                                # FIXME: This optimization could be encapsulated
+            for block in self._f_read_chain(epoch):
+                self.add_block_mainchain(block, validate=False)
+
+            epoch += 1
+
+        self.wallet.save_wallet()
+        return self.blockchain
+
+    @staticmethod
+    def _get_chain_datafile(epoch):
+        base_dir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
+        config.create_path(base_dir)
+        return os.path.join(base_dir, 'chain.da' + str(epoch))
+
+    def _f_read_chain(self, epoch):
+        delimiter = config.dev.binary_file_delimiter
+        chunk_filename = self._get_chain_datafile(epoch)
+        block_list = []
+
+        if os.path.isfile(chunk_filename):
+            try:
+                with open(chunk_filename, 'rb') as myfile:
+                    json_block = bytearray()
+                    tmp = bytearray()
+                    count = 0
+                    offset = 0
+                    while True:
+                        chars = myfile.read(config.dev.chain_read_buffer_size)
+                        for char in chars:
+                            offset += 1
+                            if count > 0 and char != delimiter[count]:
+                                count = 0
+                                json_block += tmp
+                                tmp = bytearray()
+                            if char == delimiter[count]:
+                                tmp.append(delimiter[count])
+                                count += 1
+                                if count < len(delimiter):
+                                    continue
+                                tmp = bytearray()
+                                count = 0
+                                pos = offset - len(delimiter) - len(json_block)
+                                json_block = bz2.decompress(json_block)
+
+                                block = Block.from_json(json_block)
+
+                                self._update_block_metadata(block.blocknumber, pos, len(json_block))
+
+                                block_list.append(block)
+
+                                json_block = bytearray()
+                                continue
+                            json_block.append(char)
+                        if len(chars) < config.dev.chain_read_buffer_size:
+                            break
+            except Exception as e:
+                logger.error('IO error %s', e)
+                block_list = []
+
+        return block_list
+
+    def _update_block_metadata(self, block_number, block_position, block_size):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        self._block_framedata[block_number] = [block_position, block_size]
+
+    def _get_block_metadata(self, block_number: int):
+        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
+        return self._block_framedata[block_number]

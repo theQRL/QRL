@@ -39,12 +39,19 @@ class TestChainBuffer(TestCase):
         with setWalletDir("test_wallet"):
             chain = Mock(spec=Chain)
             chain.height = MagicMock(return_value=0)
+            chain.get_block = MagicMock(return_value=None)
             chain.wallet = Wallet()
             chain_buffer = BufferedChain(chain)
 
             b0 = chain_buffer.get_block(0)
+            chain_buffer.chain.get_block.assert_called()
             self.assertIsNone(b0)
 
             tmp_block = Block()
-            chain_buffer.add_pending_block(tmp_block)
-            chain_buffer.process_pending_blocks(0)
+            res = chain_buffer.add_block(tmp_block)
+
+
+            # tmp_block = Block()
+            # res = chain_buffer.add_pending_block(tmp_block)
+            # self.assertTrue(res)
+            # chain_buffer.process_pending_blocks(0)

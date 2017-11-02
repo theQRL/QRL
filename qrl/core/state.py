@@ -558,7 +558,7 @@ class State:
         logger.info('genesis:')
 
         genesis_info = self.load_genesis_info()
-
         for address in genesis_info:
             self._save_address_state(address, [0, genesis_info[address], []])
+
         return True

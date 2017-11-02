@@ -44,7 +44,6 @@ class Chain:
         self.duplicate_tx_pool = OrderedDict()  # FIXME: Everyone is touching this
 
         # OBSOLETE ????
-        self._block_framedata = dict()          # FIXME: this is used to access file chunks. Delete once we move to DB
         self.ping_list = []                     # FIXME: This has nothing to do with chain. Used by p2pprotocol
         self.txhash_timestamp = []              # FIXME: Seems obsolete? Delete?
 
@@ -101,7 +100,7 @@ class Chain:
         return True
 
     def _add_block(self, block: Block)->bool:
-        if block.validate_block(chain=self):
+        if block.validate_block(buffered_chain=self):
             if self.pstate.add_block(self, block):
                 self.blockchain.append(block)
                 self.remove_tx_in_block_from_pool(block)
@@ -216,33 +215,6 @@ class Chain:
             self._f_write_m_blockchain()
         return
 
-    def _load_chain_by_epoch(self, epoch):
-
-        chains = self._f_read_chain(epoch)
-        self.blockchain.append(chains[0])
-
-        self.pstate.read_genesis()
-        self.block_chain_buffer = BufferedChain(self)
-
-        for block in chains[1:]:
-            self.add_block_mainchain(block, validate=False)
-
-        return self.blockchain
-
-    @staticmethod
-    def _get_chain_datafile(epoch):
-        base_dir = os.path.join(config.user.data_path, config.dev.chain_file_directory)
-        config.create_path(base_dir)
-        return os.path.join(base_dir, 'chain.da' + str(epoch))
-
-    def _update_block_metadata(self, block_number, block_position, block_size):
-        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        self._block_framedata[block_number] = [block_position, block_size]
-
-    def _get_block_metadata(self, block_number: int):
-        # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
-        return self._block_framedata[block_number]
-
     def _f_write_m_blockchain(self):
         blocknumber = self.blockchain[-1].blocknumber
         file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
@@ -274,82 +246,6 @@ class Chain:
 
             block = Block.from_json(json_block)
             return block
-
-    def _f_read_chain(self, epoch):
-        delimiter = config.dev.binary_file_delimiter
-
-        block_list = []
-        if not os.path.isfile(self._get_chain_datafile(epoch)):
-            if epoch != 0:
-                return []
-
-            logger.info('Creating new chain file')
-            genesis_block = GenesisBlock().set_staking_address(self.staking_address)
-            block_list.append(genesis_block)
-            return block_list
-
-        try:
-            with open(self._get_chain_datafile(epoch), 'rb') as myfile:
-                json_block = bytearray()
-                tmp = bytearray()
-                count = 0
-                offset = 0
-                while True:
-                    chars = myfile.read(config.dev.chain_read_buffer_size)
-                    for char in chars:
-                        offset += 1
-                        if count > 0 and char != delimiter[count]:
-                            count = 0
-                            json_block += tmp
-                            tmp = bytearray()
-                        if char == delimiter[count]:
-                            tmp.append(delimiter[count])
-                            count += 1
-                            if count < len(delimiter):
-                                continue
-                            tmp = bytearray()
-                            count = 0
-                            pos = offset - len(delimiter) - len(json_block)
-                            json_block = bz2.decompress(json_block)
-
-                            block = Block.from_json(json_block)
-
-                            self._update_block_metadata(block.blocknumber, pos, len(json_block))
-
-                            block_list.append(block)
-
-                            json_block = bytearray()
-                            continue
-                        json_block.append(char)
-                    if len(chars) < config.dev.chain_read_buffer_size:
-                        break
-        except Exception as e:
-            logger.error('IO error %s', e)
-            return []
-
-        return block_list
-
-    def m_load_chain(self):
-        del self.blockchain[:]
-        self.pstate.zero_all_addresses()
-
-        self._load_chain_by_epoch(0)
-
-        if len(self.blockchain) < config.dev.blocks_per_chain_file:
-            return self.blockchain
-
-        epoch = 1
-        while os.path.isfile(self._get_chain_datafile(epoch)):
-            del self.blockchain[:-1]
-            chains = self._f_read_chain(epoch)
-
-            for block in chains:
-                self.add_block_mainchain(block, validate=False)
-
-            epoch += 1
-        self.wallet.save_wallet()
-
-        return self.blockchain
 
     ####### MISC.. PROBABLY NEED TO REFACTOR
 
