@@ -9,7 +9,6 @@ from qrl.core import config, logger
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.block import Block
-from qrl.core.chain import Chain
 from qrl.core.helper import get_blocks_left
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
@@ -546,8 +545,8 @@ class BufferedChain:
         prev_epoch = int((blocknumber - 1) // config.dev.blocks_per_epoch)
 
         sv_list = self.chain.state.stake_validators_list.sv_list
-        if self.self.chain.state in sv_list:
-            activation_blocknumber = sv_list[self.self.chain.state].activation_blocknumber
+        if self.chain.state in sv_list:
+            activation_blocknumber = sv_list[self.chain.state].activation_blocknumber
             if activation_blocknumber + config.dev.blocks_per_epoch == blocknumber:
                 self._clean_mining_data(blocknumber - 1)
         elif prev_epoch != self.epoch:
