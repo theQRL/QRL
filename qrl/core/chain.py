@@ -44,7 +44,6 @@ class Chain:
         self.duplicate_tx_pool = OrderedDict()  # FIXME: Everyone is touching this
 
         # OBSOLETE ????
-        self.ping_list = []                     # FIXME: This has nothing to do with chain. Used by p2pprotocol
         self.txhash_timestamp = []              # FIXME: Seems obsolete? Delete?
 
         # FIXME: Temporarily moving slave_xmss here
