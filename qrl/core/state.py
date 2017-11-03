@@ -218,7 +218,7 @@ class State:
                     return False
 
                 # FIX ME: This goes to stake validator list without verifiction, Security Risk
-                self.stake_validators_list.add_sv(tx, 1)
+                self.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
 
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
@@ -246,8 +246,7 @@ class State:
         chain.wallet.save_wallet()
         return True
 
-    @staticmethod
-    def update(block, stake_validators_list, address_txn):
+    def update(self, block, stake_validators_list, address_txn):
         # FIXME: This does not seem to be related to persistance
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
@@ -338,7 +337,11 @@ class State:
                 future_stake_addresses = stake_validators_list.future_stake_addresses
 
                 if tx.txfrom not in future_stake_addresses:
-                    stake_validators_list.add_sv(tx, block.blockheader.blocknumber)
+                    if tx.txfrom in address_txn:
+                        balance = address_txn[tx.txfrom][1]
+                    else:
+                        balance = self._get_address_state(tx.txfrom)[1]
+                    stake_validators_list.add_sv(balance, tx, block.blockheader.blocknumber)
 
                 stake_txn.add(tx.txfrom)
 

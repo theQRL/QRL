@@ -266,20 +266,16 @@ class StakeTransaction(Transaction):
         self._data.type = qrl_pb2.Transaction.STAKE
 
     @property
-    def balance(self):
-        return self._data.stake.balance
-
-    @property
     def activation_blocknumber(self):
         return self._data.stake.activation_blocknumber
 
     @property
-    def finalized_blocknumber(self):
-        return self._data.stake.finalized_blocknumber
+    def blocknumber_headerhash(self):
+        blocknumber_headerhash = dict()
+        for key in self._data.stake.blocknumber_headerhash:
+            blocknumber_headerhash[key] = self._data.stake.blocknumber_headerhash[key]
 
-    @property
-    def finalized_headerhash(self):
-        return self._data.stake.finalized_headerhash
+        return blocknumber_headerhash
 
     @property
     def slave_public_key(self):
@@ -301,27 +297,21 @@ class StakeTransaction(Transaction):
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
                             + bin2hstr(sha2_256(bytes(self.subtype)))
-                            + bin2hstr(sha2_256(bytes(self.finalized_blocknumber)))
-                            + bin2hstr(self.finalized_headerhash))
+                            + bin2hstr(sha2_256(str(self.blocknumber_headerhash).encode())))
         return bytes(tmptxhash)
 
     @staticmethod
     def create(activation_blocknumber,
+               blocknumber_headerhash,
                xmss,
                slavePK,
-               finalized_blocknumber,
-               finalized_headerhash,
-               hashchain_terminator=None,
-               balance=None):
+               hashchain_terminator=None):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
-        >>> isinstance(s.create(0, XMSS(4), slave.pk(), 0, bytes((0, 1)), None, 10), StakeTransaction)
+        >>> isinstance(s.create(0, dict(), XMSS(4), slave.pk(), None), StakeTransaction)
         True
         """
-        if not balance:
-            logger.info('Invalid Balance %d', balance)
-            raise Exception
 
         transaction = StakeTransaction()
 
@@ -329,10 +319,11 @@ class StakeTransaction(Transaction):
         transaction._data.public_key = bytes(xmss.pk())
 
         # Stake specific
-        transaction._data.stake.balance = balance
         transaction._data.stake.activation_blocknumber = activation_blocknumber
-        transaction._data.stake.finalized_blocknumber = finalized_blocknumber
-        transaction._data.stake.finalized_headerhash = bytes(finalized_headerhash)
+
+        for blocknumber in blocknumber_headerhash:
+            transaction._data.blocknumber_headerhash[blocknumber] = blocknumber_headerhash[blocknumber]
+
         transaction._data.stake.slavePK = bytes(slavePK)
 
         if hashchain_terminator is None:
@@ -352,12 +343,6 @@ class StakeTransaction(Transaction):
     def validate_extended(self, tx_state):
         state_balance = tx_state[1]
         state_pubhashes = tx_state[2]
-
-        if self.balance > state_balance:
-            logger.info('Stake Transaction Balance exceeds maximum balance')
-            logger.info('Max Balance Expected %d', state_balance)
-            logger.info('Balance found %d', self.balance)
-            return False
 
         # TODO no need to transmit pubhash over the network
         # pubhash has to be calculated by the receiver

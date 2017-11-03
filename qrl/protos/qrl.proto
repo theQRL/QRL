@@ -283,12 +283,11 @@ message Transaction {
     }
 
     message Stake {
-        uint64 balance = 1;
-        uint64 activation_blocknumber = 2;
-        uint64 finalized_blocknumber = 3;
-        bytes finalized_headerhash = 4;
-        bytes slavePK = 5;
-        bytes hash = 7;
+        uint64 activation_blocknumber = 1;
+        map<uint64, bytes> blocknumber_headerhash = 2;
+        bytes slavePK = 3;
+        bytes hash = 4;
+
     }
 
     message Destake {

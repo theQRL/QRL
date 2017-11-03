@@ -31,8 +31,8 @@ class StakeValidatorsList:
 
         return epoch_seed
 
-    def activate_sv(self, stake_txn):
-        sv = StakeValidator(stake_txn)
+    def activate_sv(self, balance, stake_txn):
+        sv = StakeValidator(balance, stake_txn)
         self.sv_list[stake_txn.txfrom] = sv
         self.expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
@@ -40,14 +40,14 @@ class StakeValidatorsList:
         self.sv_list[sv.stake_validator] = sv
         self.expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].add(sv.stake_validator)
 
-    def add_sv(self, stake_txn, blocknumber):
+    def add_sv(self, balance, stake_txn, blocknumber):
         if stake_txn.activation_blocknumber > blocknumber:
-            self.add_future_sv(stake_txn)
+            self.add_future_sv(balance, stake_txn)
         else:
-            self.activate_sv(stake_txn)
+            self.activate_sv(balance, stake_txn)
 
-    def add_future_sv(self, stake_txn):
-        sv = StakeValidator(stake_txn)
+    def add_future_sv(self, balance, stake_txn):
+        sv = StakeValidator(balance, stake_txn)
         self.future_stake_addresses[stake_txn.txfrom] = sv
         self.future_sv_list[stake_txn.activation_blocknumber].add(sv)
 

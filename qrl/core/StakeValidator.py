@@ -5,6 +5,7 @@
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.crypto.misc import sha256
+from qrl.core import config
 
 
 class StakeValidator:
@@ -14,16 +15,13 @@ class StakeValidator:
     Maintains the cache of successfully validated hashes, saves validation
     time by avoiding recalculation of the hash till the hash terminators.
     """
-    def __init__(self, stake_txn):
-        self.buffer_size = 4  # Move size to dev configuration
+    def __init__(self, balance, stake_txn):
+        self.buffer_size = config.dev.hash_buffer_size  # Move size to dev configuration
         self.stake_validator = stake_txn.txfrom
         self.slave_public_key = stake_txn.slave_public_key
-        self.balance = stake_txn.balance
+        self.balance = balance
         self.hash = stake_txn.hash
         self.activation_blocknumber = stake_txn.activation_blocknumber
-
-        self.finalized_blocknumber = stake_txn.finalized_blocknumber
-        self.finalized_headerhash = stake_txn.finalized_headerhash
 
         self.nonce = 0
         self.is_banned = False
