@@ -84,7 +84,7 @@ class Block(object):
         self._data.header.MergeFrom(self.blockheader._data)
 
 
-        signing_xmss = chain.block_chain_buffer.get_slave_xmss(last_block_number + 1)
+        signing_xmss = chain.get_slave_xmss(last_block_number + 1)
 
         coinbase_tx = CoinBase.create(self.blockheader, signing_xmss)
 

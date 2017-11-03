@@ -136,7 +136,7 @@ class POS:
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
         tmpbalance = self.chain.state.balance(self.chain.mining_address)
-        slave_xmss = self.chain.block_chain_buffer.get_slave_xmss(0)
+        slave_xmss = self.chain.get_slave_xmss(0)
         if not slave_xmss:
             logger.info('Waiting for SLAVE XMSS to be done')
             reactor.callLater(5, self.pre_pos_1)
@@ -144,12 +144,10 @@ class POS:
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
         st = StakeTransaction.create(activation_blocknumber=1,
+                                     blocknumber_headerhash=dict(),
                                      xmss=signing_xmss,
                                      slavePK=slave_xmss.pk(),
-                                     finalized_blocknumber=0,
-                                     finalized_headerhash=sha2_256(config.dev.genesis_prev_headerhash.encode()),
-                                     hashchain_terminator=tmphc.hc_terminator,
-                                     balance=tmpbalance)
+                                     hashchain_terminator=tmphc.hc_terminator)
         st.sign(signing_xmss)
 
         self.chain.add_tx_to_pool(st)
@@ -171,7 +169,7 @@ class POS:
                 if tx.txfrom in genesis_info:
                     tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
                     #FIX ME: This goes to stake validator list without verifiction, Security Risk
-                    self.chain.state.stake_validators_list.add_sv(tx, 1)
+                    self.chain.state.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
 
         self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
@@ -414,10 +412,10 @@ class POS:
         self.pos_blocknum = blocknumber
 
     def create_next_block(self, blocknumber, activation_blocknumber):
-        if not self.chain.block_chain_buffer.get_slave_xmss(blocknumber):
+        if not self.chain.get_slave_xmss(blocknumber):
             return
 
-        hash_chain = self.chain.block_chain_buffer.hash_chain_get(blocknumber)
+        hash_chain = self.chain.hash_chain_get(blocknumber)
 
         my_reveal = hash_chain[::-1][blocknumber - activation_blocknumber + 1]
 
@@ -459,6 +457,14 @@ class POS:
 
         return
 
+    def get_last_blockheight_endswith(self, current_blocknumber, ending_number):
+        result = ((current_blocknumber // 100) * 100 + ending_number)
+
+        if result > current_blocknumber:
+            result -= 100
+
+        return result
+
     def make_st_tx(self, curr_blocknumber):
         sv_list = self.chain.block_chain_buffer.stake_list_get(curr_blocknumber)
         if self.chain.mining_address in sv_list:
@@ -472,27 +478,31 @@ class POS:
             logger.warning('Balance %s', balance)
             return
 
-        slave_xmss = self.chain.block_chain_buffer.get_slave_xmss(activation_blocknumber)
+        slave_xmss = self.chain.get_slave_xmss(activation_blocknumber)
         if not slave_xmss:
             return
 
         signing_xmss = self.chain.wallet.address_bundle[0].xmss
 
-        finalized_blocknumber = ((curr_blocknumber - 1) // config.dev.blocks_per_epoch) * config.dev.blocks_per_epoch
-        finalized_block = self.chain.block_chain_buffer.get_block_n(finalized_blocknumber)
-        if not finalized_block:
-            logger.warning('Cannot make ST txn, unable to get blocknumber %s', finalized_blocknumber)
-            return
+        blocknumber_headerhash = dict()
+        current_blocknumber = self.chain.block_chain_buffer.height()
 
-        finalized_headerhash = finalized_block.blockheader.headerhash
+        for stamp in config.dev.stamping_series:
+            if stamp > current_blocknumber:
+                continue
+            blocknumber = self.get_last_blockheight_endswith(current_blocknumber, stamp)
+            finalized_block = self.chain.block_chain_buffer.get_block_n(blocknumber)
+            if not finalized_block:
+                logger.warning('Cannot make ST txn, unable to get blocknumber %s', blocknumber)
+                return
+
+            blocknumber_headerhash[blocknumber] = finalized_block.blockheader.headerhash
 
         st = StakeTransaction.create(
             activation_blocknumber=activation_blocknumber,
+            blocknumber_headerhash=blocknumber_headerhash,
             xmss=signing_xmss,
-            slavePK=slave_xmss.pk(),
-            finalized_blocknumber=finalized_blocknumber,
-            finalized_headerhash=finalized_headerhash,
-            balance=balance
+            slavePK=slave_xmss.pk()
         )
 
         st.sign(signing_xmss)
