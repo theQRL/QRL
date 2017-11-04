@@ -97,8 +97,7 @@ class ApiProtocol(Protocol):
         logger.info('<<< API network latency ping call')
         self.factory.pos.p2pFactory.ping_peers()  # triggers ping for all connected peers at timestamp now. after pong response list is collated. previous list is delivered.
 
-        pings = {'status': 'ok',
-                 'peers': self.factory.chain.ping_list}
+        pings = {'status': 'ok', 'peers': ''}       # FIXME: Obsolete. Removing to avoid refactoring work
 
         return json_print_telnet(pings)
 
