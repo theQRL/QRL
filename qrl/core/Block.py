@@ -9,7 +9,7 @@ from pyqrllib.pyqrllib import Xmss
 from qrl.core import config
 from qrl.core.Transaction import CoinBase
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX
-from qrl.core.blockheader import BlockHeader
+from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import sha256, merkle_tx_hash
 from qrl.generated import qrl_pb2
 

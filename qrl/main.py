@@ -11,10 +11,10 @@ from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from .core import logger, ntp, config
 from .core.apifactory import ApiFactory
-from .core.chain import Chain
+from .core.Chain import Chain
 from .core.node import SyncState, POS
 from .core.p2pfactory import P2PFactory
-from .core.state import State
+from .core.State import State
 from qrl.core import logger_twisted
 
 LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
@@ -91,7 +91,7 @@ def main():
 
     if args.get_wallets:
         address_data = buffered_chain.wallet.list_addresses(persistent_state,
-                                                                  buffered_chain.chain.tx_pool.transaction_pool)
+                                                            buffered_chain._chain.tx_pool.transaction_pool)
         addresses = [a[0] for a in address_data]
         print((addresses[0]))
         return

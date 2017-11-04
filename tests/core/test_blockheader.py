@@ -6,7 +6,7 @@ from unittest import TestCase
 from decimal import Decimal
 
 from qrl.core import logger
-from qrl.core.blockheader import BlockHeader
+from qrl.core.BlockHeader import BlockHeader
 from qrl.core.formulas import calc_coeff, remaining_emission
 
 logger.initialize_default(force_console_output=True)

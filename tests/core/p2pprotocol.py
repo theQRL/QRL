@@ -7,7 +7,7 @@ from google.protobuf.json_format import MessageToJson
 from mock import Mock, MagicMock
 
 from qrl.core import logger
-from qrl.core.chain import Chain
+from qrl.core.Chain import Chain
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2
 

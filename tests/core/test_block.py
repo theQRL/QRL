@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 from qrl.core import logger
-from qrl.core.block import Block
+from qrl.core.Block import Block
 
 logger.initialize_default(force_console_output=True)
 

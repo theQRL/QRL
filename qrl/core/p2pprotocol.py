@@ -11,10 +11,9 @@ from google.protobuf.json_format import MessageToJson, Parse
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import config, logger
-from qrl.core.block import Block
+from qrl.core.Block import Block
 from qrl.core.messagereceipt import MessageReceipt
-from qrl.core.node import SyncState
-from qrl.core.nstate import NState
+from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import DuplicateTransaction, Transaction, CoinBase
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.generated import qrl_pb2
@@ -210,14 +209,14 @@ class P2PProtocol(Protocol):
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
-        if mr_data.type in ['TX'] and self.factory.sync_state.state != NState.synced:
+        if mr_data.type in ['TX'] and self.factory.sync_state.state != ESyncState.synced:
             return
 
         if mr_data.type == 'TX' and len(self.factory.chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
-        if mr_data.type == 'ST' and self.factory.chain.height() > 1 and self.factory.sync_state.state != NState.synced:
+        if mr_data.type == 'ST' and self.factory.chain.height() > 1 and self.factory.sync_state.state != ESyncState.synced:
             return
 
         if self.factory.master_mr.contains(msg_hash, mr_data.type):
@@ -500,7 +499,7 @@ class P2PProtocol(Protocol):
                 reactor.download_monitor.cancel()
             except:
                 pass
-            self.factory.pos.update_node_state(NState.synced)
+            self.factory.pos.update_node_state(ESyncState.synced)
             return True
         return False
 
@@ -592,7 +591,7 @@ class P2PProtocol(Protocol):
         last block in mainchain.
         :return:
         """
-        if self.factory.pos.sync_state.state != NState.synced:
+        if self.factory.pos.sync_state.state != ESyncState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
         data = qrl_pb2.BlockMetaData()
@@ -654,7 +653,7 @@ class P2PProtocol(Protocol):
                     self.transport.getPeer().host, block_number,
                     self.factory.height(), str(time.time()))
 
-        if self.factory.sync_state.state == NState.syncing:
+        if self.factory.sync_state.state == ESyncState.syncing:
             return
 
         if block_number == self.factory.height():

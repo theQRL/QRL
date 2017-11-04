@@ -7,9 +7,9 @@ from mock import Mock, MagicMock
 
 from qrl.core import logger
 from qrl.core.BufferedChain import BufferedChain
-from qrl.core.block import Block
-from qrl.core.chain import Chain
-from qrl.core.wallet import Wallet
+from qrl.core.Block import Block
+from qrl.core.Chain import Chain
+from qrl.core.Wallet import Wallet
 from tests.misc.helper import setWalletDir
 
 logger.initialize_default(force_console_output=True)
@@ -44,7 +44,7 @@ class TestChainBuffer(TestCase):
             chain_buffer = BufferedChain(chain)
 
             b0 = chain_buffer.get_block(0)
-            chain_buffer.chain.get_block.assert_called()
+            chain_buffer._chain.get_block.assert_called()
             self.assertIsNone(b0)
 
             tmp_block = Block()

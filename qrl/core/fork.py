@@ -6,7 +6,7 @@ import simplejson as json
 
 # Initializers to be decided
 from qrl.core import logger
-from qrl.core.nstate import NState
+from qrl.core.ESyncState import ESyncState
 
 pending_blocks = {}
 last_bk_time = None
@@ -24,7 +24,7 @@ def fork_recovery(blocknumber, chain, randomize_headerhash_fetch):
     global pending_blocks
     pending_blocks = {}
     randomize_headerhash_fetch(blocknumber - 1)
-    chain.state.update(NState.forked)                   # FIXME: this is confusing pstate with sync_state
+    chain.state.update(ESyncState.forked)                   # FIXME: this is confusing pstate with sync_state
 
 
 def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
@@ -63,4 +63,4 @@ def unfork(blocknumber, chain):
     del chain.m_blockchain[blocknumber:]
     chain.stake_list_put(sl)
     logger.info(('Forked chain has been removed from blocknumber ', blocknumber))
-    chain.state.update(NState.unsynced)             # FIXME: this is confusing pstate with sync_state
+    chain.state.update(ESyncState.unsynced)             # FIXME: this is confusing pstate with sync_state

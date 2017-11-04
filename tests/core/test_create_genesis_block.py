@@ -6,8 +6,8 @@ from unittest import TestCase
 import pytest
 
 from qrl.core import logger
-from qrl.core.chain import Chain
-from qrl.core.state import State
+from qrl.core.Chain import Chain
+from qrl.core.State import State
 
 logger.initialize_default(force_console_output=True)
 

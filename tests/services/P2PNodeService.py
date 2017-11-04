@@ -6,11 +6,11 @@ from unittest import TestCase
 from mock import Mock, MagicMock
 
 from qrl.core import logger
-from qrl.core.chain import Chain
+from qrl.core.Chain import Chain
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
-from qrl.core.state import State
+from qrl.core.State import State
 from qrl.generated import qrl_pb2
 from qrl.services.P2PNodeService import P2PNodeService
 

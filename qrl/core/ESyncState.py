@@ -2,7 +2,7 @@
 from enum import Enum
 
 
-class NState(Enum):
+class ESyncState(Enum):
     unknown = 0
     unsynced = 1
     syncing = 2

@@ -5,7 +5,7 @@
 import jsonpickle
 import simplejson as json
 
-from qrl.core import config, logger
+from qrl.core import logger
 
 
 def json_print(obj):  # prettify output from JSON for export purposes

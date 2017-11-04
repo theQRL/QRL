@@ -7,9 +7,9 @@ import time
 
 from qrl.core import config, logger
 from qrl.core.Transaction import TransferTransaction, Transaction
-from qrl.core.block import Block
-from qrl.core.nstate import NState
-from qrl.core.state import State
+from qrl.core.Block import Block
+from qrl.core.ESyncState import ESyncState
+from qrl.core.State import State
 from qrl.generated import qrl_pb2
 
 
@@ -34,7 +34,7 @@ class QRLNode:
     @property
     def state(self):
         if self._p2pfactory is None:
-            return NState.unknown.value
+            return ESyncState.unknown.value
         # FIXME
         return self._p2pfactory.sync_state.state.value
 

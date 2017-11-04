@@ -6,7 +6,7 @@ import yaml
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
 
-from qrl.core.blockheader import BlockHeader
+from qrl.core.BlockHeader import BlockHeader
 from qrl.core import config, logger
 from qrl.generated import qrl_pb2
 
@@ -59,11 +59,6 @@ class GenesisBlock(object, metaclass=Singleton):
     def set_staking_address(self, staking_address):
         # FIXME: It is odd that we have a hash equal to 'genesis'
         """
-        :param chain:
-        :type chain:
-        :return:
-        :rtype:
-
         >>> GenesisBlock().set_staking_address(None) is not None
         True
         >>> GenesisBlock().set_staking_address(None).blockheader.epoch

@@ -9,11 +9,11 @@ from mock import Mock, MagicMock
 from qrl.core import logger
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.core.Transaction import TransferTransaction
-from qrl.core.chain import Chain
+from qrl.core.Chain import Chain
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
-from qrl.core.state import State
+from qrl.core.State import State
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService

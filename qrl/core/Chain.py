@@ -12,8 +12,8 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.Transaction import Transaction
-from qrl.core.block import Block
-from qrl.core.wallet import Wallet
+from qrl.core.Block import Block
+from qrl.core.Wallet import Wallet
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 
