@@ -15,15 +15,17 @@ from tests.misc.helper import setWalletDir
 logger.initialize_default(force_console_output=True)
 
 
-class TestChainBuffer(TestCase):
+class TestBufferedChain(TestCase):
     def __init__(self, *args, **kwargs):
-        super(TestChainBuffer, self).__init__(*args, **kwargs)
+        super(TestBufferedChain, self).__init__(*args, **kwargs)
 
     def test_create(self):
         with setWalletDir("test_wallet"):
             # FIXME: cross-dependency
             chain = Mock(spec=Chain)
             chain.height = MagicMock(return_value=0)
+            chain.get_block = MagicMock(return_value=None)
+            chain.get_last_block = MagicMock(return_value=None)
             chain.wallet = Wallet()
             cb = BufferedChain(chain)
 
@@ -31,6 +33,7 @@ class TestChainBuffer(TestCase):
 
             tmp_block = cb.get_block(0)
             self.assertIsNone(tmp_block)
+            chain.get_block.assert_called()
 
             tmp_block = cb.get_last_block()
             self.assertIsNone(tmp_block)

@@ -71,9 +71,9 @@ class GenesisBlock(object, metaclass=Singleton):
         0
         >>> GenesisBlock().set_staking_address(None).blockheader.reveal_hash
         b'\\x00\\x00\\x00\\x00\\x00\\x00'
-        >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.headerhash)
+        >>> bin2hstr(GenesisBlock().set_staking_address(None).blockheader.headerhash)
         '42598eed69acbd031bd30f980f1e383a271d52c954376c184621d73476eb9dda'
-        >>> bin2hstr(GenesisBlock().set_chain(None).blockheader.prev_blockheaderhash)
+        >>> bin2hstr(GenesisBlock().set_staking_address(None).blockheader.prev_blockheaderhash)
         '584742ee81a520c76ac376f29b9eebd4b73ef0b990e7ff4b994a06be3399be67'
         """
         self.blockheader = self.blockheader.create(staking_address=staking_address,

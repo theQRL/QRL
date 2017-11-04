@@ -33,7 +33,7 @@ class Block(object):
 
     @property
     def block_number(self):
-        return self._data.blockheader.block_number
+        return self.blockheader.block_number
 
     @property
     def epoch(self):
@@ -65,11 +65,11 @@ class Block(object):
 
     @property
     def stake_selector(self):
-        return self._data.blockheader.stake_selector
+        return self.blockheader.stake_selector
 
     @property
     def reveal_hash(self):
-        return self._data.blockheader.reveal_hash
+        return self.blockheader.reveal_hash
 
     @property
     def timestamp(self):

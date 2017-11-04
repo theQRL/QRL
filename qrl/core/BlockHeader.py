@@ -26,7 +26,7 @@ class BlockHeader(object):
         return self._data
 
     @property
-    def blocknumber(self):
+    def block_number(self):
         return self._data.block_number
 
     @property
@@ -116,7 +116,7 @@ class BlockHeader(object):
                                                     self.block_reward,
                                                     self.fee_reward,
                                                     self.timestamp,
-                                                    self.blocknumber,
+                                                    self.block_number,
                                                     self.prev_blockheaderhash,
                                                     self.tx_merkle_root,
                                                     self.reveal_hash)
@@ -127,10 +127,10 @@ class BlockHeader(object):
         return block reward for the block_n
         :return:
         """
-        return block_reward_calc(self.blocknumber)
+        return block_reward_calc(self.block_number)
 
     def validate(self, last_header):
-        if last_header.block_number != self.blocknumber - 1:
+        if last_header.block_number != self.block_number - 1:
             logger.warning('Block numbers out of sequence: failed validation')
             return False
 
@@ -146,11 +146,11 @@ class BlockHeader(object):
             logger.warning('Block reward incorrect for block: failed validation')
             return False
 
-        if self.epoch != self.blocknumber // config.dev.blocks_per_epoch:
+        if self.epoch != self.block_number // config.dev.blocks_per_epoch:
             logger.warning('Epoch incorrect for block: failed validation')
             return False
 
-        if self.timestamp == 0 and self.blocknumber > 0:
+        if self.timestamp == 0 and self.block_number > 0:
             logger.warning('Invalid block timestamp ')
             return False
 
@@ -178,7 +178,7 @@ class BlockHeader(object):
             return False
 
         max_block_number = int((curr_time - last_block_timestamp) / config.dev.block_creation_seconds)
-        if self.blocknumber > max_block_number:
+        if self.block_number > max_block_number:
             return False
 
     @staticmethod

@@ -152,32 +152,33 @@ class BufferedChain:
             logger.info('Stake_selector %s', block.stake_selector)
             return False
 
-        block_idx = block.block_number
         block_headerhash = block.headerhash
         block_prev_headerhash = block.prev_headerhash
 
-        if block_idx <= self._chain.height():
+        if block.block_number <= self._chain.height():
             return False
 
-        if block_idx - 1 == self._chain.height():
+        # FIXME: This is extremely complicated. Review/refactor
+
+        if block.block_number - 1 == self._chain.height():
             if block_prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
-        elif block_idx - 1 not in self.blocks or block_prev_headerhash != self.blocks[block_idx - 1][0].block.headerhash:
+        elif block.block_number - 1 not in self.blocks or block_prev_headerhash != self.blocks[block.block_number - 1][0].block.headerhash:
             logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
-        if block_idx in self.blocks and block_headerhash == self.blocks[block_idx][0].block.headerhash:
+        if block.block_number in self.blocks and block_headerhash == self.blocks[block.block_number][0].block.headerhash:
             return False
 
-        if (block_idx - config.dev.reorg_limit) in self.blocks:
-            self._move_to_mainchain(block_idx - config.dev.reorg_limit)
+        if (block.block_number - config.dev.reorg_limit) in self.blocks:
+            self._move_to_mainchain(block.block_number - config.dev.reorg_limit)
 
         stake_reward = {}
 
         state_buffer = StateBuffer()
 
-        if block_idx - 1 == self._chain.height():
+        if block.block_number - 1 == self._chain.height():
             stake_validators_list = copy.deepcopy(self._chain.pstate.stake_validators_list)
             stxn_state = dict()
             # TODO: Optimization required
@@ -194,7 +195,7 @@ class BufferedChain:
             state_buffer.stxn_state = stxn_state
             state_buffer.update_stxn_state(self.height())
         else:
-            block_state_buffer = self.blocks[block_idx - 1]
+            block_state_buffer = self.blocks[block.block_number - 1]
             parent_state_buffer = block_state_buffer[1]
             parent_seed = block_state_buffer[1].next_seed
 
@@ -210,22 +211,22 @@ class BufferedChain:
             state_buffer.stxn_state = stxn_state
             state_buffer.update(self.height(), parent_state_buffer, block)
 
-        if block_idx not in self.blocks:
-            self.blocks[block_idx] = [block_buffer, state_buffer]
+        if block.block_number not in self.blocks:
+            self.blocks[block.block_number] = [block_buffer, state_buffer]
         else:
-            old_block_buffer = self.blocks[block_idx][0]
+            old_block_buffer = self.blocks[block.block_number][0]
 
             if block_buffer.score < old_block_buffer.score:
-                self.blocks[block_idx] = [block_buffer, state_buffer]
-                if block_idx + 1 in self.blocks:
-                    self._remove_block(block_idx + 1)
+                self.blocks[block.block_number] = [block_buffer, state_buffer]
+                if block.block_number + 1 in self.blocks:
+                    self._remove_block(block.block_number + 1)
             elif block_buffer.score == old_block_buffer.score:  # When two blocks having equal score
                 oldheaderhash = old_block_buffer.block.headerhash
                 newheaderhash = block_buffer.block.headerhash
                 if int(bin2hstr(newheaderhash), 16) < int(bin2hstr(oldheaderhash), 16):
-                    self.blocks[block_idx] = [block_buffer, state_buffer]
-                    if block_idx + 1 in self.blocks:
-                        self._remove_block(block_idx + 1)
+                    self.blocks[block.block_number] = [block_buffer, state_buffer]
+                    if block.block_number + 1 in self.blocks:
+                        self._remove_block(block.block_number + 1)
 
         return True
 
@@ -289,8 +290,9 @@ class BufferedChain:
             # FIXME: review this.. Too complicated
             last_block = self.get_block(block.block_number - 1)
 
-            if not block.blockheader.validate(last_block.blockheader):
-                return False
+            if last_block is not None:          # FIXME: Review this
+                if not block.blockheader.validate(last_block.blockheader):
+                    return False
 
             if len(block.transactions) == 0:
                 logger.warning('BLOCK : There must be atleast 1 txn')
