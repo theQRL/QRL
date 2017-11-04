@@ -122,7 +122,7 @@ class DevConfig(object):
         self.wallet_dat_filename = 'wallet.qrl'
         self.wallet_old_dat_filename = 'wallet.json'
 
-        self.slave_dat_filename = 'slave.json'
+        self.slave_dat_filename = 'slave.qrl'
         self.mnemonic_filename = 'mnemonic'
         self.genesis_prev_headerhash = 'Quantum-Booster-Testnet'
 
