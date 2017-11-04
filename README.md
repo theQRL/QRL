@@ -133,6 +133,9 @@ Add the cffi package:
 
 ## Windows :seedling:
 
-*Windows support in the current version is limited. An alternative is to use an Ubuntu VM (virtualbox). Docker containers are not working wel in Windows at the moment*
+*Windows support in the current version is limited. An alternative is to use an Ubuntu VM (virtualbox), or install Ubuntu using the Linux Subsystem for Windows. Docker containers are not working well in Windows at the moment*
+
+#### Ubuntu on Linux Subsystem for Windows
+It is possible to run a QRL node using an Ubuntu Bash shell through the Linux Subsystem for Windows. Follow [these instructions](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10) to install Ubuntu using Linux Subsystem, start the Ubuntu bash shell, and then follow the previous instructions on setting up QRL on [Ubuntu](https://github.com/theQRL/QRL#ubuntu-white_check_mark).
 
 *We are working on a solution to native Windows support*
