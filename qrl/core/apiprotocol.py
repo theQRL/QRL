@@ -238,10 +238,10 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        tx_num = len(self.factory.chain.transaction_pool)
+        tx_num = len(self.factory.chain.tx_pool.transaction_pool)
         while tx_num > 0:
             tx_num -= 1
-            tx = self.factory.chain.transaction_pool[tx_num]
+            tx = self.factory.chain.tx_pool.transaction_pool[tx_num]
             if tx.subtype != TX_SUBTYPE_TX:
                 continue
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
@@ -405,7 +405,7 @@ class ApiProtocol(Protocol):
             'block_time': block_time,
             'block_time_variance': block_time_variance,
 
-            'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list), # Use GetStakers instead
+            'stake_validators': len(self.factory.height().stake_validators_list.sv_list), # Use GetStakers instead
 
             # FIXME: Magic number? Unify
             'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),

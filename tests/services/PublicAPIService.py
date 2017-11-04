@@ -195,7 +195,7 @@ class PublicAPITest(TestCase):
                                          fee=19,
                                          xmss_pk=sha256(b'pk'),
                                          xmss_ots_index=13)
-        chain.transaction_pool = [ tx1 ]
+        chain.tx_pool.transaction_pool = [ tx1 ]
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()

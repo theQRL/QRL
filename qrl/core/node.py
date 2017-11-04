@@ -11,7 +11,7 @@ from pyqrllib.pyqrllib import bin2hstr, sha2_256
 from twisted.internet import reactor
 
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
-from qrl.core import logger, config
+from qrl.core import logger, config, BufferedChain
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.nstate import NState
 from qrl.core.Transaction import StakeTransaction, DestakeTransaction
@@ -26,7 +26,8 @@ class NodeState:
 
 
 class POS:
-    def __init__(self, chain, p2pFactory, nodeState, ntp):
+    def __init__(self, chain: BufferedChain, p2pFactory, nodeState, ntp):
+        # FIXME: chain or chainbuffer?
         self.master_mr = MessageReceipt()
         self.nodeState = nodeState
         self.ntp = ntp
@@ -124,7 +125,7 @@ class POS:
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
         logger.info('pre_pos_1')
         # are we a staker in the stake list?
-        genesis_info = self.chain.state.load_genesis_info()
+        genesis_info = self.height().load_genesis_info()
         if self.chain.staking_address not in genesis_info:
             logger.info('%s %s', self.chain.staking_address, genesis_info)
             return
@@ -135,7 +136,7 @@ class POS:
         self.chain.hash_chain = tmphc.hashchain
         self.chain.block_chain_buffer.hash_chain[0] = tmphc.hashchain
 
-        tmpbalance = self.chain.state.balance(self.chain.mining_address)
+        tmpbalance = self.height().balance(self.chain.mining_address)
         slave_xmss = self.chain.get_slave_xmss(0)
         if not slave_xmss:
             logger.info('Waiting for SLAVE XMSS to be done')
@@ -150,7 +151,7 @@ class POS:
                                      hashchain_terminator=tmphc.hc_terminator)
         st.sign(signing_xmss)
 
-        self.chain.add_tx_to_pool(st)
+        self.chain.tx_pool.add_tx_to_pool(st)
         # send the stake tx to generate hashchain terminators for the staker addresses..
         self.p2pFactory.send_st_to_peers(st)
         logger.info('await delayed call to build staker list from genesis')
@@ -163,15 +164,15 @@ class POS:
         # assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
 
         tmp_list = []
-        genesis_info = self.chain.state.load_genesis_info()
-        for tx in self.chain.transaction_pool:
+        genesis_info = self.height().load_genesis_info()
+        for tx in self.chain.tx_pool.transaction_pool:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 if tx.txfrom in genesis_info:
                     tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
                     #FIX ME: This goes to stake validator list without verifiction, Security Risk
-                    self.chain.state.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
+                    self.height().stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
 
-        self.chain.block_chain_buffer.epoch_seed = self.chain.state.calc_seed(tmp_list)
+        self.chain.block_chain_buffer.epoch_seed = self.height().calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
         self.chain.stake_list = sorted(tmp_list,
                                        key=lambda staker: self.chain.score(stake_address=staker[0],
@@ -201,7 +202,8 @@ class POS:
             reveal_hash = self.chain.select_hashchain(self.chain.staking_address,
                                                       tmphc.hashchain,
                                                       blocknumber=1)
-            b = self.chain.create_block(reveal_hash[-2])
+
+            b = self.chain.create_block(reveal_hash[-2])        # FIXME: This is incorrect, rewire
             self.pre_block_logic(b)
         else:
             logger.info('await block creation by stake validator: %s', self.chain.stake_list[0][0])
@@ -211,7 +213,7 @@ class POS:
 
     def process_transactions(self, num):
         tmp_num = num
-        for tx in self.chain.pending_tx_pool:
+        for tx in self.chain.tx_pool.pending_tx_pool:
             tmp_num -= 1
             tx_peer = tx[1]
             tx = tx[0]
@@ -224,14 +226,14 @@ class POS:
                                                          addr=tx.txfrom)
 
             is_valid_state = tx.validate_extended(tx_state=tx_state,
-                                                  transaction_pool=self.chain.transaction_pool)
+                                                  transaction_pool=self.chain.tx_pool.transaction_pool)
 
             if not is_valid_state:
                 logger.info('>>>TX %s failed state_validate', tx.txhash)
                 continue
 
             logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
-            self.chain.add_tx_to_pool(tx)
+            self.chain.tx_pool.add_tx_to_pool(tx)
 
             txn_msg = tx_peer.wrap_message('TX', tx.to_json())
             for peer in tx_peer.factory.peer_connections:
@@ -240,8 +242,8 @@ class POS:
                     peer.transport.write(txn_msg)
 
         for i in range(num - tmp_num):
-            del self.chain.pending_tx_pool[0]
-            del self.chain.pending_tx_pool_hash[0]
+            del self.chain.tx_pool.pending_tx_pool[0]
+            del self.chain.tx_pool.pending_tx_pool_hash[0]
 
     # create new block..
 
@@ -317,10 +319,10 @@ class POS:
             f.target_peers[peer.conn_identity] = peer
         
         if max_height == None or max_height<=chain.height():
-            chain.state.update(NState.synced)
+            height().update(NState.synced)
             return
         
-        chain.state.update(NState.syncing)
+        height().update(NState.syncing)
         pending_blocks['start_block'] = chain.m_blockchain[-1].blockheader.blocknumber
         pending_blocks['target'] = fmbh_blockhash_peers[selected_blockhash]['blocknumber']
         pending_blocks['headerhash'] = selected_blockhash
@@ -468,11 +470,11 @@ class POS:
     def make_st_tx(self, curr_blocknumber):
         sv_list = self.chain.block_chain_buffer.stake_list_get(curr_blocknumber)
         if self.chain._address in sv_list:
-            activation_blocknumber = sv_list[self.self.chain.state].activation_blocknumber + config.dev.blocks_per_epoch
+            activation_blocknumber = sv_list[self.self.height()].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
-        balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.self.chain.state)[1]
+        balance = self.chain.block_chain_buffer.get_stxn_state(curr_blocknumber, self.self.height())[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
@@ -512,15 +514,15 @@ class POS:
             return
 
         self.p2pFactory.send_st_to_peers(st)
-        for num in range(len(self.chain.transaction_pool)):
-            t = self.chain.transaction_pool[num]
+        for num in range(len(self.chain.tx_pool.transaction_pool)):
+            t = self.chain.tx_pool.transaction_pool[num]
             if t.subtype == TX_SUBTYPE_STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
-                self.chain.remove_tx_from_pool(t)
+                self.chain.tx_pool.remove_tx_from_pool(t)
                 break
 
-        self.chain.add_tx_to_pool(st)
+        self.chain.tx_pool.add_tx_to_pool(st)
         self.chain.wallet.save_wallet()
 
     def make_destake_tx(self):
@@ -531,7 +533,7 @@ class POS:
 
         # No destake txn required if mining address is not in stake_validator_list
         if chain.staking_address not in stake_validators_list.sv_list and \
-                        self.self.chain.state not in stake_validators_list.future_stake_addresses:
+                        self.self.height() not in stake_validators_list.future_stake_addresses:
             logger.warning('%s Not found in Stake Validator list, destake txn note required', chain.staking_address)
             return
 
@@ -552,15 +554,15 @@ class POS:
             return
 
         self.p2pFactory.send_destake_txn_to_peers(de_stake_txn)
-        for num in range(len(self.chain.transaction_pool)):
-            t = self.chain.transaction_pool[num]
+        for num in range(len(self.chain.tx_pool.transaction_pool)):
+            t = self.chain.tx_pool.transaction_pool[num]
             if t.subtype == TX_SUBTYPE_DESTAKE:
                 if de_stake_txn.get_message_hash() == t.get_message_hash():
                     return
-                self.chain.remove_tx_from_pool(t)
+                self.chain.tx_pool.remove_tx_from_pool(t)
                 break
 
-        self.chain.add_tx_to_pool(de_stake_txn)
+        self.chain.tx_pool.add_tx_to_pool(de_stake_txn)
         self.chain.wallet.save_wallet()
 
         return True

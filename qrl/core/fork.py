@@ -63,7 +63,7 @@ def unfork(blocknumber, chain):
     del chain.m_blockchain[blocknumber:]
     chain.stake_list_put(sl)
     logger.info(('Forked chain has been removed from blocknumber ', blocknumber))
-    chain.state.update(NState.unsynced)
+    height().update(NState.unsynced)
 
 # def headerhash_lookup(blocknumber):
 # reactor.callLater(15,

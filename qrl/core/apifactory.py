@@ -51,7 +51,7 @@ class ApiFactory(ServerFactory):
                 # pubhashes used could be put here..
 
         tmp_transactions = []
-        for tx in self.chain.transaction_pool:
+        for tx in self.chain.tx_pool.transaction_pool:
             if tx.subtype not in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 continue
             if tx.txto == address or tx.txfrom == address:
@@ -147,14 +147,14 @@ class ApiFactory(ServerFactory):
     # FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_txhash(self, txhash):  # txhash is unique due to nonce.
         err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
-        for tx in self.chain.transaction_pool:
+        for tx in self.chain.tx_pool.transaction_pool:
             if tx.txhash == txhash:
                 logger.info('%s found in transaction pool..', txhash)
                 tx_new = copy.deepcopy(tx)
                 return tx_new.to_json()
 
         try:
-            txn_metadata = self.chain.state._db.get(txhash)
+            txn_metadata = self.height()._db.get(txhash)
         except:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return json_print_telnet(err)

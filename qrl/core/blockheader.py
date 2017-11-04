@@ -65,55 +65,49 @@ class BlockHeader(object):
     def stake_selector(self):
         return self._data.stake_selector
 
-    def create(self,
-               staking_address,
-               blocknumber,
-               prev_blockheaderhash,
-               hashedtransactions,
-               reveal_hash,
-               fee_reward):
+    @staticmethod
+    def create(staking_address: str,
+               blocknumber: int,
+               prev_blockheaderhash: bytes,
+               hashedtransactions: bytes,
+               reveal_hash: bytes,
+               fee_reward: int):
         """
         Create a block header based on the parameters
-        :param chain:
-        :param blocknumber:
-        :param prev_blockheaderhash:
-        :param hashedtransactions:
-        :param reveal_hash:
-        :param fee_reward:
-        :return:
 
-        >>> BlockHeader().create(None, 0, b'0', b'0', b'0', 1) is not None
+        >>> BlockHeader.create('someaddress', 0, b'0', b'0', b'0', 1) is not None
         True
-        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch
+        >>> b = BlockHeader.create('someaddress', 0, b'0', b'0', b'0', 1); b.epoch
         0
-        >>> b = BlockHeader().create(None, 0, b'0', b'0', b'0', 1); b.epoch
+        >>> b = BlockHeader.create('someaddress', 0, b'0', b'0', b'0', 1); b.epoch
         0
         """
 
-        self._data.block_number = blocknumber
-        self._data.epoch = self._data.block_number // config.dev.blocks_per_epoch
+        bh = BlockHeader()
+        bh._data.block_number = blocknumber
+        bh._data.epoch = bh._data.block_number // config.dev.blocks_per_epoch
 
-        if self._data.block_number != 0:
-            self._data.timestamp.seconds = int(ntp.getTime())
-            if self._data.timestamp == 0:
+        if bh._data.block_number != 0:
+            bh._data.timestamp.seconds = int(ntp.getTime())
+            if bh._data.timestamp == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
 
-        self._data.hash_header_prev = prev_blockheaderhash
-        self._data.merkle_root = hashedtransactions
-        self._data.hash_reveal = reveal_hash
-        self._data.reward_fee = fee_reward
+        bh._data.hash_header_prev = prev_blockheaderhash
+        bh._data.merkle_root = hashedtransactions
+        bh._data.hash_reveal = reveal_hash
+        bh._data.reward_fee = fee_reward
 
-        self._data.stake_selector = b''
-        self._data.reward_block = 0
+        bh._data.stake_selector = b''
+        bh._data.reward_block = 0
 
-        if self._data.block_number != 0:
-            self._data.stake_selector = staking_address
-            self._data.reward_block = self.block_reward_calc()
+        if bh._data.block_number != 0:
+            bh._data.stake_selector = staking_address
+            bh._data.reward_block = bh.block_reward_calc()
 
-        self._data.hash_header = self.generate_headerhash()
+        bh._data.hash_header = bh.generate_headerhash()
 
-        return self
+        return bh
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix

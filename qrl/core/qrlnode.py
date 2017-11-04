@@ -274,10 +274,10 @@ class QRLNode:
         block_number = block_chain_buffer.height() + 1
         tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
-        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._chain.transaction_pool):
+        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._chain.tx_pool.transaction_pool):
             raise ValueError("The transaction failed validatation (blockchain state)")
 
-        self._chain.add_tx_to_pool(tx)
+        self._chain.tx_pool.add_tx_to_pool(tx)
         self._chain.wallet.save_wallet()
         self._p2pfactory.send_tx_to_peers(tx)
         return True
@@ -315,7 +315,7 @@ class QRLNode:
         # TODO: Search tx hash
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
-        for tx in self._chain.transaction_pool:
+        for tx in self._chain.tx_pool.transaction_pool:
             if tx.txhash == query_hash:
                 return tx
         return None
@@ -359,7 +359,7 @@ class QRLNode:
 
     def get_latest_transactions_unconfirmed(self, count=5):
         answer = []
-        for tx in reversed(self._chain.transaction_pool):
+        for tx in reversed(self._chain.tx_pool.transaction_pool):
             if isinstance(tx, TransferTransaction):
                 answer.append(tx)
                 if len(answer) >= count:

@@ -20,6 +20,7 @@ class Singleton(type):
 
 
 class GenesisBlock(object, metaclass=Singleton):
+    # FIXME: This should derive from Block
     """
     # first block has no previous header to reference..
     >>> GenesisBlock().blockheader.prev_blockheaderhash == b'1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
