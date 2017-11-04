@@ -79,6 +79,8 @@ class P2PProtocol(Protocol):
         self.disconnect_callLater = None
         self.ping_callLater = None
 
+        self.ping_list = []
+
     def parse_msg(self, data):
         try:
             jdata = json.loads(data.decode())
@@ -748,13 +750,13 @@ class P2PProtocol(Protocol):
         """
         if data[0:2] == 'NG':
             y = 0
-            for entry in self.factory.chain.ping_list:
+            for entry in self.ping_list:
                 if entry['node'] == self.transport.getPeer().host:
                     entry['ping (ms)'] = (time.time() - self.chain.last_ping) * 1000
                     y = 1
             if y == 0:
-                self.factory.chain.ping_list.append({'node': self.transport.getPeer().host,
-                                                     'ping (ms)': (time.time() - self.factory.chain.last_ping) * 1000})
+                self.ping_list.append({'node': self.transport.getPeer().host,
+                                       'ping (ms)': (time.time() - self.factory.chain.last_ping) * 1000})
 
     def PING(self):
         """
