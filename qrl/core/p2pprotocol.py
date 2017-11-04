@@ -752,11 +752,11 @@ class P2PProtocol(Protocol):
             y = 0
             for entry in self.ping_list:
                 if entry['node'] == self.transport.getPeer().host:
-                    entry['ping (ms)'] = (time.time() - self.chain.last_ping) * 1000
+                    entry['ping (ms)'] = (time.time() - self.factory.last_ping) * 1000
                     y = 1
             if y == 0:
                 self.ping_list.append({'node': self.transport.getPeer().host,
-                                       'ping (ms)': (time.time() - self.factory.chain.last_ping) * 1000})
+                                       'ping (ms)': (time.time() - self.factory.last_ping) * 1000})
 
     def PING(self):
         """

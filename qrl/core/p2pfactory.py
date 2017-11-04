@@ -57,6 +57,8 @@ class P2PFactory(ServerFactory):
         self.bkmr_processor = reactor.callLater(1, self.setPOS, pos=None)
         self.bkmr_processor.cancel()
 
+        self.last_ping = None
+
     # factory network functions
     def setPOS(self, pos):
         self.pos = pos
@@ -177,7 +179,9 @@ class P2PFactory(ServerFactory):
 
     def ping_peers(self):
         logger.info('<<<Transmitting network PING')
-        self.chain.last_ping = time.time()
+
+        # FIXME: This last_ping seems obsolete
+        self.last_ping = time.time()
         for peer in self.peer_connections:
             peer.transport.write(self.protocol.wrap_message('PING'))
         return
