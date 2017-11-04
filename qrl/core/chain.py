@@ -33,8 +33,6 @@ class Chain:
         # FIXME: should self.mining_address be self.staking_address
         self.mining_address = self.wallet.address_bundle[0].xmss.get_address().encode()
 
-        self.ping_list = []                     # FIXME: This has nothing to do with chain. Used by p2pprotocol
-
         self._block_framedata = dict()
 
         self.transaction_pool = []              # FIXME: Everyone is touching this
@@ -49,7 +47,7 @@ class Chain:
         self.pending_tx_pool_hash = []
         self.duplicate_tx_pool = OrderedDict()  # FIXME: Everyone is touching this
 
-        # FIXME: Temporarily moving things here
+        # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()
         self.slave_xmsspool = None
         self._init_slave_xmsspool(0)
