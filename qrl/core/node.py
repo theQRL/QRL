@@ -149,7 +149,7 @@ class POS:
             reactor.callLater(5, self.pre_pos_1)
             return
 
-        signing_xmss = self.buffered_chain.chain.wallet.address_bundle[0].xmss
+        signing_xmss = self.buffered_chain.wallet.address_bundle[0].xmss
         st = StakeTransaction.create(activation_blocknumber=1,
                                      blocknumber_headerhash=dict(),
                                      xmss=signing_xmss,
@@ -447,7 +447,7 @@ class POS:
             future_stake_addresses = self.buffered_chain.future_stake_addresses(blocknumber)
 
             if self.buffered_chain.staking_address not in future_stake_addresses:
-                self.make_st_tx(blocknumber)
+                self._create_stake_tx(blocknumber)
 
             stake_list = self.buffered_chain.stake_list_get(blocknumber)
 
@@ -473,15 +473,14 @@ class POS:
 
         return result
 
-    def make_st_tx(self, curr_blocknumber):
+    def _create_stake_tx(self, curr_blocknumber):
         sv_list = self.buffered_chain.stake_list_get(curr_blocknumber)
-        if self.buffered_chain._address in sv_list:
-            activation_blocknumber = sv_list[
-                                         self.buffered_chain.height()].activation_blocknumber + config.dev.blocks_per_epoch
+        if self.buffered_chain.staking_address in sv_list:
+            activation_blocknumber = sv_list[self.buffered_chain.height()].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
-        balance = self.buffered_chain.get_stxn_state(curr_blocknumber, self.buffered_chain.height())[1]
+        balance = self.buffered_chain.get_stxn_state(curr_blocknumber, self.buffered_chain.staking_address)[1]
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
@@ -521,15 +520,15 @@ class POS:
             return
 
         self.p2pFactory.send_st_to_peers(st)
-        for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
-            t = self.buffered_chain.tx_pool.transaction_pool[num]
+        for num in range(len(self.buffered_chain.chain.tx_pool.transaction_pool)):
+            t = self.buffered_chain.chain.tx_pool.transaction_pool[num]
             if t.subtype == TX_SUBTYPE_STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
-                self.buffered_chain.tx_pool.remove_tx_from_pool(t)
+                self.buffered_chain.chain.tx_pool.remove_tx_from_pool(t)
                 break
 
-        self.buffered_chain.tx_pool.add_tx_to_pool(st)
+        self.buffered_chain.chain.tx_pool.add_tx_to_pool(st)
         self.buffered_chain.wallet.save_wallet()
 
     def make_destake_tx(self):
@@ -537,16 +536,16 @@ class POS:
         stake_validators_list = self.buffered_chain.get_stake_validators_list(curr_blocknumber)
 
         # No destake txn required if mining address is not in stake_validator_list
-        if self.buffered_chain.chain.staking_address not in stake_validators_list.sv_list and \
+        if self.buffered_chain.staking_address not in stake_validators_list.sv_list and \
                         self.buffered_chain.height() not in stake_validators_list.future_stake_addresses:
             logger.warning('%s Not found in Stake Validator list, destake txn note required',
-                           self.buffered_chain.chain.staking_address)
+                           self.buffered_chain.staking_address)
             return
 
         # Skip if mining address is not active in either stake validator list
-        if not ((self.buffered_chain.chain.staking_address in stake_validators_list.sv_list and
+        if not ((self.buffered_chain.staking_address in stake_validators_list.sv_list and
                      stake_validators_list.sv_list[self.buffered_chain.staking_address].is_active)
-                or (self.buffered_chain.chain.staking_address in stake_validators_list.future_stake_addresses and
+                or (self.buffered_chain.staking_address in stake_validators_list.future_stake_addresses and
                         stake_validators_list.future_stake_addresses[self.buffered_chain.staking_address].is_active)):
             logger.warning('%s is already inactive in Stake validator list, destake txn not required',
                            self.buffered_chain.staking_address)

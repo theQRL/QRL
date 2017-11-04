@@ -28,7 +28,7 @@ class PublicAPITest(TestCase):
     def test_getNodeState(self):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
-        p2p_factory.nodeState = SyncState()
+        p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
         p2p_factory.stake = False
 
@@ -53,7 +53,7 @@ class PublicAPITest(TestCase):
         db_state.total_coin_supply = MagicMock(return_value=1000)
 
         p2p_factory = Mock(spec=P2PFactory)
-        p2p_factory.nodeState = SyncState()
+        p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
         p2p_factory.stake = False
 
@@ -93,7 +93,7 @@ class PublicAPITest(TestCase):
     def test_getKnownPeers(self):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
-        p2p_factory.nodeState = SyncState()
+        p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
         p2p_factory.stake = False
 

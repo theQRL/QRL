@@ -36,7 +36,7 @@ class QRLNode:
         if self._p2pfactory is None:
             return NState.unknown.value
         # FIXME
-        return self._p2pfactory.nodeState.state.value
+        return self._p2pfactory.sync_state.state.value
 
     @property
     def num_connections(self):

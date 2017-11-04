@@ -32,7 +32,7 @@ class BufferedChain:
         self.epoch = max(0, self.chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
 
-        private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
+        private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
         self.hash_chain = dict()
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
@@ -55,7 +55,7 @@ class BufferedChain:
 
     @property
     def state(self):
-        return self.height()
+        return self.chain.state
 
     @property
     def transaction_pool(self):
@@ -133,7 +133,7 @@ class BufferedChain:
             block.blocknumber - (block.epoch * config.dev.blocks_per_epoch))
 
         if block_left == 1:
-            private_seed = self.chain.wallet.address_bundle[0].xmss.get_seed_private()
+            private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[block.epoch + 1] = private_seed
             self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
 
@@ -276,7 +276,7 @@ class BufferedChain:
             return None     # FIXME: Not clear why the skip and return False
 
         # FIXME: Why is it necessary to access the wallet here? Unexpected side effect?
-        self.chain.wallet.save_slave(slave_xmss)
+        self.wallet.save_slave(slave_xmss)
 
         return new_block
 

@@ -90,7 +90,7 @@ def main():
     logger.info('mining/staking address %s', buffered_chain.staking_address)
 
     if args.get_wallets:
-        address_data = buffered_chain.chain.wallet.list_addresses(persistent_state,
+        address_data = buffered_chain.wallet.list_addresses(persistent_state,
                                                                   buffered_chain.chain.tx_pool.transaction_pool)
         addresses = [a[0] for a in address_data]
         print((addresses[0]))

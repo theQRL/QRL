@@ -210,14 +210,14 @@ class P2PProtocol(Protocol):
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
-        if mr_data.type in ['TX'] and self.factory.nodeState.state != NState.synced:
+        if mr_data.type in ['TX'] and self.factory.sync_state.state != NState.synced:
             return
 
         if mr_data.type == 'TX' and len(self.factory.chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
-        if mr_data.type == 'ST' and self.factory.chain.height() > 1 and self.factory.nodeState.state != NState.synced:
+        if mr_data.type == 'ST' and self.factory.chain.height() > 1 and self.factory.sync_state.state != NState.synced:
             return
 
         if self.factory.master_mr.contains(msg_hash, mr_data.type):
@@ -592,7 +592,7 @@ class P2PProtocol(Protocol):
         last block in mainchain.
         :return:
         """
-        if self.factory.pos.nodeState.state != NState.synced:
+        if self.factory.pos.sync_state.state != NState.synced:
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
         data = qrl_pb2.BlockMetaData()
@@ -654,7 +654,7 @@ class P2PProtocol(Protocol):
                     self.transport.getPeer().host, block_number,
                     self.factory.height(), str(time.time()))
 
-        if self.factory.nodeState.state == NState.syncing:
+        if self.factory.sync_state.state == NState.syncing:
             return
 
         if block_number == self.factory.height():

@@ -23,7 +23,7 @@ class P2PFactory(ServerFactory):
         self.master_mr = None
         self.pos = None
         self.chain = chain
-        self.nodeState = sync_state
+        self.sync_state = sync_state
         self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
         self.peers_blockheight = {}
         self.target_retry = defaultdict(int)

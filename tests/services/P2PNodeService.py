@@ -24,7 +24,7 @@ class PublicAPITest(TestCase):
     def test_getNodeState(self):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
-        p2p_factory.nodeState = SyncState()
+        p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
         p2p_factory.stake = False
 
