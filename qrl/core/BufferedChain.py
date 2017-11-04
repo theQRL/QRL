@@ -37,7 +37,7 @@ class BufferedChain:
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
 
         if self._chain.height() > 0:
-            self.epoch = self._chain.m_blockchain[-1].block_number // config.dev.blocks_per_epoch
+            self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
 
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()
@@ -112,8 +112,8 @@ class BufferedChain:
             return False
 
         if block.block_number - 1 == self._chain.height():
-            if block.prev_headerhash != self._chain.m_blockchain[-1].headerhash:
-                logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
+            if block.prev_headerhash != self._chain.blockchain[-1].headerhash:
+                logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
         elif block.block_number - 1 > 0:
             if block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][0].block.headerhash:
@@ -126,7 +126,7 @@ class BufferedChain:
                 return False
         else:
             if self._chain.pstate.add_block(self._chain, block, ignore_save_wallet=True) is True:
-                self._chain.m_blockchain.append(block)
+                self._chain.blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (
             block.block_number - (block.epoch * config.dev.blocks_per_epoch))
@@ -160,7 +160,7 @@ class BufferedChain:
             return False
 
         if block_idx - 1 == self._chain.height():
-            if block_prev_headerhash != self._chain.m_blockchain[-1].headerhash:
+            if block_prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
         elif block_idx - 1 not in self.blocks or block_prev_headerhash != self.blocks[block_idx - 1][0].block.headerhash:
@@ -284,17 +284,10 @@ class BufferedChain:
     def validate_block(self, block: Block)->bool:
         """
         Checks validity of a new block
-        :param block:
-        :type block:
-        :return:
-        :rtype:
         """
         try:
             # FIXME: review this.. Too complicated
-
-            blk_header = block.blockheader
-            last_blocknum = blk_header.block_number - 1
-            last_block = self.get_block(last_blocknum)
+            last_block = self.get_block(block.block_number - 1)
 
             if not block.blockheader.validate(last_block.blockheader):
                 return False
@@ -313,7 +306,7 @@ class BufferedChain:
 
             if coinbase_tx.txto != block.blockheader.stake_selector:
                 logger.info('Non matching txto and stake_selector')
-                logger.info('txto: %s stake_selector %s', coinbase_tx.txfrom, block.blockheader.stake_selector)
+                logger.info('txto: %s stake_selector %s', coinbase_tx.txfrom, block.stake_selector)
                 return False
 
             if coinbase_tx.amount != block.blockheader.block_reward + block.blockheader.fee_reward:
@@ -324,15 +317,15 @@ class BufferedChain:
                 logger.info('fee_reward: %s', block.blockheader.fee_reward)
                 return False
 
-            if blk_header.block_number == 1:
+            if block.block_number == 1:
                 found = False
                 for protobuf_tx in block.transactions:
                     tx = Transaction.from_pbdata(protobuf_tx)
                     if tx.subtype == TX_SUBTYPE_STAKE:
-                        if tx.txfrom == blk_header.stake_selector:
+                        if tx.txfrom == block.stake_selector:
                             found = True
                             reveal_hash = self._chain.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
-                            if sha256(bin2hstr(tuple(blk_header.reveal_hash)).encode()) != reveal_hash:
+                            if sha256(bin2hstr(tuple(block.reveal_hash)).encode()) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
                                 return False
 
@@ -341,13 +334,13 @@ class BufferedChain:
                     return False
 
             else:  # we look in stake_list for the hash terminator and hash to it..
-                stake_validators_list = self.get_stake_validators_list(block.blockheader.block_number)
+                stake_validators_list = self.get_stake_validators_list(block.block_number)
                 if coinbase_tx.txto not in stake_validators_list.sv_list:
                     logger.warning('Stake selector not in stake_list for this epoch..')
                     return False
 
-                if not stake_validators_list.validate_hash(blk_header.reveal_hash,
-                                                           blk_header.block_number,
+                if not stake_validators_list.validate_hash(block.reveal_hash,
+                                                           block.block_number,
                                                            coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
@@ -436,9 +429,9 @@ class BufferedChain:
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 
-        self._chain.m_blockchain.append(block)
+        self._chain.blockchain.append(block)
         self._chain.remove_tx_in_block_from_pool(block)  # modify fn to keep transaction in memory till reorg
-        self._chain.m_f_sync_chain()
+        self._chain.save_chain()
 
         self.epoch_seed = self.blocks[blocknum][1].next_seed
 
@@ -517,7 +510,7 @@ class BufferedChain:
             return False
 
         if block.block_number - 1 == self._chain.height():
-            if prev_headerhash != self._chain.m_blockchain[-1].headerhash:
+            if prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
             return True
@@ -741,7 +734,7 @@ class BufferedChain:
         self._chain.blockchain.append(genesis_block)                       # FIXME: Adds without checking???
 
         # FIXME: it is not nice how genesis block is ignored
-        tmp_chain = self._chain._f_read_chain(0)
+        tmp_chain = self._chain._read_chain(0)
         if len(tmp_chain) > 0:
             for block in tmp_chain[1:]:
                 self.add_block_mainchain(block, validate=False)
@@ -750,7 +743,7 @@ class BufferedChain:
         # FIXME: Avoid checking files here..
         while os.path.isfile(self._chain._get_chain_datafile(epoch)):
             del self._chain.blockchain[:-1]                                # FIXME: This optimization could be encapsulated
-            for block in self._chain._f_read_chain(epoch):
+            for block in self._chain._read_chain(epoch):
                 self.add_block_mainchain(block, validate=False)
 
             epoch += 1
@@ -764,7 +757,7 @@ class BufferedChain:
     ###########################
 
     # create a block from a list of supplied tx_hashes, check state to ensure validity..
-    def create_stake_block(self, reveal_hash, last_block_number):
+    def create_stake_block(self, reveal_hash, last_block_number) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
 

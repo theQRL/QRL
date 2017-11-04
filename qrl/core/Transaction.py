@@ -581,8 +581,8 @@ class DuplicateTransaction(Transaction):
     def create(block1, block2):
         transaction = DuplicateTransaction()
 
-        transaction._data.duplicate.block_number = block1.blockheader.block_number
-        transaction._data.duplicate.prev_header_hash = block1.blockheader.prev_blockheaderhash
+        transaction._data.duplicate.block_number = block1.block_number
+        transaction._data.duplicate.prev_header_hash = block1.prev_blockheaderhash
 
         transaction._data.duplicate.coinbase1 = block1.transactions[0]
         transaction._data.duplicate.coinbase1_hhash = block1.blockheader.headerhash

@@ -209,11 +209,11 @@ class ApiProtocol(Protocol):
         i = 0
         for block in lb[1:]:
             i += 1
-            tmp_block = {'blocknumber': block.blockheader.block_number,
-                         'block_reward': self.factory.format_qrlamount(block.blockheader.block_reward),
-                         'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
-                         'timestamp': block.blockheader.timestamp,
-                         'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
+            tmp_block = {'blocknumber': block.block_number,
+                         'block_reward': self.factory.format_qrlamount(block.block_reward),
+                         'blockhash': bin2hstr(block.prev_blockheaderhash),
+                         'timestamp': block.timestamp,
+                         'block_interval': lb[i - 1].timestamp - block.timestamp,
                          'number_transactions': len(block.transactions)}
 
             last_blocks['blocks'].append(tmp_block)
@@ -368,12 +368,12 @@ class ApiProtocol(Protocol):
 
         last_n_block = 100
 
-        last_block = self.factory.chain.m_blockchain[-1]
+        last_block = self.factory.buffered_chain._chain.blockchain[-1]
         for _ in range(last_n_block):
-            if last_block.blockheader.block_number <= 0:
+            if last_block.block_number <= 0:
                 break
-            prev_block = self.factory.chain.get_block(last_block.blockheader.block_number - 1)
-            x = last_block.blockheader.timestamp - prev_block.blockheader.timestamp
+            prev_block = self.factory.chain.get_block(last_block.block_number - 1)
+            x = last_block.timestamp - prev_block.timestamp
             last_block = prev_block
             t.append(x)
             z += x
@@ -381,7 +381,7 @@ class ApiProtocol(Protocol):
         block_one = self.factory.chain.get_block(1)
         network_uptime = 0
         if block_one:
-            network_uptime = time.time() - block_one.blockheader.timestamp
+            network_uptime = time.time() - block_one.timestamp
 
         block_time = 0
         block_time_variance = 0
@@ -398,10 +398,10 @@ class ApiProtocol(Protocol):
             'network': 'qrl testnet',
 
             # Part of
-            'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
+            'epoch': self.factory.buffered_chain._chain.blockchain[-1].epoch,
             'network_uptime': network_uptime,
 
-            'block_reward': self.factory.format_qrlamount(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
+            'block_reward': self.factory.format_qrlamount(self.factory.buffered_chain._chain.m_blockchain[-1].block_reward),
             'block_time': block_time,
             'block_time_variance': block_time_variance,
 

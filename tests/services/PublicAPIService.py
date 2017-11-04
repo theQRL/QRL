@@ -59,7 +59,7 @@ class PublicAPITest(TestCase):
 
         chain = Mock(spec=Chain)
         chain.height = MagicMock(return_value=0)
-        chain.m_blockchain = []
+        chain.blockchain = []
         chain.m_get_block = MagicMock(return_value=None)
         chain.state = db_state
 

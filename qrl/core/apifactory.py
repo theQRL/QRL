@@ -115,9 +115,9 @@ class ApiFactory(ServerFactory):
         return json_print_telnet(addr)
 
     def reformat_block(self, block):
-        block.blockheader.block_reward = self.format_qrlamount(block.blockheader.block_reward)
-        block.blockheader.fee_reward = self.format_qrlamount(block.blockheader.fee_reward)
-        block.blockheader.reveal_hash = bin2hstr(block.blockheader.reveal_hash)
+        block.blockheader.block_reward = self.format_qrlamount(block.block_reward)
+        block.blockheader.fee_reward = self.format_qrlamount(block.fee_reward)
+        block.blockheader.reveal_hash = bin2hstr(block.reveal_hash)
         block.blockheader.vote_hash = bin2hstr(block.blockheader.vote_hash)
         block.blockheader.headerhash = bin2hstr(block.blockheader.headerhash)
         block.blockheader.tx_merkle_root = bin2hstr(block.blockheader.tx_merkle_root)

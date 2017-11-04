@@ -29,7 +29,7 @@ class StateBuffer:
 
     def update(self, state, parent_state_buffer, block):
 
-        self.set_next_seed(block.blockheader.reveal_hash, parent_state_buffer.next_seed)
+        self.set_next_seed(block.reveal_hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
 
         self.update_stxn_state(state)

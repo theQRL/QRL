@@ -6,6 +6,7 @@ import random
 import time
 from collections import Counter, defaultdict
 from functools import reduce
+from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
@@ -213,12 +214,11 @@ class POS:
                                                                blocknumber=1)
 
             b = self.buffered_chain.create_block(reveal_hash[-2])  # FIXME: This is incorrect, rewire
-            self.pre_block_logic(b)
+            self.pre_block_logic(b)     # FIXME: Ignore return value?
         else:
             logger.info('await block creation by stake validator: %s', self.buffered_chain.chain.stake_list[0][0])
             self.last_bk_time = time.time()
             self.restart_unsynced_logic()
-        return
 
     def process_transactions(self, num):
         tmp_num = num
@@ -252,17 +252,14 @@ class POS:
             del self.buffered_chain.tx_pool.pending_tx_pool[0]
             del self.buffered_chain.tx_pool.pending_tx_pool_hash[0]
 
-    # create new block..
-
-    def create_new_block(self, reveal_hash, last_block_number):
+    def create_new_block(self, reveal_hash, last_block_number) -> Optional[Block]:
         logger.info('create_new_block #%s', (last_block_number + 1))
         block_obj = self.buffered_chain.create_stake_block(reveal_hash, last_block_number)
-
         return block_obj
 
     def filter_reveal_one_two(self, blocknumber=None):
         if not blocknumber:
-            blocknumber = self.buffered_chain.m_blockchain[-1].blockheader.block_number
+            blocknumber = self.buffered_chain._chain.blockchain[-1].block_number
 
         self.buffered_chain.stake_reveal_one = [s for s in self.buffered_chain.stake_reveal_one if s[2] > blocknumber]
 
@@ -330,7 +327,7 @@ class POS:
             return
         
         height().update(NState.syncing)
-        pending_blocks['start_block'] = chain.m_blockchain[-1].blockheader.blocknumber
+        pending_blocks['start_block'] = chain.blockchain[-1].blocknumber
         pending_blocks['target'] = fmbh_blockhash_peers[selected_blockhash]['blocknumber']
         pending_blocks['headerhash'] = selected_blockhash
         randomize_block_fetch(chain.height() + 1)
@@ -383,7 +380,7 @@ class POS:
             last_block_after = self.buffered_chain.get_last_block()
             self.last_pos_cycle = time.time()
             self.p2pFactory.send_block_to_peers(block)
-            if last_block_before.blockheader.headerhash != last_block_after.blockheader.headerhash:
+            if last_block_before.headerhash != last_block_after.headerhash:
                 self.schedule_pos(block.block_number + 1)
 
         return True
@@ -408,7 +405,7 @@ class POS:
 
         if not delay:
             last_block = self.buffered_chain.get_block(blocknumber - 1)
-            last_block_timestamp = last_block.blockheader.timestamp
+            last_block_timestamp = last_block.timestamp
             curr_timestamp = int(ntp.getTime())
 
             delay = max(5, last_block_timestamp + config.dev.minimum_minting_delay - curr_timestamp)
@@ -419,18 +416,17 @@ class POS:
                                                blocknumber=blocknumber)
         self.pos_blocknum = blocknumber
 
-    def create_next_block(self, blocknumber, activation_blocknumber):
-        if not self.buffered_chain.get_slave_xmss(blocknumber):
-            return
+    def create_next_block(self, blocknumber, activation_blocknumber)->bool:
+        if self.buffered_chain.get_slave_xmss(blocknumber):
+            hash_chain = self.buffered_chain.hash_chain_get(blocknumber)
 
-        hash_chain = self.buffered_chain.hash_chain_get(blocknumber)
+            my_reveal = hash_chain[::-1][blocknumber - activation_blocknumber + 1]
 
-        my_reveal = hash_chain[::-1][blocknumber - activation_blocknumber + 1]
+            block = self.create_new_block(my_reveal, blocknumber - 1)
 
-        block = self.create_new_block(my_reveal,
-                                      blocknumber - 1)
+            return self.pre_block_logic(block)  # broadcast this block
 
-        self.pre_block_logic(block)  # broadcast this block
+        return False
 
     def post_block_logic(self, blocknumber):
         """
@@ -504,7 +500,7 @@ class POS:
                 logger.warning('Cannot make ST txn, unable to get blocknumber %s', blocknumber)
                 return
 
-            blocknumber_headerhash[blocknumber] = finalized_block.blockheader.headerhash
+            blocknumber_headerhash[blocknumber] = finalized_block.headerhash
 
         st = StakeTransaction.create(
             activation_blocknumber=activation_blocknumber,

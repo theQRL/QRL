@@ -69,16 +69,16 @@ class QRLNode:
 
     @property
     def epoch(self):
-        if len(self._chain.m_blockchain) == 0:
+        if len(self._chain.blockchain) == 0:
             return 0
-        return self._chain.m_blockchain[-1].blockheader.epoch
+        return self._chain.blockchain[-1].epoch
 
     @property
     def uptime_network(self):
         block_one = self._chain.get_block(1)
         network_uptime = 0
         if block_one:
-            network_uptime = time.time() - block_one.blockheader.timestamp
+            network_uptime = time.time() - block_one.timestamp
         return network_uptime
 
     @property
@@ -87,10 +87,10 @@ class QRLNode:
 
     @property
     def block_last_reward(self):
-        if len(self._chain.m_blockchain) == 0:
+        if len(self._chain.blockchain) == 0:
             return 0
 
-        return self._chain.m_blockchain[-1].blockheader.block_reward
+        return self._chain.blockchain[-1].block_reward
 
     @property
     def block_time_mean(self):
@@ -348,7 +348,7 @@ class QRLNode:
         # FIXME: Moved code. Breaking encapsulation. Refactor
 
         answer = []
-        for pbtx in self._chain.self.m_blockchain[-1].transactions[-20:]:
+        for pbtx in self._chain.self.blockchain[-1].transactions[-20:]:
             tx = Transaction.from_pbdata(pbtx)
             if isinstance(tx, TransferTransaction):
                 answer.append(tx)

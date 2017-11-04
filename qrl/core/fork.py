@@ -39,8 +39,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
             logger.exception(e)
 
         del pending_blocks[blocknumber]
-        if mini_block['headerhash'] == chain.get_block(
-                blocknumber).blockheader.headerhash:  # Matched so fork root is the block next to it
+        if mini_block['headerhash'] == chain.get_block(blocknumber).headerhash:  # Matched so fork root is the block next to it
             unfork(blocknumber + 1, chain)
             return
 
@@ -55,12 +54,12 @@ def unfork(blocknumber, chain):
     sl = chain.stake_list_get()
 
     for blocknum in range(blocknumber, chain.height() + 1):
-        stake_selector = chain.m_blockchain[blocknum].blockheader.stake_selector
+        stake_selector = chain.blockchain[blocknum].stake_selector
         for s in sl:
             if stake_selector == s[0]:
                 s[2] -= 1
 
-    del chain.m_blockchain[blocknumber:]
+    del chain.blockchain[blocknumber:]
     chain.stake_list_put(sl)
     logger.info(('Forked chain has been removed from blocknumber ', blocknumber))
     chain.state.update(ESyncState.unsynced)             # FIXME: this is confusing pstate with sync_state

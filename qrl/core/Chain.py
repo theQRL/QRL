@@ -95,7 +95,7 @@ class Chain:
 
         if block.block_number - 1 == self.height():
             if block.prev_headerhash != self.blockchain[-1].headerhash:
-                logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
+                logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
         elif block.block_number - 1 > 0:
             if block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][
@@ -138,7 +138,7 @@ class Chain:
             logger.info('add_block failed - block failed validation.')
             return False
 
-        self.m_f_sync_chain()
+        self.save_chain()
         return True
 
     def _validate_tx_pool(self):
@@ -164,8 +164,7 @@ class Chain:
 
     def get_block(self, block_idx: int) -> Optional[Block]:
         # Block chain has not been loaded yet?
-        if len(self.blockchain) == 0:
-            self.m_read_chain()
+        # FIXME: Ensure that the chain is already in memory
 
         if len(self.blockchain) > 0:
             # FIXME: The logic here is not very clear
@@ -230,7 +229,7 @@ class Chain:
         # FIXME: This is not scalable but it will fine fine for Oct2017 while we replace this with protobuf
         return self._block_framedata[block_number]
 
-    def _f_read_chain(self, epoch):
+    def _read_chain(self, epoch):
         # TODO: Persistence will move to rocksdb
         delimiter = config.dev.binary_file_delimiter
         chunk_filename = self._get_chain_datafile(epoch)
@@ -278,38 +277,28 @@ class Chain:
 
         return block_list
 
-    def m_read_chain(self):
-        # TODO: Persistence will move to rocksdb
-        if not self.blockchain:
-            self.load()
-        return self.blockchain
-
-    def m_f_sync_chain(self):
+    def save_chain(self):
         # TODO: Persistence will move to rocksdb
         if (self.blockchain[-1].block_number + 1) % config.dev.disk_writes_after_x_blocks == 0:
-            self._f_write_m_blockchain()
-        return
+            # FIXME: Direct access... refactor
+            blocknumber = self.blockchain[-1].block_number
+            file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
+            writeable = self.blockchain[-config.dev.disk_writes_after_x_blocks:]
+            logger.debug('Writing chain to disk')
 
-    def _f_write_m_blockchain(self):
-        # FIXME: Direct access... refactor
-        blocknumber = self.blockchain[-1].block_number
-        file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
-        writeable = self.blockchain[-config.dev.disk_writes_after_x_blocks:]
-        logger.debug('Writing chain to disk')
+            with open(self._get_chain_datafile(file_epoch), 'ab') as myfile:
+                for block in writeable:
+                    json_block = bytes(block.to_json(), 'utf-8')
+                    compressed_block = bz2.compress(json_block, config.dev.compression_level)
+                    block_pos = myfile.tell()
+                    block_size = len(compressed_block)
 
-        with open(self._get_chain_datafile(file_epoch), 'ab') as myfile:
-            for block in writeable:
-                json_block = bytes(block.to_json(), 'utf-8')
-                compressed_block = bz2.compress(json_block, config.dev.compression_level)
-                block_pos = myfile.tell()
-                block_size = len(compressed_block)
+                    self._update_block_metadata(block.block_number, block_pos, block_size)
 
-                self._update_block_metadata(block.block_number, block_pos, block_size)
+                    myfile.write(compressed_block)
+                    myfile.write(config.dev.binary_file_delimiter)
 
-                myfile.write(compressed_block)
-                myfile.write(config.dev.binary_file_delimiter)
-
-        del self.blockchain[:-1]
+            del self.blockchain[:-1]
 
     ###################################
     ###################################
