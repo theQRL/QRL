@@ -10,20 +10,21 @@ from qrl.core.apiprotocol import ApiProtocol
 from qrl.core.helper import json_print_telnet
 from decimal import Decimal
 
+
 class ApiFactory(ServerFactory):
-    def __init__(self, pos, chain, state, peers):
+    def __init__(self, pos, buffered_chain, state, peers):
         self.protocol = ApiProtocol
         self.connections = 0
         self.api = 1
         self.pos = pos
-        self.chain = chain
+        self.buffered_chain = buffered_chain
         self.state = state
         self.peers = peers
 
     def format_qrlamount(self, balance):
         return format(float(balance / Decimal(100000000.00000000)), '.8f')
 
-    #FIXME: Temporarily moving this here to keep thing running. Remove/refactor
+    # FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_address(self, address):
         addr = {'transactions': []}
 
@@ -51,7 +52,7 @@ class ApiFactory(ServerFactory):
                 # pubhashes used could be put here..
 
         tmp_transactions = []
-        for tx in self.chain.tx_pool.transaction_pool:
+        for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.subtype not in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 continue
             if tx.txto == address or tx.txfrom == address:
@@ -147,7 +148,7 @@ class ApiFactory(ServerFactory):
     # FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_txhash(self, txhash):  # txhash is unique due to nonce.
         err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
-        for tx in self.chain.tx_pool.transaction_pool:
+        for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == txhash:
                 logger.info('%s found in transaction pool..', txhash)
                 tx_new = copy.deepcopy(tx)
@@ -160,8 +161,8 @@ class ApiFactory(ServerFactory):
             return json_print_telnet(err)
 
         tx = Transaction.from_json(txn_metadata[0])
-        tx.blocknumber = txn_metadata[1]
-        tx.confirmations = self.chain.height() - tx.blocknumber
+        tx.block_number = txn_metadata[1]
+        tx.confirmations = self.buffered_chain.height() - tx.block_number
         tx.timestamp = txn_metadata[2]
 
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))

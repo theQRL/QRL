@@ -108,7 +108,7 @@ def main():
     logger.info('Building state leveldb')
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    p2p_factory = P2PFactory(chain=buffered_chain, sync_state=sync_state, node=qrlnode)
+    p2p_factory = P2PFactory(buffered_chain=buffered_chain, sync_state=sync_state, node=qrlnode)
     pos = POS(buffered_chain=buffered_chain, p2pFactory=p2p_factory, sync_state=sync_state, time_provider=ntp)
     p2p_factory.setPOS(pos)
 

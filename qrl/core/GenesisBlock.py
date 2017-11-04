@@ -65,7 +65,7 @@ class GenesisBlock(object, metaclass=Singleton):
         0
         >>> GenesisBlock().set_staking_address(None).blockheader.block_reward
         0
-        >>> GenesisBlock().set_staking_address(None).blockheader.blocknumber
+        >>> GenesisBlock().set_staking_address(None).blockheader.block_number
         0
         >>> GenesisBlock().set_staking_address(None).blockheader.fee_reward
         0

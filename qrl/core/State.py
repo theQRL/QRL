@@ -52,7 +52,7 @@ class State:
 
     def stake_list_put(self, sl):
         try:
-            self._db.put('stake_list', self.stake_validators_list.to_json())
+            self._db.put('stake_list', self.stake_validators_list.to_json())  # FIXME: to_json is missing
         except Exception as e:
             # FIXME: Review
             logger.warning("stake_list_put: %s %s", type(e), e)
@@ -131,8 +131,8 @@ class State:
             txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype == TX_SUBTYPE_TX:
                 last_txn.insert(0, [txn.to_json(),
-                                    block.blockheader.blocknumber,
-                                    block.blockheader.timestamp])
+                                    block.block_number,
+                                    block.timestamp])
 
         del last_txn[20:]
         self._db.put('last_txn', last_txn)
@@ -198,8 +198,8 @@ class State:
             if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(),
-                              block.blockheader.blocknumber,
-                              block.blockheader.timestamp])
+                              block.block_number,
+                              block.timestamp])
 
                 if txn.subtype == TX_SUBTYPE_TX:
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
@@ -215,20 +215,20 @@ class State:
     #########################################
 
     @staticmethod
-    def load_address_state(chain, block, address_txn):
+    def load_address_state(buffered_chain, block, address_txn):
         # FIXME: This does not seem to be related to persistance
-        blocknumber = block.blockheader.blocknumber
+        blocknumber = block.block_number
 
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.txfrom not in address_txn:
                 # FIXME: Access to chain buffer from here
-                address_txn[tx.txfrom] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txfrom)
+                address_txn[tx.txfrom] = buffered_chain.get_stxn_state(blocknumber, tx.txfrom)
 
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 if tx.txto not in address_txn:
                     # FIXME: Access to chain buffer from here
-                    address_txn[tx.txto] = chain.block_chain_buffer.get_stxn_state(blocknumber, tx.txto)
+                    address_txn[tx.txto] = buffered_chain.get_stxn_state(blocknumber, tx.txto)
 
         return address_txn
 
@@ -335,11 +335,16 @@ class State:
     #########################################
     #########################################
 
-    def _commit(self, chain, block, address_txn, ignore_save_wallet=False):
-        # FIXME: This indexing approach is very inefficient
-        blocks_left = self.get_blocks_left(block.blockheader.blocknumber)
+    def _commit(self,
+                buffered_chain,
+                block,
+                address_txn,
+                ignore_save_wallet=False):
 
-        staker = block.blockheader.stake_selector
+        # FIXME: This indexing approach is very inefficient
+        blocks_left = self.get_blocks_left(block.block_number)
+
+        staker = block.stake_selector
         self.stake_validators_list.sv_list[staker].nonce += 1
 
         for address in address_txn:
@@ -352,19 +357,19 @@ class State:
         if blocks_left == 1:
             logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
 
-            xmss = chain.wallet.address_bundle[0].xmss
-            tmphc = hashchain(xmss.get_seed_private(), epoch=block.blockheader.epoch + 1)
+            xmss = buffered_chain.wallet.address_bundle[0].xmss
+            tmphc = hashchain(xmss.get_seed_private(), epoch=block.epoch + 1)
 
-            chain.hash_chain = tmphc.hashchain
+            buffered_chain.hash_chain = tmphc.hashchain
 
         if not ignore_save_wallet:
-            chain.wallet.save_wallet()
+            buffered_chain.wallet.save_wallet()
 
-        self._set_blockheight(chain.height() + 1)
+        self._set_blockheight(buffered_chain.height() + 1)
 
-        self.stake_validators_list.update_sv(block.blockheader.blocknumber)
+        self.stake_validators_list.update_sv(block.block_number)
 
-        logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
+        logger.debug('%s %s tx passed verification.', bin2hstr(block.headerhash), len(block.transactions))
         return True
 
     # Returns the number of blocks left before next epoch
@@ -375,32 +380,32 @@ class State:
         blocks_left = config.dev.blocks_per_epoch - blocks_left
         return blocks_left
 
-    def add_block(self, chain, block, ignore_save_wallet=False):
+    def add_block(self, buffered_chain, block, ignore_save_wallet=False):
         # FIXME: This does not seem to be related to persistance
         address_txn = dict()
-        self.load_address_state(chain, block, address_txn)  # FIXME: Bottleneck
+        self.load_address_state(buffered_chain, block, address_txn)  # FIXME: Bottleneck
 
         # FIXME: Special case for Genesis
-        if block.blockheader.blocknumber == 1:
-            if not self._update_genesis(chain, block, address_txn):
+        if block.block_number == 1:
+            if not self._update_genesis(buffered_chain, block, address_txn):
                 return False
         else:
-            blocks_left = self.get_blocks_left(block.blockheader.blocknumber)
+            blocks_left = self.get_blocks_left(block.block_number)
             nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
             logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                         block.blockheader.blocknumber,
-                         block.blockheader.epoch,
+                         block.block_number,
+                         block.epoch,
                          blocks_left - 1,
                          nonce,
-                         block.blockheader.stake_selector)
+                         block.stake_selector)
 
             if not self.update(block, self.stake_validators_list, address_txn):
                 return False
 
-        self._commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
+        self._commit(buffered_chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
         return True
 
-    def _update_genesis(self, chain, block, address_txn):
+    def _update_genesis(self, buffered_chain, block, address_txn) -> bool:
         # FIXME: This does not seem to be related to persistance
         # Start Updating coin base txn
         protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
@@ -444,27 +449,36 @@ class State:
                 address_txn[tx.txfrom][2].append(tx.pubhash)
 
         epoch_seed = self.stake_validators_list.calc_seed()
-        chain.block_chain_buffer.epoch_seed = epoch_seed
+        buffered_chain.epoch_seed = epoch_seed
         self.put_epoch_seed(epoch_seed)
 
-        chain.block_chain_buffer.epoch_seed = self.calc_seed(tmp_list)
-        chain.stake_list = sorted(tmp_list,
-                                  key=lambda staker: chain.score(stake_address=staker[0],
-                                                                 reveal_one=bin2hstr(sha256(str(
-                                                                     reduce(lambda set1, set2: set1 + set2,
-                                                                            tuple(staker[1]))).encode())),
-                                                                 balance=staker[3],
-                                                                 seed=chain.block_chain_buffer.epoch_seed))
-        chain.block_chain_buffer.epoch_seed = format(chain.block_chain_buffer.epoch_seed, 'x')
-        if chain.stake_list[0][0] != block.blockheader.stake_selector:
+        buffered_chain.epoch_seed = self.calc_seed(tmp_list)
+
+        # FIXME: Move score to an appropriate place
+        buffered_chain._chain.stake_list = sorted(tmp_list,
+                                                  key=lambda staker:
+                                                  buffered_chain._chain.score(stake_address=staker[0],
+                                                                       reveal_one=bin2hstr(
+                                                                           sha256(str(
+                                                                               reduce(lambda set1,
+                                                                                             set2: set1 + set2,
+                                                                                      tuple(staker[
+                                                                                                1]))).encode())),
+                                                                       balance=staker[3],
+                                                                       seed=buffered_chain.block_chain_buffer.epoch_seed))
+
+        # FIXME: Changes the type in the same variable!
+        buffered_chain.epoch_seed = format(buffered_chain.epoch_seed, 'x')
+
+        if buffered_chain._chain.stake_list[0][0] != block.stake_selector:
             logger.info('stake selector wrong..')
-            return
+            return False
 
-        xmss = chain.wallet.address_bundle[0].xmss
-        tmphc = hashchain(xmss.get_seed_private(), epoch=0)
+        xmss = buffered_chain.wallet.address_bundle[0].xmss
+        tmphc = hashchain(xmss.get_seed_private(), epoch=0)         # FIXME: Risky use of xmss
 
-        chain.hash_chain = tmphc.hashchain
-        chain.wallet.save_wallet()
+        buffered_chain.hash_chain = tmphc.hashchain
+        buffered_chain.wallet.save_wallet()
         return True
 
     def update(self, block, stake_validators_list, address_txn):
@@ -475,11 +489,11 @@ class State:
             logger.warning('stake selector not in stake_list_get')
             return
 
-        if stake_validators_list.sv_list[block.blockheader.stake_selector].is_banned:
+        if stake_validators_list.sv_list[block.stake_selector].is_banned:
             logger.warning('stake selector is in banned list')
             return
 
-        if not stake_validators_list.sv_list[block.blockheader.stake_selector].is_active:
+        if not stake_validators_list.sv_list[block.stake_selector].is_active:
             logger.warning('stake selector is in inactive')
             return
 
@@ -547,7 +561,7 @@ class State:
                         logger.warning('Failed %s is already active for the given range', tx.txfrom)
                         return False
 
-                    activation_limit = block.blockheader.blocknumber + config.dev.blocks_per_epoch + 1
+                    activation_limit = block.block_number + config.dev.blocks_per_epoch + 1
 
                     if tx.activation_blocknumber > activation_limit:
                         logger.warning('Failed %s activation_blocknumber beyond limit', tx.txfrom)
@@ -562,7 +576,7 @@ class State:
                         balance = address_txn[tx.txfrom][1]
                     else:
                         balance = self._get_address_state(tx.txfrom)[1]
-                    stake_validators_list.add_sv(balance, tx, block.blockheader.blocknumber)
+                    stake_validators_list.add_sv(balance, tx, block.block_number)
 
                 stake_txn.add(tx.txfrom)
 

@@ -433,7 +433,7 @@ class CoinBase(Transaction):
         """
         # FIXME: Avoid all intermediate conversions
         tmptxhash = bytes(self.blockheader.prev_blockheaderhash) + \
-                    bytes(str(self.blockheader.blocknumber).encode()) + \
+                    bytes(str(self.blockheader.block_number).encode()) + \
                     bytes(self.blockheader.headerhash)
         return bytes(sha256(tmptxhash))
 
@@ -459,7 +459,7 @@ class CoinBase(Transaction):
     # noinspection PyBroadException
     def validate_extended(self, sv_list, blockheader):
         # FIXME: It is not good that we have a different signature here
-        if blockheader.blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
+        if blockheader.block_number > 1 and sv_list[self.txto].slave_public_key != self.PK:
             logger.warning('Stake validator doesnt own the Public key')
             logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
             logger.warning('Found public key %s', self.PK)
@@ -539,7 +539,7 @@ class DuplicateTransaction(Transaction):
 
     @property
     def blocknumber(self):
-        return self._data.duplicate.blocknumber
+        return self._data.duplicate.block_number
 
     @property
     def prev_header_hash(self):
@@ -581,7 +581,7 @@ class DuplicateTransaction(Transaction):
     def create(block1, block2):
         transaction = DuplicateTransaction()
 
-        transaction._data.duplicate.blocknumber = block1.blockheader.blocknumber
+        transaction._data.duplicate.block_number = block1.blockheader.block_number
         transaction._data.duplicate.prev_header_hash = block1.blockheader.prev_blockheaderhash
 
         transaction._data.duplicate.coinbase1 = block1.transactions[0]

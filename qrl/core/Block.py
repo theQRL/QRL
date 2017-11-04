@@ -32,12 +32,12 @@ class Block(object):
         return self._data
 
     @property
-    def blocknumber(self):
-        return self._data.blockheader.blocknumber
+    def block_number(self):
+        return self._data.blockheader.block_number
 
     @property
     def epoch(self):
-        return int(self.blocknumber // config.dev.blocks_per_epoch)
+        return int(self.block_number // config.dev.blocks_per_epoch)
 
     @property
     def headerhash(self):

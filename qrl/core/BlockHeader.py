@@ -130,7 +130,7 @@ class BlockHeader(object):
         return block_reward_calc(self.blocknumber)
 
     def validate(self, last_header):
-        if last_header.blocknumber != self.blocknumber - 1:
+        if last_header.block_number != self.blocknumber - 1:
             logger.warning('Block numbers out of sequence: failed validation')
             return False
 

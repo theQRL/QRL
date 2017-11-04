@@ -63,12 +63,12 @@ class Chain:
         self.pstate = state  # FIXME: Is this really a parameter?
         self.chain_dat_filename = os.path.join(config.user.data_path, config.dev.mnemonic_filename)
 
-        self.wallet = Wallet()          # FIXME: Why chain needs access to the wallet?
+        self.wallet = Wallet()  # FIXME: Why chain needs access to the wallet?
 
-        self.blockchain = []            # FIXME: Everyone is touching this
-                                        # FIXME: Remove completely and trust the db memcache for this
+        self.blockchain = []  # FIXME: Everyone is touching this
+        # FIXME: Remove completely and trust the db memcache for this
 
-        self.tx_pool = TxPool()         # FIXME: This is not stable, it should not be in chain
+        self.tx_pool = TxPool()  # FIXME: This is not stable, it should not be in chain
 
         # OBSOLETE ????
         self._block_framedata = dict()  # FIXME: this is used to access file chunks. Delete once we move to DB
@@ -83,29 +83,30 @@ class Chain:
     def height(self):
         # FIXME: This will probably get replaced with rocksdb
         if len(self.blockchain):
-            return self.blockchain[-1].blocknumber
+            return self.blockchain[-1].block_number
         # FIXME: Height cannot be negative. If this is used as an index it should be clarified
         return -1
 
     def add_block(self, block: Block, validate=True) -> bool:
         # TODO : minimum block validation in unsynced _state
-        if block.blocknumber <= self.height():
+        if block.block_number <= self.height():
             logger.warning("Block already in the chain")
             return False
 
-        if block.blocknumber - 1 == self.height():
+        if block.block_number - 1 == self.height():
             if block.prev_headerhash != self.blockchain[-1].headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of m_blockchain')
                 return False
-        elif block.blocknumber - 1 > 0:
-            if block.blocknumber - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.blocknumber - 1][0].block.headerhash:
+        elif block.block_number - 1 > 0:
+            if block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][
+                0].block.headerhash:
                 logger.info('No block found in buffer that matches with the prev_headerhash of received block')
                 return False
 
         # FIXME: Combine all this with _add_block
         if validate:
             if not self._add_block(block):
-                logger.info("Failed to add block by add_block, re-requesting the block #%s", block.blocknumber)
+                logger.info("Failed to add block by add_block, re-requesting the block #%s", block.block_number)
                 return False
         else:
             if self.pstate.add_block(self, block, ignore_save_wallet=True) is True:
@@ -114,13 +115,13 @@ class Chain:
         self.pstate.update_last_tx(block)
         self.pstate.update_tx_metadata(block)
 
-        block_left = config.dev.blocks_per_epoch - (block.blocknumber - (block.epoch * config.dev.blocks_per_epoch))
+        block_left = config.dev.blocks_per_epoch - (block.block_number - (block.epoch * config.dev.blocks_per_epoch))
         if block_left == 1:
             private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
             self._wallet_private_seeds[block.epoch + 1] = private_seed
             self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
 
-        self._clean_if_required(block.blocknumber)
+        self._clean_if_required(block.block_number)
 
         return True
 
@@ -168,7 +169,7 @@ class Chain:
 
         if len(self.blockchain) > 0:
             # FIXME: The logic here is not very clear
-            inmem_start_idx = self.blockchain[-1].blocknumber
+            inmem_start_idx = self.blockchain[-1].block_number
             inmem_offset = block_idx - inmem_start_idx
 
             if inmem_offset < 0:
@@ -190,7 +191,7 @@ class Chain:
             for protobuf_tx in block.transactions:
                 tx = Transaction.from_pbdata(protobuf_tx)
                 if tx.txhash == query or tx.txfrom == query or tx.txto == query:
-                    logger.info('%s found in block %s', query, str(block.blocknumber))
+                    logger.info('%s found in block %s', query, str(block.block_number))
                     return tx
         return None
 
@@ -262,7 +263,7 @@ class Chain:
 
                                 block = Block.from_json(json_block)
 
-                                self._update_block_metadata(block.blocknumber, pos, len(json_block))
+                                self._update_block_metadata(block.block_number, pos, len(json_block))
 
                                 block_list.append(block)
 
@@ -285,13 +286,13 @@ class Chain:
 
     def m_f_sync_chain(self):
         # TODO: Persistence will move to rocksdb
-        if (self.blockchain[-1].blocknumber + 1) % config.dev.disk_writes_after_x_blocks == 0:
+        if (self.blockchain[-1].block_number + 1) % config.dev.disk_writes_after_x_blocks == 0:
             self._f_write_m_blockchain()
         return
 
     def _f_write_m_blockchain(self):
         # FIXME: Direct access... refactor
-        blocknumber = self.blockchain[-1].blocknumber
+        blocknumber = self.blockchain[-1].block_number
         file_epoch = int(blocknumber // config.dev.blocks_per_chain_file)
         writeable = self.blockchain[-config.dev.disk_writes_after_x_blocks:]
         logger.debug('Writing chain to disk')
@@ -303,7 +304,7 @@ class Chain:
                 block_pos = myfile.tell()
                 block_size = len(compressed_block)
 
-                self._update_block_metadata(block.blocknumber, block_pos, block_size)
+                self._update_block_metadata(block.block_number, block_pos, block_size)
 
                 myfile.write(compressed_block)
                 myfile.write(config.dev.binary_file_delimiter)
@@ -316,7 +317,11 @@ class Chain:
     ###################################
 
     @staticmethod
-    def score(stake_address, reveal_one, balance=0, seed=None, verbose=False):
+    def score(stake_address,
+              reveal_one: bytes,
+              balance: int = 0,
+              seed: bytes = None,
+              verbose: bool = False):
         # TODO: This seems more related to POS logic and is static. Can we move it formulas?
         if not seed:
             logger.info('Exception Raised due to seed none in score fn')

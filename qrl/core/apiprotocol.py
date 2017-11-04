@@ -209,7 +209,7 @@ class ApiProtocol(Protocol):
         i = 0
         for block in lb[1:]:
             i += 1
-            tmp_block = {'blocknumber': block.blockheader.blocknumber,
+            tmp_block = {'blocknumber': block.blockheader.block_number,
                          'block_reward': self.factory.format_qrlamount(block.blockheader.block_reward),
                          'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
                          'timestamp': block.blockheader.timestamp,
@@ -370,9 +370,9 @@ class ApiProtocol(Protocol):
 
         last_block = self.factory.chain.m_blockchain[-1]
         for _ in range(last_n_block):
-            if last_block.blockheader.blocknumber <= 0:
+            if last_block.blockheader.block_number <= 0:
                 break
-            prev_block = self.factory.chain.get_block(last_block.blockheader.blocknumber - 1)
+            prev_block = self.factory.chain.get_block(last_block.blockheader.block_number - 1)
             x = last_block.blockheader.timestamp - prev_block.blockheader.timestamp
             last_block = prev_block
             t.append(x)

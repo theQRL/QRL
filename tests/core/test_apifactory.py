@@ -15,7 +15,7 @@ class TestAPIFactory(TestCase):
         super(TestAPIFactory, self).__init__(*args, **kwargs)
 
     def test_create_factory(self):
-        factory = ApiFactory(pos=None, chain=None, state=None, peers=None)
+        factory = ApiFactory(pos=None, buffered_chain=None, state=None, peers=None)
         self.assertEqual(factory.protocol, ApiProtocol,
                          "Factory has not been assigned the expected protocol")
         self.assertEqual(factory.api, 1)

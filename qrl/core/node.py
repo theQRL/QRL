@@ -10,6 +10,7 @@ from functools import reduce
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
+from qrl.core.Block import Block
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.core import logger, config, BufferedChain, ntp
@@ -261,7 +262,7 @@ class POS:
 
     def filter_reveal_one_two(self, blocknumber=None):
         if not blocknumber:
-            blocknumber = self.buffered_chain.m_blockchain[-1].blockheader.blocknumber
+            blocknumber = self.buffered_chain.m_blockchain[-1].blockheader.block_number
 
         self.buffered_chain.stake_reveal_one = [s for s in self.buffered_chain.stake_reveal_one if s[2] > blocknumber]
 
@@ -354,27 +355,26 @@ class POS:
         logger.info('Initializing download from %s', self.buffered_chain.height() + 1)
         self.randomize_block_fetch(self.buffered_chain.height() + 1)
 
-    def pre_block_logic(self, block):
-        if len(self.buffered_chain.m_blockchain) == 0:
-            self.buffered_chain.m_read_chain()
+    def pre_block_logic(self, block: Block)->bool:
+        # FIXME: Ensure that the chain is in memory
 
-        blocknumber = block.blockheader.blocknumber
         chain_buffer_height = self.buffered_chain.height()
         last_block_before = self.buffered_chain.get_last_block()
 
-        if blocknumber <= self.buffered_chain.height():
+        if block.block_number <= self.buffered_chain.height():
             return False
 
+        # FIXME: Simplify logic
         if self.sync_state.state == ESyncState.synced:
             if not self.buffered_chain.add_block(block):
-                return
-        elif chain_buffer_height + 1 == blocknumber:
-            if blocknumber > 1:
+                return False
+        elif chain_buffer_height + 1 == block.block_number:
+            if block.block_number > 1:
                 if not self.buffered_chain.add_block(block):
-                    return
-            elif blocknumber == 1:
+                    return False
+            elif block.block_number == 1:
                 if not self.buffered_chain.add_block_mainchain(block):
-                    return
+                    return False
             self.update_node_state(ESyncState.synced)
         else:
             self.buffered_chain.add_pending_block(block)
@@ -384,7 +384,7 @@ class POS:
             self.last_pos_cycle = time.time()
             self.p2pFactory.send_block_to_peers(block)
             if last_block_before.blockheader.headerhash != last_block_after.blockheader.headerhash:
-                self.schedule_pos(blocknumber + 1)
+                self.schedule_pos(block.block_number + 1)
 
         return True
 

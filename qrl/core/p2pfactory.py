@@ -18,11 +18,11 @@ from qrl.generated import qrl_pb2
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
 
-    def __init__(self, chain, sync_state, node: QRLNode, pos=None):
+    def __init__(self, buffered_chain, sync_state, node: QRLNode, pos=None):
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
-        self.chain = chain
+        self.buffered_chain = buffered_chain
         self.sync_state = sync_state
         self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
         self.peers_blockheight = {}
@@ -103,12 +103,11 @@ class P2PFactory(ServerFactory):
             del self.master_mr.requested_hash[msg_hash]
 
     def select_best_bkmr(self):
-        block_chain_buffer = self.chain.block_chain_buffer
         blocknumber = self.bkmr_blocknumber
         try:
             dscore, dhash = self.bkmr_priorityq.get_nowait()
-            if blocknumber <= block_chain_buffer.height():
-                oldscore = block_chain_buffer.get_block_n_score(blocknumber)
+            if blocknumber <= self.buffered_chain.height():
+                oldscore = self.buffered_chain.get_block_n_score(blocknumber)
                 if dscore > oldscore:
                     del self.bkmr_priorityq
                     self.bkmr_priorityq = queue.PriorityQueue()
@@ -150,10 +149,10 @@ class P2PFactory(ServerFactory):
         # logger.info('<<<Transmitting block: ', block.blockheader.headerhash)
         data = qrl_pb2.MR()
         data.stake_selector = block.transactions[0].addr_from
-        data.block_number = block.blockheader.blocknumber
+        data.block_number = block.blockheader.block_number
         data.prev_headerhash = bytes(block.blockheader.prev_blockheaderhash)
 
-        if block.blockheader.blocknumber > 1:
+        if block.blockheader.block_number > 1:
             data.reveal_hash = block.blockheader.reveal_hash
 
         self.register_and_broadcast('BK',

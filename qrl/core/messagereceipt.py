@@ -103,7 +103,7 @@ class MessageReceipt(object):
         if coinbase_tx.txfrom != params.stake_selector:
             return False
 
-        if block.blockheader.blocknumber != params.block_number:
+        if block.blockheader.block_number != params.block_number:
             return False
 
         if block.blockheader.prev_blockheaderhash != params.prev_headerhash:
