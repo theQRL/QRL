@@ -73,6 +73,8 @@ class Chain:
         # OBSOLETE ????
         self._block_framedata = dict()  # FIXME: this is used to access file chunks. Delete once we move to DB
 
+        self.stake_list = []
+
     @property
     def staking_address(self):
         return self.wallet.address_bundle[0].xmss.get_address().encode()

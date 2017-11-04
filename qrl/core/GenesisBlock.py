@@ -1,12 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
+import os
+import yaml
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
 
 from qrl.core.blockheader import BlockHeader
-from qrl.core import config
+from qrl.core import config, logger
 from qrl.generated import qrl_pb2
 
 
@@ -100,3 +101,17 @@ class GenesisBlock(object, metaclass=Singleton):
     def to_json(self):
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data)
+
+    @staticmethod
+    def load_genesis_info():
+        genesis_info = dict()
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        genesis_data_path = os.path.join(package_directory, 'genesis.yml')
+
+        with open(genesis_data_path) as f:
+            logger.info("Loading genesis from %s", genesis_data_path)
+            data_map = yaml.safe_load(f)
+            for key in data_map['genesis_info']:
+                genesis_info[key.encode()] = data_map['genesis_info'][key] * (10 ** 8)
+
+        return genesis_info

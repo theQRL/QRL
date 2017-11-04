@@ -8,6 +8,7 @@ import os
 from _decimal import Decimal
 from functools import reduce
 from qrl.core import db, logger, config, helper
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.crypto.hashchain import hashchain
@@ -21,13 +22,6 @@ class State:
     # FIXME: Rename to PersistentState
     # FIXME: Move blockchain caching/storage over here
     # FIXME: Improve key generation
-
-    """
-        state functions
-        first iteration - state data stored in leveldb file
-        state holds address balances, the transaction nonce and a list of
-        pubhash keys used for each tx - to prevent key reuse.
-    """
 
     def __init__(self):
         """
@@ -125,141 +119,6 @@ class State:
     #########################################
     #########################################
     #########################################
-
-    # Loads the state of the addresses mentioned into txn
-
-    def update(self, block, stake_validators_list, address_txn):
-        # FIXME: This does not seem to be related to persistance
-        # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
-
-        if block.blockheader.stake_selector not in stake_validators_list.sv_list:
-            logger.warning('stake selector not in stake_list_get')
-            return
-
-        if stake_validators_list.sv_list[block.blockheader.stake_selector].is_banned:
-            logger.warning('stake selector is in banned list')
-            return
-
-        if not stake_validators_list.sv_list[block.blockheader.stake_selector].is_active:
-            logger.warning('stake selector is in inactive')
-            return
-
-        # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
-        stake_txn = set()
-        transfercoin_txn = set()
-        destake_txn = set()
-
-        # cycle through every tx in the new block to check state
-        for protobuf_tx in block.transactions:
-            tx = Transaction.from_pbdata(protobuf_tx)
-            if tx.subtype == TX_SUBTYPE_COINBASE:
-                expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
-            else:
-                expected_nonce = address_txn[tx.txfrom][0] + 1
-            if tx.nonce != expected_nonce:
-                logger.warning('nonce incorrect, invalid tx')
-                logger.warning('subtype: %s', tx.subtype)
-                logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
-                return False
-            # TODO: To be fixed later
-            if tx.pubhash in address_txn[tx.txfrom][2]:
-                logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-                logger.warning('subtype: %s', tx.subtype)
-                return False
-
-            if tx.subtype == TX_SUBTYPE_TX:
-                if tx.txfrom in stake_txn:
-                    logger.warning("Transfer coin done by %s address is a Stake Validator", tx.txfrom)
-                    return False
-
-                if tx.txfrom in stake_validators_list.sv_list and stake_validators_list.sv_list[tx.txfrom].is_active:
-                    logger.warning("Source address is a Stake Validator, balance is locked while staking")
-                    return False
-
-                if (tx.txfrom in stake_validators_list.future_stake_addresses and
-                        stake_validators_list.future_stake_addresses[tx.txfrom].is_active):
-                    logger.warning("Source address is in Future Stake Validator List, balance is locked")
-                    return False
-
-                if address_txn[tx.txfrom][1] - tx.amount < 0:
-                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
-                    logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
-                    return False
-
-                transfercoin_txn.add(tx.txfrom)
-
-            elif tx.subtype == TX_SUBTYPE_STAKE:
-                if tx.txfrom in transfercoin_txn:
-                    logger.warning('Block cannot have both st txn & transfer coin txn from same address %s', tx.txfrom)
-                    return False
-                if tx.txfrom in stake_txn:
-                    logger.warning('Block cannot have multiple Stake Txn from same address %s', tx.txfrom)
-                    return False
-                if tx.txfrom in destake_txn:
-                    logger.warning('Block may not have both Stake and Destake txn of same address %s', tx.txfrom)
-                    return False
-
-                if tx.txfrom in stake_validators_list.sv_list:
-                    expiry = stake_validators_list.sv_list[
-                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
-
-                    if tx.activation_blocknumber < expiry:
-                        logger.warning('Failed %s is already active for the given range', tx.txfrom)
-                        return False
-
-                    activation_limit = block.blockheader.blocknumber + config.dev.blocks_per_epoch + 1
-
-                    if tx.activation_blocknumber > activation_limit:
-                        logger.warning('Failed %s activation_blocknumber beyond limit', tx.txfrom)
-                        logger.warning('Found %s', tx.activation_blocknumber)
-                        logger.warning('Must be less than %s', tx.activation_limit)
-                        return False
-
-                future_stake_addresses = stake_validators_list.future_stake_addresses
-
-                if tx.txfrom not in future_stake_addresses:
-                    if tx.txfrom in address_txn:
-                        balance = address_txn[tx.txfrom][1]
-                    else:
-                        balance = self._get_address_state(tx.txfrom)[1]
-                    stake_validators_list.add_sv(balance, tx, block.blockheader.blocknumber)
-
-                stake_txn.add(tx.txfrom)
-
-            elif tx.subtype == TX_SUBTYPE_DESTAKE:
-                if tx.txfrom in stake_txn:
-                    logger.warning('Block may not have both Destake and Stake txn of same address %s', tx.txfrom)
-                    return False
-
-                if tx.txfrom in destake_txn:
-                    logger.warning('Block cannot have multiple Destake Txn from same address %s', tx.txfrom)
-                    return False
-
-                if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
-                    logger.warning('Failed due to destake %s is not a stake validator', tx.txfrom)
-                    return False
-
-                if tx.txfrom in stake_validators_list.sv_list:
-                    stake_validators_list.sv_list[tx.txfrom].is_active = False
-
-                if tx.txfrom in stake_validators_list.future_stake_addresses:
-                    stake_validators_list.future_stake_addresses[tx.txfrom].is_active = False
-
-                destake_txn.add(tx.txfrom)
-
-            if tx.subtype != TX_SUBTYPE_COINBASE:
-                address_txn[tx.txfrom][0] += 1
-
-            if tx.subtype == TX_SUBTYPE_TX:
-                address_txn[tx.txfrom][1] -= tx.amount - tx.fee
-
-            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                address_txn[tx.txto][1] += tx.amount
-
-            address_txn[tx.txfrom][2].append(tx.pubhash)
-
-        return True
 
     def update_last_tx(self, block):
         if len(block.transactions) == 0:
@@ -479,9 +338,9 @@ class State:
     #########################################
     #########################################
 
-    def commit(self, chain, block, address_txn, ignore_save_wallet=False):
+    def _commit(self, chain, block, address_txn, ignore_save_wallet=False):
         # FIXME: This indexing approach is very inefficient
-        blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
+        blocks_left = self.get_blocks_left(block.blockheader.blocknumber)
 
         staker = block.blockheader.stake_selector
         self.stake_validators_list.sv_list[staker].nonce += 1
@@ -511,68 +370,40 @@ class State:
         logger.debug('%s %s tx passed verification.', bin2hstr(block.blockheader.headerhash), len(block.transactions))
         return True
 
+    # Returns the number of blocks left before next epoch
+    @staticmethod
+    def get_blocks_left(blocknumber):
+        epoch = blocknumber // config.dev.blocks_per_epoch
+        blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
+        blocks_left = config.dev.blocks_per_epoch - blocks_left
+        return blocks_left
+
     def add_block(self, chain, block, ignore_save_wallet=False):
         # FIXME: This does not seem to be related to persistance
         address_txn = dict()
         self.load_address_state(chain, block, address_txn)  # FIXME: Bottleneck
 
+        # FIXME: Special case for Genesis
         if block.blockheader.blocknumber == 1:
-            if not self.update_genesis(chain, block, address_txn):
+            if not self._update_genesis(chain, block, address_txn):
                 return False
-            self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
-            return True
+        else:
+            blocks_left = self.get_blocks_left(block.blockheader.blocknumber)
+            nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
+            logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
+                         block.blockheader.blocknumber,
+                         block.blockheader.epoch,
+                         blocks_left - 1,
+                         nonce,
+                         block.blockheader.stake_selector)
 
-        blocks_left = helper.get_blocks_left(block.blockheader.blocknumber)
-        nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
-        logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                     block.blockheader.blocknumber,
-                     block.blockheader.epoch,
-                     blocks_left - 1,
-                     nonce,
-                     block.blockheader.stake_selector)
+            if not self.update(block, self.stake_validators_list, address_txn):
+                return False
 
-        if not self.update(block, self.stake_validators_list, address_txn):
-            return
-
-        self.commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)  # FIXME: Bottleneck
-
+        self._commit(chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
         return True
 
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-
-    @staticmethod
-    def load_genesis_info():
-        genesis_info = dict()
-        package_directory = os.path.dirname(os.path.abspath(__file__))
-        genesis_data_path = os.path.join(package_directory, 'genesis.yml')
-
-        with open(genesis_data_path) as f:
-            logger.info("Loading genesis from %s", genesis_data_path)
-            data_map = yaml.safe_load(f)
-            for key in data_map['genesis_info']:
-                genesis_info[key.encode()] = data_map['genesis_info'][key] * (10 ** 8)
-
-        return genesis_info
-
-    def read_genesis(self):
-        logger.info('genesis:')
-
-        genesis_info = self.load_genesis_info()
-        for address in genesis_info:
-            self._save_address_state(address, [0, genesis_info[address], []])
-
-        return True
-
-    def update_genesis(self, chain, block, address_txn):
+    def _update_genesis(self, chain, block, address_txn):
         # FIXME: This does not seem to be related to persistance
         # Start Updating coin base txn
         protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
@@ -592,7 +423,8 @@ class State:
         address_txn[tx.txfrom][2].append(tx.pubhash)
 
         # Coinbase update end here
-        genesis_info = self.load_genesis_info()
+        # FIXME: Most of this should be done in the GenesisBlock which should derive from Block
+        genesis_info = GenesisBlock.load_genesis_info()
 
         tmp_list = []
         for protobuf_tx in block.transactions:
@@ -618,7 +450,7 @@ class State:
         chain.block_chain_buffer.epoch_seed = epoch_seed
         self.put_epoch_seed(epoch_seed)
 
-        chain.block_chain_buffer.epoch_seed = height().calc_seed(tmp_list)
+        chain.block_chain_buffer.epoch_seed = self.calc_seed(tmp_list)
         chain.stake_list = sorted(tmp_list,
                                   key=lambda staker: chain.score(stake_address=staker[0],
                                                                  reveal_one=bin2hstr(sha256(str(
@@ -636,4 +468,137 @@ class State:
 
         chain.hash_chain = tmphc.hashchain
         chain.wallet.save_wallet()
+        return True
+
+    def update(self, block, stake_validators_list, address_txn):
+        # FIXME: Move to chain
+        # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
+
+        if block.stake_selector not in stake_validators_list.sv_list:
+            logger.warning('stake selector not in stake_list_get')
+            return
+
+        if stake_validators_list.sv_list[block.blockheader.stake_selector].is_banned:
+            logger.warning('stake selector is in banned list')
+            return
+
+        if not stake_validators_list.sv_list[block.blockheader.stake_selector].is_active:
+            logger.warning('stake selector is in inactive')
+            return
+
+        # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
+        stake_txn = set()
+        transfercoin_txn = set()
+        destake_txn = set()
+
+        # cycle through every tx in the new block to check state
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
+            if tx.subtype == TX_SUBTYPE_COINBASE:
+                expected_nonce = stake_validators_list.sv_list[tx.txfrom].nonce + 1
+            else:
+                expected_nonce = address_txn[tx.txfrom][0] + 1
+            if tx.nonce != expected_nonce:
+                logger.warning('nonce incorrect, invalid tx')
+                logger.warning('subtype: %s', tx.subtype)
+                logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
+                return False
+            # TODO: To be fixed later
+            if tx.pubhash in address_txn[tx.txfrom][2]:
+                logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+                logger.warning('subtype: %s', tx.subtype)
+                return False
+
+            if tx.subtype == TX_SUBTYPE_TX:
+                if tx.txfrom in stake_txn:
+                    logger.warning("Transfer coin done by %s address is a Stake Validator", tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_list.sv_list and stake_validators_list.sv_list[tx.txfrom].is_active:
+                    logger.warning("Source address is a Stake Validator, balance is locked while staking")
+                    return False
+
+                if (tx.txfrom in stake_validators_list.future_stake_addresses and
+                        stake_validators_list.future_stake_addresses[tx.txfrom].is_active):
+                    logger.warning("Source address is in Future Stake Validator List, balance is locked")
+                    return False
+
+                if address_txn[tx.txfrom][1] - tx.amount < 0:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
+                    return False
+
+                transfercoin_txn.add(tx.txfrom)
+
+            elif tx.subtype == TX_SUBTYPE_STAKE:
+                if tx.txfrom in transfercoin_txn:
+                    logger.warning('Block cannot have both st txn & transfer coin txn from same address %s', tx.txfrom)
+                    return False
+                if tx.txfrom in stake_txn:
+                    logger.warning('Block cannot have multiple Stake Txn from same address %s', tx.txfrom)
+                    return False
+                if tx.txfrom in destake_txn:
+                    logger.warning('Block may not have both Stake and Destake txn of same address %s', tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_list.sv_list:
+                    expiry = stake_validators_list.sv_list[
+                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+
+                    if tx.activation_blocknumber < expiry:
+                        logger.warning('Failed %s is already active for the given range', tx.txfrom)
+                        return False
+
+                    activation_limit = block.blockheader.blocknumber + config.dev.blocks_per_epoch + 1
+
+                    if tx.activation_blocknumber > activation_limit:
+                        logger.warning('Failed %s activation_blocknumber beyond limit', tx.txfrom)
+                        logger.warning('Found %s', tx.activation_blocknumber)
+                        logger.warning('Must be less than %s', tx.activation_limit)
+                        return False
+
+                future_stake_addresses = stake_validators_list.future_stake_addresses
+
+                if tx.txfrom not in future_stake_addresses:
+                    if tx.txfrom in address_txn:
+                        balance = address_txn[tx.txfrom][1]
+                    else:
+                        balance = self._get_address_state(tx.txfrom)[1]
+                    stake_validators_list.add_sv(balance, tx, block.blockheader.blocknumber)
+
+                stake_txn.add(tx.txfrom)
+
+            elif tx.subtype == TX_SUBTYPE_DESTAKE:
+                if tx.txfrom in stake_txn:
+                    logger.warning('Block may not have both Destake and Stake txn of same address %s', tx.txfrom)
+                    return False
+
+                if tx.txfrom in destake_txn:
+                    logger.warning('Block cannot have multiple Destake Txn from same address %s', tx.txfrom)
+                    return False
+
+                if tx.txfrom not in stake_validators_list.sv_list and tx.txfrom not in stake_validators_list.future_stake_addresses:
+                    logger.warning('Failed due to destake %s is not a stake validator', tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_list.sv_list:
+                    stake_validators_list.sv_list[tx.txfrom].is_active = False
+
+                if tx.txfrom in stake_validators_list.future_stake_addresses:
+                    stake_validators_list.future_stake_addresses[tx.txfrom].is_active = False
+
+                destake_txn.add(tx.txfrom)
+
+            if tx.subtype != TX_SUBTYPE_COINBASE:
+                address_txn[tx.txfrom][0] += 1
+
+            if tx.subtype == TX_SUBTYPE_TX:
+                address_txn[tx.txfrom][1] -= tx.amount - tx.fee
+
+            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                address_txn[tx.txto][1] += tx.amount
+
+            address_txn[tx.txfrom][2].append(tx.pubhash)
+
         return True

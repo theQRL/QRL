@@ -13,7 +13,7 @@ from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import config, logger
 from qrl.core.block import Block
 from qrl.core.messagereceipt import MessageReceipt
-from qrl.core.node import NodeState
+from qrl.core.node import SyncState
 from qrl.core.nstate import NState
 from qrl.core.Transaction import DuplicateTransaction, Transaction, CoinBase
 from qrl.core.processors.TxnProcessor import TxnProcessor

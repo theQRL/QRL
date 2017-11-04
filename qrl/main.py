@@ -12,7 +12,7 @@ from qrl.services.services import start_services
 from .core import logger, ntp, config
 from .core.apifactory import ApiFactory
 from .core.chain import Chain
-from .core.node import NodeState, POS
+from .core.node import SyncState, POS
 from .core.p2pfactory import P2PFactory
 from .core.state import State
 from qrl.core import logger_twisted
@@ -58,7 +58,7 @@ def main():
     config.create_path(config.user.data_path)
     config.create_path(config.user.wallet_path)
 
-    node_state = NodeState()
+    sync_state = SyncState()
 
     # Logging configuration
     log_level = logging.INFO
@@ -67,7 +67,7 @@ def main():
 
     logger.initialize_default(force_console_output=not args.quiet).setLevel(log_level)
 
-    custom_filter = ContextFilter(node_state, config.dev.version)
+    custom_filter = ContextFilter(sync_state, config.dev.version)
     logger.logger.addFilter(custom_filter)
     file_handler = logger.log_to_file()
     file_handler.addFilter(custom_filter)
@@ -80,17 +80,18 @@ def main():
     ntp.setDrift()
 
     logger.info('Initializing chain..')
-    state_obj = State()
-    buffered_chain = BufferedChain(Chain(state=state_obj))
+    persistent_state = State()
+    buffered_chain = BufferedChain(Chain(state=persistent_state))
 
-    qrlnode = QRLNode(db_state=state_obj)
+    qrlnode = QRLNode(db_state=persistent_state)
     qrlnode.set_chain(buffered_chain)
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
     logger.info('mining/staking address %s', buffered_chain.staking_address)
 
     if args.get_wallets:
-        address_data = buffered_chain.wallet.list_addresses(buffered_height(), buffered_chain.chain.tx_pool.transaction_pool)
+        address_data = buffered_chain.chain.wallet.list_addresses(persistent_state,
+                                                                  buffered_chain.chain.tx_pool.transaction_pool)
         addresses = [a[0] for a in address_data]
         print((addresses[0]))
         return
@@ -107,14 +108,14 @@ def main():
     logger.info('Building state leveldb')
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    p2p_factory = P2PFactory(chain=buffered_chain, nodeState=node_state, node=qrlnode)
-    pos = POS(chain=buffered_chain, p2pFactory=p2p_factory, nodeState=node_state, ntp=ntp)
+    p2p_factory = P2PFactory(chain=buffered_chain, sync_state=sync_state, node=qrlnode)
+    pos = POS(buffered_chain=buffered_chain, p2pFactory=p2p_factory, sync_state=sync_state, time_provider=ntp)
     p2p_factory.setPOS(pos)
 
     qrlnode.set_p2pfactory(p2p_factory)
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    api_factory = ApiFactory(pos, buffered_chain, state_obj, p2p_factory.peer_connections)
+    api_factory = ApiFactory(pos, buffered_chain, persistent_state, p2p_factory.peer_connections)
 
     logger.info('>>>Listening..')
     reactor.listenTCP(9000, p2p_factory)

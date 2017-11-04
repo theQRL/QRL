@@ -127,7 +127,7 @@ class Wallet:
             self.address_bundle.append(new_addr)
             self.save_wallet()
 
-    def list_addresses(self, state, transaction_pool, dict_format=False):
+    def list_addresses(self, persistent_state, transaction_pool, dict_format=False):
         # FIXME: This is called from multiple places and requires external info. Refactor?
         # FIXME: This seems UI related
         list_addr = []
@@ -156,8 +156,8 @@ class Wallet:
 
                 # FIXME: Magic number? Unify
                 FACTOR = 100000000.000000000
-                tmp_state_balance = state.balance(addr_bundle.address)
-                tmp_state_nonce = state.nonce(addr_bundle.address)
+                tmp_state_balance = persistent_state.balance(addr_bundle.address)
+                tmp_state_nonce = persistent_state.nonce(addr_bundle.address)
 
                 dict_addr['balance'] = "{} ({})".format(tmp_state_balance / FACTOR, (tmp_state_balance + x) / FACTOR)
                 dict_addr['nonce'] = "{} ({})".format(tmp_state_nonce, tmp_state_nonce + y)

@@ -14,11 +14,3 @@ def json_print(obj):  # prettify output from JSON for export purposes
 
 def json_print_telnet(obj):
     return json.dumps(json.loads(jsonpickle.encode(obj, make_refs=False)), indent=4)
-
-
-# Returns the number of blocks left before next epoch
-def get_blocks_left(blocknumber):
-    epoch = blocknumber // config.dev.blocks_per_epoch
-    blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
-    blocks_left = config.dev.blocks_per_epoch - blocks_left
-    return blocks_left

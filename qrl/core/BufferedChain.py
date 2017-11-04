@@ -239,8 +239,9 @@ class BufferedChain:
             blocknumber += 1
 
     def _state_add_block_buffer(self, block, stake_validators_list, address_txn):
-        self.height().load_address_state(self.chain, block, address_txn)
-        is_success = self.height().update(block, stake_validators_list, address_txn)
+        # FIXME: This is mixing states
+        self.chain.pstate.load_address_state(self.chain, block, address_txn)
+        is_success = self.chain.pstate.update(block, stake_validators_list, address_txn)
         if is_success:
             self._commit(block, stake_validators_list)
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.blocknumber,
@@ -724,6 +725,15 @@ class BufferedChain:
 
     # TODO: Persistence will move to rocksdb
 
+    def read_genesis(self):
+        logger.info('genesis:')
+
+        genesis_info = GenesisBlock.load_genesis_info()
+        for address in genesis_info:
+            self.chain.pstate._save_address_state(address, [0, genesis_info[address], []])
+
+        return True
+
     def load(self):
         # TODO: Persistence will move to rocksdb
         self.chain.blockchain = []
@@ -731,7 +741,7 @@ class BufferedChain:
         # FIXME: Adds an empty block, later ignores and overwrites.. A complete genesis block should be here
         genesis_block = GenesisBlock().set_staking_address(self.staking_address)
         self.chain.pstate.zero_all_addresses()
-        self.chain.pstate.read_genesis()
+        self.read_genesis()
 
         # FIXME: Direct access - Breaks encapsulation
         self.chain.blockchain.append(genesis_block)                       # FIXME: Adds without checking???

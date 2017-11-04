@@ -18,12 +18,12 @@ from qrl.generated import qrl_pb2
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
 
-    def __init__(self, chain, nodeState, node: QRLNode, pos=None):
+    def __init__(self, chain, sync_state, node: QRLNode, pos=None):
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
         self.chain = chain
-        self.nodeState = nodeState
+        self.nodeState = sync_state
         self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
         self.peers_blockheight = {}
         self.target_retry = defaultdict(int)
