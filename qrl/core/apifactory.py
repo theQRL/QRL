@@ -162,7 +162,7 @@ class ApiFactory(ServerFactory):
 
         tx = Transaction.from_json(txn_metadata[0])
         tx.block_number = txn_metadata[1]
-        tx.confirmations = self.buffered_chain.height() - tx.block_number
+        tx.confirmations = self.buffered_chain.height - tx.block_number
         tx.timestamp = txn_metadata[2]
 
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))

@@ -91,7 +91,7 @@ def main():
 
     if args.get_wallets:
         address_data = buffered_chain.wallet.list_addresses(persistent_state,
-                                                            buffered_chain._chain.tx_pool.transaction_pool)
+                                                            buffered_chain.tx_pool.transaction_pool)
         addresses = [a[0] for a in address_data]
         print((addresses[0]))
         return

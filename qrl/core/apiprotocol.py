@@ -200,11 +200,11 @@ class ApiProtocol(Protocol):
             return json_print_telnet(error)
 
         lb = []
-        beginning = self.factory.chain.height() - n
+        beginning = self.factory.buffered_chain.height() - n
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        for blocknum in range(self.factory.chain.height(), beginning - 1, -1):
-            block = self.factory.chain.get_block(blocknum)
+        for blocknum in range(self.factory.buffered_chain.height(), beginning - 1, -1):
+            block = self.factory.buffered_chain.get_block(blocknum)
             lb.append(block)
 
         last_blocks = {'blocks': []}
@@ -240,10 +240,10 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        tx_num = len(self.factory.chain.tx_pool.transaction_pool)
+        tx_num = len(self.factory.buffered_chain.tx_pool.transaction_pool)
         while tx_num > 0:
             tx_num -= 1
-            tx = self.factory.chain.tx_pool.transaction_pool[tx_num]
+            tx = self.factory.buffered_chain.tx_pool.transaction_pool[tx_num]
             if tx.subtype != TX_SUBTYPE_TX:
                 continue
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
@@ -309,14 +309,14 @@ class ApiProtocol(Protocol):
         }
         logger.info('<<< API block data call %s', data)
         if not data:
-            data = self.factory.chain.height()
+            data = self.factory.buffered_chain.height
 
         try:
             int(data)  # is the data actually a number?
         except:
             return json_print_telnet(error)
 
-        bk = self.factory.chain.get_block(int(data))
+        bk = self.factory.buffered_chain.get_block(int(data))
 
         if not bk:
             return json_print_telnet(error)
@@ -330,15 +330,16 @@ class ApiProtocol(Protocol):
             #return js_bk1.to_json()
 
     def ip_geotag(self, data=None):
+        # FIXME: This is obsolete. Needs to be redesigned/written in the new grpc implementation
         logger.info('<<< API ip_geotag call')
         self.factory.pos.p2pFactory.ip_geotag_peers()
         ip = {'status': 'ok',
-              'ip_geotag': self.factory.chain.ip_list}
+              'ip_geotag': ''}     # FIXME: This is obsolete
 
-        x = 0
-        for i in self.factory.chain.ip_list:
-            ip['ip_geotag'][x] = i
-            x += 1
+        # x = 0
+        # for i in self.factory.buffered_chain.ip_list:
+        #     ip['ip_geotag'][x] = i
+        #     x += 1
 
         return json_print_telnet(ip)
 
@@ -374,13 +375,13 @@ class ApiProtocol(Protocol):
         for _ in range(last_n_block):
             if last_block.block_number <= 0:
                 break
-            prev_block = self.factory.chain.get_block(last_block.block_number - 1)
+            prev_block = self.factory.buffered_chain.get_block(last_block.block_number - 1)
             x = last_block.timestamp - prev_block.timestamp
             last_block = prev_block
             t.append(x)
             z += x
 
-        block_one = self.factory.chain.get_block(1)
+        block_one = self.factory.buffered_chain.get_block(1)
         network_uptime = 0
         if block_one:
             network_uptime = time.time() - block_one.timestamp

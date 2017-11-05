@@ -26,7 +26,7 @@ class TestP2PProtocol(TestCase):
 
         p.factory.peers_blockheight = MagicMock(return_value=dict())
         p.factory.chain = Mock(spec=Chain)
-        p.factory.chain.blockheight = MagicMock(return_value=0)
+        p.factory.buffered_chain.blockheight = MagicMock(return_value=0)
 
         tmp_peer = Mock()
         p.transport.getPeer = MagicMock(return_value=tmp_peer)

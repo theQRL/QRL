@@ -159,7 +159,7 @@ class POS:
                                      hashchain_terminator=tmphc.hc_terminator)
         st.sign(signing_xmss)
 
-        self.buffered_chain.chain.tx_pool.add_tx_to_pool(st)
+        self.buffered_chain.tx_pool.add_tx_to_pool(st)
         # send the stake tx to generate hashchain terminators for the staker addresses..
         self.p2pFactory.send_st_to_peers(st)
         logger.info('await delayed call to build staker list from genesis')
@@ -173,16 +173,16 @@ class POS:
 
         tmp_list = []
         genesis_info = GenesisBlock.load_genesis_info()
-        for tx in self.buffered_chain.chain.tx_pool.transaction_pool:
+        for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 if tx.txfrom in genesis_info:
                     tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
                     # FIXME: This goes to stake validator list without verification, Security Risk
-                    self.buffered_chain.chain.pstate.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
+                    self.buffered_chain._chain.pstate.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
 
         self.buffered_chain.epoch_seed = self.buffered_chain.pstate.calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
-        self.buffered_chain.chain.stake_list = sorted(tmp_list,
+        self.buffered_chain._chain.stake_list = sorted(tmp_list,
                                                       key=lambda staker: self.buffered_chain.score(
                                                           stake_address=staker[0],
                                                           reveal_one=bin2hstr(sha256(str(
@@ -193,17 +193,17 @@ class POS:
 
         self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
 
-        logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain.chain.stake_list), config.dev.minimum_required_stakers)
+        logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain._chain.stake_list), config.dev.minimum_required_stakers)
         logger.info('node address: %s', self.buffered_chain.staking_address)
 
         if len(
-                self.buffered_chain.chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
+                self.buffered_chain._chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
             self.p2pFactory.send_st_to_peers(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
 
-        if self.buffered_chain.staking_address == self.buffered_chain.chain.stake_list[0][0]:
+        if self.buffered_chain.staking_address == self.buffered_chain._chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
             tmphc = hashchain(self.buffered_chain.wallet.address_bundle[0].xmss.get_seed_private())
@@ -216,7 +216,7 @@ class POS:
             b = self.buffered_chain.create_block(reveal_hash[-2])  # FIXME: This is incorrect, rewire
             self.pre_block_logic(b)     # FIXME: Ignore return value?
         else:
-            logger.info('await block creation by stake validator: %s', self.buffered_chain.chain.stake_list[0][0])
+            logger.info('await block creation by stake validator: %s', self.buffered_chain._chain.stake_list[0][0])
             self.last_bk_time = time.time()
             self.restart_unsynced_logic()
 
@@ -516,15 +516,15 @@ class POS:
             return
 
         self.p2pFactory.send_st_to_peers(st)
-        for num in range(len(self.buffered_chain.chain.tx_pool.transaction_pool)):
-            t = self.buffered_chain.chain.tx_pool.transaction_pool[num]
+        for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
+            t = self.buffered_chain.tx_pool.transaction_pool[num]
             if t.subtype == TX_SUBTYPE_STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
-                self.buffered_chain.chain.tx_pool.remove_tx_from_pool(t)
+                self.buffered_chain.tx_pool.remove_tx_from_pool(t)
                 break
 
-        self.buffered_chain.chain.tx_pool.add_tx_to_pool(st)
+        self.buffered_chain.tx_pool.add_tx_to_pool(st)
         self.buffered_chain.wallet.save_wallet()
 
     def make_destake_tx(self):
@@ -609,7 +609,7 @@ class POS:
         for s in self.blockheight_map:
             if s[0] == self.buffered_chain.height():
                 # FIXME: It should not access variable directly
-                if s[1] == self.buffered_chain.chain.blockchain[-1].headerhash:
+                if s[1] == self.buffered_chain._chain.blockchain[-1].headerhash:
                     logger.info(('node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
             elif s[0] > self.buffered_chain.height():
                 logger.info(('warning..', s[2], 'at blockheight', s[0]))

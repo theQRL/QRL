@@ -212,7 +212,7 @@ class P2PProtocol(Protocol):
         if mr_data.type in ['TX'] and self.factory.sync_state.state != ESyncState.synced:
             return
 
-        if mr_data.type == 'TX' and len(self.factory.buffered_chain.chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
+        if mr_data.type == 'TX' and len(self.factory.buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
@@ -307,7 +307,7 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
             return
 
-        if len(self.factory.buffered_chain.chain.blockchain) == 1 and \
+        if len(self.factory.buffered_chain._chain.blockchain) == 1 and \
                         st.activation_blocknumber > self.factory.buffered_chain.height() + config.dev.blocks_per_epoch:
             return
 
@@ -328,7 +328,7 @@ class P2PProtocol(Protocol):
             logger.debug('P2P dropping st as activation_blocknumber beyond limit')
             return False
 
-        for t in self.factory.buffered_chain.chain.tx_pool.transaction_pool:
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
 
@@ -336,7 +336,7 @@ class P2PProtocol(Protocol):
             blocknumber=self.factory.buffered_chain.height() + 1,
             addr=st.txfrom)
         if st.validate() and st.validate_extended(tx_state=tx_state):
-            self.factory.buffered_chain.chain.tx_pool.add_tx_to_pool(st)
+            self.factory.buffered_chain.tx_pool.add_tx_to_pool(st)
         else:
             logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(tuple(st.hash)))
             return
@@ -362,7 +362,7 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(destake_txn.get_message_hash(), self):
             return
 
-        for t in self.factory.chain.tx_pool.transaction_pool:
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
             if destake_txn.get_message_hash() == t.get_message_hash():
                 return
 
@@ -378,7 +378,7 @@ class P2PProtocol(Protocol):
             blocknumber=height,
             addr=txfrom)
         if destake_txn.validate() and destake_txn.validate_extended(tx_state=tx_state):
-            self.factory.buffered_chain.chain.tx_pool.add_tx_to_pool(destake_txn)
+            self.factory.buffered_chain.tx_pool.add_tx_to_pool(destake_txn)
         else:
             logger.debug('>>>Destake %s invalid state validation failed..', txfrom)
             return
@@ -404,12 +404,12 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), self):
             return
 
-        if duplicate_txn.get_message_hash() in self.factory.buffered_chain.chain.tx_pool.duplicate_tx_pool:
+        if duplicate_txn.get_message_hash() in self.factory.buffered_chain.tx_pool.duplicate_tx_pool:
             return
 
         # TODO: State validate for duplicate_txn is pending
         if duplicate_txn.validate():
-            self.factory.buffered_chain.chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
+            self.factory.buffered_chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
         else:
             logger.debug('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
             return
@@ -428,8 +428,8 @@ class P2PProtocol(Protocol):
         if not data:
             logger.info('<<< Sending block_map %s', self.transport.getPeer().host)
 
-            z = {'block_number': self.factory.buffered_chain.chain.blockchain[-1].block_number,
-                 'headerhash': self.factory.buffered_chain.chain.blockchain[-1].headerhash}
+            z = {'block_number': self.factory.buffered_chain._chain.blockchain[-1].block_number,
+                 'headerhash': self.factory.buffered_chain._chain.blockchain[-1].headerhash}
 
             self.transport.write(self.wrap_message('BM', json.dumps(z)))
             return
@@ -485,7 +485,7 @@ class P2PProtocol(Protocol):
 
                 duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
                 if duplicate_txn.validate():
-                    self.factory.buffered_chain.chain.add_tx_to_duplicate_pool(duplicate_txn)
+                    self.factory.buffered_chain._chain.add_tx_to_duplicate_pool(duplicate_txn)
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
             '''
         self.factory.pos.pre_block_logic(block)     # FIXME: Ignores return value
@@ -861,10 +861,10 @@ class P2PProtocol(Protocol):
         :return:
         """
         data = qrl_pb2.BlockMetaData()
-        data.hash_header = self.factory.buffered_chain.chain.blockchain[-1].headerhash
+        data.hash_header = self.factory.buffered_chain._chain.blockchain[-1].headerhash
 
-        if len(self.factory.buffered_chain.chain.blockchain):
-            data.block_number = self.factory.buffered_chain.chain.blockchain[-1].block_number
+        if len(self.factory.buffered_chain._chain.blockchain):
+            data.block_number = self.factory.buffered_chain._chain.blockchain[-1].block_number
         self.transport.write(self.wrap_message('CB', MessageToJson(data)))
         return
 
@@ -1168,26 +1168,26 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
             return
 
-        if tx.txhash in self.prev_txpool or tx.txhash in self.factory.buffered_chain.chain.tx_pool.pending_tx_pool_hash:
+        if tx.txhash in self.prev_txpool or tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
         del self.prev_txpool[0]
         self.prev_txpool.append(tx.txhash)
 
-        for t in self.factory.buffered_chain.chain.tx_pool.transaction_pool:  # duplicate tx already received, would mess up nonce..
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:  # duplicate tx already received, would mess up nonce..
             if tx.txhash == t.txhash:
                 return
 
-        self.factory.buffered_chain.chain.tx_pool.update_pending_tx_pool(tx, self)
+        self.factory.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
 
         self.factory.master_mr.register(tx.get_message_hash(), json_tx_obj, 'TX')
         self.factory.broadcast(tx.get_message_hash(), 'TX')
 
         if not self.factory.txn_processor_running:
             txn_processor = TxnProcessor(block_chain_buffer=self.factory.buffered_chain,
-                                         pending_tx_pool=self.factory.buffered_chain.chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self.factory.buffered_chain.chain.tx_pool.transaction_pool,
-                                         txhash_timestamp=self.factory.buffered_chain.chain.txhash_timestamp)
+                                         pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
+                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool,
+                                         txhash_timestamp=self.factory.buffered_chain.txhash_timestamp)
 
             task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
             task_defer.addCallback(self.factory.reset_processor_flag) \

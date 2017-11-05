@@ -12,6 +12,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
 from qrl.core.Transaction import CoinBase, Transaction
+from qrl.core.TransactionPool import TransactionPool
 from qrl.core.Transaction_subtypes import *
 from qrl.core.Block import Block
 from qrl.crypto.hashchain import hashchain
@@ -26,18 +27,20 @@ class BufferedChain:
         self._chain = chain
 
         self.blocks = dict()                    # FIXME: Using a dict is very inefficient when index are a sequence
+
         self._pending_blocks = dict()
 
         self.epoch = max(0, self._chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
+        if self._chain.height() > 0:
+            self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
 
         private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
         self.hash_chain = dict()
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
 
-        if self._chain.height() > 0:
-            self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
+        self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
 
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()
@@ -58,17 +61,23 @@ class BufferedChain:
 
     @property
     def transaction_pool(self):
-        return self._chain.tx_pool.transaction_pool
+        return self.tx_pool.transaction_pool
 
     @property
     def length(self):
         return len(self._chain.blockchain)
 
-    #########################################3
-    #########################################3
-    #########################################3
-    #########################################3
-    #########################################3
+    @property
+    def heigchht(self)->int:
+        if len(self.blocks) == 0:
+            return self._chain.height()
+        return max(self.blocks.keys())             # FIXME: max over a dictionary?
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
     # Block handling
 
     def add_pending_block(self, block)->bool:
@@ -132,8 +141,13 @@ class BufferedChain:
         if validate:
             if self.validate_block(block):
                 if self._chain.add_block(block):
-                    block_left = config.dev.blocks_per_epoch - (
-                            block.block_number - (block.epoch * config.dev.blocks_per_epoch))
+
+                    self.tx_pool.remove_tx_in_block_from_pool(block)
+
+                    # FIXME: clean this up
+                    block_left = config.dev.blocks_per_epoch
+                    block_left -= block.block_number - (block.epoch * config.dev.blocks_per_epoch)
+
                     if block_left == 1:
                         private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
                         self._wallet_private_seeds[block.epoch + 1] = private_seed
@@ -172,20 +186,20 @@ class BufferedChain:
         result = True
 
         # FIXME: Breaks encapsulation
-        for tx in self._chain.tx_pool.transaction_pool:
+        for tx in self.tx_pool.transaction_pool:
             if not tx.validate():
                 result = False
-                self._chain.tx_pool.remove_tx_from_pool(tx)
+                self.tx_pool.remove_tx_from_pool(tx)
                 logger.info(('invalid tx: ', tx, 'removed from pool'))
                 continue
 
             # FIXME: reference to a buffer
-            tx_state = self.get_stxn_state(blocknumber=self.height() + 1, addr=tx.txfrom)
+            tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=tx.txfrom)
 
             if not tx.validate_extended(tx_state=tx_state):
                 result = False
                 logger.warning('tx %s failed', tx.txhash)
-                self._chain.tx_pool.remove_tx_from_pool(tx)
+                self.tx_pool.remove_tx_from_pool(tx)
 
         return result
 
@@ -418,8 +432,8 @@ class BufferedChain:
                                  block_number=last_block.block_number + 1,
                                  reveal_hash=reveal_hash,
                                  prevblock_headerhash=last_block.headerhash,
-                                 transactions=self._chain.tx_pool.transaction_pool,
-                                 duplicate_transactions=self._chain.tx_pool.duplicate_tx_pool,
+                                 transactions=self.tx_pool.transaction_pool,
+                                 duplicate_transactions=self.tx_pool.duplicate_tx_pool,
                                  signing_xmss=signing_xmss,
                                  nonce=nonce)
 
@@ -558,11 +572,6 @@ class BufferedChain:
         self._chain.pstate.update_last_tx(block)
         self._chain.pstate.update_tx_metadata(block)
         return True
-
-    def height(self)->int:
-        if len(self.blocks) == 0:
-            return self._chain.height()
-        return max(self.blocks.keys())             # FIXME: max over a dictionary?
 
     def get_block_n_score(self, blocknumber)->Optional[int]:
         try:
@@ -736,7 +745,7 @@ class BufferedChain:
 
     def search(self, query):
         # FIXME: Refactor this. Prepare a look up in the DB
-        for tx in self._chain.tx_pool.transaction_pool:
+        for tx in self.tx_pool.transaction_pool:
             if tx.txhash == query or tx.txfrom == query or tx.txto == query:
                 logger.info('%s found in transaction pool..', query)
                 return tx
@@ -949,7 +958,7 @@ class BufferedChain:
 
                 destake_txn.add(tx.txfrom)
 
-            self._chain.tx_pool.add_tx_to_pool(tx)
+            self.tx_pool.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
             tx._data.nonce = self.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + tx_nonce[tx.txfrom]
             txnum += 1
@@ -959,7 +968,7 @@ class BufferedChain:
 
         # reset the pool back
         # FIXME: Reset pool from here?
-        self._chain.tx_pool.transaction_pool = copy.deepcopy(t_pool2)
+        self.tx_pool.transaction_pool = copy.deepcopy(t_pool2)
 
         return block_obj
 
