@@ -322,7 +322,7 @@ class StakeTransaction(Transaction):
         transaction._data.stake.activation_blocknumber = activation_blocknumber
 
         for blocknumber in blocknumber_headerhash:
-            transaction._data.blocknumber_headerhash[blocknumber] = blocknumber_headerhash[blocknumber]
+            transaction._data.stake.blocknumber_headerhash[blocknumber] = blocknumber_headerhash[blocknumber]
 
         transaction._data.stake.slavePK = bytes(slavePK)
 
