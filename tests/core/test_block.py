@@ -16,4 +16,4 @@ class TestBlock(TestCase):
     def test_init(self):
         # TODO: Not much going on here..
         block = Block()
-        self.assertIsNotNone(block) # just to avoid warnings
+        self.assertIsNotNone(block)             # just to avoid warnings

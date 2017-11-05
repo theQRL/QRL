@@ -200,10 +200,10 @@ class ApiProtocol(Protocol):
             return json_print_telnet(error)
 
         lb = []
-        beginning = self.factory.buffered_chain.height() - n
+        beginning = self.factory.buffered_chain.height - n
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        for blocknum in range(self.factory.buffered_chain.height(), beginning - 1, -1):
+        for blocknum in range(self.factory.buffered_chain.height, beginning - 1, -1):
             block = self.factory.buffered_chain.get_block(blocknum)
             lb.append(block)
 

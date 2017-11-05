@@ -297,15 +297,16 @@ class StakeTransaction(Transaction):
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
                             + bin2hstr(sha2_256(bytes(self.subtype)))
-                            + bin2hstr(sha2_256(str(self.blocknumber_headerhash).encode())))
+                            + bin2hstr(sha2_256(str(self.blocknumber_headerhash).encode())))        # FIXME: stringify in standardized way
+                                                                                                    # FIXME: the order in the dict may affect hash
         return bytes(tmptxhash)
 
     @staticmethod
-    def create(activation_blocknumber,
-               blocknumber_headerhash,
-               xmss,
-               slavePK,
-               hashchain_terminator=None):
+    def create(activation_blocknumber: int,
+               blocknumber_headerhash: dict,
+               xmss: XMSS,
+               slavePK: bytes,
+               hashchain_terminator: bytes =None):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
@@ -324,7 +325,7 @@ class StakeTransaction(Transaction):
         for blocknumber in blocknumber_headerhash:
             transaction._data.stake.blocknumber_headerhash[blocknumber] = blocknumber_headerhash[blocknumber]
 
-        transaction._data.stake.slavePK = bytes(slavePK)
+        transaction._data.stake.slavePK = slavePK
 
         if hashchain_terminator is None:
             epoch = activation_blocknumber // config.dev.blocks_per_epoch

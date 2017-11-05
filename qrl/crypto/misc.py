@@ -9,7 +9,7 @@ import itertools
 from pyqrllib.pyqrllib import sha2_256, bin2hstr, hstr2bin
 
 
-def sha256(message):
+def sha256(message: bytes)->bytes:
     """
     :param message:
     :type message: Union[str, unicode]

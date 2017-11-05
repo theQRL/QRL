@@ -4,13 +4,13 @@
 from collections import OrderedDict
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import Xmss
 
 from qrl.core import config
-from qrl.core.Transaction import CoinBase
+from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX
 from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import sha256, merkle_tx_hash
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 
 
@@ -86,13 +86,13 @@ class Block(object):
         return MessageToJson(self._data)
 
     @staticmethod
-    def create(staking_address: str,
+    def create(staking_address: bytes,
                block_number: int,
                reveal_hash: bytes,
                prevblock_headerhash: bytes,
                transactions: list,
                duplicate_transactions: OrderedDict,
-               signing_xmss: Xmss,
+               signing_xmss: XMSS,
                nonce: int):
 
         block = Block()
@@ -109,7 +109,7 @@ class Block(object):
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
         if not hashedtransactions:
-            hashedtransactions = [sha256('')]
+            hashedtransactions = [sha256(b'')]
 
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
@@ -123,13 +123,18 @@ class Block(object):
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
 
-        block._data.header.MergeFrom(block.blockheader.pbdata)
+        block._data.header.MergeFrom(tmp_blockheader.pbdata)
 
         # Prepare coinbase tx
         coinbase_tx = CoinBase.create(tmp_blockheader, signing_xmss)
         coinbase_tx.pbdata.nonce = nonce
         coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
 
-        block._data.transactions[0].CopyFrom(coinbase_tx.pbdata)  # Replace first tx
+        # Replace first tx
+        block._data.transactions[0].CopyFrom(coinbase_tx.pbdata)
 
         return block
+
+    def add_transaction(self, tx: Transaction):
+        # TODO: Verify something basic here?
+        self._data.transactions.extend(tx.pbdata)

@@ -395,21 +395,21 @@ class State:
         buffered_chain.wallet.save_wallet()
         return True
 
-    def update(self, block, stake_validators_list, address_txn):
+    def update(self, block, stake_validators_list, address_txn)->bool:
         # FIXME: remove from state and move to another place
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
         if block.stake_selector not in stake_validators_list.sv_list:
             logger.warning('stake selector not in stake_list_get')
-            return
+            return False
 
         if stake_validators_list.sv_list[block.stake_selector].is_banned:
             logger.warning('stake selector is in banned list')
-            return
+            return False
 
         if not stake_validators_list.sv_list[block.stake_selector].is_active:
             logger.warning('stake selector is in inactive')
-            return
+            return False
 
         # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
         stake_txn = set()

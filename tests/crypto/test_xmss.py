@@ -18,8 +18,8 @@ class TestXMSS(TestCase):
     def test_sign_verify(self):
         message = "This is a test"
         message_bin = str2bin(message)
-        xmss_height = 10
 
+        xmss_height = 10
         seed = bytearray([i for i in range(48)])
         xmss = XMSS(xmss_height, seed)
 

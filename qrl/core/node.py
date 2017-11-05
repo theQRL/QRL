@@ -117,13 +117,13 @@ class POS:
 
         blocknumber = blocknumber[0][0]
 
-        if blocknumber > self.buffered_chain.height():
+        if blocknumber > self.buffered_chain.height:
             # pending_blocks['target'] = blocknumber
             logger.info('Calling downloader from peers_blockheight due to no POS CYCLE %s', blocknumber)
-            logger.info('Download block from %s to %s', self.buffered_chain.height() + 1, blocknumber)
+            logger.info('Download block from %s to %s', self.buffered_chain.height + 1, blocknumber)
             self.last_pb_time = time.time()
             self.update_node_state(ESyncState.syncing)
-            self.randomize_block_fetch(self.buffered_chain.height() + 1)
+            self.randomize_block_fetch(self.buffered_chain.height + 1)
         return
 
     # pos functions. an asynchronous loop.
@@ -167,7 +167,7 @@ class POS:
 
     def pre_pos_2(self, data=None):
         logger.info('pre_pos_2')
-        if self.buffered_chain.height() >= 1:
+        if self.buffered_chain.height >= 1:
             return
         # assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
 
@@ -230,7 +230,7 @@ class POS:
                 logger.info('>>>TX %s failed validate_tx', tx.txhash)
                 continue
 
-            tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height(), addr=tx.txfrom)
+            tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height, addr=tx.txfrom)
 
             is_valid_state = tx.validate_extended(tx_state=tx_state,
                                                   transaction_pool=self.buffered_chain.tx_pool.transaction_pool)
@@ -335,7 +335,7 @@ class POS:
         tmp_max = -1
         max_headerhash = None
         for headerhash in self.fmbh_blockhash_peers:
-            if self.fmbh_blockhash_peers[headerhash]['blocknumber'] > self.buffered_chain.height():
+            if self.fmbh_blockhash_peers[headerhash]['blocknumber'] > self.buffered_chain.height:
                 if len(self.fmbh_blockhash_peers[headerhash]['peers']) > tmp_max:
                     tmp_max = len(self.fmbh_blockhash_peers[headerhash]['peers'])
                     max_headerhash = headerhash
@@ -349,16 +349,16 @@ class POS:
         for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
             self.p2pFactory.target_peers[peer.conn_identity] = peer
         self.update_node_state(ESyncState.syncing)
-        logger.info('Initializing download from %s', self.buffered_chain.height() + 1)
-        self.randomize_block_fetch(self.buffered_chain.height() + 1)
+        logger.info('Initializing download from %s', self.buffered_chain.height + 1)
+        self.randomize_block_fetch(self.buffered_chain.height + 1)
 
     def pre_block_logic(self, block: Block)->bool:
         # FIXME: Ensure that the chain is in memory
 
-        chain_buffer_height = self.buffered_chain.height()
+        chain_buffer_height = self.buffered_chain.height
         last_block_before = self.buffered_chain.get_last_block()
 
-        if block.block_number <= self.buffered_chain.height():
+        if block.block_number <= self.buffered_chain.height:
             return False
 
         # FIXME: Simplify logic
@@ -401,7 +401,7 @@ class POS:
 
     def restart_post_block_logic(self, blocknumber=-1, delay=None):
         if blocknumber == -1:
-            blocknumber = self.buffered_chain.height() + 1
+            blocknumber = self.buffered_chain.height + 1
 
         if not delay:
             last_block = self.buffered_chain.get_block(blocknumber - 1)
@@ -456,7 +456,7 @@ class POS:
                     self.create_next_block(blocknumber, activation_blocknumber)
                     delay = None
 
-            last_blocknum = self.buffered_chain.height()
+            last_blocknum = self.buffered_chain.height
             self.restart_post_block_logic(last_blocknum + 1, delay)
 
         return
@@ -472,7 +472,7 @@ class POS:
     def _create_stake_tx(self, curr_blocknumber):
         sv_list = self.buffered_chain.stake_list_get(curr_blocknumber)
         if self.buffered_chain.staking_address in sv_list:
-            activation_blocknumber = sv_list[self.buffered_chain.height()].activation_blocknumber + config.dev.blocks_per_epoch
+            activation_blocknumber = sv_list[self.buffered_chain.height].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
@@ -489,7 +489,7 @@ class POS:
         signing_xmss = self.buffered_chain.wallet.address_bundle[0].xmss
 
         blocknumber_headerhash = dict()
-        current_blocknumber = self.buffered_chain.height()
+        current_blocknumber = self.buffered_chain.height
 
         for stamp in config.dev.stamping_series:
             if stamp > current_blocknumber:
@@ -528,12 +528,12 @@ class POS:
         self.buffered_chain.wallet.save_wallet()
 
     def make_destake_tx(self):
-        curr_blocknumber = self.buffered_chain.height() + 1
+        curr_blocknumber = self.buffered_chain.height + 1
         stake_validators_list = self.buffered_chain.get_stake_validators_list(curr_blocknumber)
 
         # No destake txn required if mining address is not in stake_validator_list
         if self.buffered_chain.staking_address not in stake_validators_list.sv_list and \
-                        self.buffered_chain.height() not in stake_validators_list.future_stake_addresses:
+                        self.buffered_chain.height not in stake_validators_list.future_stake_addresses:
             logger.warning('%s Not found in Stake Validator list, destake txn note required',
                            self.buffered_chain.staking_address)
             return
@@ -572,7 +572,7 @@ class POS:
         return True
 
     def randomize_block_fetch(self, blocknumber):
-        if self.sync_state.state != ESyncState.syncing or blocknumber <= self.buffered_chain.height():
+        if self.sync_state.state != ESyncState.syncing or blocknumber <= self.buffered_chain.height:
             return
 
         if len(list(self.p2pFactory.target_peers.keys())) == 0:
@@ -600,18 +600,18 @@ class POS:
         logger.info(self.blockheight_map)
 
         # first strip out any laggards..
-        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.buffered_chain.height()]
+        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.buffered_chain.height]
 
         result = True
 
         # next identify any node entries which are not exactly correct..
 
         for s in self.blockheight_map:
-            if s[0] == self.buffered_chain.height():
+            if s[0] == self.buffered_chain.height:
                 # FIXME: It should not access variable directly
                 if s[1] == self.buffered_chain._chain.blockchain[-1].headerhash:
                     logger.info(('node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
-            elif s[0] > self.buffered_chain.height():
+            elif s[0] > self.buffered_chain.height:
                 logger.info(('warning..', s[2], 'at blockheight', s[0]))
                 result = False
 

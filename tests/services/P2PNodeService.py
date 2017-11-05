@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from mock import Mock, MagicMock
 
-from qrl.core import logger
+from qrl.core import logger, BufferedChain
 from qrl.core.Chain import Chain
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
@@ -28,12 +28,12 @@ class PublicAPITest(TestCase):
         p2p_factory.connections = 23
         p2p_factory.stake = False
 
-        chain = Mock(spec=Chain)
-        chain.height = MagicMock(return_value=0)
+        buffered_chain = Mock(spec=BufferedChain)
+        buffered_chain.height = MagicMock(return_value=0)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
-        qrlnode.set_chain(chain)
+        qrlnode.set_chain(buffered_chain)
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = P2PNodeService(qrlnode)

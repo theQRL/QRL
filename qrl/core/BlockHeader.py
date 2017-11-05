@@ -66,7 +66,7 @@ class BlockHeader(object):
         return self._data.stake_selector
 
     @staticmethod
-    def create(staking_address: str,
+    def create(staking_address: bytes,
                blocknumber: int,
                prev_blockheaderhash: bytes,
                hashedtransactions: bytes,

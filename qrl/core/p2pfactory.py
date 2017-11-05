@@ -106,7 +106,7 @@ class P2PFactory(ServerFactory):
         blocknumber = self.bkmr_blocknumber
         try:
             dscore, dhash = self.bkmr_priorityq.get_nowait()
-            if blocknumber <= self.buffered_chain.height():
+            if blocknumber <= self.buffered_chain.height:
                 oldscore = self.buffered_chain.get_block_n_score(blocknumber)
                 if dscore > oldscore:
                     del self.bkmr_priorityq

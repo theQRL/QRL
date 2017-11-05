@@ -110,8 +110,8 @@ class P2PProtocol(Protocol):
         Fetch Block Headerhash List
         :return:
         """
-        self.transport.write(self.wrap_message('PBHL', self.factory.buffered_chain.height()))
-        self.fork_height = self.factory.buffered_chain.height()
+        self.transport.write(self.wrap_message('PBHL', self.factory.buffered_chain.height))
+        self.fork_height = self.factory.buffered_chain.height
         self.fork_timestamp = time.time()
         logger.debug('-->>FBHL called')
 
@@ -152,7 +152,7 @@ class P2PProtocol(Protocol):
 
         last_matching_blocknum = None
         for blockmetadata in blocknum_headerhash.block_number_hashes:
-            if blockmetadata.block_number > self.factory.buffered_chain.height():
+            if blockmetadata.block_number > self.factory.buffered_chain.height:
                 return
 
             block = self.factory.buffered_chain.get_block(blockmetadata.block_number)
@@ -216,7 +216,7 @@ class P2PProtocol(Protocol):
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
-        if mr_data.type == 'ST' and self.factory.buffered_chain.height() > 1 and self.factory.sync_state.state != ESyncState.synced:
+        if mr_data.type == 'ST' and self.factory.buffered_chain.height > 1 and self.factory.sync_state.state != ESyncState.synced:
             return
 
         if self.factory.master_mr.contains(msg_hash, mr_data.type):
@@ -237,7 +237,7 @@ class P2PProtocol(Protocol):
                                                          prev_blockheaderhash=tmp_block.prev_headerhash,
                                                          stake_selector=tmp_block.stake_selector):
                     self.factory.RFM(mr_data)
-                elif mr_data.block_number > self.factory.buffered_chain.height() - config.dev.reorg_limit:
+                elif mr_data.block_number > self.factory.buffered_chain.height - config.dev.reorg_limit:
                     self.FBHL()
                 return
 
@@ -308,10 +308,10 @@ class P2PProtocol(Protocol):
             return
 
         if len(self.factory.buffered_chain._chain.blockchain) == 1 and \
-                        st.activation_blocknumber > self.factory.buffered_chain.height() + config.dev.blocks_per_epoch:
+                        st.activation_blocknumber > self.factory.buffered_chain.height + config.dev.blocks_per_epoch:
             return
 
-        height = self.factory.buffered_chain.height() + 1
+        height = self.factory.buffered_chain.height + 1
         stake_validators_list = self.factory.buffered_chain.get_stake_validators_list(height)
 
         if st.txfrom in stake_validators_list.future_stake_addresses:
@@ -333,7 +333,7 @@ class P2PProtocol(Protocol):
                 return
 
         tx_state = self.factory.buffered_chain.get_stxn_state(
-            blocknumber=self.factory.buffered_chain.height() + 1,
+            blocknumber=self.factory.buffered_chain.height + 1,
             addr=st.txfrom)
         if st.validate() and st.validate_extended(tx_state=tx_state):
             self.factory.buffered_chain.tx_pool.add_tx_to_pool(st)
@@ -367,7 +367,7 @@ class P2PProtocol(Protocol):
                 return
 
         txfrom = destake_txn.txfrom
-        height = self.factory.buffered_chain.height() + 1
+        height = self.factory.buffered_chain.height + 1
         stake_validators_list = self.factory.buffered_chain.get_stake_validators_list(height)
 
         if txfrom not in stake_validators_list.sv_list and txfrom not in stake_validators_list.future_stake_addresses:
@@ -568,7 +568,7 @@ class P2PProtocol(Protocol):
                 logger.warning('Did not match %s %s', self.last_requested_blocknum, self.conn_identity)
                 return
 
-            if blocknumber > self.factory.buffered_chain.height():
+            if blocknumber > self.factory.buffered_chain.height:
                 if not self.factory.buffered_chain.add_block_mainchain(block):
                     logger.warning('PB failed to add block to mainchain')
                     return
@@ -672,7 +672,7 @@ class P2PProtocol(Protocol):
             return
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        if self.factory.buffered_chain.height() == 0 and self.factory.genesis == 0:
+        if self.factory.buffered_chain.height == 0 and self.factory.genesis == 0:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
             self.factory.genesis = 1
             logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
@@ -680,13 +680,13 @@ class P2PProtocol(Protocol):
             return
 
         # connected to multiple hosts and already passed through..
-        elif self.factory.buffered_chain.height() == 1 and self.factory.genesis == 1:
+        elif self.factory.buffered_chain.height == 1 and self.factory.genesis == 1:
             return
 
     def send_block(self, blocknumber):
         # FIXME: Merge. Temporarily here
         message = None
-        if blocknumber <= self.factory.buffered_chain.height():
+        if blocknumber <= self.factory.buffered_chain.height:
             # FIXME: Breaking encapsulation
             message = self.wrap_message('PB', self.factory.buffered_chain.get_block(blocknumber).to_json())
             self.transport.write()
@@ -707,11 +707,11 @@ class P2PProtocol(Protocol):
         """
         idx = int(data)
         logger.info(' Request for %s by %s', idx, self.conn_identity)
-        if 0 < idx <= self.factory.buffered_chain.height():
+        if 0 < idx <= self.factory.buffered_chain.height:
             self.send_block(idx)
         else:
             self.transport.write(self.wrap_message('PB', idx))
-            if idx > self.factory.buffered_chain.height():
+            if idx > self.factory.buffered_chain.height:
                 logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
             logger.info(' Send for blocmnumber #%s to %s', idx, self.conn_identity)

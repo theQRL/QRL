@@ -13,8 +13,11 @@ class StakeValidatorsList:
     Maintains the Stake validators list for current and next epoch
     """
     def __init__(self):
-        self.sv_list = OrderedDict()  # Active stake validator objects
-        self.expiry = defaultdict(set)  # Maintains the blocknumber as key at which Stake validator has to be expired
+        # FIXME: the name sv_list is confusing because is actually a dictionary
+        self.sv_list = OrderedDict()                        # Active stake validator objects
+        self.expiry = defaultdict(set)                      # Maintains the blocknumber as key at which Stake validator has to be expired
+
+        # FIXME: the name future_sv_list is confusing because is actually a dictionary
         self.future_sv_list = defaultdict(set)
         self.future_stake_addresses = dict()
         self.isOrderedLength = 0

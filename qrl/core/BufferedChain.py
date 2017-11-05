@@ -8,6 +8,7 @@ import os
 from pyqrllib.pyqrllib import str2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger, Wallet
+from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
@@ -23,7 +24,7 @@ from qrl.crypto.xmss import XMSS
 
 
 class BufferedChain:
-    def __init__(self, chain=None):
+    def __init__(self, chain: Chain):
         self._chain = chain
 
         self.blocks = dict()                    # FIXME: Using a dict is very inefficient when index are a sequence
@@ -68,7 +69,7 @@ class BufferedChain:
         return len(self._chain.blockchain)
 
     @property
-    def heigchht(self)->int:
+    def height(self)->int:
         if len(self.blocks) == 0:
             return self._chain.height()
         return max(self.blocks.keys())             # FIXME: max over a dictionary?
@@ -254,7 +255,7 @@ class BufferedChain:
             state_buffer.set_next_seed(block.reveal_hash, self.epoch_seed)
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update_stxn_state(self.height())
+            state_buffer.update_stxn_state(self.height)
         else:
             block_state_buffer = self.blocks[block.block_number - 1]
             parent_state_buffer = block_state_buffer[1]
@@ -270,7 +271,7 @@ class BufferedChain:
                                                             block.block_number))
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update(self.height(), parent_state_buffer, block)
+            state_buffer.update(self.height, parent_state_buffer, block)
 
         if block.block_number not in self.blocks:
             self.blocks[block.block_number] = [block_buffer, state_buffer]
@@ -292,18 +293,27 @@ class BufferedChain:
         return True
 
     # TODO: This add_block used to be in state
-    def add_block(self, buffered_chain, block, ignore_save_wallet=False)->bool:
+    def add_block(self, block, ignore_save_wallet=False)->bool:
         # FIXME: This does not seem to be related to persistance
         address_txn = dict()
-        self.load_address_state(buffered_chain, block, address_txn)  # FIXME: Bottleneck
+        self.load_address_state(block, address_txn)  # FIXME: Bottleneck
 
         # FIXME: Unify Genesis case inside update, otherwise the special case is scattered everywhere
         if block.block_number == 1:
-            if not self._chain.pstate._update_genesis(buffered_chain, block, address_txn):
+            if not self._chain.pstate._update_genesis(self, block, address_txn):
                 return False
         else:
             blocks_left = self.get_blocks_left(block.block_number)
-            nonce = self._chain.pstate.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
+
+            # FIXME: Verify this
+            if len(block.transactions) < 1:
+                logger.warning("Each block must contain at least a coinbase transaction")
+                return False
+
+            # FIXME: Handle the case where first_tx_from is not in sv_list
+            first_tx_from = block.transactions[0].addr_from
+            nonce = self._chain.pstate.stake_validators_list.sv_list[first_tx_from].nonce
+
             logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
                          block.block_number,
                          block.epoch,
@@ -316,17 +326,17 @@ class BufferedChain:
 
         self._commit(block,
                      address_txn,
-                     wallet=buffered_chain.wallet,
+                     wallet=self.wallet,
                      ignore_save_wallet=ignore_save_wallet)
 
         blocks_left = self.get_blocks_left(block.block_number)
         if blocks_left == 1:
             logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
-            xmss = buffered_chain.wallet.address_bundle[0].xmss
+            xmss = self.wallet.address_bundle[0].xmss
             tmphc = hashchain(xmss.get_seed_private(), epoch=block.epoch + 1)
-            buffered_chain.hash_chain = tmphc.hashchain
+            self.hash_chain = tmphc.hashchain
 
-        self._chain.pstate._set_blockheight(buffered_chain.height() + 1)
+        self._chain.pstate._set_blockheight(self.height + 1)
 
         return True
 
@@ -338,8 +348,7 @@ class BufferedChain:
             del self.blocks[blocknumber]
             blocknumber += 1
 
-    @staticmethod
-    def load_address_state(buffered_chain, block, address_txn):
+    def load_address_state(self, block, address_txn):
         # FIXME: This does not seem to be related to persistance
         blocknumber = block.block_number
 
@@ -347,12 +356,12 @@ class BufferedChain:
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.txfrom not in address_txn:
                 # FIXME: Access to chain buffer from here
-                address_txn[tx.txfrom] = buffered_chain.get_stxn_state(blocknumber, tx.txfrom)
+                address_txn[tx.txfrom] = self.get_stxn_state(blocknumber, tx.txfrom)
 
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 if tx.txto not in address_txn:
                     # FIXME: Access to chain buffer from here
-                    address_txn[tx.txto] = buffered_chain.get_stxn_state(blocknumber, tx.txto)
+                    address_txn[tx.txto] = self.get_stxn_state(blocknumber, tx.txto)
 
         # FIXME: Modifying input. Side effect, etc.
         return address_txn
@@ -405,7 +414,7 @@ class BufferedChain:
 
     def _state_add_block_buffer(self, block, stake_validators_list, address_txn):
         # FIXME: This is mixing states
-        self.load_address_state(self, block, address_txn)
+        self.load_address_state(block, address_txn)
 
         is_successful = self._chain.pstate.update(block, stake_validators_list, address_txn)
         if is_successful:
@@ -660,7 +669,7 @@ class BufferedChain:
         A block is considered as a dirty block, if same stake validator created two different blocks
         for the same blocknumber having same prev_blockheaderhash.
         """
-        if blocknum > self.height():
+        if blocknum > self.height:
             return
 
         best_block = self.get_block(blocknum)
@@ -683,8 +692,8 @@ class BufferedChain:
         prev_epoch = int((blocknumber - 1) // config.dev.blocks_per_epoch)
 
         sv_list = self._chain.pstate.stake_validators_list.sv_list
-        if self.height() in sv_list:
-            activation_blocknumber = sv_list[self.height()].activation_blocknumber
+        if self.height in sv_list:
+            activation_blocknumber = sv_list[self.height].activation_blocknumber
             if activation_blocknumber + config.dev.blocks_per_epoch == blocknumber:
                 self._clean_mining_data(blocknumber - 1)
         elif prev_epoch != self.epoch:
@@ -857,9 +866,11 @@ class BufferedChain:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
 
-        t_pool2 = copy.deepcopy(self.transaction_pool)
+        # FIXME: Break encapsulation
+        t_pool2 = copy.deepcopy(self.tx_pool.transaction_pool)
+        del self.tx_pool.transaction_pool[:]
+        ######
 
-        del self.transaction_pool[:]
         # recreate the transaction pool as in the tx_hash_list, ordered by txhash..
         tx_nonce = defaultdict(int)
         total_txn = len(t_pool2)
@@ -929,9 +940,9 @@ class BufferedChain:
                         total_txn -= 1
                         continue
                 # skip 1st st txn without tx.first_hash in case its beyond allowed epoch blocknumber
-                if tx.activation_blocknumber > self.height() + config.dev.blocks_per_epoch + 1:
+                if tx.activation_blocknumber > self.height + config.dev.blocks_per_epoch + 1:
                     logger.debug('Skipping st as activation_blocknumber beyond limit')
-                    logger.debug('Expected # less than : %s', (self.height() + config.dev.blocks_per_epoch))
+                    logger.debug('Expected # less than : %s', (self.height + config.dev.blocks_per_epoch))
                     logger.debug('Found activation_blocknumber : %s', tx.activation_blocknumber)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1040,7 +1051,7 @@ class BufferedChain:
     def stake_list_get(self, blocknumber):
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 > self.height():
+            if blocknumber - 1 > self.height:
                 return None
 
             # FIXME: Avoid +1/-1, assign a them to make things clear
