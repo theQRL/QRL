@@ -201,6 +201,8 @@ class ApiProtocol(Protocol):
 
         lb = []
         beginning = self.factory.chain.height() - n
+
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         for blocknum in range(self.factory.chain.height(), beginning - 1, -1):
             block = self.factory.chain.get_block(blocknum)
             lb.append(block)

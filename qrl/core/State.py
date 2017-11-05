@@ -214,24 +214,6 @@ class State:
     #########################################
     #########################################
 
-    @staticmethod
-    def load_address_state(buffered_chain, block, address_txn):
-        # FIXME: This does not seem to be related to persistance
-        blocknumber = block.block_number
-
-        for protobuf_tx in block.transactions:
-            tx = Transaction.from_pbdata(protobuf_tx)
-            if tx.txfrom not in address_txn:
-                # FIXME: Access to chain buffer from here
-                address_txn[tx.txfrom] = buffered_chain.get_stxn_state(blocknumber, tx.txfrom)
-
-            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                if tx.txto not in address_txn:
-                    # FIXME: Access to chain buffer from here
-                    address_txn[tx.txto] = buffered_chain.get_stxn_state(blocknumber, tx.txto)
-
-        return address_txn
-
     def _get_address_state(self, address: bytes):
         address_state = qrl_pb2.AddressState()
         data = self._db.get_raw(address)
@@ -335,75 +317,7 @@ class State:
     #########################################
     #########################################
 
-    def _commit(self,
-                buffered_chain,
-                block,
-                address_txn,
-                ignore_save_wallet=False):
-
-        # FIXME: This indexing approach is very inefficient
-        blocks_left = self.get_blocks_left(block.block_number)
-
-        staker = block.stake_selector
-        self.stake_validators_list.sv_list[staker].nonce += 1
-
-        for address in address_txn:
-            self._save_address_state(address, address_txn[address])
-
-        for dup_tx in block.duplicate_transactions:
-            if dup_tx.coinbase1.txto in self.stake_validators_list.sv_list:
-                self.stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
-
-        if blocks_left == 1:
-            logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
-
-            xmss = buffered_chain.wallet.address_bundle[0].xmss
-            tmphc = hashchain(xmss.get_seed_private(), epoch=block.epoch + 1)
-
-            buffered_chain.hash_chain = tmphc.hashchain
-
-        if not ignore_save_wallet:
-            buffered_chain.wallet.save_wallet()
-
-        self._set_blockheight(buffered_chain.height() + 1)
-
-        self.stake_validators_list.update_sv(block.block_number)
-
-        logger.debug('%s %s tx passed verification.', bin2hstr(block.headerhash), len(block.transactions))
-        return True
-
-    # Returns the number of blocks left before next epoch
-    @staticmethod
-    def get_blocks_left(blocknumber):
-        epoch = blocknumber // config.dev.blocks_per_epoch
-        blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
-        blocks_left = config.dev.blocks_per_epoch - blocks_left
-        return blocks_left
-
-    def add_block(self, buffered_chain, block, ignore_save_wallet=False):
-        # FIXME: This does not seem to be related to persistance
-        address_txn = dict()
-        self.load_address_state(buffered_chain, block, address_txn)  # FIXME: Bottleneck
-
-        # FIXME: Special case for Genesis
-        if block.block_number == 1:
-            if not self._update_genesis(buffered_chain, block, address_txn):
-                return False
-        else:
-            blocks_left = self.get_blocks_left(block.block_number)
-            nonce = self.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
-            logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                         block.block_number,
-                         block.epoch,
-                         blocks_left - 1,
-                         nonce,
-                         block.stake_selector)
-
-            if not self.update(block, self.stake_validators_list, address_txn):
-                return False
-
-        self._commit(buffered_chain, block, address_txn, ignore_save_wallet=ignore_save_wallet)
-        return True
+    # FIXME: Remove from state
 
     def _update_genesis(self, buffered_chain, block, address_txn) -> bool:
         # FIXME: This does not seem to be related to persistance
@@ -482,7 +396,7 @@ class State:
         return True
 
     def update(self, block, stake_validators_list, address_txn):
-        # FIXME: Move to chain
+        # FIXME: remove from state and move to another place
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 
         if block.stake_selector not in stake_validators_list.sv_list:

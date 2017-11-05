@@ -671,6 +671,7 @@ class P2PProtocol(Protocol):
         if block_number > self.factory.height():
             return
 
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         if self.factory.buffered_chain.height() == 0 and self.factory.genesis == 0:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
             self.factory.genesis = 1

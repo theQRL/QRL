@@ -53,6 +53,7 @@ def verify(suffix, peerIdentity, chain, randomize_headerhash_fetch):
 def unfork(blocknumber, chain):
     sl = chain.stake_list_get()
 
+    # FIXME: Avoid +1/-1, assign a them to make things clear
     for blocknum in range(blocknumber, chain.height() + 1):
         stake_selector = chain.blockchain[blocknum].stake_selector
         for s in sl:

@@ -87,80 +87,32 @@ class Chain:
         # FIXME: Height cannot be negative. If this is used as an index it should be clarified
         return -1
 
-    def add_block(self, block: Block, validate=True) -> bool:
+    def add_block(self, block: Block) -> bool:
         # TODO : minimum block validation in unsynced _state
         if block.block_number <= self.height():
             logger.warning("Block already in the chain")
             return False
 
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         if block.block_number - 1 == self.height():
             if block.prev_headerhash != self.blockchain[-1].headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
-        elif block.block_number - 1 > 0:
-            if block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][
-                0].block.headerhash:
-                logger.info('No block found in buffer that matches with the prev_headerhash of received block')
-                return False
 
-        # FIXME: Combine all this with _add_block
-        if validate:
-            if not self._add_block(block):
-                logger.info("Failed to add block by add_block, re-requesting the block #%s", block.block_number)
-                return False
-        else:
-            if self.pstate.add_block(self, block, ignore_save_wallet=True) is True:
-                self.blockchain.append(block)
-
-        self.pstate.update_last_tx(block)
-        self.pstate.update_tx_metadata(block)
-
-        block_left = config.dev.blocks_per_epoch - (block.block_number - (block.epoch * config.dev.blocks_per_epoch))
-        if block_left == 1:
-            private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-            self._wallet_private_seeds[block.epoch + 1] = private_seed
-            self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
-
-        self._clean_if_required(block.block_number)
-
-        return True
-
-    def _add_block(self, block: Block) -> bool:
-        if block.validate_block(buffered_chain=self):
-            if self.pstate.add_block(self, block):
-                self.blockchain.append(block)
-                self.tx_pool.remove_tx_in_block_from_pool(block)
-            else:
-                logger.info('last block failed state/stake checks, removed from chain')
-                self._validate_tx_pool()
-                return False
-        else:
-            logger.info('add_block failed - block failed validation.')
+        if not self.pstate.add_block(self, block):
+            logger.info('last block failed state/stake checks, removed from chain')
             return False
 
+        # FIXME: Check the logig behind these operations
+        self.blockchain.append(block)
+        self.tx_pool.remove_tx_in_block_from_pool(block)
+
+        # This looks more like optimization/caching
+        self.pstate.update_last_tx(block)
+        self.pstate.update_tx_metadata(block)
         self.save_chain()
+
         return True
-
-    def _validate_tx_pool(self):
-        result = True
-
-        # FIXME: Breaks encapsulation
-        for tx in self.tx_pool.transaction_pool:
-            if not tx.validate():
-                result = False
-                self.tx_pool.remove_tx_from_pool(tx)
-                logger.info(('invalid tx: ', tx, 'removed from pool'))
-                continue
-
-            # FIXME: reference to a buffer
-            tx_state = self.get_stxn_state(blocknumber=self.height() + 1, addr=tx.txfrom)
-
-            if not tx.validate_extended(tx_state=tx_state):
-                result = False
-                logger.warning('tx %s failed', tx.txhash)
-                self.tx_pool.remove_tx_from_pool(tx)
-
-        return result
 
     def get_block(self, block_idx: int) -> Optional[Block]:
         # Block chain has not been loaded yet?

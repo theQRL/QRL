@@ -7,7 +7,7 @@ from typing import Optional
 import os
 from pyqrllib.pyqrllib import str2bin, bin2hstr, XmssPool
 
-from qrl.core import config, logger
+from qrl.core import config, logger, Wallet
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StateBuffer import StateBuffer
 from qrl.core.BlockBuffer import BlockBuffer
@@ -64,6 +64,13 @@ class BufferedChain:
     def length(self):
         return len(self._chain.blockchain)
 
+    #########################################3
+    #########################################3
+    #########################################3
+    #########################################3
+    #########################################3
+    # Block handling
+
     def add_pending_block(self, block)->bool:
         # FIXME: only used by POS (pre_block_logic) . Make obsolete
         # TODO : minimum block validation in unsynced state
@@ -111,6 +118,7 @@ class BufferedChain:
         if block.block_number <= self._chain.height():
             return False
 
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         if block.block_number - 1 == self._chain.height():
             if block.prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
@@ -120,16 +128,31 @@ class BufferedChain:
                 logger.info('No block found in buffer that matches with the prev_headerhash of received block')
                 return False
 
+        # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
         if validate:
-            if not self._chain.add_block(block):
-                logger.info("Failed to add block by add_block, re-requesting the block #%s", block.block_number)
+            if self.validate_block(block):
+                if self._chain.add_block(block):
+                    block_left = config.dev.blocks_per_epoch - (
+                            block.block_number - (block.epoch * config.dev.blocks_per_epoch))
+                    if block_left == 1:
+                        private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+                        self._wallet_private_seeds[block.epoch + 1] = private_seed
+                        self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
+
+                    self._clean_if_required(block.block_number)
+                else:
+                    logger.info("Failed to add block by add_block, "
+                                "re-requesting the block #%s", block.block_number)
+                    self._validate_tx_pool()
+                    return False
+            else:
+                logger.info('add_block failed - block failed validation.')
                 return False
         else:
-            if self._chain.pstate.add_block(self._chain, block, ignore_save_wallet=True) is True:
+            if self.add_block(block, ignore_save_wallet=True):
                 self._chain.blockchain.append(block)
 
-        block_left = config.dev.blocks_per_epoch - (
-            block.block_number - (block.epoch * config.dev.blocks_per_epoch))
+        block_left = config.dev.blocks_per_epoch - (block.block_number - (block.epoch * config.dev.blocks_per_epoch))
 
         if block_left == 1:
             private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
@@ -144,6 +167,27 @@ class BufferedChain:
         self._chain.pstate.update_tx_metadata(block)
         self.epoch = block.epoch
         return True
+
+    def _validate_tx_pool(self):
+        result = True
+
+        # FIXME: Breaks encapsulation
+        for tx in self._chain.tx_pool.transaction_pool:
+            if not tx.validate():
+                result = False
+                self._chain.tx_pool.remove_tx_from_pool(tx)
+                logger.info(('invalid tx: ', tx, 'removed from pool'))
+                continue
+
+            # FIXME: reference to a buffer
+            tx_state = self.get_stxn_state(blocknumber=self.height() + 1, addr=tx.txfrom)
+
+            if not tx.validate_extended(tx_state=tx_state):
+                result = False
+                logger.warning('tx %s failed', tx.txhash)
+                self._chain.tx_pool.remove_tx_from_pool(tx)
+
+        return result
 
     def add_block(self, block: Block)->bool:
         if not self.validate_block(block):                        # This is here because of validators, etc
@@ -160,6 +204,8 @@ class BufferedChain:
 
         # FIXME: This is extremely complicated. Review/refactor
 
+        # FIXME: Avoid +1/-1, assign a them to make things clear
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         if block.block_number - 1 == self._chain.height():
             if block_prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
@@ -178,6 +224,7 @@ class BufferedChain:
 
         state_buffer = StateBuffer()
 
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         if block.block_number - 1 == self._chain.height():
             stake_validators_list = copy.deepcopy(self._chain.pstate.stake_validators_list)
             stxn_state = dict()
@@ -230,6 +277,45 @@ class BufferedChain:
 
         return True
 
+    # TODO: This add_block used to be in state
+    def add_block(self, buffered_chain, block, ignore_save_wallet=False)->bool:
+        # FIXME: This does not seem to be related to persistance
+        address_txn = dict()
+        self.load_address_state(buffered_chain, block, address_txn)  # FIXME: Bottleneck
+
+        # FIXME: Unify Genesis case inside update, otherwise the special case is scattered everywhere
+        if block.block_number == 1:
+            if not self._chain.pstate._update_genesis(buffered_chain, block, address_txn):
+                return False
+        else:
+            blocks_left = self.get_blocks_left(block.block_number)
+            nonce = self._chain.pstate.stake_validators_list.sv_list[block.transactions[0].addr_from].nonce
+            logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
+                         block.block_number,
+                         block.epoch,
+                         blocks_left - 1,
+                         nonce,
+                         block.stake_selector)
+
+            if not self._chain.pstate.update(block, self._chain.pstate.stake_validators_list, address_txn):
+                return False
+
+        self._commit(block,
+                     address_txn,
+                     wallet=buffered_chain.wallet,
+                     ignore_save_wallet=ignore_save_wallet)
+
+        blocks_left = self.get_blocks_left(block.block_number)
+        if blocks_left == 1:
+            logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
+            xmss = buffered_chain.wallet.address_bundle[0].xmss
+            tmphc = hashchain(xmss.get_seed_private(), epoch=block.epoch + 1)
+            buffered_chain.hash_chain = tmphc.hashchain
+
+        self._chain.pstate._set_blockheight(buffered_chain.height() + 1)
+
+        return True
+
     def _remove_block(self, blocknumber):
         if blocknumber not in self.blocks:
             return
@@ -238,9 +324,74 @@ class BufferedChain:
             del self.blocks[blocknumber]
             blocknumber += 1
 
+    @staticmethod
+    def load_address_state(buffered_chain, block, address_txn):
+        # FIXME: This does not seem to be related to persistance
+        blocknumber = block.block_number
+
+        for protobuf_tx in block.transactions:
+            tx = Transaction.from_pbdata(protobuf_tx)
+            if tx.txfrom not in address_txn:
+                # FIXME: Access to chain buffer from here
+                address_txn[tx.txfrom] = buffered_chain.get_stxn_state(blocknumber, tx.txfrom)
+
+            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                if tx.txto not in address_txn:
+                    # FIXME: Access to chain buffer from here
+                    address_txn[tx.txto] = buffered_chain.get_stxn_state(blocknumber, tx.txto)
+
+        # FIXME: Modifying input. Side effect, etc.
+        return address_txn
+
+    # Returns the number of blocks left before next epoch
+    @staticmethod
+    def get_blocks_left(blocknumber):
+        epoch = blocknumber // config.dev.blocks_per_epoch
+        blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
+        blocks_left = config.dev.blocks_per_epoch - blocks_left
+        return blocks_left
+
+    def _commit(self,
+                block: Block,
+                address_txn,
+                wallet: Wallet,
+                ignore_save_wallet=False):
+
+        # FIXME: This indexing approach is very inefficient
+        staker = block.stake_selector
+        self._chain.pstate.stake_validators_list.sv_list[staker].nonce += 1
+
+        for address in address_txn:
+            self._chain.pstate._save_address_state(address, address_txn[address])
+
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in self._chain.pstate.stake_validators_list.sv_list:
+                self._chain.pstate.stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
+
+        if not ignore_save_wallet:
+            wallet.save_wallet()
+
+        self._chain.pstate.stake_validators_list.update_sv(block.block_number)
+
+        logger.debug('%s %s tx passed verification.', bin2hstr(block.headerhash), len(block.transactions))
+        return True
+
+    def _commit(self, block, stake_validators_list):
+        blocknumber = block.block_number
+        blocks_left = self._chain.pstate._get_blocks_left(blocknumber)
+        stake_validators_list.sv_list[block.stake_selector].nonce += 1
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in stake_validators_list.sv_list:
+                stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
+
+        if blocks_left == 1:
+            self._update_hash_chain(blocknumber)
+
+        stake_validators_list.update_sv(blocknumber)
+
     def _state_add_block_buffer(self, block, stake_validators_list, address_txn):
         # FIXME: This is mixing states
-        self._chain.pstate.load_address_state(self, block, address_txn)
+        self.load_address_state(self, block, address_txn)
 
         is_successful = self._chain.pstate.update(block, stake_validators_list, address_txn)
         if is_successful:
@@ -386,48 +537,9 @@ class BufferedChain:
 
         return True
 
-    #############################################3
-    #############################################3
-    #############################################3
-    #############################################3
-
-    def _update_hash_chain(self, blocknumber: int):
-        epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
-        logger.info('Created new hash chain')
-
-        prev_private_seed = self._wallet_private_seeds[epoch - 1]
-        self._wallet_private_seeds[epoch] = prev_private_seed
-        self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
-
-    def _commit(self, block, stake_validators_list):
-        blocknumber = block.block_number
-        blocks_left = self._chain.pstate._get_blocks_left(blocknumber)
-        stake_validators_list.sv_list[block.stake_selector].nonce += 1
-        for dup_tx in block.duplicate_transactions:
-            if dup_tx.coinbase1.txto in stake_validators_list.sv_list:
-                stake_validators_list.sv_list[dup_tx.coinbase1.txto].is_banned = True
-
-        if blocks_left == 1:
-            self._update_hash_chain(blocknumber)
-
-        stake_validators_list.update_sv(blocknumber)
-
-    def _get_epoch_seed(self, blocknumber: int)->Optional[int]:
-        try:
-            if blocknumber - 1 == self._chain.height():
-                return int(str(self.epoch_seed), 16)
-
-            return int(str(self.blocks[blocknumber - 1][1].next_seed), 16)
-        except KeyError:
-            self.error_msg('get_epoch_seed', blocknumber)
-        except Exception as e:
-            self.error_msg('get_epoch_seed', blocknumber, e)
-
-        return None
-
     def _move_to_mainchain(self, blocknum)->bool:
         block = self.blocks[blocknum][0].block
-        if not self._chain.pstate.add_block(self._chain, block):
+        if not self.add_block(block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 
@@ -451,24 +563,6 @@ class BufferedChain:
         if len(self.blocks) == 0:
             return self._chain.height()
         return max(self.blocks.keys())             # FIXME: max over a dictionary?
-
-    def pubhashExists(self, addr, pubhash, blocknumber):
-        # FIXME: Move to chain
-        state_addr = self.get_stxn_state(blocknumber, addr)
-
-        if state_addr is None:
-            logger.info('-->> state_addr None not possible')
-            return False
-
-        if pubhash in state_addr[2]:
-            return True
-
-        return False
-
-    ###########################
-    ###########################
-    ###########################
-    ###########################
 
     def get_block_n_score(self, blocknumber)->Optional[int]:
         try:
@@ -511,6 +605,7 @@ class BufferedChain:
             logger.warning('Rejecting block created by inactive stake selector %s', stake_selector)
             return False
 
+        # FIXME: Avoid +1/-1, assign a them to make things clear
         if block.block_number - 1 == self._chain.height():
             if prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
@@ -569,110 +664,6 @@ class BufferedChain:
 
         return True
 
-    def _get_st_balance(self, stake_address, blocknumber):
-        if stake_address is None:
-            logger.error('stake address should not be none, returning None')
-            return None
-
-        try:
-            if blocknumber - 1 == self._chain.height():
-                if stake_address in self._chain.pstate.stake_validators_list.sv_list:
-                    return self._chain.pstate.stake_validators_list.sv_list[stake_address].balance
-                logger.info('Blocknumber not found')
-                return None
-
-            return self.blocks[blocknumber - 1][1].stake_validators_list.sv_list[stake_address].balance
-        except KeyError:
-            self.error_msg('get_st_balance', blocknumber)
-        except Exception as e:
-            self.error_msg('get_st_balance', blocknumber, e)
-
-        return None
-
-    def get_stxn_state(self, blocknumber, addr):
-        try:
-            if blocknumber - 1 == self._chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
-                tmp_state = self._chain.pstate.get_address(addr)
-                return tmp_state
-
-            state_buffer = self.blocks[blocknumber - 1][1]
-
-            if addr in state_buffer.stxn_state:
-                return copy.deepcopy(state_buffer.stxn_state[addr])  # FIXME: Why deepcopy?
-
-            return self._chain.pstate.get_address(addr)
-        except KeyError:
-            self.error_msg('get_stxn_state', blocknumber)
-        except Exception as e:
-            self.error_msg('get_stxn_state', blocknumber, e)
-
-        return None
-
-    def stake_list_get(self, blocknumber):
-        try:
-            if blocknumber - 1 > self.height():
-                return None
-
-            if blocknumber - 1 == self._chain.height():
-                return self._chain.pstate.stake_validators_list.sv_list
-
-            state_buffer = self.blocks[blocknumber - 1][1]
-
-            return state_buffer.stake_validators_list.sv_list
-        except KeyError:
-            self.error_msg('stake_list_get', blocknumber)
-        except Exception as e:
-            self.error_msg('stake_list_get', blocknumber, e)
-
-        return None
-
-    def future_stake_addresses(self, blocknumber):
-        try:
-            if blocknumber - 1 == self._chain.height():
-                return self._chain.pstate.stake_validators_list.future_stake_addresses
-
-            state_buffer = self.blocks[blocknumber - 1][1]
-
-            return state_buffer.stake_validators_list.future_stake_addresses
-        except KeyError:
-            self.error_msg('stake_list_get', blocknumber)
-        except Exception as e:
-            self.error_msg('stake_list_get', blocknumber, e)
-
-        return None
-
-    def get_stake_validators_list(self, blocknumber):
-        try:
-            if blocknumber - 1 == self._chain.height():
-                return self._chain.pstate.stake_validators_list
-
-            return self.blocks[blocknumber - 1][1].stake_validators_list
-        except KeyError:
-            self.error_msg('get_stake_validators_list', blocknumber)
-        except Exception as e:
-            self.error_msg('get_stake_validators_list', blocknumber, e)
-
-        return None
-
-    def _clean_mining_data(self, blocknumber):
-        """
-        Removes the mining data from the memory.
-        :param blocknumber:
-        :return:
-        """
-
-        prev_epoch = blocknumber // config.dev.blocks_per_epoch
-
-        if prev_epoch in self._wallet_private_seeds:
-            del self._wallet_private_seeds[prev_epoch]
-
-        if prev_epoch in self.hash_chain:
-            del self.hash_chain[prev_epoch]
-
-        # FIXME: This should not be here
-        if prev_epoch in self._chain.slave_xmss:
-            del self._chain.slave_xmss[prev_epoch]
-
     def _clean_if_required(self, blocknumber):
         """
         Checks if the mining data such as private_seeds, hash_chain, slave_xmss
@@ -690,28 +681,11 @@ class BufferedChain:
         elif prev_epoch != self.epoch:
             self._clean_mining_data(blocknumber - 1)
 
-
-    ###########################
-    ###########################
-    ###########################
-    ###########################
-
-    def error_msg(self, func_name, blocknum, exception=None):
-        if exception:
-            logger.error(func_name + ' Unknown exception at blocknum: %s', blocknum)
-            logger.exception(exception)
-            return
-
-        logger.error('%s blocknum not found in blocks %s', func_name, blocknum)
-        if self.blocks:
-            logger.error('Min block num %s', min(self.blocks))
-            logger.error('Max block num %s', max(self.blocks))
-
-    ###########################
-    ###########################
-    ###########################
-    ###########################
-
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    #############################################
     # TODO: Persistence will move to rocksdb
 
     def read_genesis(self):
@@ -753,12 +727,123 @@ class BufferedChain:
         self.wallet.save_wallet()
         return self._chain.blockchain
 
-    ###########################
-    ###########################
-    ###########################
-    ###########################
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    # Miscellaneous FIXME: Find a right location for this
 
-    # create a block from a list of supplied tx_hashes, check state to ensure validity..
+    def search(self, query):
+        # FIXME: Refactor this. Prepare a look up in the DB
+        for tx in self._chain.tx_pool.transaction_pool:
+            if tx.txhash == query or tx.txfrom == query or tx.txto == query:
+                logger.info('%s found in transaction pool..', query)
+                return tx
+
+        return self._chain.search(query)
+
+    def error_msg(self, func_name, blocknum, exception=None):
+        if exception:
+            logger.error(func_name + ' Unknown exception at blocknum: %s', blocknum)
+            logger.exception(exception)
+            return
+
+        logger.error('%s blocknum not found in blocks %s', func_name, blocknum)
+        if self.blocks:
+            logger.error('Min block num %s', min(self.blocks))
+            logger.error('Max block num %s', max(self.blocks))
+
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    # Slave xmss    FIXME: Connected to staking
+
+    def _init_slave_xmsspool(self, starting_epoch):
+        baseseed = self.wallet.address_bundle[0].xmss.get_seed()
+        pool_size = 2
+        self.slave_xmsspool = XmssPool(baseseed,
+                                       config.dev.slave_xmss_height,
+                                       starting_epoch,
+                                       pool_size)
+
+    def get_slave_xmss(self, blocknumber):
+        epoch = self._get_mining_epoch(blocknumber)
+        if epoch not in self.slave_xmss:
+            if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
+                self._init_slave_xmsspool(epoch)
+                return None
+            if not self.slave_xmsspool.isAvailable():
+                return None
+
+            # Generate slave xmss
+            assert (epoch == self.slave_xmsspool.getCurrentIndex())  # Verify we are not skipping trees
+            tmp_xmss = self.slave_xmsspool.getNextTree()
+            self.slave_xmss[epoch] = XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
+
+            # TODO: Check why we are reading here
+            data = self.wallet.read_slave()
+            if data and data.address == self.slave_xmss[epoch].get_address():
+                self.slave_xmss[epoch].set_index(data.index)
+
+        return self.slave_xmss[epoch]
+
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    # Hashchain handling
+
+    def hash_chain_get(self, blocknumber):
+        epoch = self._get_mining_epoch(blocknumber)
+        return self.hash_chain[epoch]
+
+    def _update_hash_chain(self, blocknumber: int):
+        epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
+        logger.info('Created new hash chain')
+
+        prev_private_seed = self._wallet_private_seeds[epoch - 1]
+        self._wallet_private_seeds[epoch] = prev_private_seed
+        self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
+
+    def select_hashchain(self, stake_address=None, hash_chain=None, blocknumber=None):
+        # NOTE: Users POS / Block
+
+        if not hash_chain:
+            for s in self.stake_list_get(blocknumber):
+                if s[0] == stake_address:
+                    hash_chain = s[1]
+                    break
+
+        if not hash_chain:
+            return
+
+        return hash_chain
+
+    def _get_epoch_seed(self, blocknumber: int)->Optional[int]:
+        try:
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if blocknumber - 1 == self._chain.height():
+                return int(str(self.epoch_seed), 16)
+
+            return int(str(self.blocks[blocknumber - 1][1].next_seed), 16)
+        except KeyError:
+            self.error_msg('get_epoch_seed', blocknumber)
+        except Exception as e:
+            self.error_msg('get_epoch_seed', blocknumber, e)
+
+        return None
+
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    #############################################
+    # Related to staking
+
     def create_stake_block(self, reveal_hash, last_block_number) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
@@ -878,23 +963,18 @@ class BufferedChain:
 
         return block_obj
 
-    def hash_chain_get(self, blocknumber):
-        epoch = self._get_mining_epoch(blocknumber)
-        return self.hash_chain[epoch]
+    def pubhashExists(self, addr, pubhash, blocknumber):
+        # FIXME: Move to chain
+        state_addr = self.get_stxn_state(blocknumber, addr)
 
-    def select_hashchain(self, stake_address=None, hash_chain=None, blocknumber=None):
-        # NOTE: Users POS / Block
+        if state_addr is None:
+            logger.info('-->> state_addr None not possible')
+            return False
 
-        if not hash_chain:
-            for s in self.stake_list_get(blocknumber):
-                if s[0] == stake_address:
-                    hash_chain = s[1]
-                    break
+        if pubhash in state_addr[2]:
+            return True
 
-        if not hash_chain:
-            return
-
-        return hash_chain
+        return False
 
     def _get_mining_epoch(self, blocknumber):
         sv_list = self.stake_list_get(blocknumber)
@@ -908,50 +988,111 @@ class BufferedChain:
 
         return epoch
 
-    ###################################
-    ###################################
-    ###################################
-    ###################################
+    def _get_st_balance(self, stake_address, blocknumber):
+        if stake_address is None:
+            logger.error('stake address should not be none, returning None')
+            return None
 
-    def search(self, query):
-        # FIXME: Refactor this. Prepare a look up in the DB
-        for tx in self._chain.tx_pool.transaction_pool:
-            if tx.txhash == query or tx.txfrom == query or tx.txto == query:
-                logger.info('%s found in transaction pool..', query)
-                return tx
-
-        return self._chain.search(query)
-
-    ###################################
-    ###################################
-    ###################################
-    ###################################
-
-    def _init_slave_xmsspool(self, starting_epoch):
-        baseseed = self.wallet.address_bundle[0].xmss.get_seed()
-        pool_size = 2
-        self.slave_xmsspool = XmssPool(baseseed,
-                                       config.dev.slave_xmss_height,
-                                       starting_epoch,
-                                       pool_size)
-
-    def get_slave_xmss(self, blocknumber):
-        epoch = self._get_mining_epoch(blocknumber)
-        if epoch not in self.slave_xmss:
-            if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
-                self._init_slave_xmsspool(epoch)
-                return None
-            if not self.slave_xmsspool.isAvailable():
+        try:
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if blocknumber - 1 == self._chain.height():
+                if stake_address in self._chain.pstate.stake_validators_list.sv_list:
+                    return self._chain.pstate.stake_validators_list.sv_list[stake_address].balance
+                logger.info('Blocknumber not found')
                 return None
 
-            # Generate slave xmss
-            assert (epoch == self.slave_xmsspool.getCurrentIndex())  # Verify we are not skipping trees
-            tmp_xmss = self.slave_xmsspool.getNextTree()
-            self.slave_xmss[epoch] = XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
+            return self.blocks[blocknumber - 1][1].stake_validators_list.sv_list[stake_address].balance
+        except KeyError:
+            self.error_msg('get_st_balance', blocknumber)
+        except Exception as e:
+            self.error_msg('get_st_balance', blocknumber, e)
 
-            # TODO: Check why we are reading here
-            data = self.wallet.read_slave()
-            if data and data.address == self.slave_xmss[epoch].get_address():
-                self.slave_xmss[epoch].set_index(data.index)
+        return None
 
-        return self.slave_xmss[epoch]
+    def get_stxn_state(self, blocknumber, addr):
+        try:
+            if blocknumber - 1 == self._chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
+                tmp_state = self._chain.pstate.get_address(addr)
+                return tmp_state
+
+            state_buffer = self.blocks[blocknumber - 1][1]
+
+            if addr in state_buffer.stxn_state:
+                return copy.deepcopy(state_buffer.stxn_state[addr])  # FIXME: Why deepcopy?
+
+            return self._chain.pstate.get_address(addr)
+        except KeyError:
+            self.error_msg('get_stxn_state', blocknumber)
+        except Exception as e:
+            self.error_msg('get_stxn_state', blocknumber, e)
+
+        return None
+
+    def stake_list_get(self, blocknumber):
+        try:
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if blocknumber - 1 > self.height():
+                return None
+
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if blocknumber - 1 == self._chain.height():
+                return self._chain.pstate.stake_validators_list.sv_list
+
+            state_buffer = self.blocks[blocknumber - 1][1]
+
+            return state_buffer.stake_validators_list.sv_list
+        except KeyError:
+            self.error_msg('stake_list_get', blocknumber)
+        except Exception as e:
+            self.error_msg('stake_list_get', blocknumber, e)
+
+        return None
+
+    def future_stake_addresses(self, blocknumber):
+        try:
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if blocknumber - 1 == self._chain.height():
+                return self._chain.pstate.stake_validators_list.future_stake_addresses
+
+            state_buffer = self.blocks[blocknumber - 1][1]
+
+            return state_buffer.stake_validators_list.future_stake_addresses
+        except KeyError:
+            self.error_msg('stake_list_get', blocknumber)
+        except Exception as e:
+            self.error_msg('stake_list_get', blocknumber, e)
+
+        return None
+
+    def get_stake_validators_list(self, blocknumber):
+        try:
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if blocknumber - 1 == self._chain.height():
+                return self._chain.pstate.stake_validators_list
+
+            return self.blocks[blocknumber - 1][1].stake_validators_list
+        except KeyError:
+            self.error_msg('get_stake_validators_list', blocknumber)
+        except Exception as e:
+            self.error_msg('get_stake_validators_list', blocknumber, e)
+
+        return None
+
+    def _clean_mining_data(self, blocknumber):
+        """
+        Removes the mining data from the memory.
+        :param blocknumber:
+        :return:
+        """
+
+        prev_epoch = blocknumber // config.dev.blocks_per_epoch
+
+        if prev_epoch in self._wallet_private_seeds:
+            del self._wallet_private_seeds[prev_epoch]
+
+        if prev_epoch in self.hash_chain:
+            del self.hash_chain[prev_epoch]
+
+        # FIXME: This should not be here
+        if prev_epoch in self._chain.slave_xmss:
+            del self._chain.slave_xmss[prev_epoch]
