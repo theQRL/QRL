@@ -39,11 +39,11 @@ class ApiFactory(ServerFactory):
 
         # FIXME: This is a duplicate of balance
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, pubhash_list = self.state.get_address(address)
+        tmp_address_state = self.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = self.format_qrlamount(balance)
-        addr['state']['nonce'] = nonce
+        addr['state']['balance'] = self.format_qrlamount(tmp_address_state.balance)
+        addr['state']['nonce'] = tmp_address_state.nonce
 
         for s in self.state.stake_list_get():
             if address == s[0]:

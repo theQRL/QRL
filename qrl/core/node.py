@@ -198,8 +198,8 @@ class POS:
                     config.dev.minimum_required_stakers)
         logger.info('node address: %s', self.buffered_chain.staking_address)
 
-        if len(
-                self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
+        # stake pool still not full..reloop..
+        if len(self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:
             self.p2pFactory.send_st_to_peers(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)

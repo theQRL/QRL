@@ -27,18 +27,16 @@ class StateBuffer:
             tmp_sl.append(st)
         return tmp_sl
 
-    def update(self, state, parent_state_buffer, block):
-
+    def update(self, pstate, parent_state_buffer, block):
         self.set_next_seed(block.reveal_hash, parent_state_buffer.next_seed)
         self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
 
-        self.update_stxn_state(state)
+        self.update_stxn_state(pstate)
 
-    def update_stxn_state(self, state):
+    def update_stxn_state(self, pstate):
         stxn_state_keys = list(self.stxn_state.keys())
         for addr in stxn_state_keys:
+            addr_state = pstate.get_address(addr)
 
-            addr_list = state.get_address(addr)
-
-            if self.stxn_state[addr][1] == addr_list[1] and self.stxn_state[addr][2] == addr_list[2]:
+            if self.stxn_state[addr].balance == addr_state.balance and self.stxn_state[addr].pubhashes == addr_state.pubhashes:
                 del self.stxn_state[addr]

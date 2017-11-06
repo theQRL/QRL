@@ -2,12 +2,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, List, Dict
 
 import os
 from pyqrllib.pyqrllib import str2bin, bin2hstr, XmssPool
 
 from qrl.core import config, logger, Wallet
+from qrl.core.AddressState import AddressState
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StateBuffer import StateBuffer
@@ -29,7 +30,7 @@ class BufferedChain:
     def __init__(self, chain: Chain):
         self._chain = chain
 
-        self.blocks = dict()                    # FIXME: Using a dict is very inefficient when index are a sequence
+        self.blocks = dict()  # FIXME: Using a dict is very inefficient when index are a sequence
 
         self._pending_blocks = dict()
 
@@ -73,10 +74,10 @@ class BufferedChain:
         return len(self._chain.blockchain)
 
     @property
-    def height(self)->int:
+    def height(self) -> int:
         if len(self.blocks) == 0:
             return self._chain.height()
-        return max(self.blocks.keys())             # FIXME: max over a dictionary?
+        return max(self.blocks.keys())  # FIXME: max over a dictionary?
 
     #########################################
     #########################################
@@ -85,7 +86,7 @@ class BufferedChain:
     #########################################
     # Block handling
 
-    def add_pending_block(self, block)->bool:
+    def add_pending_block(self, block) -> bool:
         # FIXME: only used by POS (pre_block_logic) . Make obsolete
         # TODO : minimum block validation in unsynced state
         block_idx = block.block_number
@@ -115,20 +116,20 @@ class BufferedChain:
 
         return False
 
-    def get_last_block(self)->Optional[Block]:
+    def get_last_block(self) -> Optional[Block]:
         if len(self.blocks) == 0:
             return self._chain.get_last_block()
 
         # FIXME: Should this run max on the keys only? Or better keep track of the value..
         last_blocknum = max(self.blocks.keys())
-        return self.blocks[last_blocknum][0].block      # FIXME: What does [0] refers to?
+        return self.blocks[last_blocknum][0].block  # FIXME: What does [0] refers to?
 
-    def get_block(self, block_idx: int)->Optional[Block]:
+    def get_block(self, block_idx: int) -> Optional[Block]:
         if block_idx in self.blocks:
-            return self.blocks[block_idx][0].block      # FIXME: What does [0] refers to?
+            return self.blocks[block_idx][0].block  # FIXME: What does [0] refers to?
         return self._chain.get_block(block_idx)
 
-    def add_block_mainchain(self, block, validate=True)->bool:
+    def add_block_mainchain(self, block, validate=True) -> bool:
         if block.block_number <= self._chain.height():
             return False
 
@@ -138,7 +139,8 @@ class BufferedChain:
                 logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
         elif block.block_number - 1 > 0:
-            if block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][0].block.headerhash:
+            if block.block_number - 1 not in self.blocks or block.prev_headerhash != \
+                    self.blocks[block.block_number - 1][0].block.headerhash:
                 logger.info('No block found in buffer that matches with the prev_headerhash of received block')
                 return False
 
@@ -208,8 +210,8 @@ class BufferedChain:
 
         return result
 
-    def add_block(self, block: Block)->bool:
-        if not self.validate_block(block):                        # This is here because of validators, etc
+    def add_block(self, block: Block) -> bool:
+        if not self.validate_block(block):  # This is here because of validators, etc
             logger.info('Block validation failed')
             logger.info('Block #%s', block.block_number)
             logger.info('Stake_selector %s', block.stake_selector)
@@ -229,11 +231,13 @@ class BufferedChain:
             if block_prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
-        elif block.block_number - 1 not in self.blocks or block_prev_headerhash != self.blocks[block.block_number - 1][0].block.headerhash:
+        elif block.block_number - 1 not in self.blocks or block_prev_headerhash != self.blocks[block.block_number - 1][
+            0].block.headerhash:
             logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
-        if block.block_number in self.blocks and block_headerhash == self.blocks[block.block_number][0].block.headerhash:
+        if block.block_number in self.blocks and block_headerhash == self.blocks[block.block_number][
+            0].block.headerhash:
             return False
 
         if (block.block_number - config.dev.reorg_limit) in self.blocks:
@@ -259,7 +263,7 @@ class BufferedChain:
             state_buffer.set_next_seed(block.reveal_hash, self.epoch_seed)
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update_stxn_state(self.height)
+            state_buffer.update_stxn_state(self._chain.pstate)
         else:
             block_state_buffer = self.blocks[block.block_number - 1]
             parent_state_buffer = block_state_buffer[1]
@@ -275,7 +279,7 @@ class BufferedChain:
                                                             block.block_number))
             state_buffer.stake_validators_list = stake_validators_list
             state_buffer.stxn_state = stxn_state
-            state_buffer.update(self.height, parent_state_buffer, block)
+            state_buffer.update(self._chain.pstate, parent_state_buffer, block)
 
         if block.block_number not in self.blocks:
             self.blocks[block.block_number] = [block_buffer, state_buffer]
@@ -429,8 +433,10 @@ class BufferedChain:
 
         return True
 
+    def _update_stake_genesis(self,
+                              block: Block,
+                              address_state_dict: Dict[bytes, AddressState]) -> bool:
 
-    def _update_stake_genesis(self, buffered_chain, block, address_txn) -> bool:
         # FIXME: This does not seem to be related to persistance
         # Start Updating coin base txn
         protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
@@ -438,16 +444,16 @@ class BufferedChain:
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
             logger.warning('subtype: %s', tx.subtype)
-            logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_txn[tx.txfrom][0] + 1)
+            logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_state_dict[tx.txfrom][0] + 1)
             return False
         # TODO: To be fixed later
-        if tx.pubhash in address_txn[tx.txfrom][2]:
+        if tx.pubhash in address_state_dict[tx.txfrom][2]:
             logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
             logger.warning('subtype: %s', tx.subtype)
             return False
 
-        address_txn[tx.txto][1] += tx.amount
-        address_txn[tx.txfrom][2].append(tx.pubhash)
+        address_state_dict[tx.txto][1] += tx.amount
+        address_state_dict[tx.txfrom][2].append(tx.pubhash)
 
         # Coinbase update end here
         # FIXME: Most of this should be done in the GenesisBlock which should derive from Block
@@ -471,51 +477,48 @@ class BufferedChain:
                 # FIX ME: This goes to stake validator list without verifiction, Security Risk
                 self._chain.pstate.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
 
-                address_txn[tx.txfrom][2].append(tx.pubhash)
+                address_state_dict[tx.txfrom][2].append(tx.pubhash)
 
         epoch_seed = self._chain.pstate.stake_validators_list.calc_seed()
-        buffered_chain.epoch_seed = epoch_seed
+        self.epoch_seed = epoch_seed
         self._chain.pstate.put_epoch_seed(epoch_seed)
 
-        buffered_chain.epoch_seed = self._chain.pstate.calc_seed(tmp_list)
+        self.epoch_seed = self._chain.pstate.calc_seed(tmp_list)
 
         # FIXME: Move score to an appropriate place
-        buffered_chain.stake_list = sorted(tmp_list,
-                                           key=lambda staker:
-                                           buffered_chain._chain.score(stake_address=staker[0],
-                                                                       reveal_one=bin2hstr(
-                                                                           sha256(str(
-                                                                               reduce(lambda set1,
-                                                                                             set2: set1 + set2,
-                                                                                      tuple(staker[
-                                                                                                1]))).encode())),
-                                                                       balance=staker[3],
-                                                                       seed=buffered_chain.block_chain_buffer.epoch_seed))
+        self.stake_list = sorted(tmp_list,
+                                 key=lambda staker:
+                                 self._chain.score(stake_address=staker[0],
+                                                   reveal_one=bin2hstr(
+                                                       sha256(str(
+                                                           reduce(lambda set1,
+                                                                         set2: set1 + set2,
+                                                                  tuple(staker[
+                                                                            1]))).encode())),
+                                                   balance=staker[3],
+                                                   seed=self.epoch_seed))
 
         # FIXME: Changes the type in the same variable!
-        buffered_chain.epoch_seed = format(buffered_chain.epoch_seed, 'x')
+        self.epoch_seed = format(self.epoch_seed, 'x')
 
-        if buffered_chain._chain.stake_list[0][0] != block.stake_selector:
+        if self._chain.stake_list[0][0] != block.stake_selector:
             logger.info('stake selector wrong..')
             return False
 
-        xmss = buffered_chain.wallet.address_bundle[0].xmss
+        xmss = self.wallet.address_bundle[0].xmss
         tmphc = hashchain(xmss.get_seed_private(), epoch=0)  # FIXME: Risky use of xmss
 
-        buffered_chain.hash_chain = tmphc.hashchain
-        buffered_chain.wallet.save_wallet()
+        self.hash_chain = tmphc.hashchain
+        self.wallet.save_wallet()
         return True
 
-
     # TODO: This add_block used to be in state
-    def add_block(self, block, ignore_save_wallet=False)->bool:
-        # FIXME: This does not seem to be related to persistance
-        address_txn = dict()
-        self.load_address_state(block, address_txn)  # FIXME: Bottleneck
+    def add_block(self, block: Block, ignore_save_wallet=False) -> bool:
+        address_state_dict = self.load_address_state(block, dict())
 
         # FIXME: Unify Genesis case inside update, otherwise the special case is scattered everywhere
         if block.block_number == 1:
-            if not self._chain.pstate._update_stake_genesis(self, block, address_txn):
+            if not self._update_stake_genesis(block, address_state_dict):
                 return False
         else:
             blocks_left = self.get_blocks_left(block.block_number)
@@ -536,15 +539,16 @@ class BufferedChain:
                          nonce,
                          block.stake_selector)
 
-            if not self._update(block, self._chain.pstate.stake_validators_list, address_txn):
+            if not self._update(block, self._chain.pstate.stake_validators_list, address_state_dict):
                 return False
 
-        self._commit(block,
-                     address_txn,
+        self._commit(block=block,
+                     address_state_dict=address_state_dict,
                      wallet=self.wallet,
                      ignore_save_wallet=ignore_save_wallet)
 
         blocks_left = self.get_blocks_left(block.block_number)
+
         if blocks_left == 1:
             logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
             xmss = self.wallet.address_bundle[0].xmss
@@ -563,35 +567,35 @@ class BufferedChain:
             del self.blocks[blocknumber]
             blocknumber += 1
 
-    def load_address_state(self, block, address_txn):
-        # FIXME: This does not seem to be related to persistance
-        blocknumber = block.block_number
+    def load_address_state(self, block: Block,
+                           address_txn: Dict[bytes, AddressState]) -> Dict[bytes, AddressState]:
 
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.txfrom not in address_txn:
                 # FIXME: Access to chain buffer from here
-                address_txn[tx.txfrom] = self.get_stxn_state(blocknumber, tx.txfrom)
+                address_txn[tx.txfrom] = self.get_stxn_state(block.block_number, tx.txfrom)
 
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 if tx.txto not in address_txn:
                     # FIXME: Access to chain buffer from here
-                    address_txn[tx.txto] = self.get_stxn_state(blocknumber, tx.txto)
+                    address_txn[tx.txto] = self.get_stxn_state(block.block_number, tx.txto)
 
         # FIXME: Modifying input. Side effect, etc.
         return address_txn
 
     # Returns the number of blocks left before next epoch
     @staticmethod
-    def get_blocks_left(blocknumber):
+    def get_blocks_left(blocknumber: int)->int:
         epoch = blocknumber // config.dev.blocks_per_epoch
         blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
         blocks_left = config.dev.blocks_per_epoch - blocks_left
+
         return blocks_left
 
     def _commit(self,
                 block: Block,
-                address_txn,
+                address_state_dict: Dict[bytes, AddressState],
                 wallet: Wallet,
                 ignore_save_wallet=False):
 
@@ -599,8 +603,8 @@ class BufferedChain:
         staker = block.stake_selector
         self._chain.pstate.stake_validators_list.sv_list[staker].nonce += 1
 
-        for address in address_txn:
-            self._chain.pstate._save_address_state(address, address_txn[address])
+        for address in address_state_dict:
+            self._chain.pstate._save_address_state(address_state_dict[address])
 
         for dup_tx in block.duplicate_transactions:
             if dup_tx.coinbase1.txto in self._chain.pstate.stake_validators_list.sv_list:
@@ -614,7 +618,8 @@ class BufferedChain:
         logger.debug('%s %s tx passed verification.', bin2hstr(block.headerhash), len(block.transactions))
         return True
 
-    def _commit(self, block, stake_validators_list):
+    def _commit(self, block: Block, stake_validators_list):
+
         blocknumber = block.block_number
         blocks_left = self._chain.pstate._get_blocks_left(blocknumber)
         stake_validators_list.sv_list[block.stake_selector].nonce += 1
@@ -627,9 +632,13 @@ class BufferedChain:
 
         stake_validators_list.update_sv(blocknumber)
 
-    def _state_add_block_buffer(self, block, stake_validators_list, address_txn):
+    def _state_add_block_buffer(self,
+                                block: Block,
+                                stake_validators_list,
+                                address_txn: Dict[bytes, AddressState]):
+
         # FIXME: This is mixing states
-        self.load_address_state(block, address_txn)
+        address_txn = self.load_address_state(block, address_txn)
 
         is_successful = self._update(block, stake_validators_list, address_txn)
         if is_successful:
@@ -639,7 +648,10 @@ class BufferedChain:
 
         return is_successful
 
-    def create_block(self, reveal_hash, last_block_number=-1) -> Optional[Block]:
+    def create_block(self,
+                     reveal_hash: bytes,
+                     last_block_number: int=-1) -> Optional[Block]:
+
         # FIXME: This can probably happen inside get_block, why two methods?
         if last_block_number == -1:
             last_block = self.get_last_block()
@@ -664,14 +676,14 @@ class BufferedChain:
         slave_xmss = self.get_slave_xmss(last_block.block_number + 1)
 
         if not slave_xmss:
-            return None     # FIXME: Not clear why the skip and return False
+            return None  # FIXME: Not clear why the skip and return False
 
         # FIXME: Why is it necessary to access the wallet here? Unexpected side effect?
         self.wallet.save_slave(slave_xmss)
 
         return new_block
 
-    def validate_block(self, block: Block)->bool:
+    def validate_block(self, block: Block) -> bool:
         """
         Checks validity of a new block
         """
@@ -679,7 +691,7 @@ class BufferedChain:
             # FIXME: review this.. Too complicated
             last_block = self.get_block(block.block_number - 1)
 
-            if last_block is not None:          # FIXME: Review this
+            if last_block is not None:  # FIXME: Review this
                 if not block.blockheader.validate(last_block.blockheader):
                     return False
 
@@ -715,7 +727,7 @@ class BufferedChain:
                     if tx.subtype == TX_SUBTYPE_STAKE:
                         if tx.txfrom == block.stake_selector:
                             found = True
-                            reveal_hash = self._chain.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
+                            reveal_hash = self.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
                             if sha256(bin2hstr(tuple(block.reveal_hash)).encode()) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
                                 return False
@@ -746,7 +758,7 @@ class BufferedChain:
 
         return True
 
-    def _validate_txs_in_block(self, block: Block)->bool:
+    def _validate_txs_in_block(self, block: Block) -> bool:
         # FIXME: This is accessing buffered chain. It does not belong here
         # Validating coinbase txn
 
@@ -775,7 +787,7 @@ class BufferedChain:
 
         return True
 
-    def _move_to_mainchain(self, blocknum)->bool:
+    def _move_to_mainchain(self, blocknum) -> bool:
         block = self.blocks[blocknum][0].block
         if not self.add_block(block):
             logger.info('last block failed state/stake checks, removed from chain')
@@ -797,7 +809,7 @@ class BufferedChain:
         self._chain.pstate.update_tx_metadata(block)
         return True
 
-    def get_block_n_score(self, blocknumber)->Optional[int]:
+    def get_block_n_score(self, blocknumber) -> Optional[int]:
         try:
             return self.blocks[blocknumber][0].score
         except KeyError:
@@ -815,7 +827,7 @@ class BufferedChain:
 
         return last_block.block_number
 
-    def verify_BK_hash(self, block: Block, conn_identity)->bool:
+    def verify_BK_hash(self, block: Block, conn_identity) -> bool:
         stake_selector = block.stake_selector
         prev_headerhash = block.prev_headerhash
 
@@ -844,7 +856,8 @@ class BufferedChain:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
             return True
-        elif block.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[block.block_number - 1][0].block.headerhash:
+        elif block.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[block.block_number - 1][
+            0].block.headerhash:
             logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
@@ -861,7 +874,7 @@ class BufferedChain:
         # FIXME: Unclear.. why verify checks ordering?
         return self._is_better_block(block.block_number, score)
 
-    def score_BK_hash(self, block: Block)->int:
+    def score_BK_hash(self, block: Block) -> int:
         seed = self._chain._get_epoch_seed(block.block_number)
         score = self._chain.score(stake_address=block.stake_selector,
                                   reveal_one=block.reveal_hash,
@@ -937,7 +950,7 @@ class BufferedChain:
         ###########
 
         # FIXME: Direct access - Breaks encapsulation
-        self._chain.blockchain.append(genesis_block)                       # FIXME: Adds without checking???
+        self._chain.blockchain.append(genesis_block)  # FIXME: Adds without checking???
 
         # FIXME: it is not nice how genesis block is ignored
         tmp_chain = self._chain._read_chain(0)
@@ -948,7 +961,7 @@ class BufferedChain:
         epoch = 1
         # FIXME: Avoid checking files here..
         while os.path.isfile(self._chain._get_chain_datafile(epoch)):
-            del self._chain.blockchain[:-1]                                # FIXME: This optimization could be encapsulated
+            del self._chain.blockchain[:-1]  # FIXME: This optimization could be encapsulated
             for block in self._chain._read_chain(epoch):
                 self.add_block_mainchain(block, validate=False)
 
@@ -1039,7 +1052,11 @@ class BufferedChain:
         self._wallet_private_seeds[epoch] = prev_private_seed
         self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
-    def select_hashchain(self, stake_address=None, hash_chain=None, blocknumber=None):
+    def select_hashchain(self,
+                         stake_address: bytes=None,
+                         hash_chain=None,
+                         blocknumber=None):
+
         # NOTE: Users POS / Block
 
         if not hash_chain:
@@ -1053,7 +1070,7 @@ class BufferedChain:
 
         return hash_chain
 
-    def _get_epoch_seed(self, blocknumber: int)->Optional[int]:
+    def _get_epoch_seed(self, blocknumber: int) -> Optional[int]:
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
             if blocknumber - 1 == self._chain.height():
@@ -1145,7 +1162,8 @@ class BufferedChain:
                     total_txn -= 1
                     continue
                 if tx.txfrom in stake_validators_list.sv_list:
-                    expiry = stake_validators_list.sv_list[tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                    expiry = stake_validators_list.sv_list[
+                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
                     if tx.activation_blocknumber < expiry:
                         logger.debug('Skipping st txn as it is already active for the given range %s', tx.txfrom)
                         del t_pool2[txnum]
@@ -1183,7 +1201,7 @@ class BufferedChain:
 
             self.tx_pool.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
-            tx._data.nonce = self.get_stxn_state(last_block_number + 1, tx.txfrom)[0] + tx_nonce[tx.txfrom]
+            tx._data.nonce = self.get_stxn_state(last_block_number + 1, tx.txfrom).nonce + tx_nonce[tx.txfrom]
             txnum += 1
 
         # create the block..
@@ -1241,11 +1259,12 @@ class BufferedChain:
 
         return None
 
-    def get_stxn_state(self, blocknumber, addr):
+    def get_stxn_state(self, blocknumber, addr) -> Optional[AddressState]:
         try:
+            # FIXME: Simplify this - self.blocks[blocknumber - 1][1] is a StateBuffer
             if blocknumber - 1 == self._chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
-                tmp_state = self._chain.pstate.get_address(addr)
-                return tmp_state
+                address_state = self._chain.pstate.get_address(addr)
+                return address_state
 
             state_buffer = self.blocks[blocknumber - 1][1]
 
@@ -1253,6 +1272,7 @@ class BufferedChain:
                 return copy.deepcopy(state_buffer.stxn_state[addr])  # FIXME: Why deepcopy?
 
             return self._chain.pstate.get_address(addr)
+
         except KeyError:
             self.error_msg('get_stxn_state', blocknumber)
         except Exception as e:

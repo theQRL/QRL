@@ -438,11 +438,11 @@ class ApiProtocol(Protocol):
             return json_print_telnet(addr)
 
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, _ = self.factory.state.get_address(address)
+        tmp_address_state = self.factory.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = self.factory.format_qrlamount(balance)
-        addr['state']['nonce'] = nonce
+        addr['state']['balance'] = self.factory.format_qrlamount(tmp_address_state.balance)
+        addr['state']['nonce'] = tmp_address_state.nonce
         addr['state']['transactions'] = self.factory.state.get_txn_count(address)
         addr['status'] = 'ok'
 

@@ -7,6 +7,7 @@ from _decimal import Decimal
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import db, logger, config
+from qrl.core.AddressState import AddressState
 from qrl.core.StakeValidatorsList import StakeValidatorsList
 from qrl.core.Transaction import Transaction
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
@@ -78,36 +79,17 @@ class State:
     #########################################
     #########################################
 
-    # Loads the state of the addresses mentioned into txn
-
     def uptodate(self, height):  # check state db marker to current blockheight.
+        # FIXME: Remove
         return height == self._blockheight()
 
     def _blockheight(self):
+        # FIXME: Remove
         return self._db.get('blockheight')
 
     def _set_blockheight(self, height):
+        # FIXME: Remove
         return self._db.put('blockheight', height)
-
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-
-    # Loads the state of the addresses mentioned into txn
-
-    def nonce(self, addr: bytes):
-        nonce, balance, pubhash_list = self.get_address(addr)
-        return nonce
-
-    def balance(self, addr: bytes):
-        nonce, balance, pubhash_list = self.get_address(addr)
-        return balance
-
-    def pubhash(self, addr: bytes):
-        nonce, balance, pubhash_list = self.get_address(addr)
-        return pubhash_list
 
     #########################################
     #########################################
@@ -213,39 +195,37 @@ class State:
     #########################################
 
     def _get_address_state(self, address: bytes):
-        address_state = qrl_pb2.AddressState()
         data = self._db.get_raw(address)
         if data is None:
             raise KeyError("{} not found".format(address))
+        pbdata = qrl_pb2.AddressState()
+        pbdata.ParseFromString(data)
+        address_state = AddressState(pbdata)
+        return address_state
 
-        address_state.ParseFromString(bytes(data))
+    def _save_address_state(self, address_state: AddressState):
+        data = address_state.pbdata.SerializeToString()
+        self._db.put_raw(address_state.address, data)
 
-        # FIXME: pubhashes is deserialized as a pb container but some methods want to make changes. Workaround
-        tmp = [h for h in address_state.pubhashes]
-
-        return [address_state.nonce,
-                address_state.balance,
-                tmp]
-
-    def _save_address_state(self, address: bytes, state):
-        # FIXME: internally keep data in byte form
-        address_state = qrl_pb2.AddressState()
-        address_state.address = address
-        address_state.nonce = state[0]
-        address_state.balance = state[1]
-
-        # FIXME: Keep internally all hashes as bytearrays
-        address_state.pubhashes.extend([bytes(b) for b in state[2]])
-
-        self._db.put_raw(address, address_state.SerializeToString())
-
-    def get_address(self, address: bytes):
+    def get_address(self, address: bytes)->AddressState:
         # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
         try:
             return self._get_address_state(address)
         except KeyError:
             # FIXME: Check all cases where address is not found
-            return [config.dev.default_nonce, config.dev.default_account_balance, []]
+            return AddressState.create(address=address,
+                                       nonce=config.dev.default_nonce,
+                                       balance=config.dev.default_account_balance,
+                                       pubhashes=[])
+
+    def nonce(self, addr: bytes)->int:
+        return self.get_address(addr).nonce
+
+    def balance(self, addr: bytes)->int:
+        return self.get_address(addr).balance
+
+    def pubhash(self, addr: bytes):
+        return self.get_address(addr).pubhashes
 
     def address_used(self, address: bytes):
         # FIXME: Probably obsolete
@@ -261,10 +241,11 @@ class State:
 
     def return_all_addresses(self):
         addresses = []
-        address_state = qrl_pb2.AddressState()
-        for k, v in self._db.RangeIter(b'Q', b'Qz'):
-            address_state.ParseFromString(v)
-            addresses.append([k, Decimal(address_state.balance)])  # FIXME: Why Decimal?
+        for key, data in self._db.RangeIter(b'Q', b'Qz'):
+            pbdata = qrl_pb2.AddressState()
+            pbdata.ParseFromString(data)
+            address_state = AddressState(pbdata)
+            addresses.append(address_state)
         return addresses
 
     def zero_all_addresses(self):
@@ -282,11 +263,10 @@ class State:
 
     def total_coin_supply(self):
         # FIXME: This is temporary code. NOT SCALABLE. It is easy to keep a global count
+        all_addresses = self.return_all_addresses()
         coins = Decimal(0)
-        address_state = qrl_pb2.AddressState()
-        for k, v in self._db.RangeIter(b'Q', b'Qz'):
-            address_state.ParseFromString(v)
-            coins = coins + Decimal(address_state.balance)  # FIXME: decimal math?
+        for a in all_addresses:
+            coins = coins + Decimal(a.balance)  # FIXME: decimal math?
         return coins
 
     @staticmethod
