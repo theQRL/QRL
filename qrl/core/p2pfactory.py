@@ -59,6 +59,10 @@ class P2PFactory(ServerFactory):
 
         self.last_ping = None
 
+    @property
+    def height(self):
+        return self.buffered_chain.height
+
     # factory network functions
     def setPOS(self, pos):
         self.pos = pos

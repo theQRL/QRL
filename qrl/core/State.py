@@ -218,10 +218,10 @@ class State:
                                        balance=config.dev.default_account_balance,
                                        pubhashes=[])
 
-    def nonce(self, addr: bytes)->int:
+    def nonce(self, addr: bytes) -> int:
         return self.get_address(addr).nonce
 
-    def balance(self, addr: bytes)->int:
+    def balance(self, addr: bytes) -> int:
         return self.get_address(addr).balance
 
     def pubhash(self, addr: bytes):

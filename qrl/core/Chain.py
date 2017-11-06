@@ -43,12 +43,12 @@ class Chain:
 
     def add_block(self, block: Block) -> bool:
         # TODO : minimum block validation in unsynced _state
-        if block.block_number <= self.height():
+        if block.block_number <= self.height:
             logger.warning("Block already in the chain")
             return False
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        if block.block_number - 1 == self.height():
+        if block.block_number - 1 == self.height:
             if block.prev_headerhash != self.blockchain[-1].headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
