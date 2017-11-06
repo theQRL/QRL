@@ -14,8 +14,8 @@ class TestState(TestCase):
         super(TestState, self).__init__(*args, **kwargs)
 
     def test_create_state(self):
-        state = State()
-        self.assertIsNotNone(state)  # to avoid warning (unused variable)
+        with State() as state:
+            self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
     def test_set_block_pos(self):
         with State() as state:

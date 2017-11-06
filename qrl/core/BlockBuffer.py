@@ -4,6 +4,7 @@
 
 
 class BlockBuffer(object):
+    # FIXME: This is not really a buffer. Understand concept and refactor
     def __init__(self, block, stake_reward, chain, seed, balance):
         self.block = block
         self.stake_reward = stake_reward

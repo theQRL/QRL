@@ -645,6 +645,8 @@ class BufferedChain:
             return False
 
         score = self.score_BK_hash(block)
+
+        # FIXME: Unclear.. why verify checks ordering?
         return self._is_better_block(block.block_number, score)
 
     def score_BK_hash(self, block: Block)->int:
