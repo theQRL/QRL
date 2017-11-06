@@ -67,7 +67,7 @@ class TestBufferedChain(TestCase):
         with State() as state:
             with setWalletDir("test_wallet"):
                 chain = Mock(spec=Chain)
-                chain.height = MagicMock(return_value=0)
+                chain.height = 0
                 chain.get_block = MagicMock(return_value=None)
                 chain.wallet = Wallet()
                 chain.pstate = state
@@ -78,9 +78,9 @@ class TestBufferedChain(TestCase):
                 buffered_chain._chain.get_block.assert_called()
                 self.assertIsNone(b0)
 
-                xmss_height = 4
+                xmss_height = 6
                 seed = bytes([i for i in range(48)])
-                xmss = XMSS(xmss_height + 2, seed)
+                xmss = XMSS(xmss_height, seed)
                 slave_xmss = XMSS(xmss_height, seed)
 
                 h0 = sha256(b'hashchain_seed')
@@ -91,6 +91,7 @@ class TestBufferedChain(TestCase):
                                                             xmss=xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h1)
+                stake_transaction.sign(xmss)
 
                 chain.pstate.stake_validators_list.add_sv(balance=100,
                                                           stake_txn=stake_transaction,

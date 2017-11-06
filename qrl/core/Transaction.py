@@ -106,14 +106,14 @@ class Transaction(object, metaclass=ABCMeta):
         self._data.signature = xmss.SIGN(self.txhash)
 
     @abstractmethod
-    def _validate_custom(self)->bool:
+    def _validate_custom(self) -> bool:
         """
         This is an extension point for derived classes validation
         If derived classes need additional field validation they should override this member
         """
         return True
 
-    def validate(self)->bool:
+    def validate(self) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
         The main purpose is to avoid exceptions and accomodate legacy code
@@ -131,7 +131,7 @@ class Transaction(object, metaclass=ABCMeta):
             return False
         return True
 
-    def validate_or_raise(self)->bool:
+    def validate_or_raise(self) -> bool:
         """
         This method will validate a transaction and raise exception if problems are found
         :return: True if the exception is valid, exceptions otherwise
@@ -151,9 +151,9 @@ class Transaction(object, metaclass=ABCMeta):
         if not isinstance(self, CoinBase) and getAddress('Q', self.PK) != self.txfrom.decode():
             raise ValueError('Public key and address dont match')
 
-        if not XMSS.VERIFY(message=self.txhash,
-                           signature=self.signature,
-                           pk=self.PK):
+        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
+                                                       signature=self.signature,
+                                                       pk=self.PK):
             raise ValueError("Invalid xmss signature")
 
         return True
@@ -299,8 +299,9 @@ class StakeTransaction(Transaction):
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
                             + bin2hstr(sha2_256(bytes(self.subtype)))
-                            + bin2hstr(sha2_256(str(self.blocknumber_headerhash).encode())))        # FIXME: stringify in standardized way
-                                                                                                    # FIXME: the order in the dict may affect hash
+                            + bin2hstr(
+            sha2_256(str(self.blocknumber_headerhash).encode())))  # FIXME: stringify in standardized way
+        # FIXME: the order in the dict may affect hash
         return bytes(tmptxhash)
 
     @staticmethod
@@ -308,7 +309,7 @@ class StakeTransaction(Transaction):
                blocknumber_headerhash: dict,
                xmss: XMSS,
                slavePK: bytes,
-               hashchain_terminator: bytes =None):
+               hashchain_terminator: bytes = None):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
@@ -331,6 +332,7 @@ class StakeTransaction(Transaction):
 
         if hashchain_terminator is None:
             epoch = activation_blocknumber // config.dev.blocks_per_epoch
+            # FIXME: We are using the same xmss for the hashchain???
             transaction._data.stake.hash = hashchain_reveal(xmss.get_seed_private(), epoch=epoch)
         else:
             transaction._data.stake.hash = hashchain_terminator

@@ -225,17 +225,16 @@ class BufferedChain:
         # FIXME: This is extremely complicated. Review/refactor
         # FIXME: Avoid +1/-1, assign a them to make things clear
 
-        if block.block_number - 1 == self._chain.height:
+        if block.block_number == self._chain.height + 1:
+            # FIXME: Genesis block is missing
             if block.prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
-        elif block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][
-            0].block.headerhash:
+        elif block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][0].block.headerhash:
             logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
-        if block.block_number in self.blocks and block.headerhash == self.blocks[block.block_number][
-            0].block.headerhash:
+        if block.block_number in self.blocks and block.headerhash == self.blocks[block.block_number][0].block.headerhash:
             return False
 
         if (block.block_number - config.dev.reorg_limit) in self.blocks:
@@ -726,7 +725,7 @@ class BufferedChain:
                         if tx.txfrom == block.stake_selector:
                             found = True
                             reveal_hash = self.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
-                            if sha256(bin2hstr(tuple(block.reveal_hash)).encode()) != reveal_hash:
+                            if sha256(block.reveal_hash) != reveal_hash:
                                 logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
                                 return False
 
@@ -770,8 +769,7 @@ class BufferedChain:
             logger.warning('coinbase txn in block failed')
             return False
 
-        for tx_num in range(1, len(block.transactions)):
-            protobuf_tx = block.transactions[tx_num]
+        for protobuf_tx in block.transactions[1:]:
             tx = Transaction.from_pbdata(protobuf_tx)
             if not tx.validate():
                 logger.warning('invalid tx in block')
