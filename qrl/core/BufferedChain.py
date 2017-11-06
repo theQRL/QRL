@@ -7,7 +7,7 @@ from typing import Optional, List, Dict
 import os
 from pyqrllib.pyqrllib import str2bin, bin2hstr, XmssPool
 
-from qrl.core import config, logger, Wallet
+from qrl.core import config, logger, Wallet, State
 from qrl.core.AddressState import AddressState
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
@@ -35,9 +35,9 @@ class BufferedChain:
 
         self._pending_blocks = dict()
 
-        self.epoch = max(0, self._chain.height()) // config.dev.blocks_per_epoch  # Main chain epoch
+        self.epoch = max(0, self._chain.height) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
-        if self._chain.height() > 0:
+        if self._chain.height > 0:
             self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
 
         private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
@@ -73,8 +73,12 @@ class BufferedChain:
     @property
     def height(self) -> int:
         if len(self.blocks) == 0:
-            return self._chain.height()
+            return self._chain.height
         return max(self.blocks.keys())  # FIXME: max over a dictionary?
+
+    @property
+    def pstate(self) -> State:
+        return self._chain.pstate
 
     #########################################
     #########################################
@@ -127,11 +131,11 @@ class BufferedChain:
         return self._chain.get_block(block_idx)
 
     def _add_block_mainchain(self, block, validate=True) -> bool:
-        if block.block_number <= self._chain.height():
+        if block.block_number <= self._chain.height:
             return False
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        if block.block_number - 1 == self._chain.height():
+        if block.block_number - 1 == self._chain.height:
             if block.prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
@@ -215,13 +219,13 @@ class BufferedChain:
             logger.info('Stake_selector %s', block.stake_selector)
             return False
 
-        if block.block_number <= self._chain.height():
+        if block.block_number <= self._chain.height:
             return False
 
         # FIXME: This is extremely complicated. Review/refactor
         # FIXME: Avoid +1/-1, assign a them to make things clear
 
-        if block.block_number - 1 == self._chain.height():
+        if block.block_number - 1 == self._chain.height:
             if block.prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
@@ -242,7 +246,7 @@ class BufferedChain:
         state_buffer = StateBuffer()
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        if block.block_number - 1 == self._chain.height():
+        if block.block_number - 1 == self._chain.height:
             stake_validators_list = copy.deepcopy(self._chain.pstate.stake_validators_list)
             stxn_state = dict()
             # TODO: Optimization required
@@ -581,11 +585,10 @@ class BufferedChain:
 
     # Returns the number of blocks left before next epoch
     @staticmethod
-    def get_blocks_left(blocknumber: int)->int:
+    def get_blocks_left(blocknumber: int) -> int:
         epoch = blocknumber // config.dev.blocks_per_epoch
         blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
         blocks_left = config.dev.blocks_per_epoch - blocks_left
-
         return blocks_left
 
     def _commit(self,
@@ -826,7 +829,7 @@ class BufferedChain:
         stake_selector = block.stake_selector
         prev_headerhash = block.prev_headerhash
 
-        if block.block_number <= self._chain.height():
+        if block.block_number <= self._chain.height:
             return False
 
         sv_list = self.stake_list_get(block.block_number)
@@ -846,7 +849,7 @@ class BufferedChain:
             return False
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        if block.block_number - 1 == self._chain.height():
+        if block.block_number - 1 == self._chain.height:
             if prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
@@ -1068,7 +1071,7 @@ class BufferedChain:
     def _get_epoch_seed(self, blocknumber: int) -> Optional[int]:
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height():
+            if blocknumber - 1 == self._chain.height:
                 return int(str(self.epoch_seed), 16)
 
             return int(str(self.blocks[blocknumber - 1][1].next_seed), 16)
@@ -1240,7 +1243,7 @@ class BufferedChain:
 
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height():
+            if blocknumber - 1 == self._chain.height:
                 if stake_address in self._chain.pstate.stake_validators_list.sv_list:
                     return self._chain.pstate.stake_validators_list.sv_list[stake_address].balance
                 logger.info('Blocknumber not found')
@@ -1257,7 +1260,7 @@ class BufferedChain:
     def get_stxn_state(self, blocknumber, addr) -> Optional[AddressState]:
         try:
             # FIXME: Simplify this - self.blocks[blocknumber - 1][1] is a StateBuffer
-            if blocknumber - 1 == self._chain.height() or addr not in self.blocks[blocknumber - 1][1].stxn_state:
+            if blocknumber - 1 == self._chain.height or addr not in self.blocks[blocknumber - 1][1].stxn_state:
                 address_state = self._chain.pstate.get_address(addr)
                 return address_state
 
@@ -1282,7 +1285,7 @@ class BufferedChain:
                 return None
 
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height():
+            if blocknumber - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_list.sv_list
 
             state_buffer = self.blocks[blocknumber - 1][1]
@@ -1298,7 +1301,7 @@ class BufferedChain:
     def future_stake_addresses(self, blocknumber):
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height():
+            if blocknumber - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_list.future_stake_addresses
 
             state_buffer = self.blocks[blocknumber - 1][1]
@@ -1314,7 +1317,7 @@ class BufferedChain:
     def get_stake_validators_list(self, blocknumber):
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height():
+            if blocknumber - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_list
 
             return self.blocks[blocknumber - 1][1].stake_validators_list

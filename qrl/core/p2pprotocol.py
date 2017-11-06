@@ -653,12 +653,12 @@ class P2PProtocol(Protocol):
         self.blockheight = block_number
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
                     self.transport.getPeer().host, block_number,
-                    self.factory.height(), str(time.time()))
+                    self.factory.height, str(time.time()))
 
         if self.factory.sync_state.state == ESyncState.syncing:
             return
 
-        if block_number == self.factory.height():
+        if block_number == self.factory.height:
             # if self.factory.buffered_chain.chein.blockchain[block_number].headerhash != headerhash:
             if self.factory.buffered_chain.get_block(block_number).headerhash != headerhash:
                 logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
@@ -668,7 +668,7 @@ class P2PProtocol(Protocol):
                 # again need to think this one through in detail..
                 return
 
-        if block_number > self.factory.height():
+        if block_number > self.factory.height:
             return
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
