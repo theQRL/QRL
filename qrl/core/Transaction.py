@@ -174,7 +174,8 @@ class TransferTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TransferTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.TRANSFER
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.TRANSFER
 
     @property
     def txto(self):
@@ -263,7 +264,8 @@ class StakeTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(StakeTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.STAKE
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.STAKE
 
     @property
     def activation_blocknumber(self):
@@ -362,7 +364,8 @@ class DestakeTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(DestakeTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.DESTAKE
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.DESTAKE
 
     def _get_hashable_bytes(self):
         """
@@ -413,7 +416,8 @@ class CoinBase(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(CoinBase, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.COINBASE
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.COINBASE
 
         # This attribute is not persistable
         self.blockheader = None
@@ -479,9 +483,8 @@ class LatticePublicKey(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(LatticePublicKey, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.LATTICE
-        self._data.pk_kyber = None
-        self._data.pk_tesla = None
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.LATTICE
 
     @property
     def kyber_pk(self):
@@ -523,20 +526,8 @@ class LatticePublicKey(Transaction):
 class DuplicateTransaction(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(DuplicateTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.DUPLICATE
-
-        self._data.duplicate.block_number = 0
-        self._data.duplicate.hash_header_prev = None
-
-        self._data.duplicate.coinbase1 = None
-        self._data.duplicate.coinbase1_hhash = None
-
-        self._data.duplicate.coinbase2 = None
-        self._data.duplicate.coinbase2_hhash = None
-
-        # TODO: review, this is not persistable
-        self.headerhash = None
-        self.coinbase = None
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.DUPLICATE
 
     @property
     def blocknumber(self):

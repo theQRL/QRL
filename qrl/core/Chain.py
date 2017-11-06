@@ -53,7 +53,7 @@ class Chain:
                 logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
                 return False
 
-        if not self.pstate.add_block(self, block):
+        if not self.pstate.add_block_internal(self, block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 

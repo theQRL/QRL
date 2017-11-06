@@ -30,6 +30,7 @@ class BufferedChain:
     def __init__(self, chain: Chain):
         self._chain = chain
 
+        # [BlockBuffer, StateBuffer]
         self.blocks = dict()  # FIXME: Using a dict is very inefficient when index are a sequence
 
         self._pending_blocks = dict()
@@ -60,10 +61,6 @@ class BufferedChain:
     @property
     def wallet(self):
         return self._chain.wallet
-
-    @property
-    def state(self):
-        return self._chain.state
 
     @property
     def transaction_pool(self):
@@ -108,7 +105,7 @@ class BufferedChain:
 
             # FIXME: avoid iterating by using keys
             for blocknum in range(min_blocknum, max_blocknum + 1):
-                self.add_block(self._pending_blocks[blocknum])
+                self.add_block_internal(self._pending_blocks[blocknum])
 
             self._pending_blocks = dict()
 
@@ -129,7 +126,7 @@ class BufferedChain:
             return self.blocks[block_idx][0].block  # FIXME: What does [0] refers to?
         return self._chain.get_block(block_idx)
 
-    def add_block_mainchain(self, block, validate=True) -> bool:
+    def _add_block_mainchain(self, block, validate=True) -> bool:
         if block.block_number <= self._chain.height():
             return False
 
@@ -170,7 +167,7 @@ class BufferedChain:
                 logger.info('add_block failed - block failed validation.')
                 return False
         else:
-            if self.add_block(block, ignore_save_wallet=True):
+            if self.add_block_internal(block, ignore_save_wallet=True):
                 self._chain.blockchain.append(block)
 
         block_left = config.dev.blocks_per_epoch - (block.block_number - (block.epoch * config.dev.blocks_per_epoch))
@@ -211,32 +208,29 @@ class BufferedChain:
         return result
 
     def add_block(self, block: Block) -> bool:
+
         if not self.validate_block(block):  # This is here because of validators, etc
             logger.info('Block validation failed')
             logger.info('Block #%s', block.block_number)
             logger.info('Stake_selector %s', block.stake_selector)
             return False
 
-        block_headerhash = block.headerhash
-        block_prev_headerhash = block.prev_headerhash
-
         if block.block_number <= self._chain.height():
             return False
 
         # FIXME: This is extremely complicated. Review/refactor
+        # FIXME: Avoid +1/-1, assign a them to make things clear
 
-        # FIXME: Avoid +1/-1, assign a them to make things clear
-        # FIXME: Avoid +1/-1, assign a them to make things clear
         if block.block_number - 1 == self._chain.height():
-            if block_prev_headerhash != self._chain.blockchain[-1].headerhash:
+            if block.prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
-        elif block.block_number - 1 not in self.blocks or block_prev_headerhash != self.blocks[block.block_number - 1][
+        elif block.block_number - 1 not in self.blocks or block.prev_headerhash != self.blocks[block.block_number - 1][
             0].block.headerhash:
             logger.warning('Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
-        if block.block_number in self.blocks and block_headerhash == self.blocks[block.block_number][
+        if block.block_number in self.blocks and block.headerhash == self.blocks[block.block_number][
             0].block.headerhash:
             return False
 
@@ -444,16 +438,17 @@ class BufferedChain:
         if tx.nonce != 1:
             logger.warning('nonce incorrect, invalid tx')
             logger.warning('subtype: %s', tx.subtype)
-            logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_state_dict[tx.txfrom][0] + 1)
+            logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_state_dict[tx.txfrom].nonce + 1)
             return False
+
         # TODO: To be fixed later
-        if tx.pubhash in address_state_dict[tx.txfrom][2]:
+        if tx.pubhash in address_state_dict[tx.txfrom].pubhashes:
             logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
             logger.warning('subtype: %s', tx.subtype)
             return False
 
-        address_state_dict[tx.txto][1] += tx.amount
-        address_state_dict[tx.txfrom][2].append(tx.pubhash)
+        address_state_dict[tx.txto].balance += tx.amount
+        address_state_dict[tx.txfrom].pubhashes.append(tx.pubhash)
 
         # Coinbase update end here
         # FIXME: Most of this should be done in the GenesisBlock which should derive from Block
@@ -477,7 +472,7 @@ class BufferedChain:
                 # FIX ME: This goes to stake validator list without verifiction, Security Risk
                 self._chain.pstate.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
 
-                address_state_dict[tx.txfrom][2].append(tx.pubhash)
+                address_state_dict[tx.txfrom].pubhashes.append(tx.pubhash)
 
         epoch_seed = self._chain.pstate.stake_validators_list.calc_seed()
         self.epoch_seed = epoch_seed
@@ -513,7 +508,7 @@ class BufferedChain:
         return True
 
     # TODO: This add_block used to be in state
-    def add_block(self, block: Block, ignore_save_wallet=False) -> bool:
+    def add_block_internal(self, block: Block, ignore_save_wallet=False) -> bool:
         address_state_dict = self.load_address_state(block, dict())
 
         # FIXME: Unify Genesis case inside update, otherwise the special case is scattered everywhere
@@ -789,7 +784,7 @@ class BufferedChain:
 
     def _move_to_mainchain(self, blocknum) -> bool:
         block = self.blocks[blocknum][0].block
-        if not self.add_block(block):
+        if not self.add_block_internal(block):
             logger.info('last block failed state/stake checks, removed from chain')
             return False
 
@@ -956,14 +951,14 @@ class BufferedChain:
         tmp_chain = self._chain._read_chain(0)
         if len(tmp_chain) > 0:
             for block in tmp_chain[1:]:
-                self.add_block_mainchain(block, validate=False)
+                self._add_block_mainchain(block, validate=False)
 
         epoch = 1
         # FIXME: Avoid checking files here..
         while os.path.isfile(self._chain._get_chain_datafile(epoch)):
             del self._chain.blockchain[:-1]  # FIXME: This optimization could be encapsulated
             for block in self._chain._read_chain(epoch):
-                self.add_block_mainchain(block, validate=False)
+                self._add_block_mainchain(block, validate=False)
 
             epoch += 1
 

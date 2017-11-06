@@ -528,7 +528,7 @@ class P2PProtocol(Protocol):
 
             logger.info('>>>Received Block #%s', block.block_number)
 
-            status = self.factory.buffered_chain.add_block(block)
+            status = self.factory.buffered_chain.add_block_internal(block)
             if isinstance(status, bool) and not status:
                 logger.info("[PBB] Failed to add block by add_block, re-requesting the block #%s", blocknumber)
                 logger.info('Skipping one block')
@@ -569,7 +569,7 @@ class P2PProtocol(Protocol):
                 return
 
             if blocknumber > self.factory.buffered_chain.height:
-                if not self.factory.buffered_chain.add_block_mainchain(block):
+                if not self.factory.buffered_chain._add_block_mainchain(block):
                     logger.warning('PB failed to add block to mainchain')
                     return
 
