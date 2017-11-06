@@ -3,12 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-import pytest
-
 from qrl.core import logger
-from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.State import State
 
 logger.initialize_default(force_console_output=True)
 
@@ -19,6 +15,8 @@ class TestGenesisBlock(TestCase):
 
     def test_genesis_block_values(self):
         gb = GenesisBlock()
-        self.assertIsNotNone(gb)
 
-        pass
+        self.assertIsNotNone(gb)
+        self.assertEqual(0, gb.block_number)
+        self.assertEqual(b'QuantumBoosterTestnet', gb.prev_headerhash)
+        self.assertEqual(6, len(gb.genesis_balance))

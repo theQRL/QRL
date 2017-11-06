@@ -6,9 +6,11 @@ import yaml
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
 
+from qrl.core.Block import Block
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core import config, logger
 from qrl.generated import qrl_pb2
+
 
 
 class Singleton(type):
@@ -20,25 +22,16 @@ class Singleton(type):
         return cls.instance
 
 
-class GenesisBlock(object, metaclass=Singleton):
-    # FIXME: This should derive from Block
-    """
-    # first block has no previous header to reference..
-    >>> GenesisBlock().blockheader.prev_blockheaderhash == b'1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
-    True
-    """
+class GenesisBlock(Block, metaclass=Singleton):
+    def __init__(self):
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        genesis_data_path = os.path.join(package_directory, 'genesis.json')
 
-    def __init__(self, protobuf_genesisBlock=None):
-        self._data = protobuf_genesisBlock
-
-        if protobuf_genesisBlock is None:
-            self._data = qrl_pb2.Block()
-            self.blockheader = BlockHeader()
-        else:
-            self.blockheader = BlockHeader(protobuf_genesisBlock.header)
-
-        self._data.header.MergeFrom(self.blockheader._data)
-        self.blockheader._data.hash_header_prev = b'1a02aa2cbe25c60f491aeb03131976be2f9b5e9d0bc6b6d9e0e7c7fd19c8a076c29e028f5f3924b4'
+        with open(genesis_data_path) as f:
+            genesisBlock_json = f.read()
+            tmp_block = qrl_pb2.Block()
+            Parse(genesisBlock_json, tmp_block)
+            super(GenesisBlock, self).__init__(tmp_block)
 
     @property
     def transactions(self):
@@ -49,64 +42,5 @@ class GenesisBlock(object, metaclass=Singleton):
         return self._data.dup_transactions
 
     @property
-    def state(self):
-        return self._data.state
-
-    @property
-    def stake_list(self):
-        return self._data.stake_list
-
-    def set_staking_address(self, staking_address):
-        # FIXME: It is odd that we have a hash equal to 'genesis'
-        """
-        >>> GenesisBlock().set_staking_address(None) is not None
-        True
-        >>> GenesisBlock().set_staking_address(None).blockheader.epoch
-        0
-        >>> GenesisBlock().set_staking_address(None).blockheader.block_reward
-        0
-        >>> GenesisBlock().set_staking_address(None).blockheader.block_number
-        0
-        >>> GenesisBlock().set_staking_address(None).blockheader.fee_reward
-        0
-        >>> GenesisBlock().set_staking_address(None).blockheader.reveal_hash
-        b'\\x00\\x00\\x00\\x00\\x00\\x00'
-        >>> bin2hstr(GenesisBlock().set_staking_address(None).blockheader.headerhash)
-        '42598eed69acbd031bd30f980f1e383a271d52c954376c184621d73476eb9dda'
-        >>> bin2hstr(GenesisBlock().set_staking_address(None).blockheader.prev_blockheaderhash)
-        '584742ee81a520c76ac376f29b9eebd4b73ef0b990e7ff4b994a06be3399be67'
-        """
-        self.blockheader = self.blockheader.create(staking_address=staking_address,
-                                                   blocknumber=0,
-                                                   prev_blockheaderhash=bytes(sha2_256(config.dev.genesis_prev_headerhash.encode())),
-                                                   hashedtransactions=bytes(sha2_256(b'0')),
-                                                   reveal_hash=bytes((0, 0, 0, 0, 0, 0)),
-                                                   fee_reward=0)
-
-        self._data.header.MergeFrom(self.blockheader._data)
-
-        return self
-
-    @staticmethod
-    def from_json(json_data):
-        pbdata = qrl_pb2.Block()
-        Parse(json_data, pbdata)
-        return GenesisBlock(pbdata)
-
-    def to_json(self):
-        # FIXME: Remove once we move completely to protobuf
-        return MessageToJson(self._data)
-
-    @staticmethod
-    def load_genesis_info():
-        genesis_info = dict()
-        package_directory = os.path.dirname(os.path.abspath(__file__))
-        genesis_data_path = os.path.join(package_directory, 'genesis.yml')
-
-        with open(genesis_data_path) as f:
-            logger.info("Loading genesis from %s", genesis_data_path)
-            data_map = yaml.safe_load(f)
-            for key in data_map['genesis_info']:
-                genesis_info[key.encode()] = data_map['genesis_info'][key] * (10 ** 8)
-
-        return genesis_info
+    def genesis_balance(self):
+        return self._data.genesis_balance
