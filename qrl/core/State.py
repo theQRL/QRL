@@ -369,9 +369,9 @@ class State:
         buffered_chain.epoch_seed = self.calc_seed(tmp_list)
 
         # FIXME: Move score to an appropriate place
-        buffered_chain._chain.stake_list = sorted(tmp_list,
-                                                  key=lambda staker:
-                                                  buffered_chain._chain.score(stake_address=staker[0],
+        buffered_chain.stake_list = sorted(tmp_list,
+                                           key=lambda staker:
+                                           buffered_chain._chain.score(stake_address=staker[0],
                                                                        reveal_one=bin2hstr(
                                                                            sha256(str(
                                                                                reduce(lambda set1,
@@ -389,13 +389,13 @@ class State:
             return False
 
         xmss = buffered_chain.wallet.address_bundle[0].xmss
-        tmphc = hashchain(xmss.get_seed_private(), epoch=0)         # FIXME: Risky use of xmss
+        tmphc = hashchain(xmss.get_seed_private(), epoch=0)  # FIXME: Risky use of xmss
 
         buffered_chain.hash_chain = tmphc.hashchain
         buffered_chain.wallet.save_wallet()
         return True
 
-    def update(self, block, stake_validators_list, address_txn)->bool:
+    def update(self, block, stake_validators_list, address_txn) -> bool:
         # FIXME: remove from state and move to another place
         # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
 

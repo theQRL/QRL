@@ -23,6 +23,7 @@ import copy
 from qrl.crypto.xmss import XMSS
 
 
+# TODO: Rename to unstable/fluid chain or something similar?
 class BufferedChain:
     def __init__(self, chain: Chain):
         self._chain = chain
@@ -42,6 +43,8 @@ class BufferedChain:
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
 
         self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
+
+        self.stake_list = []
 
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()

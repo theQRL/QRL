@@ -36,7 +36,7 @@ class POS:
                  time_provider):
 
         self.buffered_chain = buffered_chain
-        self.p2pFactory = p2pFactory                # FIXME: Decouple from p2pFactory. Comms vs node logic
+        self.p2pFactory = p2pFactory  # FIXME: Decouple from p2pFactory. Comms vs node logic
         self.sync_state = sync_state
         self.time_provider = time_provider
 
@@ -86,7 +86,8 @@ class POS:
 
     def monitor_bk(self):
         time_diff = time.time() - self.last_pos_cycle
-        if (self.sync_state.state == ESyncState.synced or self.sync_state.state == ESyncState.unsynced) and 90 < time_diff:
+        if (
+                self.sync_state.state == ESyncState.synced or self.sync_state.state == ESyncState.unsynced) and 90 < time_diff:
             if self.sync_state.state == ESyncState.synced:
                 self.stop_post_block_logic()
                 self.update_node_state(ESyncState.unsynced)
@@ -182,28 +183,29 @@ class POS:
 
         self.buffered_chain.epoch_seed = self.buffered_chain.pstate.calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
-        self.buffered_chain._chain.stake_list = sorted(tmp_list,
-                                                      key=lambda staker: self.buffered_chain.score(
-                                                          stake_address=staker[0],
-                                                          reveal_one=bin2hstr(sha256(str(
-                                                              reduce(lambda set1, set2: set1 + set2,
-                                                                     tuple(staker[1]))).encode())),
-                                                          balance=staker[3],
-                                                          seed=self.buffered_chain.epoch_seed))
+        self.buffered_chain.stake_list = sorted(tmp_list,
+                                                key=lambda staker: self.buffered_chain.score(
+                                                    stake_address=staker[0],
+                                                    reveal_one=bin2hstr(sha256(str(
+                                                        reduce(lambda set1, set2: set1 + set2,
+                                                               tuple(staker[1]))).encode())),
+                                                    balance=staker[3],
+                                                    seed=self.buffered_chain.epoch_seed))
 
         self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
 
-        logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain._chain.stake_list), config.dev.minimum_required_stakers)
+        logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain.stake_list),
+                    config.dev.minimum_required_stakers)
         logger.info('node address: %s', self.buffered_chain.staking_address)
 
         if len(
-                self.buffered_chain._chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
+                self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:  # stake pool still not full..reloop..
             self.p2pFactory.send_st_to_peers(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
 
-        if self.buffered_chain.staking_address == self.buffered_chain._chain.stake_list[0][0]:
+        if self.buffered_chain.staking_address == self.buffered_chain.stake_list[0][0]:
             logger.info('designated to create block 1: building block..')
 
             tmphc = hashchain(self.buffered_chain.wallet.address_bundle[0].xmss.get_seed_private())
@@ -214,9 +216,9 @@ class POS:
                                                                blocknumber=1)
 
             b = self.buffered_chain.create_block(reveal_hash[-2])  # FIXME: This is incorrect, rewire
-            self.pre_block_logic(b)     # FIXME: Ignore return value?
+            self.pre_block_logic(b)  # FIXME: Ignore return value?
         else:
-            logger.info('await block creation by stake validator: %s', self.buffered_chain._chain.stake_list[0][0])
+            logger.info('await block creation by stake validator: %s', self.buffered_chain.stake_list[0][0])
             self.last_bk_time = time.time()
             self.restart_unsynced_logic()
 
@@ -352,7 +354,7 @@ class POS:
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
         self.randomize_block_fetch(self.buffered_chain.height + 1)
 
-    def pre_block_logic(self, block: Block)->bool:
+    def pre_block_logic(self, block: Block) -> bool:
         # FIXME: Ensure that the chain is in memory
 
         chain_buffer_height = self.buffered_chain.height
@@ -416,7 +418,7 @@ class POS:
                                                blocknumber=blocknumber)
         self.pos_blocknum = blocknumber
 
-    def create_next_block(self, blocknumber, activation_blocknumber)->bool:
+    def create_next_block(self, blocknumber, activation_blocknumber) -> bool:
         if self.buffered_chain.get_slave_xmss(blocknumber):
             hash_chain = self.buffered_chain.hash_chain_get(blocknumber)
 
@@ -448,7 +450,8 @@ class POS:
             stake_list = self.buffered_chain.stake_list_get(blocknumber)
 
             delay = config.dev.minimum_minting_delay
-            if self.buffered_chain.staking_address in stake_list and stake_list[self.buffered_chain.staking_address].is_active:
+            if self.buffered_chain.staking_address in stake_list and stake_list[
+                self.buffered_chain.staking_address].is_active:
                 if stake_list[self.buffered_chain.staking_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
@@ -472,7 +475,8 @@ class POS:
     def _create_stake_tx(self, curr_blocknumber):
         sv_list = self.buffered_chain.stake_list_get(curr_blocknumber)
         if self.buffered_chain.staking_address in sv_list:
-            activation_blocknumber = sv_list[self.buffered_chain.height].activation_blocknumber + config.dev.blocks_per_epoch
+            activation_blocknumber = sv_list[
+                                         self.buffered_chain.height].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
@@ -533,16 +537,16 @@ class POS:
 
         # No destake txn required if mining address is not in stake_validator_list
         if self.buffered_chain.staking_address not in stake_validators_list.sv_list and \
-                        self.buffered_chain.height not in stake_validators_list.future_stake_addresses:
+                self.buffered_chain.height not in stake_validators_list.future_stake_addresses:
             logger.warning('%s Not found in Stake Validator list, destake txn note required',
                            self.buffered_chain.staking_address)
             return
 
         # Skip if mining address is not active in either stake validator list
         if not ((self.buffered_chain.staking_address in stake_validators_list.sv_list and
-                     stake_validators_list.sv_list[self.buffered_chain.staking_address].is_active)
+                 stake_validators_list.sv_list[self.buffered_chain.staking_address].is_active)
                 or (self.buffered_chain.staking_address in stake_validators_list.future_stake_addresses and
-                        stake_validators_list.future_stake_addresses[self.buffered_chain.staking_address].is_active)):
+                    stake_validators_list.future_stake_addresses[self.buffered_chain.staking_address].is_active)):
             logger.warning('%s is already inactive in Stake validator list, destake txn not required',
                            self.buffered_chain.staking_address)
             return
