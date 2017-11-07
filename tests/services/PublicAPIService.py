@@ -8,7 +8,7 @@ from mock import Mock, MagicMock
 
 from qrl.core import logger
 from qrl.core.BufferedChain import BufferedChain
-from qrl.core.StakeValidatorsList import StakeValidatorsList
+from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import TransferTransaction
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
@@ -49,7 +49,7 @@ class PublicAPITest(TestCase):
 
     def test_getStats(self):
         db_state = Mock(spec=State)
-        db_state.stake_validators_list = StakeValidatorsList()
+        db_state.stake_validators_list = StakeValidatorsTracker()
         db_state.total_coin_supply = MagicMock(return_value=1000)
 
         p2p_factory = Mock(spec=P2PFactory)

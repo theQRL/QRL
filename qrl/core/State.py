@@ -8,7 +8,7 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
-from qrl.core.StakeValidatorsList import StakeValidatorsList
+from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.generated import qrl_pb2
@@ -27,7 +27,7 @@ class State:
         True
         """
         self._db = db.DB()  # generate db object here
-        self.stake_validators_list = StakeValidatorsList()
+        self.stake_validators_list = StakeValidatorsTracker()
 
     def __enter__(self):
         return self

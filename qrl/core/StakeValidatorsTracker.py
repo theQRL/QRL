@@ -8,19 +8,18 @@ from qrl.core import logger, config
 from qrl.core.StakeValidator import StakeValidator
 
 
-class StakeValidatorsList:
+class StakeValidatorsTracker:
     """
     Maintains the Stake validators list for current and next epoch
     """
     def __init__(self):
         # FIXME: the name sv_list is confusing because is actually a dictionary
-        self.sv_list = OrderedDict()                        # Active stake validator objects
-        self.expiry = defaultdict(set)                      # Maintains the blocknumber as key at which Stake validator has to be expired
+        self.sv_list = OrderedDict()        # Active stake validator objects
+        self._expiry = defaultdict(set)     # Maintains the blocknumber as key at which Stake validator has to be expired
 
         # FIXME: the name future_sv_list is confusing because is actually a dictionary
         self.future_sv_list = defaultdict(set)
         self.future_stake_addresses = dict()
-        self.isOrderedLength = 0
 
     def calc_seed(self):
         epoch_seed = 0
@@ -37,11 +36,11 @@ class StakeValidatorsList:
     def activate_sv(self, balance, stake_txn):
         sv = StakeValidator(balance, stake_txn)
         self.sv_list[stake_txn.txfrom] = sv
-        self.expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
+        self._expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
     def activate_future_sv(self, sv):
         self.sv_list[sv.stake_validator] = sv
-        self.expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].add(sv.stake_validator)
+        self._expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].add(sv.stake_validator)
 
     def add_sv(self, balance, stake_txn, blocknumber):
         if stake_txn.activation_blocknumber > blocknumber:
@@ -56,10 +55,10 @@ class StakeValidatorsList:
 
     def update_sv(self, blocknumber):
         next_blocknumber = blocknumber + 1
-        if next_blocknumber in self.expiry:
-            for sv_addr in self.expiry[next_blocknumber]:
+        if next_blocknumber in self._expiry:
+            for sv_addr in self._expiry[next_blocknumber]:
                 del self.sv_list[sv_addr]
-            del self.expiry[next_blocknumber]
+            del self._expiry[next_blocknumber]
 
         if next_blocknumber in self.future_sv_list:
             sv_set = self.future_sv_list[next_blocknumber]
