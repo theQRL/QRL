@@ -51,10 +51,6 @@ class Chain:
                 logger.warning('main: Block {} rejected. prevheaderhash mismatch'.format(block.block_number))
                 return False
 
-        if not self.pstate.add_block_internal(self, block):
-            logger.info('last block failed state/stake checks, removed from chain')
-            return False
-
         # FIXME: Check the logig behind these operations
         self.blockchain.append(block)
 

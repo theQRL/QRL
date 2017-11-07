@@ -92,17 +92,8 @@ class TestBufferedChain(TestCase):
     def test_add_remove(self):
         with State() as state:
             with setWalletDir("test_wallet"):
-                chain = Mock(spec=Chain)
-                chain.height = 0
-                chain.get_block = MagicMock(return_value=None)
-                chain.wallet = Wallet()
-                chain.pstate = state
-
+                chain = Chain(state)
                 buffered_chain = BufferedChain(chain)
-
-                b0 = buffered_chain.get_block(0)
-                buffered_chain._chain.get_block.assert_called()
-                self.assertIsNone(b0)
 
                 xmss_height = 6
                 seed = bytes([i for i in range(48)])
@@ -112,7 +103,9 @@ class TestBufferedChain(TestCase):
                 h0 = sha256(b'hashchain_seed')
                 h1 = sha256(h0)
 
-                res = buffered_chain.add_block(block=GenesisBlock())
+                genesis_block = GenesisBlock()
+
+                res = buffered_chain.add_block(block=genesis_block)
                 self.assertTrue(res)
 
                 stake_transaction = StakeTransaction.create(activation_blocknumber=0,
@@ -129,11 +122,11 @@ class TestBufferedChain(TestCase):
                 tmp_block = Block.create(staking_address=bytes(xmss.get_address().encode()),
                                          block_number=1,
                                          reveal_hash=h0,
-                                         prevblock_headerhash=sha256(b'prev_block'),
+                                         prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[stake_transaction],
                                          duplicate_transactions=OrderedDict(),
                                          signing_xmss=xmss,
-                                         nonce=1)
+                                         nonce=2)
 
                 res = buffered_chain.add_block(block=tmp_block)
-                self.assertFalse(res)
+                self.assertTrue(res)
