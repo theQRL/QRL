@@ -916,7 +916,13 @@ class BufferedChain:
 
         # FIXME: This should happen when the block is added to the main chain
         for genesis_balance in genesis_block.genesis_balance:
-            self._chain.pstate._save_address_state(genesis_balance.address, [0, genesis_balance.balance, []])
+            address_txn = dict()
+            genesis_address = genesis_balance.address.encode()
+            address_txn[genesis_address] = AddressState.create(address=genesis_address,
+                                                               nonce=config.dev.default_nonce,
+                                                               balance=genesis_balance.balance,
+                                                               pubhashes=[])
+            self._chain.pstate._save_address_state(address_txn)
         ###########
 
         # FIXME: Direct access - Breaks encapsulation
