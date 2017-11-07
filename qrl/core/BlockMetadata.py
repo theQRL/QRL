@@ -13,14 +13,11 @@ class BlockMetadata(object):
     # FIXME: This is not really a buffer. Understand concept and refactor
     def __init__(self,
                  block: Block,
-                 stake_reward: int,
                  chain,
                  seed,
                  balance: int):
 
         self.block = block
-        self.stake_reward = stake_reward
-
         self.score = self._block_score(chain, seed, balance)
 
         self.stake_validators_list = None

@@ -38,19 +38,22 @@ class Chain:
         # FIXME: This will probably get replaced with rocksdb
         if len(self.blockchain):
             return self.blockchain[-1].block_number
-        # FIXME: Height cannot be negative. If this is used as an index it should be clarified
-        return -1
+        return 0
 
     def add_block(self, block: Block) -> bool:
         # TODO : minimum block validation in unsynced _state
-        if block.block_number <= self.height:
+        if block.block_number < self.height:
             logger.warning("Block already in the chain")
             return False
 
-        # FIXME: Avoid +1/-1, assign a them to make things clear
-        if block.block_number - 1 == self.height:
-            if block.prev_headerhash != self.blockchain[-1].headerhash:
-                logger.info('prev_headerhash of block doesnt match with headerhash of blockchain')
+        if self.height > 0:
+            prev_block = self.blockchain[-1]
+            if block.block_number != prev_block.block_number+1:
+                logger.warning('main: Block {} rejected. prev_block is not available.'.format(block.block_number))
+                return False
+
+            if prev_block.headerhash != block.prev_headerhash:
+                logger.warning('main: Block {} rejected. prevheaderhash mismatch'.format(block.block_number))
                 return False
 
         if not self.pstate.add_block_internal(self, block):
@@ -63,6 +66,7 @@ class Chain:
         # This looks more like optimization/caching
         self.pstate.update_last_tx(block)
         self.pstate.update_tx_metadata(block)
+
         self.save_chain()
 
         return True
