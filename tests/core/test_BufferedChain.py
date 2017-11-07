@@ -4,9 +4,10 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from mock import Mock, MagicMock
+import pytest
+from mock import Mock, MagicMock, mock
 
-from qrl.core import logger
+from qrl.core import logger, config
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Chain import Chain
@@ -60,7 +61,7 @@ class TestBufferedChain(TestCase):
                 self.assertIsNone(b0)
 
                 tmp_block = Block()
-                res = buffered_chain.add_block_internal(block=tmp_block)
+                res = buffered_chain.add_block(block=tmp_block)
                 self.assertFalse(res)
 
     def test_add_genesis(self):
@@ -78,18 +79,10 @@ class TestBufferedChain(TestCase):
                 buffered_chain._chain.get_block.assert_called()
                 self.assertIsNone(b0)
 
-                xmss_height = 6
-                seed = bytes([i for i in range(48)])
-                xmss = XMSS(xmss_height, seed)
-                slave_xmss = XMSS(xmss_height, seed)
-
-                h0 = sha256(b'hashchain_seed')
-                h1 = sha256(h0)
-
                 res = buffered_chain.add_block(block=GenesisBlock())
                 self.assertTrue(res)
 
-    def test_add_remove(self):
+    def test_add_2(self):
         with State() as state:
             with setWalletDir("test_wallet"):
                 chain = Chain(state)
@@ -133,4 +126,69 @@ class TestBufferedChain(TestCase):
                                          nonce=1)
 
                 res = buffered_chain.add_block(block=tmp_block)
+                self.assertTrue(res)
+
+    @pytest.mark.skip(reason="reproduces a bug that is being fixed")
+    def test_add_3(self):
+        with State() as state:
+            with setWalletDir("test_wallet"):
+                chain = Chain(state)
+                buffered_chain = BufferedChain(chain)
+
+                xmss_height = 6
+                seed = bytes([i for i in range(48)])
+                xmss = XMSS(xmss_height, seed)
+                slave_xmss = XMSS(xmss_height, seed)
+
+                staking_address = bytes(xmss.get_address().encode())
+
+                h0 = sha256(b'hashchain_seed')
+                h1 = sha256(h0)
+                h2 = sha256(h1)
+
+                genesis_block = GenesisBlock()
+
+                res = buffered_chain.add_block(block=genesis_block)
+                self.assertTrue(res)
+
+                stake_transaction = StakeTransaction.create(activation_blocknumber=0,
+                                                            blocknumber_headerhash=dict(),
+                                                            xmss=xmss,
+                                                            slavePK=slave_xmss.pk(),
+                                                            hashchain_terminator=h2)
+
+                # FIXME: The test needs private access.. This is an API issue
+                stake_transaction._data.nonce = 1
+                stake_transaction.sign(xmss)
+
+                chain.pstate.stake_validators_tracker.add_sv(balance=100,
+                                                             stake_txn=stake_transaction,
+                                                             blocknumber=0)
+
+                tmp_block1 = Block.create(staking_address=staking_address,
+                                          block_number=1,
+                                          reveal_hash=h1,
+                                          prevblock_headerhash=genesis_block.headerhash,
+                                          transactions=[stake_transaction],
+                                          duplicate_transactions=OrderedDict(),
+                                          signing_xmss=xmss,
+                                          nonce=1)
+
+                res = buffered_chain.add_block(block=tmp_block1)
+                self.assertTrue(res)
+
+                # Need to move forward the time to align with block times
+                with mock.patch('qrl.core.ntp.getTime') as time_mock:
+                    time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
+
+                    tmp_block2 = Block.create(staking_address=staking_address,
+                                              block_number=2,
+                                              reveal_hash=h0,
+                                              prevblock_headerhash=tmp_block1.headerhash,
+                                              transactions=[stake_transaction],
+                                              duplicate_transactions=OrderedDict(),
+                                              signing_xmss=xmss,
+                                              nonce=2)
+
+                res = buffered_chain.add_block(block=tmp_block2)
                 self.assertTrue(res)
