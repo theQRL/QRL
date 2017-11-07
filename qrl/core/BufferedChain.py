@@ -183,7 +183,7 @@ class BufferedChain:
 
         # FIXME: Simplify condition
         while len(self.blocks) > 0 and \
-             (len(self.blocks) > config.dev.reorg_limit or self.blocks[0].block.block_number == 0):
+             (len(self.blocks) > config.dev.reorg_limit or min(self.blocks.keys()) == 0):
 
             # FIXME: self.blocks why a dict instead of a deque?
             block_idx = min(self.blocks.keys())
@@ -282,6 +282,7 @@ class BufferedChain:
 
             block_balance = self._get_st_balance(stake_address=block.transactions[0].addr_from,
                                                  block_number=block.block_number)
+
             if block_balance is None:
                 logger.warning('main: Block {} rejected. prevheaderhash mismatch'.format(block.block_number))
                 return False
@@ -414,7 +415,7 @@ class BufferedChain:
                     expiry = stake_validators_tracker.sv_dict[tx.txfrom].activation_blocknumber + \
                              config.dev.blocks_per_epoch
 
-                    if tx.activation_blocknumber < expiry:
+                    if block.block_number > 1 and tx.activation_blocknumber < expiry :
                         logger.warning('Failed %s is already active for the given range', tx.txfrom)
                         return False
 
@@ -621,7 +622,7 @@ class BufferedChain:
 
         if is_successful:
             if block.block_number > 0:
-                stake_validators_tracker.sv_dict[block.stake_selector].increase_nonce()
+                stake_validators_tracker.sv_dict[block.stake_selector].nonce+=1
 
                 for dup_tx in block.duplicate_transactions:
                     if dup_tx.coinbase1.txto in stake_validators_tracker.sv_dict:

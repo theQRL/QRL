@@ -45,11 +45,11 @@ class ApiFactory(ServerFactory):
         addr['state']['balance'] = self.format_qrlamount(tmp_address_state.balance)
         addr['state']['nonce'] = tmp_address_state.nonce
 
-        for s in self.state.stake_list_get():
-            if address == s[0]:
-                addr['stake'] = {}
-                addr['stake']['selector'] = s[2]
-                # pubhashes used could be put here..
+        # for s in self.state.stake_list_get():
+        #     if address == s[0]:
+        #         addr['stake'] = {}
+        #         addr['stake']['selector'] = s[2]
+        #         # pubhashes used could be put here..
 
         tmp_transactions = []
         for tx in self.buffered_chain.tx_pool.transaction_pool:

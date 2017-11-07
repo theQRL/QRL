@@ -40,9 +40,6 @@ class BlockMetadata(object):
         return tuple(self.score, self.block.headerhash)
 
     def _block_score(self, seed, balance):
-        # FIXME: Review seed
-        seed = bytes(int(str(seed), 16))
-
         # FIXME: Review + Duplicated code
         score_val = score(stake_address=self.block.stake_selector,
                           reveal_one=self.block.reveal_hash,

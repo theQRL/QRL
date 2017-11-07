@@ -113,6 +113,10 @@ class TestBufferedChain(TestCase):
                                                             xmss=xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h1)
+
+                # FIXME: The test needs private access.. This is an API issue
+                stake_transaction._data.nonce = 1
+
                 stake_transaction.sign(xmss)
 
                 chain.pstate.stake_validators_tracker.add_sv(balance=100,
@@ -126,7 +130,7 @@ class TestBufferedChain(TestCase):
                                          transactions=[stake_transaction],
                                          duplicate_transactions=OrderedDict(),
                                          signing_xmss=xmss,
-                                         nonce=2)
+                                         nonce=1)
 
                 res = buffered_chain.add_block(block=tmp_block)
                 self.assertTrue(res)

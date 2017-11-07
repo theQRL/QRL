@@ -23,10 +23,10 @@ class State:
         """
         >>> State()._db is not None
         True
-        >>> State().stake_validators_tracker is not None
-        True
         """
         self._db = db.DB()  # generate db object here
+
+        # FIXME: Move to BufferedChain
         self.stake_validators_tracker = StakeValidatorsTracker()
 
     def __enter__(self):
@@ -36,26 +36,6 @@ class State:
         if self._db is not None:
             del self._db
             self._db = None
-
-    def stake_list_get(self):
-        try:
-            return self._db.get('stake_list')
-        except KeyError:
-            pass
-        except Exception as e:
-            # FIXME: Review
-            logger.error('Exception in stake_list_get')
-            logger.exception(e)
-
-        return []
-
-    def stake_list_put(self, sl):
-        try:
-            self._db.put('stake_list', self.stake_validators_tracker.to_json())  # FIXME: to_json is missing
-        except Exception as e:
-            # FIXME: Review
-            logger.warning("stake_list_put: %s %s", type(e), e)
-            return False
 
     def put_epoch_seed(self, epoch_seed):
         try:

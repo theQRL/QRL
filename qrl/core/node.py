@@ -441,8 +441,6 @@ class POS:
         """
 
         if self.p2pFactory.stake:
-            self.buffered_chain.staking_address = self.buffered_chain.staking_address
-
             future_stake_addresses = self.buffered_chain.future_stake_addresses(blocknumber)
 
             if self.buffered_chain.staking_address not in future_stake_addresses:
