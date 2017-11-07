@@ -162,7 +162,6 @@ try:
 
     def GetNodeInfo(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
@@ -188,10 +187,8 @@ try:
     file not marked beta) for all further purposes. This class was generated
     only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
     # missing associated documentation comment in .proto file
-    pass
     def GetNodeInfo(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
 
@@ -202,10 +199,8 @@ try:
     file not marked beta) for all further purposes. This class was generated
     only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
     # missing associated documentation comment in .proto file
-    pass
     def GetNodeInfo(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetNodeInfo.future = None
 

@@ -123,11 +123,11 @@ class BufferedChain:
 
         # FIXME: Should this run max on the keys only? Or better keep track of the value..
         last_blocknum = max(self.blocks.keys())
-        return self.blocks[last_blocknum][0].block  # FIXME: What does [0] refers to?
+        return self.blocks[last_blocknum].block
 
     def get_block(self, block_idx: int) -> Optional[Block]:
         if block_idx in self.blocks:
-            return self.blocks[block_idx][0].block  # FIXME: What does [0] refers to?
+            return self.blocks[block_idx].block
         return self._chain.get_block(block_idx)
 
     # TODO: This add_block used to be in state
@@ -1295,7 +1295,7 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_tracker
 
-            return self.blocks[blocknumber - 1][1].stake_validators_tracker
+            return self.blocks[blocknumber - 1].stake_validators_tracker
         except KeyError:
             self.error_msg('get_stake_validators_tracker', blocknumber)
         except Exception as e:

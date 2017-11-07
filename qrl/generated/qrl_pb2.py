@@ -2494,14 +2494,12 @@ try:
 
     def GetNodeState(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def GetKnownPeers(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
@@ -2595,56 +2593,48 @@ try:
 
     def GetNodeState(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def GetKnownPeers(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def GetStats(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def GetAddressState(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def GetObject(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def GetLatestData(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def TransferCoins(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
 
     def PushTransaction(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.set_code(grpc.StatusCode.UNIMPLEMENTED)
       context.set_details('Method not implemented!')
       raise NotImplementedError('Method not implemented!')
@@ -2741,11 +2731,9 @@ try:
     """
     def GetNodeState(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetKnownPeers(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetBlock(self, request, context):
       """rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp);
@@ -2771,12 +2759,10 @@ try:
     """
     def GetNodeState(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetNodeState.future = None
     def GetKnownPeers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetKnownPeers.future = None
     def GetBlock(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
@@ -2846,35 +2832,27 @@ try:
     """
     def GetNodeState(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetKnownPeers(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetStats(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetAddressState(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetObject(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def GetLatestData(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def TransferCoins(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
     def PushTransaction(self, request, context):
       # missing associated documentation comment in .proto file
-      pass
       context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
 
 
@@ -2888,42 +2866,34 @@ try:
     """
     def GetNodeState(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetNodeState.future = None
     def GetKnownPeers(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetKnownPeers.future = None
     def GetStats(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetStats.future = None
     def GetAddressState(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetAddressState.future = None
     def GetObject(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetObject.future = None
     def GetLatestData(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     GetLatestData.future = None
     def TransferCoins(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     TransferCoins.future = None
     def PushTransaction(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
       # missing associated documentation comment in .proto file
-      pass
       raise NotImplementedError()
     PushTransaction.future = None
 
