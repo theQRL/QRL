@@ -659,7 +659,7 @@ class BufferedChain:
         signing_xmss = self.get_slave_xmss(last_block.block_number + 1)
 
         sv_dict = self.get_stake_validators_tracker(last_block.block_number + 1).sv_dict
-        nonce = sv_dict[self._chain.pstate].nonce + 1
+        nonce = sv_dict[self.staking_address].nonce + 1
 
         new_block = Block.create(staking_address=self.staking_address,
                                  block_number=last_block.block_number + 1,

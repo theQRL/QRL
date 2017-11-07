@@ -483,7 +483,7 @@ class POS:
         sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)
         if self.buffered_chain.staking_address in sv_dict:
             activation_blocknumber = sv_dict[
-                                         self.buffered_chain.height].activation_blocknumber + config.dev.blocks_per_epoch
+                                         self.buffered_chain.staking_address].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
