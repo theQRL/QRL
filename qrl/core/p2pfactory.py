@@ -154,7 +154,7 @@ class P2PFactory(ServerFactory):
         data = qrl_pb2.MR()
         data.stake_selector = block.transactions[0].addr_from
         data.block_number = block.block_number
-        data.prev_headerhash = bytes(block.prev_blockheaderhash)
+        data.prev_headerhash = bytes(block.prev_headerhash)
 
         if block.block_number > 1:
             data.reveal_hash = block.reveal_hash

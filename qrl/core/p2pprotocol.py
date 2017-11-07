@@ -228,14 +228,12 @@ class P2PProtocol(Protocol):
             return
 
         if mr_data.type == 'BK':
-            tmp_block = Block(mr_data)
-
             block_chain_buffer = self.factory.buffered_chain
 
-            if not block_chain_buffer.verify_BK_hash(tmp_block, self.conn_identity):
-                if block_chain_buffer.is_duplicate_block(blocknum=tmp_block.block_number,
-                                                         prev_blockheaderhash=tmp_block.prev_headerhash,
-                                                         stake_selector=tmp_block.stake_selector):
+            if not block_chain_buffer.verify_BK_hash(mr_data, self.conn_identity):
+                if block_chain_buffer.is_duplicate_block(blocknum=mr_data.block_number,
+                                                         prev_blockheaderhash=mr_data.prev_headerhash,
+                                                         stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
                 elif mr_data.block_number > self.factory.buffered_chain.height - config.dev.reorg_limit:
                     self.FBHL()
