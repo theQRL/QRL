@@ -16,7 +16,7 @@ class StakeValidator:
     time by avoiding recalculation of the hash till the hash terminators.
     """
     def __init__(self, balance, stake_txn):
-        self.buffer_size = config.dev.hash_buffer_size  # Move size to dev configuration
+        self.buffer_size = config.dev.hash_buffer_size
         self.stake_validator = stake_txn.txfrom
         self.slave_public_key = stake_txn.slave_public_key
         self.balance = balance
