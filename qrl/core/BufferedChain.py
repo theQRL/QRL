@@ -871,7 +871,7 @@ class BufferedChain:
 
         return False
 
-    def is_duplicate_block(self, blocknum, prev_blockheaderhash, stake_selector):
+    def is_duplicate_block(self, blocknum, prev_headerhash, stake_selector):
         """
         A block is considered as a dirty block, if same stake validator created two different blocks
         for the same blocknumber having same prev_blockheaderhash.
@@ -881,7 +881,7 @@ class BufferedChain:
 
         best_block = self.get_block(blocknum)
 
-        if best_block.prev_headerhash != prev_blockheaderhash:
+        if best_block.prev_headerhash != prev_headerhash:
             return
 
         if best_block.stake_selector != stake_selector:
@@ -1078,6 +1078,7 @@ class BufferedChain:
         tx_nonce = defaultdict(int)
         total_txn = len(t_pool2)
         txnum = 0
+
         stake_validators_tracker = self.get_stake_validators_tracker(last_block_number + 1)
         # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
         stake_txn = set()

@@ -232,7 +232,7 @@ class P2PProtocol(Protocol):
 
             if not block_chain_buffer.verify_BK_hash(mr_data, self.conn_identity):
                 if block_chain_buffer.is_duplicate_block(blocknum=mr_data.block_number,
-                                                         prev_blockheaderhash=mr_data.prev_headerhash,
+                                                         prev_headerhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
                 elif mr_data.block_number > self.factory.buffered_chain.height - config.dev.reorg_limit:
@@ -240,7 +240,7 @@ class P2PProtocol(Protocol):
                 return
 
             blocknumber = mr_data.block_number
-            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.pos.ntp)
+            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory.ntp)
             if target_blocknumber != self.factory.bkmr_blocknumber:
                 self.factory.bkmr_blocknumber = target_blocknumber
                 del self.factory.bkmr_priorityq
@@ -467,7 +467,7 @@ class P2PProtocol(Protocol):
         block_chain_buffer = self.factory.buffered_chain
 
         if block_chain_buffer.is_duplicate_block(blocknum=block.block_number,
-                                                 prev_blockheaderhash=block.prev_blockheaderhash,
+                                                 prev_headerhash=block.prev_headerhash,
                                                  stake_selector=block.stake_selector):
             logger.info('Found duplicate block #%s by %s',
                         block.block_number,
@@ -687,7 +687,7 @@ class P2PProtocol(Protocol):
         if blocknumber <= self.factory.buffered_chain.height:
             # FIXME: Breaking encapsulation
             message = self.wrap_message('PB', self.factory.buffered_chain.get_block(blocknumber).to_json())
-            self.transport.write()
+            self.transport.write(message)
         elif blocknumber in self.factory.buffered_chain.blocks:
             blockStateBuffer = self.blocks[blocknumber]
 

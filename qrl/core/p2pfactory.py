@@ -8,7 +8,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from qrl.core import config, logger
+from qrl.core import config, logger, ntp
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 
@@ -22,6 +22,7 @@ class P2PFactory(ServerFactory):
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
+        self.ntp = ntp
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
         self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
