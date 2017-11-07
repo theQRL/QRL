@@ -190,7 +190,7 @@ class POS:
                         # FIXME: This goes to stake validator list without verification, Security Risk
                         self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesisBalance.balance, tx, 1)
 
-        self.buffered_chain.epoch_seed = calc_seed(tmp_list)
+        self.buffered_chain.epoch_seed = calc_seed(seed_list)
 
         #  TODO : Needed to be reviewed later
         self.buffered_chain.stake_list = sorted(tmp_list,
@@ -201,7 +201,7 @@ class POS:
                                                                          balance=staker[3],
                                                                          seed=self.buffered_chain.epoch_seed))
 
-        self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
+        #self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
 
         logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain.stake_list),
                     config.dev.minimum_required_stakers)
