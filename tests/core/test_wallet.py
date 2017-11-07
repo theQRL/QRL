@@ -9,7 +9,7 @@ import pytest
 from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.core import logger, config
-from qrl.core.wallet import Wallet
+from qrl.core.Wallet import Wallet
 from tests.misc.helper import setWalletDir
 
 logger.initialize_default(force_console_output=True)

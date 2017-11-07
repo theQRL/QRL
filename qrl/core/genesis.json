@@ -1,0 +1,22 @@
+{
+  "header": {
+    "hash_header": "QlmO7WmsvQMb0w+YDx44OicdUslUN2wYRiHXNHbrndo=",
+    "hash_header_prev": "UXVhbnR1bUJvb3N0ZXJUZXN0bmV0",
+    "merkle_root": "X+zrZv/IbzjZUnhsbWlsecLbwjndTpG0ZynXOif7V+k=",
+    "hash_reveal": "",
+    "block_number": "0",
+    "epoch": "0",
+    "reward_block": "0",
+    "reward_fee": "0",
+    "stake_selector": ""
+  },
+  "transactions": [],
+  "genesis_balance": [
+    {   "address": "Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6", "balance": "100000000000000"   },
+    {   "address": "Qc467b58a91d7b1f68a4378e0129e8bf070f5875a879a682f351c9292c8416dece0b17e51", "balance": "100000000000000"   },
+    {   "address": "Q0aafda6e082e072533194acebd0f6a82c38cfdca8aa562a317b4275676c93b1cb6988c8f", "balance": "100000000000000"   },
+    {   "address": "Qc884d7eeb15c7abcdadfdca68bee67c19a5c7e0b98d87fb2bed3b0f18bf80c9025599950", "balance": "100000000000000"   },
+    {   "address": "Q05f82cfb3bec7ee85106022baf6e33ea78f257298bbc078275aa6a60c861887036ff6f69", "balance": "100000000000000"   },
+    {   "address": "Q1c6649e54504c6c8618173ef774eabc11245315abab06e970960a763ca6f3a5f62d6f1a8", "balance": "100000000000000"   }
+  ]
+}

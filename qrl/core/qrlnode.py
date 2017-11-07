@@ -6,10 +6,11 @@ from decimal import Decimal
 import time
 
 from qrl.core import config, logger
+from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import TransferTransaction, Transaction
-from qrl.core.block import Block
-from qrl.core.nstate import NState
-from qrl.core.state import State
+from qrl.core.Block import Block
+from qrl.core.ESyncState import ESyncState
+from qrl.core.State import State
 from qrl.generated import qrl_pb2
 
 
@@ -23,7 +24,7 @@ class QRLNode:
         self._load_peer_addresses()
 
         self.db_state = db_state
-        self._chain = None  # FIXME: REMOVE. This is temporary
+        self._buffered_chain = None  # FIXME: REMOVE. This is temporary
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
     @property
@@ -34,9 +35,9 @@ class QRLNode:
     @property
     def state(self):
         if self._p2pfactory is None:
-            return NState.unknown.value
+            return ESyncState.unknown.value
         # FIXME
-        return self._p2pfactory.nodeState.state.value
+        return self._p2pfactory.sync_state.state.value
 
     @property
     def num_connections(self):
@@ -56,10 +57,10 @@ class QRLNode:
 
     @property
     def block_height(self):
-        if self._chain.height() < 0:
+        if self._buffered_chain.height < 0:
             return 0
         # FIXME
-        return self._chain.height()
+        return self._buffered_chain.height
 
     @property
     def staking(self):
@@ -69,28 +70,28 @@ class QRLNode:
 
     @property
     def epoch(self):
-        if len(self._chain.m_blockchain) == 0:
+        if len(self._buffered_chain.blockchain) == 0:
             return 0
-        return self._chain.m_blockchain[-1].blockheader.epoch
+        return self._buffered_chain.blockchain[-1].epoch
 
     @property
     def uptime_network(self):
-        block_one = self._chain.m_get_block(1)
+        block_one = self._buffered_chain.get_block(1)
         network_uptime = 0
         if block_one:
-            network_uptime = time.time() - block_one.blockheader.timestamp
+            network_uptime = time.time() - block_one.timestamp
         return network_uptime
 
     @property
     def stakers_count(self):
-        return len(self.db_state.stake_validators_list.sv_list)
+        return len(self.db_state.stake_validators_tracker.sv_dict)
 
     @property
     def block_last_reward(self):
-        if len(self._chain.m_blockchain) == 0:
+        if len(self._buffered_chain.blockchain) == 0:
             return 0
 
-        return self._chain.m_blockchain[-1].blockheader.block_reward
+        return self._buffered_chain.blockchain[-1].block_reward
 
     @property
     def block_time_mean(self):
@@ -116,7 +117,7 @@ class QRLNode:
     def coin_atstake(self):
         # FIXME: This is very time consuming.. (moving from old code) improve/cache
         total_at_stake = 0
-        for staker in self.db_state.stake_validators_list.sv_list:
+        for staker in self.db_state.stake_validators_tracker.sv_dict:
             total_at_stake += self.db_state.balance(staker)
         return total_at_stake
 
@@ -125,8 +126,8 @@ class QRLNode:
         return self._peer_addresses
 
     # FIXME: REMOVE. This is temporary
-    def set_chain(self, chain):
-        self._chain = chain
+    def set_chain(self, buffered_chain: BufferedChain):
+        self._buffered_chain = buffered_chain
 
     # FIXME: REMOVE. This is temporary
     def set_p2pfactory(self, p2pfactory):
@@ -181,10 +182,10 @@ class QRLNode:
             # FIXME: The whole idea of accepting relative (index based) wallets internally is flawed.
             # There is a risk of confusing things. Relative should be a feature of UIs
 
-            num_wallets = len(self._chain.wallet.address_bundle)
+            num_wallets = len(self._buffered_chain.wallet.address_bundle)
             addr_idx = int(addr_or_index)
             if 0 <= addr_idx < num_wallets:
-                return self._chain.wallet.address_bundle[addr_idx].address
+                return self._buffered_chain.wallet.address_bundle[addr_idx].address
             else:
                 raise ValueError("invalid address index")
 
@@ -201,23 +202,23 @@ class QRLNode:
 
     def _find_xmss(self, key_addr: bytes):
         # FIXME: Move down the wallet management
-        for addr in self._chain.wallet.address_bundle:
+        for addr in self._buffered_chain.wallet.address_bundle:
             if addr.address == key_addr:
                 return addr.xmss
         return None
 
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
-        block_chain_buffer = self._chain.block_chain_buffer
-        stake_validators_list = block_chain_buffer.get_stake_validators_list(block_chain_buffer.height() + 1)
+        block_chain_buffer = self._buffered_chain.block_chain_buffer
+        stake_validators_tracker = block_chain_buffer.get_stake_validators_tracker(block_chain_buffer.height() + 1)
 
         xmss_from = self._find_xmss(addr_from)
 
-        if addr_from in stake_validators_list.sv_list and stake_validators_list.sv_list[addr_from].is_active:
+        if addr_from in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[addr_from].is_active:
             raise LookupError("Source address is a Stake Validator, balance is locked while staking")
 
-        if (addr_from in stake_validators_list.future_stake_addresses and
-                stake_validators_list.future_stake_addresses[addr_from].is_active):
+        if (addr_from in stake_validators_tracker.future_stake_addresses and
+                stake_validators_tracker.future_stake_addresses[addr_from].is_active):
             raise LookupError("Source address is a Future Stake Validator, balance is locked")
 
         if xmss_from is None:
@@ -270,15 +271,15 @@ class QRLNode:
 
         tx.validate_or_raise()
 
-        block_chain_buffer = self._chain.block_chain_buffer
+        block_chain_buffer = self._buffered_chain.block_chain_buffer
         block_number = block_chain_buffer.height() + 1
         tx_state = block_chain_buffer.get_stxn_state(block_number, tx.txfrom)
 
-        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._chain.transaction_pool):
+        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
             raise ValueError("The transaction failed validatation (blockchain state)")
 
-        self._chain.add_tx_to_pool(tx)
-        self._chain.wallet.save_wallet()
+        self._buffered_chain.tx_pool.add_tx_to_pool(tx)
+        self._buffered_chain.wallet.save_wallet()
         self._p2pfactory.send_tx_to_peers(tx)
         return True
 
@@ -315,7 +316,7 @@ class QRLNode:
         # TODO: Search tx hash
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
-        for tx in self._chain.transaction_pool:
+        for tx in self._buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == query_hash:
                 return tx
         return None
@@ -332,7 +333,7 @@ class QRLNode:
         This method returns an object that matches the query hash
         """
         # FIXME: At some point, all objects in DB will indexed by a hash
-        return self._chain.m_get_block(index)
+        return self._buffered_chain.get_block(index)
 
     def get_latest_blocks(self, count=5):
         # FIXME: Simplify this
@@ -340,7 +341,7 @@ class QRLNode:
         end = self.block_height
         start = max(0, end - count)
         for blk_idx in range(start, end):
-            answer.append(self._chain.m_get_block(blk_idx))
+            answer.append(self._buffered_chain.get_block(blk_idx))
 
         return answer
 
@@ -348,7 +349,7 @@ class QRLNode:
         # FIXME: Moved code. Breaking encapsulation. Refactor
 
         answer = []
-        for pbtx in self._chain.self.m_blockchain[-1].transactions[-20:]:
+        for pbtx in self._buffered_chain.self.blockchain[-1].transactions[-20:]:
             tx = Transaction.from_pbdata(pbtx)
             if isinstance(tx, TransferTransaction):
                 answer.append(tx)
@@ -359,7 +360,7 @@ class QRLNode:
 
     def get_latest_transactions_unconfirmed(self, count=5):
         answer = []
-        for tx in reversed(self._chain.transaction_pool):
+        for tx in reversed(self._buffered_chain.tx_pool.transaction_pool):
             if isinstance(tx, TransferTransaction):
                 answer.append(tx)
                 if len(answer) >= count:

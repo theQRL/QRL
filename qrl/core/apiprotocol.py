@@ -107,8 +107,8 @@ class ApiProtocol(Protocol):
         stakers = {'status': 'ok',
                    'stake_list': []}
 
-        for staker in self.factory.state.stake_validators_list.sv_list:
-            sv = self.factory.state.stake_validators_list.sv_list[staker]
+        for staker in self.factory.state.stake_validators_tracker.sv_dict:
+            sv = self.factory.state.stake_validators_tracker.sv_dict[staker]
             tmp_stakers = {'address': sv.stake_validator.decode(),
                            'activation_blocknumber': sv.activation_blocknumber,
                            'balance': self.factory.format_qrlamount(sv.balance),
@@ -125,8 +125,8 @@ class ApiProtocol(Protocol):
         next_stakers = {'status': 'ok',
                         'stake_list': []}
 
-        for staker in self.factory.state.stake_validators_list.future_stake_addresses:
-            sv = self.factory.state.stake_validators_list.future_stake_addresses[staker]
+        for staker in self.factory.state.stake_validators_tracker.future_stake_addresses:
+            sv = self.factory.state.stake_validators_tracker.future_stake_addresses[staker]
             tmp_stakers = {'activation_blocknumber': sv.activation_blocknumber,
                            'address': sv.stake_validator,
                            'balance': self.factory.format_qrlamount(sv.balance),
@@ -161,7 +161,7 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        if not self.factory.state.uptodate(self.factory.chain.m_blockheight()):
+        if not self.factory.state.uptodate(self.factory.height()):
             return json_print_telnet({'status': 'error',
                                       'error': 'leveldb failed',
                                       'method': 'richlist'})
@@ -200,20 +200,22 @@ class ApiProtocol(Protocol):
             return json_print_telnet(error)
 
         lb = []
-        beginning = self.factory.chain.height() - n
-        for blocknum in range(self.factory.chain.height(), beginning - 1, -1):
-            block = self.factory.chain.m_get_block(blocknum)
+        beginning = self.factory.buffered_chain.height - n
+
+        # FIXME: Avoid +1/-1, assign a them to make things clear
+        for blocknum in range(self.factory.buffered_chain.height, beginning - 1, -1):
+            block = self.factory.buffered_chain.get_block(blocknum)
             lb.append(block)
 
         last_blocks = {'blocks': []}
         i = 0
         for block in lb[1:]:
             i += 1
-            tmp_block = {'blocknumber': block.blockheader.blocknumber,
-                         'block_reward': self.factory.format_qrlamount(block.blockheader.block_reward),
-                         'blockhash': bin2hstr(block.blockheader.prev_blockheaderhash),
-                         'timestamp': block.blockheader.timestamp,
-                         'block_interval': lb[i - 1].blockheader.timestamp - block.blockheader.timestamp,
+            tmp_block = {'blocknumber': block.block_number,
+                         'block_reward': self.factory.format_qrlamount(block.block_reward),
+                         'blockhash': bin2hstr(block.prev_blockheaderhash),
+                         'timestamp': block.timestamp,
+                         'block_interval': lb[i - 1].timestamp - block.timestamp,
                          'number_transactions': len(block.transactions)}
 
             last_blocks['blocks'].append(tmp_block)
@@ -238,10 +240,10 @@ class ApiProtocol(Protocol):
         if n <= 0 or n > 20:
             return json_print_telnet(error)
 
-        tx_num = len(self.factory.chain.transaction_pool)
+        tx_num = len(self.factory.buffered_chain.tx_pool.transaction_pool)
         while tx_num > 0:
             tx_num -= 1
-            tx = self.factory.chain.transaction_pool[tx_num]
+            tx = self.factory.buffered_chain.tx_pool.transaction_pool[tx_num]
             if tx.subtype != TX_SUBTYPE_TX:
                 continue
             tmp_txn = {'txhash': bin2hstr(tx.txhash),
@@ -307,14 +309,14 @@ class ApiProtocol(Protocol):
         }
         logger.info('<<< API block data call %s', data)
         if not data:
-            data = self.factory.chain.height()
+            data = self.factory.buffered_chain.height
 
         try:
             int(data)  # is the data actually a number?
         except:
             return json_print_telnet(error)
 
-        bk = self.factory.chain.m_get_block(int(data))
+        bk = self.factory.buffered_chain.get_block(int(data))
 
         if not bk:
             return json_print_telnet(error)
@@ -328,15 +330,16 @@ class ApiProtocol(Protocol):
             #return js_bk1.to_json()
 
     def ip_geotag(self, data=None):
+        # FIXME: This is obsolete. Needs to be redesigned/written in the new grpc implementation
         logger.info('<<< API ip_geotag call')
         self.factory.pos.p2pFactory.ip_geotag_peers()
         ip = {'status': 'ok',
-              'ip_geotag': self.factory.chain.ip_list}
+              'ip_geotag': ''}     # FIXME: This is obsolete
 
-        x = 0
-        for i in self.factory.chain.ip_list:
-            ip['ip_geotag'][x] = i
-            x += 1
+        # x = 0
+        # for i in self.factory.buffered_chain.ip_list:
+        #     ip['ip_geotag'][x] = i
+        #     x += 1
 
         return json_print_telnet(ip)
 
@@ -357,7 +360,7 @@ class ApiProtocol(Protocol):
         total_at_stake = 0
         total_supply = self.factory.state.total_coin_supply()
 
-        for staker in self.factory.state.stake_validators_list.sv_list:
+        for staker in self.factory.state.stake_validators_tracker.sv_dict:
             total_at_stake += self.factory.state.balance(staker)
 
         staked = str(round(100 * total_at_stake / total_supply, 2))
@@ -368,20 +371,20 @@ class ApiProtocol(Protocol):
 
         last_n_block = 100
 
-        last_block = self.factory.chain.m_blockchain[-1]
+        last_block = self.factory.buffered_chain._chain.blockchain[-1]
         for _ in range(last_n_block):
-            if last_block.blockheader.blocknumber <= 0:
+            if last_block.block_number <= 0:
                 break
-            prev_block = self.factory.chain.m_get_block(last_block.blockheader.blocknumber - 1)
-            x = last_block.blockheader.timestamp - prev_block.blockheader.timestamp
+            prev_block = self.factory.buffered_chain.get_block(last_block.block_number - 1)
+            x = last_block.timestamp - prev_block.timestamp
             last_block = prev_block
             t.append(x)
             z += x
 
-        block_one = self.factory.chain.m_get_block(1)
+        block_one = self.factory.buffered_chain.get_block(1)
         network_uptime = 0
         if block_one:
-            network_uptime = time.time() - block_one.blockheader.timestamp
+            network_uptime = time.time() - block_one.timestamp
 
         block_time = 0
         block_time_variance = 0
@@ -394,18 +397,18 @@ class ApiProtocol(Protocol):
             'status': 'ok',
             'version': config.dev.version,
             'nodes': len(self.factory.peers) + 1,
-            'blockheight': self.factory.chain.m_blockheight(),
+            'blockheight': self.factory.height(),
             'network': 'qrl testnet',
 
             # Part of
-            'epoch': self.factory.chain.m_blockchain[-1].blockheader.epoch,
+            'epoch': self.factory.buffered_chain._chain.blockchain[-1].epoch,
             'network_uptime': network_uptime,
 
-            'block_reward': self.factory.format_qrlamount(self.factory.chain.m_blockchain[-1].blockheader.block_reward),
+            'block_reward': self.factory.format_qrlamount(self.factory.buffered_chain._chain.m_blockchain[-1].block_reward),
             'block_time': block_time,
             'block_time_variance': block_time_variance,
 
-            'stake_validators': len(self.factory.chain.state.stake_validators_list.sv_list), # Use GetStakers instead
+            'stake_validators': len(self.factory.height().stake_validators_tracker.sv_dict), # Use GetStakers instead
 
             # FIXME: Magic number? Unify
             'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),
@@ -435,11 +438,11 @@ class ApiProtocol(Protocol):
             return json_print_telnet(addr)
 
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, _ = self.factory.state.get_address(address)
+        tmp_address_state = self.factory.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = self.factory.format_qrlamount(balance)
-        addr['state']['nonce'] = nonce
+        addr['state']['balance'] = self.factory.format_qrlamount(tmp_address_state.balance)
+        addr['state']['nonce'] = tmp_address_state.nonce
         addr['state']['transactions'] = self.factory.state.get_txn_count(address)
         addr['status'] = 'ok'
 

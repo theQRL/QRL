@@ -1,0 +1,250 @@
+# coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+from _decimal import Decimal
+
+from pyqrllib.pyqrllib import bin2hstr
+
+from qrl.core import db, logger, config
+from qrl.core.AddressState import AddressState
+from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
+from qrl.core.Transaction import Transaction
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
+from qrl.generated import qrl_pb2
+
+
+class State:
+    # FIXME: Rename to PersistentState
+    # FIXME: Move blockchain caching/storage over here
+    # FIXME: Improve key generation
+
+    def __init__(self):
+        """
+        >>> State()._db is not None
+        True
+        """
+        self._db = db.DB()  # generate db object here
+
+        # FIXME: Move to BufferedChain
+        self.stake_validators_tracker = StakeValidatorsTracker()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._db is not None:
+            del self._db
+            self._db = None
+
+    def put_epoch_seed(self, epoch_seed):
+        try:
+            self._db.put('epoch_seed', epoch_seed)
+        except Exception as e:
+            # FIXME: Review
+            logger.exception(e)
+            return False
+
+    def get_epoch_seed(self):
+        try:
+            return self._db.get('epoch_seed')
+        except Exception as e:
+            # FIXME: Review
+            logger.warning("get_epoch_seed: %s %s", type(e), e)
+            return False
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def uptodate(self, height):  # check state db marker to current blockheight.
+        # FIXME: Remove
+        return height == self._blockheight()
+
+    def _blockheight(self):
+        # FIXME: Remove
+        return self._db.get('blockheight')
+
+    def _set_blockheight(self, height):
+        # FIXME: Remove
+        return self._db.put('blockheight', height)
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def update_last_tx(self, block):
+        if len(block.transactions) == 0:
+            return
+        last_txn = []
+
+        try:
+            last_txn = self._db.get('last_txn')
+        except:
+            pass
+
+        for protobuf_txn in block.transactions[-20:]:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            if txn.subtype == TX_SUBTYPE_TX:
+                last_txn.insert(0, [txn.to_json(),
+                                    block.block_number,
+                                    block.timestamp])
+
+        del last_txn[20:]
+        self._db.put('last_txn', last_txn)
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def update_address_tx_hashes(self, addr: bytes, new_txhash: bytes):
+        txhash = self.get_address_tx_hashes(addr)
+        txhash.append(bin2hstr(new_txhash))
+        self._db.put(b'txn_' + addr, txhash)
+
+    def get_address_tx_hashes(self, addr: bytes):
+        try:
+            txhash = self._db.get(b'txn_' + addr)
+        except KeyError:
+            txhash = []
+        except Exception as e:
+            logger.exception(e)
+            txhash = []
+
+        return txhash
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def get_txn_count(self, addr):
+        try:
+            return self._db.get((b'txn_count_' + addr))
+        except KeyError:
+            pass
+        except Exception as e:
+            # FIXME: Review
+            logger.error('Exception in get_txn_count')
+            logger.exception(e)
+
+        return 0
+
+    def increase_txn_count(self, addr: bytes):
+        # FIXME: This should be transactional
+        last_count = self.get_txn_count(addr)
+        self._db.put(b'txn_count_' + addr, last_count + 1)
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def update_tx_metadata(self, block):
+        if len(block.transactions) == 0:
+            return
+
+        # FIXME: Inconsistency in the keys/types
+        for protobuf_txn in block.transactions:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+                self._db.put(bin2hstr(txn.txhash),
+                             [txn.to_json(),
+                              block.block_number,
+                              block.timestamp])
+
+                if txn.subtype == TX_SUBTYPE_TX:
+                    self.update_address_tx_hashes(txn.txfrom, txn.txhash)
+
+                self.update_address_tx_hashes(txn.txto, txn.txhash)
+                self.increase_txn_count(txn.txto)
+                self.increase_txn_count(txn.txfrom)
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def _get_address_state(self, address: bytes):
+        data = self._db.get_raw(address)
+        if data is None:
+            raise KeyError("{} not found".format(address))
+        pbdata = qrl_pb2.AddressState()
+        pbdata.ParseFromString(data)
+        address_state = AddressState(pbdata)
+        return address_state
+
+    def _save_address_state(self, address_state: AddressState):
+        data = address_state.pbdata.SerializeToString()
+        self._db.put_raw(address_state.address, data)
+
+    def get_address(self, address: bytes)->AddressState:
+        # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
+        try:
+            return self._get_address_state(address)
+        except KeyError:
+            # FIXME: Check all cases where address is not found
+            return AddressState.create(address=address,
+                                       nonce=config.dev.default_nonce,
+                                       balance=config.dev.default_account_balance,
+                                       pubhashes=[])
+
+    def nonce(self, addr: bytes) -> int:
+        return self.get_address(addr).nonce
+
+    def balance(self, addr: bytes) -> int:
+        return self.get_address(addr).balance
+
+    def pubhash(self, addr: bytes):
+        return self.get_address(addr).pubhashes
+
+    def address_used(self, address: bytes):
+        # FIXME: Probably obsolete
+        try:
+            return self._get_address_state(address)
+        except KeyError:
+            return False
+        except Exception as e:
+            # FIXME: Review
+            logger.error('Exception in address_used')
+            logger.exception(e)
+            raise
+
+    def return_all_addresses(self):
+        addresses = []
+        for key, data in self._db.RangeIter(b'Q', b'Qz'):
+            pbdata = qrl_pb2.AddressState()
+            pbdata.ParseFromString(data)
+            address_state = AddressState(pbdata)
+            addresses.append(address_state)
+        return addresses
+
+    def zero_all_addresses(self):
+        for k, v in self._db.RangeIter(b'Q', b'Qz'):
+            self._db.delete(k)
+        logger.info('Reset Finished')
+        self._set_blockheight(0)
+        return
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def total_coin_supply(self):
+        # FIXME: This is temporary code. NOT SCALABLE. It is easy to keep a global count
+        all_addresses = self.return_all_addresses()
+        coins = Decimal(0)
+        for a in all_addresses:
+            coins = coins + Decimal(a.balance)  # FIXME: decimal math?
+        return coins

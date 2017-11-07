@@ -10,20 +10,21 @@ from qrl.core.apiprotocol import ApiProtocol
 from qrl.core.helper import json_print_telnet
 from decimal import Decimal
 
+
 class ApiFactory(ServerFactory):
-    def __init__(self, pos, chain, state, peers):
+    def __init__(self, pos, buffered_chain, state, peers):
         self.protocol = ApiProtocol
         self.connections = 0
         self.api = 1
         self.pos = pos
-        self.chain = chain
+        self.buffered_chain = buffered_chain
         self.state = state
         self.peers = peers
 
     def format_qrlamount(self, balance):
         return format(float(balance / Decimal(100000000.00000000)), '.8f')
 
-    #FIXME: Temporarily moving this here to keep thing running. Remove/refactor
+    # FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_address(self, address):
         addr = {'transactions': []}
 
@@ -38,20 +39,20 @@ class ApiFactory(ServerFactory):
 
         # FIXME: This is a duplicate of balance
         # FIXME: breaking encapsulation and accessing DB/cache directly from API
-        nonce, balance, pubhash_list = self.state.get_address(address)
+        tmp_address_state = self.state.get_address(address)
         addr['state'] = {}
         addr['state']['address'] = address
-        addr['state']['balance'] = self.format_qrlamount(balance)
-        addr['state']['nonce'] = nonce
+        addr['state']['balance'] = self.format_qrlamount(tmp_address_state.balance)
+        addr['state']['nonce'] = tmp_address_state.nonce
 
-        for s in self.state.stake_list_get():
-            if address == s[0]:
-                addr['stake'] = {}
-                addr['stake']['selector'] = s[2]
-                # pubhashes used could be put here..
+        # for s in self.state.stake_list_get():
+        #     if address == s[0]:
+        #         addr['stake'] = {}
+        #         addr['stake']['selector'] = s[2]
+        #         # pubhashes used could be put here..
 
         tmp_transactions = []
-        for tx in self.chain.transaction_pool:
+        for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.subtype not in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
                 continue
             if tx.txto == address or tx.txfrom == address:
@@ -114,9 +115,9 @@ class ApiFactory(ServerFactory):
         return json_print_telnet(addr)
 
     def reformat_block(self, block):
-        block.blockheader.block_reward = self.format_qrlamount(block.blockheader.block_reward)
-        block.blockheader.fee_reward = self.format_qrlamount(block.blockheader.fee_reward)
-        block.blockheader.reveal_hash = bin2hstr(block.blockheader.reveal_hash)
+        block.blockheader.block_reward = self.format_qrlamount(block.block_reward)
+        block.blockheader.fee_reward = self.format_qrlamount(block.fee_reward)
+        block.blockheader.reveal_hash = bin2hstr(block.reveal_hash)
         block.blockheader.vote_hash = bin2hstr(block.blockheader.vote_hash)
         block.blockheader.headerhash = bin2hstr(block.blockheader.headerhash)
         block.blockheader.tx_merkle_root = bin2hstr(block.blockheader.tx_merkle_root)
@@ -147,21 +148,21 @@ class ApiFactory(ServerFactory):
     # FIXME: Temporarily moving this here to keep thing running. Remove/refactor
     def search_txhash(self, txhash):  # txhash is unique due to nonce.
         err = {'status': 'Error', 'error': 'txhash not found', 'method': 'txhash', 'parameter': txhash}
-        for tx in self.chain.transaction_pool:
+        for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == txhash:
                 logger.info('%s found in transaction pool..', txhash)
                 tx_new = copy.deepcopy(tx)
                 return tx_new.to_json()
 
         try:
-            txn_metadata = self.chain.state._db.get(txhash)
+            txn_metadata = self.height()._db.get(txhash)
         except:
             logger.info('%s does not exist in memory pool or local blockchain..', txhash)
             return json_print_telnet(err)
 
         tx = Transaction.from_json(txn_metadata[0])
-        tx.blocknumber = txn_metadata[1]
-        tx.confirmations = self.chain.height() - tx.blocknumber
+        tx.block_number = txn_metadata[1]
+        tx.confirmations = self.buffered_chain.height - tx.block_number
         tx.timestamp = txn_metadata[2]
 
         logger.info('%s found in block %s', txhash, str(txn_metadata[1]))

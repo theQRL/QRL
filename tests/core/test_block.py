@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 from qrl.core import logger
-from qrl.core.block import Block
+from qrl.core.Block import Block
 
 logger.initialize_default(force_console_output=True)
 
@@ -16,4 +16,4 @@ class TestBlock(TestCase):
     def test_init(self):
         # TODO: Not much going on here..
         block = Block()
-        self.assertIsNotNone(block) # just to avoid warnings
+        self.assertIsNotNone(block)             # just to avoid warnings

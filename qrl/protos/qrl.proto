@@ -226,7 +226,14 @@ message BlockHeader {
 message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
-    repeated Transaction dup_transactions = 3; // TODO: Review this
+    repeated Transaction dup_transactions = 3;          // TODO: Review this
+    repeated GenesisBalance genesis_balance = 4;
+}
+
+message GenesisBalance
+{
+    string address = 1;                     // Address is string only here to increase visibility
+    uint64 balance = 2;
 }
 
 message BlockMetaDataList {

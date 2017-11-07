@@ -106,14 +106,14 @@ class Transaction(object, metaclass=ABCMeta):
         self._data.signature = xmss.SIGN(self.txhash)
 
     @abstractmethod
-    def _validate_custom(self)->bool:
+    def _validate_custom(self) -> bool:
         """
         This is an extension point for derived classes validation
         If derived classes need additional field validation they should override this member
         """
         return True
 
-    def validate(self)->bool:
+    def validate(self) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
         The main purpose is to avoid exceptions and accomodate legacy code
@@ -131,7 +131,7 @@ class Transaction(object, metaclass=ABCMeta):
             return False
         return True
 
-    def validate_or_raise(self)->bool:
+    def validate_or_raise(self) -> bool:
         """
         This method will validate a transaction and raise exception if problems are found
         :return: True if the exception is valid, exceptions otherwise
@@ -151,9 +151,9 @@ class Transaction(object, metaclass=ABCMeta):
         if not isinstance(self, CoinBase) and getAddress('Q', self.PK) != self.txfrom.decode():
             raise ValueError('Public key and address dont match')
 
-        if not XMSS.VERIFY(message=self.txhash,
-                           signature=self.signature,
-                           pk=self.PK):
+        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
+                                                       signature=self.signature,
+                                                       pk=self.PK):
             raise ValueError("Invalid xmss signature")
 
         return True
@@ -174,7 +174,8 @@ class TransferTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TransferTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.TRANSFER
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.TRANSFER
 
     @property
     def txto(self):
@@ -263,7 +264,8 @@ class StakeTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(StakeTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.STAKE
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.STAKE
 
     @property
     def activation_blocknumber(self):
@@ -297,15 +299,17 @@ class StakeTransaction(Transaction):
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
                             + bin2hstr(sha2_256(bytes(self.subtype)))
-                            + bin2hstr(sha2_256(str(self.blocknumber_headerhash).encode())))
+                            + bin2hstr(
+            sha2_256(str(self.blocknumber_headerhash).encode())))  # FIXME: stringify in standardized way
+        # FIXME: the order in the dict may affect hash
         return bytes(tmptxhash)
 
     @staticmethod
-    def create(activation_blocknumber,
-               blocknumber_headerhash,
-               xmss,
-               slavePK,
-               hashchain_terminator=None):
+    def create(activation_blocknumber: int,
+               blocknumber_headerhash: dict,
+               xmss: XMSS,
+               slavePK: bytes,
+               hashchain_terminator: bytes = None):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
@@ -324,10 +328,11 @@ class StakeTransaction(Transaction):
         for blocknumber in blocknumber_headerhash:
             transaction._data.stake.blocknumber_headerhash[blocknumber] = blocknumber_headerhash[blocknumber]
 
-        transaction._data.stake.slavePK = bytes(slavePK)
+        transaction._data.stake.slavePK = slavePK
 
         if hashchain_terminator is None:
             epoch = activation_blocknumber // config.dev.blocks_per_epoch
+            # FIXME: We are using the same xmss for the hashchain???
             transaction._data.stake.hash = hashchain_reveal(xmss.get_seed_private(), epoch=epoch)
         else:
             transaction._data.stake.hash = hashchain_terminator
@@ -361,7 +366,8 @@ class DestakeTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(DestakeTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.DESTAKE
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.DESTAKE
 
     def _get_hashable_bytes(self):
         """
@@ -412,7 +418,8 @@ class CoinBase(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(CoinBase, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.COINBASE
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.COINBASE
 
         # This attribute is not persistable
         self.blockheader = None
@@ -433,7 +440,7 @@ class CoinBase(Transaction):
         """
         # FIXME: Avoid all intermediate conversions
         tmptxhash = bytes(self.blockheader.prev_blockheaderhash) + \
-                    bytes(str(self.blockheader.blocknumber).encode()) + \
+                    bytes(str(self.blockheader.block_number).encode()) + \
                     bytes(self.blockheader.headerhash)
         return bytes(sha256(tmptxhash))
 
@@ -457,11 +464,11 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, sv_list, blockheader):
+    def validate_extended(self, sv_dict, blockheader):
         # FIXME: It is not good that we have a different signature here
-        if blockheader.blocknumber > 1 and sv_list[self.txto].slave_public_key != self.PK:
+        if blockheader.block_number > 1 and sv_dict[self.txto].slave_public_key != self.PK:
             logger.warning('Stake validator doesnt own the Public key')
-            logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
+            logger.warning('Expected public key %s', sv_dict[self.txto].slave_public_key)
             logger.warning('Found public key %s', self.PK)
             return False
 
@@ -478,9 +485,8 @@ class LatticePublicKey(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(LatticePublicKey, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.LATTICE
-        self._data.pk_kyber = None
-        self._data.pk_tesla = None
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.LATTICE
 
     @property
     def kyber_pk(self):
@@ -522,24 +528,12 @@ class LatticePublicKey(Transaction):
 class DuplicateTransaction(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(DuplicateTransaction, self).__init__(protobuf_transaction)
-        self._data.type = qrl_pb2.Transaction.DUPLICATE
-
-        self._data.duplicate.block_number = 0
-        self._data.duplicate.hash_header_prev = None
-
-        self._data.duplicate.coinbase1 = None
-        self._data.duplicate.coinbase1_hhash = None
-
-        self._data.duplicate.coinbase2 = None
-        self._data.duplicate.coinbase2_hhash = None
-
-        # TODO: review, this is not persistable
-        self.headerhash = None
-        self.coinbase = None
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.DUPLICATE
 
     @property
     def blocknumber(self):
-        return self._data.duplicate.blocknumber
+        return self._data.duplicate.block_number
 
     @property
     def prev_header_hash(self):
@@ -581,8 +575,8 @@ class DuplicateTransaction(Transaction):
     def create(block1, block2):
         transaction = DuplicateTransaction()
 
-        transaction._data.duplicate.blocknumber = block1.blockheader.blocknumber
-        transaction._data.duplicate.prev_header_hash = block1.blockheader.prev_blockheaderhash
+        transaction._data.duplicate.block_number = block1.block_number
+        transaction._data.duplicate.prev_header_hash = block1.prev_blockheaderhash
 
         transaction._data.duplicate.coinbase1 = block1.transactions[0]
         transaction._data.duplicate.coinbase1_hhash = block1.blockheader.headerhash

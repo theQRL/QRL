@@ -1,13 +1,15 @@
 from unittest import TestCase
 
-from pyqrllib.pyqrllib import bin2hstr
 import simplejson as json
+from mock import Mock
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger
-from qrl.crypto.misc import sha256
-from qrl.crypto.xmss import XMSS
+from qrl.core.BlockHeader import BlockHeader
 from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase
 from qrl.core.Transaction_subtypes import *
+from qrl.crypto.misc import sha256
+from qrl.crypto.xmss import XMSS
 
 logger.initialize_default(force_console_output=True)
 
@@ -223,23 +225,18 @@ class TestStakeTransaction(TestCase):
                          bin2hstr(tuple(tx.get_message_hash())))
 
 
-class MockBlockHeader:
-    def __init__(self):
-        pass
-
-
 class TestCoinBase(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCoinBase, self).__init__(*args, **kwargs)
         self.alice = XMSS(4, seed='a' * 48)
         self.alice.set_index(11)
 
-        self.mock_blockheader = MockBlockHeader()
+        self.mock_blockheader = Mock(spec=BlockHeader)
         self.mock_blockheader.stake_selector = self.alice.get_address().encode()
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
         self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
-        self.mock_blockheader.blocknumber = 1
+        self.mock_blockheader.block_number = 1
         self.mock_blockheader.headerhash = sha256(b'headerhash')
 
         self.maxDiff = None
@@ -251,6 +248,7 @@ class TestCoinBase(TestCase):
     def test_to_json(self):
         tx = CoinBase.create(self.mock_blockheader, self.alice)
         txjson = tx.to_json()
+        print(txjson)
         self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
 
     def test_from_txdict(self):
@@ -263,10 +261,11 @@ class TestCoinBase(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual('a62a1ef7faedf82aa1f562ff08a8b3cc7b3c4d4f45ef6c7653bf074df2cda122', bin2hstr(tx.txhash))
         self.assertEqual(11, tx.ots_key)
         self.assertEqual(b'', tx.signature)
         self.assertEqual('1a1274bedfc53287853c3aea5b8a93d64f2e4dff23ddbf96e52c8033f0107154', bin2hstr(tx.pubhash))
+
+        self.assertEqual('a62a1ef7faedf82aa1f562ff08a8b3cc7b3c4d4f45ef6c7653bf074df2cda122', bin2hstr(tx.txhash))
 
         # Test that specific content was copied over.
         self.assertEqual(b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2', tx.txto)
