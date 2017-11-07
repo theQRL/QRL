@@ -130,52 +130,54 @@ class BufferedChain:
             return self.blocks[block_idx].block
         return self._chain.get_block(block_idx)
 
-    # TODO: This add_block used to be in state
-    def add_block_internal(self, block: Block, ignore_save_wallet=False) -> bool:
-        address_state_dict = self.load_address_state(block, dict())
-
-        # FIXME: Unify Genesis case inside update, otherwise the special case is scattered everywhere
-        if block.block_number == 1:
-            if not self._update_stake_genesis(block, address_state_dict):
-                return False
-        else:
-            blocks_left = self.get_blocks_left(block.block_number)
-
-            # FIXME: Verify this
-            if len(block.transactions) < 1:
-                logger.warning("Each block must contain at least a coinbase transaction")
-                return False
-
-            # FIXME: Handle the case where first_tx_from is not in sv_dict
-            first_tx_from = block.transactions[0].addr_from
-            nonce = self._chain.pstate.stake_validators_tracker.sv_dict[first_tx_from].nonce
-
-            logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
-                         block.block_number,
-                         block.epoch,
-                         blocks_left - 1,
-                         nonce,
-                         block.stake_selector)
-
-            if not self._update(block, self._chain.pstate.stake_validators_tracker, address_state_dict):
-                return False
-
-        self._commit(block=block,
-                     address_state_dict=address_state_dict,
-                     wallet=self.wallet,
-                     ignore_save_wallet=ignore_save_wallet)
-
-        blocks_left = self.get_blocks_left(block.block_number)
-
-        if blocks_left == 1:
-            logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
-            xmss = self.wallet.address_bundle[0].xmss
-            tmphc = hashchain(xmss.get_seed_private(), epoch=block.epoch + 1)
-            self.hash_chain = tmphc.hashchain
-
-        self._chain.pstate._set_blockheight(self.height + 1)
-
-        return True
+    # # TODO: This add_block used to be in state
+    # def add_block_internal(self, block: Block, ignore_save_wallet=False) -> bool:
+    #     # FIXME: This is probably obsolete. Remove as soon as possible
+    #
+    #     address_state_dict = self.load_address_state(block, dict())
+    #
+    #     # FIXME: Unify Genesis case inside update, otherwise the special case is scattered everywhere
+    #     if block.block_number == 1:
+    #         if not self._update_stake_genesis(block, address_state_dict):
+    #             return False
+    #     else:
+    #         blocks_left = self.get_blocks_left(block.block_number)
+    #
+    #         # FIXME: Verify this
+    #         if len(block.transactions) < 1:
+    #             logger.warning("Each block must contain at least a coinbase transaction")
+    #             return False
+    #
+    #         # FIXME: Handle the case where first_tx_from is not in sv_dict
+    #         first_tx_from = block.transactions[0].addr_from
+    #         nonce = self._chain.pstate.stake_validators_tracker.sv_dict[first_tx_from].nonce
+    #
+    #         logger.debug('BLOCK: %s epoch: %s blocks_left: %s nonce: %s stake_selector %s',
+    #                      block.block_number,
+    #                      block.epoch,
+    #                      blocks_left - 1,
+    #                      nonce,
+    #                      block.stake_selector)
+    #
+    #         if not self._update(block, self._chain.pstate.stake_validators_tracker, address_state_dict):
+    #             return False
+    #
+    #     self._commit(block=block,
+    #                  address_state_dict=address_state_dict,
+    #                  wallet=self.wallet,
+    #                  ignore_save_wallet=ignore_save_wallet)
+    #
+    #     blocks_left = self.get_blocks_left(block.block_number)
+    #
+    #     if blocks_left == 1:
+    #         logger.info('EPOCH change:  updating PRF with updating wallet hashchains..')
+    #         xmss = self.wallet.address_bundle[0].xmss
+    #         tmphc = hashchain(xmss.get_seed_private(), epoch=block.epoch + 1)
+    #         self.hash_chain = tmphc.hashchain
+    #
+    #     self._chain.pstate._set_blockheight(self.height + 1)
+    #
+    #     return True
 
     def _move_to_mainchain(self) -> bool:
         if len(self.blocks) == 0:
@@ -473,84 +475,84 @@ class BufferedChain:
 
         return True
 
-    def _update_stake_genesis(self,
-                              block: Block,
-                              address_state_dict: Dict[bytes, AddressState]) -> bool:
-
-        # FIXME: This does not seem to be related to persistance
-        # Start Updating coin base txn
-        protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
-        tx = CoinBase.from_pbdata(protobuf_tx)
-        if tx.nonce != 1:
-            logger.warning('nonce incorrect, invalid tx')
-            logger.warning('subtype: %s', tx.subtype)
-            logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_state_dict[tx.txfrom].nonce + 1)
-            return False
-
-        # TODO: To be fixed later
-        if tx.pubhash in address_state_dict[tx.txfrom].pubhashes:
-            logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-            logger.warning('subtype: %s', tx.subtype)
-            return False
-
-        address_state_dict[tx.txto].balance += tx.amount
-        address_state_dict[tx.txfrom].pubhashes.append(tx.pubhash)
-
-        # Coinbase update end here
-        # FIXME: Most of this should be done in the GenesisBlock which should derive from Block
-        genesis_info = GenesisBlock.load_genesis_info()
-
-        tmp_list = []
-        for protobuf_tx in block.transactions:
-            tx = Transaction.from_pbdata(protobuf_tx)
-            if tx.subtype == TX_SUBTYPE_STAKE:
-                # update txfrom, hash and stake_nonce against genesis for current or next stake_list
-                tmp_list.append([tx.txfrom,
-                                 tx.hash,
-                                 0,
-                                 genesis_info[tx.txfrom],
-                                 tx.slave_public_key])
-
-                if tx.txfrom not in genesis_info:
-                    logger.warning('designated staker not in genesis..')
-                    return False
-
-                # FIX ME: This goes to stake validator list without verifiction, Security Risk
-                self._chain.pstate.stake_validators_tracker.add_sv(genesis_info[tx.txfrom], tx, 1)
-
-                address_state_dict[tx.txfrom].pubhashes.append(tx.pubhash)
-
-        epoch_seed = self._chain.pstate.stake_validators_tracker.calc_seed()
-        self.epoch_seed = epoch_seed
-        self._chain.pstate.put_epoch_seed(epoch_seed)
-
-        self.epoch_seed = self._chain.pstate.calc_seed(tmp_list)
-
-        # FIXME: Move score to an appropriate place
-        # FIXME: Lambda is to complex and duplicated code
-        self.stake_list = sorted(tmp_list,
-                                 key=lambda staker:
-                                 score(stake_address=staker[0],
-                                       reveal_one=bin2hstr(
-                                           sha256(str(
-                                               reduce(lambda set1,
-                                                             set2: set1 + set2,
-                                                      tuple(staker[
-                                                                1]))).encode())),
-                                       balance=staker[3],
-                                       seed=self.epoch_seed))
-
-        # FIXME: Changes the type in the same variable!
-        if self._chain.stake_list[0][0] != block.stake_selector:
-            logger.info('stake selector wrong..')
-            return False
-
-        xmss = self.wallet.address_bundle[0].xmss
-        tmphc = hashchain(xmss.get_seed_private(), epoch=0)  # FIXME: Risky use of xmss
-
-        self.hash_chain = tmphc.hashchain
-        self.wallet.save_wallet()
-        return True
+    # def _update_stake_genesis(self,
+    #                           block: Block,
+    #                           address_state_dict: Dict[bytes, AddressState]) -> bool:
+    #
+    #     # FIXME: This does not seem to be related to persistance
+    #     # Start Updating coin base txn
+    #     protobuf_tx = block.transactions[0]  # Expecting only 1 txn of COINBASE subtype in genesis block
+    #     tx = CoinBase.from_pbdata(protobuf_tx)
+    #     if tx.nonce != 1:
+    #         logger.warning('nonce incorrect, invalid tx')
+    #         logger.warning('subtype: %s', tx.subtype)
+    #         logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, address_state_dict[tx.txfrom].nonce + 1)
+    #         return False
+    #
+    #     # TODO: To be fixed later
+    #     if tx.pubhash in address_state_dict[tx.txfrom].pubhashes:
+    #         logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+    #         logger.warning('subtype: %s', tx.subtype)
+    #         return False
+    #
+    #     address_state_dict[tx.txto].balance += tx.amount
+    #     address_state_dict[tx.txfrom].pubhashes.append(tx.pubhash)
+    #
+    #     # Coinbase update end here
+    #     # FIXME: Most of this should be done in the GenesisBlock which should derive from Block
+    #     genesis_info = GenesisBlock.load_genesis_info()
+    #
+    #     tmp_list = []
+    #     for protobuf_tx in block.transactions:
+    #         tx = Transaction.from_pbdata(protobuf_tx)
+    #         if tx.subtype == TX_SUBTYPE_STAKE:
+    #             # update txfrom, hash and stake_nonce against genesis for current or next stake_list
+    #             tmp_list.append([tx.txfrom,
+    #                              tx.hash,
+    #                              0,
+    #                              genesis_info[tx.txfrom],
+    #                              tx.slave_public_key])
+    #
+    #             if tx.txfrom not in genesis_info:
+    #                 logger.warning('designated staker not in genesis..')
+    #                 return False
+    #
+    #             # FIX ME: This goes to stake validator list without verifiction, Security Risk
+    #             self._chain.pstate.stake_validators_tracker.add_sv(genesis_info[tx.txfrom], tx, 1)
+    #
+    #             address_state_dict[tx.txfrom].pubhashes.append(tx.pubhash)
+    #
+    #     epoch_seed = self._chain.pstate.stake_validators_tracker.calc_seed()
+    #     self.epoch_seed = epoch_seed
+    #     self._chain.pstate.put_epoch_seed(epoch_seed)
+    #
+    #     self.epoch_seed = self._chain.pstate.calc_seed(tmp_list)
+    #
+    #     # FIXME: Move score to an appropriate place
+    #     # FIXME: Lambda is to complex and duplicated code
+    #     self.stake_list = sorted(tmp_list,
+    #                              key=lambda staker:
+    #                              score(stake_address=staker[0],
+    #                                    reveal_one=bin2hstr(
+    #                                        sha256(str(
+    #                                            reduce(lambda set1,
+    #                                                          set2: set1 + set2,
+    #                                                   tuple(staker[
+    #                                                             1]))).encode())),
+    #                                    balance=staker[3],
+    #                                    seed=self.epoch_seed))
+    #
+    #     # FIXME: Changes the type in the same variable!
+    #     if self._chain.stake_list[0][0] != block.stake_selector:
+    #         logger.info('stake selector wrong..')
+    #         return False
+    #
+    #     xmss = self.wallet.address_bundle[0].xmss
+    #     tmphc = hashchain(xmss.get_seed_private(), epoch=0)  # FIXME: Risky use of xmss
+    #
+    #     self.hash_chain = tmphc.hashchain
+    #     self.wallet.save_wallet()
+    #     return True
 
     def _remove_blocks(self, starting_blocknumber: int):
         if starting_blocknumber not in self.blocks:
