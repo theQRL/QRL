@@ -32,6 +32,9 @@ class StakeValidatorsTracker:
             epoch_seed |= int(bin2hstr(sv.hash), 16)
 
         return epoch_seed
+    def calc_seed(self):
+        staker_seeds = [s.hash for s in self.sv_dict.values()]
+        return calc_seed(staker_seeds)
 
     def activate_sv(self, balance, stake_txn):
         sv = StakeValidator(balance, stake_txn)

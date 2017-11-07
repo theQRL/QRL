@@ -50,3 +50,13 @@ def block_reward_calc(block_number):
     # FIXME: Magic number? Unify
     return int((remaining_emission(config.dev.max_coin_supply, block_number - 1)
                 - remaining_emission(config.dev.max_coin_supply, block_number)) * 100000000)
+
+
+def calc_seed(staker_seeds):
+    epoch_seed = bytearray([0 for _ in staker_seeds[0]])
+    # FIXME: move to c++
+    for seed in staker_seeds:
+        # FIXME: Avoid new allocations, etc.
+        epoch_seed ^= bytearray([v1 ^ v2 for (v1, v2) in zip(epoch_seed, seed)])
+
+    return epoch_seed
