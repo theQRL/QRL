@@ -4,7 +4,6 @@
 import copy
 import os
 from collections import defaultdict
-from functools import reduce
 from typing import Optional, Dict
 
 from pyqrllib.pyqrllib import bin2hstr, XmssPool
@@ -23,6 +22,7 @@ from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.core.formulas import score
+from qrl.generated.qrl_pb2 import MR
 
 
 # TODO: Rename to unstable/fluid chain or something similar?
@@ -804,14 +804,14 @@ class BufferedChain:
 
         return last_block.block_number
 
-    def verify_BK_hash(self, block: Block, conn_identity) -> bool:
-        stake_selector = block.stake_selector
-        prev_headerhash = block.prev_headerhash
+    def verify_BK_hash(self, mr_data: MR, conn_identity) -> bool:
+        stake_selector = mr_data.stake_selector
+        prev_headerhash = mr_data.prev_headerhash
 
-        if block.block_number <= self._chain.height:
+        if mr_data.block_number <= self._chain.height:
             return False
 
-        sv_dict = self.stake_list_get(block.block_number)
+        sv_dict = self.stake_list_get(mr_data.block_number)
 
         if not sv_dict:
             return False
@@ -828,28 +828,28 @@ class BufferedChain:
             return False
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
-        if block.block_number - 1 == self._chain.height:
+        if mr_data.block_number - 1 == self._chain.height:
             if prev_headerhash != self._chain.blockchain[-1].headerhash:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
             return True
-        elif block.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[block.block_number - 1][
-            0].block.headerhash:
+        elif mr_data.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[mr_data.block_number - 1][
+             0].block.headerhash:
             logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
-        stake_validators_tracker = self.get_stake_validators_tracker(block.block_number)
+        stake_validators_tracker = self.get_stake_validators_tracker(mr_data.block_number)
 
-        if not stake_validators_tracker.validate_hash(block.reveal_hash,
-                                                      block.block_number,
+        if not stake_validators_tracker.validate_hash(mr_data.reveal_hash,
+                                                      mr_data.block_number,
                                                       stake_address=stake_selector):
-            logger.info('%s reveal doesnt hash to stake terminator reveal %s', conn_identity, block.reveal_hash)
+            logger.info('%s reveal doesnt hash to stake terminator reveal %s', conn_identity, mr_data.reveal_hash)
             return False
 
-        score = self.score_BK_hash(block)
+        score = self.score_BK_hash(mr_data)
 
         # FIXME: Unclear.. why verify checks ordering?
-        return self._is_better_block(block.block_number, score)
+        return self._is_better_block(mr_data.block_number, score)
 
     def score_BK_hash(self, block: Block) -> int:
         seed = self._chain._get_epoch_seed(block.block_number)

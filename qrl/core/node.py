@@ -487,7 +487,7 @@ class POS:
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
-        balance = self.buffered_chain.get_stxn_state(curr_blocknumber, self.buffered_chain.staking_address)[1]
+        balance = self.buffered_chain.get_stxn_state(curr_blocknumber, self.buffered_chain.staking_address).balance
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
             logger.warning('Balance %s', balance)
