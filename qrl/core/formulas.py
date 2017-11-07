@@ -61,7 +61,7 @@ def calc_seed(staker_seeds):
     # FIXME: move to c++
     for seed in staker_seeds:
         # FIXME: Avoid new allocations, etc.
-        epoch_seed ^= bytearray([v1 ^ v2 for (v1, v2) in zip(epoch_seed, seed)])
+        epoch_seed = bytearray([v1 ^ v2 for (v1, v2) in zip(epoch_seed, seed)])
 
     return epoch_seed
 
