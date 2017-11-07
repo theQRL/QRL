@@ -18,16 +18,22 @@ class BlockMetadata(object):
     # FIXME: This is not really a buffer. Understand concept and refactor
     def __init__(self,
                  block: Block,
-                 seed,
+                 hash_chain,
+                 epoch_seed,
                  balance: int):
 
         self.block = block
-        self.score = self._block_score(seed, balance)
+        self.score = 0
+
+        if self.block.block_number > 0:
+            self.score = self._block_score(epoch_seed, balance)
+
+        self.epoch_seed = epoch_seed
+        self.next_seed = self.get_next_seed()
 
         self.stake_validators_tracker = None
         self.address_state_dict = {}  # type: Dict[bytes, AddressState]
-        self.next_seed = None
-        self.hash_chain = None
+        self.hash_chain = hash_chain
 
     @property
     def sorting_key(self):
@@ -46,8 +52,8 @@ class BlockMetadata(object):
 
         return score_val
 
-    def set_next_seed(self, winning_reveal, prev_seed):
-        self.next_seed = bin2hstr(sha256(tuple(winning_reveal) + str2bin(prev_seed)))
+    def get_next_seed(self):
+        return sha256(self.block.reveal_hash + self.epoch_seed)
 
     @staticmethod
     def tx_to_list(txn_dict):
@@ -58,11 +64,6 @@ class BlockMetadata(object):
                 continue
             tmp_sl.append(st)
         return tmp_sl
-
-    def update(self, pstate, parent_state_buffer, block):
-        self.set_next_seed(block.reveal_hash, parent_state_buffer.next_seed)
-        self.hash_chain = deepcopy(parent_state_buffer.hash_chain)
-        self.update_stxn_state(pstate)
 
     def update_stxn_state(self, pstate):
         for addr in self.address_state_dict.keys():

@@ -181,8 +181,10 @@ class BufferedChain:
         if len(self.blocks) == 0:
             return True
 
-        # let block 0 passthrough
-        while len(self.blocks) > config.dev.reorg_limit or self.blocks[0].block.block_number == 0:
+        # FIXME: Simplify condition
+        while len(self.blocks) > 0 and \
+             (len(self.blocks) > config.dev.reorg_limit or self.blocks[0].block.block_number == 0):
+
             # FIXME: self.blocks why a dict instead of a deque?
             block_idx = min(self.blocks.keys())
             block = self.blocks[block_idx].block
@@ -284,45 +286,37 @@ class BufferedChain:
                 logger.warning('main: Block {} rejected. prevheaderhash mismatch'.format(block.block_number))
                 return False
 
-        ###############
-        # Prepare StateBuffer / BlockBuffer
+        if block.block_number == 0 and self.epoch_seed is None:
+            # FIXME: A proper epoch seed should be already available for the genesis block
+            logger.error("epoch seed is None for the genesis block!!!!!")
+            self.epoch_seed = sha256(b'INVALID_EPOCH_SEED')
 
-        block_metadata = None
+        # Prepare Metadata inputs
+
         if self._chain.height == 0 or self._chain.height == block.block_number + 1:
-            stake_validators_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
-
+            prev_sv_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
             address_state_dict = dict()
-            if not self._state_add_block_buffer(block, stake_validators_tracker, address_state_dict):
-                logger.warning('State_validate_block failed inside chainbuffer #%d', block.block_number)
-                return False
-
-            block_metadata = BlockMetadata(block=block,
-                                           seed=self.epoch_seed,
-                                           balance=block_balance)
-
-            block_metadata.set_next_seed(block.reveal_hash, self.epoch_seed)
-            block_metadata.stake_validators_tracker = stake_validators_tracker
-            block_metadata.address_state_dict = address_state_dict
-            block_metadata.update_stxn_state(self._chain.pstate)
+            hash_chain = None
+            seed = self.epoch_seed
         else:
-            block_state_buffer = self.blocks[block.block_number - 1]
-            parent_state_buffer = block_state_buffer
-            parent_seed = block_state_buffer.next_seed
+            prev_block_metadata = self.blocks[block.block_number - 1]
+            prev_sv_tracker = copy.deepcopy(prev_block_metadata.stake_validators_tracker)
+            address_state_dict = copy.deepcopy(prev_block_metadata.address_state_dict)
+            hash_chain = copy.deepcopy(prev_block_metadata.hash_chain)
+            seed = prev_block_metadata.next_seed
 
-            stake_validators_tracker = copy.deepcopy(parent_state_buffer.stake_validators_tracker)
+        if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
+            logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
+            return False
 
-            address_state_dict = copy.deepcopy(parent_state_buffer.stxn_state)
-            if not self._state_add_block_buffer(block, stake_validators_tracker, address_state_dict):
-                logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
-                return False
+        block_metadata = BlockMetadata(block=block,
+                                       hash_chain=hash_chain,
+                                       epoch_seed=seed,
+                                       balance=block_balance)
 
-            block_metadata = BlockMetadata(block=block,
-                                           seed=parent_seed,
-                                           balance=block_balance)
-
-            block_metadata.stake_validators_tracker = stake_validators_tracker
-            block_metadata.address_state_dict = address_state_dict
-            block_metadata.update(self._chain.pstate, parent_state_buffer, block)
+        block_metadata.stake_validators_tracker = prev_sv_tracker
+        block_metadata.address_state_dict = address_state_dict
+        block_metadata.update_stxn_state(self._chain.pstate)
 
         # is there an older version available?
         old_block_metadata = None
@@ -334,11 +328,8 @@ class BufferedChain:
             self.blocks[block.block_number] = block_metadata
             self._remove_blocks(block.block_number + 1)
 
-        ###############
         # Move to stable chain if necessary
-        self._move_to_mainchain()
-
-        return True
+        return self._move_to_mainchain()
 
     def _update(self,
                 block: Block,
@@ -629,22 +620,24 @@ class BufferedChain:
         is_successful = self._update(block, stake_validators_tracker, address_state_dict)
 
         if is_successful:
-            blocks_left = self._chain.pstate._get_blocks_left(block.block_number)
-            stake_validators_tracker.sv_dict[block.stake_selector].nonce += 1
-            for dup_tx in block.duplicate_transactions:
-                if dup_tx.coinbase1.txto in stake_validators_tracker.sv_dict:
-                    stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto].is_banned = True
+            if block.block_number > 0:
+                stake_validators_tracker.sv_dict[block.stake_selector].increase_nonce()
 
-            if blocks_left == 1:
-                ## UPDATE HASHCHAIN
-                epoch = int((block.block_number + 1) // config.dev.blocks_per_epoch)
-                logger.info('Created new hash chain')
+                for dup_tx in block.duplicate_transactions:
+                    if dup_tx.coinbase1.txto in stake_validators_tracker.sv_dict:
+                        stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto].is_banned = True
 
-                prev_private_seed = self._wallet_private_seeds[epoch - 1]
-                self._wallet_private_seeds[epoch] = prev_private_seed
-                self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
+                if self.get_blocks_left(block.block_number) == 1:
+                    ## UPDATE HASHCHAIN
+                    epoch = int((block.block_number + 1) // config.dev.blocks_per_epoch)
+                    logger.info('Created new hash chain')
 
-            stake_validators_tracker.update_sv(block.block_number)
+                    prev_private_seed = self._wallet_private_seeds[epoch - 1]
+                    self._wallet_private_seeds[epoch] = prev_private_seed
+                    self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
+
+                stake_validators_tracker.update_sv(block.block_number)
+
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.block_number, block.stake_selector)
 
         return is_successful
