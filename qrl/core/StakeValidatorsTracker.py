@@ -3,8 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from collections import OrderedDict, defaultdict
-from pyqrllib.pyqrllib import bin2hstr
-from qrl.core import logger, config
+from qrl.core import config
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.formulas import calc_seed
 

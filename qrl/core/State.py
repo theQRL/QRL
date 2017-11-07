@@ -10,7 +10,7 @@ from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX, TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
 from qrl.generated import qrl_pb2
 
 

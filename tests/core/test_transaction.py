@@ -1,15 +1,15 @@
 from unittest import TestCase
 
-from mock import Mock, MagicMock
-from pyqrllib.pyqrllib import bin2hstr
 import simplejson as json
+from mock import Mock
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger
 from qrl.core.BlockHeader import BlockHeader
-from qrl.crypto.misc import sha256
-from qrl.crypto.xmss import XMSS
 from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase
 from qrl.core.Transaction_subtypes import *
+from qrl.crypto.misc import sha256
+from qrl.crypto.xmss import XMSS
 
 logger.initialize_default(force_console_output=True)
 

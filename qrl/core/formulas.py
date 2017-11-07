@@ -2,7 +2,11 @@ import decimal
 
 from math import log
 
-from qrl.core import config
+from pyqrllib.pyqrllib import bin2hstr
+
+from qrl.core import config, logger
+from qrl.crypto.misc import sha256
+from decimal import Decimal
 
 
 def calc_coeff(N_tot, block_tot):
@@ -60,3 +64,31 @@ def calc_seed(staker_seeds):
         epoch_seed ^= bytearray([v1 ^ v2 for (v1, v2) in zip(epoch_seed, seed)])
 
     return epoch_seed
+
+
+def score(stake_address: bytes,
+          reveal_one: bytes,
+          balance: int = 0,
+          seed: bytes = None,
+          verbose: bool = False):
+    if not seed:
+        logger.info('Exception Raised due to seed none in score fn')
+        raise Exception
+
+    if not balance:
+        logger.info(' balance 0 so score none ')
+        logger.info(' stake_address %s', stake_address)
+        return None
+
+    # FIXME: Review this
+    reveal_seed = bin2hstr(sha256(str(reveal_one).encode() + str(seed).encode()))
+    score = (Decimal(config.dev.N) - (Decimal(int(reveal_seed, 16)).log10() / Decimal(2).log10())) / Decimal(balance)
+
+    if verbose:
+        logger.info('=' * 10)
+        logger.info('Score - %s', score)
+        logger.info('reveal_one - %s', reveal_one)
+        logger.info('seed - %s', seed)
+        logger.info('balance - %s', balance)
+
+    return score

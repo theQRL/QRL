@@ -22,6 +22,7 @@ from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
+from qrl.core.formulas import score
 
 
 # TODO: Rename to unstable/fluid chain or something similar?
@@ -200,7 +201,6 @@ class BufferedChain:
 
         return True
 
-
     def _add_block_mainchain(self, block) -> bool:
         # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
         if not self._chain.add_block(block):
@@ -223,8 +223,8 @@ class BufferedChain:
 
         self.epoch_seed = bytes(block.reveal_hash + self.epoch_seed)
 
-        #self._chain.pstate.update_last_tx(block)
-        #self._chain.pstate.update_tx_metadata(block)
+        # self._chain.pstate.update_last_tx(block)
+        # self._chain.pstate.update_tx_metadata(block)
 
         self.epoch = block.epoch
         return True
@@ -291,19 +291,18 @@ class BufferedChain:
         if self._chain.height == 0 or self._chain.height == block.block_number + 1:
             stake_validators_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
 
-            stxn_state = dict()
-            if not self._state_add_block_buffer(block, stake_validators_tracker, stxn_state):
+            address_state_dict = dict()
+            if not self._state_add_block_buffer(block, stake_validators_tracker, address_state_dict):
                 logger.warning('State_validate_block failed inside chainbuffer #%d', block.block_number)
                 return False
 
             block_metadata = BlockMetadata(block=block,
-                                           chain=self._chain,
                                            seed=self.epoch_seed,
                                            balance=block_balance)
 
             block_metadata.set_next_seed(block.reveal_hash, self.epoch_seed)
             block_metadata.stake_validators_tracker = stake_validators_tracker
-            block_metadata.stxn_state = stxn_state
+            block_metadata.address_state_dict = address_state_dict
             block_metadata.update_stxn_state(self._chain.pstate)
         else:
             block_state_buffer = self.blocks[block.block_number - 1]
@@ -312,18 +311,17 @@ class BufferedChain:
 
             stake_validators_tracker = copy.deepcopy(parent_state_buffer.stake_validators_tracker)
 
-            stxn_state = copy.deepcopy(parent_state_buffer.stxn_state)
-            if not self._state_add_block_buffer(block, stake_validators_tracker, stxn_state):
+            address_state_dict = copy.deepcopy(parent_state_buffer.stxn_state)
+            if not self._state_add_block_buffer(block, stake_validators_tracker, address_state_dict):
                 logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
                 return False
 
             block_metadata = BlockMetadata(block=block,
-                                           chain=self._chain,
                                            seed=parent_seed,
                                            balance=block_balance)
 
             block_metadata.stake_validators_tracker = stake_validators_tracker
-            block_metadata.stxn_state = stxn_state
+            block_metadata.address_state_dict = address_state_dict
             block_metadata.update(self._chain.pstate, parent_state_buffer, block)
 
         # is there an older version available?
@@ -342,21 +340,23 @@ class BufferedChain:
 
         return True
 
-    def _update(self, block, stake_validators_tracker, address_txn) -> bool:
-        # FIXME: remove from state and move to another place
-        # reminder contents: (state address -> nonce, balance, [pubhash]) (stake -> address, hash_term, nonce)
+    def _update(self,
+                block: Block,
+                stake_validators_tracker: StakeValidatorsTracker,
+                address_txn: Dict[bytes, AddressState]) -> bool:
 
-        if block.stake_selector not in stake_validators_tracker.sv_dict:
-            logger.warning('stake selector not in stake_list_get')
-            return False
+        if block.block_number > 0:
+            if block.stake_selector not in stake_validators_tracker.sv_dict:
+                logger.warning('stake selector not in stake_list_get')
+                return False
 
-        if stake_validators_tracker.sv_dict[block.stake_selector].is_banned:
-            logger.warning('stake selector is in banned list')
-            return False
+            if stake_validators_tracker.sv_dict[block.stake_selector].is_banned:
+                logger.warning('stake selector is in banned list')
+                return False
 
-        if not stake_validators_tracker.sv_dict[block.stake_selector].is_active:
-            logger.warning('stake selector is in inactive')
-            return False
+            if not stake_validators_tracker.sv_dict[block.stake_selector].is_active:
+                logger.warning('stake selector is in inactive')
+                return False
 
         # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
         stake_txn = set()
@@ -365,18 +365,22 @@ class BufferedChain:
 
         # cycle through every tx in the new block to check state
         for protobuf_tx in block.transactions:
+            # FIXME: Simplify this.. too complex. delegate to objects, etc.
+
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.subtype == TX_SUBTYPE_COINBASE:
                 expected_nonce = stake_validators_tracker.sv_dict[tx.txfrom].nonce + 1
             else:
-                expected_nonce = address_txn[tx.txfrom][0] + 1
+                expected_nonce = address_txn[tx.txfrom].nonce + 1
+
             if tx.nonce != expected_nonce:
                 logger.warning('nonce incorrect, invalid tx')
                 logger.warning('subtype: %s', tx.subtype)
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
+
             # TODO: To be fixed later
-            if tx.pubhash in address_txn[tx.txfrom][2]:
+            if tx.pubhash in address_txn[tx.txfrom].pubhashes:
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
                 return False
@@ -386,7 +390,8 @@ class BufferedChain:
                     logger.warning("Transfer coin done by %s address is a Stake Validator", tx.txfrom)
                     return False
 
-                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[tx.txfrom].is_active:
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                    tx.txfrom].is_active:
                     logger.warning("Source address is a Stake Validator, balance is locked while staking")
                     return False
 
@@ -395,10 +400,10 @@ class BufferedChain:
                     logger.warning("Source address is in Future Stake Validator List, balance is locked")
                     return False
 
-                if address_txn[tx.txfrom][1] - tx.amount < 0:
+                if address_txn[tx.txfrom].balance < tx.amount:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)
-                    logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom][1], tx.amount)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom].balance, tx.amount)
                     return False
 
                 transfercoin_txn.add(tx.txfrom)
@@ -415,8 +420,8 @@ class BufferedChain:
                     return False
 
                 if tx.txfrom in stake_validators_tracker.sv_dict:
-                    expiry = stake_validators_tracker.sv_dict[
-                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                    expiry = stake_validators_tracker.sv_dict[tx.txfrom].activation_blocknumber + \
+                             config.dev.blocks_per_epoch
 
                     if tx.activation_blocknumber < expiry:
                         logger.warning('Failed %s is already active for the given range', tx.txfrom)
@@ -434,7 +439,7 @@ class BufferedChain:
 
                 if tx.txfrom not in future_stake_addresses:
                     if tx.txfrom in address_txn:
-                        balance = address_txn[tx.txfrom][1]
+                        balance = address_txn[tx.txfrom].balance
                     else:
                         balance = self._chain.pstate._get_address_state(tx.txfrom).balance
 
@@ -464,15 +469,15 @@ class BufferedChain:
                 destake_txn.add(tx.txfrom)
 
             if tx.subtype != TX_SUBTYPE_COINBASE:
-                address_txn[tx.txfrom][0] += 1
+                address_txn[tx.txfrom].increase_nonce()
 
             if tx.subtype == TX_SUBTYPE_TX:
-                address_txn[tx.txfrom][1] -= tx.amount - tx.fee
+                address_txn[tx.txfrom].balance -= tx.amount - tx.fee
 
             if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
-                address_txn[tx.txto][1] += tx.amount
+                address_txn[tx.txto].balance += tx.amount
 
-            address_txn[tx.txfrom][2].append(tx.pubhash)
+            address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
 
         return True
 
@@ -530,17 +535,18 @@ class BufferedChain:
         self.epoch_seed = self._chain.pstate.calc_seed(tmp_list)
 
         # FIXME: Move score to an appropriate place
+        # FIXME: Lambda is to complex and duplicated code
         self.stake_list = sorted(tmp_list,
                                  key=lambda staker:
-                                 self._chain.score(stake_address=staker[0],
-                                                   reveal_one=bin2hstr(
-                                                       sha256(str(
-                                                           reduce(lambda set1,
-                                                                         set2: set1 + set2,
-                                                                  tuple(staker[
-                                                                            1]))).encode())),
-                                                   balance=staker[3],
-                                                   seed=self.epoch_seed))
+                                 score(stake_address=staker[0],
+                                       reveal_one=bin2hstr(
+                                           sha256(str(
+                                               reduce(lambda set1,
+                                                             set2: set1 + set2,
+                                                      tuple(staker[
+                                                                1]))).encode())),
+                                       balance=staker[3],
+                                       seed=self.epoch_seed))
 
         # FIXME: Changes the type in the same variable!
         if self._chain.stake_list[0][0] != block.stake_selector:
@@ -615,25 +621,30 @@ class BufferedChain:
     def _state_add_block_buffer(self,
                                 block: Block,
                                 stake_validators_tracker: StakeValidatorsTracker,
-                                address_txn: Dict[bytes, AddressState]):
+                                address_state_dict: Dict[bytes, AddressState]):
 
         # FIXME: This is mixing states
-        address_txn = self.load_address_state(block, address_txn)
+        address_state_dict = self.load_address_state(block, address_state_dict)
 
-        is_successful = self._update(block, stake_validators_tracker, address_txn)
+        is_successful = self._update(block, stake_validators_tracker, address_state_dict)
 
         if is_successful:
-            blocknumber = block.block_number
-            blocks_left = self._chain.pstate._get_blocks_left(blocknumber)
+            blocks_left = self._chain.pstate._get_blocks_left(block.block_number)
             stake_validators_tracker.sv_dict[block.stake_selector].nonce += 1
             for dup_tx in block.duplicate_transactions:
                 if dup_tx.coinbase1.txto in stake_validators_tracker.sv_dict:
                     stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto].is_banned = True
 
             if blocks_left == 1:
-                self._update_hash_chain(blocknumber)
+                ## UPDATE HASHCHAIN
+                epoch = int((block.block_number + 1) // config.dev.blocks_per_epoch)
+                logger.info('Created new hash chain')
 
-            stake_validators_tracker.update_sv(blocknumber)
+                prev_private_seed = self._wallet_private_seeds[epoch - 1]
+                self._wallet_private_seeds[epoch] = prev_private_seed
+                self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
+
+            stake_validators_tracker.update_sv(block.block_number)
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.block_number, block.stake_selector)
 
         return is_successful
@@ -736,8 +747,8 @@ class BufferedChain:
                     return False
 
                 if not stake_validators_tracker.validate_hash(block.reveal_hash,
-                                                           block.block_number,
-                                                           coinbase_tx.txto):
+                                                              block.block_number,
+                                                              coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
 
@@ -834,8 +845,8 @@ class BufferedChain:
         stake_validators_tracker = self.get_stake_validators_tracker(block.block_number)
 
         if not stake_validators_tracker.validate_hash(block.reveal_hash,
-                                                   block.block_number,
-                                                   stake_address=stake_selector):
+                                                      block.block_number,
+                                                      stake_address=stake_selector):
             logger.info('%s reveal doesnt hash to stake terminator reveal %s', conn_identity, block.reveal_hash)
             return False
 
@@ -846,12 +857,12 @@ class BufferedChain:
 
     def score_BK_hash(self, block: Block) -> int:
         seed = self._chain._get_epoch_seed(block.block_number)
-        score = self._chain.score(stake_address=block.stake_selector,
-                                  reveal_one=block.reveal_hash,
-                                  balance=self._get_st_balance(block.stake_selector, block.block_number),
-                                  seed=seed)
 
-        return score
+        # FIXME: Duplicated code
+        return score(stake_address=block.stake_selector,
+                      reveal_one=block.reveal_hash,
+                      balance=self._get_st_balance(block.stake_selector, block.block_number),
+                      seed=seed)
 
     def _is_better_block(self, blocknum, score):
         if blocknum not in self.blocks:
@@ -1020,14 +1031,6 @@ class BufferedChain:
         epoch = self._get_mining_epoch(blocknumber)
         return self.hash_chain[epoch]
 
-    def _update_hash_chain(self, blocknumber: int):
-        epoch = int((blocknumber + 1) // config.dev.blocks_per_epoch)
-        logger.info('Created new hash chain')
-
-        prev_private_seed = self._wallet_private_seeds[epoch - 1]
-        self._wallet_private_seeds[epoch] = prev_private_seed
-        self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
-
     def select_hashchain(self,
                          stake_address: bytes = None,
                          hash_chain=None,
@@ -1099,7 +1102,8 @@ class BufferedChain:
                     total_txn -= 1
                     continue
 
-                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[tx.txfrom].is_active:
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                    tx.txfrom].is_active:
                     logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1181,7 +1185,7 @@ class BufferedChain:
             txnum += 1
 
         # create the block..
-        block_obj = self._chain.create_block(reveal_hash, last_block_number)
+        block_obj = self.create_block(reveal_hash, last_block_number)
 
         # reset the pool back
         # FIXME: Reset pool from here?
@@ -1197,7 +1201,7 @@ class BufferedChain:
             logger.info('-->> state_addr None not possible')
             return False
 
-        if pubhash in state_addr[2]:
+        if pubhash in state_addr.pubhashes:
             return True
 
         return False
@@ -1322,5 +1326,5 @@ class BufferedChain:
             del self.hash_chain[prev_epoch]
 
         # FIXME: This should not be here
-        if prev_epoch in self._chain.slave_xmss:
-            del self._chain.slave_xmss[prev_epoch]
+        if prev_epoch in self.slave_xmss:
+            del self.slave_xmss[prev_epoch]

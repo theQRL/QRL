@@ -1,16 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from collections import OrderedDict
 
-from google.protobuf.json_format import MessageToJson, Parse
-
-from qrl.core import config
-from qrl.core.Transaction import CoinBase, Transaction
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX
-from qrl.core.BlockHeader import BlockHeader
-from qrl.crypto.misc import sha256, merkle_tx_hash
-from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 
 
@@ -41,6 +32,10 @@ class AddressState(object):
     def balance(self):
         return self._data.balance
 
+    @balance.setter
+    def balance(self, new_balance: int):
+        self._data.balance = new_balance
+
     @property
     def pubhashes(self):
         return self._data.pubhashes
@@ -55,3 +50,6 @@ class AddressState(object):
         address_state._data.pubhashes.extend(pubhashes)
 
         return address_state
+
+    def increase_nonce(self):
+        self._data.nonce += 1

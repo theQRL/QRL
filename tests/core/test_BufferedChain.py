@@ -1,19 +1,16 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from collections import OrderedDict
 from unittest import TestCase
 
 from mock import Mock, MagicMock
-from pyqrllib.pyqrllib import Xmss
 
 from qrl.core import logger
-from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Block import Block
+from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
-from qrl.core.Transaction import CoinBase, StakeTransaction
 from qrl.core.Wallet import Wallet
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS

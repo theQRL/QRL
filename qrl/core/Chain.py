@@ -3,17 +3,12 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import bz2
 import os
-from decimal import Decimal
 from typing import Optional
 
-from pyqrllib.pyqrllib import bin2hstr
-
 from qrl.core import config, logger
-from qrl.core.Transaction import Transaction
 from qrl.core.Block import Block
-from qrl.core.TransactionPool import TransactionPool
+from qrl.core.Transaction import Transaction
 from qrl.core.Wallet import Wallet
-from qrl.crypto.misc import sha256
 
 
 class Chain:
@@ -209,36 +204,3 @@ class Chain:
                     myfile.write(config.dev.binary_file_delimiter)
 
             del self.blockchain[:-1]
-
-    ###################################
-    ###################################
-    ###################################
-    ###################################
-
-    @staticmethod
-    def score(stake_address,
-              reveal_one: bytes,
-              balance: int = 0,
-              seed: bytes = None,
-              verbose: bool = False):
-        # TODO: This seems more related to POS logic and is static. Can we move it formulas?
-        if not seed:
-            logger.info('Exception Raised due to seed none in score fn')
-            raise Exception
-
-        if not balance:
-            logger.info(' balance 0 so score none ')
-            logger.info(' stake_address %s', stake_address)
-            return None
-        reveal_seed = bin2hstr(sha256(str(reveal_one).encode() + str(seed).encode()))
-        score = (Decimal(config.dev.N) - (Decimal(int(reveal_seed, 16)).log10() / Decimal(2).log10())) / Decimal(
-            balance)
-
-        if verbose:
-            logger.info('=' * 10)
-            logger.info('Score - %s', score)
-            logger.info('reveal_one - %s', reveal_one)
-            logger.info('seed - %s', seed)
-            logger.info('balance - %s', balance)
-
-        return score

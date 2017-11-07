@@ -2,15 +2,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
-import yaml
-from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import sha2_256, bin2hstr
+
+from google.protobuf.json_format import Parse
 
 from qrl.core.Block import Block
-from qrl.core.BlockHeader import BlockHeader
-from qrl.core import config, logger
 from qrl.generated import qrl_pb2
-
 
 
 class Singleton(type):

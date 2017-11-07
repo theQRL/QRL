@@ -15,6 +15,7 @@ from qrl.core.Block import Block
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.core import logger, config, BufferedChain, ntp
+from qrl.core.formulas import score
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import StakeTransaction, DestakeTransaction
@@ -182,15 +183,15 @@ class POS:
                     self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesis_info[tx.txfrom], tx, 1)
 
         self.buffered_chain.epoch_seed = self.buffered_chain.pstate.calc_seed(tmp_list)
+
         #  TODO : Needed to be reviewed later
         self.buffered_chain.stake_list = sorted(tmp_list,
-                                                key=lambda staker: self.buffered_chain.score(
-                                                    stake_address=staker[0],
-                                                    reveal_one=bin2hstr(sha256(str(
-                                                        reduce(lambda set1, set2: set1 + set2,
-                                                               tuple(staker[1]))).encode())),
-                                                    balance=staker[3],
-                                                    seed=self.buffered_chain.epoch_seed))
+                                                key=lambda staker: score(stake_address=staker[0],
+                                                                         reveal_one=bin2hstr(sha256(str(
+                                                                             reduce(lambda set1, set2: set1 + set2,
+                                                                                    tuple(staker[1]))).encode())),
+                                                                         balance=staker[3],
+                                                                         seed=self.buffered_chain.epoch_seed))
 
         self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
 
