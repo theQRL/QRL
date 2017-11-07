@@ -464,11 +464,11 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, sv_list, blockheader):
+    def validate_extended(self, sv_dict, blockheader):
         # FIXME: It is not good that we have a different signature here
-        if blockheader.block_number > 1 and sv_list[self.txto].slave_public_key != self.PK:
+        if blockheader.block_number > 1 and sv_dict[self.txto].slave_public_key != self.PK:
             logger.warning('Stake validator doesnt own the Public key')
-            logger.warning('Expected public key %s', sv_list[self.txto].slave_public_key)
+            logger.warning('Expected public key %s', sv_dict[self.txto].slave_public_key)
             logger.warning('Found public key %s', self.PK)
             return False
 

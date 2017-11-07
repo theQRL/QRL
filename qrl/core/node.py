@@ -179,7 +179,7 @@ class POS:
                 if tx.txfrom in genesis_info:
                     tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
                     # FIXME: This goes to stake validator list without verification, Security Risk
-                    self.buffered_chain._chain.pstate.stake_validators_list.add_sv(genesis_info[tx.txfrom], tx, 1)
+                    self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesis_info[tx.txfrom], tx, 1)
 
         self.buffered_chain.epoch_seed = self.buffered_chain.pstate.calc_seed(tmp_list)
         #  TODO : Needed to be reviewed later
@@ -473,9 +473,9 @@ class POS:
         return result
 
     def _create_stake_tx(self, curr_blocknumber):
-        sv_list = self.buffered_chain.stake_list_get(curr_blocknumber)
-        if self.buffered_chain.staking_address in sv_list:
-            activation_blocknumber = sv_list[
+        sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)
+        if self.buffered_chain.staking_address in sv_dict:
+            activation_blocknumber = sv_dict[
                                          self.buffered_chain.height].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
@@ -533,20 +533,20 @@ class POS:
 
     def make_destake_tx(self):
         curr_blocknumber = self.buffered_chain.height + 1
-        stake_validators_list = self.buffered_chain.get_stake_validators_list(curr_blocknumber)
+        stake_validators_tracker = self.buffered_chain.get_stake_validators_tracker(curr_blocknumber)
 
         # No destake txn required if mining address is not in stake_validator_list
-        if self.buffered_chain.staking_address not in stake_validators_list.sv_list and \
-                self.buffered_chain.height not in stake_validators_list.future_stake_addresses:
+        if self.buffered_chain.staking_address not in stake_validators_tracker.sv_dict and \
+                self.buffered_chain.height not in stake_validators_tracker.future_stake_addresses:
             logger.warning('%s Not found in Stake Validator list, destake txn note required',
                            self.buffered_chain.staking_address)
             return
 
         # Skip if mining address is not active in either stake validator list
-        if not ((self.buffered_chain.staking_address in stake_validators_list.sv_list and
-                 stake_validators_list.sv_list[self.buffered_chain.staking_address].is_active)
-                or (self.buffered_chain.staking_address in stake_validators_list.future_stake_addresses and
-                    stake_validators_list.future_stake_addresses[self.buffered_chain.staking_address].is_active)):
+        if not ((self.buffered_chain.staking_address in stake_validators_tracker.sv_dict and
+                 stake_validators_tracker.sv_dict[self.buffered_chain.staking_address].is_active)
+                or (self.buffered_chain.staking_address in stake_validators_tracker.future_stake_addresses and
+                    stake_validators_tracker.future_stake_addresses[self.buffered_chain.staking_address].is_active)):
             logger.warning('%s is already inactive in Stake validator list, destake txn not required',
                            self.buffered_chain.staking_address)
             return

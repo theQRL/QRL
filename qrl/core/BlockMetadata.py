@@ -20,7 +20,7 @@ class BlockMetadata(object):
         self.block = block
         self.score = self._block_score(chain, seed, balance)
 
-        self.stake_validators_list = None
+        self.stake_validators_tracker = None
         self.stxn_state = {}  # key address, value [nonce, balance, pubhash]
         self.next_seed = None
         self.hash_chain = None

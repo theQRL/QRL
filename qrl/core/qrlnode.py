@@ -84,7 +84,7 @@ class QRLNode:
 
     @property
     def stakers_count(self):
-        return len(self.db_state.stake_validators_list.sv_list)
+        return len(self.db_state.stake_validators_tracker.sv_dict)
 
     @property
     def block_last_reward(self):
@@ -117,7 +117,7 @@ class QRLNode:
     def coin_atstake(self):
         # FIXME: This is very time consuming.. (moving from old code) improve/cache
         total_at_stake = 0
-        for staker in self.db_state.stake_validators_list.sv_list:
+        for staker in self.db_state.stake_validators_tracker.sv_dict:
             total_at_stake += self.db_state.balance(staker)
         return total_at_stake
 
@@ -210,15 +210,15 @@ class QRLNode:
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
         block_chain_buffer = self._buffered_chain.block_chain_buffer
-        stake_validators_list = block_chain_buffer.get_stake_validators_list(block_chain_buffer.height() + 1)
+        stake_validators_tracker = block_chain_buffer.get_stake_validators_tracker(block_chain_buffer.height() + 1)
 
         xmss_from = self._find_xmss(addr_from)
 
-        if addr_from in stake_validators_list.sv_list and stake_validators_list.sv_list[addr_from].is_active:
+        if addr_from in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[addr_from].is_active:
             raise LookupError("Source address is a Stake Validator, balance is locked while staking")
 
-        if (addr_from in stake_validators_list.future_stake_addresses and
-                stake_validators_list.future_stake_addresses[addr_from].is_active):
+        if (addr_from in stake_validators_tracker.future_stake_addresses and
+                stake_validators_tracker.future_stake_addresses[addr_from].is_active):
             raise LookupError("Source address is a Future Stake Validator, balance is locked")
 
         if xmss_from is None:

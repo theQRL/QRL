@@ -107,8 +107,8 @@ class ApiProtocol(Protocol):
         stakers = {'status': 'ok',
                    'stake_list': []}
 
-        for staker in self.factory.state.stake_validators_list.sv_list:
-            sv = self.factory.state.stake_validators_list.sv_list[staker]
+        for staker in self.factory.state.stake_validators_tracker.sv_dict:
+            sv = self.factory.state.stake_validators_tracker.sv_dict[staker]
             tmp_stakers = {'address': sv.stake_validator.decode(),
                            'activation_blocknumber': sv.activation_blocknumber,
                            'balance': self.factory.format_qrlamount(sv.balance),
@@ -125,8 +125,8 @@ class ApiProtocol(Protocol):
         next_stakers = {'status': 'ok',
                         'stake_list': []}
 
-        for staker in self.factory.state.stake_validators_list.future_stake_addresses:
-            sv = self.factory.state.stake_validators_list.future_stake_addresses[staker]
+        for staker in self.factory.state.stake_validators_tracker.future_stake_addresses:
+            sv = self.factory.state.stake_validators_tracker.future_stake_addresses[staker]
             tmp_stakers = {'activation_blocknumber': sv.activation_blocknumber,
                            'address': sv.stake_validator,
                            'balance': self.factory.format_qrlamount(sv.balance),
@@ -360,7 +360,7 @@ class ApiProtocol(Protocol):
         total_at_stake = 0
         total_supply = self.factory.state.total_coin_supply()
 
-        for staker in self.factory.state.stake_validators_list.sv_list:
+        for staker in self.factory.state.stake_validators_tracker.sv_dict:
             total_at_stake += self.factory.state.balance(staker)
 
         staked = str(round(100 * total_at_stake / total_supply, 2))
@@ -408,7 +408,7 @@ class ApiProtocol(Protocol):
             'block_time': block_time,
             'block_time_variance': block_time_variance,
 
-            'stake_validators': len(self.factory.height().stake_validators_list.sv_list), # Use GetStakers instead
+            'stake_validators': len(self.factory.height().stake_validators_tracker.sv_dict), # Use GetStakers instead
 
             # FIXME: Magic number? Unify
             'emission': self._format_qrlamount(self.factory.state.total_coin_supply()),

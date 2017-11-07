@@ -312,14 +312,14 @@ class P2PProtocol(Protocol):
             return
 
         height = self.factory.buffered_chain.height + 1
-        stake_validators_list = self.factory.buffered_chain.get_stake_validators_list(height)
+        stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
 
-        if st.txfrom in stake_validators_list.future_stake_addresses:
+        if st.txfrom in stake_validators_tracker.future_stake_addresses:
             logger.debug('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
             return
 
-        if st.txfrom in stake_validators_list.sv_list:
-            expiry = stake_validators_list.sv_list[st.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+        if st.txfrom in stake_validators_tracker.sv_dict:
+            expiry = stake_validators_tracker.sv_dict[st.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
             if st.activation_blocknumber < expiry:
                 logger.debug('P2P dropping st txn as it is already active for the given range %s', st.txfrom)
                 return
@@ -368,9 +368,9 @@ class P2PProtocol(Protocol):
 
         txfrom = destake_txn.txfrom
         height = self.factory.buffered_chain.height + 1
-        stake_validators_list = self.factory.buffered_chain.get_stake_validators_list(height)
+        stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
 
-        if txfrom not in stake_validators_list.sv_list and txfrom not in stake_validators_list.future_stake_addresses:
+        if txfrom not in stake_validators_tracker.sv_dict and txfrom not in stake_validators_tracker.future_stake_addresses:
             logger.debug('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
             return
 
@@ -476,10 +476,10 @@ class P2PProtocol(Protocol):
                         block.stake_selector)
             coinbase_txn = CoinBase.from_pbdata(block.transactions[0])
 
-            sv_list = self.factory.buffered_chain.stake_list_get(block.block_number)
+            sv_dict = self.factory.buffered_chain.stake_list_get(block.block_number)
             # FIXME : Commented for now, need to re-enable once DT txn has been fixed
             '''
-            if coinbase_txn.validate_extended(sv_list=sv_list, blockheader=block.blockheader):
+            if coinbase_txn.validate_extended(sv_dict=sv_dict, blockheader=block.blockheader):
                 self.factory.master_mr.register_duplicate(block.headerhash)
                 block2 = block_chain_buffer.get_block_n(block.blocknumber)
 

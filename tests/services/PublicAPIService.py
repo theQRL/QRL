@@ -49,7 +49,7 @@ class PublicAPITest(TestCase):
 
     def test_getStats(self):
         db_state = Mock(spec=State)
-        db_state.stake_validators_list = StakeValidatorsTracker()
+        db_state.stake_validators_tracker = StakeValidatorsTracker()
         db_state.total_coin_supply = MagicMock(return_value=1000)
 
         p2p_factory = Mock(spec=P2PFactory)

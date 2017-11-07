@@ -122,7 +122,7 @@ class TestBufferedChain(TestCase):
     #                                                         hashchain_terminator=h1)
     #             stake_transaction.sign(xmss)
     #
-    #             chain.pstate.stake_validators_list.add_sv(balance=100,
+    #             chain.pstate.stake_validators_tracker.add_sv(balance=100,
     #                                                       stake_txn=stake_transaction,
     #                                                       blocknumber=0)
     #

@@ -23,11 +23,11 @@ class State:
         """
         >>> State()._db is not None
         True
-        >>> State().stake_validators_list is not None
+        >>> State().stake_validators_tracker is not None
         True
         """
         self._db = db.DB()  # generate db object here
-        self.stake_validators_list = StakeValidatorsTracker()
+        self.stake_validators_tracker = StakeValidatorsTracker()
 
     def __enter__(self):
         return self
@@ -51,7 +51,7 @@ class State:
 
     def stake_list_put(self, sl):
         try:
-            self._db.put('stake_list', self.stake_validators_list.to_json())  # FIXME: to_json is missing
+            self._db.put('stake_list', self.stake_validators_tracker.to_json())  # FIXME: to_json is missing
         except Exception as e:
             # FIXME: Review
             logger.warning("stake_list_put: %s %s", type(e), e)
@@ -268,18 +268,3 @@ class State:
         for a in all_addresses:
             coins = coins + Decimal(a.balance)  # FIXME: decimal math?
         return coins
-
-    @staticmethod
-    def calc_seed(sl, verbose=False):
-        # FIXME: Does this belong here?
-        if verbose:
-            logger.info('stake_list --> ')
-            for s in sl:
-                logger.info('%s %s', s[0], s[3])
-
-        epoch_seed = 0
-
-        for staker in sl:
-            epoch_seed |= int(str(bin2hstr(tuple(staker[1]))), 16)
-
-        return epoch_seed
