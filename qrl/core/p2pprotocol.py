@@ -597,8 +597,8 @@ class P2PProtocol(Protocol):
             return
         logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
         data = qrl_pb2.BlockMetaData()
-        data.hash_header = self.factory.buffered_chain.blockchain[-1].headerhash
-        data.block_number = self.factory.buffered_chain.blockchain[-1].block_number
+        data.hash_header = self.factory.buffered_chain._chain.blockchain[-1].headerhash
+        data.block_number = self.factory.buffered_chain._chain.blockchain[-1].block_number
 
         self.transport.write(self.wrap_message('PMBH', MessageToJson(data)))
         return
