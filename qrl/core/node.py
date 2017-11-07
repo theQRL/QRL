@@ -12,7 +12,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
 from qrl.core.Block import Block
-from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.formulas import calc_seed
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.core import logger, config, BufferedChain, ntp
 from qrl.core.formulas import score
@@ -135,9 +135,15 @@ class POS:
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
         logger.info('pre_pos_1')
         # are we a staker in the stake list?
-        genesis_info = GenesisBlock.load_genesis_info()
-        if self.buffered_chain.staking_address not in genesis_info:
-            logger.info('%s %s', self.buffered_chain.staking_address, genesis_info)
+        genesis_block = self.buffered_chain.get_block(0)
+        found = False
+        for genesisBalance in genesis_block.genesis_balance:
+            if genesisBalance.address.encode() == self.buffered_chain.staking_address:
+                logger.info('Found in Genesis Address %s %s', genesisBalance.address.encode(), genesisBalance.balance)
+                found = True
+                break
+
+        if not found:
             return
 
         logger.info('mining address: %s in the genesis.stake_list', self.buffered_chain.staking_address)
@@ -146,7 +152,6 @@ class POS:
         self.buffered_chain.hash_chain = tmphc.hashchain
         self.buffered_chain.hash_chain[0] = tmphc.hashchain
 
-        tmpbalance = self.buffered_chain.pstate.balance(self.buffered_chain.staking_address)
         slave_xmss = self.buffered_chain.get_slave_xmss(0)
         if not slave_xmss:
             logger.info('Waiting for SLAVE XMSS to be done')
@@ -174,15 +179,18 @@ class POS:
         # assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
 
         tmp_list = []
-        genesis_info = GenesisBlock.load_genesis_info()
+        seed_list = []
+        genesis_block = self.buffered_chain.get_block(0)
         for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.subtype == TX_SUBTYPE_STAKE:
-                if tx.txfrom in genesis_info:
-                    tmp_list.append([tx.txfrom, tx.hash, 0, genesis_info[tx.txfrom], tx.slave_public_key])
-                    # FIXME: This goes to stake validator list without verification, Security Risk
-                    self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesis_info[tx.txfrom], tx, 1)
+                for genesisBalance in genesis_block.genesis_balance:
+                    if tx.txfrom == genesisBalance.address.encode():
+                        tmp_list.append([tx.txfrom, tx.hash, 0, genesisBalance.balance, tx.slave_public_key])
+                        seed_list.append(tx.hash)
+                        # FIXME: This goes to stake validator list without verification, Security Risk
+                        self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesisBalance.balance, tx, 1)
 
-        self.buffered_chain.epoch_seed = self.buffered_chain.pstate.calc_seed(tmp_list)
+        self.buffered_chain.epoch_seed = calc_seed(tmp_list)
 
         #  TODO : Needed to be reviewed later
         self.buffered_chain.stake_list = sorted(tmp_list,

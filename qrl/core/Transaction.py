@@ -346,12 +346,9 @@ class StakeTransaction(Transaction):
         return True
 
     def validate_extended(self, tx_state):
-        state_balance = tx_state[1]
-        state_pubhashes = tx_state[2]
-
         # TODO no need to transmit pubhash over the network
         # pubhash has to be calculated by the receiver
-        if self.pubhash in state_pubhashes:
+        if self.pubhash in tx_state.pubhashes:
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
             return False
 
