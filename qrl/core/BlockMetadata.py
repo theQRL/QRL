@@ -49,7 +49,7 @@ class BlockMetadata(object):
 
         return score_val
 
-    def get_next_seed(self):
+    def get_next_seed(self) -> bytes:
         return sha256(self.block.reveal_hash + self.epoch_seed)
 
     @staticmethod

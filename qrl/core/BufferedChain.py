@@ -1049,7 +1049,7 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height:
                 return self.epoch_seed
 
-            return int(str(self.blocks[blocknumber - 1].next_seed), 16)
+            return self.blocks[blocknumber - 1].next_seed
         except KeyError:
             self.error_msg('get_epoch_seed', blocknumber)
         except Exception as e:
