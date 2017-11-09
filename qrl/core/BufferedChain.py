@@ -327,10 +327,10 @@ class BufferedChain:
             old_block_metadata = self.blocks[block.block_number]
 
         # add/replace if new option is better
-        if old_block_metadata is None or block_metadata.score < old_block_metadata.score:
+        if old_block_metadata is None or block_metadata.sorting_key < old_block_metadata.sorting_key:
             self.blocks[block.block_number] = block_metadata
             self._remove_blocks(block.block_number + 1)
-        logger.info('new block score >> %s', block_metadata.score)
+
         # Move to stable chain if necessary
         return self._move_to_mainchain()
 

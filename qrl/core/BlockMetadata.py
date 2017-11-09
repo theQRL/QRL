@@ -33,6 +33,10 @@ class BlockMetadata(object):
         self.address_state_dict = {}  # type: Dict[bytes, AddressState]
         self.hash_chain = hash_chain
 
+    @property
+    def sorting_key(self):
+        return tuple((self.score, self.block.headerhash))
+
     def _block_score(self, seed, balance):
         # FIXME: Review + Duplicated code
         score_val = score(stake_address=self.block.stake_selector,
