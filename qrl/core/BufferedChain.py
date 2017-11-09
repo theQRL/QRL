@@ -1043,13 +1043,13 @@ class BufferedChain:
 
         return hash_chain
 
-    def _get_epoch_seed(self, blocknumber: int) -> Optional[int]:
+    def _get_epoch_seed(self, blocknumber: int) -> Optional[bytes]:
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
             if blocknumber - 1 == self._chain.height:
                 return self.epoch_seed
 
-            return int(str(self.blocks[blocknumber - 1].next_seed), 16)
+            return self.blocks[blocknumber - 1].next_seed
         except KeyError:
             self.error_msg('get_epoch_seed', blocknumber)
         except Exception as e:

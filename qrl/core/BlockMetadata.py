@@ -5,11 +5,9 @@ from typing import Dict
 
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
-from pyqrllib.pyqrllib import str2bin, bin2hstr
 
 from qrl.core.formulas import score
 from qrl.crypto.misc import sha256
-from copy import deepcopy
 
 
 # OLD [block_buffer, state_buffer]
@@ -37,7 +35,7 @@ class BlockMetadata(object):
 
     @property
     def sorting_key(self):
-        return tuple(self.score, self.block.headerhash)
+        return tuple((self.score, self.block.headerhash))
 
     def _block_score(self, seed, balance):
         # FIXME: Review + Duplicated code
@@ -49,7 +47,7 @@ class BlockMetadata(object):
 
         return score_val
 
-    def get_next_seed(self):
+    def get_next_seed(self) -> bytes:
         return sha256(self.block.reveal_hash + self.epoch_seed)
 
     @staticmethod

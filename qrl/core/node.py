@@ -369,7 +369,7 @@ class POS:
         chain_buffer_height = self.buffered_chain.height
         last_block_before = self.buffered_chain.get_last_block()
 
-        if block.block_number <= self.buffered_chain.height:
+        if block.block_number < self.buffered_chain.height:
             return False
 
         # FIXME: Simplify logic
