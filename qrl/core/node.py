@@ -374,11 +374,11 @@ class POS:
 
         # FIXME: Simplify logic
         if self.sync_state.state == ESyncState.synced:
-            if not self.buffered_chain.add_block_internal(block):
+            if not self.buffered_chain.add_block(block):
                 return False
         elif chain_buffer_height + 1 == block.block_number:
             if block.block_number > 1:
-                if not self.buffered_chain.add_block_internal(block):
+                if not self.buffered_chain.add_block(block):
                     return False
             elif block.block_number == 1:
                 if not self.buffered_chain._add_block_mainchain(block):
@@ -447,7 +447,6 @@ class POS:
 
         :return:
         """
-
         if self.p2pFactory.stake:
             future_stake_addresses = self.buffered_chain.future_stake_addresses(blocknumber)
 

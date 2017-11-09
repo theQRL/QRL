@@ -296,7 +296,7 @@ class BufferedChain:
 
         # Prepare Metadata inputs
 
-        if self._chain.height == 0 or self._chain.height == block.block_number + 1:
+        if self._chain.height == 0 or self._chain.height + 1 == block.block_number:
             prev_sv_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
             address_state_dict = dict()
             hash_chain = None
@@ -657,7 +657,6 @@ class BufferedChain:
         # FIXME
 
         signing_xmss = self.get_slave_xmss(last_block.block_number + 1)
-
         sv_dict = self.get_stake_validators_tracker(last_block.block_number + 1).sv_dict
         nonce = sv_dict[self.staking_address].nonce + 1
 
@@ -788,7 +787,7 @@ class BufferedChain:
 
     def get_block_score(self, blocknumber) -> Optional[int]:
         try:
-            return self.blocks[blocknumber][0].score
+            return self.blocks[blocknumber].score
         except KeyError:
             logger.error('get_block_n_score, blocknumber not in self.blocks #%s', blocknumber)
         except Exception as e:
@@ -833,8 +832,8 @@ class BufferedChain:
                 logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
                 return False
             return True
-        elif mr_data.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[mr_data.block_number - 1][
-             0].block.headerhash:
+        elif mr_data.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[mr_data.block_number - 1]\
+            .block.headerhash:
             logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
@@ -852,7 +851,7 @@ class BufferedChain:
         return self._is_better_block(mr_data.block_number, score)
 
     def score_BK_hash(self, block: Block) -> int:
-        seed = self._chain._get_epoch_seed(block.block_number)
+        seed = self._get_epoch_seed(block.block_number)
 
         # FIXME: Duplicated code
         return score(stake_address=block.stake_selector,
@@ -864,7 +863,7 @@ class BufferedChain:
         if blocknum not in self.blocks:
             return True
 
-        oldscore = self.blocks[blocknum][0].score
+        oldscore = self.blocks[blocknum].score
 
         if score < oldscore:
             return True
@@ -1050,7 +1049,7 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height:
                 return self.epoch_seed
 
-            return int(str(self.blocks[blocknumber - 1][1].next_seed), 16)
+            return int(str(self.blocks[blocknumber - 1].next_seed), 16)
         except KeyError:
             self.error_msg('get_epoch_seed', blocknumber)
         except Exception as e:
@@ -1078,7 +1077,6 @@ class BufferedChain:
         tx_nonce = defaultdict(int)
         total_txn = len(t_pool2)
         txnum = 0
-
         stake_validators_tracker = self.get_stake_validators_tracker(last_block_number + 1)
         # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
         stake_txn = set()
@@ -1227,7 +1225,7 @@ class BufferedChain:
                 logger.info('Blocknumber not found')
                 return None
 
-            return self.blocks[block_number - 1][1].stake_validators_tracker.sv_dict[stake_address].balance
+            return self.blocks[block_number - 1].stake_validators_tracker.sv_dict[stake_address].balance
         except KeyError:
             self.error_msg('get_st_balance', block_number)
         except Exception as e:
@@ -1238,14 +1236,12 @@ class BufferedChain:
     def get_stxn_state(self, blocknumber, addr) -> Optional[AddressState]:
         try:
             # FIXME: Simplify this - self.blocks[blocknumber - 1][1] is a StateBuffer
-            if blocknumber - 1 == self._chain.height or addr not in self.blocks[blocknumber - 1][1].stxn_state:
+            if blocknumber - 1 == self._chain.height or addr not in self.blocks[blocknumber - 1].address_state_dict:
                 address_state = self._chain.pstate.get_address(addr)
                 return address_state
 
-            state_buffer = self.blocks[blocknumber - 1][1]
-
-            if addr in state_buffer.stxn_state:
-                return copy.deepcopy(state_buffer.stxn_state[addr])  # FIXME: Why deepcopy?
+            if addr in self.blocks[blocknumber - 1].address_state_dict:
+                return copy.deepcopy(self.blocks[blocknumber - 1].address_state_dict[addr])  # FIXME: Why deepcopy?
 
             return self._chain.pstate.get_address(addr)
 
@@ -1266,9 +1262,7 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_tracker.sv_dict
 
-            state_buffer = self.blocks[blocknumber - 1][1]
-
-            return state_buffer.stake_validators_tracker.sv_dict
+            return self.blocks[blocknumber - 1].stake_validators_tracker.sv_dict
         except KeyError:
             self.error_msg('stake_list_get', blocknumber)
         except Exception as e:
@@ -1282,9 +1276,7 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_tracker.future_stake_addresses
 
-            state_buffer = self.blocks[blocknumber - 1][1]
-
-            return state_buffer.stake_validators_tracker.future_stake_addresses
+            return self.blocks[blocknumber - 1].stake_validators_tracker.future_stake_addresses
         except KeyError:
             self.error_msg('stake_list_get', blocknumber)
         except Exception as e:
