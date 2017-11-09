@@ -52,12 +52,6 @@ class P2PProtocol(Protocol):
             'PB': self.PB,              # Push Block
             'PBB': self.PBB,            # Push Block Buffer
 
-            'FBHL': self.FBHL,          # Fetch Blockheaderhash List
-            'PBHL': self.PBHL,          # Push Blockheaderhash List
-            'EBHL': self.EBHL,          # Evaluate Blockheaderhash List
-
-            'resend_SFM': self.resend_SFM,  # resend Block from the point of fork
-
             ############################
             'ST': self.ST,              # RECV/BCAST        Stake Transaction
             'DST': self.DST,            # Destake Transaction
@@ -105,90 +99,6 @@ class P2PProtocol(Protocol):
             logger.debug("executing [%s] by %s", func_name, self.conn_identity)
             logger.exception(e)
 
-    def FBHL(self):
-        """
-        Fetch Block Headerhash List
-        :return:
-        """
-        self.transport.write(self.wrap_message('PBHL', self.factory.buffered_chain.height))
-        self.fork_height = self.factory.buffered_chain.height
-        self.fork_timestamp = time.time()
-        logger.debug('-->>FBHL called')
-
-    def PBHL(self, blocknumber=None):
-        """
-        Push Block Headerhash List
-        :return:
-        """
-        if not blocknumber:
-            logger.debug('PBHL blocknumber None by %s', self.conn_identity)
-            return
-
-        logger.debug('PBHL received by %s', self.conn_identity)
-        blocknum_headerhash = qrl_pb2.BlockMetaDataList()
-        for blocknum in range(blocknumber - config.dev.reorg_limit, blocknumber + 1):
-            blockmetadata = qrl_pb2.BlockMetaData()
-            block = self.factory.buffered_chain.get_block(blocknum)
-            if not block:
-                break
-            blockmetadata.block_number = blocknum
-            blockmetadata.hash_header = block.headerhash
-            blocknum_headerhash.block_number_hashes.extend([blockmetadata])
-
-        self.transport.write(self.wrap_message('EBHL', MessageToJson(blocknum_headerhash)))
-        self.fork_timestamp = time.time()
-
-    def EBHL(self, data):
-        """
-        Evaluate Block Headerhash List
-        :return:
-        """
-        logger.debug('EBHL received by %s', self.conn_identity)
-        if time.time() - self.fork_timestamp > 120:  # Reject if replied after 2 minutes
-            return
-
-        blocknum_headerhash = qrl_pb2.BlockMetaDataList()
-        Parse(data, blocknum_headerhash)
-
-        last_matching_blocknum = None
-        for blockmetadata in blocknum_headerhash.block_number_hashes:
-            if blockmetadata.block_number > self.factory.buffered_chain.height:
-                return
-
-            block = self.factory.buffered_chain.get_block(blockmetadata.block_number)
-
-            if blockmetadata.hash_header != block.headerhash:
-                if last_matching_blocknum:
-                    # Check if the forked point is within chainbuffer
-                    if blockmetadata.block_number in self.factory.buffered_chain.blocks:
-                        logger.debug('Calling peer resend_SFM %s', blockmetadata.block_number)
-                        self.transport.write(self.wrap_message('resend_SFM', blockmetadata.block_number))
-                return
-            last_matching_blocknum = blockmetadata.block_number
-
-        self.fork_timestamp = time.time()
-
-    def resend_SFM(self, blocknum):
-        logger.debug('Resending SFM %s', blocknum)
-        block_chain_buffer = self.factory.buffered_chain
-        if blocknum > block_chain_buffer.height():
-            return
-
-        max_blocknum = min(block_chain_buffer.height() + 1, blocknum + config.dev.blocks_per_epoch)
-        for blocknumber in range(blocknum, max_blocknum):
-            block = block_chain_buffer.get_block(blocknumber)
-
-            data = qrl_pb2.MR()
-            data.hash = block.headerhash
-            data.type = 'BK'
-
-            if block.block_number > 1:
-                data.reveal_hash = block.reveal_hash
-
-            self.SFM(MessageToJson(data))
-
-        return
-
     def MR(self, data):
         """
         Message Receipt
@@ -235,8 +145,6 @@ class P2PProtocol(Protocol):
                                                          prev_headerhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
-                elif mr_data.block_number > self.factory.buffered_chain.height - config.dev.reorg_limit:
-                    self.FBHL()
                 return
 
             blocknumber = mr_data.block_number

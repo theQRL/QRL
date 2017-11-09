@@ -68,7 +68,7 @@ class Chain:
 
         if len(self.blockchain) > 0:
             # FIXME: The logic here is not very clear
-            inmem_start_idx = self.blockchain[-1].block_number
+            inmem_start_idx = self.blockchain[0].block_number
             inmem_offset = block_idx - inmem_start_idx
 
             if inmem_offset < 0:
