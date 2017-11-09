@@ -149,7 +149,6 @@ class POS:
         logger.info('mining address: %s in the genesis.stake_list', self.buffered_chain.staking_address)
         xmss = self.buffered_chain.wallet.address_bundle[0].xmss
         tmphc = hashchain(xmss.get_seed_private(), epoch=0)
-        self.buffered_chain.hash_chain = tmphc.hashchain
         self.buffered_chain.hash_chain[0] = tmphc.hashchain
 
         slave_xmss = self.buffered_chain.get_slave_xmss(0)
@@ -432,7 +431,6 @@ class POS:
             hash_chain = self.buffered_chain.hash_chain_get(blocknumber)
 
             my_reveal = hash_chain[::-1][blocknumber - activation_blocknumber + 1]
-
             block = self.create_new_block(my_reveal, blocknumber - 1)
 
             return self.pre_block_logic(block)  # broadcast this block
@@ -505,7 +503,7 @@ class POS:
             if stamp > current_blocknumber:
                 continue
             blocknumber = self.get_last_blockheight_endswith(current_blocknumber, stamp)
-            finalized_block = self.buffered_chain.get_block_n(blocknumber)
+            finalized_block = self.buffered_chain.get_block(blocknumber)
             if not finalized_block:
                 logger.warning('Cannot make ST txn, unable to get blocknumber %s', blocknumber)
                 return
