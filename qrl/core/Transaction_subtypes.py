@@ -10,3 +10,4 @@ TX_SUBTYPE_DESTAKE = qrl_pb2.Transaction.DESTAKE
 TX_SUBTYPE_COINBASE = qrl_pb2.Transaction.COINBASE
 TX_SUBTYPE_LATTICE = qrl_pb2.Transaction.LATTICE
 TX_SUBTYPE_DUPLICATE = qrl_pb2.Transaction.DUPLICATE
+TX_SUBTYPE_VOTE = qrl_pb2.Transaction.VOTE

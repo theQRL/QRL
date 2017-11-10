@@ -263,6 +263,7 @@ message Transaction {
         COINBASE = 4;
         LATTICE = 5;
         DUPLICATE = 6;
+        VOTE = 7;
     }
 
     Type type = 1;
@@ -315,6 +316,11 @@ message Transaction {
         bytes coinbase2_hhash = 4;
         Transaction coinbase1 = 5;
         Transaction coinbase2 = 6;
+    }
+
+    message Vote {
+        uint64 block_number = 1;
+        bytes hash_header = 2;
     }
 
 }
