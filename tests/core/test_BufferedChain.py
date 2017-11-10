@@ -102,7 +102,6 @@ class TestBufferedChain(TestCase):
                 self.assertTrue(res)
 
                 stake_transaction = StakeTransaction.create(activation_blocknumber=0,
-                                                            blocknumber_headerhash=dict(),
                                                             xmss=xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h1)
@@ -152,7 +151,6 @@ class TestBufferedChain(TestCase):
                 self.assertTrue(res)
 
                 stake_transaction = StakeTransaction.create(activation_blocknumber=0,
-                                                            blocknumber_headerhash=dict(),
                                                             xmss=xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h2)

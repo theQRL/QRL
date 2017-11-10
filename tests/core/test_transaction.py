@@ -30,7 +30,7 @@ test_json_Stake = """{
   "type": "STAKE",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "X+C5LCQLX9HyZ9IqtVA3Cm90wiOPb0u5Lw0c5iAPa48=",
+  "transactionHash": "BrD8ry4sppKZqKLOMvDAXNFM1h4lqeMk/62KvFqIqn8=",
   "otsKey": 10,
   "stake": {
     "activationBlocknumber": "2",
@@ -162,7 +162,6 @@ class TestStakeTransaction(TestCase):
 
     def test_create(self):
         tx = StakeTransaction.create(activation_blocknumber=2,
-                                     blocknumber_headerhash=dict(),
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      hashchain_terminator=sha256(b'T1'))
@@ -170,7 +169,6 @@ class TestStakeTransaction(TestCase):
 
     def test_to_json(self):
         tx = StakeTransaction.create(activation_blocknumber=2,
-                                     blocknumber_headerhash=dict(),
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      hashchain_terminator=sha256(b'T1'))
@@ -187,7 +185,7 @@ class TestStakeTransaction(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual('5fe0b92c240b5fd1f267d22ab550370a6f74c2238f6f4bb92f0d1ce6200f6b8f', bin2hstr(tx.txhash))
+        self.assertEqual('06b0fcaf2e2ca69299a8a2ce32f0c05cd14cd61e25a9e324ffad8abc5a88aa7f', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
         self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
@@ -202,7 +200,6 @@ class TestStakeTransaction(TestCase):
 
     def test_validate_tx(self):
         tx = StakeTransaction.create(activation_blocknumber=2,
-                                     blocknumber_headerhash=dict(),
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      hashchain_terminator=sha256(b'T1'))
@@ -215,13 +212,12 @@ class TestStakeTransaction(TestCase):
 
     def test_get_message_hash(self):
         tx = StakeTransaction.create(activation_blocknumber=2,
-                                     blocknumber_headerhash=dict(),
                                      xmss=self.alice,
                                      slavePK=self.bob.pk(),
                                      hashchain_terminator=sha256(b'T1'))
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual('5fe0b92c240b5fd1f267d22ab550370a6f74c2238f6f4bb92f0d1ce6200f6b8f',
+        self.assertEqual('06b0fcaf2e2ca69299a8a2ce32f0c05cd14cd61e25a9e324ffad8abc5a88aa7f',
                          bin2hstr(tuple(tx.get_message_hash())))
 
 
