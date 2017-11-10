@@ -6,7 +6,7 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger
 from qrl.core.BlockHeader import BlockHeader
-from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase
+from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase, Vote
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -48,6 +48,18 @@ test_json_CoinBase = """{
   "coinbase": {
     "addrTo": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
     "amount": "90"
+  }
+}"""
+
+test_json_Vote = """{
+  "type": "VOTE",
+  "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
+  "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
+  "transactionHash": "t3QQ5I6djuFAyLSdYzEVLgkP46zF3NfkzTtOpr+MODk=",
+  "otsKey": 11,
+  "vote": {
+    "blockNumber": "10",
+    "hashHeader": "cbyk7G3tHwuys91Ox27qL/Y/kPtS8AG7vvGx1bntChk="
   }
 }"""
 
@@ -266,3 +278,42 @@ class TestCoinBase(TestCase):
         # Test that specific content was copied over.
         self.assertEqual(b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2', tx.txto)
         self.assertEqual(tx.amount, 90)
+
+
+class TestVote(TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestVote, self).__init__(*args, **kwargs)
+        self.alice = XMSS(4, seed='a' * 48)
+        self.alice.set_index(11)
+
+        self.addr_from = self.alice.get_address().encode()
+        self.blocknumber = 10
+        self.headerhash = sha256(b'headerhash')
+
+        self.maxDiff = None
+
+    def test_create(self):
+        tx = Vote.create(self.addr_from, self.blocknumber, self.headerhash, self.alice)
+        self.assertIsInstance(tx, Vote)
+
+    def test_to_json(self):
+        tx = Vote.create(self.addr_from, self.blocknumber, self.headerhash, self.alice)
+        txjson = tx.to_json()
+        print(txjson)
+        self.assertEqual(json.loads(test_json_Vote), json.loads(txjson))
+
+    def test_from_txdict(self):
+        tx = Vote.create(self.addr_from, self.blocknumber, self.headerhash, self.alice)
+        self.assertIsInstance(tx, Vote)
+
+        # Test that common Transaction components were copied over.
+        self.assertEqual(0, tx.nonce)
+        self.assertEqual(b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2', tx.txfrom)
+        self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
+                         'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
+                         bin2hstr(tx.PK))
+        self.assertEqual(11, tx.ots_key)
+        self.assertEqual(b'', tx.signature)
+        self.assertEqual('1a1274bedfc53287853c3aea5b8a93d64f2e4dff23ddbf96e52c8033f0107154', bin2hstr(tx.pubhash))
+
+        self.assertEqual('b77410e48e9d8ee140c8b49d6331152e090fe3acc5dcd7e4cd3b4ea6bf8c3839', bin2hstr(tx.txhash))
