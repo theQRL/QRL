@@ -601,11 +601,61 @@ class DuplicateTransaction(Transaction):
         return True
 
 
+class VoteTransaction(Transaction):
+    """
+    Vote Transaction must be signed by Slave XMSS only.
+    """
+    def __init__(self, protobuf_transaction=None):
+        super(VoteTransaction, self).__init__(protobuf_transaction)
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.VOTE
+
+    @property
+    def addr_from(self):
+        return self._data.vote.addr_from
+
+    @property
+    def blocknumber(self):
+        return self._data.vote.block_number
+
+    @property
+    def headerhash(self):
+        return self._data.vote.header_hash
+
+    @staticmethod
+    def create(addr_from: bytes, blocknumber: int, headerhash: bytes, xmss: XMSS):
+        transaction = VoteTransaction()
+
+        transaction._data.addr_from = addr_from
+        transaction._data.vote.block_number = blocknumber
+        transaction._data.vote.header_hash = headerhash
+
+        transaction._data.public_key = bytes(xmss.pk())
+
+        transaction._data.ots_key = xmss.get_index()
+        transaction._data.transaction_hash = transaction.calculate_txhash()
+
+        return transaction
+
+    def _get_hashable_bytes(self):
+        """
+        This method should return bytes that are to be hashed and represent the transaction
+        :return: hashable bytes
+        :rtype: bytes
+        """
+
+        tmptxhash = self.addr_from + \
+                    bytes(str(self.blocknumber).encode()) + \
+                    bytes(self.headerhash)
+
+        return bytes(sha256(tmptxhash))
+
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: TransferTransaction,
     qrl_pb2.Transaction.STAKE: StakeTransaction,
     qrl_pb2.Transaction.DESTAKE: DestakeTransaction,
     qrl_pb2.Transaction.COINBASE: CoinBase,
     qrl_pb2.Transaction.LATTICE: LatticePublicKey,
-    qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction
+    qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction,
+    qrl_pb2.Transaction.VOTE: VoteTransaction
 }
