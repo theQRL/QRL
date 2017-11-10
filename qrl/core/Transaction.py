@@ -75,7 +75,8 @@ class Transaction(object, metaclass=ABCMeta):
             qrl_pb2.Transaction.DESTAKE: 'DESTAKE',
             qrl_pb2.Transaction.COINBASE: 'COINBASE',
             qrl_pb2.Transaction.LATTICE: 'LATTICE',
-            qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE'
+            qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE',
+            qrl_pb2.Transaction.VOTE: 'VOTE'
         }
         return id_name[idarg]
 
@@ -601,18 +602,18 @@ class DuplicateTransaction(Transaction):
         return True
 
 
-class VoteTransaction(Transaction):
+class Vote(Transaction):
     """
     Vote Transaction must be signed by Slave XMSS only.
     """
     def __init__(self, protobuf_transaction=None):
-        super(VoteTransaction, self).__init__(protobuf_transaction)
+        super(Vote, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
             self._data.type = qrl_pb2.Transaction.VOTE
 
     @property
     def addr_from(self):
-        return self._data.vote.addr_from
+        return self._data.addr_from
 
     @property
     def blocknumber(self):
@@ -637,7 +638,7 @@ class VoteTransaction(Transaction):
 
     @staticmethod
     def create(addr_from: bytes, blocknumber: int, headerhash: bytes, xmss: XMSS):
-        transaction = VoteTransaction()
+        transaction = Vote()
 
         transaction._data.addr_from = addr_from
         transaction._data.vote.block_number = blocknumber
@@ -674,5 +675,5 @@ TYPEMAP = {
     qrl_pb2.Transaction.COINBASE: CoinBase,
     qrl_pb2.Transaction.LATTICE: LatticePublicKey,
     qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction,
-    qrl_pb2.Transaction.VOTE: VoteTransaction
+    qrl_pb2.Transaction.VOTE: Vote
 }

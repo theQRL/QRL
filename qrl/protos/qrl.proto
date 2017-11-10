@@ -281,6 +281,7 @@ message Transaction {
         CoinBase coinbase = 10;
         LatticePublicKey latticePK = 11;
         Duplicate duplicate = 12;
+        Vote vote = 13;
     }
 
     //////////
