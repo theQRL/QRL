@@ -272,14 +272,6 @@ class StakeTransaction(Transaction):
         return self._data.stake.activation_blocknumber
 
     @property
-    def blocknumber_headerhash(self):
-        blocknumber_headerhash = dict()
-        for key in self._data.stake.blocknumber_headerhash:
-            blocknumber_headerhash[key] = self._data.stake.blocknumber_headerhash[key]
-
-        return blocknumber_headerhash
-
-    @property
     def slave_public_key(self):
         return self._data.stake.slavePK
 
@@ -298,22 +290,19 @@ class StakeTransaction(Transaction):
         tmptxhash = str2bin(tmptxhash
                             + bin2hstr(self.slave_public_key)
                             + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
-                            + bin2hstr(sha2_256(bytes(self.subtype)))
-                            + bin2hstr(
-            sha2_256(str(self.blocknumber_headerhash).encode())))  # FIXME: stringify in standardized way
+                            + bin2hstr(sha2_256(bytes(self.subtype))))  # FIXME: stringify in standardized way
         # FIXME: the order in the dict may affect hash
         return bytes(tmptxhash)
 
     @staticmethod
     def create(activation_blocknumber: int,
-               blocknumber_headerhash: dict,
                xmss: XMSS,
                slavePK: bytes,
                hashchain_terminator: bytes = None):
         """
         >>> s = StakeTransaction()
         >>> slave = XMSS(4)
-        >>> isinstance(s.create(0, dict(), XMSS(4), slave.pk(), None), StakeTransaction)
+        >>> isinstance(s.create(0, XMSS(4), slave.pk(), None), StakeTransaction)
         True
         """
 
@@ -324,9 +313,6 @@ class StakeTransaction(Transaction):
 
         # Stake specific
         transaction._data.stake.activation_blocknumber = activation_blocknumber
-
-        for blocknumber in blocknumber_headerhash:
-            transaction._data.stake.blocknumber_headerhash[blocknumber] = blocknumber_headerhash[blocknumber]
 
         transaction._data.stake.slavePK = slavePK
 

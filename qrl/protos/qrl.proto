@@ -291,10 +291,8 @@ message Transaction {
 
     message Stake {
         uint64 activation_blocknumber = 1;
-        map<uint64, bytes> blocknumber_headerhash = 2;
-        bytes slavePK = 3;
-        bytes hash = 4;
-
+        bytes slavePK = 2;
+        bytes hash = 3;
     }
 
     message Destake {

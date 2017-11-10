@@ -159,7 +159,6 @@ class POS:
 
         signing_xmss = self.buffered_chain.wallet.address_bundle[0].xmss
         st = StakeTransaction.create(activation_blocknumber=1,
-                                     blocknumber_headerhash=dict(),
                                      xmss=signing_xmss,
                                      slavePK=slave_xmss.pk(),
                                      hashchain_terminator=tmphc.hc_terminator)
@@ -512,7 +511,6 @@ class POS:
 
         st = StakeTransaction.create(
             activation_blocknumber=activation_blocknumber,
-            blocknumber_headerhash=blocknumber_headerhash,
             xmss=signing_xmss,
             slavePK=slave_xmss.pk()
         )
