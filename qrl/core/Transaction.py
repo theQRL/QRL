@@ -620,22 +620,7 @@ class VoteTransaction(Transaction):
 
     @property
     def headerhash(self):
-        return self._data.vote.header_hash
-
-    @staticmethod
-    def create(addr_from: bytes, blocknumber: int, headerhash: bytes, xmss: XMSS):
-        transaction = VoteTransaction()
-
-        transaction._data.addr_from = addr_from
-        transaction._data.vote.block_number = blocknumber
-        transaction._data.vote.header_hash = headerhash
-
-        transaction._data.public_key = bytes(xmss.pk())
-
-        transaction._data.ots_key = xmss.get_index()
-        transaction._data.transaction_hash = transaction.calculate_txhash()
-
-        return transaction
+        return self._data.vote.hash_header
 
     def _get_hashable_bytes(self):
         """
@@ -649,6 +634,38 @@ class VoteTransaction(Transaction):
                     bytes(self.headerhash)
 
         return bytes(sha256(tmptxhash))
+
+    @staticmethod
+    def create(addr_from: bytes, blocknumber: int, headerhash: bytes, xmss: XMSS):
+        transaction = VoteTransaction()
+
+        transaction._data.addr_from = addr_from
+        transaction._data.vote.block_number = blocknumber
+        transaction._data.vote.hash_header = headerhash
+
+        transaction._data.public_key = bytes(xmss.pk())
+
+        transaction._data.ots_key = xmss.get_index()
+        transaction._data.transaction_hash = transaction.calculate_txhash()
+
+        return transaction
+
+    def _validate_custom(self):
+        return True
+
+    def validate_extended(self, tx_state, sv_dict):
+        if self.pubhash in tx_state.pubhashes:
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.pubhash)
+            return False
+
+        if sv_dict[self.addr_from].slave_public_key != self.PK:
+            logger.warning('Stake validator doesnt own the Public key')
+            logger.warning('Expected public key %s', sv_dict[self.addr_from].slave_public_key)
+            logger.warning('Found public key %s', self.PK)
+            return False
+
+        return True
+
 
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: TransferTransaction,
