@@ -19,6 +19,7 @@ class StakeValidatorsTracker:
 
         self._expiry = defaultdict(set)  # Maintains the blocknumber as key at which Stake validator has to be expired
         self._future_sv_dict = defaultdict(set)
+        self._total_stake_amount = 0  # Maintains the total stake amount by current stake validator
 
     def calc_seed(self):
         staker_seeds = [s.hash for s in self.sv_dict.values()]
@@ -27,10 +28,12 @@ class StakeValidatorsTracker:
     def activate_sv(self, balance, stake_txn):
         sv = StakeValidator(balance, stake_txn)
         self.sv_dict[stake_txn.txfrom] = sv
+        self._total_stake_amount += sv.balance
         self._expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
     def activate_future_sv(self, sv):
         self.sv_dict[sv.stake_validator] = sv
+        self._total_stake_amount += sv.balance
         self._expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].add(sv.stake_validator)
 
     def add_sv(self, balance, stake_txn, blocknumber):
@@ -48,6 +51,7 @@ class StakeValidatorsTracker:
         next_blocknumber = blocknumber + 1
         if next_blocknumber in self._expiry:
             for sv_addr in self._expiry[next_blocknumber]:
+                self._total_stake_amount -= self.sv_dict[sv_addr].balance
                 del self.sv_dict[sv_addr]
             del self._expiry[next_blocknumber]
 
