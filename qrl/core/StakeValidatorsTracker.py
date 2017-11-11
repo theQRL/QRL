@@ -6,7 +6,6 @@ from collections import OrderedDict, defaultdict
 from qrl.core import config
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.formulas import calc_seed
-from qrl.core.VoteTracker import VoteTracker
 
 
 class StakeValidatorsTracker:
@@ -29,6 +28,7 @@ class StakeValidatorsTracker:
     def activate_sv(self, balance, stake_txn):
         sv = StakeValidator(balance, stake_txn)
         self.sv_dict[stake_txn.txfrom] = sv
+        self._total_stake_amount += sv.balance
         self._expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
     def activate_future_sv(self, sv):
