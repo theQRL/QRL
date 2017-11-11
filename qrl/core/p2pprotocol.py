@@ -59,6 +59,7 @@ class P2PProtocol(Protocol):
 
             ############################
             'TX': self.TX,  # RECV Transaction
+            'VT': self.VT,  # Vote Txn
         }
 
         self.buffer = b''
@@ -193,6 +194,51 @@ class P2PProtocol(Protocol):
         :return:
         """
         self.recv_tx(data)
+        return
+
+    def VT(self, data):
+        """
+        Vote Transaction
+        This function processes whenever a Transaction having
+        subtype VOTE is received.
+        :return:
+        """
+        try:
+            vote = Transaction.from_json(data)
+        except Exception as e:
+            logger.error('Vote Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(vote.get_message_hash(), self):
+            return
+
+        if len(self.factory.buffered_chain._chain.blockchain) == 1 and \
+                        vote.blocknumber != self.factory.buffered_chain.height:
+            return
+
+        height = self.factory.buffered_chain.height
+        stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
+
+        if vote.addr_from not in stake_validators_tracker.sv_dict:
+            logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
+            return
+
+        for t in self.factory.buffered_chain.tx_pool.vote_pool:
+            if vote.get_message_hash() == t.get_message_hash():
+                return
+
+        tx_state = self.factory.buffered_chain.get_stxn_state(
+            blocknumber=self.factory.buffered_chain.height,
+            addr=vote.addr_from)
+        if vote.validate() and vote.validate_extended(tx_state=tx_state):
+            self.factory.buffered_chain.tx_pool.add_tx_to_pool(vote)
+        else:
+            logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.hash)))
+            return
+
+        self.factory.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
         return
 
     def ST(self, data):

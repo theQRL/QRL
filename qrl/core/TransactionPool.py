@@ -21,6 +21,12 @@ class TransactionPool:
 
         self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
 
+    def add_tx_to_vote_pool(self, vote_txn):
+        if len(self.vote_pool) >= config.dev.transaction_pool_size:
+            del self.vote_pool[0]
+
+        self.vote_pool[vote_txn.get_message_hash()] = vote_txn
+
     def update_pending_tx_pool(self, tx, peer):
         if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
             del self.pending_tx_pool[0]
