@@ -109,7 +109,7 @@ class BufferedChain:
 
             # FIXME: avoid iterating by using keys
             for blocknum in range(min_blocknum, max_blocknum + 1):
-                self.add_block_internal(self._pending_blocks[blocknum])
+                self.add_block(self._pending_blocks[blocknum])
 
             self._pending_blocks = dict()
 
