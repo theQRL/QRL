@@ -15,7 +15,9 @@ from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.Transaction import CoinBase, Transaction
+from qrl.core.VoteTracker import VoteTracker
+from qrl.core.VoteMetadata import VoteMetadata
+from qrl.core.Transaction import CoinBase, Transaction, Vote
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain
@@ -48,6 +50,8 @@ class BufferedChain:
         self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
 
         self.stake_list = []
+
+        self._vote_tracker = dict()  # Tracks votes, against blocknumber
 
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()
@@ -202,6 +206,8 @@ class BufferedChain:
             self.epoch = int(block_idx // config.dev.blocks_per_epoch)
             self._clean_if_required(block_idx)
             del self.blocks[block_idx]
+            if block_idx in self._vote_tracker:
+                del self._vote_tracker[block_idx]
 
         return True
 
@@ -232,6 +238,20 @@ class BufferedChain:
 
         self.epoch = block.epoch
         return True
+
+    def add_vote(self, vote_txn: Vote):
+        if vote_txn.blocknumber not in self._vote_tracker:
+            self._vote_tracker[vote_txn.blocknumber] = VoteTracker()
+
+        stake_validators_tracker = self.get_stake_validators_tracker(vote_txn.blocknumber)
+        stake_balance = stake_validators_tracker.get_stake_balance(vote_txn.addr_from)
+        self._vote_tracker[vote_txn.blocknumber].add_vote(vote_txn, stake_balance)
+
+    def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
+        if blocknumber not in self._vote_tracker:
+            return None
+
+        return self._vote_tracker[blocknumber].get_consensus
 
     def _validate_tx_pool(self):
         result = True
