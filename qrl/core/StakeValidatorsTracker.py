@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from collections import OrderedDict, defaultdict
-from qrl.core import config
+from qrl.core import config, logger
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.formulas import calc_seed
 
@@ -70,3 +70,10 @@ class StakeValidatorsTracker:
             return False
         sv = self.sv_dict[stake_address]
         return sv.validate_hash(hasharg, blocknum)
+
+    def get_stake_balance(self, stake_address: bytes):
+        if stake_address not in self.sv_dict:
+            logger.warning('Stake address not found in Stake Validators Tracker')
+            raise Exception
+
+        return self.sv_dict[stake_address].balance
