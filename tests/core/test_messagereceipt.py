@@ -17,7 +17,7 @@ class TestMessageReceipt(TestCase):
     def test_create(self):
         mr = MessageReceipt()
         self.assertIsNotNone(mr)
-        self.assertEqual(mr.allowed_types, ['TX', 'ST', 'DST', 'BK', 'DT'])
+        self.assertEqual(mr.allowed_types, ['TX', 'ST', 'DST', 'BK', 'DT', 'VT'])
 
     def test_register(self):
         mr = MessageReceipt()
