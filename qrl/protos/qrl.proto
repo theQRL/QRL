@@ -227,7 +227,8 @@ message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
     repeated Transaction dup_transactions = 3;          // TODO: Review this
-    repeated GenesisBalance genesis_balance = 4;
+    repeated Transaction vote = 4;
+    repeated GenesisBalance genesis_balance = 5;
 }
 
 message GenesisBalance
