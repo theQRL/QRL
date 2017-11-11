@@ -121,6 +121,7 @@ class TestBufferedChain(TestCase):
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[stake_transaction],
                                          duplicate_transactions=OrderedDict(),
+                                         vote=[],
                                          signing_xmss=xmss,
                                          nonce=1)
 
@@ -169,6 +170,7 @@ class TestBufferedChain(TestCase):
                                           prevblock_headerhash=genesis_block.headerhash,
                                           transactions=[stake_transaction],
                                           duplicate_transactions=OrderedDict(),
+                                          vote=[],
                                           signing_xmss=xmss,
                                           nonce=1)
 
@@ -185,6 +187,7 @@ class TestBufferedChain(TestCase):
                                               prevblock_headerhash=tmp_block1.headerhash,
                                               transactions=[stake_transaction],
                                               duplicate_transactions=OrderedDict(),
+                                              vote=[],
                                               signing_xmss=xmss,
                                               nonce=2)
 

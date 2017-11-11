@@ -92,6 +92,7 @@ class Block(object):
                prevblock_headerhash: bytes,
                transactions: list,
                duplicate_transactions: OrderedDict,
+               vote: list,
                signing_xmss: XMSS,
                nonce: int):
 
@@ -113,8 +114,11 @@ class Block(object):
 
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
-        for tx in duplicate_transactions.values():
+        for tx in duplicate_transactions.values():  # TODO: Add merkle hash for dup txn
             block._data.duplicate_transactions.extend([tx.pbdata])
+
+        for tx in vote:  # TODO: Add merkle hash for vote
+            block._data.vote.extend([tx.pbdata])
 
         tmp_blockheader = BlockHeader.create(staking_address=staking_address,
                                              blocknumber=block_number,

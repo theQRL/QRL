@@ -12,6 +12,7 @@ class TransactionPool:
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = []
         self.transaction_pool = []  # FIXME: Everyone is touching this
+        self.vote_pool = []
         self.txhash_timestamp = []  # FIXME: Seems obsolete? Delete?
 
     def add_tx_to_duplicate_pool(self, duplicate_txn):
