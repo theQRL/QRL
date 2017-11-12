@@ -10,7 +10,7 @@ from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.core import logger, config
 from qrl.core.Wallet import Wallet
-from tests.misc.helper import setWalletDir
+from tests.misc.helper import set_wallet_dir
 
 logger.initialize_default(force_console_output=True)
 
@@ -20,7 +20,7 @@ class TestWallet(TestCase):
         super(TestWallet, self).__init__(*args, **kwargs)
 
     def test_create_wallet(self):
-        with setWalletDir("no_wallet"):
+        with set_wallet_dir("no_wallet"):
             wallet = Wallet()
             self.assertIsNotNone(wallet)
             wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
@@ -28,7 +28,7 @@ class TestWallet(TestCase):
 
     @pytest.mark.skip(reason="old wallets are not supported anymore")
     def test_upgrade_wallet(self):
-        with setWalletDir("old_wallet"):
+        with set_wallet_dir("old_wallet"):
             wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
             self.assertFalse(isfile(wallet_file_path))  # New wallet is NOT there
 
@@ -38,7 +38,7 @@ class TestWallet(TestCase):
             self.assertTrue(isfile(wallet_file_path))  # Now the new wallet appears
 
     def test_getnewaddress(self):
-        with setWalletDir("test_wallet"):
+        with set_wallet_dir("test_wallet"):
             wallet = Wallet()
             S1 = hstr2bin(
                 '7bf1e7c1c84be2c820211572d990c0430e09401053ce2af489ee3e4d030c027464d9cac1fff449a2405b7f3fc63018a4')

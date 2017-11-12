@@ -142,7 +142,7 @@ class P2PProtocol(Protocol):
             block_chain_buffer = self.factory.buffered_chain
 
             if not block_chain_buffer.verify_BK_hash(mr_data, self.conn_identity):
-                if block_chain_buffer.is_duplicate_block(blocknum=mr_data.block_number,
+                if block_chain_buffer.is_duplicate_block(block_idx=mr_data.block_number,
                                                          prev_headerhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
                     self.factory.RFM(mr_data)
@@ -421,7 +421,7 @@ class P2PProtocol(Protocol):
 
         block_chain_buffer = self.factory.buffered_chain
 
-        if block_chain_buffer.is_duplicate_block(blocknum=block.block_number,
+        if block_chain_buffer.is_duplicate_block(block_idx=block.block_number,
                                                  prev_headerhash=block.prev_headerhash,
                                                  stake_selector=block.stake_selector):
             logger.info('Found duplicate block #%s by %s',

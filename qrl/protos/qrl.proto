@@ -246,9 +246,9 @@ message BlockMetaData {
     bytes hash_header = 2;
 }
 
-message MR {
-    bytes hash = 1;
-    string type = 2;
+message MR {                                            // FIXME: This is legacy. Plan removal
+    bytes hash = 1;                                     // FIXME: rename this to block_headerhash
+    string type = 2;                                    // FIXME: type/string what is this
     bytes stake_selector = 3;
     uint64 block_number = 4;
     bytes prev_headerhash = 5;

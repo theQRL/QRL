@@ -6,6 +6,7 @@ from unittest import TestCase
 
 import pytest
 from mock import Mock, MagicMock, mock
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger, config
 from qrl.core.Block import Block
@@ -18,7 +19,7 @@ from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.Wallet import Wallet
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-from tests.misc.helper import setWalletDir
+from tests.misc.helper import set_wallet_dir, get_Alice_xmss
 
 logger.initialize_default(force_console_output=True)
 
@@ -28,7 +29,7 @@ class TestBufferedChain(TestCase):
         super(TestBufferedChain, self).__init__(*args, **kwargs)
 
     def test_create(self):
-        with setWalletDir("test_wallet"):
+        with set_wallet_dir("test_wallet"):
             # FIXME: cross-dependency
             chain = Mock(spec=Chain)
             chain.height = 0
@@ -48,7 +49,7 @@ class TestBufferedChain(TestCase):
 
     def test_add_empty(self):
         with State() as state:
-            with setWalletDir("test_wallet"):
+            with set_wallet_dir("test_wallet"):
                 chain = Mock(spec=Chain)
                 chain.height = 0
                 chain.get_block = MagicMock(return_value=None)
@@ -67,7 +68,7 @@ class TestBufferedChain(TestCase):
 
     def test_add_genesis(self):
         with State() as state:
-            with setWalletDir("test_wallet"):
+            with set_wallet_dir("test_wallet"):
                 chain = Mock(spec=Chain)
                 chain.height = 0
                 chain.get_block = MagicMock(return_value=None)
@@ -85,14 +86,13 @@ class TestBufferedChain(TestCase):
 
     def test_add_2(self):
         with State() as state:
-            with setWalletDir("test_wallet"):
+            with set_wallet_dir("test_wallet"):
                 chain = Chain(state)
                 buffered_chain = BufferedChain(chain)
 
-                xmss_height = 6
-                seed = bytes([i for i in range(48)])
-                xmss = XMSS(xmss_height, seed)
-                slave_xmss = XMSS(xmss_height, seed)
+                alice_xmss = get_Alice_xmss()
+                slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
+                staking_address = bytes(alice_xmss.get_address().encode())
 
                 h0 = sha256(b'hashchain_seed')
                 h1 = sha256(h0)
@@ -103,27 +103,29 @@ class TestBufferedChain(TestCase):
                 self.assertTrue(res)
 
                 stake_transaction = StakeTransaction.create(activation_blocknumber=0,
-                                                            xmss=xmss,
+                                                            xmss=alice_xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h1)
 
                 # FIXME: The test needs private access.. This is an API issue
                 stake_transaction._data.nonce = 1
 
-                stake_transaction.sign(xmss)
+                stake_transaction.sign(alice_xmss)
 
                 chain.pstate.stake_validators_tracker.add_sv(balance=100,
                                                              stake_txn=stake_transaction,
-                                                             blocknumber=0)
+                                                             blocknumber=1)
+                sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
+                self.assertEqual(0, sv.nonce)
 
-                tmp_block = Block.create(staking_address=bytes(xmss.get_address().encode()),
+                tmp_block = Block.create(staking_address=bytes(alice_xmss.get_address().encode()),
                                          block_number=1,
                                          reveal_hash=h0,
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[stake_transaction],
                                          duplicate_transactions=OrderedDict(),
                                          vote=VoteMetadata(),
-                                         signing_xmss=xmss,
+                                         signing_xmss=alice_xmss,
                                          nonce=1)
 
                 res = buffered_chain.add_block(block=tmp_block)
@@ -132,17 +134,16 @@ class TestBufferedChain(TestCase):
     @pytest.mark.skip(reason="reproduces a bug that is being fixed")
     def test_add_3(self):
         with State() as state:
-            with setWalletDir("test_wallet"):
+            with set_wallet_dir("test_wallet"):
                 chain = Chain(state)
                 buffered_chain = BufferedChain(chain)
 
-                xmss_height = 6
-                seed = bytes([i for i in range(48)])
-                xmss = XMSS(xmss_height, seed)
-                slave_xmss = XMSS(xmss_height, seed)
+                alice_xmss = get_Alice_xmss()
+                slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
-                staking_address = bytes(xmss.get_address().encode())
+                staking_address = bytes(alice_xmss.get_address().encode())
 
+                # FIXME: Replace this with a call to create a hash_chain
                 h0 = sha256(b'hashchain_seed')
                 h1 = sha256(h0)
                 h2 = sha256(h1)
@@ -153,17 +154,18 @@ class TestBufferedChain(TestCase):
                 self.assertTrue(res)
 
                 stake_transaction = StakeTransaction.create(activation_blocknumber=0,
-                                                            xmss=xmss,
+                                                            xmss=alice_xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h2)
-
-                # FIXME: The test needs private access.. This is an API issue
-                stake_transaction._data.nonce = 1
-                stake_transaction.sign(xmss)
+                stake_transaction._data.nonce = 1    # FIXME: The test needs private access.. This is an API issue
+                stake_transaction.sign(alice_xmss)
 
                 chain.pstate.stake_validators_tracker.add_sv(balance=100,
                                                              stake_txn=stake_transaction,
-                                                             blocknumber=0)
+                                                             blocknumber=1)
+
+                sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
+                self.assertEqual(0, sv.nonce)
 
                 tmp_block1 = Block.create(staking_address=staking_address,
                                           block_number=1,
@@ -172,7 +174,7 @@ class TestBufferedChain(TestCase):
                                           transactions=[stake_transaction],
                                           duplicate_transactions=OrderedDict(),
                                           vote=VoteMetadata(),
-                                          signing_xmss=xmss,
+                                          signing_xmss=alice_xmss,
                                           nonce=1)
 
                 res = buffered_chain.add_block(block=tmp_block1)
@@ -186,10 +188,10 @@ class TestBufferedChain(TestCase):
                                               block_number=2,
                                               reveal_hash=h0,
                                               prevblock_headerhash=tmp_block1.headerhash,
-                                              transactions=[stake_transaction],
+                                              transactions=[],
                                               duplicate_transactions=OrderedDict(),
                                               vote=VoteMetadata(),
-                                              signing_xmss=xmss,
+                                              signing_xmss=alice_xmss,
                                               nonce=2)
 
                 res = buffered_chain.add_block(block=tmp_block2)

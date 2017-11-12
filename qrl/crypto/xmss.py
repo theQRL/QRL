@@ -62,7 +62,12 @@ class XMSS(object):
 
         self.addresses = [(0, self.get_address(), self.get_number_signatures())]
 
+    @property
+    def height(self):
+        return self._xmss.getHeight()
+
     def _sk(self):
+        # FIXME: Move to property
         """
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1)._sk()) == xmss_sk_expected1
         True
@@ -72,6 +77,7 @@ class XMSS(object):
         return bytes(self._xmss.getSK())
 
     def pk(self):
+        # FIXME: Move to property
         """
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1).pk()) == xmss_pk_expected1
         True
@@ -81,6 +87,7 @@ class XMSS(object):
         return bytes(self._xmss.getPK())
 
     def get_number_signatures(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -94,6 +101,7 @@ class XMSS(object):
         return 2 ** self._xmss.getHeight()
 
     def get_remaining_signatures(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -106,6 +114,7 @@ class XMSS(object):
         return self.get_number_signatures() - self._xmss.getIndex()
 
     def get_mnemonic(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -122,13 +131,16 @@ class XMSS(object):
         return bin2mnemonic(self._xmss.getSeed())
 
     def get_address(self):
+        # FIXME: Move to property
         return self._xmss.getAddress('Q')
 
     def get_type(self):
+        # FIXME: Move to property
         # type: () -> str
         return self._type
 
     def get_index(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -165,6 +177,7 @@ class XMSS(object):
         self._xmss.setIndex(new_index)
 
     def get_hexseed(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -177,6 +190,7 @@ class XMSS(object):
         return bin2hstr(self._seed)
 
     def get_seed(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -189,6 +203,7 @@ class XMSS(object):
         return self._seed
 
     def get_seed_public(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:
@@ -201,6 +216,7 @@ class XMSS(object):
         return bytes(self._xmss.getPKSeed())
 
     def get_seed_private(self):
+        # FIXME: Move to property
         """
         :return:
         :rtype:

@@ -109,7 +109,7 @@ class ApiProtocol(Protocol):
 
         for staker in self.factory.state.stake_validators_tracker.sv_dict:
             sv = self.factory.state.stake_validators_tracker.sv_dict[staker]
-            tmp_stakers = {'address': sv.stake_validator.decode(),
+            tmp_stakers = {'address': sv.address.decode(),
                            'activation_blocknumber': sv.activation_blocknumber,
                            'balance': self.factory.format_qrlamount(sv.balance),
                            'hash_terminator': bin2hstr(tuple(sv.hash)),
@@ -128,7 +128,7 @@ class ApiProtocol(Protocol):
         for staker in self.factory.state.stake_validators_tracker.future_stake_addresses:
             sv = self.factory.state.stake_validators_tracker.future_stake_addresses[staker]
             tmp_stakers = {'activation_blocknumber': sv.activation_blocknumber,
-                           'address': sv.stake_validator,
+                           'address': sv.address,
                            'balance': self.factory.format_qrlamount(sv.balance),
                            'hash_terminator': bin2hstr(tuple(sv.hash)),
                            'nonce': sv.nonce}

@@ -6,6 +6,8 @@ from qrl.core import config
 HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')
 
 
+# FIXME: Move to C++
+
 def _calc_hashchain(
         seed_private,
         epoch,
@@ -16,6 +18,7 @@ def _calc_hashchain(
     :type epoch: int
     :return:
     """
+    # FIXME: Move to C++
     hc_seed = getHashChainSeed(seed_private, epoch, 1)
 
     hc = [bytes(hc_seed[0])]
