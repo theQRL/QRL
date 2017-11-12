@@ -1137,7 +1137,8 @@ class P2PProtocol(Protocol):
         self.factory.broadcast(tx.get_message_hash(), 'TX')
 
         if not self.factory.txn_processor_running:
-            txn_processor = TxnProcessor(block_chain_buffer=self.factory.buffered_chain,
+            # FIXME: TxnProcessor breaks tx_pool encapsulation
+            txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
                                          pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
                                          transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool,
                                          txhash_timestamp=self.factory.buffered_chain.txhash_timestamp)

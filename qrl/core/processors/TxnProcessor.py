@@ -7,12 +7,17 @@ from time import time
 from twisted.internet.task import cooperate
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core.BufferedChain import BufferedChain
+
 
 class TxnProcessor:
-
-    def __init__(self, block_chain_buffer, pending_tx_pool, transaction_pool, txhash_timestamp):
+    def __init__(self,
+                 buffered_chain: BufferedChain,
+                 pending_tx_pool,
+                 transaction_pool,
+                 txhash_timestamp):
         self.pending_tx_pool = pending_tx_pool
-        self.block_chain_buffer = block_chain_buffer
+        self.buffered_chain = buffered_chain
         self.transaction_pool = transaction_pool
         self.txhash_timestamp = txhash_timestamp
 
@@ -32,18 +37,18 @@ class TxnProcessor:
             raise StopIteration
 
         tx = self.pending_tx_pool.pop(0)
-
         tx = tx[0]
+
         if not tx.validate():
             return False
 
-        tx_state = self.block_chain_buffer.get_stxn_state(blocknumber=self.block_chain_buffer.height(),
-                                                          addr=tx.txfrom)
-        isValidState = tx.validate_extended(
-            tx_state=tx_state,
-            transaction_pool=self.transaction_pool
-        )
-        if not isValidState:
+        tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height,
+                                                      addr=tx.txfrom)
+
+        is_valid_state = tx.validate_extended(tx_state=tx_state,
+                                              transaction_pool=self.transaction_pool)
+
+        if not is_valid_state:
             logger.info('>>>TX %s failed state_validate', tx.txhash)
             return False
 

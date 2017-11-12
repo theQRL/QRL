@@ -31,6 +31,7 @@ class Chain:
     @property
     def height(self):
         # FIXME: This will probably get replaced with rocksdb
+        # FIXME: This is bad, height is not height but max index
         if len(self.blockchain):
             return self.blockchain[-1].block_number
         return 0

@@ -818,6 +818,8 @@ class BufferedChain:
     # TODO: Persistence will move to rocksdb
 
     def load(self):
+        logger.info('Reading chain..')
+
         # TODO: Persistence will move to rocksdb
         self._chain.blockchain = []
 
@@ -854,6 +856,7 @@ class BufferedChain:
             epoch += 1
 
         self.wallet.save_wallet()
+        logger.info('{} blocks'.format(self.length))
         return self._chain.blockchain
 
     #############################################
