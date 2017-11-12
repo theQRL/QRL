@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from mock import Mock, MagicMock
 
-from qrl.core import logger, BufferedChain
+from qrl.core import logger, BufferedChain, config
 from qrl.core.State import State
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
@@ -38,9 +38,30 @@ class PublicAPITest(TestCase):
         service = P2PNodeService(qrlnode)
         response = service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
 
-        self.assertEqual('local-dev', response.node_info.version)
+        self.assertEqual(config.dev.version, response.info.version)
+        self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, response.info.state)
+        self.assertEqual(23, response.info.num_connections)
+        # self.assertEqual("testnet", node_state.response.network_id)  # FIXME
 
-        # self.assertEqual(__version__, node_state.response.version)  # FIXME
+    def test_getKnownPeers(self):
+        db_state = Mock(spec=State)
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.sync_state = SyncState()
+        p2p_factory.connections = 23
+        p2p_factory.stake = False
+
+        buffered_chain = Mock(spec=BufferedChain)
+        buffered_chain.height = MagicMock(return_value=0)
+
+        qrlnode = QRLNode(db_state)
+        qrlnode.set_p2pfactory(p2p_factory)
+        qrlnode.set_chain(buffered_chain)
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = P2PNodeService(qrlnode)
+        response = service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
+
+        self.assertEqual(config.dev.version, response.node_info.version)
         self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, response.node_info.state)
         self.assertEqual(23, response.node_info.num_connections)
         # self.assertEqual("testnet", node_state.response.network_id)  # FIXME

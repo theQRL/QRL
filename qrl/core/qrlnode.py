@@ -4,6 +4,7 @@ import os
 from decimal import Decimal
 
 import time
+from typing import Optional
 
 from qrl.core import config, logger
 from qrl.core.BufferedChain import BufferedChain
@@ -57,9 +58,6 @@ class QRLNode:
 
     @property
     def block_height(self):
-        if self._buffered_chain.height < 0:
-            return 0
-        # FIXME
         return self._buffered_chain.height
 
     @property
@@ -283,23 +281,28 @@ class QRLNode:
         self._p2pfactory.send_tx_to_peers(tx)
         return True
 
+    def address_is_valid(self, address: bytes)->bool:
+        # TODO: Validate address format
+        if len(address) < 1:
+            return False
+
+        if address[0] != ord('Q'):
+            return False
+
+        return True
+
     def get_address_is_used(self, address: bytes)->bool:
+        if not self.address_is_valid(address):
+            raise ValueError("Invalid Address")
+
         return self.db_state.address_used(address)
 
     def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
-        # FIXME: Refactor. Define concerns, etc.
-        # FIXME: Unnecessary double conversion
-        # TODO: Validate address format
-        if len(address) < 1:
-            raise ValueError("Invalid Address")
-
-        if address[0] != ord('Q'):
+        if not self.address_is_valid(address):
             raise ValueError("Invalid Address")
 
         nonce, balance, pubhash_list = self.db_state.get_address(address)
-        transaction_hashes = None
         transaction_hashes = self.db_state.get_address_tx_hashes(address)
-
         address_state = qrl_pb2.AddressState(address=address,
                                              balance=balance,
                                              nonce=nonce,
@@ -308,7 +311,7 @@ class QRLNode:
 
         return address_state
 
-    def get_transaction(self, query_hash: bytes) -> Transaction:
+    def get_transaction(self, query_hash: bytes) -> Optional[Transaction]:
         """
         This method returns an object that matches the query hash
         """
@@ -321,12 +324,12 @@ class QRLNode:
                 return tx
         return None
 
-    def get_block_from_hash(self, query_hash: bytes) -> Block:
+    def get_block_from_hash(self, query_hash: bytes) -> Optional[Block]:
         """
         This method returns an object that matches the query hash
         """
         # FIXME: At some point, all objects in DB will indexed by a hash
-        raise NotImplementedError()
+        return None
 
     def get_block_from_index(self, index: int) -> Block:
         """
@@ -347,7 +350,6 @@ class QRLNode:
 
     def get_latest_transactions(self, count=5):
         # FIXME: Moved code. Breaking encapsulation. Refactor
-
         answer = []
         for pbtx in self._buffered_chain.self.blockchain[-1].transactions[-20:]:
             tx = Transaction.from_pbdata(pbtx)

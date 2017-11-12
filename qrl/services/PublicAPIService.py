@@ -82,12 +82,13 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         # FIXME: We need a unified way to access and validate data.
         query = bytes(request.query)  # query will be as a string, if Q is detected convert, etc.
 
-        if self.qrlnode.get_address_is_used(query):
-            address_state = self.qrlnode.get_address_state(query)
-            if address_state is not None:
-                answer.found = True
-                answer.address_state = address_state
-                return answer
+        if self.qrlnode.address_is_valid(query):
+            if self.qrlnode.get_address_is_used(query):
+                address_state = self.qrlnode.get_address_state(query)
+                if address_state is not None:
+                    answer.found = True
+                    answer.address_state = address_state
+                    return answer
 
         transaction = self.qrlnode.get_transaction(query)
         if transaction is not None:
@@ -95,15 +96,11 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
             answer.transaction = transaction.pbdata
             return answer
 
-        try:
-            block = self.qrlnode.get_transaction(query)
-            if block is not None:
-                answer.found = True
-                answer.block = block.pbdata
-                return answer
-        except NotImplementedError as e:
-            # FIXME: implementation missing
-            answer.found = False
+        block = self.qrlnode.get_block_from_hash(query)
+        if block is not None:
+            answer.found = True
+            answer.block = block.pbdata
+            return answer
 
         return answer
 
