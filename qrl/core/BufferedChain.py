@@ -84,6 +84,11 @@ class BufferedChain:
     def pstate(self) -> State:
         return self._chain.pstate
 
+    def set_voted(self, block_number):
+        if block_number in self.blocks:
+            block_metadata = self.blocks[block_number]
+            block_metadata.set_voted()
+
     #########################################
     #########################################
     #########################################
@@ -276,6 +281,13 @@ class BufferedChain:
 
     def add_block(self, block: Block) -> bool:
 
+        # is there an older version available?
+        old_block_metadata = None
+        if block.block_number in self.blocks:
+            old_block_metadata = self.blocks[block.block_number]
+            if old_block_metadata.isVoted:
+                return False
+
         if not self.validate_block(block):  # This is here because of validators, etc
             logger.info('Block validation failed')
             logger.info('Block #%s', block.block_number)
@@ -340,11 +352,6 @@ class BufferedChain:
         block_metadata.stake_validators_tracker = prev_sv_tracker
         block_metadata.address_state_dict = address_state_dict
         block_metadata.update_stxn_state(self._chain.pstate)
-
-        # is there an older version available?
-        old_block_metadata = None
-        if block.block_number in self.blocks:
-            old_block_metadata = self.blocks[block.block_number]
 
         # add/replace if new option is better
         if old_block_metadata is None or block_metadata.sorting_key < old_block_metadata.sorting_key:

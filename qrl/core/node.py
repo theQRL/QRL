@@ -165,8 +165,22 @@ class POS:
         st.sign(signing_xmss)
 
         self.buffered_chain.tx_pool.add_tx_to_pool(st)
+
         # send the stake tx to generate hashchain terminators for the staker addresses..
         self.p2pFactory.send_st_to_peers(st)
+
+        vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
+                           blocknumber=0,
+                           headerhash=genesis_block.header.hash_header.encode(),
+                           xmss=slave_xmss)
+
+        vote.sign(slave_xmss)
+
+        self.buffered_chain.add_vote(vote)
+
+        # send the stake votes for genesis block
+        self.p2pFactory.send_vote_to_peers(vote)
+
         logger.info('await delayed call to build staker list from genesis')
         reactor.callLater(5, self.pre_pos_2, st)
 
@@ -179,6 +193,7 @@ class POS:
         tmp_list = []
         seed_list = []
         genesis_block = self.buffered_chain.get_block(0)
+        total_genesis_stake_amount = 0
         for tx in self.buffered_chain.tx_pool.transaction_pool:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 for genesisBalance in genesis_block.genesis_balance:
@@ -187,6 +202,7 @@ class POS:
                         seed_list.append(tx.hash)
                         # FIXME: This goes to stake validator list without verification, Security Risk
                         self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesisBalance.balance, tx, 1)
+                        total_genesis_stake_amount += genesisBalance.balance
 
         self.buffered_chain.epoch_seed = calc_seed(seed_list)
 
@@ -209,6 +225,14 @@ class POS:
         if len(self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:
             self.p2pFactory.send_st_to_peers(data)
             logger.info('waiting for stakers.. retry in 5s')
+            reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
+            return
+
+        voteMetadata = self.buffered_chain.get_consensus(0)
+        consensus_ratio = voteMetadata.total_stake_amount / total_genesis_stake_amount
+
+        if consensus_ratio < 0.51:
+            logger.info('Consensus lower than 51%.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
 
@@ -423,6 +447,11 @@ class POS:
         self.pos_callLater = reactor.callLater(delay,
                                                self.post_block_logic,
                                                blocknumber=blocknumber)
+
+        self.vote_callLater = reactor.callLater(delay - config.dev.vote_x_seconds_before_next_block,
+                                                self.create_vote_tx,
+                                                blocknumber=blocknumber-1)
+
         self.pos_blocknum = blocknumber
 
     def create_next_block(self, blocknumber, activation_blocknumber) -> bool:
@@ -493,6 +522,8 @@ class POS:
             logger.warning('Create Vote Txn failed due to validation failure')
             return
 
+        self.buffered_chain.set_voted(blocknumber)
+        
         self.buffered_chain.add_vote(vote)
 
         self.p2pFactory.send_vote_to_peers(vote)

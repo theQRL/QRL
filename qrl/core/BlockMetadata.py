@@ -22,6 +22,7 @@ class BlockMetadata(object):
 
         self.block = block
         self.score = 0
+        self.isVoted = False
 
         if self.block.block_number > 0:
             self.score = self._block_score(epoch_seed, balance)
@@ -32,6 +33,9 @@ class BlockMetadata(object):
         self.stake_validators_tracker = None
         self.address_state_dict = {}  # type: Dict[bytes, AddressState]
         self.hash_chain = hash_chain
+
+    def set_voted(self):
+        self.isVoted = True
 
     @property
     def sorting_key(self):
