@@ -18,7 +18,7 @@ from qrl.core import logger, config, BufferedChain, ntp
 from qrl.core.formulas import score
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import StakeTransaction, DestakeTransaction
+from qrl.core.Transaction import StakeTransaction, DestakeTransaction, Vote
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 
@@ -475,6 +475,28 @@ class POS:
 
         return result
 
+    def create_vote_tx(self, blocknumber: int):
+        block = self.buffered_chain.get_block(blocknumber)
+        signing_xmss = self.buffered_chain.get_slave_xmss(blocknumber)
+
+        vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
+                           blocknumber=blocknumber,
+                           headerhash=block.blockheader.headerhash,
+                           xmss=signing_xmss)
+
+        vote.sign(signing_xmss)
+
+        tx_state = self.buffered_chain.get_stxn_state(blocknumber + 1, vote.addr_from)
+        stake_validators = self.buffered_chain.get_stake_validators_tracker(blocknumber)
+
+        if not (vote.validate() and vote.validate_extended(tx_state, stake_validators.sv_dict)):
+            logger.warning('Create Vote Txn failed due to validation failure')
+            return
+
+        self.buffered_chain.add_vote(vote)
+
+        self.p2pFactory.send_vote_to_peers(vote)
+
     def _create_stake_tx(self, curr_blocknumber):
         sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)
         if self.buffered_chain.staking_address in sv_dict:
@@ -518,7 +540,7 @@ class POS:
         st.sign(signing_xmss)
         tx_state = self.buffered_chain.get_stxn_state(curr_blocknumber, st.txfrom)
         if not (st.validate() and st.validate_extended(tx_state)):
-            logger.info('Make St Txn failed due to validation failure, will retry next block')
+            logger.warning('Create St Txn failed due to validation failure, will retry next block')
             return
 
         self.p2pFactory.send_st_to_peers(st)
