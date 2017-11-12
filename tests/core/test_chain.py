@@ -6,7 +6,7 @@ from unittest import TestCase
 from qrl.core import logger
 from qrl.core.Chain import Chain
 from qrl.core.State import State
-from tests.misc.helper import setWalletDir
+from tests.misc.helper import set_wallet_dir
 
 logger.initialize_default(force_console_output=True)
 
@@ -18,7 +18,7 @@ class TestChain(TestCase):
         # config.user.wallet_path = os.path.join(test_dir, 'known_data/testcase1')
 
     def test_create(self):
-        with setWalletDir("test_wallet"):
+        with set_wallet_dir("test_wallet"):
             with State() as state:
                 self.assertIsNotNone(state)
 

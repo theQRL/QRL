@@ -8,9 +8,11 @@ import tempfile
 import os
 
 from qrl.core import config
+from qrl.crypto.xmss import XMSS
+
 
 @contextlib.contextmanager
-def setWalletDir(wallet_name):
+def set_wallet_dir(wallet_name):
     dst_dir = tempfile.mkdtemp()
     try:
         test_path = os.path.dirname(os.path.abspath(__file__))
@@ -21,3 +23,9 @@ def setWalletDir(wallet_name):
         yield
     finally:
         shutil.rmtree(dst_dir)
+
+
+def get_Alice_xmss():
+    xmss_height = 6
+    seed = bytes([i for i in range(48)])
+    return XMSS(xmss_height, seed)

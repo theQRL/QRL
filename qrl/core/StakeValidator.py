@@ -2,59 +2,88 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, sha2_256_n
 
-from qrl.crypto.misc import sha256
-from qrl.core import config
+from qrl.core.Transaction import StakeTransaction
+from qrl.core import config, logger
 
 
 class StakeValidator:
     """
-    Stake Validator class to represent the each unique Stake Validator.
+    Stake Validator class to represent each unique Stake Validator
 
     Maintains the cache of successfully validated hashes, saves validation
     time by avoiding recalculation of the hash till the hash terminators.
     """
-    def __init__(self, balance, stake_txn):
-        self.buffer_size = config.dev.hash_buffer_size
-        self.stake_validator = stake_txn.txfrom
-        self.slave_public_key = stake_txn.slave_public_key
-        self.balance = balance
-        self.hash = stake_txn.hash
+
+    def __init__(self,
+                 balance: int,
+                 stake_txn: StakeTransaction):
+
+        logger.info("Created validator %s", id(self))
+
+        self._address = stake_txn.txfrom
+        self._slave_public_key = stake_txn.slave_public_key
+
+        self._terminator_hash = stake_txn.hash
+        if not self.terminator_hash:
+            raise ValueError("terminator hash cannot be empty")
+
+        self._balance = balance
+        if balance < config.dev.minimum_staking_balance_required:
+            raise ValueError("balance should be at least {}".format(config.dev.minimum_staking_balance_required))
+
         self.activation_blocknumber = stake_txn.activation_blocknumber
 
-        self.nonce = 0
-        self.is_banned = False
-        self.is_active = True  # Flag that represents if the stakevalidator has been deactivated by destake txn
+        self._nonce = 0
+        self._is_banned = False
+        self._is_active = True  # Flag that represents if the stakevalidator has been deactivated by destake txn
 
-        if self.hash:
-            self.cache_hash = dict()
-            self.cache_hash[self.activation_blocknumber - 1] = self.hash  # -1 as the hash is terminator
+    @property
+    def address(self) -> bytes:
+        return self._address
 
-    def hash_to_terminator(self, hasharg:bytes, times):
-        for _ in range(times):
-            hasharg = sha256(bin2hstr(bytes(hasharg)).encode())
+    @property
+    def slave_public_key(self) -> bytes:
+        return self._slave_public_key
 
-        return hasharg
+    @property
+    def terminator_hash(self) -> bytes:
+        return self._terminator_hash
 
-    # Saves the last X validated hash into the memory
-    def update(self, blocknum, hasharg):
-        self.cache_hash[blocknum] = hasharg
-        if len(self.cache_hash) > self.buffer_size:
-            minimum_blocknum = min(self.cache_hash)
-            del self.cache_hash[minimum_blocknum]
+    @property
+    def balance(self) -> int:
+        return self._balance
 
-    def validate_hash(self, hasharg, blocknum):
+    @property
+    def is_banned(self) -> bool:
+        return self._is_banned
 
-        cache_blocknum = max(self.cache_hash)
-        times = blocknum - cache_blocknum
+    @property
+    def is_active(self) -> bool:
+        return self._is_active
 
-        terminator_found = tuple(self.hash_to_terminator(hasharg, times))
-        terminator_expected = tuple(self.cache_hash[cache_blocknum])
+    @property
+    def nonce(self) -> int:
+        return self._nonce
 
-        if terminator_found != terminator_expected:
-            return False
+    def increase_nonce(self):
+        self._nonce += 1
 
-        self.update(blocknum, hasharg)
+    @staticmethod
+    def _hash_to_terminator(reveal_hash: bytes, times: int) -> bytes:
+        if times == 0:
+            return reveal_hash
 
-        return True
+        result = bytes(sha2_256_n(reveal_hash, times))
+        logger.debug("||| %d %s >> %s ", times, bin2hstr(reveal_hash), bin2hstr(result))
+        return result
+
+    def validate_hash(self, reveal_hash: bytes, block_idx: int) -> bool:
+        # FIXME: Measure with a profiler if we really need a cache here
+
+        times = block_idx - self.activation_blocknumber
+        terminator_found = self._hash_to_terminator(reveal_hash, times)
+        terminator_expected = self.terminator_hash
+
+        return terminator_found == terminator_expected
