@@ -14,6 +14,7 @@ from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import StakeTransaction
+from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.Wallet import Wallet
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -121,7 +122,7 @@ class TestBufferedChain(TestCase):
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[stake_transaction],
                                          duplicate_transactions=OrderedDict(),
-                                         vote=[],
+                                         vote=VoteMetadata(),
                                          signing_xmss=xmss,
                                          nonce=1)
 
@@ -170,7 +171,7 @@ class TestBufferedChain(TestCase):
                                           prevblock_headerhash=genesis_block.headerhash,
                                           transactions=[stake_transaction],
                                           duplicate_transactions=OrderedDict(),
-                                          vote=[],
+                                          vote=VoteMetadata(),
                                           signing_xmss=xmss,
                                           nonce=1)
 
@@ -187,7 +188,7 @@ class TestBufferedChain(TestCase):
                                               prevblock_headerhash=tmp_block1.headerhash,
                                               transactions=[stake_transaction],
                                               duplicate_transactions=OrderedDict(),
-                                              vote=[],
+                                              vote=VoteMetadata(),
                                               signing_xmss=xmss,
                                               nonce=2)
 

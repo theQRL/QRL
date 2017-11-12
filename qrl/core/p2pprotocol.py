@@ -232,8 +232,14 @@ class P2PProtocol(Protocol):
         tx_state = self.factory.buffered_chain.get_stxn_state(
             blocknumber=self.factory.buffered_chain.height,
             addr=vote.addr_from)
-        if vote.validate() and vote.validate_extended(tx_state=tx_state):
-            self.factory.buffered_chain.tx_pool.add_tx_to_pool(vote)
+
+        #  Current Stake Validators might or might not have the
+        curr_stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
+        if vote.addr_from in curr_stake_validators_tracker:
+            stake_validators_tracker = curr_stake_validators_tracker
+
+        if vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict):
+            self.factory.buffered_chain.add_vote(vote)
         else:
             logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.hash)))
             return
