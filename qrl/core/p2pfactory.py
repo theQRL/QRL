@@ -11,6 +11,7 @@ from twisted.internet.protocol import ServerFactory
 from qrl.core import config, logger, ntp
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
+from qrl.core.Transaction import Vote
 
 from qrl.generated import qrl_pb2
 
@@ -143,6 +144,11 @@ class P2PFactory(ServerFactory):
     def send_st_to_peers(self, st):
         logger.info('<<<Transmitting ST: %s', st.activation_blocknumber)
         self.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
+        return
+
+    def send_vote_to_peers(self, vote: Vote):
+        logger.info('<<<Transmitting Vote Txn: %s', vote.blocknumber)
+        self.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
         return
 
     def send_destake_txn_to_peers(self, destake_txn):
