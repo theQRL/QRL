@@ -686,7 +686,7 @@ class BufferedChain:
                                  prevblock_headerhash=last_block.headerhash,
                                  transactions=self.tx_pool.transaction_pool,
                                  duplicate_transactions=self.tx_pool.duplicate_tx_pool,
-                                 vote=self.tx_pool.vote_pool,
+                                 vote=self._vote_tracker[last_block_number].get_consensus(),
                                  signing_xmss=signing_xmss,
                                  nonce=nonce)
 

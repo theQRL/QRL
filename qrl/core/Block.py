@@ -9,6 +9,7 @@ from qrl.core import config
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX
 from qrl.core.BlockHeader import BlockHeader
+from qrl.core.VoteMetadata import VoteMetadata
 from qrl.crypto.misc import sha256, merkle_tx_hash
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
@@ -92,7 +93,7 @@ class Block(object):
                prevblock_headerhash: bytes,
                transactions: list,
                duplicate_transactions: OrderedDict,
-               vote: list,
+               vote: VoteMetadata,
                signing_xmss: XMSS,
                nonce: int):
 
@@ -117,8 +118,8 @@ class Block(object):
         for tx in duplicate_transactions.values():  # TODO: Add merkle hash for dup txn
             block._data.duplicate_transactions.extend([tx.pbdata])
 
-        for tx in vote:  # TODO: Add merkle hash for vote
-            block._data.vote.extend([tx.pbdata])
+        for staker in vote.stake_validator_vote:  # TODO: Add merkle hash for vote
+            block._data.vote.extend([vote.stake_validator_vote[staker].pbdata])
 
         tmp_blockheader = BlockHeader.create(staking_address=staking_address,
                                              blocknumber=block_number,
