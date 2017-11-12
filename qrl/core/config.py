@@ -104,7 +104,6 @@ class DevConfig(object):
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.max_coin_supply = 105000000
-        self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.timestamp_error = 5  # Error in second
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.slave_xmss_height = self.slave_xmss_height + (self.slave_xmss_height & 0x1)
@@ -113,6 +112,9 @@ class DevConfig(object):
         self.default_account_balance = 100 * (10 ** 8)
         self.stamping_series = [5, 10, 20, 30, 40, 50, 60, 70, 80, 100]
         self.hash_buffer_size = 4
+        self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
+        self.vote_x_seconds_before_next_block = 15  # Vote will be done X seconds before creation of next block
+                                                    # Must be less than minimum_minting_delay
 
         self.db_name = 'state'
         self.peers_filename = 'peers.qrl'
