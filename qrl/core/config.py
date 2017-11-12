@@ -25,13 +25,11 @@ class UserConfig(object):
 
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
-        self.peer_list = ['172.19.0.1',
-                          '172.19.0.2',
-                          '104.237.3.184',
+        self.peer_list = ['104.237.3.184',
                           '104.237.3.185',
                           '104.251.219.215',
                           '104.251.219.145',
-                          '104.251.219.40']  # Atleast one active peer IP required
+                          '104.251.219.40']             # Atleast one active peer IP required
 
         self.max_peers_limit = 40  # Number of allowed peers
         self.ping_timeout = 180

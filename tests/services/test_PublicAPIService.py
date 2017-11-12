@@ -60,7 +60,7 @@ class PublicAPITest(TestCase):
         buffered_chain = Mock(spec=BufferedChain)
         buffered_chain.height = MagicMock(return_value=0)
         buffered_chain.blockchain = []
-        buffered_chain.m_get_block = MagicMock(return_value=None)
+        buffered_chain.get_block = MagicMock(return_value=None)
         buffered_chain.state = db_state
 
         qrlnode = QRLNode(db_state)
@@ -155,6 +155,8 @@ class PublicAPITest(TestCase):
 
         p2p_factory = Mock(spec=P2PFactory)
         buffered_chain = Mock(spec=BufferedChain)
+        buffered_chain.tx_pool = Mock()
+        buffered_chain.tx_pool.transaction_pool = []
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
@@ -166,8 +168,9 @@ class PublicAPITest(TestCase):
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
         response = service.GetObject(request=request, context=context)
-        context.set_code.assert_called()
-        context.set_details.assert_called()
+        context.set_code.assert_not_called()
+        context.set_details.assert_not_called()
+        self.assertFalse(response.found)
 
         # Find an address
         db_state.get_address = MagicMock(return_value=(25, 10, [sha256(b'a'), sha256(b'b')]))
