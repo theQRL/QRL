@@ -54,16 +54,6 @@ class BlockMetadata(object):
     def get_next_seed(self) -> bytes:
         return sha256(self.block.reveal_hash + self.epoch_seed)
 
-    @staticmethod
-    def tx_to_list(txn_dict):
-        tmp_sl = []
-        for txfrom in txn_dict:
-            st = txn_dict[txfrom]
-            if not st[3]:  # rejecting ST having first_hash None
-                continue
-            tmp_sl.append(st)
-        return tmp_sl
-
     def update_stxn_state(self, pstate):
         for addr in self.address_state_dict.keys():
             addr_state = pstate.get_address(addr)
