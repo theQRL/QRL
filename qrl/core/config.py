@@ -99,6 +99,8 @@ class DevConfig(object):
         self.blocks_per_chain_file = 1000
         self.chain_read_buffer_size = 1024
         self.version = version
+        self.required_version = '0.0.'
+
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.max_coin_supply = 105000000

@@ -9,6 +9,8 @@ from qrl.services.PeerManager import PeerManager
 
 
 class BlockChainManager(object):
+    REFRESH_CYCLE_SECS = 1
+
     def __init__(self, node, peer_manager):
         self.node = node
         self.peer_manager = peer_manager
@@ -35,11 +37,8 @@ class BlockChainManager(object):
             logger.info("Peers  {:4} ({:4})".format(self.peer_manager.stable_peer_count,
                                                     self.peer_manager.peer_count))
 
-            for peer_metadata in self.peer_manager.stable_peers():
-                logger.info("{:20}: {:3}".format(peer_metadata.conn_addr,
-                                                 peer_metadata.node_info.block_height))
-
-            for peer_metadata in self.peer_manager.stable_peers():
-                self._get_blockchain(peer_metadata, 0)
+            # for peer_metadata in self.peer_manager.stable_peers():
+            #     logger.info("{:20}: {:3}".format(peer_metadata.conn_addr,
+            #                                      peer_metadata.node_info.block_height))
 
             sleep(2)
