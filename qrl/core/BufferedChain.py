@@ -652,7 +652,7 @@ class BufferedChain:
                     return False
 
                 if not stake_validators_tracker.validate_hash(block.reveal_hash,
-                                                              block.block_number,
+                                                              block.block_number + 1,
                                                               coinbase_tx.txto):
                     logger.warning('Supplied hash does not iterate to terminator: failed validation')
                     return False
@@ -750,7 +750,7 @@ class BufferedChain:
         stake_validators_tracker = self.get_stake_validators_tracker(mr_data.block_number)
 
         if not stake_validators_tracker.validate_hash(mr_data.reveal_hash,
-                                                      mr_data.block_number,
+                                                      mr_data.block_number + 1,
                                                       stake_address=stake_selector):
             logger.info('%s reveal doesnt hash to stake terminator reveal %s', conn_identity, mr_data.reveal_hash)
             return False
