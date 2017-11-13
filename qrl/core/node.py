@@ -442,13 +442,14 @@ class POS:
             curr_timestamp = int(ntp.getTime())
 
             delay = max(5, last_block_timestamp + config.dev.minimum_minting_delay - curr_timestamp)
+            vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
 
         self.stop_post_block_logic()
         self.pos_callLater = reactor.callLater(delay,
                                                self.post_block_logic,
                                                blocknumber=blocknumber)
 
-        self.vote_callLater = reactor.callLater(delay - config.dev.vote_x_seconds_before_next_block,
+        self.vote_callLater = reactor.callLater(vote_delay,
                                                 self.create_vote_tx,
                                                 blocknumber=blocknumber-1)
 
