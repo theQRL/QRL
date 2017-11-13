@@ -171,7 +171,7 @@ class POS:
 
         vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
                            blocknumber=0,
-                           headerhash=genesis_block.header.hash_header.encode(),
+                           headerhash=genesis_block.headerhash,
                            xmss=slave_xmss)
 
         vote.sign(slave_xmss)

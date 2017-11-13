@@ -221,24 +221,27 @@ class P2PProtocol(Protocol):
         height = self.factory.buffered_chain.height
         stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
 
-        if vote.addr_from not in stake_validators_tracker.sv_dict:
-            logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
-            return
-
-        for t in self.factory.buffered_chain.tx_pool.vote_pool:
-            if vote.get_message_hash() == t.get_message_hash():
+        # FIXME: Temporary fix, need to add ST txn into genesis block
+        if height > 0:
+            if vote.addr_from not in stake_validators_tracker.sv_dict:
+                logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
                 return
 
-        tx_state = self.factory.buffered_chain.get_stxn_state(
-            blocknumber=self.factory.buffered_chain.height,
-            addr=vote.addr_from)
+            for t in self.factory.buffered_chain.tx_pool.vote_pool:
+                if vote.get_message_hash() == t.get_message_hash():
+                    return
 
-        if vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict):
-            self.factory.buffered_chain.add_vote(vote)
+            tx_state = self.factory.buffered_chain.get_stxn_state(
+                blocknumber=self.factory.buffered_chain.height,
+                addr=vote.addr_from)
+
+            if vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict):
+                self.factory.buffered_chain.add_vote(vote)
+            else:
+                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.hash)))
+                return
         else:
-            logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.hash)))
-            return
-
+            self.factory.buffered_chain.add_vote(vote)
         self.factory.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
         return
 
