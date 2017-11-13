@@ -89,10 +89,9 @@ class TestStakeValidator(TestCase):
                                                     hashchain_terminator=h3)
 
         sv = StakeValidator(100, stake_transaction)
-        self.assertTrue(sv.validate_hash(h0, 3))
-        self.assertTrue(sv.validate_hash(h2, 1))
+        self.assertTrue(sv.validate_hash(h0, 2))
+        self.assertTrue(sv.validate_hash(h2, 0))
 
-        self.assertTrue(sv.validate_hash(h3, 0))
-        self.assertTrue(sv.validate_hash(h2, 1))
-        self.assertTrue(sv.validate_hash(h1, 2))
-        self.assertTrue(sv.validate_hash(h0, 3))
+        self.assertTrue(sv.validate_hash(h2, 0))
+        self.assertTrue(sv.validate_hash(h1, 1))
+        self.assertTrue(sv.validate_hash(h0, 2))
