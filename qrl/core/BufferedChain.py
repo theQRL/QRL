@@ -287,7 +287,7 @@ class BufferedChain:
 
         # Prepare Metadata inputs
 
-        if self._chain.height == 0 or self._chain.height + 1 == block.block_number:
+        if block.block_number == 0 or self._chain.height + 1 == block.block_number:
             prev_sv_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
             address_state_dict = dict()
             hash_chain = None

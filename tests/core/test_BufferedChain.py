@@ -4,9 +4,7 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-import pytest
 from mock import Mock, MagicMock, mock
-from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger, config
 from qrl.core.Block import Block
@@ -17,6 +15,7 @@ from qrl.core.State import State
 from qrl.core.Transaction import StakeTransaction
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.Wallet import Wallet
+from qrl.core.formulas import calc_seed
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from tests.misc.helper import set_wallet_dir, get_Alice_xmss
@@ -131,7 +130,6 @@ class TestBufferedChain(TestCase):
                 res = buffered_chain.add_block(block=tmp_block)
                 self.assertTrue(res)
 
-    @pytest.mark.skip(reason="reproduces a bug that is being fixed")
     def test_add_3(self):
         with State() as state:
             with set_wallet_dir("test_wallet"):
@@ -147,17 +145,17 @@ class TestBufferedChain(TestCase):
                 h0 = sha256(b'hashchain_seed')
                 h1 = sha256(h0)
                 h2 = sha256(h1)
+                h3 = sha256(h2)
 
                 genesis_block = GenesisBlock()
 
                 res = buffered_chain.add_block(block=genesis_block)
                 self.assertTrue(res)
-
-                stake_transaction = StakeTransaction.create(activation_blocknumber=0,
+                stake_transaction = StakeTransaction.create(activation_blocknumber=1,
                                                             xmss=alice_xmss,
                                                             slavePK=slave_xmss.pk(),
-                                                            hashchain_terminator=h2)
-                stake_transaction._data.nonce = 1    # FIXME: The test needs private access.. This is an API issue
+                                                            hashchain_terminator=h3)
+                stake_transaction._data.nonce = 1  # FIXME: The test needs private access.. This is an API issue
                 stake_transaction.sign(alice_xmss)
 
                 chain.pstate.stake_validators_tracker.add_sv(balance=100,
@@ -169,7 +167,7 @@ class TestBufferedChain(TestCase):
 
                 tmp_block1 = Block.create(staking_address=staking_address,
                                           block_number=1,
-                                          reveal_hash=h1,
+                                          reveal_hash=h2,
                                           prevblock_headerhash=genesis_block.headerhash,
                                           transactions=[stake_transaction],
                                           duplicate_transactions=OrderedDict(),
@@ -186,7 +184,7 @@ class TestBufferedChain(TestCase):
 
                     tmp_block2 = Block.create(staking_address=staking_address,
                                               block_number=2,
-                                              reveal_hash=h0,
+                                              reveal_hash=h1,
                                               prevblock_headerhash=tmp_block1.headerhash,
                                               transactions=[],
                                               duplicate_transactions=OrderedDict(),
@@ -195,4 +193,21 @@ class TestBufferedChain(TestCase):
                                               nonce=2)
 
                 res = buffered_chain.add_block(block=tmp_block2)
+                self.assertTrue(res)
+
+                # Need to move forward the time to align with block times
+                with mock.patch('qrl.core.ntp.getTime') as time_mock:
+                    time_mock.return_value = tmp_block2.timestamp + config.dev.minimum_minting_delay
+
+                    tmp_block3 = Block.create(staking_address=staking_address,
+                                              block_number=3,
+                                              reveal_hash=h0,
+                                              prevblock_headerhash=tmp_block2.headerhash,
+                                              transactions=[],
+                                              duplicate_transactions=OrderedDict(),
+                                              vote=VoteMetadata(),
+                                              signing_xmss=alice_xmss,
+                                              nonce=3)
+
+                res = buffered_chain.add_block(block=tmp_block3)
                 self.assertTrue(res)
