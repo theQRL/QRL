@@ -222,7 +222,7 @@ class P2PProtocol(Protocol):
         stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
 
         # FIXME: Temporary fix, need to add ST txn into genesis block
-        if height > 0:
+        if height > 1:
             if vote.addr_from not in stake_validators_tracker.sv_dict:
                 logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
                 return

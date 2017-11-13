@@ -199,14 +199,15 @@ class BufferedChain:
         if vote_txn.blocknumber not in self._vote_tracker:
             self._vote_tracker[vote_txn.blocknumber] = VoteTracker()
 
-        if vote_txn.blocknumber == 0:
+        #FIXME: Temporary fix, ST txn must be added into genesis
+        if vote_txn.blocknumber > 1:
+            stake_validators_tracker = self.get_stake_validators_tracker(vote_txn.blocknumber)
+            stake_balance = stake_validators_tracker.get_stake_balance(vote_txn.addr_from)
+        else:
             genesis_block = self.get_block(0)
             for genesisBalance in genesis_block.genesis_balance:
                 if genesisBalance.address.encode() == vote_txn.addr_from:
                     stake_balance = genesisBalance.balance
-        else:
-            stake_validators_tracker = self.get_stake_validators_tracker(vote_txn.blocknumber)
-            stake_balance = stake_validators_tracker.get_stake_balance(vote_txn.addr_from)
 
         self._vote_tracker[vote_txn.blocknumber].add_vote(vote_txn, stake_balance)
 

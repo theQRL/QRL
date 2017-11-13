@@ -149,7 +149,8 @@ class Transaction(object, metaclass=ABCMeta):
             raise ValueError("Invalid transaction hash")
 
         # FIXME: Why is coinbase skipped?
-        if not isinstance(self, CoinBase) and getAddress('Q', self.PK) != self.txfrom.decode():
+        if not isinstance(self, CoinBase) and not isinstance(self, Vote) and \
+           getAddress('Q', self.PK) != self.txfrom.decode():
             raise ValueError('Public key and address dont match')
 
         if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
