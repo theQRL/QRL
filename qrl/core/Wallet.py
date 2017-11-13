@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import namedtuple
+from typing import List
 
 import qrl.core.Transaction_subtypes
 from pyqrllib.pyqrllib import mnemonic2bin
@@ -36,6 +37,10 @@ class Wallet:
         self.address_bundle = None
         self._read_wallet()
         self._valid_or_create()
+
+    @property
+    def addresses(self) -> List[bytes]:
+        return [a.address for a in self.address_bundle]
 
     def save_wallet(self):
         logger.debug('Syncing wallet file')

@@ -4,7 +4,7 @@ import os
 from decimal import Decimal
 
 import time
-from typing import Optional
+from typing import Optional, List
 
 from qrl.core import config, logger
 from qrl.core.BufferedChain import BufferedChain
@@ -122,6 +122,10 @@ class QRLNode:
     @property
     def peer_addresses(self):
         return self._peer_addresses
+
+    @property
+    def addresses(self)->List[bytes]:
+        return self._buffered_chain.wallet.addresses
 
     # FIXME: REMOVE. This is temporary
     def set_chain(self, buffered_chain: BufferedChain):
