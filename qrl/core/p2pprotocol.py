@@ -350,7 +350,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         try:
-            duplicate_txn = DuplicateTransaction().from_json(data)
+            duplicate_txn = Transaction.from_json(data)
         except Exception as e:
             logger.error('DT rejected')
             logger.exception(e)
