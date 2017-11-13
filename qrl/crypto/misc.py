@@ -6,10 +6,10 @@ from math import ceil, log
 
 import itertools
 
-from pyqrllib.pyqrllib import sha2_256, bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import sha2_256, bin2hstr, hstr2bin, sha2_256_n
 
 
-def sha256(message: bytes)->bytes:
+def sha256(message: bytes) -> bytes:
     """
     :param message:
     :type message: Union[str, unicode]
@@ -22,6 +22,12 @@ def sha256(message: bytes)->bytes:
     '81e7826a5821395470e5a2fed0277b6a40c26257512319875e1d70106dcb1ca0'
     """
     return bytes(sha2_256(message))
+
+
+def sha256_n(message: bytes, count) -> bytes:
+    if count == 0:
+        return message
+    return bytes(sha2_256_n(message, count))
 
 
 def merkle_tx_hash(hashes):
