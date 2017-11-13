@@ -76,13 +76,13 @@ class StakeValidator:
             return reveal_hash
 
         result = bytes(sha2_256_n(reveal_hash, times))
-        logger.debug("||| %d %s >> %s ", times, bin2hstr(reveal_hash), bin2hstr(result))
+
         return result
 
     def validate_hash(self, reveal_hash: bytes, block_idx: int) -> bool:
         # FIXME: Measure with a profiler if we really need a cache here
 
-        times = block_idx - self.activation_blocknumber
+        times = block_idx - self.activation_blocknumber + 1
         terminator_found = self._hash_to_terminator(reveal_hash, times)
         terminator_expected = self.terminator_hash
 
