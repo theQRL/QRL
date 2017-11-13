@@ -3,14 +3,14 @@ from time import time, sleep
 
 import grpc
 
-from qrl.core import logger
+from qrl.core import logger, config
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import P2PAPIStub
 
 
 class PeerMetadata(object):
-    DISCOVERY_THRESHOLD_SECS = 20
-    STABILITY_THRESHOLD_SECS = 5
+    DISCOVERY_THRESHOLD_SECS = 10
+    STABILITY_THRESHOLD_SECS = 2
 
     def __init__(self, conn_addr):
         self.connected_since = time()
@@ -87,28 +87,52 @@ class PeerManager(object):
             tmp = list(self._peers.values())
         return iter(tmp)
 
+    def _validate_peer_response(self, result: GetKnownPeersResp):
+        # Validate version number
+        if result.node_info.version is None:
+            logger.info('Invalid version: None')
+            return False
+
+        if result.node_info.version == 'local-dev':
+            return True
+
+        # FIXME: use a regex to validate this
+        if not result.node_info.version[0].isdigit():
+            logger.info('Invalid address: %s', result.node_info.version)
+            return False
+
+        if result.node_info.version.startswith(config.dev.required_version):
+            return True
+
+        if result.node_info.version > config.dev.required_version:
+            return True
+
+        # TODO: Validate networkid
+
+        logger.info('Invalid address: %s', result.node_info.version)
+        return False
+
     def _add_peers_callback(self, response_future):
-        if response_future.code() == grpc.StatusCode.OK:
-            res = response_future.result()
-            response_future.pm.node_info = res.node_info
-            peer_list = (peer.ip for peer in res.known_peers)
-            self.add(peer_list)
+        if response_future and response_future.code() == grpc.StatusCode.OK:
+            result = response_future.result()
+            response_future.pm.node_info = result.node_info
 
-            # TODO: check version/network_id or remove node
-            # res.node_info.version
-            # res.node_info.network_id
-        else:
-            self.remove([response_future.pm.conn_addr])
+            self.add((peer.ip for peer in result.known_peers))      # Add all peers
 
-    def _update_state_callback(self, respose_future):
-        if respose_future.code() == grpc.StatusCode.OK:
-            res = respose_future.result()
-            respose_future.pm.node_info = res.node_info
-            # TODO: check version/network_id or remove node
-            # res.node_info.version
-            # res.node_info.network_id
-        else:
-            self.remove([respose_future.pm.conn_addr])
+            if self._validate_peer_response(result):
+                return True
+
+        self.remove([response_future.pm.conn_addr])
+
+    def _update_state_callback(self, response_future):
+        if response_future and response_future.code() == grpc.StatusCode.OK:
+            result = response_future.result()
+            response_future.pm.node_info = result.node_info
+
+            if self._validate_peer_response(result):
+                return True
+
+        self.remove([response_future.pm.conn_addr])
 
     def _maintain_peers(self):
         while True:
@@ -116,12 +140,12 @@ class PeerManager(object):
                 for peer_metadata in self._all_peers():
                     if peer_metadata.peers_needs_refresh:
                         f = peer_metadata.stub.GetKnownPeers.future(qrl_pb2.GetKnownPeersReq(),
-                                                                    timeout=PeerManager.TIMEOUT_SECS)
+                                                                    timeout=self.TIMEOUT_SECS)
                         f.pm = peer_metadata
                         f.add_done_callback(self._add_peers_callback)
                     else:
                         f = peer_metadata.stub.GetNodeState.future(qrl_pb2.GetNodeStateReq(),
-                                                                   timeout=PeerManager.TIMEOUT_SECS)
+                                                                   timeout=self.TIMEOUT_SECS)
                         f.pm = peer_metadata
                         f.add_done_callback(self._update_state_callback)
 
@@ -130,7 +154,8 @@ class PeerManager(object):
                 for peer_metadata in self.stable_peers():
                     addr = peer_metadata.conn_addr.split(':')[0]
                     tmp.append(addr)
-                # self.qrlnode.update_peer_addresses(tmp)
+
+                #self.qrlnode.update_peer_addresses(tmp)
 
                 sleep(self.REFRESH_CYCLE_SECS)
                 self.recycle()

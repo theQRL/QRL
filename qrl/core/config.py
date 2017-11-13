@@ -100,7 +100,10 @@ class DevConfig(object):
         self.chain_read_buffer_size = 1024
         self.binary_file_delimiter = b'-_-_'
         self.compression_level = 1
+
         self.version = version
+        self.required_version = '0.0.'
+
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
         self.max_coin_supply = 105000000
