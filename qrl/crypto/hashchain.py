@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from pyqrllib.pyqrllib import getHashChainSeed, sha2_256, bin2hstr
 from qrl.core import config
+from qrl.crypto.misc import sha256, sha256_n
 
 HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')
 
@@ -9,22 +10,16 @@ HashChainBundle = namedtuple('HashChainBundle', 'seed hashchain hc_terminator')
 # FIXME: Move to C++
 
 def _calc_hashchain(
-        seed_private,
-        epoch,
-        blocks_per_epoch):
-    """
-    generates a 20,000th hash in iterative sha256 chain..derived from private SEED
-    :param epoch:
-    :type epoch: int
-    :return:
-    """
+        seed_private: bytes,
+        epoch: int,
+        blocks_per_epoch: int):
     # FIXME: Move to C++
     hc_seed = getHashChainSeed(seed_private, epoch, 1)
 
     hc = [bytes(hc_seed[0])]
 
     for x in range(blocks_per_epoch):
-        hc.append(bytes(sha2_256(bin2hstr(tuple(hc[-1])).encode())))
+        hc.append(sha256(hc[-1]))
 
     hc_terminator = hc[-1]
 
@@ -49,5 +44,5 @@ def hashchain_reveal(seed_private,
     >>> bin2hstr(hashchain_reveal(hashchain_reveal_input)) == hashchain_reveal_expected1
     True
     """
-    tmp = hashchain(seed_private, epoch, blocks_per_epoch)
-    return tmp.hc_terminator
+    hc_seed = getHashChainSeed(seed_private, epoch, 1)
+    return sha256_n(hc_seed[0], blocks_per_epoch)
