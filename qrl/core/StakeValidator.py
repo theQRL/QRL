@@ -2,10 +2,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from pyqrllib.pyqrllib import bin2hstr, sha2_256_n
-
-from qrl.core.Transaction import StakeTransaction
 from qrl.core import config, logger
+from qrl.core.Transaction import StakeTransaction
+from qrl.crypto.misc import sha256_n
 
 
 class StakeValidator:
@@ -72,11 +71,7 @@ class StakeValidator:
 
     @staticmethod
     def _hash_to_terminator(reveal_hash: bytes, times: int) -> bytes:
-        if times == 0:
-            return reveal_hash
-
-        result = bytes(sha2_256_n(reveal_hash, times))
-        return result
+        return sha256_n(reveal_hash, times)
 
     def validate_hash(self, reveal_hash: bytes, block_idx: int) -> bool:
         # FIXME: Measure with a profiler if we really need a cache here

@@ -32,7 +32,7 @@ def set_data_dir(data_name):
         src_dir = os.path.join(test_path, "..", "data", data_name)
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
-        config.user.wallet_path = dst_dir
+        config.user.data_path = dst_dir
         yield
     finally:
         shutil.rmtree(dst_dir)

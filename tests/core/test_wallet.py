@@ -26,17 +26,6 @@ class TestWallet(TestCase):
             wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
             self.assertTrue(isfile(wallet_file_path))
 
-    @pytest.mark.skip(reason="old wallets are not supported anymore")
-    def test_upgrade_wallet(self):
-        with set_wallet_dir("old_wallet"):
-            wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
-            self.assertFalse(isfile(wallet_file_path))  # New wallet is NOT there
-
-            wallet = Wallet()
-
-            self.assertIsNotNone(wallet)
-            self.assertTrue(isfile(wallet_file_path))  # Now the new wallet appears
-
     def test_getnewaddress(self):
         with set_wallet_dir("test_wallet"):
             wallet = Wallet()
