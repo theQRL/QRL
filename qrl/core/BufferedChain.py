@@ -199,15 +199,22 @@ class BufferedChain:
         if vote_txn.blocknumber not in self._vote_tracker:
             self._vote_tracker[vote_txn.blocknumber] = VoteTracker()
 
-        stake_validators_tracker = self.get_stake_validators_tracker(vote_txn.blocknumber)
-        stake_balance = stake_validators_tracker.get_stake_balance(vote_txn.addr_from)
+        if vote_txn.blocknumber == 0:
+            genesis_block = self.get_block(0)
+            for genesisBalance in genesis_block.genesis_balance:
+                if genesisBalance.address.encode() == vote_txn.addr_from:
+                    stake_balance = genesisBalance.balance
+        else:
+            stake_validators_tracker = self.get_stake_validators_tracker(vote_txn.blocknumber)
+            stake_balance = stake_validators_tracker.get_stake_balance(vote_txn.addr_from)
+
         self._vote_tracker[vote_txn.blocknumber].add_vote(vote_txn, stake_balance)
 
     def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
         if blocknumber not in self._vote_tracker:
             return None
 
-        return self._vote_tracker[blocknumber].get_consensus
+        return self._vote_tracker[blocknumber].get_consensus()
 
     def _validate_tx_pool(self):
         result = True
@@ -567,7 +574,7 @@ class BufferedChain:
                                  prevblock_headerhash=last_block.headerhash,
                                  transactions=self.tx_pool.transaction_pool,
                                  duplicate_transactions=self.tx_pool.duplicate_tx_pool,
-                                 vote=self._vote_tracker[last_block_number].get_consensus(),
+                                 vote=self._vote_tracker[last_block.block_number].get_consensus(),
                                  signing_xmss=signing_xmss,
                                  nonce=nonce)
 
