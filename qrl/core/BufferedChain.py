@@ -923,11 +923,6 @@ class BufferedChain:
             tmp_xmss = self.slave_xmsspool.getNextTree()
             self.slave_xmss[epoch] = XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
 
-            # TODO: Check why we are reading here
-            data = self.wallet.read_slave()
-            if data and data.address == self.slave_xmss[epoch].get_address():
-                self.slave_xmss[epoch].set_index(data.index)
-
         return self.slave_xmss[epoch]
 
     #############################################
