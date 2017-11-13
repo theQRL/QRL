@@ -76,7 +76,6 @@ class StakeValidator:
             return reveal_hash
 
         result = bytes(sha2_256_n(reveal_hash, times))
-        logger.debug("||| %d %s >> %s ", times, bin2hstr(reveal_hash), bin2hstr(result))
         return result
 
     def validate_hash(self, reveal_hash: bytes, block_idx: int) -> bool:
