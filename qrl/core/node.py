@@ -447,8 +447,9 @@ class POS:
         self.pos_callLater = reactor.callLater(delay,
                                                self.post_block_logic,
                                                blocknumber=blocknumber)
+        vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
 
-        self.vote_callLater = reactor.callLater(delay - config.dev.vote_x_seconds_before_next_block,
+        self.vote_callLater = reactor.callLater(vote_delay,
                                                 self.create_vote_tx,
                                                 blocknumber=blocknumber-1)
 
