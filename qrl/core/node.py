@@ -515,12 +515,15 @@ class POS:
 
         vote.sign(signing_xmss)
 
-        tx_state = self.buffered_chain.get_stxn_state(blocknumber + 1, vote.addr_from)
-        stake_validators = self.buffered_chain.get_stake_validators_tracker(blocknumber)
+        # FIXME: Temporary fix, need to add ST txn into Genesis
+        if blocknumber > 1:
+            tx_state = self.buffered_chain.get_stxn_state(blocknumber + 1, vote.addr_from)
 
-        if not (vote.validate() and vote.validate_extended(tx_state, stake_validators.sv_dict)):
-            logger.warning('Create Vote Txn failed due to validation failure')
-            return
+            stake_validators_tracker = self.buffered_chain.get_stake_validators_tracker(blocknumber)
+
+            if not (vote.validate() and vote.validate_extended(tx_state, stake_validators_tracker.sv_dict)):
+                logger.warning('Create Vote Txn failed due to validation failure')
+                return
 
         self.buffered_chain.set_voted(blocknumber)
         
