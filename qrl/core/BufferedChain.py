@@ -461,6 +461,10 @@ class BufferedChain:
 
         return True
 
+    def remove_last_buffer_block(self):
+        last_block_number = self.height
+        self._remove_blocks(last_block_number)
+
     def _remove_blocks(self, starting_blocknumber: int):
         if starting_blocknumber not in self.blocks:
             return

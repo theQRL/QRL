@@ -520,9 +520,12 @@ class P2PProtocol(Protocol):
                 logger.warning('Did not match %s %s', self.last_requested_blocknum, self.conn_identity)
                 return
 
+            self.last_requested_blocknum = None
+
             if blocknumber > self.factory.buffered_chain.height:
-                if not self.factory.buffered_chain._add_block_mainchain(block):
+                if not self.factory.buffered_chain.add_block(block):
                     logger.warning('PB failed to add block to mainchain')
+                    self.factory.buffered_chain.remove_last_buffer_block()
                     return
 
             try:
@@ -625,7 +628,7 @@ class P2PProtocol(Protocol):
             if idx > self.factory.buffered_chain.height:
                 logger.info('FB for a blocknumber is greater than the local chain length..')
                 return
-            logger.info(' Send for blocmnumber #%s to %s', idx, self.conn_identity)
+            logger.info(' Send for blocknumber #%s to %s', idx, self.conn_identity)
         return
 
     def PO(self, data):

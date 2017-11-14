@@ -327,7 +327,7 @@ class POS:
 
         self.update_node_state(ESyncState.syncing)
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
-        self.randomize_block_fetch(self.buffered_chain.height + 1)
+        self.randomize_block_fetch()
 
     def pre_block_logic(self, block: Block) -> bool:
         # FIXME: Ensure that the chain is in memory
@@ -594,8 +594,8 @@ class POS:
 
         return True
 
-    def randomize_block_fetch(self, blocknumber):
-        if self.sync_state.state != ESyncState.syncing or blocknumber <= self.buffered_chain.height:
+    def randomize_block_fetch(self):
+        if self.sync_state.state != ESyncState.syncing:
             return
 
         if len(self.p2pFactory.synced_peers) == 0:
@@ -603,10 +603,10 @@ class POS:
             self.update_node_state(ESyncState.unsynced)
             return
 
-        reactor.download_monitor = reactor.callLater(20,
-                                                     self.randomize_block_fetch, blocknumber)
+        reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
 
         random_peer = random.sample(self.p2pFactory.synced_peers, 1)[0]
+        blocknumber = self.buffered_chain.height + 1
         random_peer.fetch_block_n(blocknumber)
 
     def blockheight_map(self):
