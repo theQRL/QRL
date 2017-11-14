@@ -592,42 +592,37 @@ class P2PProtocol(Protocol):
         Check Blockheight
         :return:
         """
-        data = qrl_pb2.BlockMetaData()
-
+        block_metadata = qrl_pb2.BlockMetaData()
         try:
-            Parse(raw_data, data)
+            Parse(raw_data, block_metadata)
         except Exception as e:  # Disconnect peers not following protocol
             logger.debug('Disconnected peer %s not following protocol in MR %s', self.conn_identity, e)
             self.transport.loseConnection()
 
-        block_number = data.block_number
-        headerhash = data.hash_header
-
         tmp = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
-        self.factory.peers_blockheight[tmp] = data.block_number
+        self.factory.peers_blockheight[tmp] = block_metadata.block_number
+        self.blockheight = block_metadata.block_number
 
-        self.blockheight = block_number
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
-                    self.transport.getPeer().host, block_number,
-                    self.factory.height, str(time.time()))
+                    self.transport.getPeer().host,
+                    block_metadata.block_number,
+                    self.factory.height,
+                    str(time.time()))
 
         if self.factory.sync_state.state == ESyncState.syncing:
             return
 
-        if block_number == self.factory.height:
-            # if self.factory.buffered_chain.chein.blockchain[block_number].headerhash != headerhash:
-            if self.factory.buffered_chain.get_block(block_number).headerhash != headerhash:
+        if block_metadata.block_number == self.factory.height:
+            if self.factory.buffered_chain.get_block(block_metadata.block_number).headerhash != block_metadata.hash_header:
                 logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
-
                 # initiate fork recovery and protection code here..
                 # call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
                 # again need to think this one through in detail..
                 return
 
-        if block_number > self.factory.height:
+        if block_metadata.block_number > self.factory.height:
             return
 
-        # FIXME: Avoid +1/-1, assign a them to make things clear
         if self.factory.buffered_chain.height == 0 and self.factory.genesis == 0:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
             self.factory.genesis = 1
