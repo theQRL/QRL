@@ -209,7 +209,7 @@ class BufferedChain:
                 return
 
             if vote.blocknumber in self._vote_tracker:
-                if self._vote_tracker[vote.vote.blocknumber].is_already_voted(vote):
+                if self._vote_tracker[vote.blocknumber].is_already_voted(vote):
                     return
 
             tx_state = self.get_stxn_state(blocknumber=self.height, addr=vote.addr_from)
