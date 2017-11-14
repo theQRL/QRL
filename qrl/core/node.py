@@ -105,32 +105,6 @@ class POS:
 
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def peers_blockheight(self):
-        if self.sync_state.state == ESyncState.syncing:
-            return
-
-        block_height_counter = Counter()
-
-        for peer in self.p2pFactory.peers:
-            block_height_counter[peer.block_height] += 1
-
-        blocknumber = block_height_counter.most_common(1)
-        if not blocknumber:
-            return  # TODO : Re-Schedule with delay
-
-        blocknumber = blocknumber[0][0]
-
-        if blocknumber > self.buffered_chain.height:
-            # pending_blocks['target'] = blocknumber
-            logger.info('Calling downloader from peers_blockheight due to no POS CYCLE %s', blocknumber)
-            logger.info('Download block from %s to %s', self.buffered_chain.height + 1, blocknumber)
-            self.last_pb_time = time.time()
-            self.update_node_state(ESyncState.syncing)
-            self.randomize_block_fetch(self.buffered_chain.height + 1)
-        return
-
-    # pos functions. an asynchronous loop.
-
     # first block 1 is created with the stake list for epoch 0 decided from circulated st transactions
 
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
