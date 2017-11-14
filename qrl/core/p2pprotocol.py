@@ -123,8 +123,9 @@ class P2PProtocol(Protocol):
             logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
             return
 
-        if mr_data.type == 'ST' and self.factory.buffered_chain.height > 1 and self.factory.sync_state.state != ESyncState.synced:
-            return
+        if mr_data.type == 'ST' or mr_data.type == 'VT':
+            if self.factory.buffered_chain.height > 1 and self.factory.sync_state.state != ESyncState.synced:
+                return
 
         if self.factory.master_mr.contains(msg_hash, mr_data.type):
             return
