@@ -55,8 +55,6 @@ class POS:
         self.last_pb_time = 0
         self.next_header_hash = None
         self.next_block_number = None
-        self.fmbh_allowed_peers = {}
-        self.fmbh_blockhash_peers = {}
 
         self.blockheight_map = []
 
@@ -293,25 +291,6 @@ class POS:
         block_obj = self.buffered_chain.create_stake_block(reveal_hash, last_block_number)
         return block_obj
 
-    def filter_reveal_one_two(self, blocknumber=None):
-        if not blocknumber:
-            blocknumber = self.buffered_chain._chain.blockchain[-1].block_number
-
-        self.buffered_chain.stake_reveal_one = [s for s in self.buffered_chain.stake_reveal_one if s[2] > blocknumber]
-
-    # TODO: Incomplete fn, use to select the maximum blockheight by consensus
-    def select_blockheight_by_consensus(self):
-        block_height_counter = Counter()
-        # for identity in self.fmbh_allowed_peers:
-        #    block_height_counter[s[2]] += 1
-        target_block_height = block_height_counter.most_common(1)
-
-        if len(target_block_height) == 0:
-            return None
-
-        last_selected_height = target_block_height[0][0]
-        return last_selected_height
-
     def restart_unsynced_logic(self, delay=0):
         try:
             reactor.unsynced_logic.cancel()
@@ -330,12 +309,7 @@ class POS:
         5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
         '''
         if self.sync_state.state != ESyncState.synced:
-            self.fmbh_blockhash_peers = {}
-            self.fmbh_allowed_peers = {}
-
-            for peer in self.p2pFactory.peer_connections:
-                self.fmbh_allowed_peers[peer.conn_identity] = None
-                peer.fetch_FMBH()
+            self. p2pFactory.get_synced_state()
 
             reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
@@ -345,44 +319,12 @@ class POS:
         if self.sync_state.state == ESyncState.synced:
             return
         logger.info('Checking Download..')
-        '''
-        global fmbh_blockhash_peers
-        max_height = None
-        selected_blockhash = None
-        for blockheaderhash in fmbh_blockhash_peers:
-            if fmbh_blockhash_peers[blockheaderhash]['blocknumber']>max_height:
-                max_height = fmbh_blockhash_peers[blockheaderhash]['blocknumber']
-                selected_blockhash = blockheaderhash
-        for peer in fmbh_blockhash_peers[selected_blockhash]['peers']:
-            f.target_peers = {}
-            f.target_peers[peer.conn_identity] = peer
-        
-        if max_height == None or max_height<=chain.height():
-            height().update(NState.synced)
-            return
-        
-        height().update(NState.syncing)
-        pending_blocks['start_block'] = chain.blockchain[-1].blocknumber
-        pending_blocks['target'] = fmbh_blockhash_peers[selected_blockhash]['blocknumber']
-        pending_blocks['headerhash'] = selected_blockhash
-        randomize_block_fetch(chain.height() + 1)
-        '''
-        tmp_max = -1
-        max_headerhash = None
-        for headerhash in self.fmbh_blockhash_peers:
-            if self.fmbh_blockhash_peers[headerhash]['blocknumber'] > self.buffered_chain.height:
-                if len(self.fmbh_blockhash_peers[headerhash]['peers']) > tmp_max:
-                    tmp_max = len(self.fmbh_blockhash_peers[headerhash]['peers'])
-                    max_headerhash = headerhash
 
-        # Adding all peers
-        # TODO only trusted peer
-        # for peer in self.p2pFactory.peers:
-        if not max_headerhash:
-            logger.info('No peers responded FMBH request')
+        if not self.p2pFactory.sync_state:
+            logger.warning('No connected peers in synced state. Retrying...')
+            self.update_node_state(ESyncState.unsynced)
             return
-        for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
-            self.p2pFactory.target_peers[peer.conn_identity] = peer
+
         self.update_node_state(ESyncState.syncing)
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
         self.randomize_block_fetch(self.buffered_chain.height + 1)
@@ -656,14 +598,15 @@ class POS:
         if self.sync_state.state != ESyncState.syncing or blocknumber <= self.buffered_chain.height:
             return
 
-        if len(list(self.p2pFactory.target_peers.keys())) == 0:
-            logger.info(' No target peers found.. stopping download')
+        if len(self.p2pFactory.synced_peers) == 0:
+            logger.warning('No connected peers in synced state. Retrying...')
+            self.update_node_state(ESyncState.unsynced)
             return
 
         reactor.download_monitor = reactor.callLater(20,
                                                      self.randomize_block_fetch, blocknumber)
 
-        random_peer = self.p2pFactory.target_peers[random.choice(list(self.p2pFactory.target_peers.keys()))]
+        random_peer = random.sample(self.p2pFactory.synced_peers, 1)[0]
         random_peer.fetch_block_n(blocknumber)
 
     def blockheight_map(self):
