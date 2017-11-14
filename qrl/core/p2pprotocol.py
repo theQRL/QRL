@@ -721,9 +721,9 @@ class P2PProtocol(Protocol):
 
     def synced_state(self, state=None):
         if not state:
-            if not self.factory.pos.sync_state == ESyncState.synced:
+            if not self.factory.pos.sync_state.state == ESyncState.synced:
                 return
-            self.transport.write(self.wrap_message('SYNC', b'Synced'))
+            self.transport.write(self.wrap_message('SYNC', 'Synced'))
             if self in self.factory.synced_peers:
                 self.factory.synced_peers.remove(self)
         else:
