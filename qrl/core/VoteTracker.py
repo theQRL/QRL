@@ -41,6 +41,8 @@ class VoteTracker:
         if vote.addr_from in self.voted_stake_validators:
             return True
 
+        return False
+
     def get_consensus(self) -> Optional[VoteMetadata]:
         if not self._consensus_headerhash:
             return None
