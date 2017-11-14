@@ -77,7 +77,7 @@ class QRLNode:
         block_one = self._buffered_chain.get_block(1)
         network_uptime = 0
         if block_one:
-            network_uptime = time.time() - block_one.timestamp
+            network_uptime = int(time.time() - block_one.timestamp)
         return network_uptime
 
     @property
