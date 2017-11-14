@@ -448,18 +448,19 @@ class POS:
                                                self.post_block_logic,
                                                blocknumber=blocknumber)
         should_vote = False
-        if blocknumber == 1:
-            genesis_block = self.buffered_chain.get_block(0)
-            for genesisBalance in genesis_block.genesis_balance:
-                if genesisBalance.address.encode() == self.buffered_chain.staking_address:
-                    should_vote = True
-                    break
-        else:
+        if blocknumber > 1:
             stake_list = self.buffered_chain.stake_list_get(blocknumber - 1)
             if self.buffered_chain.staking_address in stake_list:
                 stake_validator = stake_list[self.buffered_chain.staking_address]
                 if stake_validator.is_active and not stake_validator.is_banned:
                     should_vote = True
+        else:
+            genesis_block = self.buffered_chain.get_block(0)
+            for genesisBalance in genesis_block.genesis_balance:
+                if genesisBalance.address.encode() == self.buffered_chain.staking_address:
+                    should_vote = True
+                    break
+
 
         if should_vote:
             vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
