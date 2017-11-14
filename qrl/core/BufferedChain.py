@@ -1224,7 +1224,7 @@ class BufferedChain:
     def get_stake_validators_tracker(self, block_idx: int) -> Optional[StakeValidatorsTracker]:
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if block_idx - 1 == self._chain.height or block_idx <= 1:
+            if block_idx - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_tracker
 
             return self.blocks[block_idx - 1].stake_validators_tracker

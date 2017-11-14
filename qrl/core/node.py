@@ -170,9 +170,10 @@ class POS:
         genesis_block = self.buffered_chain.get_block(0)
         total_genesis_stake_amount = 0
         for tx in self.buffered_chain.tx_pool.transaction_pool:
+            tx.pbdata.nonce = 1
             if tx.subtype == TX_SUBTYPE_STAKE:
                 for genesisBalance in genesis_block.genesis_balance:
-                    if tx.txfrom == genesisBalance.address.encode():
+                    if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber==1:
                         tmp_list.append([tx.txfrom, tx.hash, 0, genesisBalance.balance, tx.slave_public_key])
                         seed_list.append(tx.hash)
                         # FIXME: This goes to stake validator list without verification, Security Risk
@@ -322,7 +323,7 @@ class POS:
                 if not self.buffered_chain.add_block(block):
                     return False
             elif block.block_number == 1:
-                if not self.buffered_chain._add_block_mainchain(block):
+                if not self.buffered_chain.add_block(block):
                     return False
             self.update_node_state(ESyncState.synced)
         else:
