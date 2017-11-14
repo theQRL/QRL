@@ -210,35 +210,9 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(vote.get_message_hash(), self):
             return
 
-        if len(self.factory.buffered_chain._chain.blockchain) == 1 and \
-                        vote.blocknumber != self.factory.buffered_chain.height:
-            return
+        if self.factory.buffered_chain.add_vote(vote):
+            self.factory.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
 
-        height = self.factory.buffered_chain.height
-        stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
-
-        # FIXME: Temporary fix, need to add ST txn into genesis block
-        if height > 1:
-            if vote.addr_from not in stake_validators_tracker.sv_dict:
-                logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
-                return
-
-            for t in self.factory.buffered_chain.tx_pool.vote_pool:
-                if vote.get_message_hash() == t.get_message_hash():
-                    return
-
-            tx_state = self.factory.buffered_chain.get_stxn_state(
-                blocknumber=self.factory.buffered_chain.height,
-                addr=vote.addr_from)
-
-            if vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict):
-                self.factory.buffered_chain.add_vote(vote)
-            else:
-                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.hash)))
-                return
-        else:
-            self.factory.buffered_chain.add_vote(vote)
-        self.factory.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
         return
 
     def ST(self, data):
@@ -750,10 +724,10 @@ class P2PProtocol(Protocol):
             if not self.factory.pos.sync_state == ESyncState.synced:
                 return
             self.transport.write(self.wrap_message('SYNC', b'Synced'))
-            if self in self.factory.sync_state:
-                self.factory.sync_state.remove(self)
+            if self in self.factory.synced_peers:
+                self.factory.synced_peers.remove(self)
         else:
-            self.factory.sync_state.add(self)
+            self.factory.synced_peers.add(self)
 
     def get_m_blockheight_from_connection(self):
         """
@@ -1068,8 +1042,8 @@ class P2PProtocol(Protocol):
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
 
-            if self in self.factory.sync_state:
-                self.factory.sync_state.remove(self)
+            if self in self.factory.synced_peers:
+                self.factory.synced_peers.remove(self)
         except Exception:
             pass
 
