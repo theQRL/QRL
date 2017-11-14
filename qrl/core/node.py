@@ -55,8 +55,6 @@ class POS:
         self.last_pb_time = 0
         self.next_header_hash = None
         self.next_block_number = None
-        self.fmbh_allowed_peers = {}
-        self.fmbh_blockhash_peers = {}
 
         self.blockheight_map = []
 
@@ -302,8 +300,7 @@ class POS:
     # TODO: Incomplete fn, use to select the maximum blockheight by consensus
     def select_blockheight_by_consensus(self):
         block_height_counter = Counter()
-        # for identity in self.fmbh_allowed_peers:
-        #    block_height_counter[s[2]] += 1
+
         target_block_height = block_height_counter.most_common(1)
 
         if len(target_block_height) == 0:
@@ -340,41 +337,7 @@ class POS:
         if self.sync_state.state == ESyncState.synced:
             return
         logger.info('Checking Download..')
-        '''
-        global fmbh_blockhash_peers
-        max_height = None
-        selected_blockhash = None
-        for blockheaderhash in fmbh_blockhash_peers:
-            if fmbh_blockhash_peers[blockheaderhash]['blocknumber']>max_height:
-                max_height = fmbh_blockhash_peers[blockheaderhash]['blocknumber']
-                selected_blockhash = blockheaderhash
-        for peer in fmbh_blockhash_peers[selected_blockhash]['peers']:
-            f.target_peers = {}
-            f.target_peers[peer.conn_identity] = peer
-        
-        if max_height == None or max_height<=chain.height():
-            height().update(NState.synced)
-            return
-        
-        height().update(NState.syncing)
-        pending_blocks['start_block'] = chain.blockchain[-1].blocknumber
-        pending_blocks['target'] = fmbh_blockhash_peers[selected_blockhash]['blocknumber']
-        pending_blocks['headerhash'] = selected_blockhash
-        randomize_block_fetch(chain.height() + 1)
-        '''
-        '''
-        tmp_max = -1
-        max_headerhash = None
-        for headerhash in self.fmbh_blockhash_peers:
-            if self.fmbh_blockhash_peers[headerhash]['blocknumber'] > self.buffered_chain.height:
-                if len(self.fmbh_blockhash_peers[headerhash]['peers']) > tmp_max:
-                    tmp_max = len(self.fmbh_blockhash_peers[headerhash]['peers'])
-                    max_headerhash = headerhash
 
-        # Adding all peers
-        # TODO only trusted peer
-        # for peer in self.p2pFactory.peers:
-        '''
         if not self.p2pFactory.sync_state:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)

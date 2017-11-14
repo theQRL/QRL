@@ -41,8 +41,6 @@ class P2PProtocol(Protocol):
             'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
             'SFM': self.SFM,            # RECV=>SEND        Send Full Message
 
-            'FMBH': self.FMBH,          # Fetch maximum block height
-            'PMBH': self.PMBH,          # Push Maximum Block Height
             'MB': self.MB,              # SEND      Maximum Block Height
             'BM': self.BM,              # SEND/RECV Block Height Map
             'CB': self.CB,              # RECV      Check Block Height
@@ -539,42 +537,6 @@ class P2PProtocol(Protocol):
             logger.exception(e)
         return
 
-    def FMBH(self):  # Fetch Maximum Blockheight and Headerhash
-        """
-        Fetch Maximum Blockheight and HeaderHash
-        Serves the fetch request for maximum blockheight & headerhash
-        Sends the current blockheight and the headerhash of the 
-        last block in mainchain.
-        :return:
-        """
-        if self.factory.pos.sync_state.state != ESyncState.synced:
-            return
-        logger.info('<<<Sending blockheight and headerhash to: %s %s', self.transport.getPeer().host, str(time.time()))
-        data = qrl_pb2.BlockMetaData()
-        data.hash_header = self.factory.buffered_chain._chain.blockchain[-1].headerhash
-        data.block_number = self.factory.buffered_chain._chain.blockchain[-1].block_number
-
-        self.transport.write(self.wrap_message('PMBH', MessageToJson(data)))
-        return
-
-    def PMBH(self, raw_data):  # Push Maximum Blockheight and Headerhash
-        """
-        Push Maximum Blockheight and Headerhash
-        Function processes, received maximum blockheight and headerhash.
-        :return:
-        """
-        data = qrl_pb2.BlockMetaData()
-        Parse(raw_data, data)
-
-        tmp = data.hash_header
-
-        if self.conn_identity in self.factory.pos.fmbh_allowed_peers:
-            self.factory.pos.fmbh_allowed_peers[self.conn_identity] = data
-            if tmp not in self.factory.pos.fmbh_blockhash_peers:
-                self.factory.pos.fmbh_blockhash_peers[tmp] = {'blocknumber': data.block_number,
-                                                              'peers': []}
-            self.factory.pos.fmbh_blockhash_peers[tmp]['peers'].append(self)
-
     def MB(self):  # we send with just prefix as request..with CB number and blockhash as answer..
         """
         Maximum Blockheight
@@ -858,15 +820,6 @@ class P2PProtocol(Protocol):
         self.last_requested_blocknum = n
         logger.info('<<<Fetching block: %s from %s', n, self.conn_identity)
         self.transport.write(self.wrap_message('FB', str(n)))
-
-    def fetch_FMBH(self):
-        """
-        Fetch Maximum Block Height
-        Sends request for the maximum blockheight.
-        :return:
-        """
-        logger.info('<<<Fetching FMBH from : %s', self.conn_identity)
-        self.transport.write(self.wrap_message('FMBH'))
 
     MSG_INITIATOR = bytearray(b'\xff\x00\x00')
     MSG_TERMINATOR = bytearray(b'\x00\x00\xff')
