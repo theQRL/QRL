@@ -105,32 +105,6 @@ class POS:
 
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def peers_blockheight(self):
-        if self.sync_state.state == ESyncState.syncing:
-            return
-
-        block_height_counter = Counter()
-
-        for peer in self.p2pFactory.peers:
-            block_height_counter[peer.block_height] += 1
-
-        blocknumber = block_height_counter.most_common(1)
-        if not blocknumber:
-            return  # TODO : Re-Schedule with delay
-
-        blocknumber = blocknumber[0][0]
-
-        if blocknumber > self.buffered_chain.height:
-            # pending_blocks['target'] = blocknumber
-            logger.info('Calling downloader from peers_blockheight due to no POS CYCLE %s', blocknumber)
-            logger.info('Download block from %s to %s', self.buffered_chain.height + 1, blocknumber)
-            self.last_pb_time = time.time()
-            self.update_node_state(ESyncState.syncing)
-            self.randomize_block_fetch(self.buffered_chain.height + 1)
-        return
-
-    # pos functions. an asynchronous loop.
-
     # first block 1 is created with the stake list for epoch 0 decided from circulated st transactions
 
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
@@ -327,7 +301,7 @@ class POS:
 
         self.update_node_state(ESyncState.syncing)
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
-        self.randomize_block_fetch(self.buffered_chain.height + 1)
+        self.randomize_block_fetch()
 
     def pre_block_logic(self, block: Block) -> bool:
         # FIXME: Ensure that the chain is in memory
@@ -594,8 +568,8 @@ class POS:
 
         return True
 
-    def randomize_block_fetch(self, blocknumber):
-        if self.sync_state.state != ESyncState.syncing or blocknumber <= self.buffered_chain.height:
+    def randomize_block_fetch(self):
+        if self.sync_state.state != ESyncState.syncing:
             return
 
         if len(self.p2pFactory.synced_peers) == 0:
@@ -603,10 +577,10 @@ class POS:
             self.update_node_state(ESyncState.unsynced)
             return
 
-        reactor.download_monitor = reactor.callLater(20,
-                                                     self.randomize_block_fetch, blocknumber)
+        reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
 
         random_peer = random.sample(self.p2pFactory.synced_peers, 1)[0]
+        blocknumber = self.buffered_chain.height + 1
         random_peer.fetch_block_n(blocknumber)
 
     def blockheight_map(self):
