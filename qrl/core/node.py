@@ -291,24 +291,6 @@ class POS:
         block_obj = self.buffered_chain.create_stake_block(reveal_hash, last_block_number)
         return block_obj
 
-    def filter_reveal_one_two(self, blocknumber=None):
-        if not blocknumber:
-            blocknumber = self.buffered_chain._chain.blockchain[-1].block_number
-
-        self.buffered_chain.stake_reveal_one = [s for s in self.buffered_chain.stake_reveal_one if s[2] > blocknumber]
-
-    # TODO: Incomplete fn, use to select the maximum blockheight by consensus
-    def select_blockheight_by_consensus(self):
-        block_height_counter = Counter()
-
-        target_block_height = block_height_counter.most_common(1)
-
-        if len(target_block_height) == 0:
-            return None
-
-        last_selected_height = target_block_height[0][0]
-        return last_selected_height
-
     def restart_unsynced_logic(self, delay=0):
         try:
             reactor.unsynced_logic.cancel()

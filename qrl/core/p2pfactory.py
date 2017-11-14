@@ -133,13 +133,6 @@ class P2PFactory(ServerFactory):
             logger.error('select_best_bkmr Unexpected Exception')
             logger.error('%s', e)
 
-
-    def get_block_n(self, n):
-        logger.info('<<<Requested block: %s from peers.', n)
-        for peer in self.peer_connections:
-            peer.transport.write(self.protocol.wrap_message('BN', str(n)))
-        return
-
     ##############################################
     # POS
     def send_st_to_peers(self, st):
