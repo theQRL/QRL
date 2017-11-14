@@ -81,14 +81,16 @@ class POS:
         except Exception:  # No need to log this exception
             pass
 
-    def restart_monitor_bk(self, delay=60):
+    def restart_monitor_bk(self, delay: int):
         self.stop_monitor_bk()
         reactor.monitor_bk = reactor.callLater(delay, self.monitor_bk)
 
     def monitor_bk(self):
+        # FIXME: Too complex.. too many nested ifs
         time_diff = time.time() - self.last_pos_cycle
-        if (
-                self.sync_state.state == ESyncState.synced or self.sync_state.state == ESyncState.unsynced) and 90 < time_diff:
+        if (self.sync_state.state == ESyncState.synced or self.sync_state.state == ESyncState.unsynced) and \
+                90 < time_diff:
+
             if self.sync_state.state == ESyncState.synced:
                 self.stop_post_block_logic()
                 self.update_node_state(ESyncState.unsynced)
@@ -102,6 +104,7 @@ class POS:
             self.stop_post_block_logic()
             self.update_node_state(ESyncState.unsynced)
             self.epoch_diff = -1
+
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
     def peers_blockheight(self):
@@ -215,7 +218,7 @@ class POS:
                                                                          balance=staker[3],
                                                                          seed=self.buffered_chain.epoch_seed))
 
-        #self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
+        # self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
 
         logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain.stake_list),
                     config.dev.minimum_required_stakers)
@@ -309,15 +312,6 @@ class POS:
         last_selected_height = target_block_height[0][0]
         return last_selected_height
 
-    '''
-    Unsynced Logic
-    1.	Request for maximum blockheight and passes bock number X
-    2.	Peers response chain height with headerhash and the headerhash of block number X
-    3.	Unsynced node, selects most common chain height, matches the headerhash of block number X
-    4.	If headerhash of block number X doesn't match, change state to Forked
-    5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
-    '''
-
     def restart_unsynced_logic(self, delay=0):
         try:
             reactor.unsynced_logic.cancel()
@@ -327,15 +321,23 @@ class POS:
         reactor.unsynced_logic = reactor.callLater(delay, self.unsynced_logic)
 
     def unsynced_logic(self):
-        if self.sync_state.state == ESyncState.synced:
-            return
+        '''
+        Unsynced Logic
+        1.	Request for maximum blockheight and passes bock number X
+        2.	Peers response chain height with headerhash and the headerhash of block number X
+        3.	Unsynced node, selects most common chain height, matches the headerhash of block number X
+        4.	If headerhash of block number X doesn't match, change state to Forked
+        5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
+        '''
+        if self.sync_state.state != ESyncState.synced:
+            self.fmbh_blockhash_peers = {}
+            self.fmbh_allowed_peers = {}
 
-        self.fmbh_blockhash_peers = {}
-        self.fmbh_allowed_peers = {}
-        for peer in self.p2pFactory.peer_connections:
-            self.fmbh_allowed_peers[peer.conn_identity] = None
-            peer.fetch_FMBH()
-        reactor.unsynced_logic = reactor.callLater(20, self.start_download)
+            for peer in self.p2pFactory.peer_connections:
+                self.fmbh_allowed_peers[peer.conn_identity] = None
+                peer.fetch_FMBH()
+
+            reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
     def start_download(self):
         # add peers and their identity to requested list
@@ -543,7 +545,7 @@ class POS:
                 return
 
         self.buffered_chain.set_voted(blocknumber)
-        
+
         self.buffered_chain.add_vote(vote)
 
         self.p2pFactory.send_vote_to_peers(vote)

@@ -14,7 +14,7 @@ from qrl.core import config, logger
 from qrl.core.Block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import DuplicateTransaction, Transaction, CoinBase
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.generated import qrl_pb2
 from queue import PriorityQueue
@@ -67,17 +67,13 @@ class P2PProtocol(Protocol):
         self.conn_identity = None
         self.blockheight = None
         self.version = ''
-        self.blocknumber_headerhash = {}
         self.last_requested_blocknum = None
-        self.fetch_tried = 0
-        self.fork_timestamp = 0
         self.disconnect_callLater = None
         self.ping_callLater = None
-
         self.ping_list = []
         self.prev_txpool = [None] * 1000
 
-    def parse_msg(self, data):
+    def _parse_msg(self, data):
         try:
             jdata = json.loads(data.decode())
         except Exception as e:
@@ -745,6 +741,7 @@ class P2PProtocol(Protocol):
 
                 if data['genesis_prev_headerhash'] == config.dev.genesis_prev_headerhash:
                     return
+
                 logger.warning('%s genesis_prev_headerhash mismatch', self.conn_identity)
                 logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
                 logger.warning('Found: %s', data['genesis_prev_headerhash'])
@@ -827,7 +824,6 @@ class P2PProtocol(Protocol):
         """
         logger.info('<<<Getting version %s', self.transport.getPeer().host)
         self.transport.write(self.wrap_message('VE'))
-        return
 
     def send_peers(self):
         """
@@ -840,7 +836,6 @@ class P2PProtocol(Protocol):
         for peer in self.factory.peer_connections:
             peers_list.append(peer.transport.getPeer().host)
         self.transport.write(self.wrap_message('PL', json.dumps(peers_list)))
-        return
 
     def fetch_block_n(self, n):
         """
@@ -848,13 +843,9 @@ class P2PProtocol(Protocol):
         Sends request for the block number n.
         :return:
         """
-        if self.last_requested_blocknum != n:
-            self.fetch_tried = 0
-        self.fetch_tried += 1  # TODO: remove from target_peers if tried is greater than x
         self.last_requested_blocknum = n
         logger.info('<<<Fetching block: %s from %s', n, self.conn_identity)
         self.transport.write(self.wrap_message('FB', str(n)))
-        return
 
     def fetch_FMBH(self):
         """
@@ -909,7 +900,7 @@ class P2PProtocol(Protocol):
         else:
             self.buffer = b''  # Clean buffer completely
 
-    def parse_buffer(self):
+    def _parse_buffer(self):
         # FIXME: This parsing/wire protocol needs to be replaced
         """
         :return:
@@ -917,7 +908,7 @@ class P2PProtocol(Protocol):
 
         >>> p=P2PProtocol()
         >>> p.buffer = bytes(hstr2bin("ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff"))
-        >>> found_message = p.parse_buffer()
+        >>> found_message = p._parse_buffer()
         >>> p.messages
         [b'{"data": 12345, "type": "TESTKEY_1234"}']
         """
@@ -1029,15 +1020,17 @@ class P2PProtocol(Protocol):
         self.buffer += data
 
         for x in range(50):
-            if not self.parse_buffer():
+            if not self._parse_buffer():
                 break
-            else:
-                for msg in self.messages:
-                    self.parse_msg(msg)
-                del self.messages[:]
+
+            for msg in self.messages:
+                self._parse_msg(msg)
+
+            del self.messages[:]
 
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
+
         self.conn_identity = "{}:{}".format(peerHost, peerPort)
 
         # FIXME: (For AWS) This could be problematic for other users
@@ -1079,9 +1072,11 @@ class P2PProtocol(Protocol):
                     self.transport.getPeer().host,
                     str(self.transport.getPeer().port))
 
+
         self.get_m_blockheight_from_connection()
         self.send_peers()
         self.get_version()
+
         self.disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
         self.ping_callLater = reactor.callLater(1, self.PING)
 
@@ -1104,6 +1099,7 @@ class P2PProtocol(Protocol):
 
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
+
         except Exception:
             pass
 
