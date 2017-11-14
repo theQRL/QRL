@@ -15,8 +15,6 @@ from qrl.core.Block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction, CoinBase
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE
-from qrl.core.formulas import calc_seed
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.generated import qrl_pb2
 from queue import PriorityQueue
@@ -499,25 +497,6 @@ class P2PProtocol(Protocol):
             self.last_requested_blocknum = None
 
             if blocknumber > self.factory.buffered_chain.height:
-                if block.block_number == 1:
-                    tmp_list = []
-                    seed_list = []
-                    genesis_block = self.factory.buffered_chain.get_block(0)
-                    total_genesis_stake_amount = 0
-                    for raw_tx in block.transactions:
-                        tx = Transaction.from_pbdata(raw_tx)
-                        if tx.subtype == TX_SUBTYPE_STAKE:
-                            for genesisBalance in genesis_block.genesis_balance:
-                                if tx.txfrom == genesisBalance.address.encode():
-                                    tmp_list.append(
-                                        [tx.txfrom, tx.hash, 0, genesisBalance.balance, tx.slave_public_key])
-                                    seed_list.append(tx.hash)
-                                    # FIXME: This goes to stake validator list without verification, Security Risk
-                                    self.factory.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(
-                                        genesisBalance.balance, tx, 1)
-                                    total_genesis_stake_amount += genesisBalance.balance
-
-                    self.factory.buffered_chain.epoch_seed = calc_seed(seed_list)
                 if not self.factory.buffered_chain.add_block(block):
                     logger.warning('PB failed to add block to mainchain')
                     self.factory.buffered_chain.remove_last_buffer_block()
