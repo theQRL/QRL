@@ -15,20 +15,33 @@ class VoteTracker:
     def __init__(self):
         self._headerhash_voteMetadata = defaultdict(VoteMetadata)
         self._consensus_headerhash = None  # Keep track of the block headerhash having highest stake amount
+        self.voted_stake_validators = set()
 
     def add_vote(self, vote: Vote, stake_amount: float):
+        if self.is_already_voted(vote):
+            return
+
         self._headerhash_voteMetadata[vote.headerhash].add_vote(vote, stake_amount)
+        self.voted_stake_validators.add(vote.addr_from)
 
         if self._consensus_headerhash:
             if self._consensus_headerhash == vote.headerhash:
-                return
+                return True
 
             total_stake_amount = self._headerhash_voteMetadata[vote.headerhash].total_stake_amount
             consensus_total_stake_amount = self._headerhash_voteMetadata[self._consensus_headerhash].total_stake_amount
             if total_stake_amount < consensus_total_stake_amount:
-                return
+                return True
 
         self._consensus_headerhash = vote.headerhash
+
+        return True
+
+    def is_already_voted(self, vote):
+        if vote.addr_from in self.voted_stake_validators:
+            return True
+
+        return False
 
     def get_consensus(self) -> Optional[VoteMetadata]:
         if not self._consensus_headerhash:

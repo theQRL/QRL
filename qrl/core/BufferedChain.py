@@ -195,21 +195,43 @@ class BufferedChain:
         self.epoch = block.epoch
         return True
 
-    def add_vote(self, vote_txn: Vote):
-        if vote_txn.blocknumber not in self._vote_tracker:
-            self._vote_tracker[vote_txn.blocknumber] = VoteTracker()
+    def add_vote(self, vote: Vote):
+        if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
+            return
+
+        height = self.height
+        stake_validators_tracker = self.get_stake_validators_tracker(height)
+
+        # FIXME: Temporary fix, need to add ST txn into genesis block
+        if height > 1:
+            if vote.addr_from not in stake_validators_tracker.sv_dict:
+                logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
+                return
+
+            if vote.blocknumber in self._vote_tracker:
+                if self._vote_tracker[vote.vote.blocknumber].is_already_voted(vote):
+                    return
+
+            tx_state = self.get_stxn_state(blocknumber=self.height, addr=vote.addr_from)
+
+            if not (vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict)):
+                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
+                return
+
+        if vote.blocknumber not in self._vote_tracker:
+            self._vote_tracker[vote.blocknumber] = VoteTracker()
 
         #FIXME: Temporary fix, ST txn must be added into genesis
-        if vote_txn.blocknumber > 1:
-            stake_validators_tracker = self.get_stake_validators_tracker(vote_txn.blocknumber)
-            stake_balance = stake_validators_tracker.get_stake_balance(vote_txn.addr_from)
+        if vote.blocknumber > 1:
+            stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
+            stake_balance = stake_validators_tracker.get_stake_balance(vote.addr_from)
         else:
             genesis_block = self.get_block(0)
             for genesisBalance in genesis_block.genesis_balance:
-                if genesisBalance.address.encode() == vote_txn.addr_from:
+                if genesisBalance.address.encode() == vote.addr_from:
                     stake_balance = genesisBalance.balance
 
-        self._vote_tracker[vote_txn.blocknumber].add_vote(vote_txn, stake_balance)
+        return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
 
     def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
         if blocknumber not in self._vote_tracker:

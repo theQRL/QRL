@@ -295,7 +295,7 @@ class POS:
 
         logger.info('Checking Download..')
 
-        if not self.p2pFactory.sync_state:
+        if not self.p2pFactory.synced_peers:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)
             return
