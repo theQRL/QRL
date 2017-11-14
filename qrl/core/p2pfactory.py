@@ -69,7 +69,7 @@ class P2PFactory(ServerFactory):
     def get_synced_state(self):
         self.synced_peers = set()
         for peer in self.peer_connections:
-            peer.wrap_message('SYNC')
+            peer.transport.write(peer.wrap_message('SYNC'))
 
     def RFM(self, data):
         """
