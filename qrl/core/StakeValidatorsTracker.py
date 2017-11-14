@@ -33,7 +33,6 @@ class StakeValidatorsTracker:
 
         logger.debug("Adding %s", id(self.sv_dict[stake_txn.txfrom]))
 
-
     def _activate_sv(self, balance, stake_txn):
         sv = StakeValidator(balance, stake_txn)
         self.sv_dict[stake_txn.txfrom] = sv
