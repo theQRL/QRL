@@ -83,9 +83,11 @@ def start_legacy_services(buffered_chain: BufferedChain,
     reactor.listenTCP(9000, p2p_factory)
     reactor.listenTCP(8080, api_factory)
     pos.restart_monitor_bk(80)
+
     logger.info('Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"')
     p2p_factory.connect_peers()
     reactor.callLater(20, pos.unsynced_logic)
+
     reactor.run()
 
 

@@ -25,7 +25,6 @@ class ApiProtocol(Protocol):
             'ping',                             # Get peer latencies
             'latency',                          # Stake validator latencies (unify?)
             'richlist',                         # We need to maintain this in the DB and return only top addresses
-            'ip_geotag',                        # This could be done in the UI instead of the node
 
             'address',                          # API: GetAddressState
             'stats',                            # API: GetStats
@@ -329,19 +328,6 @@ class ApiProtocol(Protocol):
             return js_bk1
             #return js_bk1.to_json()
 
-    def ip_geotag(self, data=None):
-        # FIXME: This is obsolete. Needs to be redesigned/written in the new grpc implementation
-        logger.info('<<< API ip_geotag call')
-        self.factory.pos.p2pFactory.ip_geotag_peers()
-        ip = {'status': 'ok',
-              'ip_geotag': ''}     # FIXME: This is obsolete
-
-        # x = 0
-        # for i in self.factory.buffered_chain.ip_list:
-        #     ip['ip_geotag'][x] = i
-        #     x += 1
-
-        return json_print_telnet(ip)
 
     def empty(self, data=None):
         error = {

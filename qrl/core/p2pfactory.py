@@ -1,7 +1,9 @@
 # coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 import queue
 import time
-from collections import defaultdict
 
 from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import bin2hstr
@@ -9,43 +11,35 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import config, logger, ntp
+from qrl.core.BufferedChain import BufferedChain
+from qrl.core.Transaction import Vote
+from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
-from qrl.core.Transaction import Vote
-
 from qrl.generated import qrl_pb2
 
 
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
 
-    def __init__(self, buffered_chain, sync_state, node: QRLNode, pos=None):
+    def __init__(self,
+                 buffered_chain: BufferedChain,
+                 sync_state: SyncState,
+                 node: QRLNode):
+
         # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = None
         self.pos = None
         self.ntp = ntp
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
-        self.stake = config.user.enable_auto_staking  # default to mining off as the wallet functions are not that responsive at present with it enabled..
+        self.stake = config.user.enable_auto_staking
         self.peers_blockheight = {}
-        self.target_retry = defaultdict(int)
         self.target_peers = {}
-        self.fork_target_peers = {}
+
         self.connections = 0
-        self.buffer = ''
         self.sync = 0
-        self.partial_sync = [0, 0]
-        self.long_gap_block = 0
-        self.mining = 0
-        self.newblock = 0
-        self.exit = 0
         self.genesis = 0
-        self.missed_block = 0
-        self.requested = [0, 0]
-        self.ip_geotag = 1  # to be disabled in main release as reveals IP..
-        self.last_reveal_one = None
-        self.last_reveal_two = None
-        self.last_reveal_three = None
 
         self.peer_connections = []
 
@@ -181,11 +175,6 @@ class P2PFactory(ServerFactory):
 
     ##############################################
     # NETWORK
-    def ip_geotag_peers(self):
-        logger.info('<<<IP geotag broadcast')
-        for peer in self.peer_connections:
-            peer.transport.write(self.protocol.wrap_message('IP'))
-        return
 
     def ping_peers(self):
         logger.info('<<<Transmitting network PING')
