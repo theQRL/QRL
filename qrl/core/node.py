@@ -444,6 +444,9 @@ class POS:
     def create_vote_tx(self, blocknumber: int):
         block = self.buffered_chain.get_block(blocknumber)
         signing_xmss = self.buffered_chain.get_slave_xmss(blocknumber)
+        if not signing_xmss:
+            logger.warning('Skipped Voting: Slave XMSS none, XMSS POOL might still be generating slave_xmss')
+            return
 
         vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
                            blocknumber=blocknumber,
