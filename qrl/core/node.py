@@ -330,12 +330,7 @@ class POS:
         5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
         '''
         if self.sync_state.state != ESyncState.synced:
-            self.fmbh_blockhash_peers = {}
-            self.fmbh_allowed_peers = {}
-
-            for peer in self.p2pFactory.peer_connections:
-                self.fmbh_allowed_peers[peer.conn_identity] = None
-                peer.fetch_FMBH()
+            self. p2pFactory.get_synced_state()
 
             reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
@@ -367,6 +362,7 @@ class POS:
         pending_blocks['headerhash'] = selected_blockhash
         randomize_block_fetch(chain.height() + 1)
         '''
+        '''
         tmp_max = -1
         max_headerhash = None
         for headerhash in self.fmbh_blockhash_peers:
@@ -378,11 +374,12 @@ class POS:
         # Adding all peers
         # TODO only trusted peer
         # for peer in self.p2pFactory.peers:
-        if not max_headerhash:
-            logger.info('No peers responded FMBH request')
+        '''
+        if not self.p2pFactory.sync_state:
+            logger.warning('No connected peers in synced state. Retrying...')
+            self.update_node_state(ESyncState.unsynced)
             return
-        for peer in self.fmbh_blockhash_peers[max_headerhash]['peers']:
-            self.p2pFactory.target_peers[peer.conn_identity] = peer
+
         self.update_node_state(ESyncState.syncing)
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
         self.randomize_block_fetch(self.buffered_chain.height + 1)
@@ -656,14 +653,15 @@ class POS:
         if self.sync_state.state != ESyncState.syncing or blocknumber <= self.buffered_chain.height:
             return
 
-        if len(list(self.p2pFactory.target_peers.keys())) == 0:
-            logger.info(' No target peers found.. stopping download')
+        if len(self.p2pFactory.synced_peers) == 0:
+            logger.warning('No connected peers in synced state. Retrying...')
+            self.update_node_state(ESyncState.unsynced)
             return
 
         reactor.download_monitor = reactor.callLater(20,
                                                      self.randomize_block_fetch, blocknumber)
 
-        random_peer = self.p2pFactory.target_peers[random.choice(list(self.p2pFactory.target_peers.keys()))]
+        random_peer = random.sample(self.p2pFactory.synced_peers, 1)[0]
         random_peer.fetch_block_n(blocknumber)
 
     def blockheight_map(self):

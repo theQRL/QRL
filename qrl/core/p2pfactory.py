@@ -42,6 +42,7 @@ class P2PFactory(ServerFactory):
         self.genesis = 0
 
         self.peer_connections = []
+        self.synced_peers = set()
 
         self.node = node
 
@@ -63,6 +64,12 @@ class P2PFactory(ServerFactory):
     def setPOS(self, pos):
         self.pos = pos
         self.master_mr = self.pos.master_mr
+
+    # Request all peers to update their synced status
+    def get_synced_state(self):
+        self.sync_state = set()
+        for peer in self.peer_connections:
+            peer.wrap_message('SYNC')
 
     def RFM(self, data):
         """

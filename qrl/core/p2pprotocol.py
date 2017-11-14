@@ -60,6 +60,8 @@ class P2PProtocol(Protocol):
             ############################
             'TX': self.TX,  # RECV Transaction
             'VT': self.VT,  # Vote Txn
+
+            'SYNC': self.synced_state,  # Add into synced list, if the node replies
         }
 
         self.buffer = b''
@@ -778,6 +780,16 @@ class P2PProtocol(Protocol):
         self.factory.node.update_peer_addresses(peer_addresses)
         return
 
+    def synced_state(self, state=None):
+        if not state:
+            if not self.factory.pos.sync_state == ESyncState.synced:
+                return
+            self.transport.write(self.wrap_message('SYNC', b'Synced'))
+            if self in self.factory.sync_state:
+                self.factory.sync_state.remove(self)
+        else:
+            self.factory.sync_state.add(self)
+
     def get_m_blockheight_from_connection(self):
         """
         Get blockheight
@@ -1100,6 +1112,8 @@ class P2PProtocol(Protocol):
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
 
+            if self in self.factory.sync_state:
+                self.factory.sync_state.remove(self)
         except Exception:
             pass
 
