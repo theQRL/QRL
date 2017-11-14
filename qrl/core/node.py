@@ -283,7 +283,7 @@ class POS:
         5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
         '''
         if self.sync_state.state != ESyncState.synced:
-            self. p2pFactory.get_synced_state()
+            self.p2pFactory.get_synced_state()
 
             reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
@@ -292,6 +292,7 @@ class POS:
         # FMBH
         if self.sync_state.state == ESyncState.synced:
             return
+
         logger.info('Checking Download..')
 
         if not self.p2pFactory.sync_state:
@@ -571,6 +572,13 @@ class POS:
     def randomize_block_fetch(self):
         if self.sync_state.state != ESyncState.syncing:
             return
+
+        if self.sync_state.state == ESyncState.syncing:
+            block = self.buffered_chain.get_last_block()
+            block_timestamp = block.timestamp
+            if block_timestamp + config.dev.minimum_minting_delay > ntp.getTime():
+                self.update_node_state(ESyncState.synced)
+                return
 
         if len(self.p2pFactory.synced_peers) == 0:
             logger.warning('No connected peers in synced state. Retrying...')
