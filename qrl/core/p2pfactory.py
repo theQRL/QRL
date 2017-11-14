@@ -67,7 +67,7 @@ class P2PFactory(ServerFactory):
 
     # Request all peers to update their synced status
     def get_synced_state(self):
-        self.sync_state = set()
+        self.synced_peers = set()
         for peer in self.peer_connections:
             peer.wrap_message('SYNC')
 
