@@ -97,7 +97,7 @@ message GetStatsReq { }
 message GetStatsResp {
     NodeInfo node_info = 1;
     uint64 epoch = 2;
-    uint64 uptime_network = 3;
+    uint64 uptime_network = 3;          // Indicates uptime in seconds
 
     uint64 stakers_count = 4;
     uint64 block_last_reward = 5;

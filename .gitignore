@@ -52,3 +52,5 @@ tests/core/known_data/testcase1/wallet.info
 /examples/nodejs/node_modules/
 
 tests/core/_trial_temp/_trial_marker
+
+tests/services/_trial_temp/_trial_marker
