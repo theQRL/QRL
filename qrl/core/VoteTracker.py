@@ -48,3 +48,6 @@ class VoteTracker:
             return None
 
         return self._headerhash_voteMetadata[self._consensus_headerhash]
+
+    def get_consensus_headerhash(self) -> Optional[bytes]:
+        return self._consensus_headerhash

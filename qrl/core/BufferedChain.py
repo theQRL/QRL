@@ -242,6 +242,13 @@ class BufferedChain:
 
         return self._vote_tracker[blocknumber].get_consensus()
 
+    def get_consensus_headerhash(self, blocknumber: int) -> Optional[bytes]:
+        if blocknumber not in self._vote_tracker:
+            return None
+
+        return self._vote_tracker[blocknumber].get_consensus_headerhash()
+
+
     def _validate_tx_pool(self):
         result = True
 
@@ -343,12 +350,22 @@ class BufferedChain:
 
         if block.block_number > 0:
             voteMetadata = self.get_consensus(block.block_number - 1)
+            consensus_headerhash = self.get_consensus_headerhash(block.block_number - 1)
+
             consensus_ratio = voteMetadata.total_stake_amount / prev_sv_tracker.get_total_stake_amount()
 
             if consensus_ratio < 0.51:
-                logger.info('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
-                logger.info('%s/%s', voteMetadata.total_stake_amount, prev_sv_tracker.get_total_stake_amount())
+                logger.warning('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
+                logger.warning('%s/%s', voteMetadata.total_stake_amount, prev_sv_tracker.get_total_stake_amount())
                 return
+            elif consensus_headerhash != prev_block.headerhash:
+                logger.warning('Consensus headerhash doesnt match')
+                logger.warning('Consensus Previous Headerhash %s', consensus_headerhash)
+                logger.warning('Current Previous Headerhash %s', prev_block.headerhash)
+                logger.warning('Previous blocknumber #%s', prev_block.block_number)
+                #TODO: Fork Recovery Logic
+                return
+
 
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)

@@ -202,7 +202,7 @@ class TestBufferedChain(TestCase):
 
                     vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
                                        blocknumber=1,
-                                       headerhash=genesis_block.headerhash,
+                                       headerhash=tmp_block1.headerhash,
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
                     buffered_chain.add_vote(vote)
@@ -227,7 +227,7 @@ class TestBufferedChain(TestCase):
 
                     vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
                                        blocknumber=2,
-                                       headerhash=genesis_block.headerhash,
+                                       headerhash=tmp_block2.headerhash,
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
                     buffered_chain.add_vote(vote)

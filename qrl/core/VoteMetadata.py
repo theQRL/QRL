@@ -7,7 +7,6 @@ from qrl.core.Transaction import Vote
 class VoteMetadata:
     def __init__(self):
         self.stake_validator_vote = dict()
-        self.headerhash = None
         self.total_stake_amount = 0
 
     def add_vote(self, vote: Vote, stake_amount: float):
