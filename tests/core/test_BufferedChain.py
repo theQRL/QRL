@@ -12,7 +12,7 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
-from qrl.core.Transaction import StakeTransaction
+from qrl.core.Transaction import StakeTransaction, Vote
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2
@@ -106,6 +106,13 @@ class TestBufferedChain(TestCase):
                                                             xmss=alice_xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h1)
+                vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                                   blocknumber=0,
+                                   headerhash=genesis_block.headerhash,
+                                   xmss=slave_xmss)
+                vote.sign(slave_xmss)
+                buffered_chain.add_vote(vote)
+                voteMetadata = buffered_chain.get_consensus(0)
 
                 # FIXME: The test needs private access.. This is an API issue
                 stake_transaction._data.nonce = 1
@@ -124,7 +131,7 @@ class TestBufferedChain(TestCase):
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[stake_transaction],
                                          duplicate_transactions=OrderedDict(),
-                                         vote=VoteMetadata(),
+                                         vote=voteMetadata,
                                          signing_xmss=alice_xmss,
                                          nonce=1)
 
@@ -160,6 +167,15 @@ class TestBufferedChain(TestCase):
                 stake_transaction._data.nonce = 1  # FIXME: The test needs private access.. This is an API issue
                 stake_transaction.sign(alice_xmss)
 
+                vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                                   blocknumber=0,
+                                   headerhash=genesis_block.headerhash,
+                                   xmss=slave_xmss)
+                vote.sign(slave_xmss)
+                buffered_chain.add_vote(vote)
+                voteMetadata = buffered_chain.get_consensus(0)
+
+
                 chain.pstate.stake_validators_tracker.add_sv(balance=100,
                                                              stake_txn=stake_transaction,
                                                              blocknumber=1)
@@ -173,7 +189,7 @@ class TestBufferedChain(TestCase):
                                           prevblock_headerhash=genesis_block.headerhash,
                                           transactions=[stake_transaction],
                                           duplicate_transactions=OrderedDict(),
-                                          vote=VoteMetadata(),
+                                          vote=voteMetadata,
                                           signing_xmss=alice_xmss,
                                           nonce=1)
 
@@ -184,13 +200,21 @@ class TestBufferedChain(TestCase):
                 with mock.patch('qrl.core.ntp.getTime') as time_mock:
                     time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
 
+                    vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                                       blocknumber=1,
+                                       headerhash=genesis_block.headerhash,
+                                       xmss=slave_xmss)
+                    vote.sign(slave_xmss)
+                    buffered_chain.add_vote(vote)
+                    voteMetadata = buffered_chain.get_consensus(1)
+
                     tmp_block2 = Block.create(staking_address=staking_address,
                                               block_number=2,
                                               reveal_hash=h1,
                                               prevblock_headerhash=tmp_block1.headerhash,
                                               transactions=[],
                                               duplicate_transactions=OrderedDict(),
-                                              vote=VoteMetadata(),
+                                              vote=voteMetadata,
                                               signing_xmss=alice_xmss,
                                               nonce=2)
 
@@ -201,13 +225,21 @@ class TestBufferedChain(TestCase):
                 with mock.patch('qrl.core.ntp.getTime') as time_mock:
                     time_mock.return_value = tmp_block2.timestamp + config.dev.minimum_minting_delay
 
+                    vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                                       blocknumber=2,
+                                       headerhash=genesis_block.headerhash,
+                                       xmss=slave_xmss)
+                    vote.sign(slave_xmss)
+                    buffered_chain.add_vote(vote)
+                    voteMetadata = buffered_chain.get_consensus(2)
+
                     tmp_block3 = Block.create(staking_address=staking_address,
                                               block_number=3,
                                               reveal_hash=h0,
                                               prevblock_headerhash=tmp_block2.headerhash,
                                               transactions=[],
                                               duplicate_transactions=OrderedDict(),
-                                              vote=VoteMetadata(),
+                                              vote=voteMetadata,
                                               signing_xmss=alice_xmss,
                                               nonce=3)
 

@@ -349,13 +349,14 @@ class BufferedChain:
             vote = Transaction.from_pbdata(raw_vote)
             self.add_vote(vote)
 
-        voteMetadata = self.get_consensus(block.block_number - 1)
-        consensus_ratio = voteMetadata.total_stake_amount // prev_sv_tracker.get_total_stake_amount()
+        if block.block_number > 0:
+            voteMetadata = self.get_consensus(block.block_number - 1)
+            consensus_ratio = voteMetadata.total_stake_amount // prev_sv_tracker.get_total_stake_amount()
 
-        if consensus_ratio < 0.51:
-            logger.info('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
-            #TODO : Trigger fork recovery
-            return
+            if consensus_ratio < 0.51:
+                logger.info('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
+                #TODO : Trigger fork recovery
+                return
 
         block_metadata = BlockMetadata(block=block,
                                        hash_chain=hash_chain,
