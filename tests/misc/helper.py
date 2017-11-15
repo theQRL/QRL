@@ -6,8 +6,12 @@ import shutil
 import tempfile
 
 import os
+from copy import deepcopy
+
+from mock import mock
 
 from qrl.core import config
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.crypto.xmss import XMSS
 
 
@@ -36,6 +40,13 @@ def set_data_dir(data_name):
         yield
     finally:
         shutil.rmtree(dst_dir)
+
+@contextlib.contextmanager
+def mocked_genesis():
+    custom_genesis_block = deepcopy(GenesisBlock())
+    with mock.patch('qrl.core.GenesisBlock.GenesisBlock.instance'):
+        GenesisBlock.instance = custom_genesis_block
+        yield custom_genesis_block
 
 
 def get_Alice_xmss()->XMSS:
