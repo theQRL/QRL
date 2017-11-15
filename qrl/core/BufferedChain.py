@@ -23,7 +23,7 @@ from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-from qrl.core.formulas import score
+from qrl.core.formulas import score, calc_seed
 from qrl.generated.qrl_pb2 import MR
 
 
@@ -169,6 +169,9 @@ class BufferedChain:
 
     def _add_block_mainchain(self, block) -> bool:
         # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
+        if block.block_number == 1:
+            self.initialize_chain(block)
+
         if not self._chain.add_block(block):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
@@ -187,7 +190,7 @@ class BufferedChain:
 
         self._clean_if_required(block.block_number)
 
-        self.epoch_seed = bytes(block.reveal_hash + self.epoch_seed)
+        self.epoch_seed = sha256(block.reveal_hash + self.epoch_seed)
 
         # self._chain.pstate.update_last_tx(block)
         # self._chain.pstate.update_tx_metadata(block)
@@ -260,6 +263,20 @@ class BufferedChain:
 
         return result
 
+    def initialize_chain(self, block_number_1):
+        seed_list = []
+        genesis_block = self.get_block(0)
+        for raw_tx in block_number_1.transactions:
+            tx = Transaction.from_pbdata(raw_tx)
+            if tx.subtype == TX_SUBTYPE_STAKE:
+                for genesisBalance in genesis_block.genesis_balance:
+                    if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber == 1:
+                        seed_list.append(tx.hash)
+                        # FIXME: This goes to stake validator list without verification, Security Risk
+                        self._chain.pstate.stake_validators_tracker.add_sv(genesisBalance.balance, tx, 1)
+
+        self.epoch_seed = calc_seed(seed_list)
+
     def add_block(self, block: Block) -> bool:
 
         # is there an older version available?
@@ -269,13 +286,16 @@ class BufferedChain:
             if old_block_metadata.isVoted:
                 return False
 
+        if block.block_number < self._chain.height:
+            return False
+
+        if block.block_number == 1:
+            self.initialize_chain(block)
+
         if not self.validate_block(block):  # This is here because of validators, etc
             logger.info('Block validation failed')
             logger.info('Block #%s', block.block_number)
             logger.info('Stake_selector %s', block.stake_selector)
-            return False
-
-        if block.block_number < self._chain.height:
             return False
 
         same_block = self.get_block(block.block_number)
@@ -878,14 +898,14 @@ class BufferedChain:
         tmp_chain = self._chain._read_chain(0)
         if len(tmp_chain) > 0:
             for block in tmp_chain[1:]:
-                self._add_block_mainchain(block)
+                self.add_block(block)
 
         epoch = 1
         # FIXME: Avoid checking files here..
         while os.path.isfile(self._chain._get_chain_datafile(epoch)):
             del self._chain.blockchain[:-1]  # FIXME: This optimization could be encapsulated
             for block in self._chain._read_chain(epoch):
-                self._add_block_mainchain(block)
+                self.add_block(block)
 
             epoch += 1
 
