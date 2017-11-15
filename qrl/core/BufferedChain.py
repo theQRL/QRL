@@ -345,6 +345,19 @@ class BufferedChain:
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
             return False
 
+        for raw_vote in block.vote:
+            vote = Transaction.from_pbdata(raw_vote)
+            self.add_vote(vote)
+
+        if block.block_number > 0:
+            voteMetadata = self.get_consensus(block.block_number - 1)
+            consensus_ratio = voteMetadata.total_stake_amount // prev_sv_tracker.get_total_stake_amount()
+
+            if consensus_ratio < 0.51:
+                logger.info('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
+                #TODO : Trigger fork recovery
+                return
+
         block_metadata = BlockMetadata(block=block,
                                        hash_chain=hash_chain,
                                        epoch_seed=seed,
