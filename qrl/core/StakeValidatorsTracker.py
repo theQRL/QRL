@@ -44,7 +44,7 @@ class StakeValidatorsTracker:
 
     def _add_future_sv(self, balance, stake_txn):
         if stake_txn.txfrom in self._future_sv_dict:
-            logger.info('Stake Validator already in Current Staker, sv_dict')
+            logger.info('Stake Validator already in Future Staker, future_sv_dict')
             return
         sv = StakeValidator(balance, stake_txn)
         self.future_stake_addresses[stake_txn.txfrom] = sv
