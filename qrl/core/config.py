@@ -89,7 +89,7 @@ class DevConfig(object):
         self.minimum_required_stakers = 4
         self.minimum_staking_balance_required = 1
         self.blocks_per_epoch = 100
-        self.reorg_limit = 3
+        self.reorg_limit = 2
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
         self.N = 256  # Constant used in Block winner formula
