@@ -248,7 +248,6 @@ class BufferedChain:
 
         return self._vote_tracker[blocknumber].get_consensus_headerhash()
 
-
     def _validate_tx_pool(self):
         result = True
 
@@ -270,7 +269,8 @@ class BufferedChain:
 
         return result
 
-    def initialize_chain(self, block_number_1):
+    def initialize_chain(self, block_number_1: Block):
+        # Initializes Required variables before adding blocknumber 1
         seed_list = []
         genesis_block = self.get_block(0)
         for raw_tx in block_number_1.transactions:
@@ -348,6 +348,10 @@ class BufferedChain:
             hash_chain = copy.deepcopy(prev_block_metadata.hash_chain)
             seed = prev_block_metadata.next_seed
 
+        for raw_vote in block.vote:
+            vote = Transaction.from_pbdata(raw_vote)
+            self.add_vote(vote)
+
         if block.block_number > 0:
             voteMetadata = self.get_consensus(block.block_number - 1)
             consensus_headerhash = self.get_consensus_headerhash(block.block_number - 1)
@@ -366,14 +370,9 @@ class BufferedChain:
                 #TODO: Fork Recovery Logic
                 return
 
-
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
             return False
-
-        for raw_vote in block.vote:
-            vote = Transaction.from_pbdata(raw_vote)
-            self.add_vote(vote)
 
         block_metadata = BlockMetadata(block=block,
                                        hash_chain=hash_chain,

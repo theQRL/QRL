@@ -34,8 +34,6 @@ class P2PFactory(ServerFactory):
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
         self.stake = config.user.enable_auto_staking
-        self.peers_blockheight = {}
-        self.target_peers = {}
 
         self.connections = 0
         self.sync = 0
