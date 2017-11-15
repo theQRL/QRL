@@ -49,6 +49,10 @@ class Block(object):
         return self.blockheader.prev_blockheaderhash
 
     @property
+    def vote(self):
+        return self._data.vote
+
+    @property
     def transactions(self):
         return self._data.transactions
 

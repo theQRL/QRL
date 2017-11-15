@@ -34,12 +34,18 @@ class StakeValidatorsTracker:
         logger.debug("Adding %s", id(self.sv_dict[stake_txn.txfrom]))
 
     def _activate_sv(self, balance, stake_txn):
+        if stake_txn.txfrom in self.sv_dict:
+            logger.info('Stake Validator already in Current Staker, sv_dict')
+            return
         sv = StakeValidator(balance, stake_txn)
         self.sv_dict[stake_txn.txfrom] = sv
         self._total_stake_amount += sv.balance
         self._expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].add(stake_txn.txfrom)
 
     def _add_future_sv(self, balance, stake_txn):
+        if stake_txn.txfrom in self._future_sv_dict:
+            logger.info('Stake Validator already in Current Staker, sv_dict')
+            return
         sv = StakeValidator(balance, stake_txn)
         self.future_stake_addresses[stake_txn.txfrom] = sv
         self._future_sv_dict[stake_txn.activation_blocknumber].add(sv)
@@ -81,3 +87,6 @@ class StakeValidatorsTracker:
             raise Exception
 
         return self.sv_dict[stake_address].balance
+
+    def get_total_stake_amount(self):
+        return self._total_stake_amount

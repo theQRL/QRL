@@ -208,7 +208,7 @@ class POS:
         consensus_ratio = voteMetadata.total_stake_amount / total_genesis_stake_amount
 
         if consensus_ratio < 0.51:
-            logger.info('Consensus lower than 51%.. retry in 5s')
+            logger.info('Consensus lower than 51%%.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
 
