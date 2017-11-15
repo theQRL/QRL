@@ -15,7 +15,7 @@ from qrl.core.State import State
 from qrl.core.Transaction import StakeTransaction
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.Wallet import Wallet
-from qrl.core.formulas import calc_seed
+from qrl.generated import qrl_pb2
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from tests.misc.helper import set_wallet_dir, get_Alice_xmss
@@ -97,11 +97,12 @@ class TestBufferedChain(TestCase):
                 h1 = sha256(h0)
 
                 genesis_block = GenesisBlock()
-
+                genesis_block.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
+                                                                             balance=100)])
                 res = buffered_chain.add_block(block=genesis_block)
                 self.assertTrue(res)
 
-                stake_transaction = StakeTransaction.create(activation_blocknumber=0,
+                stake_transaction = StakeTransaction.create(activation_blocknumber=1,
                                                             xmss=alice_xmss,
                                                             slavePK=slave_xmss.pk(),
                                                             hashchain_terminator=h1)
@@ -148,7 +149,8 @@ class TestBufferedChain(TestCase):
                 h3 = sha256(h2)
 
                 genesis_block = GenesisBlock()
-
+                genesis_block.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
+                                                                             balance=100)])
                 res = buffered_chain.add_block(block=genesis_block)
                 self.assertTrue(res)
                 stake_transaction = StakeTransaction.create(activation_blocknumber=1,
