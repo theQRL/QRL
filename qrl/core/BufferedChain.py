@@ -350,8 +350,6 @@ class BufferedChain:
                 logger.info('%s/%s', voteMetadata.total_stake_amount, prev_sv_tracker.get_total_stake_amount())
                 return
 
-
-
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
             return False
