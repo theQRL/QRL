@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core import config, logger
+from qrl.core import config
 from qrl.core.Transaction import StakeTransaction
 from qrl.crypto.misc import sha256_n
 
@@ -18,8 +18,6 @@ class StakeValidator:
     def __init__(self,
                  balance: int,
                  stake_txn: StakeTransaction):
-
-        logger.info("Created validator %s", id(self))
 
         self._address = stake_txn.txfrom
         self._slave_public_key = stake_txn.slave_public_key
