@@ -7,7 +7,7 @@ import time
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
-from google.protobuf.json_format import MessageToJson, Parse
+from google.protobuf.json_format import Parse
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import config, logger
@@ -40,8 +40,6 @@ class P2PProtocol(Protocol):
             ######################
             'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
             'SFM': self.SFM,            # RECV=>SEND        Send Full Message
-
-            'CB': self.CB,              # RECV      Check Block Height
 
             'BK': self.BK,              # RECV      Block
             'FB': self.FB,              # Fetch request for block
@@ -485,53 +483,6 @@ class P2PProtocol(Protocol):
             logger.exception(e)
         return
 
-    def CB(self, raw_data):
-        """
-        Check Blockheight
-        :return:
-        """
-        block_metadata = qrl_pb2.BlockMetaData()
-        try:
-            Parse(raw_data, block_metadata)
-        except Exception as e:  # Disconnect peers not following protocol
-            logger.debug('Disconnected peer %s not following protocol in MR %s', self.conn_identity, e)
-            self.transport.loseConnection()
-
-        tmp = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
-
-        self.blockheight = block_metadata.block_number
-
-        logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
-                    self.transport.getPeer().host,
-                    block_metadata.block_number,
-                    self.factory.height,
-                    str(time.time()))
-
-        if self.factory.sync_state.state == ESyncState.syncing:
-            return
-
-        if block_metadata.block_number == self.factory.height:
-            if self.factory.buffered_chain.get_block(block_metadata.block_number).headerhash != block_metadata.hash_header:
-                logger.warning('>>> headerhash mismatch from %s', self.transport.getPeer().host)
-                # initiate fork recovery and protection code here..
-                # call an outer function which sets a flag and scrutinises the chains from all connected hosts to see what is going on..
-                # again need to think this one through in detail..
-                return
-
-        if block_metadata.block_number > self.factory.height:
-            return
-
-        if self.factory.buffered_chain.height == 0 and self.factory.genesis == 0:
-            # set the flag so that no other Protocol instances trigger the genesis stake functions..
-            self.factory.genesis = 1
-            logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
-            reactor.callLater(1, self.factory.pos.pre_pos_1)
-            return
-
-        # connected to multiple hosts and already passed through..
-        elif self.factory.buffered_chain.height == 1 and self.factory.genesis == 1:
-            return
-
     def send_block(self, blocknumber):
         # FIXME: Merge. Temporarily here
         message = None
@@ -689,20 +640,6 @@ class P2PProtocol(Protocol):
                 self.factory.synced_peers.remove(self)
         else:
             self.factory.synced_peers.add(self)
-
-    def send_m_blockheight_to_peer(self):
-        """
-        Send mainchain blockheight to peer
-        Sends the mainchain maximum blockheight request.
-        :return:
-        """
-        data = qrl_pb2.BlockMetaData()
-        data.hash_header = self.factory.buffered_chain._chain.blockchain[-1].headerhash
-
-        if len(self.factory.buffered_chain._chain.blockchain):
-            data.block_number = self.factory.buffered_chain._chain.blockchain[-1].block_number
-        self.transport.write(self.wrap_message('CB', MessageToJson(data)))
-        return
 
     def get_version(self):
         """
@@ -884,9 +821,8 @@ class P2PProtocol(Protocol):
         >>> p=P2PProtocol()
         >>> p.service['PL'] = MagicMock()
         >>> p.service['VE'] = MagicMock()
-        >>> p.service['CB'] = MagicMock()
         >>> p.dataReceived(data)
-        >>> p.service['PL'].call_count == 1 and p.service['VE'].call_count == 2 and p.service['CB'].call_count == 1
+        >>> p.service['PL'].call_count == 1 and p.service['VE'].call_count == 2
         True
         """
         self.buffer += data
@@ -944,9 +880,17 @@ class P2PProtocol(Protocol):
                     self.transport.getPeer().host,
                     str(self.transport.getPeer().port))
 
+        if self.factory.buffered_chain.height == 0 and self.factory.genesis == 0:
+            # set the flag so that no other Protocol instances trigger the genesis stake functions..
+            self.factory.genesis = 1
+            logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
+            reactor.callLater(1, self.factory.pos.pre_pos_1)
+            return
 
-        #self.get_m_blockheight_from_connection()
-        self.send_m_blockheight_to_peer()
+        # connected to multiple hosts and already passed through..
+        elif self.factory.buffered_chain.height == 1 and self.factory.genesis == 1:
+            return
+
         self.send_peers()
         self.get_version()
 
