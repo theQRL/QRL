@@ -31,18 +31,16 @@ class P2PProtocol(Protocol):
         # TODO: Comment with some names the services
         self.service = {
             ######################
-            'VE': self.VE,              #X SEND/RECV         Version
-            'PE': self.PE,              #X SEND              Peers List (connected peers)
-            'PL': self.PL,              #X RECV              Peers List
-            #PING                       #X SEND              Pong
-            'PONG': self.PONG,          #X RECV/DSEND        Pong
+            'VE': self.VE,              # X SEND/RECV         Version
+            'PE': self.PE,              # X SEND              Peers List (connected peers)
+            'PL': self.PL,              # X RECV              Peers List
+            #PING                       # X SEND              Pong
+            'PONG': self.PONG,          # X RECV/DSEND        Pong
 
             ######################
             'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
             'SFM': self.SFM,            # RECV=>SEND        Send Full Message
 
-            'MB': self.MB,              # SEND      Maximum Block Height
-            'BM': self.BM,              # SEND/RECV Block Height Map
             'CB': self.CB,              # RECV      Check Block Height
 
             'BK': self.BK,              # RECV      Block
@@ -344,34 +342,6 @@ class P2PProtocol(Protocol):
         self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
         return
 
-    def BM(self, data=None):  # blockheight map for synchronisation and error correction prior to POS cycle resync..
-        """
-        Blockheight Map
-        Simply maps the peer with their respective blockheight.
-        If no data is provided in parameter, the node sends its 
-        own current blockheight. 
-        :return:
-        """
-        if not data:
-            logger.info('<<< Sending block_map %s', self.transport.getPeer().host)
-
-            z = {'block_number': self.factory.buffered_chain._chain.blockchain[-1].block_number,
-                 'headerhash': self.factory.buffered_chain._chain.blockchain[-1].headerhash}
-
-            self.transport.write(self.wrap_message('BM', json.dumps(z)))
-            return
-        else:
-            logger.info('>>> Receiving block_map')
-            z = json.loads(data)
-            block_number = z['block_number']
-            headerhash = z['headerhash'].encode('latin1')
-
-            i = [block_number, headerhash, self.transport.getPeer().host]
-            logger.info('%s', i)
-            if i not in self.factory.pos.blockheight_map:
-                self.factory.pos.blockheight_map.append(i)
-            return
-
     def BK(self, data):  # block received
         """
         Block
@@ -515,16 +485,6 @@ class P2PProtocol(Protocol):
             logger.exception(e)
         return
 
-    def MB(self):  # we send with just prefix as request..with CB number and blockhash as answer..
-        """
-        Maximum Blockheight
-        Sends maximum blockheight of the mainchain.
-        :return:
-        """
-        logger.info('<<<Sending blockheight to: %s %s', self.transport.getPeer().host, str(time.time()))
-        self.send_m_blockheight_to_peer()
-        return
-
     def CB(self, raw_data):
         """
         Check Blockheight
@@ -538,7 +498,7 @@ class P2PProtocol(Protocol):
             self.transport.loseConnection()
 
         tmp = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
-        self.factory.peers_blockheight[tmp] = block_metadata.block_number
+
         self.blockheight = block_metadata.block_number
 
         logger.info('>>>Blockheight from: %s blockheight: %s local blockheight: %s %s',
@@ -730,30 +690,6 @@ class P2PProtocol(Protocol):
         else:
             self.factory.synced_peers.add(self)
 
-    def get_m_blockheight_from_connection(self):
-        """
-        Get blockheight
-        Sends the request to all peers to send their mainchain max blockheight.
-        :return:
-        >>> from collections import namedtuple
-        >>> p=P2PProtocol()
-        >>> Transport = namedtuple("Transport", "getPeer write")
-        >>> Peer = namedtuple("Peer", "host")
-        >>> def getPeer():
-        ...     return Peer("host")
-        >>> message = None
-        >>> def write(msg):
-        ...     global message
-        ...     message = msg
-        >>> p.transport = Transport(getPeer, write)
-        >>> p.get_m_blockheight_from_connection()
-        >>> bin2hstr(message)
-        'ff00003030303030303065007b2274797065223a20224d42227d0000ff'
-        """
-        logger.info('<<<Requesting blockheight from %s', self.transport.getPeer().host)
-        msg = self.wrap_message('MB')
-        self.transport.write(msg)
-
     def send_m_blockheight_to_peer(self):
         """
         Send mainchain blockheight to peer
@@ -944,20 +880,13 @@ class P2PProtocol(Protocol):
         >>> p.service['TESTKEY_1234'].call_args
         call(12345)
         >>> from unittest.mock import MagicMock
-        >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2264617461223a20225b5c223137322e31382e302e325c225d222c202274797065223a2022504c227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ff'))
-        >>> p=P2PProtocol()
-        >>> p.service['MB'] = MagicMock()
-        >>> p.dataReceived(data)
-        >>> print(p.service['MB'].called)
-        True
         >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2274797065223a2022504c222c202264617461223a20225b5c223137322e31382e302e365c225d227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ffff00003030303030306434007b2274797065223a20224342222c202264617461223a20227b5c22626c6f636b5f6e756d6265725c223a20302c205c22686561646572686173685c223a205b35332c203133302c203136382c2035372c203138332c203231352c203132302c203137382c203230392c2033302c203139342c203232332c203232312c2035382c2037322c203132342c2036322c203134382c203131302c2038312c2031392c203138392c2032372c203234332c203231382c2038372c203231372c203230332c203139382c2039372c2038342c2031395d7d227d0000ffff00003030303030303635007b2274797065223a20225645222c202264617461223a20227b5c2267656e657369735f707265765f686561646572686173685c223a205c2243727970746f6e69756d5c222c205c2276657273696f6e5c223a205c22616c7068612f302e3435615c227d227d0000ff'))
         >>> p=P2PProtocol()
-        >>> p.service['MB'] = MagicMock()
         >>> p.service['PL'] = MagicMock()
         >>> p.service['VE'] = MagicMock()
         >>> p.service['CB'] = MagicMock()
         >>> p.dataReceived(data)
-        >>> p.service['MB'].call_count == 1 and p.service['PL'].call_count == 1 and p.service['VE'].call_count == 2 and p.service['CB'].call_count == 1
+        >>> p.service['PL'].call_count == 1 and p.service['VE'].call_count == 2 and p.service['CB'].call_count == 1
         True
         """
         self.buffer += data
@@ -1016,7 +945,8 @@ class P2PProtocol(Protocol):
                     str(self.transport.getPeer().port))
 
 
-        self.get_m_blockheight_from_connection()
+        #self.get_m_blockheight_from_connection()
+        self.send_m_blockheight_to_peer()
         self.send_peers()
         self.get_version()
 
@@ -1033,12 +963,6 @@ class P2PProtocol(Protocol):
         try:
             self.factory.peer_connections.remove(self)
             self.factory.connections -= 1
-
-            if self.conn_identity in self.factory.target_peers:
-                del self.factory.target_peers[self.conn_identity]
-            host_port = self.transport.getPeer().host + ':' + str(self.transport.getPeer().port)
-            if host_port in self.factory.peers_blockheight:
-                del self.factory.peers_blockheight[host_port]
 
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
