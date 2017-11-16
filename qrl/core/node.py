@@ -58,20 +58,33 @@ class POS:
 
         self.blockheight_map = []
 
-    def update_node_state(self, new_sync_state):
+    def _handler_state_unsynced(self):
+        self.last_bk_time = time.time()
+        self.restart_unsynced_logic()
+
+    def _handler_state_syncing(self):
+        self.last_pb_time = time.time()
+
+    def _handler_state_synced(self):
+        self.sync_state.epoch_diff = 0
+        self.last_pos_cycle = time.time()
+        self.restart_post_block_logic()
+
+    def _handler_state_forked(self):
+        self.stop_post_block_logic()
+
+    def update_node_state(self, new_sync_state: ESyncState):
         self.sync_state.state = new_sync_state
         logger.info('Status changed to %s', self.sync_state.state)
-        if self.sync_state.state == ESyncState.synced:
-            self.sync_state.epoch_diff = 0
-            self.last_pos_cycle = time.time()
-            self.restart_post_block_logic()
-        elif self.sync_state.state == ESyncState.unsynced:
-            self.last_bk_time = time.time()
-            self.restart_unsynced_logic()
-        elif self.sync_state.state == ESyncState.forked:
-            self.stop_post_block_logic()
-        elif self.sync_state.state == ESyncState.syncing:
-            self.last_pb_time = time.time()
+
+        _mapping = {
+            ESyncState.unsynced: self._handler_state_unsynced,
+            ESyncState.syncing: self._handler_state_syncing,
+            ESyncState.synced: self._handler_state_synced,
+            ESyncState.forked: self._handler_state_forked,
+        }
+
+        _mapping[self.sync_state.state]()
 
     def stop_monitor_bk(self):
         try:
@@ -173,7 +186,7 @@ class POS:
             tx.pbdata.nonce = 1
             if tx.subtype == TX_SUBTYPE_STAKE:
                 for genesisBalance in genesis_block.genesis_balance:
-                    if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber==1:
+                    if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber == 1:
                         tmp_list.append([tx.txfrom, tx.hash, 0, genesisBalance.balance, tx.slave_public_key])
                         seed_list.append(tx.hash)
                         # FIXME: This goes to stake validator list without verification, Security Risk
@@ -381,13 +394,12 @@ class POS:
                     should_vote = True
                     break
 
-
         if should_vote:
             vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
 
             self.vote_callLater = reactor.callLater(vote_delay,
                                                     self.create_vote_tx,
-                                                    blocknumber=blocknumber-1)
+                                                    blocknumber=blocknumber - 1)
 
         self.pos_blocknum = blocknumber
 
@@ -594,37 +606,3 @@ class POS:
         random_peer = random.sample(self.p2pFactory.synced_peers, 1)[0]
         blocknumber = self.buffered_chain.height + 1
         random_peer.fetch_block_n(blocknumber)
-
-    def blockheight_map(self):
-        """
-        blockheight map for connected nodes - when the blockheight seems up to date after a sync or error,
-        we check all connected nodes to ensure all on same chain/height..
-        note - may not return correctly during a block propagation..
-        once working alter to identify fork better..
-
-        :return:
-        """
-        # i = [block_number, headerhash, self.transport.getPeer().host]
-
-        logger.info('blockheight_map:')
-        logger.info(self.blockheight_map)
-
-        # first strip out any laggards..
-        self.blockheight_map = [q for q in self.blockheight_map if q[0] >= self.buffered_chain.height]
-
-        result = True
-
-        # next identify any node entries which are not exactly correct..
-
-        for s in self.blockheight_map:
-            if s[0] == self.buffered_chain.height:
-                # FIXME: It should not access variable directly
-                if s[1] == self.buffered_chain._chain.blockchain[-1].headerhash:
-                    logger.info(('node: ', s[2], '@', s[0], 'w/:', s[1], 'OK'))
-            elif s[0] > self.buffered_chain.height:
-                logger.info(('warning..', s[2], 'at blockheight', s[0]))
-                result = False
-
-        # wipe it..
-        del self.blockheight_map[:]
-        return result
