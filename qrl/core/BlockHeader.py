@@ -75,11 +75,11 @@ class BlockHeader(object):
         """
         Create a block header based on the parameters
 
-        >>> BlockHeader.create('someaddress', 0, b'0', b'0', b'0', 1) is not None
+        >>> BlockHeader.create(bytes(b'someaddress'), 0, b'0', b'0', b'0', 1) is not None
         True
-        >>> b = BlockHeader.create('someaddress', 0, b'0', b'0', b'0', 1); b.epoch
+        >>> b = BlockHeader.create(bytes(b'someaddress'), 0, b'0', b'0', b'0', 1); b.epoch
         0
-        >>> b = BlockHeader.create('someaddress', 0, b'0', b'0', b'0', 1); b.epoch
+        >>> b = BlockHeader.create(bytes(b'someaddress'), 0, b'0', b'0', b'0', 1); b.epoch
         0
         """
 

@@ -587,6 +587,7 @@ class DuplicateTransaction(Transaction):
         return True
 
     def validate_extended(self, headerhash, coinbase):
+        # FIXME: What is this? Why is being defined here????
         self.headerhash = headerhash
         self.coinbase = coinbase
 

@@ -20,10 +20,6 @@ class State:
     # FIXME: Improve key generation
 
     def __init__(self):
-        """
-        >>> State()._db is not None
-        True
-        """
         self._db = db.DB()  # generate db object here
 
         # FIXME: Move to BufferedChain

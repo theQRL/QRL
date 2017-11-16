@@ -1,6 +1,7 @@
 from collections import namedtuple
 
-from pyqrllib.pyqrllib import getHashChainSeed, sha2_256, bin2hstr
+from pyqrllib.pyqrllib import getHashChainSeed
+
 from qrl.core import config
 from qrl.crypto.misc import sha256, sha256_n
 

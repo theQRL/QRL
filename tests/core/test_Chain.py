@@ -4,15 +4,15 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from mock import patch, PropertyMock
+from mock import patch
 
 import qrl
-from qrl.core import logger, config
+from qrl.core import logger
 from qrl.core.Block import Block
 from qrl.core.Chain import Chain
 from qrl.core.State import State
 from qrl.core.VoteMetadata import VoteMetadata
-from tests.misc.helper import set_wallet_dir, get_Alice_xmss, set_data_dir
+from tests.misc.helper import set_wallet_dir, get_Alice_xmss
 
 logger.initialize_default(force_console_output=True)
 
