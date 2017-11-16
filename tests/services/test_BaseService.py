@@ -15,9 +15,9 @@ from qrl.services.BaseService import BaseService
 logger.initialize_default(force_console_output=True)
 
 
-class BaseAPITest(TestCase):
+class TestBaseAPI(TestCase):
     def __init__(self, *args, **kwargs):
-        super(BaseAPITest, self).__init__(*args, **kwargs)
+        super(TestBaseAPI, self).__init__(*args, **kwargs)
 
     def test_getNodeInfo(self):
         db_state = Mock(spec=State)
