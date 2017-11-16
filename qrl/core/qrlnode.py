@@ -285,7 +285,8 @@ class QRLNode:
         self._p2pfactory.send_tx_to_peers(tx)
         return True
 
-    def address_is_valid(self, address: bytes)->bool:
+    @staticmethod
+    def address_is_valid(address: bytes)->bool:
         # TODO: Validate address format
         if len(address) < 1:
             return False

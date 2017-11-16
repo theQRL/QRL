@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from pyqrllib.pyqrllib import bin2hstr, sha2_256_n
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger
 from qrl.crypto.hashchain import hashchain, hashchain_reveal

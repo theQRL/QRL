@@ -191,8 +191,8 @@ class Wallet:
             if addr_bundle.address == address_to_check:
                 return addr_bundle.xmss.get_remaining_signatures()
 
-    def get_new_address(self,
-                        signature_tree_height=config.dev.xmss_tree_height,
+    @staticmethod
+    def get_new_address(signature_tree_height=config.dev.xmss_tree_height,
                         address_type=ADDRESS_TYPE_XMSS,
                         seed=None):
         # type: (int, str, str) -> AddressBundle

@@ -48,7 +48,7 @@ class TestStakeValidator(TestCase):
         with self.assertRaises(ValueError):
             StakeValidator(-1, stake_transaction)
 
-    def test_set_block_pos(self):
+    def test_create(self):
         alice_xmss = get_Alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
@@ -74,7 +74,7 @@ class TestStakeValidator(TestCase):
         self.assertFalse(sv.is_banned)
         self.assertTrue(sv.is_active)
 
-    def test_set_block_pos(self):
+    def test_create2(self):
         alice_xmss = get_Alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 

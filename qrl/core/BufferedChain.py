@@ -234,6 +234,7 @@ class BufferedChain:
                 if genesisBalance.address.encode() == vote.addr_from:
                     stake_balance = genesisBalance.balance
 
+        # FIXME: There is a warning that stake_balance coould be reference before assignment.
         return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
 
     def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
@@ -361,14 +362,14 @@ class BufferedChain:
             if consensus_ratio < 0.51:
                 logger.warning('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
                 logger.warning('%s/%s', voteMetadata.total_stake_amount, prev_sv_tracker.get_total_stake_amount())
-                return
+                return False
             elif consensus_headerhash != prev_block.headerhash:
                 logger.warning('Consensus headerhash doesnt match')
                 logger.warning('Consensus Previous Headerhash %s', consensus_headerhash)
                 logger.warning('Current Previous Headerhash %s', prev_block.headerhash)
                 logger.warning('Previous blocknumber #%s', prev_block.block_number)
                 #TODO: Fork Recovery Logic
-                return
+                return False
 
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)

@@ -4,21 +4,21 @@
 
 import random
 import time
-from collections import Counter, defaultdict
+from collections import defaultdict
 from functools import reduce
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
-from qrl.core.Block import Block
-from qrl.core.formulas import calc_seed
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.core import logger, config, BufferedChain, ntp
-from qrl.core.formulas import score
-from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import StakeTransaction, DestakeTransaction, Vote
+from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
+from qrl.core.formulas import calc_seed
+from qrl.core.formulas import score
+from qrl.core.messagereceipt import MessageReceipt
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 

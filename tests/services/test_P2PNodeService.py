@@ -19,8 +19,9 @@ logger.initialize_default(force_console_output=True)
 class PublicAPITest(TestCase):
     def __init__(self, *args, **kwargs):
         super(PublicAPITest, self).__init__(*args, **kwargs)
+        self.service = None
 
-    def test_getNodeState(self):
+    def setUp(self):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
@@ -35,8 +36,10 @@ class PublicAPITest(TestCase):
         qrlnode.set_chain(buffered_chain)
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
-        service = P2PNodeService(qrlnode)
-        response = service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
+        self.service = P2PNodeService(qrlnode)
+
+    def test_getNodeState(self):
+        response = self.service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
 
         self.assertEqual(config.dev.version, response.info.version)
         self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, response.info.state)
@@ -44,22 +47,7 @@ class PublicAPITest(TestCase):
         # self.assertEqual("testnet", node_state.response.network_id)  # FIXME
 
     def test_getKnownPeers(self):
-        db_state = Mock(spec=State)
-        p2p_factory = Mock(spec=P2PFactory)
-        p2p_factory.sync_state = SyncState()
-        p2p_factory.connections = 23
-        p2p_factory.stake = False
-
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = MagicMock(return_value=0)
-
-        qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
-        qrlnode.set_chain(buffered_chain)
-        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
-
-        service = P2PNodeService(qrlnode)
-        response = service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
+        response = self.service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
 
         self.assertEqual(config.dev.version, response.node_info.version)
         self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, response.node_info.state)

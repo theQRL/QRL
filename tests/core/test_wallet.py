@@ -5,7 +5,6 @@ import os
 from os.path import isfile
 from unittest import TestCase
 
-import pytest
 from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.core import logger, config

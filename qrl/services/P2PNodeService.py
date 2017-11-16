@@ -1,6 +1,8 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from typing import Callable
+
 from grpc import StatusCode
 
 from qrl.core import logger
@@ -15,7 +17,7 @@ class P2PNodeService(P2PNodeServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, node: QRLNode):
         self.qrlnode = node
-        self.context_observer = None
+        self.context_observer = None        # type: Callable
 
     @grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
     def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
