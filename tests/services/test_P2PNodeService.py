@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
+import grpc
 from mock import Mock, MagicMock
 
 from qrl.core import logger, BufferedChain, config
@@ -16,9 +17,9 @@ from qrl.services.P2PNodeService import P2PNodeService
 logger.initialize_default(force_console_output=True)
 
 
-class PublicAPITest(TestCase):
+class TestPublicAPI(TestCase):
     def __init__(self, *args, **kwargs):
-        super(PublicAPITest, self).__init__(*args, **kwargs)
+        super(TestPublicAPI, self).__init__(*args, **kwargs)
         self.service = None
 
     def setUp(self):
@@ -29,7 +30,7 @@ class PublicAPITest(TestCase):
         p2p_factory.stake = False
 
         buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = MagicMock(return_value=0)
+        buffered_chain.height = 0
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
@@ -39,7 +40,9 @@ class PublicAPITest(TestCase):
         self.service = P2PNodeService(qrlnode)
 
     def test_getNodeState(self):
-        response = self.service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
+        context = Mock(spec=grpc.ServicerContext)
+        response = self.service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=context)
+        context.set_code.assert_not_called()
 
         self.assertEqual(config.dev.version, response.info.version)
         self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, response.info.state)
@@ -47,7 +50,9 @@ class PublicAPITest(TestCase):
         # self.assertEqual("testnet", node_state.response.network_id)  # FIXME
 
     def test_getKnownPeers(self):
-        response = self.service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
+        context = Mock(spec=grpc.ServicerContext)
+        response = self.service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=context)
+        context.set_code.assert_not_called()
 
         self.assertEqual(config.dev.version, response.node_info.version)
         self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, response.node_info.state)

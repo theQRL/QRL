@@ -3,7 +3,7 @@
 # ATTENTION: Don't remove pytest-cov and pytest as they are needed.
 pytest-cov
 pytest
-mock>=1.0.0
+mock>=2.0.0
 flake8
 timeout-decorator
 nose

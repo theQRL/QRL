@@ -21,9 +21,9 @@ from qrl.services.PublicAPIService import PublicAPIService
 logger.initialize_default(force_console_output=True)
 
 
-class PublicAPITest(TestCase):
+class TestPublicAPI(TestCase):
     def __init__(self, *args, **kwargs):
-        super(PublicAPITest, self).__init__(*args, **kwargs)
+        super(TestPublicAPI, self).__init__(*args, **kwargs)
 
     def test_getNodeState(self):
         db_state = Mock(spec=State)
@@ -33,7 +33,7 @@ class PublicAPITest(TestCase):
         p2p_factory.stake = False
 
         buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = MagicMock(return_value=0)
+        buffered_chain.height = 0
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
@@ -58,7 +58,7 @@ class PublicAPITest(TestCase):
         p2p_factory.stake = False
 
         buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = MagicMock(return_value=0)
+        buffered_chain.height = 0
         buffered_chain.blockchain = []
         buffered_chain.get_block = MagicMock(return_value=None)
         buffered_chain.state = db_state
@@ -98,7 +98,7 @@ class PublicAPITest(TestCase):
         p2p_factory.stake = False
 
         buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = MagicMock(return_value=0)
+        buffered_chain.height = 0
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
