@@ -9,11 +9,15 @@ import pkg_resources
 
 class DependencyChecker:
     @staticmethod
-    def check():
-        requirements_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+    def _get_requirements_path():
+        return os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                          os.path.pardir,
                                                          os.path.pardir,
                                                          "requirements.txt"))
+
+    @staticmethod
+    def check():
+        requirements_path = DependencyChecker._get_requirements_path()
 
         requirements = []
         with open(requirements_path, "r") as fp:
