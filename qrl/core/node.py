@@ -57,6 +57,7 @@ class POS:
         self.next_block_number = None
 
         self.blockheight_map = []
+        self.retry_consensus = 0  # Keeps track of number of times consensus failed for the last blocknumber
 
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
@@ -365,6 +366,11 @@ class POS:
         except Exception:  # No need to log this exception
             pass
 
+        try:
+            self.vote_callLater.cancel()
+        except Exception:
+            pass
+
     def restart_post_block_logic(self, blocknumber=-1, delay=None):
         if blocknumber == -1:
             blocknumber = self.buffered_chain.height + 1
@@ -414,8 +420,45 @@ class POS:
 
         return False
 
-    def check_consensus(self, blocknumber):
-        pass
+    def check_consensus(self, blocknumber) -> bool:
+        voteMetadata = self.buffered_chain.get_consensus(blocknumber - 1)
+        consensus_headerhash = self.buffered_chain.get_consensus_headerhash(blocknumber - 1)
+
+        if not consensus_headerhash:
+            logger.warning('Consensus is still None, rescheduling post_block_logic after 5 sec')
+            self.restart_post_block_logic(blocknumber, 5)
+            return False
+
+        prev_sv_tracker = self.buffered_chain.get_stake_validators_tracker(blocknumber)
+
+        consensus_ratio = voteMetadata.total_stake_amount / prev_sv_tracker.get_total_stake_amount()
+
+        if consensus_ratio < 0.51:
+            logger.warning('Consensus below 51%%, rescheduling post_block_logic after 5 sec')
+            self.retry_consensus += 1
+            if self.retry_consensus >= config.dev.max_consensus_retry and self.buffered_chain.height > 1:
+                self.retry_consensus = 0
+                self.buffered_chain.remove_last_buffer_block()
+                self.stop_post_block_logic()
+                self.restart_unsynced_logic()
+                return False
+            self.restart_post_block_logic(blocknumber, 5)
+            return False
+
+        self.retry_consensus = 0
+        prev_block = self.buffered_chain.get_block(blocknumber - 1)
+
+        if consensus_headerhash != prev_block.headerhash:
+            logger.warning('Fork detected...')
+            logger.warning('Fork from Block #%s', blocknumber - 1)
+            logger.warning('Fork Recovery Started...')
+            self.buffered_chain.expected_headerhash[blocknumber - 1] = consensus_headerhash
+            self.buffered_chain.remove_last_buffer_block()
+            self.stop_post_block_logic()
+            self.restart_unsynced_logic()
+            return False
+
+        return True
 
     def post_block_logic(self, blocknumber):
         """
@@ -425,7 +468,9 @@ class POS:
 
         :return:
         """
-        self.check_consensus(blocknumber)
+
+        if not self.check_consensus(blocknumber):
+            return
 
         if self.p2pFactory.stake:
             future_stake_addresses = self.buffered_chain.future_stake_addresses(blocknumber)
@@ -460,6 +505,9 @@ class POS:
 
     def create_vote_tx(self, blocknumber: int):
         block = self.buffered_chain.get_block(blocknumber)
+        if not block:
+            logger.warning('Block #%s not found, cancelled voting', blocknumber)
+            return
         signing_xmss = self.buffered_chain.get_slave_xmss(blocknumber)
         if not signing_xmss:
             logger.warning('Skipped Voting: Slave XMSS none, XMSS POOL might still be generating slave_xmss')

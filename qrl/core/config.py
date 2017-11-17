@@ -115,7 +115,7 @@ class DevConfig(object):
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.vote_x_seconds_before_next_block = 15  # Vote will be done X seconds before creation of next block
                                                     # Must be less than minimum_minting_delay
-
+        self.max_consensus_retry = 5
         self.db_name = 'state'
         self.peers_filename = 'peers.qrl'
 
