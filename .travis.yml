@@ -1,18 +1,14 @@
 sudo: required
 dist: trusty
 services: docker
-language: cpp
-python:
-- '3.5'
+language: python
+python: 3.5
 cache:
   timeout: 600
 
 cache:
   directories:
     - $HOME/Library/Caches/Homebrew
-
-virtualenv:
-  system_site_packages: true
 
 jobs:
   include:
@@ -22,10 +18,40 @@ jobs:
       - TEST='TRUE'
       - PLATFORM='xenial'
       - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when running integration tests"
       script:
       - "./travis/build.sh"
       - sudo pip install -U coverage codacy-coverage
       - if [[ "$TRAVIS_BRANCH" == "master" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+
+    - stage: build+test
+      os: linux
+      env:
+      - INTEGRATION_TESTINPLACE='TRUE'
+      - PLATFORM='xenial'
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when running integration tests"
+      script:
+      - sudo pip install -U docker-compose
+      - docker-compose --version
+      - "cd tests_integration; python3 runtest_nodes_synchronize.py"
+
+    - stage: build+test
+      os: linux
+      env:
+      - INTEGRATION_TESTINPLACE='TRUE'
+      - PLATFORM='xenial'
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when running integration tests"
+      script:
+      - sudo pip install -U docker-compose
+      - docker-compose --version
+      - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
+
 
 #    - stage: build+test
 #      os: linux
