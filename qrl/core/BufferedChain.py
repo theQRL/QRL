@@ -207,7 +207,7 @@ class BufferedChain:
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
             return
 
-        if vote.blocknumber <= self._chain.height or vote.blocknumber > self.height:
+        if (self.height != 0 and vote.blocknumber <= self._chain.height) or vote.blocknumber > self.height:
             return
 
         height = self.height
