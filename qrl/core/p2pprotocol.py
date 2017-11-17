@@ -885,11 +885,6 @@ class P2PProtocol(Protocol):
             self.factory.genesis = 1
             logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
             reactor.callLater(1, self.factory.pos.pre_pos_1)
-            return
-
-        # connected to multiple hosts and already passed through..
-        elif self.factory.buffered_chain.height == 1 and self.factory.genesis == 1:
-            return
 
         self.send_peers()
         self.get_version()
