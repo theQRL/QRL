@@ -281,6 +281,7 @@ class POS:
         return block_obj
 
     def restart_unsynced_logic(self, delay=0):
+        logger.info('Restarting unsynced logic in %s seconds', delay)
         try:
             reactor.unsynced_logic.cancel()
         except Exception:  # No need to log this exception
@@ -339,7 +340,7 @@ class POS:
             elif block.block_number == 1:
                 if not self.buffered_chain.add_block(block):
                     return False
-            self.update_node_state(ESyncState.synced)
+            self.isSynced(block.timestamp)
         else:
             self.buffered_chain.add_pending_block(block)
 
@@ -440,7 +441,7 @@ class POS:
                 self.retry_consensus = 0
                 self.buffered_chain.remove_last_buffer_block()
                 self.stop_post_block_logic()
-                self.restart_unsynced_logic()
+                self.update_node_state(ESyncState.unsynced)
                 return False
             self.restart_post_block_logic(blocknumber, 5)
             return False
@@ -455,7 +456,7 @@ class POS:
             self.buffered_chain.expected_headerhash[blocknumber - 1] = consensus_headerhash
             self.buffered_chain.remove_last_buffer_block()
             self.stop_post_block_logic()
-            self.restart_unsynced_logic()
+            self.update_node_state(ESyncState.unsynced)
             return False
 
         return True
@@ -638,6 +639,12 @@ class POS:
 
         return True
 
+    def isSynced(self, block_timestamp) -> bool:
+        if block_timestamp + config.dev.minimum_minting_delay > ntp.getTime():
+            self.update_node_state(ESyncState.synced)
+            return True
+        return False
+
     def randomize_block_fetch(self):
         if self.sync_state.state != ESyncState.syncing:
             return
@@ -645,8 +652,7 @@ class POS:
         if self.sync_state.state == ESyncState.syncing:
             block = self.buffered_chain.get_last_block()
             block_timestamp = block.timestamp
-            if block_timestamp + config.dev.minimum_minting_delay > ntp.getTime():
-                self.update_node_state(ESyncState.synced)
+            if self.isSynced(block_timestamp):
                 return
 
         if len(self.p2pFactory.synced_peers) == 0:
