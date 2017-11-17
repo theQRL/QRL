@@ -207,6 +207,9 @@ class BufferedChain:
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
             return
 
+        if (self.height != 0 and vote.blocknumber <= self._chain.height) or vote.blocknumber > self.height:
+            return
+
         height = self.height
         # FIXME: Temporary fix, need to add ST txn into genesis block
         if height > 1:

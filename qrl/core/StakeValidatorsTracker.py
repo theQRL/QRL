@@ -31,8 +31,6 @@ class StakeValidatorsTracker:
         else:
             self._activate_sv(balance, stake_txn)
 
-        logger.debug("Adding %s", id(self.sv_dict[stake_txn.txfrom]))
-
     def _activate_sv(self, balance, stake_txn):
         if stake_txn.txfrom in self.sv_dict:
             logger.info('Stake Validator already in Current Staker, sv_dict')
