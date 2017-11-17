@@ -39,6 +39,19 @@ jobs:
       - docker-compose --version
       - "cd tests_integration; python3 runtest_nodes_synchronize.py"
 
+    - stage: build+test
+      os: linux
+      env:
+      - INTEGRATION_TESTINPLACE='TRUE'
+      - PLATFORM='xenial'
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when running integration tests"
+      script:
+      - sudo pip install -U docker-compose
+      - docker-compose --version
+      - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
+
 
 #    - stage: build+test
 #      os: linux
