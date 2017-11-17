@@ -53,6 +53,8 @@ class BufferedChain:
 
         self._vote_tracker = dict()  # Tracks votes, against blocknumber
 
+        self.expected_headerhash = dict()
+
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss = dict()
         self.slave_xmsspool = None
@@ -285,6 +287,15 @@ class BufferedChain:
 
         self.epoch_seed = calc_seed(seed_list)
 
+    def check_expected_headerhash(self, blocknumber: int, headerhash: bytes) -> bool:
+        if blocknumber in self.expected_headerhash:
+            if headerhash != self.expected_headerhash[blocknumber]:
+                logger.warning('Consensus/Expected headerhash %s', self.expected_headerhash[blocknumber])
+                logger.warning('Headerhash found %s', headerhash)
+                return False
+
+        return True
+
     def add_block(self, block: Block) -> bool:
 
         # is there an older version available?
@@ -295,6 +306,10 @@ class BufferedChain:
                 return False
 
         if block.block_number < self._chain.height:
+            return False
+
+        if not self.check_expected_headerhash(block.block_number, block.headerhash):
+            logger.warning('Failed to Add block #%s', block.block_number)
             return False
 
         if block.block_number == 1:

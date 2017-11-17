@@ -459,6 +459,11 @@ class P2PProtocol(Protocol):
 
             blocknumber = block.block_number
             logger.info('>>> Received Block #%d', blocknumber)
+
+            if not self.factory.buffered_chain.check_expected_headerhash(blocknumber, block.headerhash):
+                logger.warning('Block downloaded from peer doesnt match with expected headerhash')
+                return
+
             if blocknumber != self.last_requested_blocknum:
                 logger.warning('Did not match %s %s', self.last_requested_blocknum, self.conn_identity)
                 return
