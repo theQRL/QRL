@@ -414,6 +414,9 @@ class POS:
 
         return False
 
+    def check_consensus(self, blocknumber):
+        pass
+
     def post_block_logic(self, blocknumber):
         """
         post block logic we initiate the next POS cycle
@@ -422,6 +425,8 @@ class POS:
 
         :return:
         """
+        self.check_consensus(blocknumber)
+
         if self.p2pFactory.stake:
             future_stake_addresses = self.buffered_chain.future_stake_addresses(blocknumber)
 
