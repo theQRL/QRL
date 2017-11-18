@@ -13,3 +13,4 @@ protobuf
 pyopenssl>=17.3.0
 pyqrllib>=0.2.9
 six>=1.9
+click==6.7
