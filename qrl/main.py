@@ -10,7 +10,6 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from .core import logger, ntp, config
-from .core.apifactory import ApiFactory
 from .core.Chain import Chain
 from .core.node import SyncState, POS
 from .core.p2pfactory import P2PFactory
@@ -78,10 +77,8 @@ def start_legacy_services(buffered_chain: BufferedChain,
     qrlnode.set_p2pfactory(p2p_factory)
 
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    api_factory = ApiFactory(pos, buffered_chain, persistent_state, p2p_factory.peer_connections)
     logger.info('>>>Listening..')
     reactor.listenTCP(9000, p2p_factory)
-    reactor.listenTCP(8080, api_factory)
     pos.restart_monitor_bk(80)
 
     logger.info('Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"')
