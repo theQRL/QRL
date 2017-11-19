@@ -157,6 +157,9 @@ class BufferedChain:
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
                 return False
 
+            if block.stake_selector == self.staking_address:
+                logger.info('You won Block #%s!!!!!!!!!', block.block_number)
+
             # modify fn to keep transaction in memory till reorg
             self.tx_pool.remove_tx_in_block_from_pool(block)
 
