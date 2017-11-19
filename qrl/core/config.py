@@ -124,7 +124,7 @@ class DevConfig(object):
 
         self.slave_dat_filename = 'slave.qrl'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = 'Quantum-Booster-Testnet'
+        self.genesis_prev_headerhash = 'Do androids dream of electric sheep?'
 
     @staticmethod
     def getInstance():
