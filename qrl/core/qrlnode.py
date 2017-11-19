@@ -160,7 +160,7 @@ class QRLNode:
         # FIXME: Probably will be refactored
         self._peer_addresses = peer_addresses
         known_peers = qrl_pb2.StoredPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
+        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in set(self._peer_addresses)])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
