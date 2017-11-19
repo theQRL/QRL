@@ -231,8 +231,8 @@ class TransferTransaction(Transaction):
         #	logger.info(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
         #	return False
 
-        tx_balance = tx_state[1]
-        tx_pubhashes = tx_state[2]
+        tx_balance = tx_state.balance
+        tx_pubhashes = tx_state.pubhashes
 
         if self.amount < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -386,7 +386,7 @@ class DestakeTransaction(Transaction):
         return True
 
     def validate_extended(self, tx_state):
-        state_pubhashes = tx_state[2]
+        state_pubhashes = tx_state.pubhashes
 
         if self.pubhash in state_pubhashes:
             logger.info('State validation failed for %s because: OTS Public key re-use detected')

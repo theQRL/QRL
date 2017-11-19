@@ -273,7 +273,7 @@ class QRLNode:
 
         tx.validate_or_raise()
 
-        block_number = self._buffered_chain.height() + 1
+        block_number = self._buffered_chain.height + 1
         tx_state = self._buffered_chain.get_stxn_state(block_number, tx.txfrom)
 
         if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
