@@ -1126,6 +1126,7 @@ class BufferedChain:
             if tx.subtype == TX_SUBTYPE_STAKE:
                 if tx.txfrom in stake_validators_tracker.future_stake_addresses:
                     logger.debug('P2P dropping st as staker is already in future_stake_address %s', tx.txfrom)
+                    total_txn -= 1
                     continue
 
                 if tx.txfrom in stake_validators_tracker.sv_dict:
@@ -1133,6 +1134,7 @@ class BufferedChain:
                                  tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
                     if tx.activation_blocknumber < expiry:
                         logger.debug('P2P dropping st txn as it is already active for the given range %s', tx.txfrom)
+                        total_txn -= 1
                         continue
 
                 if tx.txfrom in transfercoin_txn:
