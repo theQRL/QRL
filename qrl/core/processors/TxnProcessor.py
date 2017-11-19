@@ -14,17 +14,13 @@ class TxnProcessor:
     def __init__(self,
                  buffered_chain: BufferedChain,
                  pending_tx_pool,
-                 transaction_pool,
-                 txhash_timestamp):
+                 transaction_pool):
         self.pending_tx_pool = pending_tx_pool
         self.buffered_chain = buffered_chain
         self.transaction_pool = transaction_pool
-        self.txhash_timestamp = txhash_timestamp
 
     def add_tx_to_pool(self, tx):
         self.transaction_pool.append(tx)
-        self.txhash_timestamp.append(tx.txhash)
-        self.txhash_timestamp.append(time())
 
     def __iter__(self):
         return self

@@ -947,8 +947,7 @@ class P2PProtocol(Protocol):
             # FIXME: TxnProcessor breaks tx_pool encapsulation
             txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
                                          pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool,
-                                         txhash_timestamp=self.factory.buffered_chain.txhash_timestamp)
+                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool)
 
             task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
             task_defer.addCallback(self.factory.reset_processor_flag) \
