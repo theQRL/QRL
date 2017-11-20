@@ -52,7 +52,6 @@ jobs:
       - docker-compose --version
       - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
 
-
 #    - stage: build+test
 #      os: linux
 #      env:
@@ -68,7 +67,7 @@ jobs:
       - DEPLOY='TRUE'
       script:
       - sudo apt install -y python-dev libssl-dev libffi-dev
-      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1 cmake
+      - sudo pip install -U pip setuptools twine
       - "./travis/build.sh"
 
       deploy:
@@ -80,5 +79,3 @@ jobs:
         on:
           tags: true
           all_branches: true
-
-    
