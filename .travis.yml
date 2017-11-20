@@ -68,7 +68,7 @@ jobs:
       - DEPLOY='TRUE'
       script:
       - sudo apt install -y python-dev libssl-dev libffi-dev
-      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1
+      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1 cmake
       - "./travis/build.sh"
 
       deploy:
