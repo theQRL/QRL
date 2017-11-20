@@ -1,47 +1,40 @@
-import grpc
-from qrl.generated import qrl_pb2_grpc, qrl_pb2
-from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
-from qrl.core.Wallet import Wallet
-from qrl.core.Transaction import Transaction
-from time import sleep
+#!/usr/bin/env python3
 import click
+import grpc
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 
-future_response = None
+from qrl.core.Transaction import Transaction
+from qrl.core.Wallet import Wallet
+from qrl.generated import qrl_pb2_grpc, qrl_pb2
+
 
 def get_wallet_obj():
-    click.echo('Loading Wallet')
+    # FIXME: Not sure we need this redirection here. Maybe avoid
     walletObj = Wallet()
-    walletObj._read_wallet()
-
     return walletObj
 
-def _callback(response_future):
-    global future_response
-    if response_future.code()== grpc.StatusCode.OK:
-        future_response = response_future.result()
-        return
-    else:
-        future_response = False
-        print('Error: Seems like you are not running QRL NODE')
 
-#TODO add balance
+# TODO add balance
 def print_wallet_list(walletObj):
-    pos = 1
     print('Number\t\tAddress')
-    for addr in walletObj.address_bundle:
+    for pos, addr in enumerate(walletObj.address_bundle):
         print('%s\t\t%s' % (pos, addr.address.decode()))
-        pos += 1
+
 
 def select_wallet(walletObj):
+    # FIXME: Get values from arguments, interactive only when necessary
     walletnum = click.prompt('Enter wallet number ', type=int)
-    if walletnum > len(walletObj.address_bundle) or walletnum <=0:
-        print('Invalid Wallet Number')
-        return None
 
-    return walletObj.address_bundle[walletnum - 1]
+    if 0 <= walletnum < len(walletObj.address_bundle):
+        return walletObj.address_bundle[walletnum]
+
+    print('Invalid Wallet Number')
+    return None
+
 
 def get_channel():
     return grpc.insecure_channel('127.0.0.1:9009')
+
 
 @click.group()
 def wallet():
@@ -49,13 +42,15 @@ def wallet():
     """
     pass
 
+
 @wallet.command()
-def list():
+def list():  # FIXME: method name is a python keyword
     """
     Lists available wallets
     """
     walletObj = get_wallet_obj()
     print_wallet_list(walletObj)
+
 
 @wallet.command()
 @click.option('--seed-type', type=click.Choice(['hexseed', 'mnemonic']), default='hexseed')
@@ -63,26 +58,26 @@ def recover(seed_type):
     """
     Recover Wallet using hexseed or mnemonic (32 words)
     """
-    seed = click.prompt('Please enter your %s' %(seed_type,))
+    seed = click.prompt('Please enter your %s' % (seed_type,))
     seed = seed.lower().strip()
 
     if seed_type == 'mnemonic':
         words = seed.split()
         if len(words) != 32:
-            print('You have entered %s words' %(len(words),))
+            print('You have entered %s words' % (len(words),))
             print('Mnemonic seed must contain only 32 words')
             return
         bin_seed = mnemonic2bin(seed)
     else:
         if len(seed) != 96:
-            print('You have entered hexseed of %s characters' %(len(seed),))
+            print('You have entered hexseed of %s characters' % (len(seed),))
             print('Hexseed must be of only 96 characters.')
             return
         bin_seed = hstr2bin(seed)
 
     walletObj = get_wallet_obj()
     addrBundle = walletObj.get_new_address(seed=bin_seed)
-    print('Recovered Wallet Address : %s' %(addrBundle.address.decode(), ))
+    print('Recovered Wallet Address : %s' % (addrBundle.address.decode(),))
     for addr in walletObj.address_bundle:
         if addrBundle.address == addr.address:
             print('Wallet Address is already in the wallet list')
@@ -94,6 +89,7 @@ def recover(seed_type):
         walletObj.save_wallet()
         click.echo('Done')
 
+
 @wallet.command()
 def generate():
     """
@@ -102,15 +98,16 @@ def generate():
     walletObj = get_wallet_obj()
     click.echo('Generating...')
     addressBundle = walletObj.get_new_address()
-    click.echo('Wallet Address : %s' %(addressBundle.address.decode(),))
-    click.echo('Hexseed : %s' %(addressBundle.xmss.get_hexseed(),))
-    click.echo('Mnemonic : %s' %(addressBundle.xmss.get_mnemonic(),))
+    click.echo('Wallet Address     : %s' % (addressBundle.address.decode(),))
+    click.echo('Hexseed            : %s' % (addressBundle.xmss.get_hexseed(),))
+    click.echo('Mnemonic           : %s' % (addressBundle.xmss.get_mnemonic(),))
 
     if click.confirm('Do you want to save the generated wallet?'):
         walletObj.address_bundle.append(addressBundle)
         click.echo('Saving...')
         walletObj.save_wallet()
         click.echo('Done')
+
 
 @wallet.command()
 def hexseed():
@@ -120,11 +117,11 @@ def hexseed():
     walletObj = get_wallet_obj()
     print_wallet_list(walletObj)
     selected_wallet = select_wallet(walletObj)
-    if not selected_wallet:
-        return
-    print('Wallet Address : %s' %(selected_wallet.address.decode(),))
-    print('Hexseed : %s' %(selected_wallet.xmss.get_hexseed(),))
-    
+
+    if selected_wallet:
+        click.echo('Wallet Address : %s' % (selected_wallet.address.decode(),))
+        click.echo('Hexseed        : %s' % (selected_wallet.xmss.get_hexseed(),))
+
 
 @wallet.command()
 def mnemonic():
@@ -134,10 +131,11 @@ def mnemonic():
     walletObj = get_wallet_obj()
     print_wallet_list(walletObj)
     selected_wallet = select_wallet(walletObj)
-    if not selected_wallet:
-        return
-    print('Wallet Address : %s' %(selected_wallet.address.decode(),))
-    print('Mnemonic : %s' %(selected_wallet.xmss.get_mnemonic(),))
+
+    if selected_wallet:
+        click.echo('Wallet Address  : %s' % (selected_wallet.address.decode(),))
+        click.echo('Mnemonic        : %s' % (selected_wallet.xmss.get_mnemonic(),))
+
 
 @wallet.command()
 def send():
@@ -146,7 +144,7 @@ def send():
     """
     channel = get_channel()
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
-    
+
     walletObj = get_wallet_obj()
     print_wallet_list(walletObj)
     selected_wallet = select_wallet(walletObj)
@@ -156,37 +154,32 @@ def send():
     address_to = click.prompt('Enter Address To', type=str)
     amount = click.prompt('Enter Amount', type=float)
     fee = click.prompt('Fee', type=float)
-    address_to = address_to.encode()
-    int_amount = int(amount * 10**8)
-    int_fee = int(fee * 10**8)
-    transferCoinsReq = qrl_pb2.TransferCoinsReq()
-    transferCoinsReq.address_from = selected_wallet.address
-    transferCoinsReq.address_to = address_to
-    transferCoinsReq.amount = int_amount
-    transferCoinsReq.fee = int_fee
-    transferCoinsReq.xmss_pk = selected_wallet.xmss.pk()
-    transferCoinsReq.xmss_ots_index = selected_wallet.xmss.get_index()
 
-    f = stub.TransferCoins.future(transferCoinsReq, timeout=5)
-    f.add_done_callback(_callback)
-    global future_response
-    while future_response == None:
-        sleep(6)
-    if future_response == False:
-        return
-    transferCoinsResp = future_response
-    future_response = None
-    tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
-    tx.sign(selected_wallet.xmss)
-    pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-    f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
-    f.add_done_callback(_callback)
-    while future_response == None:
-        sleep(6)
-    if future_response == False:
-        return
-    pushTransactionResp = future_response
-    print('%s' %(pushTransactionResp.some_response,))
+    address_to = address_to.encode()
+    int_amount = int(amount * 10 ** 8)
+    int_fee = int(fee * 10 ** 8)
+
+    try:
+        transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=selected_wallet.address,
+                                                    address_to=address_to,
+                                                    amount=int_amount,
+                                                    fee=int_fee,
+                                                    xmss_pk=selected_wallet.xmss.pk(),
+                                                    xmss_ots_index=selected_wallet.xmss.get_index())
+
+        f = stub.TransferCoins.future(transferCoinsReq, timeout=5)
+        transferCoinsResp = f.result(timeout=5)
+
+        tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
+        tx.sign(selected_wallet.xmss)
+        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+
+        f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
+        pushTransactionResp = f.result(timeout=5)
+
+        print('%s' % (pushTransactionResp.some_response,))
+    except Exception as e:
+        print("Error {}".format(str(e)))
 
 
 if __name__ == '__main__':
