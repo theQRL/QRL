@@ -323,6 +323,7 @@ class BufferedChain:
 
         if block.block_number == 1:
             self.initialize_chain(block)
+            self._chain.pstate.stake_validators_tracker = StakeValidatorsTracker()
 
         if not self.validate_block(block):  # This is here because of validators, etc
             logger.info('Block validation failed')
