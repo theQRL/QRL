@@ -77,6 +77,10 @@ class Block(object):
         return self.blockheader.reveal_hash
 
     @property
+    def block_reward(self):
+        return self.blockheader.block_reward
+
+    @property
     def timestamp(self):
         return self.blockheader.timestamp
 

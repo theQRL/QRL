@@ -7,6 +7,7 @@ from grpc import ServicerContext
 from mock import Mock, MagicMock
 
 from qrl.core import logger
+from qrl.core.AddressState import AddressState
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import TransferTransaction
@@ -59,7 +60,9 @@ class TestPublicAPI(TestCase):
 
         buffered_chain = Mock(spec=BufferedChain)
         buffered_chain.height = 0
-        buffered_chain.blockchain = []
+        buffered_chain._chain = Mock()
+        buffered_chain._chain.blockchain = []
+
         buffered_chain.get_block = MagicMock(return_value=None)
         buffered_chain.state = db_state
 
@@ -116,7 +119,12 @@ class TestPublicAPI(TestCase):
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
-        db_state.get_address = MagicMock(return_value=(25, 10, [sha256(b'a'), sha256(b'b')]))
+
+        db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q'+sha256(b'address'),
+                                                                          nonce=25,
+                                                                          balance=10,
+                                                                          pubhashes=[sha256(b'a'), sha256(b'b')]))
+
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
         p2p_factory = Mock(spec=P2PFactory)
@@ -137,19 +145,19 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
-        request.address = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6'
+        request.address = b'Q'+sha256(b'address')
         response = service.GetAddressState(request=request, context=context)
         context.set_code.assert_not_called()
-        self.assertEqual(b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6',
-                         response.state.address)
+
+        self.assertEqual(b'Q'+sha256(b'address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
         self.assertEqual([sha256(b'a'), sha256(b'b')], response.state.pubhashes)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
 
     def test_getObject(self):
-        SOME_ADDR1 = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6'
-        SOME_ADDR2 = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd7'
+        SOME_ADDR1 = b'Q'+sha256(b'address1')
+        SOME_ADDR2 = b'Q'+sha256(b'address2')
 
         db_state = Mock(spec=State)
 
@@ -173,7 +181,10 @@ class TestPublicAPI(TestCase):
         self.assertFalse(response.found)
 
         # Find an address
-        db_state.get_address = MagicMock(return_value=(25, 10, [sha256(b'a'), sha256(b'b')]))
+        db_state.get_address = MagicMock(return_value=AddressState.create(address=SOME_ADDR1,
+                                                                          nonce=25,
+                                                                          balance=10,
+                                                                          pubhashes=[sha256(b'a'), sha256(b'b')]))
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
         context = Mock(spec=ServicerContext)
@@ -183,8 +194,8 @@ class TestPublicAPI(TestCase):
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
         self.assertIsNotNone(response.address_state)
-        self.assertEqual(SOME_ADDR1,
-                         response.address_state.address)
+
+        self.assertEqual(SOME_ADDR1, response.address_state.address)
         self.assertEqual(25, response.address_state.nonce)
         self.assertEqual(10, response.address_state.balance)
         self.assertEqual([sha256(b'a'), sha256(b'b')], response.address_state.pubhashes)
