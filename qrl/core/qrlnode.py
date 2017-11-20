@@ -68,9 +68,9 @@ class QRLNode:
 
     @property
     def epoch(self):
-        if len(self._buffered_chain.blockchain) == 0:
+        if len(self._buffered_chain._chain.blockchain) == 0:
             return 0
-        return self._buffered_chain.blockchain[-1].epoch
+        return self._buffered_chain._chain.blockchain[-1].epoch
 
     @property
     def uptime_network(self):
@@ -86,10 +86,10 @@ class QRLNode:
 
     @property
     def block_last_reward(self):
-        if len(self._buffered_chain.blockchain) == 0:
+        if len(self._buffered_chain._chain.blockchain) == 0:
             return 0
 
-        return self._buffered_chain.blockchain[-1].block_reward
+        return self._buffered_chain._chain.blockchain[-1].block_reward
 
     @property
     def block_time_mean(self):
@@ -305,12 +305,12 @@ class QRLNode:
         if not self.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        nonce, balance, pubhash_list = self.db_state.get_address(address)
+        tmp_address_state = self.db_state.get_address(address)
         transaction_hashes = self.db_state.get_address_tx_hashes(address)
-        address_state = qrl_pb2.AddressState(address=address,
-                                             balance=balance,
-                                             nonce=nonce,
-                                             pubhashes=pubhash_list,
+        address_state = qrl_pb2.AddressState(address=tmp_address_state.address,
+                                             balance=tmp_address_state.balance,
+                                             nonce=tmp_address_state.nonce,
+                                             pubhashes=tmp_address_state.pubhashes,
                                              transaction_hashes=transaction_hashes)
 
         return address_state
@@ -355,7 +355,7 @@ class QRLNode:
     def get_latest_transactions(self, count=5):
         # FIXME: Moved code. Breaking encapsulation. Refactor
         answer = []
-        for pbtx in self._buffered_chain.self.blockchain[-1].transactions[-20:]:
+        for pbtx in self._buffered_chain._chain.blockchain[-1].transactions[-20:]:
             tx = Transaction.from_pbdata(pbtx)
             if isinstance(tx, TransferTransaction):
                 answer.append(tx)
