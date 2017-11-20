@@ -66,7 +66,7 @@ jobs:
       - echo "Skip installing requirements.txt when using docker builders"
       script:
       - sudo apt install -y python-dev libssl-dev libffi-dev
-      - sudo pip install -U pip setuptools twine
+      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1
       - "./travis/build.sh"
 
       deploy:
