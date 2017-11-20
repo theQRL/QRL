@@ -6,10 +6,6 @@ python: 3.5
 cache:
   timeout: 600
 
-cache:
-  directories:
-    - $HOME/Library/Caches/Homebrew
-
 jobs:
   include:
     - stage: build+test
@@ -52,7 +48,6 @@ jobs:
       - docker-compose --version
       - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
 
-
 #    - stage: build+test
 #      os: linux
 #      env:
@@ -66,9 +61,12 @@ jobs:
       env:
       - PLATFORM='xenial'
       - DEPLOY='TRUE'
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when using docker builders"
       script:
       - sudo apt install -y python-dev libssl-dev libffi-dev
-      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1 cmake
+      - sudo pip install -U pip setuptools twine
       - "./travis/build.sh"
 
       deploy:
@@ -80,5 +78,3 @@ jobs:
         on:
           tags: true
           all_branches: true
-
-    
