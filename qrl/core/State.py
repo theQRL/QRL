@@ -170,7 +170,7 @@ class State:
     #########################################
     #########################################
 
-    def _get_address_state(self, address: bytes):
+    def _get_address_state(self, address: bytes)->AddressState:
         data = self._db.get_raw(address)
         if data is None:
             raise KeyError("{} not found".format(address))
@@ -240,7 +240,7 @@ class State:
     def total_coin_supply(self):
         # FIXME: This is temporary code. NOT SCALABLE. It is easy to keep a global count
         all_addresses = self.return_all_addresses()
-        coins = Decimal(0)
+        coins = 0
         for a in all_addresses:
-            coins = coins + Decimal(a.balance)  # FIXME: decimal math?
+            coins = coins + a.balance
         return coins
