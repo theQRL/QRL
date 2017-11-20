@@ -182,5 +182,9 @@ def send():
         print("Error {}".format(str(e)))
 
 
-if __name__ == '__main__':
+def main():
     wallet()
+
+
+if __name__ == '__main__':
+    main()
