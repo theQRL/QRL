@@ -15,12 +15,12 @@ from qrl.core import logger, config, BufferedChain, ntp
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import StakeTransaction, DestakeTransaction, Vote
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_STAKE, TX_SUBTYPE_DESTAKE
 from qrl.core.formulas import calc_seed
 from qrl.core.formulas import score
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
+from qrl.generated import qrl_pb2
 
 
 class SyncState:
@@ -185,7 +185,7 @@ class POS:
         total_genesis_stake_amount = 0
         for tx in self.buffered_chain.tx_pool.transaction_pool:
             tx.pbdata.nonce = 1
-            if tx.subtype == TX_SUBTYPE_STAKE:
+            if tx.subtype == qrl_pb2.Transaction.STAKE:
                 for genesisBalance in genesis_block.genesis_balance:
                     if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber == 1:
                         tmp_list.append([tx.txfrom, tx.hash, 0, genesisBalance.balance, tx.slave_public_key])
@@ -483,7 +483,7 @@ class POS:
 
             delay = config.dev.minimum_minting_delay
             if self.buffered_chain.staking_address in stake_list and stake_list[
-                self.buffered_chain.staking_address].is_active:
+                    self.buffered_chain.staking_address].is_active:
                 if stake_list[self.buffered_chain.staking_address].is_banned:
                     logger.warning('You have been banned.')
                 else:
@@ -541,7 +541,7 @@ class POS:
         sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)
         if self.buffered_chain.staking_address in sv_dict:
             activation_blocknumber = sv_dict[
-                                         self.buffered_chain.staking_address].activation_blocknumber + config.dev.blocks_per_epoch
+                self.buffered_chain.staking_address].activation_blocknumber + config.dev.blocks_per_epoch
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
@@ -586,7 +586,7 @@ class POS:
         self.p2pFactory.send_st_to_peers(st)
         for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
             t = self.buffered_chain.tx_pool.transaction_pool[num]
-            if t.subtype == TX_SUBTYPE_STAKE and st.hash == t.hash:
+            if t.subtype == qrl_pb2.Transaction.STAKE and st.hash == t.hash:
                 if st.get_message_hash() == t.get_message_hash():
                     return
                 self.buffered_chain.tx_pool.remove_tx_from_pool(t)
@@ -608,8 +608,8 @@ class POS:
 
         # Skip if mining address is not active in either stake validator list
         if not ((self.buffered_chain.staking_address in stake_validators_tracker.sv_dict and
-                 stake_validators_tracker.sv_dict[self.buffered_chain.staking_address].is_active)
-                or (self.buffered_chain.staking_address in stake_validators_tracker.future_stake_addresses and
+                 stake_validators_tracker.sv_dict[self.buffered_chain.staking_address].is_active) or
+                (self.buffered_chain.staking_address in stake_validators_tracker.future_stake_addresses and
                     stake_validators_tracker.future_stake_addresses[self.buffered_chain.staking_address].is_active)):
             logger.warning('%s is already inactive in Stake validator list, destake txn not required',
                            self.buffered_chain.staking_address)
@@ -628,7 +628,7 @@ class POS:
         self.p2pFactory.send_destake_txn_to_peers(de_stake_txn)
         for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
             t = self.buffered_chain.tx_pool.transaction_pool[num]
-            if t.subtype == TX_SUBTYPE_DESTAKE:
+            if t.subtype == qrl_pb2.Transaction.STAKE:
                 if de_stake_txn.get_message_hash() == t.get_message_hash():
                     return
                 self.buffered_chain.tx_pool.remove_tx_from_pool(t)

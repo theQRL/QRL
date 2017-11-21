@@ -199,7 +199,7 @@ class QRLNode:
     @staticmethod
     def validate_amount(amount_str: str) -> bool:
         # FIXME: Refactored code. Review Decimal usage all over the code
-        amount = Decimal(amount_str)
+        Decimal(amount_str)
         return True
 
     def _find_xmss(self, key_addr: bytes):

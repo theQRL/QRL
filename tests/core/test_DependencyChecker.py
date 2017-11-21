@@ -10,7 +10,6 @@ from mock import mock, MagicMock
 
 from qrl.core import logger
 from qrl.core.DependencyChecker import DependencyChecker
-from qrl.core.State import State
 
 logger.initialize_default(force_console_output=True)
 

@@ -7,9 +7,9 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import logger
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase, Vote
-from qrl.core.Transaction_subtypes import *
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
+from qrl.generated import qrl_pb2
 
 logger.initialize_default(force_console_output=True)
 
@@ -124,7 +124,7 @@ class TestSimpleTransaction(TestCase):
     def test_from_json(self):
         tx = Transaction.from_json(test_json_Simple)
         self.assertIsInstance(tx, TransferTransaction)
-        self.assertEqual(tx.subtype, TX_SUBTYPE_TX)
+        self.assertEqual(tx.subtype, qrl_pb2.Transaction.TRANSFER)
 
         # Test that common Transaction components were copied over.
         self.assertEqual(0, tx.nonce)

@@ -4,7 +4,6 @@
 from collections import namedtuple
 from typing import List
 
-import qrl.core.Transaction_subtypes
 from pyqrllib.pyqrllib import mnemonic2bin
 
 from qrl.generated import qrl_pb2
@@ -143,7 +142,7 @@ class Wallet:
             x = 0
             y = 0
             for t in transaction_pool:
-                if t.subtype == qrl.core.Transaction_subtypes.TX_SUBTYPE_TX:
+                if t.subtype == qrl_pb2.Transaction.TRANSFER:
                     if t.txfrom == addr_bundle.address:
                         y += 1
                         x -= t.amount

@@ -120,7 +120,7 @@ class TestPublicAPI(TestCase):
     def test_getAddressState(self):
         db_state = Mock(spec=State)
 
-        db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q'+sha256(b'address'),
+        db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q' + sha256(b'address'),
                                                                           nonce=25,
                                                                           balance=10,
                                                                           pubhashes=[sha256(b'a'), sha256(b'b')]))
@@ -145,19 +145,19 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
-        request.address = b'Q'+sha256(b'address')
+        request.address = b'Q' + sha256(b'address')
         response = service.GetAddressState(request=request, context=context)
         context.set_code.assert_not_called()
 
-        self.assertEqual(b'Q'+sha256(b'address'), response.state.address)
+        self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
         self.assertEqual([sha256(b'a'), sha256(b'b')], response.state.pubhashes)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
 
     def test_getObject(self):
-        SOME_ADDR1 = b'Q'+sha256(b'address1')
-        SOME_ADDR2 = b'Q'+sha256(b'address2')
+        SOME_ADDR1 = b'Q' + sha256(b'address1')
+        SOME_ADDR2 = b'Q' + sha256(b'address2')
 
         db_state = Mock(spec=State)
 

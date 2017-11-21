@@ -44,7 +44,7 @@ class Chain:
 
         if self.height > 0:
             prev_block = self.blockchain[-1]
-            if block.block_number != prev_block.block_number+1:
+            if block.block_number != prev_block.block_number + 1:
                 logger.warning('main: Block {} rejected. prev_block is not available.'.format(block.block_number))
                 return False
 

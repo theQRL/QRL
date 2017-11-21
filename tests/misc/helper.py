@@ -28,6 +28,7 @@ def set_wallet_dir(wallet_name):
     finally:
         shutil.rmtree(dst_dir)
 
+
 @contextlib.contextmanager
 def set_data_dir(data_name):
     dst_dir = tempfile.mkdtemp()
@@ -40,6 +41,7 @@ def set_data_dir(data_name):
         yield
     finally:
         shutil.rmtree(dst_dir)
+
 
 @contextlib.contextmanager
 def mocked_genesis():

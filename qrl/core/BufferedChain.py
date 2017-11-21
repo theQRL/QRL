@@ -19,11 +19,11 @@ from qrl.core.VoteTracker import VoteTracker
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.Transaction import CoinBase, Transaction, Vote
 from qrl.core.TransactionPool import TransactionPool
-from qrl.core.Transaction_subtypes import *
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.core.formulas import score, calc_seed
+from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2 import MR
 
 
@@ -147,7 +147,7 @@ class BufferedChain:
 
         # FIXME: Simplify condition
         while len(self.blocks) > 0 and \
-             (len(self.blocks) > config.dev.reorg_limit or min(self.blocks.keys()) == 0):
+                (len(self.blocks) > config.dev.reorg_limit or min(self.blocks.keys()) == 0):
 
             # FIXME: self.blocks why a dict instead of a deque?
             block_idx = min(self.blocks.keys())
@@ -235,7 +235,7 @@ class BufferedChain:
         if vote.blocknumber not in self._vote_tracker:
             self._vote_tracker[vote.blocknumber] = VoteTracker()
 
-        #FIXME: Temporary fix, ST txn must be added into genesis
+        # FIXME: Temporary fix, ST txn must be added into genesis
         if vote.blocknumber > 1:
             stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
             stake_balance = stake_validators_tracker.get_stake_balance(vote.addr_from)
@@ -287,7 +287,7 @@ class BufferedChain:
         genesis_block = self.get_block(0)
         for raw_tx in block_number_1.transactions:
             tx = Transaction.from_pbdata(raw_tx)
-            if tx.subtype == TX_SUBTYPE_STAKE:
+            if tx.subtype == qrl_pb2.Transaction.STAKE:
                 for genesisBalance in genesis_block.genesis_balance:
                     if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber == 1:
                         seed_list.append(tx.hash)
@@ -393,7 +393,7 @@ class BufferedChain:
                 logger.warning('Consensus Previous Headerhash %s', consensus_headerhash)
                 logger.warning('Current Previous Headerhash %s', prev_block.headerhash)
                 logger.warning('Previous blocknumber #%s', prev_block.block_number)
-                #TODO: Fork Recovery Logic
+                # TODO: Fork Recovery Logic
                 return False
 
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
@@ -445,7 +445,7 @@ class BufferedChain:
             # FIXME: Simplify this.. too complex. delegate to objects, etc.
 
             tx = Transaction.from_pbdata(protobuf_tx)
-            if tx.subtype == TX_SUBTYPE_COINBASE:
+            if tx.subtype == qrl_pb2.Transaction.COINBASE:
                 expected_nonce = stake_validators_tracker.sv_dict[tx.txfrom].nonce + 1
             else:
                 expected_nonce = address_txn[tx.txfrom].nonce + 1
@@ -462,13 +462,13 @@ class BufferedChain:
                 logger.warning('subtype: %s', tx.subtype)
                 return False
 
-            if tx.subtype == TX_SUBTYPE_TX:
+            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 if tx.txfrom in stake_txn:
                     logger.warning("Transfer coin done by %s address is a Stake Validator", tx.txfrom)
                     return False
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.warning("Source address is a Stake Validator, balance is locked while staking")
                     return False
 
@@ -485,7 +485,7 @@ class BufferedChain:
 
                 transfercoin_txn.add(tx.txfrom)
 
-            elif tx.subtype == TX_SUBTYPE_STAKE:
+            elif tx.subtype == qrl_pb2.Transaction.STAKE:
                 if tx.txfrom in transfercoin_txn:
                     logger.warning('Block cannot have both st txn & transfer coin txn from same address %s', tx.txfrom)
                     return False
@@ -498,9 +498,9 @@ class BufferedChain:
 
                 if tx.txfrom in stake_validators_tracker.sv_dict:
                     expiry = stake_validators_tracker.sv_dict[tx.txfrom].activation_blocknumber + \
-                             config.dev.blocks_per_epoch
+                        config.dev.blocks_per_epoch
 
-                    if block.block_number > 1 and tx.activation_blocknumber < expiry :
+                    if block.block_number > 1 and tx.activation_blocknumber < expiry:
                         logger.warning('Failed %s is already active for the given range', tx.txfrom)
                         return False
 
@@ -524,7 +524,7 @@ class BufferedChain:
 
                 stake_txn.add(tx.txfrom)
 
-            elif tx.subtype == TX_SUBTYPE_DESTAKE:
+            elif tx.subtype == qrl_pb2.Transaction.DESTAKE:
                 if tx.txfrom in stake_txn:
                     logger.warning('Block may not have both Destake and Stake txn of same address %s', tx.txfrom)
                     return False
@@ -545,13 +545,13 @@ class BufferedChain:
 
                 destake_txn.add(tx.txfrom)
 
-            if tx.subtype != TX_SUBTYPE_COINBASE:
+            if tx.subtype != qrl_pb2.Transaction.COINBASE:
                 address_txn[tx.txfrom].increase_nonce()
 
-            if tx.subtype == TX_SUBTYPE_TX:
+            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 address_txn[tx.txfrom].balance -= tx.amount - tx.fee
 
-            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+            if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
 
             address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
@@ -579,7 +579,7 @@ class BufferedChain:
                 # FIXME: Access to chain buffer from here
                 address_txn[tx.txfrom] = self.get_stxn_state(block.block_number, tx.txfrom)
 
-            if tx.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+            if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 if tx.txto not in address_txn:
                     # FIXME: Access to chain buffer from here
                     address_txn[tx.txto] = self.get_stxn_state(block.block_number, tx.txto)
@@ -641,7 +641,7 @@ class BufferedChain:
                         stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto]._is_banned = True
 
                 if self.get_blocks_left(block.block_number) == 1:
-                    ## UPDATE HASHCHAIN
+                    # UPDATE HASHCHAIN
                     epoch = int((block.block_number + 1) // config.dev.blocks_per_epoch)
                     logger.info('Created new hash chain')
 
@@ -713,7 +713,7 @@ class BufferedChain:
             # FIXME: Check if it is possible to delegate validation to coinbase transaction. Why the code is in Block?
             coinbase_tx = Transaction.from_pbdata(block.transactions[0])
 
-            if coinbase_tx.subtype != TX_SUBTYPE_COINBASE:
+            if coinbase_tx.subtype != qrl_pb2.Transaction.COINBASE:
                 logger.warning('BLOCK : First txn must be a COINBASE txn')
                 return False
 
@@ -734,7 +734,7 @@ class BufferedChain:
                 found = False
                 for protobuf_tx in block.transactions:
                     tx = Transaction.from_pbdata(protobuf_tx)
-                    if tx.subtype == TX_SUBTYPE_STAKE:
+                    if tx.subtype == qrl_pb2.Transaction.STAKE:
                         if tx.txfrom == block.stake_selector:
                             found = True
                             reveal_hash = self.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
@@ -844,7 +844,7 @@ class BufferedChain:
                 return False
             return True
         elif mr_data.block_number - 1 not in self.blocks or prev_headerhash != self.blocks[mr_data.block_number - 1]\
-            .block.headerhash:
+                .block.headerhash:
             logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
@@ -866,9 +866,9 @@ class BufferedChain:
 
         # FIXME: Duplicated code
         return score(stake_address=block.stake_selector,
-                      reveal_one=block.reveal_hash,
-                      balance=self._get_st_balance(block.stake_selector, block.block_number),
-                      seed=seed)
+                     reveal_one=block.reveal_hash,
+                     balance=self._get_st_balance(block.stake_selector, block.block_number),
+                     seed=seed)
 
     def _is_better_block(self, block_idx: int, score: float)->bool:
         if block_idx not in self.blocks:
@@ -940,9 +940,9 @@ class BufferedChain:
         for genesis_balance in genesis_block.genesis_balance:
             genesis_address = genesis_balance.address.encode()
             address_state = AddressState.create(address=genesis_address,
-                                              nonce=config.dev.default_nonce,
-                                              balance=genesis_balance.balance,
-                                              pubhashes=[])
+                                                nonce=config.dev.default_nonce,
+                                                balance=genesis_balance.balance,
+                                                pubhashes=[])
             self._chain.pstate._save_address_state(address_state)
         ###########
 
@@ -1101,7 +1101,7 @@ class BufferedChain:
                 total_txn -= 1
                 continue
 
-            if tx.subtype == TX_SUBTYPE_TX:
+            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 if tx.txfrom in stake_txn:
                     logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
@@ -1109,7 +1109,7 @@ class BufferedChain:
                     continue
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1124,7 +1124,7 @@ class BufferedChain:
 
                 transfercoin_txn.add(tx.txfrom)
 
-            if tx.subtype == TX_SUBTYPE_STAKE:
+            if tx.subtype == qrl_pb2.Transaction.STAKE:
                 if tx.txfrom in stake_validators_tracker.future_stake_addresses:
                     logger.debug('P2P dropping st as staker is already in future_stake_address %s', tx.txfrom)
                     del t_pool2[txnum]
@@ -1133,7 +1133,7 @@ class BufferedChain:
 
                 if tx.txfrom in stake_validators_tracker.sv_dict:
                     expiry = stake_validators_tracker.sv_dict[
-                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                        tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
                     if tx.activation_blocknumber < expiry:
                         logger.debug('P2P dropping st txn as it is already active for the given range %s', tx.txfrom)
                         del t_pool2[txnum]
@@ -1164,7 +1164,7 @@ class BufferedChain:
                     continue
                 if tx.txfrom in stake_validators_tracker.sv_dict:
                     expiry = stake_validators_tracker.sv_dict[
-                                 tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
+                        tx.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
                     if tx.activation_blocknumber < expiry:
                         logger.debug('Skipping st txn as it is already active for the given range %s', tx.txfrom)
                         del t_pool2[txnum]
@@ -1181,7 +1181,7 @@ class BufferedChain:
 
                 stake_txn.add(tx.txfrom)
 
-            if tx.subtype == TX_SUBTYPE_DESTAKE:
+            if tx.subtype == qrl_pb2.Transaction.DESTAKE:
                 if tx.txfrom in stake_txn:
                     logger.debug('Dropping destake txn as stake txn has been added %s', tx.txfrom)
                     del t_pool2[txnum]

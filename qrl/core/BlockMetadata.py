@@ -1,9 +1,9 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from typing import Dict
+from typing import Dict  # noqa
 
-from qrl.core.AddressState import AddressState
+from qrl.core.AddressState import AddressState  # noqa
 from qrl.core.Block import Block
 
 from qrl.core.formulas import score

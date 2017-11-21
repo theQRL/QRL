@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 import grpc
-from mock import Mock, MagicMock
+from mock import Mock
 
 from qrl.core import logger, BufferedChain, config
 from qrl.core.State import State
