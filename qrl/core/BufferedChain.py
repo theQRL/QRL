@@ -1333,13 +1333,14 @@ class BufferedChain:
         """
 
         prev_epoch = blocknumber // config.dev.blocks_per_epoch
+        prev_prev_epoch = prev_epoch - 1
 
-        if prev_epoch in self._wallet_private_seeds:
-            del self._wallet_private_seeds[prev_epoch]
+        if prev_prev_epoch in self._wallet_private_seeds:
+            del self._wallet_private_seeds[prev_prev_epoch]
 
-        if prev_epoch in self.hash_chain:
-            del self.hash_chain[prev_epoch]
+        if prev_prev_epoch in self.hash_chain:
+            del self.hash_chain[prev_prev_epoch]
 
         # FIXME: This should not be here
-        if prev_epoch in self.slave_xmss:
-            del self.slave_xmss[prev_epoch]
+        if prev_prev_epoch in self.slave_xmss:
+            del self.slave_xmss[prev_prev_epoch]
