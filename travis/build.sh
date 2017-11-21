@@ -20,12 +20,12 @@ case "${TRAVIS_OS_NAME}" in
         docker stop $(docker ps -aq --filter name=builder) || true
         docker rm $(docker ps -aq --filter name=builder) || true
         docker build --file travis/Dockerfile.${PLATFORM} -t builder-${PLATFORM} .
-        # docker run -d --name builder ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} tail -f /dev/null
+        docker run -d --name builder ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} tail -f /dev/null
 
         docker exec -t -e TEST -e DEPLOY -e STYLECHECK builder /build.sh
 
-        docker run -it -e TEST=${TEST} -e DEPLOY=${DEPLOY} -e BUILD_DIST=${BUILD_DIST} -e GPGKEY=${GPGKEY} ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} bash
-        #docker exec -t -e TEST=${TEST} -e DEPLOY=${DEPLOY} -e BUILD_DIST=${BUILD_DIST} -e GPGKEY=${GPGKEY} builder /build.sh
+        #docker run -it -e TEST=${TEST} -e DEPLOY=${DEPLOY} -e BUILD_DIST=${BUILD_DIST} -e GPGKEY=${GPGKEY} ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} bash
+        docker exec -t -e TEST=${TEST} -e DEPLOY=${DEPLOY} -e BUILD_DIST=${BUILD_DIST} -e GPGKEY=${GPGKEY} builder /build.sh
         ;;
     *)
         echo "UNSUPPORTED OS"

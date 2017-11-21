@@ -14,6 +14,7 @@ case "${TRAVIS_OS_NAME}" in
 
     linux)
         echo "LINUX PREPARE " ${PLATFORM}
+        echo "YOU SHOULD SEE ME"
         ;;
     *)
         echo "UNSUPPORTED OS"

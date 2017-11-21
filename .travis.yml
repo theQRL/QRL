@@ -66,6 +66,9 @@ jobs:
     - PLATFORM='xenial'
     - BUILD_DIST='TRUE'
     - GPGKEY=84B8A307
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when using docker builders"
     script:
     - "./travis/build.sh"
   - stage: publish
