@@ -26,7 +26,7 @@ class TestMessageReceipt(TestCase):
         msg_obj = [1, 2, 3, 4]
         msg_type = mr.allowed_types[0]
 
-        mr.register(msg_hash, msg_obj, msg_type)
+        mr.register(msg_type, msg_hash, msg_obj)
 
     def test_add_contains_remove(self):
         mr = MessageReceipt()
@@ -37,7 +37,7 @@ class TestMessageReceipt(TestCase):
         msg_type = mr.allowed_types[0]
         peer = '127.0.0.1'
 
-        mr.register(msg_hash, msg_obj, msg_type)
+        mr.register(msg_type, msg_hash, msg_obj)
         mr.add_peer(msg_hash, msg_type, peer)
 
         self.assertTrue(mr.contains(msg_hash, msg_type))
@@ -50,7 +50,7 @@ class TestMessageReceipt(TestCase):
         msg_obj = [1, 2, 3, 4]
         msg_type = mr.allowed_types[0]
 
-        mr.register(msg_hash, msg_obj, msg_type)
+        mr.register(msg_type, msg_hash, msg_obj)
         self.assertTrue(mr.contains(msg_hash, msg_type))
 
     def test_register_overflow(self):
@@ -63,6 +63,6 @@ class TestMessageReceipt(TestCase):
 
         for i in range(config.dev.message_q_size * 2):
             msg_hash = str2bin(str(i))
-            mr.register(msg_hash, msg_obj, msg_type)
+            mr.register(msg_type, msg_hash, msg_obj)
 
         self.assertEqual(len(mr.hash_msg), config.dev.message_q_size)

@@ -4,6 +4,7 @@
 import json
 import struct
 import time
+from typing import Optional
 
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
@@ -59,38 +60,12 @@ class P2PProtocol(Protocol):
         }
 
         self.buffer = b''
-        self.messages = []
         self.conn_identity = None
-        self.blockheight = None
-        self.version = ''
         self.last_requested_blocknum = None
+        self.prev_txpool_hashes = [None] * 1000
+
         self.disconnect_callLater = None
         self.ping_callLater = None
-        self.ping_list = []
-        self.prev_txpool = [None] * 1000
-
-    def _parse_msg(self, data):
-        try:
-            jdata = json.loads(data.decode())
-        except Exception as e:
-            logger.warning("parse_msg [json] %s", e)
-            logger.exception(e)
-            return
-
-        func_name = jdata['type']
-
-        if func_name not in self.service:
-            return
-
-        func = self.service[func_name]
-        try:
-            if 'data' in jdata:
-                func(jdata['data'])
-            else:
-                func()
-        except Exception as e:
-            logger.debug("executing [%s] by %s", func_name, self.conn_identity)
-            logger.exception(e)
 
     def MR(self, data):
         """
@@ -384,7 +359,7 @@ class P2PProtocol(Protocol):
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
             '''
         self.factory.pos.pre_block_logic(block)     # FIXME: Ignores return value
-        self.factory.master_mr.register(block.headerhash, data, 'BK')
+        self.factory.master_mr.register('BK', block.headerhash, data)
         return
 
     def isNoMoreBlock(self, data):
@@ -522,21 +497,6 @@ class P2PProtocol(Protocol):
             logger.info(' Send for blocknumber #%s to %s', idx, self.conn_identity)
         return
 
-    def PO(self, data):
-        """
-        Pong
-        :return:
-        """
-        if data[0:2] == 'NG':
-            y = 0
-            for entry in self.ping_list:
-                if entry['node'] == self.transport.getPeer().host:
-                    entry['ping (ms)'] = (time.time() - self.factory.last_ping) * 1000
-                    y = 1
-            if y == 0:
-                self.ping_list.append({'node': self.transport.getPeer().host,
-                                       'ping (ms)': (time.time() - self.factory.last_ping) * 1000})
-
     def PING(self):
         """
         Ping
@@ -591,7 +551,6 @@ class P2PProtocol(Protocol):
         else:
             try:
                 data = json.loads(data)
-                self.version = str(data['version'])
                 logger.info('%s version: %s | genesis prev_headerhash %s',
                             self.transport.getPeer().host,
                             data['version'],
@@ -677,8 +636,76 @@ class P2PProtocol(Protocol):
         logger.info('<<<Fetching block: %s from %s', n, self.conn_identity)
         self.transport.write(self.wrap_message('FB', str(n)))
 
+    def recv_tx(self, json_tx_obj):
+        try:
+            tx = Transaction.from_json(json_tx_obj)
+        except Exception as e:
+            logger.info('tx rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
+            return
+
+        if tx.txhash in self.prev_txpool_hashes or tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
+        del self.prev_txpool_hashes[0]
+        self.prev_txpool_hashes.append(tx.txhash)
+
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:  # duplicate tx already received, would mess up nonce..
+            if tx.txhash == t.txhash:
+                return
+
+        self.factory.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
+
+        self.factory.master_mr.register('TX', tx.get_message_hash(), json_tx_obj)
+        self.factory.broadcast(tx.get_message_hash(), 'TX')
+
+        if not self.factory.txn_processor_running:
+            # FIXME: TxnProcessor breaks tx_pool encapsulation
+            txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
+                                         pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
+                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+            task_defer.addCallback(self.factory.reset_processor_flag) \
+                .addErrback(self.factory.reset_processor_flag_with_err)
+            self.factory.txn_processor_running = True
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    # Low-level serialization/connections/etc
+    # NOTE: No need to refactor, it is obsolete
+
     MSG_INITIATOR = bytearray(b'\xff\x00\x00')
     MSG_TERMINATOR = bytearray(b'\x00\x00\xff')
+
+    def _parse_msg(self, data):
+        try:
+            jdata = json.loads(data.decode())
+        except Exception as e:
+            logger.warning("parse_msg [json] %s", e)
+            logger.exception(e)
+            return
+
+        func_name = jdata['type']
+
+        if func_name not in self.service:
+            return
+
+        func = self.service[func_name]
+        try:
+            if 'data' in jdata:
+                func(jdata['data'])
+            else:
+                func()
+        except Exception as e:
+            logger.debug("executing [%s] by %s", func_name, self.conn_identity)
+            logger.exception(e)
 
     @staticmethod
     def wrap_message(mtype, data=None):
@@ -723,7 +750,7 @@ class P2PProtocol(Protocol):
         else:
             self.buffer = b''  # Clean buffer completely
 
-    def _parse_buffer(self):
+    def _parse_buffer(self)->Optional[list]:
         # FIXME: This parsing/wire protocol needs to be replaced
         """
         :return:
@@ -737,7 +764,7 @@ class P2PProtocol(Protocol):
         """
         # FIXME
         if len(self.buffer) == 0:
-            return False
+            return None
 
         d = self.buffer.find(P2PProtocol.MSG_INITIATOR)  # find the initiator sequence
         num_d = self.buffer.count(P2PProtocol.MSG_INITIATOR)  # count the initiator sequences
@@ -745,12 +772,12 @@ class P2PProtocol(Protocol):
         if d == -1:  # if no initiator sequences found then wipe buffer..
             logger.warning('Message data without initiator')
             self.clean_buffer(reason='Message data without initiator')
-            return False
+            return None
 
         self.buffer = self.buffer[d:]  # delete data up to initiator
 
         if len(self.buffer) < 8:  # Buffer is still incomplete as it doesn't have message size
-            return False
+            return None
 
         try:
             tmp = self.buffer[3:11]
@@ -760,28 +787,27 @@ class P2PProtocol(Protocol):
         except (UnicodeDecodeError, ValueError):
             logger.info('Peer not following protocol %s', self.conn_identity)
             self.transport.loseConnection()
-            return False
+            return None
         except Exception as e:
             logger.exception(e)
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
-                self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved',
-                                  upto=d)  # no
-                return True
+                self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved', upto=d)  # no
+                return []
             else:
                 self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')  # yes
-            return False
+            return None
 
         if m > config.dev.message_buffer_size:  # check if size is more than 500 KB
             if num_d > 1:
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                 self.clean_buffer(reason='Size is more than 500 KB, next msg preserved', upto=d)
-                return True
+                return []
             else:
                 self.clean_buffer(reason='Size is more than 500 KB')
-            return False
+            return None
 
         e = self.buffer.find(P2PProtocol.MSG_TERMINATOR)  # find the terminator sequence
 
@@ -791,24 +817,24 @@ class P2PProtocol(Protocol):
                     self.buffer = self.buffer[3:]
                     d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                     self.clean_buffer(reason='Message without appropriate terminator, next msg preserved', upto=d)  # no
-                    return True
+                    return []
                 else:
                     self.clean_buffer(reason='Message without initiator and terminator')  # yes
-            return False
+            return None
 
         if e != 3 + 9 + m:  # is terminator sequence located correctly?
             if num_d > 1:  # if not is this the only initiator sequence?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
                 self.clean_buffer(reason='Message terminator incorrectly positioned, next msg preserved', upto=d)  # no
-                return True
+                return []
             else:
                 self.clean_buffer(reason='Message terminator incorrectly positioned')  # yes
-            return False
+            return None
 
-        self.messages.append(self.buffer[12:12 + m])  # if survived the above then save the msg into the self.messages
+        messages = [self.buffer[12:12 + m]]
         self.buffer = self.buffer[12 + m + 3:]  # reset the buffer to after the msg
-        return True
+        return messages
 
     def dataReceived(self, data: bytes) -> None:
         """
@@ -836,13 +862,12 @@ class P2PProtocol(Protocol):
         self.buffer += data
 
         for x in range(50):
-            if not self._parse_buffer():
+            messages = self._parse_buffer()
+            if messages is None:
                 break
 
-            for msg in self.messages:
+            for msg in messages:
                 self._parse_msg(msg)
-
-            del self.messages[:]
 
     def connectionMade(self):
         peerHost, peerPort = self.transport.getPeer().host, self.transport.getPeer().port
@@ -864,7 +889,6 @@ class P2PProtocol(Protocol):
             self.transport.loseConnection()
             return
 
-        self.factory.connections += 1
         self.factory.peer_connections.append(self)
         peer_list = self.factory.node.peer_addresses
 
@@ -900,16 +924,12 @@ class P2PProtocol(Protocol):
         self.disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
         self.ping_callLater = reactor.callLater(1, self.PING)
 
-    # here goes the code for handshake..using functions within the p2pprotocol class
-    # should ask for latest block/block number.
-
     def connectionLost(self, reason=connectionDone):
         logger.info('%s disconnected. remainder connected: %s',
                     self.transport.getPeer().host,
                     str(self.factory.connections))  # , reason
         try:
             self.factory.peer_connections.remove(self)
-            self.factory.connections -= 1
 
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
@@ -918,42 +938,3 @@ class P2PProtocol(Protocol):
                 self.factory.synced_peers.remove(self)
         except Exception:
             pass
-
-    def recv_tx(self, json_tx_obj):
-        try:
-            tx = Transaction.from_json(json_tx_obj)
-        except Exception as e:
-            logger.info('tx rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            self.transport.loseConnection()
-            return
-
-        if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
-            return
-
-        if tx.txhash in self.prev_txpool or tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
-            return
-
-        del self.prev_txpool[0]
-        self.prev_txpool.append(tx.txhash)
-
-        for t in self.factory.buffered_chain.tx_pool.transaction_pool:  # duplicate tx already received, would mess up nonce..
-            if tx.txhash == t.txhash:
-                return
-
-        self.factory.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-
-        self.factory.master_mr.register(tx.get_message_hash(), json_tx_obj, 'TX')
-        self.factory.broadcast(tx.get_message_hash(), 'TX')
-
-        if not self.factory.txn_processor_running:
-            # FIXME: TxnProcessor breaks tx_pool encapsulation
-            txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
-                                         pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool)
-
-            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-            task_defer.addCallback(self.factory.reset_processor_flag) \
-                .addErrback(self.factory.reset_processor_flag_with_err)
-            self.factory.txn_processor_running = True
-        return

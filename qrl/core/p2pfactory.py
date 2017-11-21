@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 import queue
-import time
 
 from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import bin2hstr
@@ -11,8 +10,9 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import config, logger, ntp
+from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
-from qrl.core.Transaction import Vote
+from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
@@ -35,7 +35,6 @@ class P2PFactory(ServerFactory):
         self.sync_state = sync_state
         self.stake = config.user.enable_auto_staking
 
-        self.connections = 0
         self.sync = 0
         self.genesis = 0
 
@@ -58,16 +57,19 @@ class P2PFactory(ServerFactory):
     def height(self):
         return self.buffered_chain.height
 
+    @property
+    def connections(self):
+        return len(self.peer_connections)
+
     # factory network functions
     def setPOS(self, pos):
         self.pos = pos
         self.master_mr = self.pos.master_mr
 
-    # Request all peers to update their synced status
-    def get_synced_state(self):
-        self.synced_peers = set()
-        for peer in self.peer_connections:
-            peer.transport.write(peer.wrap_message('SYNC'))
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
 
     def RFM(self, data):
         """
@@ -108,6 +110,7 @@ class P2PFactory(ServerFactory):
             del self.master_mr.requested_hash[msg_hash]
 
     def select_best_bkmr(self):
+        # FIXME: This seems to be a much higher level behavior
         blocknumber = self.bkmr_blocknumber
         try:
             dscore, dhash = self.bkmr_priorityq.get_nowait()
@@ -132,23 +135,20 @@ class P2PFactory(ServerFactory):
             logger.error('%s', e)
 
     ##############################################
-    # POS
-    def send_st_to_peers(self, st):
+    # NOTE: PoS related.. broadcasting, etc. OBSOLETE
+    def broadcast_st(self, st: StakeTransaction):
         logger.info('<<<Transmitting ST: %s', st.activation_blocknumber)
         self.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
-        return
 
-    def send_vote_to_peers(self, vote: Vote):
+    def broadcast_vote(self, vote: Vote):
         logger.info('<<<Transmitting Vote Txn: %s', vote.blocknumber)
         self.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
-        return
 
-    def send_destake_txn_to_peers(self, destake_txn):
+    def broadcast_destake(self, destake_txn: DestakeTransaction):
         logger.info('<<<Transmitting Destake Txn: %s', destake_txn.txfrom)
         self.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
-        return
 
-    def send_block_to_peers(self, block):
+    def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
         data = qrl_pb2.MR()
         data.stake_selector = block.transactions[0].addr_from
@@ -158,44 +158,14 @@ class P2PFactory(ServerFactory):
         if block.block_number > 1:
             data.reveal_hash = block.reveal_hash
 
-        self.register_and_broadcast('BK',
-                                    block.headerhash,
-                                    block.to_json(),
-                                    data)
-        return
+        self.register_and_broadcast('BK', block.headerhash, block.to_json(), data)
 
-    ##############################################
-    # TRANSFERS
-    def send_tx_to_peers(self, tx):
+    def broadcast_tx(self, tx):
         logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())
-        return
 
-    ##############################################
-    # NETWORK
-
-    def ping_peers(self):
-        logger.info('<<<Transmitting network PING')
-
-        # FIXME: This last_ping seems obsolete
-        self.last_ping = time.time()
-        for peer in self.peer_connections:
-            peer.transport.write(self.protocol.wrap_message('PING'))
-        return
-
-    ##############################################
-    # GENERIC LOW-LEVEL
-    def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json, data=None):
-        # FIXME: Try to keep parameters in the same order (consistency)
-        self.master_mr.register(msg_hash, msg_json, msg_type)
-
-        # FIXME: Clean
-        if not data:
-            data = qrl_pb2.MR()
-
-        data.hash = msg_hash
-        data.type = msg_type
-
+    def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json: str, data=None):
+        self.master_mr.register(msg_type, msg_hash, msg_json)
         self.broadcast(msg_hash, msg_type, data)
 
     def broadcast(self, msg_hash: bytes, msg_type, data=None):  # Move to factory
@@ -210,15 +180,25 @@ class P2PFactory(ServerFactory):
 
         if not data:
             data = qrl_pb2.MR()
-            data.hash = msg_hash
-            data.type = msg_type
+
+        data.hash = msg_hash
+        data.type = msg_type
 
         for peer in self.peer_connections:
-            if peer in ignore_peers:
-                continue
-            peer.transport.write(self.protocol.wrap_message('MR', MessageToJson(data)))
+            if peer not in ignore_peers:
+                peer.transport.write(self.protocol.wrap_message('MR', MessageToJson(data)))
 
-    # connection functions
+    def broadcast_get_synced_state(self):
+        # Request all peers to update their synced status
+        self.synced_peers = set()
+        for peer in self.peer_connections:
+            peer.transport.write(peer.wrap_message('SYNC'))
+
+
+    ###################################################
+    ###################################################
+    ###################################################
+    # NOTE: tx processor related. Obsolete stage 2?
 
     def reset_processor_flag(self, _):
         self.txn_processor_running = False
@@ -228,7 +208,13 @@ class P2PFactory(ServerFactory):
         logger.error('%s', msg)
         self.txn_processor_running = False
 
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
     # Event handlers
+    # NOTE: No need to refactor, it is obsolete
+
     # noinspection PyMethodMayBeStatic
     def clientConnectionLost(self, connector, reason):
         logger.debug('connection lost: %s', reason)

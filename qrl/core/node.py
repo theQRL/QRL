@@ -156,7 +156,7 @@ class POS:
         self.buffered_chain.tx_pool.add_tx_to_pool(st)
 
         # send the stake tx to generate hashchain terminators for the staker addresses..
-        self.p2pFactory.send_st_to_peers(st)
+        self.p2pFactory.broadcast_st(st)
 
         vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
                            blocknumber=0,
@@ -168,7 +168,7 @@ class POS:
         self.buffered_chain.add_vote(vote)
 
         # send the stake votes for genesis block
-        self.p2pFactory.send_vote_to_peers(vote)
+        self.p2pFactory.broadcast_vote(vote)
 
         logger.info('await delayed call to build staker list from genesis')
         reactor.callLater(5, self.pre_pos_2, st)
@@ -213,7 +213,7 @@ class POS:
 
         # stake pool still not full..reloop..
         if len(self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:
-            self.p2pFactory.send_st_to_peers(data)
+            self.p2pFactory.broadcast_st(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
@@ -299,7 +299,7 @@ class POS:
         5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
         '''
         if self.sync_state.state != ESyncState.synced:
-            self.p2pFactory.get_synced_state()
+            self.p2pFactory.broadcast_get_synced_state()
 
             reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
@@ -347,7 +347,7 @@ class POS:
         if self.sync_state.state == ESyncState.synced:
             last_block_after = self.buffered_chain.get_last_block()
             self.last_pos_cycle = time.time()
-            self.p2pFactory.send_block_to_peers(block)
+            self.p2pFactory.broadcast_block(block)
             if last_block_before.headerhash != last_block_after.headerhash:
                 self.schedule_pos(block.block_number + 1)
 
@@ -535,7 +535,7 @@ class POS:
 
         self.buffered_chain.add_vote(vote)
 
-        self.p2pFactory.send_vote_to_peers(vote)
+        self.p2pFactory.broadcast_vote(vote)
 
     def _create_stake_tx(self, curr_blocknumber):
         sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)
@@ -583,7 +583,7 @@ class POS:
             logger.warning('Create St Txn failed due to validation failure, will retry next block')
             return
 
-        self.p2pFactory.send_st_to_peers(st)
+        self.p2pFactory.broadcast_st(st)
         for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
             t = self.buffered_chain.tx_pool.transaction_pool[num]
             if t.subtype == qrl_pb2.Transaction.STAKE and st.hash == t.hash:
@@ -625,7 +625,7 @@ class POS:
             logger.warning('Make DeStake Txn failed due to validation failure')
             return
 
-        self.p2pFactory.send_destake_txn_to_peers(de_stake_txn)
+        self.p2pFactory.broadcast_destake(de_stake_txn)
         for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
             t = self.buffered_chain.tx_pool.transaction_pool[num]
             if t.subtype == qrl_pb2.Transaction.STAKE:

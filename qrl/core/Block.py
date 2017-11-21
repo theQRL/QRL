@@ -89,7 +89,7 @@ class Block(object):
         Parse(json_data, pbdata)
         return Block(pbdata)
 
-    def to_json(self):
+    def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data)
 
