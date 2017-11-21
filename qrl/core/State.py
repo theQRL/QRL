@@ -2,15 +2,12 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from _decimal import Decimal
-
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_COINBASE, TX_SUBTYPE_TX
 from qrl.generated import qrl_pb2
 
 
@@ -80,12 +77,12 @@ class State:
 
         try:
             last_txn = self._db.get('last_txn')
-        except:
+        except:  # noqa
             pass
 
         for protobuf_txn in block.transactions[-20:]:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype == TX_SUBTYPE_TX:
+            if txn.subtype == qrl_pb2.Transaction.TRANSFER:
                 last_txn.insert(0, [txn.to_json(),
                                     block.block_number,
                                     block.timestamp])
@@ -151,13 +148,13 @@ class State:
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype in (TX_SUBTYPE_TX, TX_SUBTYPE_COINBASE):
+            if txn.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(),
                               block.block_number,
                               block.timestamp])
 
-                if txn.subtype == TX_SUBTYPE_TX:
+                if txn.subtype == qrl_pb2.Transaction.TRANSFER:
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
                 self.update_address_tx_hashes(txn.txto, txn.txhash)
@@ -170,7 +167,7 @@ class State:
     #########################################
     #########################################
 
-    def _get_address_state(self, address: bytes)->AddressState:
+    def _get_address_state(self, address: bytes) -> AddressState:
         data = self._db.get_raw(address)
         if data is None:
             raise KeyError("{} not found".format(address))
@@ -183,7 +180,7 @@ class State:
         data = address_state.pbdata.SerializeToString()
         self._db.put_raw(address_state.address, data)
 
-    def get_address(self, address: bytes)->AddressState:
+    def get_address(self, address: bytes) -> AddressState:
         # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
         try:
             return self._get_address_state(address)
@@ -229,7 +226,6 @@ class State:
             self._db.delete(k)
         logger.info('Reset Finished')
         self._set_blockheight(0)
-        return
 
     #########################################
     #########################################

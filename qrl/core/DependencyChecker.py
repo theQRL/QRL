@@ -11,9 +11,9 @@ class DependencyChecker:
     @staticmethod
     def _get_requirements_path():
         return os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                         os.path.pardir,
-                                                         os.path.pardir,
-                                                         "requirements.txt"))
+                                            os.path.pardir,
+                                            os.path.pardir,
+                                            "requirements.txt"))
 
     @staticmethod
     def check():

@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from qrl.core import logger, config
-from time import time
 from twisted.internet.task import cooperate
 from pyqrllib.pyqrllib import bin2hstr
 

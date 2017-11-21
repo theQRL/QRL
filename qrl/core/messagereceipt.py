@@ -9,6 +9,7 @@ from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core.Transaction import CoinBase
 
+
 class MessageReceipt(object):
     """
     1> dict Hash to peer

@@ -24,5 +24,3 @@ class TestFormulas(TestCase):
         print(remaining_emission(100, 2))
         self.assertEqual(remaining_emission(100, 2), Decimal('99.99999122'))
         # TODO: Test more values
-
-

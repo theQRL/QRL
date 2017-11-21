@@ -9,4 +9,4 @@
 """
 
 # noinspection PyUnresolvedReferences,PyPackageRequirements
-import pytest
+import pytest  # noqa

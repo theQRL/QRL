@@ -16,4 +16,4 @@ class TestBlockHeader(TestCase):
     def test_init(self):
         # TODO: Not much going on here..
         block_header = BlockHeader()
-        self.assertIsNotNone(block_header) # just to avoid warnings
+        self.assertIsNotNone(block_header)  # just to avoid warnings

@@ -129,7 +129,7 @@ class PeerManager(object):
                 for peer_metadata in self.stable_peers():
                     addr = peer_metadata.conn_addr.split(':')[0]
                     tmp.append(addr)
-                #self.qrlnode.update_peer_addresses(tmp)
+                # self.qrlnode.update_peer_addresses(tmp)
 
                 sleep(self.REFRESH_CYCLE_SECS)
                 self.recycle()

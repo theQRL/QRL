@@ -14,7 +14,7 @@ from qrl.core import config, logger
 from qrl.core.Block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import Transaction, CoinBase
+from qrl.core.Transaction import Transaction
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.generated import qrl_pb2
 from queue import PriorityQueue
@@ -34,7 +34,7 @@ class P2PProtocol(Protocol):
             'VE': self.VE,              # X SEND/RECV         Version
             'PE': self.PE,              # X SEND              Peers List (connected peers)
             'PL': self.PL,              # X RECV              Peers List
-            #PING                       # X SEND              Pong
+            # PING                       # X SEND              Pong
             'PONG': self.PONG,          # X RECV/DSEND        Pong
 
             ######################
@@ -231,7 +231,7 @@ class P2PProtocol(Protocol):
             return
 
         if len(self.factory.buffered_chain._chain.blockchain) == 1 and \
-                        st.activation_blocknumber > self.factory.buffered_chain.height + config.dev.blocks_per_epoch:
+                st.activation_blocknumber > self.factory.buffered_chain.height + config.dev.blocks_per_epoch:
             return
 
         height = self.factory.buffered_chain.height + 1
@@ -369,11 +369,11 @@ class P2PProtocol(Protocol):
             logger.info('Found duplicate block #%s by %s',
                         block.block_number,
                         block.stake_selector)
-            coinbase_txn = CoinBase.from_pbdata(block.transactions[0])
-
-            sv_dict = self.factory.buffered_chain.stake_list_get(block.block_number)
             # FIXME : Commented for now, need to re-enable once DT txn has been fixed
             '''
+            # coinbase_txn = CoinBase.from_pbdata(block.transactions[0])
+            #
+            # sv_dict = self.factory.buffered_chain.stake_list_get(block.block_number)
             if coinbase_txn.validate_extended(sv_dict=sv_dict, blockheader=block.blockheader):
                 self.factory.master_mr.register_duplicate(block.headerhash)
                 block2 = block_chain_buffer.get_block_n(block.blocknumber)
@@ -394,7 +394,7 @@ class P2PProtocol(Protocol):
                 return True
             try:
                 reactor.download_monitor.cancel()
-            except:
+            except:  # noqa
                 pass
             self.factory.pos.update_node_state(ESyncState.synced)
             return True
@@ -691,7 +691,9 @@ class P2PProtocol(Protocol):
         :rtype: str
 
         >>> answer = bin2hstr(P2PProtocol.wrap_message('TESTKEY_1234', 12345))
-        >>> answer == 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff' or answer == 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
+        >>> EX1 = 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff'
+        >>> EX2 = 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
+        >>> answer == EX1 or answer == EX2
         True
         """
         # FIXME: Move this to protobuf
@@ -822,7 +824,8 @@ class P2PProtocol(Protocol):
         >>> p.service['TESTKEY_1234'].call_args
         call(12345)
         >>> from unittest.mock import MagicMock
-        >>> data = bytearray(hstr2bin('ff00003030303030303065007b2274797065223a20224d42227d0000ffff00003030303030303261007b2274797065223a2022504c222c202264617461223a20225b5c223137322e31382e302e365c225d227d0000ffff00003030303030303065007b2274797065223a20225645227d0000ffff00003030303030306434007b2274797065223a20224342222c202264617461223a20227b5c22626c6f636b5f6e756d6265725c223a20302c205c22686561646572686173685c223a205b35332c203133302c203136382c2035372c203138332c203231352c203132302c203137382c203230392c2033302c203139342c203232332c203232312c2035382c2037322c203132342c2036322c203134382c203131302c2038312c2031392c203138392c2032372c203234332c203231382c2038372c203231372c203230332c203139382c2039372c2038342c2031395d7d227d0000ffff00003030303030303635007b2274797065223a20225645222c202264617461223a20227b5c2267656e657369735f707265765f686561646572686173685c223a205c2243727970746f6e69756d5c222c205c2276657273696f6e5c223a205c22616c7068612f302e3435615c227d227d0000ff'))
+        >>> from qrl.crypto.doctest_data import *
+        >>> data = bytearray(hstr2bin(message_example))
         >>> p=P2PProtocol()
         >>> p.service['PL'] = MagicMock()
         >>> p.service['VE'] = MagicMock()

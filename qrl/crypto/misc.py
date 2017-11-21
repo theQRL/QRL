@@ -6,7 +6,7 @@ from math import ceil, log
 
 import itertools
 
-from pyqrllib.pyqrllib import sha2_256, bin2hstr, hstr2bin, sha2_256_n
+from pyqrllib.pyqrllib import sha2_256, bin2hstr, hstr2bin, sha2_256_n  # noqa
 
 
 def sha256(message: bytes) -> bytes:
