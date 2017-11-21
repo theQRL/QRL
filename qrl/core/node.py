@@ -356,7 +356,7 @@ class POS:
     def schedule_pos(self, blocknumber):
         if self.sync_state.state == ESyncState.synced:
             if self.pos_callLater and self.pos_callLater.active():
-                if blocknumber > self.pos_blocknum:
+                if blocknumber - self.pos_blocknum == 1:
                     return
 
             self.restart_post_block_logic(blocknumber)
