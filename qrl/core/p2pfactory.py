@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
 import queue
 
 from google.protobuf.json_format import MessageToJson
@@ -27,27 +26,24 @@ class P2PFactory(ServerFactory):
                  sync_state: SyncState,
                  qrl_node: QRLNode):
 
-        # FIXME: Constructor signature is not consistent with other factory classes
         self.master_mr = MessageReceipt()
         self.pos = None
         self.ntp = ntp
+        self.qrl_node = qrl_node
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
-
-        self.sync = 0
 
         self.genesis_processed = False      # FIXME: Accessed by every p2pprotocol instance
         self.peer_connections = []          # FIXME: Accessed by every p2pprotocol instance
         self.synced_peers = set()           # FIXME: Accessed by every p2pprotocol instance
+        self.txn_processor_running = False  # FIXME: Accessed by every p2pprotocol instance
 
-        self.qrl_node = qrl_node
+        # Blocknumber for which bkmr is being tracked
+        self.bkmr_blocknumber = 0                           # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_priorityq = queue.PriorityQueue()         # FIXME: Accessed by every p2pprotocol instance
 
-        self.txn_processor_running = False
-
-        self.bkmr_blocknumber = 0  # Blocknumber for which bkmr is being tracked
-        self.bkmr_priorityq = queue.PriorityQueue()
         # Scheduled and cancel the call, just to initialize with IDelayedCall
-        self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)
+        self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)  # FIXME: Accessed by every p2pprotocol
         self.bkmr_processor.cancel()
 
     @property
