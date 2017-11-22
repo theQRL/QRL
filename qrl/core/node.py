@@ -105,28 +105,32 @@ class POS:
         reactor.monitor_bk = reactor.callLater(delay, self.monitor_bk)
 
     def monitor_bk(self):
-        # FIXME: Too complex.. too many nested ifs
-        time_diff = time.time() - self.last_pos_cycle
-        if (self.sync_state.state == ESyncState.synced or self.sync_state.state == ESyncState.unsynced) and \
-                90 < time_diff:
-
+        # FIXME: Too many magic numbers / timing constants
+        # FIXME: This is obsolete
+        time_diff1 = time.time() - self.last_pos_cycle
+        if 90 < time_diff1:
             if self.sync_state.state == ESyncState.synced:
                 self.stop_post_block_logic()
                 self.update_node_state(ESyncState.unsynced)
                 self.epoch_diff = -1
-            elif time.time() - self.last_bk_time > 120:
-                self.last_pos_cycle = time.time()
-                logger.info(' POS cycle activated by monitor_bk() ')
-                self.update_node_state(ESyncState.synced)
+                reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
+                return
 
-        if self.sync_state.state == ESyncState.syncing and time.time() - self.last_pb_time > 60:
+            if self.sync_state.state == ESyncState.unsynced:
+                if time.time() - self.last_bk_time > 120:
+                    self.last_pos_cycle = time.time()
+                    logger.info(' POS cycle activated by monitor_bk() ')
+                    self.update_node_state(ESyncState.synced)
+                reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
+                return
+
+        time_diff2 = time.time() - self.last_pb_time
+        if self.sync_state.state == ESyncState.syncing and time_diff2 > 60:
             self.stop_post_block_logic()
             self.update_node_state(ESyncState.unsynced)
             self.epoch_diff = -1
 
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
-
-    # first block 1 is created with the stake list for epoch 0 decided from circulated st transactions
 
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
         logger.info('pre_pos_1')
