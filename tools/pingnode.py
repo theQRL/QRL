@@ -2,13 +2,13 @@ from __future__ import print_function
 
 import grpc
 
-from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2 import GetNodeStateReq
+from qrl.generated.qrl_pb2_grpc import P2PNodeStub
 
 
 def run():
     channel = grpc.insecure_channel('localhost:9009')
-    stub = qrl_pb2.P2PNodeStub(channel)
+    stub = P2PNodeStub(channel)
     response = stub.GetNodeState(GetNodeStateReq())
     print("answer received: " + response.message)
 

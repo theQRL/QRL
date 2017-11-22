@@ -7,10 +7,11 @@ from qrl.core import logger
 from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
+from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import grpc_exception_wrapper
 
 
-class PublicAPIService(qrl_pb2.PublicAPIServicer):
+class PublicAPIService(PublicAPIServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
