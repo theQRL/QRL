@@ -5,6 +5,7 @@ import grpc
 
 from qrl.core import logger
 from qrl.generated import qrl_pb2
+from qrl.generated.qrl_pb2_grpc import P2PNodeStub
 
 
 class PeerMetadata(object):
@@ -16,7 +17,7 @@ class PeerMetadata(object):
         self.peers_refreshed_at = None
         self.conn_addr = conn_addr
         self.channel = grpc.insecure_channel(conn_addr)
-        self.stub = qrl_pb2.P2PNodeStub(self.channel)
+        self.stub = P2PNodeStub(self.channel)
         self.node_info = None
 
     @property

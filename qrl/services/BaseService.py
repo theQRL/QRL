@@ -9,7 +9,8 @@ import os
 from grpc._cython.cygrpc import StatusCode
 
 from qrl.core.qrlnode import QRLNode
-from qrl.generated.qrlbase_pb2 import BaseServicer, GetNodeInfoReq, GetNodeInfoResp
+from qrl.generated.qrlbase_pb2 import GetNodeInfoReq, GetNodeInfoResp
+from qrl.generated.qrlbase_pb2_grpc import BaseServicer
 
 
 class BaseService(BaseServicer):
