@@ -17,7 +17,6 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import StakeTransaction, DestakeTransaction, Vote
 from qrl.core.formulas import calc_seed
 from qrl.core.formulas import score
-from qrl.core.messagereceipt import MessageReceipt
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
@@ -32,17 +31,19 @@ class SyncState:
 class POS:
     def __init__(self,
                  buffered_chain: BufferedChain,
-                 p2pFactory,
+                 p2p_factory,
                  sync_state: SyncState,
                  time_provider):
 
         self.buffered_chain = buffered_chain
-        self.p2pFactory = p2pFactory  # FIXME: Decouple from p2pFactory. Comms vs node logic
+        self.p2p_factory = p2p_factory    # FIXME: Decouple from p2pFactory. Comms vs node logic
+        self.p2p_factory.pos = self      # FIXME: Temporary hack to keep things working while refactoring
+
         self.sync_state = sync_state
         self.time_provider = time_provider
+        self.stake = config.user.enable_auto_staking
 
         ########
-        self.master_mr = MessageReceipt()
         self.r1_time_diff = defaultdict(list)
         self.r2_time_diff = defaultdict(list)
         self.pos_blocknum = 0
@@ -58,6 +59,12 @@ class POS:
 
         self.blockheight_map = []
         self.retry_consensus = 0  # Keeps track of number of times consensus failed for the last blocknumber
+
+        self.epoch_diff = None
+
+    @property
+    def master_mr(self):
+        return self.p2p_factory.master_mr
 
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
@@ -156,7 +163,7 @@ class POS:
         self.buffered_chain.tx_pool.add_tx_to_pool(st)
 
         # send the stake tx to generate hashchain terminators for the staker addresses..
-        self.p2pFactory.broadcast_st(st)
+        self.p2p_factory.broadcast_st(st)
 
         vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
                            blocknumber=0,
@@ -168,7 +175,7 @@ class POS:
         self.buffered_chain.add_vote(vote)
 
         # send the stake votes for genesis block
-        self.p2pFactory.broadcast_vote(vote)
+        self.p2p_factory.broadcast_vote(vote)
 
         logger.info('await delayed call to build staker list from genesis')
         reactor.callLater(5, self.pre_pos_2, st)
@@ -213,7 +220,7 @@ class POS:
 
         # stake pool still not full..reloop..
         if len(self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:
-            self.p2pFactory.broadcast_st(data)
+            self.p2p_factory.broadcast_st(data)
             logger.info('waiting for stakers.. retry in 5s')
             reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
             return
@@ -299,7 +306,7 @@ class POS:
         5.	If headerhash of block number X matches, perform Downloading of blocks from those selected peers
         '''
         if self.sync_state.state != ESyncState.synced:
-            self.p2pFactory.broadcast_get_synced_state()
+            self.p2p_factory.broadcast_get_synced_state()
 
             reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
@@ -311,7 +318,8 @@ class POS:
 
         logger.info('Checking Download..')
 
-        if not self.p2pFactory.synced_peers:
+        # FIXME: unsafe access to synced_peers
+        if not self.p2p_factory.synced_peers:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)
             return
@@ -347,7 +355,7 @@ class POS:
         if self.sync_state.state == ESyncState.synced:
             last_block_after = self.buffered_chain.get_last_block()
             self.last_pos_cycle = time.time()
-            self.p2pFactory.broadcast_block(block)
+            self.p2p_factory.broadcast_block(block)
             if last_block_before.headerhash != last_block_after.headerhash:
                 self.schedule_pos(block.block_number + 1)
 
@@ -473,7 +481,7 @@ class POS:
         if not self.check_consensus(blocknumber):
             return
 
-        if self.p2pFactory.stake:
+        if self.stake:
             future_stake_addresses = self.buffered_chain.future_stake_addresses(blocknumber)
 
             if self.buffered_chain.staking_address not in future_stake_addresses:
@@ -535,7 +543,7 @@ class POS:
 
         self.buffered_chain.add_vote(vote)
 
-        self.p2pFactory.broadcast_vote(vote)
+        self.p2p_factory.broadcast_vote(vote)
 
     def _create_stake_tx(self, curr_blocknumber):
         sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)
@@ -583,7 +591,7 @@ class POS:
             logger.warning('Create St Txn failed due to validation failure, will retry next block')
             return
 
-        self.p2pFactory.broadcast_st(st)
+        self.p2p_factory.broadcast_st(st)
         for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
             t = self.buffered_chain.tx_pool.transaction_pool[num]
             if t.subtype == qrl_pb2.Transaction.STAKE and st.hash == t.hash:
@@ -625,7 +633,7 @@ class POS:
             logger.warning('Make DeStake Txn failed due to validation failure')
             return
 
-        self.p2pFactory.broadcast_destake(de_stake_txn)
+        self.p2p_factory.broadcast_destake(de_stake_txn)
         for num in range(len(self.buffered_chain.tx_pool.transaction_pool)):
             t = self.buffered_chain.tx_pool.transaction_pool[num]
             if t.subtype == qrl_pb2.Transaction.STAKE:
@@ -655,13 +663,15 @@ class POS:
             if self.isSynced(block_timestamp):
                 return
 
-        if len(self.p2pFactory.synced_peers) == 0:
+        # FIXME: unsafe access to synced_peers
+        if len(self.p2p_factory.synced_peers) == 0:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)
             return
 
         reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
 
-        random_peer = random.sample(self.p2pFactory.synced_peers, 1)[0]
+        # FIXME: unsafe access to synced_peers
+        random_peer = random.sample(self.p2p_factory.synced_peers, 1)[0]
         blocknumber = self.buffered_chain.height + 1
         random_peer.fetch_block_n(blocknumber)

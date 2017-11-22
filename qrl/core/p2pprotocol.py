@@ -82,6 +82,7 @@ class P2PProtocol(Protocol):
         except Exception as e:  # Disconnect peer not following protocol
             logger.debug('Disconnected peer %s not following protocol in MR %s', self.conn_identity, e)
             self.transport.loseConnection()
+
         msg_hash = mr_data.hash
 
         if mr_data.type not in MessageReceipt.allowed_types:
@@ -90,9 +91,10 @@ class P2PProtocol(Protocol):
         if mr_data.type in ['TX'] and self.factory.sync_state.state != ESyncState.synced:
             return
 
-        if mr_data.type == 'TX' and len(self.factory.buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
-            logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
-            return
+        if mr_data.type == 'TX':
+            if len(self.factory.buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
+                logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
+                return
 
         if mr_data.type == 'ST' or mr_data.type == 'VT':
             if self.factory.buffered_chain.height > 1 and self.factory.sync_state.state != ESyncState.synced:
@@ -161,8 +163,7 @@ class P2PProtocol(Protocol):
         Executed whenever a new TX type message is received.
         :return:
         """
-        self.recv_tx(data)
-        return
+        self._receive_tx(data)
 
     def VT(self, data):
         """
@@ -184,8 +185,6 @@ class P2PProtocol(Protocol):
 
         if self.factory.buffered_chain.add_vote(vote):
             self.factory.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
-
-        return
 
     def ST(self, data):
         """
@@ -240,7 +239,6 @@ class P2PProtocol(Protocol):
             return
 
         self.factory.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
-        return
 
     def DST(self, data):
         """
@@ -282,7 +280,6 @@ class P2PProtocol(Protocol):
             return
 
         self.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
-        return
 
     def DT(self, data):
         """
@@ -313,7 +310,6 @@ class P2PProtocol(Protocol):
             return
 
         self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
-        return
 
     def BK(self, data):  # block received
         """
@@ -360,7 +356,6 @@ class P2PProtocol(Protocol):
             '''
         self.factory.pos.pre_block_logic(block)     # FIXME: Ignores return value
         self.factory.master_mr.register('BK', block.headerhash, data)
-        return
 
     def isNoMoreBlock(self, data):
         if isinstance(data, int):
@@ -461,7 +456,6 @@ class P2PProtocol(Protocol):
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
-        return
 
     def send_block(self, blocknumber):
         # FIXME: Merge. Temporarily here
@@ -504,7 +498,6 @@ class P2PProtocol(Protocol):
         """
         self.transport.write(self.wrap_message('PONG'))
         logger.debug('Sending PING to %s', self.conn_identity)
-        return
 
     def PONG(self):
         """
@@ -516,7 +509,6 @@ class P2PProtocol(Protocol):
             self.ping_callLater.cancel()
         self.ping_callLater = reactor.callLater(config.user.ping_frequency, self.PING)
         logger.debug('Received PONG from %s', self.conn_identity)
-        return
 
     def PL(self, data):  # receiving a list of peers to save into peer list..
         """
@@ -532,7 +524,6 @@ class P2PProtocol(Protocol):
         :return:
         """
         self.send_peers()
-        return
 
     def VE(self, data=None):
         """
@@ -568,8 +559,6 @@ class P2PProtocol(Protocol):
 
             self.transport.loseConnection()
 
-        return
-
     def recv_peers(self, json_data):
         """
         Receive Peers
@@ -584,7 +573,7 @@ class P2PProtocol(Protocol):
             if ip not in new_ips:
                 new_ips.append(ip)
 
-        peer_addresses = self.factory.node.peer_addresses
+        peer_addresses = self.factory.qrl_node.peer_addresses
         logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
         for node in new_ips:
             if node not in peer_addresses:
@@ -592,17 +581,19 @@ class P2PProtocol(Protocol):
                     peer_addresses.append(node)
                     reactor.connectTCP(node, 9000, self.factory)
 
-        self.factory.node.update_peer_addresses(peer_addresses)
-        return
+        self.factory.qrl_node.update_peer_addresses(peer_addresses)
 
     def synced_state(self, state=None):
         if not state:
             if not self.factory.pos.sync_state.state == ESyncState.synced:
                 return
             self.transport.write(self.wrap_message('SYNC', 'Synced'))
+
+            # FIXME: unsafe access to synced_peers
             if self in self.factory.synced_peers:
                 self.factory.synced_peers.remove(self)
         else:
+            # FIXME: unsafe access to synced_peers
             self.factory.synced_peers.add(self)
 
     def get_version(self):
@@ -636,7 +627,7 @@ class P2PProtocol(Protocol):
         logger.info('<<<Fetching block: %s from %s', n, self.conn_identity)
         self.transport.write(self.wrap_message('FB', str(n)))
 
-    def recv_tx(self, json_tx_obj):
+    def _receive_tx(self, json_tx_obj):
         try:
             tx = Transaction.from_json(json_tx_obj)
         except Exception as e:
@@ -654,15 +645,16 @@ class P2PProtocol(Protocol):
         del self.prev_txpool_hashes[0]
         self.prev_txpool_hashes.append(tx.txhash)
 
-        for t in self.factory.buffered_chain.tx_pool.transaction_pool:  # duplicate tx already received, would mess up nonce..
+        # duplicate tx already received, would mess up nonce..
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == t.txhash:
                 return
 
         self.factory.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-
         self.factory.master_mr.register('TX', tx.get_message_hash(), json_tx_obj)
         self.factory.broadcast(tx.get_message_hash(), 'TX')
 
+        # FIXME: This is tx processor related..
         if not self.factory.txn_processor_running:
             # FIXME: TxnProcessor breaks tx_pool encapsulation
             txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
@@ -758,8 +750,8 @@ class P2PProtocol(Protocol):
 
         >>> p=P2PProtocol()
         >>> p.buffer = bytes(hstr2bin("ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff"))
-        >>> found_message = p._parse_buffer()
-        >>> p.messages
+        >>> messages = p._parse_buffer()
+        >>> messages
         [b'{"data": 12345, "type": "TESTKEY_1234"}']
         """
         # FIXME
@@ -890,14 +882,14 @@ class P2PProtocol(Protocol):
             return
 
         self.factory.peer_connections.append(self)
-        peer_list = self.factory.node.peer_addresses
+        peer_list = self.factory.qrl_node.peer_addresses
 
         if self.transport.getPeer().host == self.transport.getHost().host:
             if self.transport.getPeer().host in peer_list:
                 logger.info('Self in peer_list, removing..')
                 peer_list.remove(self.transport.getPeer().host)
                 # FIXME
-                self.factory.node.update_peer_addresses(peer_list)
+                self.factory.qrl_node.update_peer_addresses(peer_list)
 
             self.transport.loseConnection()
             return
@@ -906,15 +898,18 @@ class P2PProtocol(Protocol):
             logger.info('Adding to peer_list')
             peer_list.append(self.transport.getPeer().host)
             # FIXME
-            self.factory.node.update_peer_addresses(peer_list)
+            self.factory.qrl_node.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ',
                     self.transport.getPeer().host,
                     str(self.transport.getPeer().port))
 
-        if self.factory.buffered_chain.height == 0 and self.factory.genesis == 0:
+        if self.factory.buffered_chain.height == 0 and not self.factory.genesis_processed:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
-            self.factory.genesis = 1
+
+            # FIXME: This can lead to race conditions
+            self.factory.genesis_processed = True
+
             logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
             reactor.callLater(1, self.factory.pos.pre_pos_1)
 
@@ -934,6 +929,7 @@ class P2PProtocol(Protocol):
             if self.factory.connections == 0:
                 reactor.callLater(60, self.factory.connect_peers)
 
+            # FIXME: unsafe access to synced_peers
             if self in self.factory.synced_peers:
                 self.factory.synced_peers.remove(self)
         except Exception:

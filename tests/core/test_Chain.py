@@ -12,7 +12,7 @@ from qrl.core.Block import Block
 from qrl.core.Chain import Chain
 from qrl.core.State import State
 from qrl.core.VoteMetadata import VoteMetadata
-from tests.misc.helper import set_wallet_dir, get_Alice_xmss
+from tests.misc.helper import set_wallet_dir, get_alice_xmss
 
 logger.initialize_default(force_console_output=True)
 
@@ -43,7 +43,7 @@ class TestChain(TestCase):
                 self.assertIsNotNone(state)
 
                 chain = Chain(state)
-                alice_xmss = get_Alice_xmss()
+                alice_xmss = get_alice_xmss()
                 staking_address = bytes(alice_xmss.get_address().encode())
 
                 tmp_block1 = Block.create(staking_address=staking_address,
@@ -69,7 +69,7 @@ class TestChain(TestCase):
                 self.assertIsNotNone(state)
 
                 chain = Chain(state)
-                alice_xmss = get_Alice_xmss()
+                alice_xmss = get_alice_xmss()
                 staking_address = bytes(alice_xmss.get_address().encode())
 
                 with patch('qrl.core.config.dev.disk_writes_after_x_blocks'):

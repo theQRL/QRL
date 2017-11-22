@@ -13,6 +13,7 @@ from qrl.core import config, logger, ntp
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction
+from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
@@ -25,46 +26,34 @@ class P2PFactory(ServerFactory):
     def __init__(self,
                  buffered_chain: BufferedChain,
                  sync_state: SyncState,
-                 node: QRLNode):
+                 qrl_node: QRLNode):
 
         # FIXME: Constructor signature is not consistent with other factory classes
-        self.master_mr = None
+        self.master_mr = MessageReceipt()
         self.pos = None
         self.ntp = ntp
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
-        self.stake = config.user.enable_auto_staking
 
         self.sync = 0
-        self.genesis = 0
 
-        self.peer_connections = []
-        self.synced_peers = set()
+        self.genesis_processed = False      # FIXME: Accessed by every p2pprotocol instance
+        self.peer_connections = []          # FIXME: Accessed by every p2pprotocol instance
+        self.synced_peers = set()           # FIXME: Accessed by every p2pprotocol instance
 
-        self.node = node
+        self.qrl_node = qrl_node
 
         self.txn_processor_running = False
 
         self.bkmr_blocknumber = 0  # Blocknumber for which bkmr is being tracked
         self.bkmr_priorityq = queue.PriorityQueue()
         # Scheduled and cancel the call, just to initialize with IDelayedCall
-        self.bkmr_processor = reactor.callLater(1, self.setPOS, pos=None)
+        self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)
         self.bkmr_processor.cancel()
-
-        self.last_ping = None
-
-    @property
-    def height(self):
-        return self.buffered_chain.height
 
     @property
     def connections(self):
         return len(self.peer_connections)
-
-    # factory network functions
-    def setPOS(self, pos):
-        self.pos = pos
-        self.master_mr = self.pos.master_mr
 
     ##############################################
     ##############################################
@@ -194,7 +183,6 @@ class P2PFactory(ServerFactory):
         for peer in self.peer_connections:
             peer.transport.write(peer.wrap_message('SYNC'))
 
-
     ###################################################
     ###################################################
     ###################################################
@@ -240,8 +228,8 @@ class P2PFactory(ServerFactory):
         :return:
         :rtype: None
         """
-        logger.info('<<<Reconnecting to peer list: %s', self.node._peer_addresses)
-        for peer_address in self.node._peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self.qrl_node._peer_addresses)
+        for peer_address in self.qrl_node._peer_addresses:
             # FIXME: Refactor search
             found = False
             for peer_conn in self.peer_connections:

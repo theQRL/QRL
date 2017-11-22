@@ -64,7 +64,7 @@ class QRLNode:
     def staking(self):
         if self._p2pfactory is None:
             return False
-        return self._p2pfactory.stake
+        return self._p2pfactory.pos.stake
 
     @property
     def epoch(self):

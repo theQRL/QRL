@@ -27,7 +27,8 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
-        p2p_factory.stake = False
+        p2p_factory.pos = Mock()
+        p2p_factory.pos.stake = False
 
         buffered_chain = Mock(spec=BufferedChain)
         buffered_chain.height = 0

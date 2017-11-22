@@ -9,6 +9,7 @@ from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core.Transaction import CoinBase
 
+
 # FIXME: Refactor / improve
 class MessageReceipt(object):
     """

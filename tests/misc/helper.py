@@ -51,7 +51,7 @@ def mocked_genesis():
         yield custom_genesis_block
 
 
-def get_Alice_xmss()->XMSS:
+def get_alice_xmss()->XMSS:
     xmss_height = 6
     seed = bytes([i for i in range(48)])
     return XMSS(xmss_height, seed)
