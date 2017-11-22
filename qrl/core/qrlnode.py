@@ -64,7 +64,7 @@ class QRLNode:
     def staking(self):
         if self._p2pfactory is None:
             return False
-        return self._p2pfactory.stake
+        return self._p2pfactory.pos.stake
 
     @property
     def epoch(self):
@@ -281,7 +281,7 @@ class QRLNode:
 
         self._buffered_chain.tx_pool.add_tx_to_pool(tx)
         self._buffered_chain.wallet.save_wallet()
-        self._p2pfactory.send_tx_to_peers(tx)
+        self._p2pfactory.broadcast_tx(tx)
         return True
 
     @staticmethod

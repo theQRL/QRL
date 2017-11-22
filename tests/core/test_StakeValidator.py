@@ -8,7 +8,7 @@ from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import StakeTransaction
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-from tests.misc.helper import get_Alice_xmss
+from tests.misc.helper import get_alice_xmss
 
 logger.initialize_default(force_console_output=True)
 
@@ -18,7 +18,7 @@ class TestStakeValidator(TestCase):
         super(TestStakeValidator, self).__init__(*args, **kwargs)
 
     def test_empty_terminator(self):
-        alice_xmss = get_Alice_xmss()
+        alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
         stake_transaction = StakeTransaction.create(activation_blocknumber=0,
                                                     xmss=alice_xmss,
@@ -29,7 +29,7 @@ class TestStakeValidator(TestCase):
             StakeValidator(0, stake_transaction)
 
     def test_invalid_balance(self):
-        alice_xmss = get_Alice_xmss()
+        alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
         stake_transaction = StakeTransaction.create(activation_blocknumber=0,
                                                     xmss=alice_xmss,
@@ -39,7 +39,7 @@ class TestStakeValidator(TestCase):
             StakeValidator(config.dev.minimum_staking_balance_required - 1, stake_transaction)
 
     def test_negative_balance(self):
-        alice_xmss = get_Alice_xmss()
+        alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
         stake_transaction = StakeTransaction.create(activation_blocknumber=0,
                                                     xmss=alice_xmss,
@@ -49,7 +49,7 @@ class TestStakeValidator(TestCase):
             StakeValidator(-1, stake_transaction)
 
     def test_create(self):
-        alice_xmss = get_Alice_xmss()
+        alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
         staking_address = bytes(alice_xmss.get_address().encode())
@@ -75,7 +75,7 @@ class TestStakeValidator(TestCase):
         self.assertTrue(sv.is_active)
 
     def test_create2(self):
-        alice_xmss = get_Alice_xmss()
+        alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
         h0 = sha256(b'hashchain_seed')

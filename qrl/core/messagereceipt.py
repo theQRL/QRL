@@ -10,6 +10,7 @@ from qrl.core.MessageRequest import MessageRequest
 from qrl.core.Transaction import CoinBase
 
 
+# FIXME: Refactor / improve
 class MessageReceipt(object):
     """
     1> dict Hash to peer
@@ -51,7 +52,7 @@ class MessageReceipt(object):
     def register_duplicate(self, msg_hash: bytes):
         self.requested_hash[msg_hash].is_duplicate = True
 
-    def register(self, msg_hash: bytes, msg_obj, msg_type):
+    def register(self, msg_type, msg_hash: bytes, msg_obj):
         """
         Registers an object and type on with msg_hash as key
         There is a limitation on the amount of items (config.dev.message_q_size)
