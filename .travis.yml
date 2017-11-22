@@ -71,6 +71,24 @@ jobs:
     - echo "Skip installing requirements.txt when using docker builders"
     script:
     - "./travis/build.sh"
+    - "./travis/push_to_git.sh"
+  - stage: build+debs
+    os: linux
+    env:
+    - PLATFORM='stretch'
+    - BUILD_DIST='TRUE'
+    - GPGKEY=84B8A307
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when using docker builders"
+    script:
+    - "./travis/build.sh"
+    - "./travis/push_to_git.sh"
+  - stage: merge git branches, push to ghpages
+    os: linux
+    install:
+    - echo "Skip installing requirements.txt when uploading debs"
+    script: "./travis/merge_debs_ghpages.sh"
   - stage: publish
     if: tag =~ ^v
     os: linux
