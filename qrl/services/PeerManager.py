@@ -2,6 +2,7 @@ import threading
 from time import time, sleep
 
 import grpc
+from qrl.generated.qrl_pb2 import GetKnownPeersResp
 
 from qrl.core import logger, config
 from qrl.generated import qrl_pb2

@@ -439,6 +439,40 @@ _GETBLOCKRESP = _descriptor.Descriptor(
 )
 
 
+_MSGOBJECT = _descriptor.Descriptor(
+  name='MsgObject',
+  full_name='qrl.MsgObject',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ephemeral', full_name='qrl.MsgObject.ephemeral', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='messageKind', full_name='qrl.MsgObject.messageKind',
+      index=0, containing_type=None, fields=[]),
+  ],
+  serialized_start=401,
+  serialized_end=471,
+)
+
+
 _GETSTATSREQ = _descriptor.Descriptor(
   name='GetStatsReq',
   full_name='qrl.GetStatsReq',
@@ -458,8 +492,8 @@ _GETSTATSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=401,
-  serialized_end=414,
+  serialized_start=473,
+  serialized_end=486,
 )
 
 
@@ -552,8 +586,8 @@ _GETSTATSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=417,
-  serialized_end=676,
+  serialized_start=489,
+  serialized_end=748,
 )
 
 
@@ -583,8 +617,8 @@ _GETADDRESSSTATEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=678,
-  serialized_end=715,
+  serialized_start=750,
+  serialized_end=787,
 )
 
 
@@ -614,8 +648,8 @@ _GETADDRESSSTATERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=717,
-  serialized_end=772,
+  serialized_start=789,
+  serialized_end=844,
 )
 
 
@@ -645,8 +679,8 @@ _GETOBJECTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=774,
-  serialized_end=803,
+  serialized_start=846,
+  serialized_end=875,
 )
 
 
@@ -2474,7 +2508,7 @@ _EPHEMERALMESSAGE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='id', full_name='qrl.EphemeralMessage.id', index=0,
+      name='aes256_symkey', full_name='qrl.EphemeralMessage.Data.aes256_symkey', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -2870,6 +2904,10 @@ _GETBLOCKREQ.oneofs_by_name['query'].fields.append(
 _GETBLOCKREQ.fields_by_name['after_hash'].containing_oneof = _GETBLOCKREQ.oneofs_by_name['query']
 _GETBLOCKRESP.fields_by_name['node_info'].message_type = _NODEINFO
 _GETBLOCKRESP.fields_by_name['block'].message_type = _BLOCK
+_MSGOBJECT.fields_by_name['ephemeral'].message_type = _EPHEMERALMESSAGE
+_MSGOBJECT.oneofs_by_name['messageKind'].fields.append(
+  _MSGOBJECT.fields_by_name['ephemeral'])
+_MSGOBJECT.fields_by_name['ephemeral'].containing_oneof = _MSGOBJECT.oneofs_by_name['messageKind']
 _GETSTATSRESP.fields_by_name['node_info'].message_type = _NODEINFO
 _GETADDRESSSTATERESP.fields_by_name['state'].message_type = _ADDRESSSTATE
 _GETOBJECTRESP.fields_by_name['address_state'].message_type = _ADDRESSSTATE
@@ -2971,6 +3009,7 @@ DESCRIPTOR.message_types_by_name['GetKnownPeersReq'] = _GETKNOWNPEERSREQ
 DESCRIPTOR.message_types_by_name['GetKnownPeersResp'] = _GETKNOWNPEERSRESP
 DESCRIPTOR.message_types_by_name['GetBlockReq'] = _GETBLOCKREQ
 DESCRIPTOR.message_types_by_name['GetBlockResp'] = _GETBLOCKRESP
+DESCRIPTOR.message_types_by_name['MsgObject'] = _MSGOBJECT
 DESCRIPTOR.message_types_by_name['GetStatsReq'] = _GETSTATSREQ
 DESCRIPTOR.message_types_by_name['GetStatsResp'] = _GETSTATSRESP
 DESCRIPTOR.message_types_by_name['GetAddressStateReq'] = _GETADDRESSSTATEREQ
@@ -3077,6 +3116,13 @@ GetBlockResp = _reflection.GeneratedProtocolMessageType('GetBlockResp', (_messag
   # @@protoc_insertion_point(class_scope:qrl.GetBlockResp)
   ))
 _sym_db.RegisterMessage(GetBlockResp)
+
+MsgObject = _reflection.GeneratedProtocolMessageType('MsgObject', (_message.Message,), dict(
+  DESCRIPTOR = _MSGOBJECT,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MsgObject)
+  ))
+_sym_db.RegisterMessage(MsgObject)
 
 GetStatsReq = _reflection.GeneratedProtocolMessageType('GetStatsReq', (_message.Message,), dict(
   DESCRIPTOR = _GETSTATSREQ,
@@ -3514,6 +3560,15 @@ _P2PAPI = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_GETBLOCKREQ,
     output_type=_GETBLOCKRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='ObjectExchange',
+    full_name='qrl.P2PAPI.ObjectExchange',
+    index=3,
+    containing_service=None,
+    input_type=_MSGOBJECT,
+    output_type=_MSGOBJECT,
     options=None,
   ),
 ])
