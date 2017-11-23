@@ -61,6 +61,9 @@ jobs:
     - docker-compose --version
     - cd tests_integration; python3 runtest_nodes_1minAfterSync.py
   - stage: build+debs
+    if: tag =~ ^v
+    before_install:
+    - openssl aes-256-cbc -K $encrypted_a456d86e55a5_key -iv $encrypted_a456d86e55a5_iv -in keys.tar.enc -out keys.tar -d
     os: linux
     env:
     - PLATFORM='xenial'
@@ -73,6 +76,9 @@ jobs:
     - "./travis/build.sh"
     - "./travis/push_to_git.sh"
   - stage: build+debs
+    if: tag =~ ^v
+    before_install:
+    - openssl aes-256-cbc -K $encrypted_a456d86e55a5_key -iv $encrypted_a456d86e55a5_iv -in keys.tar.enc -out keys.tar -d
     os: linux
     env:
     - PLATFORM='stretch'
@@ -85,6 +91,7 @@ jobs:
     - "./travis/build.sh"
     - "./travis/push_to_git.sh"
   - stage: merge git branches, push to ghpages
+    if: tag =~ ^v
     os: linux
     install:
     - echo "Skip installing requirements.txt when uploading debs"
@@ -111,6 +118,3 @@ jobs:
       on:
         tags: true
         all_branches: true
-before_install:
-- openssl aes-256-cbc -K $encrypted_a456d86e55a5_key -iv $encrypted_a456d86e55a5_iv
-  -in keys.tar.enc -out keys.tar -d

@@ -24,8 +24,8 @@ case "${TRAVIS_OS_NAME}" in
 
         docker exec -t -e TEST -e DEPLOY -e STYLECHECK builder /build.sh
 
-        #docker run -it -e TEST=${TEST} -e DEPLOY=${DEPLOY} -e BUILD_DIST=${BUILD_DIST} -e GPGKEY=${GPGKEY} ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} bash
-        docker exec -t -e TEST=${TEST} -e DEPLOY=${DEPLOY} -e BUILD_DIST=${BUILD_DIST} -e GPGKEY=${GPGKEY} builder /build.sh
+        #docker run -it -e TEST -e DEPLOY -e BUILD_DIST -e GPGKEY ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} bash
+        docker exec -t -e TEST -e DEPLOY -e BUILD_DIST -e GPGKEY builder /build.sh
         ;;
     *)
         echo "UNSUPPORTED OS"
