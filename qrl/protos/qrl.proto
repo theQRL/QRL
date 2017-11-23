@@ -332,7 +332,7 @@ message EphemeralMessage {
     uint64 ttl = 2;
 
     message Data {
-        bytes aes512_symkey = 1;
+        bytes aes256_symkey = 1;
         bytes prf512_seed = 2;
         bytes xmss_address = 3;
         bytes xmss_signature = 4;
