@@ -9,11 +9,11 @@ from qrl.core import logger
 from qrl.core.Block import Block
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
-from qrl.generated.qrl_pb2_grpc import P2PNodeServicer
+from qrl.generated.qrl_pb2_grpc import P2PAPIServicer
 from qrl.services.grpcHelper import grpc_exception_wrapper
 
 
-class P2PNodeService(P2PNodeServicer):
+class P2PAPIService(P2PAPIServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, node: QRLNode):
         self.qrlnode = node

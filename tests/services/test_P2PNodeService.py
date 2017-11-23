@@ -12,7 +12,7 @@ from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
-from qrl.services.P2PNodeService import P2PNodeService
+from qrl.services.P2PAPIService import P2PAPIService
 
 logger.initialize_default(force_console_output=True)
 
@@ -38,7 +38,7 @@ class TestPublicAPI(TestCase):
         qrlnode.set_chain(buffered_chain)
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
-        self.service = P2PNodeService(qrlnode)
+        self.service = P2PAPIService(qrlnode)
 
     def test_getNodeState(self):
         context = Mock(spec=grpc.ServicerContext)
