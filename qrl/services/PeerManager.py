@@ -5,6 +5,7 @@ import grpc
 
 from qrl.core import logger
 from qrl.generated import qrl_pb2
+from qrl.generated.qrl_pb2_grpc import P2PAPIStub
 
 
 class PeerMetadata(object):
@@ -16,7 +17,7 @@ class PeerMetadata(object):
         self.peers_refreshed_at = None
         self.conn_addr = conn_addr
         self.channel = grpc.insecure_channel(conn_addr)
-        self.stub = qrl_pb2.P2PNodeStub(self.channel)
+        self.stub = P2PAPIStub(self.channel)
         self.node_info = None
 
     @property
@@ -129,7 +130,7 @@ class PeerManager(object):
                 for peer_metadata in self.stable_peers():
                     addr = peer_metadata.conn_addr.split(':')[0]
                     tmp.append(addr)
-                #self.qrlnode.update_peer_addresses(tmp)
+                # self.qrlnode.update_peer_addresses(tmp)
 
                 sleep(self.REFRESH_CYCLE_SECS)
                 self.recycle()

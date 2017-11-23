@@ -19,12 +19,12 @@ class TestNode(TestCase):
 
     def test_create(self):
         buffered_chain = Mock()
-        p2pFactory = Mock()
+        p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
         node = POS(buffered_chain=buffered_chain,
-                   p2pFactory=p2pFactory,
+                   p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
 
@@ -32,12 +32,12 @@ class TestNode(TestCase):
 
     def test_sync_state_change_unsynced(self):
         buffered_chain = Mock()
-        p2pFactory = Mock()
+        p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
         node = POS(buffered_chain=buffered_chain,
-                   p2pFactory=p2pFactory,
+                   p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
 
@@ -47,12 +47,12 @@ class TestNode(TestCase):
 
     def test_sync_state_change_syncing(self):
         buffered_chain = Mock()
-        p2pFactory = Mock()
+        p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
         node = POS(buffered_chain=buffered_chain,
-                   p2pFactory=p2pFactory,
+                   p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
 
@@ -65,12 +65,12 @@ class TestNode(TestCase):
         buffered_chain.height = 0
         buffered_chain.get_block = MagicMock(return_value=GenesisBlock())
 
-        p2pFactory = Mock()
+        p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
         node = POS(buffered_chain=buffered_chain,
-                   p2pFactory=p2pFactory,
+                   p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
 
@@ -80,12 +80,12 @@ class TestNode(TestCase):
 
     def test_sync_state_change_forked(self):
         buffered_chain = Mock()
-        p2pFactory = Mock()
+        p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
         node = POS(buffered_chain=buffered_chain,
-                   p2pFactory=p2pFactory,
+                   p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
 

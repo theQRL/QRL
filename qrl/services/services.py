@@ -7,7 +7,7 @@ import grpc
 
 from qrl.core import logger, config
 from qrl.core.qrlnode import QRLNode
-from qrl.generated.qrl_pb2_grpc import add_P2PNodeServicer_to_server, add_PublicAPIServicer_to_server
+from qrl.generated.qrl_pb2_grpc import add_P2PAPIServicer_to_server, add_PublicAPIServicer_to_server
 from qrl.generated.qrlbase_pb2_grpc import add_BaseServicer_to_server
 from qrl.services.BaseService import BaseService
 from qrl.services.P2PNode import P2PNode
@@ -20,7 +20,7 @@ def start_services(node: QRLNode):
     p2p_node = P2PNode(node)
 
     add_BaseServicer_to_server(BaseService(node), server)
-    add_P2PNodeServicer_to_server(p2p_node.service, server)
+    add_P2PAPIServicer_to_server(p2p_node.service, server)
     add_PublicAPIServicer_to_server(PublicAPIService(node), server)
 
     server.add_insecure_port("[::]:9009")

@@ -20,7 +20,7 @@ class BlockChainManager(object):
     def _block_received(self, response_future):
         if response_future.code() == grpc.StatusCode.OK:
             logger.info("[{:20}] _block_received {}".format(response_future.pm.conn_addr, response_future.index))
-            self._get_blockchain(response_future.pm, response_future.index+1)
+            self._get_blockchain(response_future.pm, response_future.index + 1)
 
     def _get_blockchain(self, peer_metadata, start_index):
         req = qrl_pb2.GetBlockReq()
@@ -32,7 +32,9 @@ class BlockChainManager(object):
 
     def _synchronize_chain(self):
         while True:
-            logger.info("Peers  {:4} ({:4})".format(self.peer_manager.stable_peer_count, self.peer_manager.peer_count))
+            logger.info("Peers  {:4} ({:4})".format(self.peer_manager.stable_peer_count,
+                                                    self.peer_manager.peer_count))
+
             for peer_metadata in self.peer_manager.stable_peers():
                 logger.info("{:20}: {:3}".format(peer_metadata.conn_addr,
                                                  peer_metadata.node_info.block_height))

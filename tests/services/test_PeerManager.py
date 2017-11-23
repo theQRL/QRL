@@ -22,7 +22,7 @@ class TestPeerManager(TestCase):
         db_state = Mock(spec=State)
         qrlnode = QRLNode(db_state)
 
-        with patch('qrl.generated.qrl_pb2.P2PNodeStub'):
+        with patch('qrl.generated.qrl_pb2_grpc.P2PAPIStub'):
             pm = PeerManager(qrlnode)
             self.assertIsNotNone(pm)
             self.assertEqual(0, pm.stable_peer_count)

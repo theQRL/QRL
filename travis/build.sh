@@ -22,7 +22,7 @@ case "${TRAVIS_OS_NAME}" in
         docker build --file travis/Dockerfile.${PLATFORM} -t builder-${PLATFORM} .
         docker run -d --name builder ${SHARE_SRC} ${SHARE_USER_INFO} builder-${PLATFORM} tail -f /dev/null
 
-        docker exec -t -e TEST=${TEST} -e DEPLOY=${DEPLOY} builder /build.sh
+        docker exec -t -e TEST -e DEPLOY -e STYLECHECK builder /build.sh
         ;;
     *)
         echo "UNSUPPORTED OS"

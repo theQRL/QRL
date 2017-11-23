@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 import grpc
-from mock import Mock, MagicMock
+from mock import Mock
 
 from qrl.core import logger, BufferedChain, config
 from qrl.core.State import State
@@ -12,7 +12,7 @@ from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
-from qrl.services.P2PNodeService import P2PNodeService
+from qrl.services.P2PAPIService import P2PAPIService
 
 logger.initialize_default(force_console_output=True)
 
@@ -27,7 +27,8 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
-        p2p_factory.stake = False
+        p2p_factory.pos = Mock()
+        p2p_factory.pos.stake = False
 
         buffered_chain = Mock(spec=BufferedChain)
         buffered_chain.height = 0
@@ -37,7 +38,7 @@ class TestPublicAPI(TestCase):
         qrlnode.set_chain(buffered_chain)
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
-        self.service = P2PNodeService(qrlnode)
+        self.service = P2PAPIService(qrlnode)
 
     def test_getNodeState(self):
         context = Mock(spec=grpc.ServicerContext)

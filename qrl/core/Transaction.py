@@ -198,9 +198,9 @@ class TransferTransaction(Transaction):
         :rtype: bytes
         """
         tmptxhash = self.txfrom + \
-                    self.txto + \
-                    str(self.amount).encode() + \
-                    str(self.fee).encode()
+            self.txto + \
+            str(self.amount).encode() + \
+            str(self.fee).encode()
         return bytes(sha256(tmptxhash))
 
     @staticmethod
@@ -226,11 +226,6 @@ class TransferTransaction(Transaction):
 
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
-        # FIXME: This makes sense and should be enabled back
-        # if not state.uptodate():
-        #	logger.info(( 'Warning state not updated to allow safe tx validation, tx validity could be unreliable..'))
-        #	return False
-
         tx_balance = tx_state.balance
         tx_pubhashes = tx_state.pubhashes
 
@@ -289,10 +284,10 @@ class StakeTransaction(Transaction):
         """
         # FIXME: Avoid all intermediate conversions
         tmptxhash = bin2hstr(tuple(self.hash))
-        tmptxhash = str2bin(tmptxhash
-                            + bin2hstr(self.slave_public_key)
-                            + bin2hstr(sha2_256(bytes(self.activation_blocknumber)))
-                            + bin2hstr(sha2_256(bytes(self.subtype))))  # FIXME: stringify in standardized way
+        tmptxhash = str2bin(tmptxhash +
+                            bin2hstr(self.slave_public_key) +
+                            bin2hstr(sha2_256(bytes(self.activation_blocknumber))) +
+                            bin2hstr(sha2_256(bytes(self.subtype))))  # FIXME: stringify in standardized way
         # FIXME: the order in the dict may affect hash
         return bytes(tmptxhash)
 
@@ -425,8 +420,8 @@ class CoinBase(Transaction):
         """
         # FIXME: Avoid all intermediate conversions
         tmptxhash = bytes(self.blockheader.prev_blockheaderhash) + \
-                    bytes(str(self.blockheader.block_number).encode()) + \
-                    bytes(self.blockheader.headerhash)
+            bytes(str(self.blockheader.block_number).encode()) + \
+            bytes(self.blockheader.headerhash)
         return bytes(sha256(tmptxhash))
 
     @staticmethod
@@ -549,9 +544,9 @@ class DuplicateTransaction(Transaction):
         # FIXME: Avoid all intermediate conversions
         # TODO: Review get_message_hash is too different/inconsistent
         tmptxhash = bytes(self.prev_header_hash) + \
-                    bytes(str(self.blocknumber).encode()) + \
-                    bytes(self.headerhash) + \
-                    bytes(self.coinbase.pubhash)
+            bytes(str(self.blocknumber).encode()) + \
+            bytes(self.headerhash) + \
+            bytes(self.coinbase.pubhash)
         # FIXME: Review. coinbase2?
 
         return bytes(sha256(tmptxhash))
@@ -608,6 +603,7 @@ class Vote(Transaction):
     """
     Vote Transaction must be signed by Slave XMSS only.
     """
+
     def __init__(self, protobuf_transaction=None):
         super(Vote, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
@@ -633,8 +629,8 @@ class Vote(Transaction):
         """
 
         tmptxhash = self.addr_from + \
-                    bytes(str(self.blocknumber).encode()) + \
-                    bytes(self.headerhash)
+            bytes(str(self.blocknumber).encode()) + \
+            bytes(self.headerhash)
 
         return bytes(sha256(tmptxhash))
 

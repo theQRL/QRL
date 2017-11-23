@@ -16,4 +16,4 @@ for i in range(num_accounts):
     wallets[wallet.get_address()] = wallet.get_mnemonic()
 
 with open(file_name, 'w') as f:
-    json.dump(wallets, f)#, encoding = "ISO-8859-1")
+    json.dump(wallets, f)  # , encoding = "ISO-8859-1")

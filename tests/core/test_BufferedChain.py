@@ -17,7 +17,7 @@ from qrl.core.Wallet import Wallet
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_wallet_dir, get_Alice_xmss, mocked_genesis
+from tests.misc.helper import set_wallet_dir, get_alice_xmss, mocked_genesis
 
 logger.initialize_default(force_console_output=True)
 
@@ -88,7 +88,7 @@ class TestBufferedChain(TestCase):
                 chain = Chain(state)
                 buffered_chain = BufferedChain(chain)
 
-                alice_xmss = get_Alice_xmss()
+                alice_xmss = get_alice_xmss()
                 slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
                 staking_address = bytes(alice_xmss.get_address().encode())
 
@@ -112,7 +112,7 @@ class TestBufferedChain(TestCase):
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
                     buffered_chain.add_vote(vote)
-                    voteMetadata = buffered_chain.get_consensus(0)
+                    vote_metadata = buffered_chain.get_consensus(0)
 
                     # FIXME: The test needs private access.. This is an API issue
                     stake_transaction._data.nonce = 1
@@ -131,7 +131,7 @@ class TestBufferedChain(TestCase):
                                              prevblock_headerhash=custom_genesis.headerhash,
                                              transactions=[stake_transaction],
                                              duplicate_transactions=OrderedDict(),
-                                             vote=voteMetadata,
+                                             vote=vote_metadata,
                                              signing_xmss=alice_xmss,
                                              nonce=1)
 
@@ -144,7 +144,7 @@ class TestBufferedChain(TestCase):
                 chain = Chain(state)
                 buffered_chain = BufferedChain(chain)
 
-                alice_xmss = get_Alice_xmss()
+                alice_xmss = get_alice_xmss()
                 slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
                 staking_address = bytes(alice_xmss.get_address().encode())
@@ -174,7 +174,7 @@ class TestBufferedChain(TestCase):
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
                     buffered_chain.add_vote(vote)
-                    voteMetadata = buffered_chain.get_consensus(0)
+                    vote_metadata = buffered_chain.get_consensus(0)
 
                     chain.pstate.stake_validators_tracker.add_sv(balance=100,
                                                                  stake_txn=stake_transaction,
@@ -189,7 +189,7 @@ class TestBufferedChain(TestCase):
                                               prevblock_headerhash=GenesisBlock().headerhash,
                                               transactions=[stake_transaction],
                                               duplicate_transactions=OrderedDict(),
-                                              vote=voteMetadata,
+                                              vote=vote_metadata,
                                               signing_xmss=alice_xmss,
                                               nonce=1)
 
@@ -206,7 +206,7 @@ class TestBufferedChain(TestCase):
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)
                         buffered_chain.add_vote(vote)
-                        voteMetadata = buffered_chain.get_consensus(1)
+                        vote_metadata = buffered_chain.get_consensus(1)
 
                         tmp_block2 = Block.create(staking_address=staking_address,
                                                   block_number=2,
@@ -214,7 +214,7 @@ class TestBufferedChain(TestCase):
                                                   prevblock_headerhash=tmp_block1.headerhash,
                                                   transactions=[],
                                                   duplicate_transactions=OrderedDict(),
-                                                  vote=voteMetadata,
+                                                  vote=vote_metadata,
                                                   signing_xmss=alice_xmss,
                                                   nonce=2)
 
@@ -231,7 +231,7 @@ class TestBufferedChain(TestCase):
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)
                         buffered_chain.add_vote(vote)
-                        voteMetadata = buffered_chain.get_consensus(2)
+                        vote_metadata = buffered_chain.get_consensus(2)
 
                         tmp_block3 = Block.create(staking_address=staking_address,
                                                   block_number=3,
@@ -239,7 +239,7 @@ class TestBufferedChain(TestCase):
                                                   prevblock_headerhash=tmp_block2.headerhash,
                                                   transactions=[],
                                                   duplicate_transactions=OrderedDict(),
-                                                  vote=voteMetadata,
+                                                  vote=vote_metadata,
                                                   signing_xmss=alice_xmss,
                                                   nonce=3)
 

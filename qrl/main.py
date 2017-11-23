@@ -65,24 +65,20 @@ def set_logger(args, sync_state):
 
 
 def start_legacy_services(buffered_chain: BufferedChain,
-                          persistent_state: State,
                           qrlnode: QRLNode,
                           sync_state: SyncState):
     # NOTE: These services are obsolete and will be removed soon
-
     # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    p2p_factory = P2PFactory(buffered_chain=buffered_chain, sync_state=sync_state, node=qrlnode)
-    pos = POS(buffered_chain=buffered_chain, p2pFactory=p2p_factory, sync_state=sync_state, time_provider=ntp)
-    p2p_factory.setPOS(pos)
+
+    p2p_factory = P2PFactory(buffered_chain=buffered_chain, sync_state=sync_state, qrl_node=qrlnode)
+    pos = POS(buffered_chain=buffered_chain, p2p_factory=p2p_factory, sync_state=sync_state, time_provider=ntp)
+
     qrlnode.set_p2pfactory(p2p_factory)
 
-    # FIXME: Again, we have cross-references between node, factory, chain and node_state
-    logger.info('>>>Listening..')
     reactor.listenTCP(9000, p2p_factory)
-    pos.restart_monitor_bk(80)
-
-    logger.info('Connect to the node via telnet session on port 2000: i.e "telnet localhost 2000"')
     p2p_factory.connect_peers()
+
+    pos.restart_monitor_bk(80)
     reactor.callLater(20, pos.unsynced_logic)
 
     reactor.run()
@@ -127,4 +123,4 @@ def main():
     #######
     # NOTE: Keep assigned to a variable or might get collected
     grpc_service, p2p_node = start_services(qrlnode)
-    start_legacy_services(buffered_chain, persistent_state, qrlnode, sync_state)
+    start_legacy_services(buffered_chain, qrlnode, sync_state)

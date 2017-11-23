@@ -12,6 +12,7 @@ class VoteTracker:
     Maintains the Stake weight of each multiple headerhash of same blocknumber,
     also keeps track of highest stake headerhash
     """
+
     def __init__(self):
         self._headerhash_voteMetadata = defaultdict(VoteMetadata)
         self._consensus_headerhash = None  # Keep track of the block headerhash having highest stake amount

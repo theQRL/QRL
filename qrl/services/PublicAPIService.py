@@ -7,10 +7,11 @@ from qrl.core import logger
 from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
+from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import grpc_exception_wrapper
 
 
-class PublicAPIService(qrl_pb2.PublicAPIServicer):
+class PublicAPIService(PublicAPIServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
@@ -109,8 +110,26 @@ class PublicAPIService(qrl_pb2.PublicAPIServicer):
         logger.debug("[PublicAPI] GetLatestData")
         response = qrl_pb2.GetLatestDataResp()
 
-        response.blocks.extend([blk.pbdata for blk in self.qrlnode.get_latest_blocks()])
-        response.transactions.extend([tx.pbdata for tx in self.qrlnode.get_latest_transactions()])
-        response.transactions_unconfirmed.extend([tx.pbdata for tx in self.qrlnode.get_latest_transactions_unconfirmed()])
+        all_requested = request.filter == qrl_pb2.GetLatestDataReq.ALL
+
+        if all_requested or request.filter == qrl_pb2.GetLatestDataReq.BLOCKHEADERS:
+            result = []
+            for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=request.quantity):
+                tx_count = len(blk.transactions)
+                result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
+                                                          transaction_count=tx_count))
+            response.blockheaders.extend(result)
+
+        if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS:
+            result = []
+            for tx in self.qrlnode.get_latest_transactions(offset=request.offset, count=request.quantity):
+                result.append(tx.pbdata)
+            response.transactions.extend(result)
+
+        if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS_UNCONFIRMED:
+            result = []
+            for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=request.quantity):
+                result.append(tx.pbdata)
+            response.transactions_unconfirmed.extend(result)
 
         return response

@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from collections import OrderedDict, defaultdict
-from typing import Dict
+from typing import Dict  # noqa
 
 from qrl.core import config, logger
 from qrl.core.StakeValidator import StakeValidator
@@ -24,7 +24,7 @@ class StakeValidatorsTracker:
         self._future_sv_dict = defaultdict(set)
         self._total_stake_amount = 0  # Maintains the total stake amount by current stake validator
 
-    def add_sv(self, balance, stake_txn: StakeTransaction , blocknumber):
+    def add_sv(self, balance, stake_txn: StakeTransaction, blocknumber):
         logger.debug("Adding %d %s %s", blocknumber, stake_txn.txfrom, stake_txn)
         if stake_txn.activation_blocknumber > blocknumber:
             self._add_future_sv(balance, stake_txn)

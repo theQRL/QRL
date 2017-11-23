@@ -12,6 +12,7 @@ from mock import mock
 
 from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 
 
@@ -28,6 +29,7 @@ def set_wallet_dir(wallet_name):
     finally:
         shutil.rmtree(dst_dir)
 
+
 @contextlib.contextmanager
 def set_data_dir(data_name):
     dst_dir = tempfile.mkdtemp()
@@ -41,6 +43,7 @@ def set_data_dir(data_name):
     finally:
         shutil.rmtree(dst_dir)
 
+
 @contextlib.contextmanager
 def mocked_genesis():
     custom_genesis_block = deepcopy(GenesisBlock())
@@ -49,7 +52,11 @@ def mocked_genesis():
         yield custom_genesis_block
 
 
-def get_Alice_xmss()->XMSS:
+def get_alice_xmss() -> XMSS:
     xmss_height = 6
     seed = bytes([i for i in range(48)])
     return XMSS(xmss_height, seed)
+
+
+def qrladdress(address_seed: str)->bytes:
+    return b'Q' + sha256(address_seed.encode())

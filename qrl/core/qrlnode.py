@@ -64,7 +64,7 @@ class QRLNode:
     def staking(self):
         if self._p2pfactory is None:
             return False
-        return self._p2pfactory.stake
+        return self._p2pfactory.pos.stake
 
     @property
     def epoch(self):
@@ -124,7 +124,7 @@ class QRLNode:
         return self._peer_addresses
 
     @property
-    def addresses(self)->List[bytes]:
+    def addresses(self) -> List[bytes]:
         return self._buffered_chain.wallet.addresses
 
     # FIXME: REMOVE. This is temporary
@@ -199,7 +199,7 @@ class QRLNode:
     @staticmethod
     def validate_amount(amount_str: str) -> bool:
         # FIXME: Refactored code. Review Decimal usage all over the code
-        amount = Decimal(amount_str)
+        Decimal(amount_str)
         return True
 
     def _find_xmss(self, key_addr: bytes):
@@ -281,11 +281,11 @@ class QRLNode:
 
         self._buffered_chain.tx_pool.add_tx_to_pool(tx)
         self._buffered_chain.wallet.save_wallet()
-        self._p2pfactory.send_tx_to_peers(tx)
+        self._p2pfactory.broadcast_tx(tx)
         return True
 
     @staticmethod
-    def address_is_valid(address: bytes)->bool:
+    def address_is_valid(address: bytes) -> bool:
         # TODO: Validate address format
         if len(address) < 1:
             return False
@@ -295,7 +295,7 @@ class QRLNode:
 
         return True
 
-    def get_address_is_used(self, address: bytes)->bool:
+    def get_address_is_used(self, address: bytes) -> bool:
         if not self.address_is_valid(address):
             raise ValueError("Invalid Address")
 
@@ -342,36 +342,49 @@ class QRLNode:
         # FIXME: At some point, all objects in DB will indexed by a hash
         return self._buffered_chain.get_block(index)
 
-    def get_latest_blocks(self, count=5):
-        # FIXME: Simplify this
+    def get_latest_blocks(self, offset, count) -> List[Block]:
+        # FIXME: This is incorrect. Offset does not work
         answer = []
-        end = self.block_height
-        start = max(0, end - count)
+        end = self.block_height - offset
+        start = max(0, end - count - offset)
         for blk_idx in range(start, end):
             answer.append(self._buffered_chain.get_block(blk_idx))
 
         return answer
 
-    def get_latest_transactions(self, count=5):
+    def get_latest_transactions(self, offset, count):
+        # FIXME: This is incorrect
         # FIXME: Moved code. Breaking encapsulation. Refactor
+        if not self._buffered_chain._chain.blockchain:
+            return []
+
+        last_block = self._buffered_chain._chain.blockchain[-1]
+
         answer = []
-        for pbtx in self._buffered_chain._chain.blockchain[-1].transactions[-20:]:
+        skipped = 0
+        for pbtx in reversed(last_block.transactions):
             tx = Transaction.from_pbdata(pbtx)
             if isinstance(tx, TransferTransaction):
-                answer.append(tx)
-                if len(answer) >= count:
-                    break
+                if skipped >= offset:
+                    answer.append(tx)
+                    if len(answer) >= count:
+                        break
+                else:
+                    skipped += 1
 
         return answer
 
-    def get_latest_transactions_unconfirmed(self, count=5):
+    def get_latest_transactions_unconfirmed(self, offset, count):
         answer = []
+        skipped = 0
         for tx in reversed(self._buffered_chain.tx_pool.transaction_pool):
             if isinstance(tx, TransferTransaction):
-                answer.append(tx)
-                if len(answer) >= count:
-                    break
-
+                if skipped >= offset:
+                    answer.append(tx)
+                    if len(answer) >= count:
+                        break
+                else:
+                    skipped += 1
         return answer
 
     def getNodeInfo(self) -> qrl_pb2.NodeInfo:

@@ -7,7 +7,6 @@ from google.protobuf.json_format import MessageToJson, Parse
 
 from qrl.core import config
 from qrl.core.Transaction import CoinBase, Transaction
-from qrl.core.Transaction_subtypes import TX_SUBTYPE_TX
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.crypto.misc import sha256, merkle_tx_hash
@@ -90,7 +89,7 @@ class Block(object):
         Parse(json_data, pbdata)
         return Block(pbdata)
 
-    def to_json(self):
+    def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data)
 
@@ -113,7 +112,7 @@ class Block(object):
         fee_reward = 0
 
         for tx in transactions:
-            if tx.subtype == TX_SUBTYPE_TX:
+            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link

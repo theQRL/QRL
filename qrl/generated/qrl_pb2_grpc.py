@@ -4,7 +4,7 @@ import grpc
 import qrl.generated.qrl_pb2 as qrl__pb2
 
 
-class P2PNodeStub(object):
+class P2PAPIStub(object):
   """//////////////////////////
   //////////////////////////
   //////////////////////////
@@ -23,23 +23,23 @@ class P2PNodeStub(object):
       channel: A grpc.Channel.
     """
     self.GetNodeState = channel.unary_unary(
-        '/qrl.P2PNode/GetNodeState',
+        '/qrl.P2PAPI/GetNodeState',
         request_serializer=qrl__pb2.GetNodeStateReq.SerializeToString,
         response_deserializer=qrl__pb2.GetNodeStateResp.FromString,
         )
     self.GetKnownPeers = channel.unary_unary(
-        '/qrl.P2PNode/GetKnownPeers',
+        '/qrl.P2PAPI/GetKnownPeers',
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
     self.GetBlock = channel.unary_unary(
-        '/qrl.P2PNode/GetBlock',
+        '/qrl.P2PAPI/GetBlock',
         request_serializer=qrl__pb2.GetBlockReq.SerializeToString,
         response_deserializer=qrl__pb2.GetBlockResp.FromString,
         )
 
 
-class P2PNodeServicer(object):
+class P2PAPIServicer(object):
   """//////////////////////////
   //////////////////////////
   //////////////////////////
@@ -71,7 +71,7 @@ class P2PNodeServicer(object):
     raise NotImplementedError('Method not implemented!')
 
 
-def add_P2PNodeServicer_to_server(servicer, server):
+def add_P2PAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
       'GetNodeState': grpc.unary_unary_rpc_method_handler(
           servicer.GetNodeState,
@@ -90,7 +90,7 @@ def add_P2PNodeServicer_to_server(servicer, server):
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'qrl.P2PNode', rpc_method_handlers)
+      'qrl.P2PAPI', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))
 
 
