@@ -30,6 +30,7 @@
     - [GetStatsResp](#qrl.GetStatsResp)
     - [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq)
     - [MR](#qrl.MR)
+    - [MsgObject](#qrl.MsgObject)
     - [NodeInfo](#qrl.NodeInfo)
     - [Peer](#qrl.Peer)
     - [PingReq](#qrl.PingReq)
@@ -203,6 +204,24 @@
 | id | [bytes](#bytes) |  |  |
 | ttl | [uint64](#uint64) |  |  |
 | data | [bytes](#bytes) |  | Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature |
+
+
+
+
+
+
+<a name="qrl.EphemeralMessage.Data"/>
+
+### EphemeralMessage.Data
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| aes256_symkey | [bytes](#bytes) |  |  |
+| prf512_seed | [bytes](#bytes) |  |  |
+| xmss_address | [bytes](#bytes) |  |  |
+| xmss_signature | [bytes](#bytes) |  |  |
 
 
 
@@ -504,6 +523,21 @@ FIXME: This is legacy. Plan removal
 | block_number | [uint64](#uint64) |  |  |
 | prev_headerhash | [bytes](#bytes) |  |  |
 | reveal_hash | [bytes](#bytes) |  |  |
+
+
+
+
+
+
+<a name="qrl.MsgObject"/>
+
+### MsgObject
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| ephemeral | [EphemeralMessage](#qrl.EphemeralMessage) |  | Overlapping - objects used for 2-way exchanges P2PRequest request = 1; P2PResponse response = 2; |
 
 
 
@@ -936,6 +970,7 @@ This service describes the P2P API
 | GetNodeState | [GetNodeStateReq](#qrl.GetNodeStateReq) | [GetNodeStateResp](#qrl.GetNodeStateReq) |  |
 | GetKnownPeers | [GetKnownPeersReq](#qrl.GetKnownPeersReq) | [GetKnownPeersResp](#qrl.GetKnownPeersReq) |  |
 | GetBlock | [GetBlockReq](#qrl.GetBlockReq) | [GetBlockResp](#qrl.GetBlockReq) | rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp); |
+| ObjectExchange | [MsgObject](#qrl.MsgObject) | [MsgObject](#qrl.MsgObject) | A bidirectional streaming channel is used to avoid any firewalling/NAT issues. |
 
 
 <a name="qrl.PublicAPI"/>

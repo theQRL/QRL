@@ -283,6 +283,10 @@
                 </li>
               
                 <li>
+                  <a href="#qrl.MsgObject"><span class="badge">M</span>MsgObject</a>
+                </li>
+              
+                <li>
                   <a href="#qrl.NodeInfo"><span class="badge">M</span>NodeInfo</a>
                 </li>
               
@@ -730,6 +734,32 @@
                   <td><p> </p></td>
                 </tr>
               
+<<<<<<< master
+=======
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.EphemeralMessage.Data">EphemeralMessage.Data</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>aes256_symkey</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+>>>>>>> Adding objectexchage streaming channel
                 <tr>
                   <td>data</td>
                   <td><a href="#bytes">bytes</a></td>
@@ -1341,6 +1371,33 @@
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.MsgObject">MsgObject</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>ephemeral</td>
+                  <td><a href="#qrl.EphemeralMessage">EphemeralMessage</a></td>
+                  <td></td>
+                  <td><p>Overlapping - objects used for 2-way exchanges
+
+
+P2PRequest request = 1;
+P2PResponse response = 2; </p></td>
                 </tr>
               
             </tbody>
@@ -2273,6 +2330,13 @@
                 <td><a href="#qrl.GetBlockReq">GetBlockReq</a></td>
                 <td><a href="#qrl.GetBlockResp">GetBlockResp</a></td>
                 <td><p>rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp);</p></td>
+              </tr>
+            
+              <tr>
+                <td>ObjectExchange</td>
+                <td><a href="#qrl.MsgObject">MsgObject</a></td>
+                <td><a href="#qrl.MsgObject">MsgObject</a></td>
+                <td><p>A bidirectional streaming channel is used to avoid any firewalling/NAT issues.</p></td>
               </tr>
             
           </tbody>

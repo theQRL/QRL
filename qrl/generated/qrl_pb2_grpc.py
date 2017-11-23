@@ -37,6 +37,11 @@ class P2PAPIStub(object):
         request_serializer=qrl__pb2.GetBlockReq.SerializeToString,
         response_deserializer=qrl__pb2.GetBlockResp.FromString,
         )
+    self.ObjectExchange = channel.stream_stream(
+        '/qrl.P2PAPI/ObjectExchange',
+        request_serializer=qrl__pb2.MsgObject.SerializeToString,
+        response_deserializer=qrl__pb2.MsgObject.FromString,
+        )
 
 
 class P2PAPIServicer(object):
@@ -70,6 +75,13 @@ class P2PAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ObjectExchange(self, request_iterator, context):
+    """A bidirectional streaming channel is used to avoid any firewalling/NAT issues.
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_P2PAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -87,6 +99,11 @@ def add_P2PAPIServicer_to_server(servicer, server):
           servicer.GetBlock,
           request_deserializer=qrl__pb2.GetBlockReq.FromString,
           response_serializer=qrl__pb2.GetBlockResp.SerializeToString,
+      ),
+      'ObjectExchange': grpc.stream_stream_rpc_method_handler(
+          servicer.ObjectExchange,
+          request_deserializer=qrl__pb2.MsgObject.FromString,
+          response_serializer=qrl__pb2.MsgObject.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
