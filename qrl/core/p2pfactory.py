@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import queue
+from random import random
 
 from google.protobuf.json_format import MessageToJson
 from twisted.internet import reactor
@@ -10,6 +11,7 @@ from twisted.internet.protocol import ServerFactory
 from qrl.core import config, logger, ntp
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
+from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
@@ -33,10 +35,10 @@ class P2PFactory(ServerFactory):
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
 
-        self.genesis_processed = False      # FIXME: Accessed by every p2pprotocol instance
-        self.peer_connections = []          # FIXME: Accessed by every p2pprotocol instance
-        self.synced_peers = set()           # FIXME: Accessed by every p2pprotocol instance
-        self.txn_processor_running = False  # FIXME: Accessed by every p2pprotocol instance
+        self.genesis_processed = False              # FIXME: Accessed by every p2pprotocol instance
+        self.peer_connections = []                  # FIXME: Accessed by every p2pprotocol instance
+        self._synced_peers_protocol = set()
+        self.txn_processor_running = False          # FIXME: Accessed by every p2pprotocol instance
 
         # Blocknumber for which bkmr is being tracked
         self.bkmr_blocknumber = 0                           # FIXME: Accessed by every p2pprotocol instance
@@ -49,6 +51,13 @@ class P2PFactory(ServerFactory):
     @property
     def connections(self):
         return len(self.peer_connections)
+
+    @property
+    def has_synced_peers(self):
+        return len(self._synced_peers_protocol) > 0
+
+    def get_random_synced_peer(self):
+        return random.sample(self.p2p_factory.synced_peers, 1)[0]
 
     ##############################################
     ##############################################
@@ -160,6 +169,11 @@ class P2PFactory(ServerFactory):
         self.master_mr.register(msg_type, msg_hash, msg_json)
         self.broadcast(msg_hash, msg_type, data)
 
+    def broadcast_relay(self, source_peer, raw_message):
+        for peer in self.peer_connections:
+            if peer != source_peer:
+                peer.transport.write(raw_message)
+
     def broadcast(self, msg_hash: bytes, msg_type, data=None):  # Move to factory
         """
         Broadcast
@@ -176,13 +190,14 @@ class P2PFactory(ServerFactory):
         data.hash = msg_hash
         data.type = msg_type
 
+        msg = self.protocol.wrap_message('MR', MessageToJson(data))
         for peer in self.peer_connections:
             if peer not in ignore_peers:
-                peer.transport.write(self.protocol.wrap_message('MR', MessageToJson(data)))
+                peer.transport.write(msg)
 
     def broadcast_get_synced_state(self):
         # Request all peers to update their synced status
-        self.synced_peers = set()
+        self._synced_peers_protocol = set()
         for peer in self.peer_connections:
             peer.transport.write(peer.wrap_message('SYNC'))
 
@@ -220,6 +235,21 @@ class P2PFactory(ServerFactory):
     def startedConnecting(self, connector):
         logger.debug('Started connecting: %s', connector)
 
+    def set_peer_synced(self, conn_protocol, synced: bool):
+        if synced:
+            self.factory.synced_peers_protocol.add(conn_protocol)
+        else:
+            self.factory.synced_peers_protocol.discard(conn_protocol)
+
+    def remove_connection(self, conn_protocol):
+        if conn_protocol in self.peer_connections:
+            self.peer_connections.remove(conn_protocol)
+
+        self._synced_peers_protocol.discard(conn_protocol)
+
+        if self.connections == 0:
+            reactor.callLater(60, self.connect_peers)
+
     def connect_peers(self):
         """
         Will connect to all known peers. This is typically the entry point
@@ -233,7 +263,6 @@ class P2PFactory(ServerFactory):
         """
         logger.info('<<<Reconnecting to peer list: %s', self.qrl_node._peer_addresses)
         for peer_address in self.qrl_node._peer_addresses:
-            # FIXME: Refactor search
             found = False
             for peer_conn in self.peer_connections:
                 if peer_address == peer_conn.transport.getPeer().host:

@@ -32,25 +32,25 @@ class P2PProtocol(Protocol):
         # TODO: Comment with some names the services
         self.service = {
             ######################
-            'VE': self.VE,              # X SEND/RECV         Version
-            'PE': self.PE,              # X SEND              Peers List (connected peers)
-            'PL': self.PL,              # X RECV              Peers List
+            'VE': self.VE,  # X SEND/RECV         Version
+            'PE': self.PE,  # X SEND              Peers List (connected peers)
+            'PL': self.PL,  # X RECV              Peers List
             # PING                       # X SEND              Pong
-            'PONG': self.PONG,          # X RECV/DSEND        Pong
+            'PONG': self.PONG,  # X RECV/DSEND        Pong
 
             ######################
-            'MR': self.MR,              # RECV+Filters      It will send a RequestFullMessage
-            'SFM': self.SFM,            # RECV=>SEND        Send Full Message
+            'MR': self.MR,  # RECV+Filters      It will send a RequestFullMessage
+            'SFM': self.SFM,  # RECV=>SEND        Send Full Message
 
-            'BK': self.BK,              # RECV      Block
-            'FB': self.FB,              # Fetch request for block
-            'PB': self.PB,              # Push Block
-            'PBB': self.PBB,            # Push Block Buffer
+            'BK': self.BK,  # RECV      Block
+            'FB': self.FB,  # Fetch request for block
+            'PB': self.PB,  # Push Block
+            'PBB': self.PBB,  # Push Block Buffer
 
             ############################
-            'ST': self.ST,              # RECV/BCAST        Stake Transaction
-            'DST': self.DST,            # Destake Transaction
-            'DT': self.DT,              # Duplicate Transaction
+            'ST': self.ST,  # RECV/BCAST        Stake Transaction
+            'DST': self.DST,  # Destake Transaction
+            'DT': self.DT,  # Duplicate Transaction
 
             ############################
             'TX': self.TX,  # RECV Transaction
@@ -357,7 +357,7 @@ class P2PProtocol(Protocol):
                     self.factory.buffered_chain._chain.add_tx_to_duplicate_pool(duplicate_txn)
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
             '''
-        self.factory.pos.pre_block_logic(block)     # FIXME: Ignores return value
+        self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
         self.factory.master_mr.register('BK', block.headerhash, data)
 
     def isNoMoreBlock(self, data):
@@ -626,17 +626,12 @@ class P2PProtocol(Protocol):
         self.factory.qrl_node.update_peer_addresses(peer_addresses)
 
     def synced_state(self, state=None):
-        if not state:
-            if not self.factory.pos.sync_state.state == ESyncState.synced:
-                return
-            self.transport.write(self.wrap_message('SYNC', 'Synced'))
-
-            # FIXME: unsafe access to synced_peers
-            if self in self.factory.synced_peers:
-                self.factory.synced_peers.remove(self)
+        if state:
+            self.factory.set_peer_synced(self, True)
         else:
-            # FIXME: unsafe access to synced_peers
-            self.factory.synced_peers.add(self)
+            if self.factory.pos.sync_state.state == ESyncState.synced:
+                self.transport.write(self.wrap_message('SYNC', 'Synced'))
+                self.factory.set_peer_synced(self, False)
 
     def get_version(self):
         """
@@ -784,7 +779,7 @@ class P2PProtocol(Protocol):
         else:
             self.buffer = b''  # Clean buffer completely
 
-    def _parse_buffer(self)->Optional[list]:
+    def _parse_buffer(self) -> Optional[list]:
         # FIXME: This parsing/wire protocol needs to be replaced
         """
         :return:
@@ -827,7 +822,8 @@ class P2PProtocol(Protocol):
             if num_d > 1:  # if not, is this the only initiator in the buffer?
                 self.buffer = self.buffer[3:]
                 d = self.buffer.find(P2PProtocol.MSG_INITIATOR)
-                self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved', upto=d)  # no
+                self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved',
+                                  upto=d)  # no
                 return []
             else:
                 self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')  # yes
@@ -965,14 +961,4 @@ class P2PProtocol(Protocol):
         logger.info('%s disconnected. remainder connected: %s',
                     self.transport.getPeer().host,
                     str(self.factory.connections))  # , reason
-        try:
-            self.factory.peer_connections.remove(self)
-
-            if self.factory.connections == 0:
-                reactor.callLater(60, self.factory.connect_peers)
-
-            # FIXME: unsafe access to synced_peers
-            if self in self.factory.synced_peers:
-                self.factory.synced_peers.remove(self)
-        except Exception:
-            pass
+        self.factory.remove_connection(self)

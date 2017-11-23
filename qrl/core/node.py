@@ -277,10 +277,7 @@ class POS:
             self.buffered_chain.tx_pool.add_tx_to_pool(tx)
 
             txn_msg = tx_peer.wrap_message('TX', tx.to_json())
-            for peer in tx_peer.factory.peer_connections:
-                if peer != tx_peer:
-                    # FIXME: Breaks encapsulation
-                    peer.transport.write(txn_msg)
+            self.p2p_factory.broadcast_relay(tx_peer, txn_msg)
 
         for i in range(num - tmp_num):
             del self.buffered_chain.tx_pool.pending_tx_pool[0]
@@ -323,7 +320,7 @@ class POS:
         logger.info('Checking Download..')
 
         # FIXME: unsafe access to synced_peers
-        if not self.p2p_factory.synced_peers:
+        if not self.p2p_factory.has_synced_peers:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)
             return
@@ -662,8 +659,7 @@ class POS:
             if self.isSynced(block_timestamp):
                 return
 
-        # FIXME: unsafe access to synced_peers
-        if len(self.p2p_factory.synced_peers) == 0:
+        if not self.p2p_factory.has_synced_peers:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)
             return
@@ -671,6 +667,6 @@ class POS:
         reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
 
         # FIXME: unsafe access to synced_peers
-        random_peer = random.sample(self.p2p_factory.synced_peers, 1)[0]
+        random_peer = self.p2p_factory.get_random_synced_peer()
         blocknumber = self.buffered_chain.height + 1
         random_peer.fetch_block_n(blocknumber)

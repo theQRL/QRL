@@ -1,6 +1,6 @@
 from qrl.core.qrlnode import QRLNode
 from qrl.services.BlockChainManager import BlockChainManager
-from qrl.services.P2PNodeService import P2PNodeService
+from qrl.services.P2PAPIService import P2PAPIService
 from qrl.services.PeerManager import PeerManager
 
 
