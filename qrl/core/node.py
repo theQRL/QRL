@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-import random
 import time
 from collections import defaultdict
 from functools import reduce
@@ -61,10 +60,6 @@ class POS:
         self.retry_consensus = 0  # Keeps track of number of times consensus failed for the last blocknumber
 
         self.epoch_diff = None
-
-    @property
-    def master_mr(self):
-        return self.p2p_factory.master_mr
 
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
@@ -312,6 +307,7 @@ class POS:
             reactor.unsynced_logic = reactor.callLater(20, self.start_download)
 
     def start_download(self):
+        # FIXME: Why PoS is downloading blocks?
         # add peers and their identity to requested list
         # FMBH
         if self.sync_state.state == ESyncState.synced:
@@ -319,7 +315,6 @@ class POS:
 
         logger.info('Checking Download..')
 
-        # FIXME: unsafe access to synced_peers
         if not self.p2p_factory.has_synced_peers:
             logger.warning('No connected peers in synced state. Retrying...')
             self.update_node_state(ESyncState.unsynced)
@@ -650,6 +645,7 @@ class POS:
         return False
 
     def randomize_block_fetch(self):
+        # Why PoS is fetching blocks?
         if self.sync_state.state != ESyncState.syncing:
             return
 
