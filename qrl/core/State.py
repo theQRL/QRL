@@ -128,6 +128,9 @@ class State:
             logger.exception(e)
             txhash = []
 
+        for i in range(len(txhash)):
+            txhash[i] = txhash[i].encode()
+
         return txhash
 
     #########################################
