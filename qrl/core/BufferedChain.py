@@ -204,6 +204,9 @@ class BufferedChain:
         self.epoch = block.epoch
         return True
 
+    def add_lattice_public_key(self, lattice_public_key_txn):
+        self._chain.pstate.put_lattice_public_key(lattice_public_key_txn)
+
     def add_vote(self, vote: Vote):
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
             return

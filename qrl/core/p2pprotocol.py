@@ -55,6 +55,9 @@ class P2PProtocol(Protocol):
             ############################
             'TX': self.TX,  # RECV Transaction
             'VT': self.VT,  # Vote Txn
+            'LT': self.LT,  # Lattice Public Key Transaction
+
+            'EPH': self.eph,  # Ephemeral Transaction
 
             'SYNC': self.synced_state,  # Add into synced list, if the node replies
         }
@@ -558,6 +561,45 @@ class P2PProtocol(Protocol):
                 logger.exception(e)
 
             self.transport.loseConnection()
+
+    def EPH(self, data):
+        """
+        Receives Ephemeral Transaction
+        :param data:
+        :return:
+        """
+        pass
+
+    def LT(self, data):
+        """
+        Receives Lattice Public Key Transaction
+        :param data:
+        :return:
+        """
+
+        try:
+            lattice_public_key_txn = Transaction.from_json(data)
+        except Exception as e:
+            logger.error('lattice_public_key rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(lattice_public_key_txn.get_message_hash(), self):
+            return
+
+        if lattice_public_key_txn.validate():
+            self.factory.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+        else:
+            logger.warning('>>>Lattice Public Key %s invalid state validation failed..', lattice_public_key_txn.hash)
+            return
+
+        # TODO: This need to be moved to add_block before next hard fork
+        self.factory.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+
+        self.factory.register_and_broadcast('LT',
+                                            lattice_public_key_txn.get_message_hash(),
+                                            lattice_public_key_txn.to_json())
 
     def recv_peers(self, json_data):
         """

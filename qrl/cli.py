@@ -182,6 +182,22 @@ def send():
         print("Error {}".format(str(e)))
 
 
+@wallet.command()
+def eph():
+    channel = get_channel()
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+
+    walletObj = get_wallet_obj()
+    print_wallet_list(walletObj)
+    selected_wallet = select_wallet(walletObj)
+    if not selected_wallet:
+        return
+
+    address_to = click.prompt('Address To', type=str)
+    message = click.prompt('Message', type=str)
+
+    pass
+
 def main():
     wallet()
 

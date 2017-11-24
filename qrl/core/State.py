@@ -46,6 +46,21 @@ class State:
             logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
+    def get_lattice_public_key(self, address):
+        try:
+            return self._db.get(b'lattice_' + address)
+        except KeyError:
+            return set()
+        except Exception as e:
+            logger.exception(e)
+            return False
+
+    def put_lattice_public_key(self, lattice_public_key_txn):
+        address = lattice_public_key_txn.txfrom
+        lattice_public_keys = self.get_public_key(address)
+        lattice_public_keys.add(lattice_public_key_txn.kyber_pk)
+        self._db.put(address, lattice_public_keys)
+
     #########################################
     #########################################
     #########################################
