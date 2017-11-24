@@ -8,6 +8,7 @@ from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
+from qrl.core.Block import Block
 from qrl.generated import qrl_pb2
 
 
@@ -100,6 +101,9 @@ class State:
         txhash = self.get_address_tx_hashes(addr)
         txhash.append(bin2hstr(new_txhash))
         self._db.put(b'txn_' + addr, txhash)
+
+    def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
+        self.stake_validators_tracker = stake_validators_tracker
 
     def get_address_tx_hashes(self, addr: bytes):
         try:
