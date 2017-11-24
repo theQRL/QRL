@@ -5,7 +5,6 @@
 import queue
 
 from google.protobuf.json_format import MessageToJson
-from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
