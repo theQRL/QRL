@@ -59,7 +59,7 @@ class State:
         address = lattice_public_key_txn.txfrom
         lattice_public_keys = self.get_lattice_public_key(address)
         lattice_public_keys.add(lattice_public_key_txn.kyber_pk)
-        self._db.put(address, list(lattice_public_keys))
+        self._db.put(b'lattice_' + address, list(lattice_public_keys))
 
     #########################################
     #########################################
