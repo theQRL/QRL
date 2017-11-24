@@ -196,8 +196,6 @@ def eph():
     address_to = click.prompt('Address To', type=str)
     message = click.prompt('Message', type=str)
 
-    pass
-
 def main():
     wallet()
 
