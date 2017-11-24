@@ -489,7 +489,7 @@ class LatticePublicKey(Transaction):
     def create(addr_from, kyber_pk, tesla_pk, xmss_pk, xmss_ots_index):
         transaction = LatticePublicKey()
 
-        transaction._data.txfrom = addr_from
+        transaction._data.addr_from = addr_from
         transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = kyber_pk
