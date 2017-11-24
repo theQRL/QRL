@@ -332,8 +332,8 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        bytes pk_kyber = 1;
-        bytes pk_tesla = 2;
+        bytes kyber_pk = 1;
+        bytes tesla_pk = 2;
     }
 
     message Duplicate {
