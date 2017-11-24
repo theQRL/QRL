@@ -8,7 +8,7 @@ from typing import Optional, List
 
 from qrl.core import config, logger
 from qrl.core.BufferedChain import BufferedChain
-from qrl.core.Transaction import TransferTransaction, Transaction
+from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
@@ -209,6 +209,11 @@ class QRLNode:
                 return addr.xmss
         return None
 
+    def create_lattice_public_key_txn(self, addr_from: bytes, public_key: bytes):
+        xmss_from = self._find_xmss(addr_from)
+        lattice_public_key_txn = LatticePublicKey.create(xmss_from, public_key, public_key)  # Placeholder
+        self._p2pfactory.broadcast_lt(lattice_public_key_txn)
+
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
         block_chain_buffer = self._buffered_chain.block_chain_buffer
@@ -266,22 +271,39 @@ class QRLNode:
                                           xmss_pk=xmss_pk,
                                           xmss_ots_index=xmss_ots_index)
 
+    def create_lt(self,
+                  addr_from: bytes,
+                  kyber_pk: bytes,
+                  tesla_pk: bytes,
+                  xmss_pk: bytes,
+                  xmss_ots_index: int) -> LatticePublicKey:
+
+        return LatticePublicKey.create(addr_from=addr_from,
+                                       kyber_pk=kyber_pk,
+                                       tesla_pk=tesla_pk,
+                                       xmss_pk=xmss_pk,
+                                       xmss_ots_index=xmss_ots_index)
+
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx: TransferTransaction) -> bool:
         if tx is None:
             raise ValueError("The transaction was empty")
 
-        tx.validate_or_raise()
+        if tx.subtype == qrl_pb2.Transaction.LATTICE:
+            self._p2pfactory.broadcast_lt(tx)
+        elif tx.subtype == qrl_pb2.Transaction.TX:
+            tx.validate_or_raise()
 
-        block_number = self._buffered_chain.height + 1
-        tx_state = self._buffered_chain.get_stxn_state(block_number, tx.txfrom)
+            block_number = self._buffered_chain.height + 1
+            tx_state = self._buffered_chain.get_stxn_state(block_number, tx.txfrom)
 
-        if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
-            raise ValueError("The transaction failed validatation (blockchain state)")
+            if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
+                raise ValueError("The transaction failed validatation (blockchain state)")
 
-        self._buffered_chain.tx_pool.add_tx_to_pool(tx)
-        self._buffered_chain.wallet.save_wallet()
-        self._p2pfactory.broadcast_tx(tx)
+            self._buffered_chain.tx_pool.add_tx_to_pool(tx)
+            self._buffered_chain.wallet.save_wallet()
+            self._p2pfactory.broadcast_tx(tx)
+
         return True
 
     @staticmethod
