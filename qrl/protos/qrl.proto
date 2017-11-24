@@ -343,13 +343,7 @@ message Transaction {
 }
 
 message EphemeralMessage {
-    uint64 id = 1;
+    bytes id = 1;
     uint64 ttl = 2;
-
-    message Data {
-        bytes aes256_symkey = 1;
-        bytes prf512_seed = 2;
-        bytes xmss_address = 3;
-        bytes xmss_signature = 4;
-    }
+    bytes data = 3;                 // Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature
 }
