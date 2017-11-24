@@ -48,7 +48,7 @@ class State:
 
     def get_lattice_public_key(self, address):
         try:
-            return self._db.get(b'lattice_' + address)
+            return set(self._db.get(b'lattice_' + address))
         except KeyError:
             return set()
         except Exception as e:
@@ -57,9 +57,9 @@ class State:
 
     def put_lattice_public_key(self, lattice_public_key_txn):
         address = lattice_public_key_txn.txfrom
-        lattice_public_keys = self.get_public_key(address)
+        lattice_public_keys = self.get_lattice_public_key(address)
         lattice_public_keys.add(lattice_public_key_txn.kyber_pk)
-        self._db.put(address, lattice_public_keys)
+        self._db.put(address, list(lattice_public_keys))
 
     #########################################
     #########################################
@@ -113,7 +113,7 @@ class State:
 
     def update_address_tx_hashes(self, addr: bytes, new_txhash: bytes):
         txhash = self.get_address_tx_hashes(addr)
-        txhash.append(bin2hstr(new_txhash))
+        txhash.append(bin2hstr(new_txhash).encode())
         self._db.put(b'txn_' + addr, txhash)
 
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):

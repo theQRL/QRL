@@ -209,11 +209,6 @@ class QRLNode:
                 return addr.xmss
         return None
 
-    def create_lattice_public_key_txn(self, addr_from: bytes, public_key: bytes):
-        xmss_from = self._find_xmss(addr_from)
-        lattice_public_key_txn = LatticePublicKey.create(xmss_from, public_key, public_key)  # Placeholder
-        self._p2pfactory.broadcast_lt(lattice_public_key_txn)
-
     # FIXME: Rename this appropriately
     def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
         block_chain_buffer = self._buffered_chain.block_chain_buffer

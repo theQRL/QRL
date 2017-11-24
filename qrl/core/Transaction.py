@@ -470,11 +470,11 @@ class LatticePublicKey(Transaction):
 
     @property
     def kyber_pk(self):
-        return self._data.kyber_pk
+        return self._data.latticePK.kyber_pk
 
     @property
     def tesla_pk(self):
-        return self._data.tesla_pk
+        return self._data.latticePK.tesla_pk
 
     def _get_hashable_bytes(self):
         """
