@@ -144,6 +144,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
         response_deserializer=qrl__pb2.PushTransactionResp.FromString,
         )
+    self.GetLatticePublicKeyTxn = channel.unary_unary(
+        '/qrl.PublicAPI/GetLatticePublicKeyTxn',
+        request_serializer=qrl__pb2.LatticePublicKeyTxnReq.SerializeToString,
+        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
+        )
 
 
 class PublicAPIServicer(object):
@@ -198,6 +203,12 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetLatticePublicKeyTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -240,6 +251,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.PushTransaction,
           request_deserializer=qrl__pb2.PushTransactionReq.FromString,
           response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
+      ),
+      'GetLatticePublicKeyTxn': grpc.unary_unary_rpc_method_handler(
+          servicer.GetLatticePublicKeyTxn,
+          request_deserializer=qrl__pb2.LatticePublicKeyTxnReq.FromString,
+          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

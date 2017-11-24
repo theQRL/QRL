@@ -5,7 +5,6 @@
 import queue
 
 from google.protobuf.json_format import MessageToJson
-from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
@@ -150,8 +149,13 @@ class P2PFactory(ServerFactory):
         self.register_and_broadcast('BK', block.headerhash, block.to_json(), data)
 
     def broadcast_tx(self, tx):
-        logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
+        logger.info('<<<Transmitting TX: %s', tx.txhash)
         self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())
+
+    def broadcast_lt(self, lattice_public_key_txn):
+        logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
+        self.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+        self.register_and_broadcast('LT', lattice_public_key_txn.get_message_hash(), lattice_public_key_txn.to_json())
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json: str, data=None):
         self.master_mr.register(msg_type, msg_hash, msg_json)

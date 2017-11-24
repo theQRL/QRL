@@ -182,6 +182,58 @@ def send():
         print("Error {}".format(str(e)))
 
 
+@wallet.command()
+def eph():
+    # channel = get_channel()
+    # stub = qrl_pb2_grpc.PublicAPIStub(channel)
+
+    walletObj = get_wallet_obj()
+    print_wallet_list(walletObj)
+    selected_wallet = select_wallet(walletObj)
+    if not selected_wallet:
+        return
+
+    # address_to = click.prompt('Address To', type=str)
+    # message = click.prompt('Message', type=str)
+
+
+@wallet.command()
+def lattice():
+    channel = get_channel()
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+
+    walletObj = get_wallet_obj()
+    print_wallet_list(walletObj)
+    selected_wallet = select_wallet(walletObj)
+    if not selected_wallet:
+        return
+
+    lattice_public_key = click.prompt('Enter Lattice Public Key', type=str)
+
+    lattice_public_key = lattice_public_key.encode()
+
+    try:
+        latticePublicKeyTxnReq = qrl_pb2.LatticePublicKeyTxnReq(address_from=selected_wallet.address,
+                                                                kyber_pk=lattice_public_key,
+                                                                tesla_pk=lattice_public_key,
+                                                                xmss_pk=selected_wallet.xmss.pk(),
+                                                                xmss_ots_index=selected_wallet.xmss.get_index())
+
+        f = stub.GetLatticePublicKeyTxn.future(latticePublicKeyTxnReq, timeout=5)
+        latticePublicKeyResp = f.result(timeout=5)
+
+        tx = Transaction.from_pbdata(latticePublicKeyResp.transaction_unsigned)
+        tx.sign(selected_wallet.xmss)
+        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+
+        f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
+        pushTransactionResp = f.result(timeout=5)
+
+        print('%s' % (pushTransactionResp.some_response,))
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
 def main():
     wallet()
 
