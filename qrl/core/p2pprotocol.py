@@ -17,7 +17,7 @@ from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
 from qrl.core.processors.TxnProcessor import TxnProcessor
-from qrl.generated import qrl_pb2
+from qrl.generated import qrl_pb2, qrllegacy_pb2
 from queue import PriorityQueue
 
 
@@ -32,9 +32,7 @@ class P2PProtocol(Protocol):
         self._service = {
             ######################
             'VE': self.VE,  # X SEND/RECV         Version
-            'PE': self.PE,  # X SEND              Peers List (connected peers)
             'PL': self.PL,  # X RECV              Peers List
-            # PING                       # X SEND              Pong
             'PONG': self.PONG,  # X RECV/DSEND        Pong
 
             ######################
@@ -76,7 +74,7 @@ class P2PProtocol(Protocol):
         Otherwise the request is made to get the full message.
         :return:
         """
-        mr_data = qrl_pb2.MR()
+        mr_data = qrllegacy_pb2.MRData()
         try:
             Parse(data, mr_data)
         except Exception as e:  # Disconnect peer not following protocol
@@ -145,7 +143,7 @@ class P2PProtocol(Protocol):
         This function serves the request made for the full message.
         :return:
         """
-        mr_data = qrl_pb2.MR()
+        mr_data = qrllegacy_pb2.MRData()
         Parse(data, mr_data)
         msg_hash = mr_data.hash
         msg_type = mr_data.type
@@ -475,7 +473,7 @@ class P2PProtocol(Protocol):
                 return
             logger.info(' Send for blocknumber #%s to %s', idx, self._conn_identity)
 
-    def PING(self):
+    def _send_pong(self):
         """
         Ping
         :return:
@@ -491,7 +489,7 @@ class P2PProtocol(Protocol):
         self._disconnect_callLater.reset(config.user.ping_timeout)
         if self._ping_callLater.active():
             self._ping_callLater.cancel()
-        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self.PING)
+        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self._send_pong)
         logger.debug('Received PONG from %s', self._conn_identity)
 
     def PL(self, data):  # receiving a list of peers to save into peer list..
@@ -500,14 +498,6 @@ class P2PProtocol(Protocol):
         :return:
         """
         self._recv_peers(data)
-
-    def PE(self):  # get a list of connected peers..need to add some ddos and type checking proteection here..
-        """
-        Peers
-        Sends the list of all connected peers.
-        :return:
-        """
-        self._send_peers()
 
     def VE(self, data=None):
         """
@@ -518,6 +508,14 @@ class P2PProtocol(Protocol):
         :return:
         """
         if not data:
+            # FIXME: This is not active. It is just an example
+            veData = qrllegacy_pb2.VEData(version=config.dev.version,
+                                          genesis_prev_hash=bytes(config.dev.genesis_prev_headerhash.encode()))
+
+            qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
+                                        veData=veData)
+            #############
+
             version_details = {
                 'version': config.dev.version,
                 'genesis_prev_headerhash': config.dev.genesis_prev_headerhash
@@ -647,7 +645,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
-        peer_ips = self.factory.get_peer_ips()
+        peer_ips = self.factory.get_connected_peer_ips()
         peer_ips_json = json.dumps(peer_ips)
         self.transport.write(self.wrap_message('PL', peer_ips_json))
 
@@ -673,32 +671,14 @@ class P2PProtocol(Protocol):
         if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
             return
 
-        if tx.txhash in self._prev_txpool_hashes or tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if tx.txhash in self._prev_txpool_hashes or \
+                tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
         del self._prev_txpool_hashes[0]
         self._prev_txpool_hashes.append(tx.txhash)
 
-        # duplicate tx already received, would mess up nonce..
-        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
-            if tx.txhash == t.txhash:
-                return
-
-        self.factory.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-        self.factory.master_mr.register('TX', tx.get_message_hash(), json_tx_obj)
-        self.factory.broadcast(tx.get_message_hash(), 'TX')
-
-        # FIXME: This is tx processor related..
-        if not self.factory.txn_processor_running:
-            # FIXME: TxnProcessor breaks tx_pool encapsulation
-            txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
-                                         pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool)
-
-            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-            task_defer.addCallback(self.factory.reset_processor_flag) \
-                .addErrback(self.factory.reset_processor_flag_with_err)
-            self.factory.txn_processor_running = True
+        self.factory.trigger_tx_processor(tx, json_tx_obj)
 
     ###################################################
     ###################################################
@@ -909,7 +889,7 @@ class P2PProtocol(Protocol):
             self._send_peers()
             self._get_version()
 
-        self._ping_callLater = reactor.callLater(1, self.PING)
+        self._ping_callLater = reactor.callLater(1, self._send_pong)
         self._disconnect_callLater = reactor.callLater(config.user.ping_timeout,
                                                        self.transport.loseConnection)
 

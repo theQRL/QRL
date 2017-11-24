@@ -28,8 +28,6 @@
     - [GetStakersResp](#qrl.GetStakersResp)
     - [GetStatsReq](#qrl.GetStatsReq)
     - [GetStatsResp](#qrl.GetStatsResp)
-    - [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq)
-    - [MR](#qrl.MR)
     - [MsgObject](#qrl.MsgObject)
     - [NodeInfo](#qrl.NodeInfo)
     - [Peer](#qrl.Peer)
@@ -71,6 +69,23 @@
   
   
     - [Base](#qrl.Base)
+  
+
+- [qrllegacy.proto](#qrllegacy.proto)
+    - [BKData](#qrl.BKData)
+    - [FBData](#qrl.FBData)
+    - [LegacyMessage](#qrl.LegacyMessage)
+    - [MRData](#qrl.MRData)
+    - [NoData](#qrl.NoData)
+    - [PBData](#qrl.PBData)
+    - [PLData](#qrl.PLData)
+    - [PONGData](#qrl.PONGData)
+    - [SYNCData](#qrl.SYNCData)
+    - [VEData](#qrl.VEData)
+  
+    - [LegacyMessage.FuncName](#qrl.LegacyMessage.FuncName)
+  
+  
   
 
 - [Scalar Value Types](#scalar-value-types)
@@ -484,45 +499,6 @@
 | coins_total_supply | [uint64](#uint64) |  |  |
 | coins_emitted | [uint64](#uint64) |  |  |
 | coins_atstake | [uint64](#uint64) |  |  |
-
-
-
-
-
-
-<a name="qrl.LatticePublicKeyTxnReq"/>
-
-### LatticePublicKeyTxnReq
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| address_from | [bytes](#bytes) |  |  |
-| kyber_pk | [bytes](#bytes) |  |  |
-| tesla_pk | [bytes](#bytes) |  |  |
-| xmss_pk | [bytes](#bytes) |  |  |
-| xmss_ots_index | [uint64](#uint64) |  |  |
-
-
-
-
-
-
-<a name="qrl.MR"/>
-
-### MR
-FIXME: This is legacy. Plan removal
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| hash | [bytes](#bytes) |  | FIXME: rename this to block_headerhash |
-| type | [string](#string) |  | FIXME: type/string what is this |
-| stake_selector | [bytes](#bytes) |  |  |
-| block_number | [uint64](#uint64) |  |  |
-| prev_headerhash | [bytes](#bytes) |  |  |
-| reveal_hash | [bytes](#bytes) |  |  |
 
 
 
@@ -1042,6 +1018,200 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | GetNodeInfo | [GetNodeInfoReq](#qrl.GetNodeInfoReq) | [GetNodeInfoResp](#qrl.GetNodeInfoReq) |  |
+
+ 
+
+
+
+<a name="qrllegacy.proto"/>
+<p align="right"><a href="#top">Top</a></p>
+
+## qrllegacy.proto
+
+
+
+<a name="qrl.BKData"/>
+
+### BKData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| mrData | [MRData](#qrl.MRData) |  |  |
+| block | [Block](#qrl.Block) |  |  |
+
+
+
+
+
+
+<a name="qrl.FBData"/>
+
+### FBData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| index | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="qrl.LegacyMessage"/>
+
+### LegacyMessage
+Adding old code to refactor while keeping things working
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| func_name | [LegacyMessage.FuncName](#qrl.LegacyMessage.FuncName) |  |  |
+| noData | [NoData](#qrl.NoData) |  |  |
+| veData | [VEData](#qrl.VEData) |  |  |
+| pongData | [PONGData](#qrl.PONGData) |  |  |
+| mrData | [MRData](#qrl.MRData) |  |  |
+| sfmData | [MRData](#qrl.MRData) |  |  |
+| bkData | [BKData](#qrl.BKData) |  |  |
+| fbData | [FBData](#qrl.FBData) |  |  |
+| pbData | [PBData](#qrl.PBData) |  |  |
+| pbbData | [PBData](#qrl.PBData) |  |  |
+| syncData | [SYNCData](#qrl.SYNCData) |  |  |
+
+
+
+
+
+
+<a name="qrl.MRData"/>
+
+### MRData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| hash | [bytes](#bytes) |  | FIXME: rename this to block_headerhash |
+| type | [LegacyMessage.FuncName](#qrl.LegacyMessage.FuncName) |  | FIXME: type/string what is this |
+| stake_selector | [bytes](#bytes) |  |  |
+| block_number | [uint64](#uint64) |  |  |
+| prev_headerhash | [bytes](#bytes) |  |  |
+| reveal_hash | [bytes](#bytes) |  |  |
+
+
+
+
+
+
+<a name="qrl.NoData"/>
+
+### NoData
+
+
+
+
+
+
+
+<a name="qrl.PBData"/>
+
+### PBData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| index | [uint64](#uint64) |  |  |
+| block | [Block](#qrl.Block) |  |  |
+
+
+
+
+
+
+<a name="qrl.PLData"/>
+
+### PLData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| peer_ips | [string](#string) | repeated |  |
+
+
+
+
+
+
+<a name="qrl.PONGData"/>
+
+### PONGData
+
+
+
+
+
+
+
+<a name="qrl.SYNCData"/>
+
+### SYNCData
+
+
+
+
+
+
+
+<a name="qrl.VEData"/>
+
+### VEData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| version | [string](#string) |  |  |
+| genesis_prev_hash | [bytes](#bytes) |  |  |
+
+
+
+
+
+ 
+
+
+<a name="qrl.LegacyMessage.FuncName"/>
+
+### LegacyMessage.FuncName
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| VE | 0 | Version |
+| PL | 1 | Peers List |
+| PONG | 2 | Pong |
+| MR | 3 | Message received |
+| SFM | 4 | Send Full Message |
+| BK | 5 | Block |
+| FB | 6 | Fetch request for block |
+| PB | 7 | Push Block |
+| PBB | 8 | Push Block Buffer |
+| ST | 9 | Stake Transaction |
+| DST | 10 | Destake Transaction |
+| DT | 11 | Duplicate Transaction |
+| TX | 12 | Transfer Transaction |
+| VT | 13 | Vote |
+| SYNC | 14 | Add into synced list, if the node replies |
+
+
+ 
+
+ 
 
  
 

@@ -275,14 +275,6 @@
                 </li>
               
                 <li>
-                  <a href="#qrl.LatticePublicKeyTxnReq"><span class="badge">M</span>LatticePublicKeyTxnReq</a>
-                </li>
-              
-                <li>
-                  <a href="#qrl.MR"><span class="badge">M</span>MR</a>
-                </li>
-              
-                <li>
                   <a href="#qrl.MsgObject"><span class="badge">M</span>MsgObject</a>
                 </li>
               
@@ -423,6 +415,61 @@
                 <li>
                   <a href="#qrl.Base"><span class="badge">S</span>Base</a>
                 </li>
+              
+            </ul>
+          </li>
+        
+          
+          <li>
+            <a href="#qrllegacy.proto">qrllegacy.proto</a>
+            <ul>
+              
+                <li>
+                  <a href="#qrl.BKData"><span class="badge">M</span>BKData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.FBData"><span class="badge">M</span>FBData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.LegacyMessage"><span class="badge">M</span>LegacyMessage</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.MRData"><span class="badge">M</span>MRData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.NoData"><span class="badge">M</span>NoData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.PBData"><span class="badge">M</span>PBData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.PLData"><span class="badge">M</span>PLData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.PONGData"><span class="badge">M</span>PONGData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.SYNCData"><span class="badge">M</span>SYNCData</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.VEData"><span class="badge">M</span>VEData</a>
+                </li>
+              
+              
+                <li>
+                  <a href="#qrl.LegacyMessage.FuncName"><span class="badge">E</span>LegacyMessage.FuncName</a>
+                </li>
+              
+              
               
             </ul>
           </li>
@@ -1260,115 +1307,6 @@
                 <tr>
                   <td>coins_atstake</td>
                   <td><a href="#uint64">uint64</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-        
-
-        
-      
-        <h3 id="qrl.LatticePublicKeyTxnReq">LatticePublicKeyTxnReq</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>address_from</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>kyber_pk</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>tesla_pk</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>xmss_pk</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>xmss_ots_index</td>
-                  <td><a href="#uint64">uint64</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-            </tbody>
-          </table>
-        
-
-        
-      
-        <h3 id="qrl.MR">MR</h3>
-        <p>FIXME: This is legacy. Plan removal</p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
-                <tr>
-                  <td>hash</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p>FIXME: rename this to block_headerhash </p></td>
-                </tr>
-              
-                <tr>
-                  <td>type</td>
-                  <td><a href="#string">string</a></td>
-                  <td></td>
-                  <td><p>FIXME: type/string what is this </p></td>
-                </tr>
-              
-                <tr>
-                  <td>stake_selector</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>block_number</td>
-                  <td><a href="#uint64">uint64</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>prev_headerhash</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>reveal_hash</td>
-                  <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -2491,6 +2429,429 @@ P2PResponse response = 2; </p></td>
             
           </tbody>
         </table>
+      
+    
+      
+      <div class="file-heading">
+        <h2 id="qrllegacy.proto">qrllegacy.proto</h2><a href="#title">Top</a>
+      </div>
+      <p></p>
+
+      
+        <h3 id="qrl.BKData">BKData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>mrData</td>
+                  <td><a href="#qrl.MRData">MRData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>block</td>
+                  <td><a href="#qrl.Block">Block</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.FBData">FBData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>index</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.LegacyMessage">LegacyMessage</h3>
+        <p>Adding old code to refactor while keeping things working</p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>func_name</td>
+                  <td><a href="#qrl.LegacyMessage.FuncName">LegacyMessage.FuncName</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>noData</td>
+                  <td><a href="#qrl.NoData">NoData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>veData</td>
+                  <td><a href="#qrl.VEData">VEData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>pongData</td>
+                  <td><a href="#qrl.PONGData">PONGData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>mrData</td>
+                  <td><a href="#qrl.MRData">MRData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>sfmData</td>
+                  <td><a href="#qrl.MRData">MRData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>bkData</td>
+                  <td><a href="#qrl.BKData">BKData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>fbData</td>
+                  <td><a href="#qrl.FBData">FBData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>pbData</td>
+                  <td><a href="#qrl.PBData">PBData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>pbbData</td>
+                  <td><a href="#qrl.PBData">PBData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>syncData</td>
+                  <td><a href="#qrl.SYNCData">SYNCData</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.MRData">MRData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>hash</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p>FIXME: rename this to block_headerhash </p></td>
+                </tr>
+              
+                <tr>
+                  <td>type</td>
+                  <td><a href="#qrl.LegacyMessage.FuncName">LegacyMessage.FuncName</a></td>
+                  <td></td>
+                  <td><p>FIXME: type/string what is this </p></td>
+                </tr>
+              
+                <tr>
+                  <td>stake_selector</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>block_number</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>prev_headerhash</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>reveal_hash</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.NoData">NoData</h3>
+        <p></p>
+
+        
+
+        
+      
+        <h3 id="qrl.PBData">PBData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>index</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>block</td>
+                  <td><a href="#qrl.Block">Block</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.PLData">PLData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>peer_ips</td>
+                  <td><a href="#string">string</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.PONGData">PONGData</h3>
+        <p></p>
+
+        
+
+        
+      
+        <h3 id="qrl.SYNCData">SYNCData</h3>
+        <p></p>
+
+        
+
+        
+      
+        <h3 id="qrl.VEData">VEData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>version</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>genesis_prev_hash</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+
+      
+        <h3 id="qrl.LegacyMessage.FuncName">LegacyMessage.FuncName</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>VE</td>
+                <td>0</td>
+                <td><p>Version</p></td>
+              </tr>
+            
+              <tr>
+                <td>PL</td>
+                <td>1</td>
+                <td><p>Peers List</p></td>
+              </tr>
+            
+              <tr>
+                <td>PONG</td>
+                <td>2</td>
+                <td><p>Pong</p></td>
+              </tr>
+            
+              <tr>
+                <td>MR</td>
+                <td>3</td>
+                <td><p>Message received</p></td>
+              </tr>
+            
+              <tr>
+                <td>SFM</td>
+                <td>4</td>
+                <td><p>Send Full Message</p></td>
+              </tr>
+            
+              <tr>
+                <td>BK</td>
+                <td>5</td>
+                <td><p>Block</p></td>
+              </tr>
+            
+              <tr>
+                <td>FB</td>
+                <td>6</td>
+                <td><p>Fetch request for block</p></td>
+              </tr>
+            
+              <tr>
+                <td>PB</td>
+                <td>7</td>
+                <td><p>Push Block</p></td>
+              </tr>
+            
+              <tr>
+                <td>PBB</td>
+                <td>8</td>
+                <td><p>Push Block Buffer</p></td>
+              </tr>
+            
+              <tr>
+                <td>ST</td>
+                <td>9</td>
+                <td><p>Stake Transaction</p></td>
+              </tr>
+            
+              <tr>
+                <td>DST</td>
+                <td>10</td>
+                <td><p>Destake Transaction</p></td>
+              </tr>
+            
+              <tr>
+                <td>DT</td>
+                <td>11</td>
+                <td><p>Duplicate Transaction</p></td>
+              </tr>
+            
+              <tr>
+                <td>TX</td>
+                <td>12</td>
+                <td><p>Transfer Transaction</p></td>
+              </tr>
+            
+              <tr>
+                <td>VT</td>
+                <td>13</td>
+                <td><p>Vote</p></td>
+              </tr>
+            
+              <tr>
+                <td>SYNC</td>
+                <td>14</td>
+                <td><p>Add into synced list, if the node replies</p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
+
+      
+
       
     
 

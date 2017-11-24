@@ -23,8 +23,7 @@ from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.core.formulas import score, calc_seed
-from qrl.generated import qrl_pb2
-from qrl.generated.qrl_pb2 import MR
+from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 
 # TODO: Rename to unstable/fluid chain or something similar?
@@ -815,7 +814,7 @@ class BufferedChain:
 
         return last_block.block_number
 
-    def verify_BK_hash(self, mr_data: MR, conn_identity) -> bool:
+    def verify_BK_hash(self, mr_data: qrllegacy_pb2.MRData, conn_identity) -> bool:
         stake_selector = mr_data.stake_selector
         prev_headerhash = mr_data.prev_headerhash
 

@@ -15,8 +15,9 @@ from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
+from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.qrlnode import QRLNode
-from qrl.generated import qrl_pb2
+from qrl.generated import qrllegacy_pb2
 
 
 class P2PFactory(ServerFactory):
@@ -34,13 +35,14 @@ class P2PFactory(ServerFactory):
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
 
-        self.genesis_processed = False  # FIXME: Accessed by every p2pprotocol instance
-        self._peer_connections = []  # FIXME: Accessed by every p2pprotocol instance
+        self._genesis_processed = False
+        self._peer_connections = []
         self._synced_peers_protocol = set()
-        self.txn_processor_running = False  # FIXME: Accessed by every p2pprotocol instance
+
+        self._txn_processor_running = False  # FIXME: Accessed by every p2pprotocol instance
 
         # Blocknumber for which bkmr is being tracked
-        self.bkmr_blocknumber = 0  # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_blocknumber = 0                    # FIXME: Accessed by every p2pprotocol instance
         self.bkmr_priorityq = queue.PriorityQueue()  # FIXME: Accessed by every p2pprotocol instance
 
         # Scheduled and cancel the call, just to initialize with IDelayedCall
@@ -62,20 +64,15 @@ class P2PFactory(ServerFactory):
     def get_random_synced_peer(self):
         return random.sample(self._synced_peers_protocol, 1)[0]
 
-    def get_peer_ips(self):
-        peers_list = []
-
-        for peer in self._peer_connections:
-            peers_list.append(peer.transport.getPeer().host)
-
-        return peers_list
+    def get_connected_peer_ips(self):
+        return [peer.transport.getPeer().host for peer in self._peer_connections]
 
     ##############################################
     ##############################################
     ##############################################
     ##############################################
 
-    def RFM(self, data):
+    def RFM(self, data: qrllegacy_pb2.MRData):
         """
         Request Full Message
         This function request for the full message against,
@@ -125,7 +122,7 @@ class P2PFactory(ServerFactory):
                     self.bkmr_priorityq = queue.PriorityQueue()
                     return
 
-            data = qrl_pb2.MR()
+            data = qrllegacy_pb2.MRData()
 
             data.hash = dhash
             data.type = 'BK'
@@ -154,7 +151,7 @@ class P2PFactory(ServerFactory):
 
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
-        data = qrl_pb2.MR()
+        data = qrllegacy_pb2.MRData()
         data.stake_selector = block.transactions[0].addr_from
         data.block_number = block.block_number
         data.prev_headerhash = bytes(block.prev_headerhash)
@@ -175,14 +172,14 @@ class P2PFactory(ServerFactory):
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json: str, data=None):
         self.master_mr.register(msg_type, msg_hash, msg_json)
-        self.broadcast(msg_hash, msg_type, data)
+        self.broadcast(msg_type, msg_hash, data)
 
     def broadcast_relay(self, source_peer, raw_message):
         for peer in self._peer_connections:
             if peer != source_peer:
                 peer.transport.write(raw_message)
 
-    def broadcast(self, msg_hash: bytes, msg_type, data=None):  # Move to factory
+    def broadcast(self, msg_type, msg_hash: bytes, data=None):  # Move to factory
         """
         Broadcast
         This function sends the Message Receipt to all connected peers.
@@ -193,7 +190,7 @@ class P2PFactory(ServerFactory):
             ignore_peers = self.master_mr.requested_hash[msg_hash].peers_connection_list
 
         if not data:
-            data = qrl_pb2.MR()
+            data = qrllegacy_pb2.MRData()
 
         data.hash = msg_hash
         data.type = msg_type
@@ -215,12 +212,36 @@ class P2PFactory(ServerFactory):
     # NOTE: tx processor related. Obsolete stage 2?
 
     def reset_processor_flag(self, _):
-        self.txn_processor_running = False
+        self._txn_processor_running = False
 
     def reset_processor_flag_with_err(self, msg):
         logger.error('Exception in txn task')
         logger.error('%s', msg)
-        self.txn_processor_running = False
+        self._txn_processor_running = False
+
+    def trigger_tx_processor(self, tx, json_tx_obj):
+        # duplicate tx already received, would mess up nonce..
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
+            if tx.txhash == t.txhash:
+                return
+
+        self.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
+        self.master_mr.register('TX', tx.get_message_hash(), json_tx_obj)
+        self.broadcast('TX', tx.get_message_hash())
+
+        if not self._txn_processor_running:
+            # FIXME: TxnProcessor breaks tx_pool encapsulation
+            txn_processor = TxnProcessor(buffered_chain=self.buffered_chain,
+                                         pending_tx_pool=self.buffered_chain.tx_pool.pending_tx_pool,
+                                         transaction_pool=self.buffered_chain.tx_pool.transaction_pool)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+
+            task_defer\
+                .addCallback(self.reset_processor_flag)\
+                .addErrback(self.reset_processor_flag_with_err)
+
+            self._txn_processor_running = True
 
     ###################################################
     ###################################################
@@ -228,18 +249,12 @@ class P2PFactory(ServerFactory):
     ###################################################
     # Event handlers
     # NOTE: No need to refactor, it is obsolete
-
-    # noinspection PyMethodMayBeStatic
-    def clientConnectionLost(self, connector, reason):
+    def clientConnectionLost(self, connector, reason):  # noqa
         logger.debug('connection lost: %s', reason)
-        # TODO: Reconnect has been disabled
-        # connector.connect()
 
-    # noinspection PyMethodMayBeStatic
     def clientConnectionFailed(self, connector, reason):
         logger.debug('connection failed: %s', reason)
 
-    # noinspection PyMethodMayBeStatic
     def startedConnecting(self, connector):
         logger.debug('Started connecting: %s', connector)
 
@@ -283,9 +298,9 @@ class P2PFactory(ServerFactory):
                     str(conn_protocol.transport.getPeer().port))
 
         # FIXME: This seem PoS related
-        if self.buffered_chain.height == 0 and not self.genesis_processed:
+        if self.buffered_chain.height == 0 and not self._genesis_processed:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
-            self.genesis_processed = True
+            self._genesis_processed = True
             logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
             reactor.callLater(1, self.pos.pre_pos_1)
 

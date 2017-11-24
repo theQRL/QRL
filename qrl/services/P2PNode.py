@@ -9,10 +9,11 @@ class P2PNode(object):
         self.service = P2PAPIService(node)
         self.node = node
 
-        self.peer_manager = PeerManager(self.node)
-        self.peer_manager.add(self.node.peer_addresses)
-        self.service.context_observer = self.service_context_observer
-        self.blockchain_manager = BlockChainManager(self.node, self.peer_manager)
+        self.peer_manager = None
+        # self.peer_manager = PeerManager(self.node)
+        # self.peer_manager.add(self.node.peer_addresses)
+        # self.service.context_observer = self.service_context_observer
+        # self.blockchain_manager = BlockChainManager(self.node, self.peer_manager)
 
     def service_context_observer(self, context):
         peer = context.peer()
