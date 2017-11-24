@@ -74,6 +74,17 @@ class PublicAPIService(PublicAPIServicer):
         answer.some_response = str(submitted)
         return answer
 
+    @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
+    def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetLatticePublicKeyTxn")
+        tx = self.qrlnode.create_lt(addr_from=request.address_from,
+                                    kyber_pk=request.kyber_pk,
+                                    tesla_pk=request.tesla_pk,
+                                    xmss_pk=request.xmss_pk,
+                                    xmss_ots_index=request.xmss_ots_index)
+
+        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+
     @grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
         logger.debug("[PublicAPI] GetObject")

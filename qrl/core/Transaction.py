@@ -470,11 +470,11 @@ class LatticePublicKey(Transaction):
 
     @property
     def kyber_pk(self):
-        return self._data.pk_kyber
+        return self._data.kyber_pk
 
     @property
     def tesla_pk(self):
-        return self._data.pk_tesla
+        return self._data.tesla_pk
 
     def _get_hashable_bytes(self):
         """
@@ -486,16 +486,16 @@ class LatticePublicKey(Transaction):
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(xmss, kyber_pk, tesla_pk):
+    def create(addr_from, kyber_pk, tesla_pk, xmss_pk, xmss_ots_index):
         transaction = LatticePublicKey()
 
-        transaction._data.txfrom = xmss.get_address()
-        transaction._data.public_key = xmss.pk()
+        transaction._data.addr_from = addr_from
+        transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = kyber_pk
         transaction._data.latticePK.tesla_pk = tesla_pk
 
-        transaction._data.ots_key = xmss.get_index()
+        transaction._data.ots_key = xmss_ots_index
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction

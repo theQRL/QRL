@@ -46,6 +46,21 @@ class State:
             logger.warning("get_epoch_seed: %s %s", type(e), e)
             return False
 
+    def get_lattice_public_key(self, address):
+        try:
+            return self._db.get(b'lattice_' + address)
+        except KeyError:
+            return set()
+        except Exception as e:
+            logger.exception(e)
+            return False
+
+    def put_lattice_public_key(self, lattice_public_key_txn):
+        address = lattice_public_key_txn.txfrom
+        lattice_public_keys = self.get_public_key(address)
+        lattice_public_keys.add(lattice_public_key_txn.kyber_pk)
+        self._db.put(address, lattice_public_keys)
+
     #########################################
     #########################################
     #########################################
@@ -100,6 +115,9 @@ class State:
         txhash = self.get_address_tx_hashes(addr)
         txhash.append(bin2hstr(new_txhash))
         self._db.put(b'txn_' + addr, txhash)
+
+    def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
+        self.stake_validators_tracker = stake_validators_tracker
 
     def get_address_tx_hashes(self, addr: bytes):
         try:

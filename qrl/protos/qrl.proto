@@ -45,6 +45,8 @@ service PublicAPI
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
+
+    rpc GetLatticePublicKeyTxn (LatticePublicKeyTxnReq) returns (TransferCoinsResp);
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -152,6 +154,14 @@ message TransferCoinsReq {
 }
 message TransferCoinsResp {
     Transaction transaction_unsigned = 1;
+}
+
+message LatticePublicKeyTxnReq {
+    bytes address_from = 1;
+    bytes kyber_pk = 2;
+    bytes tesla_pk = 3;
+    bytes xmss_pk = 4;
+    uint64 xmss_ots_index = 5;
 }
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
@@ -322,8 +332,8 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        bytes pk_kyber = 1;
-        bytes pk_tesla = 2;
+        bytes kyber_pk = 1;
+        bytes tesla_pk = 2;
     }
 
     message Duplicate {
@@ -343,13 +353,7 @@ message Transaction {
 }
 
 message EphemeralMessage {
-    uint64 id = 1;
+    bytes id = 1;
     uint64 ttl = 2;
-
-    message Data {
-        bytes aes256_symkey = 1;
-        bytes prf512_seed = 2;
-        bytes xmss_address = 3;
-        bytes xmss_signature = 4;
-    }
+    bytes data = 3;                 // Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature
 }
