@@ -2508,7 +2508,7 @@ _EPHEMERALMESSAGE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='aes256_symkey', full_name='qrl.EphemeralMessage.Data.aes256_symkey', index=0,
+      name='id', full_name='qrl.EphemeralMessage.id', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -3045,7 +3045,6 @@ DESCRIPTOR.message_types_by_name['BlockExtended'] = _BLOCKEXTENDED
 DESCRIPTOR.message_types_by_name['GenesisBalance'] = _GENESISBALANCE
 DESCRIPTOR.message_types_by_name['BlockMetaDataList'] = _BLOCKMETADATALIST
 DESCRIPTOR.message_types_by_name['BlockMetaData'] = _BLOCKMETADATA
-DESCRIPTOR.message_types_by_name['MR'] = _MR
 DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
 DESCRIPTOR.message_types_by_name['EphemeralMessage'] = _EPHEMERALMESSAGE
 DESCRIPTOR.message_types_by_name['StakeValidator'] = _STAKEVALIDATOR
@@ -3376,13 +3375,6 @@ BlockMetaData = _reflection.GeneratedProtocolMessageType('BlockMetaData', (_mess
   # @@protoc_insertion_point(class_scope:qrl.BlockMetaData)
   ))
 _sym_db.RegisterMessage(BlockMetaData)
-
-MR = _reflection.GeneratedProtocolMessageType('MR', (_message.Message,), dict(
-  DESCRIPTOR = _MR,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.MR)
-  ))
-_sym_db.RegisterMessage(MR)
 
 Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.Message,), dict(
 
