@@ -35,9 +35,9 @@ class BlockChainManager(object):
     def _synchronize_chain(self):
         while True:
             logger.info("Peers  {:4} ({:4}) | {}".format(self.peer_manager.stable_peer_count,
-                                                    self.peer_manager.peer_count,
-                                                    [ p.conn_addr for p in self.peer_manager.stable_peers() ]
-                                                    ))
+                                                         self.peer_manager.peer_count,
+                                                         [p.conn_addr for p in self.peer_manager.stable_peers()]
+                                                         ))
 
             # for peer_metadata in self.peer_manager.stable_peers():
             #     logger.info("{:20}: {:3}".format(peer_metadata.conn_addr,
