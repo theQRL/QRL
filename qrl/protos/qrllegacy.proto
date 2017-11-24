@@ -34,14 +34,15 @@ message LegacyMessage {
     oneof data {
         NoData noData = 2;
         VEData veData = 3;
-        PONGData pongData = 4;
-        MRData mrData = 5;
-        MRData sfmData = 6;
-        BKData bkData = 7;
-        FBData fbData = 8;
-        PBData pbData = 9;
-        PBData pbbData = 10;
-        SYNCData syncData = 99;
+        PLData plData = 4;
+        PONGData pongData = 5;
+        MRData mrData = 6;
+        MRData sfmData = 7;
+        BKData bkData = 8;
+        FBData fbData = 9;
+        PBData pbData = 10;
+        PBData pbbData = 11;
+        SYNCData syncData = 12;
     }
 }
 

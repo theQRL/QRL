@@ -4,21 +4,19 @@
 import json
 import struct
 import time
-from typing import Optional
+from queue import PriorityQueue
 
+from google.protobuf.json_format import Parse
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
-from google.protobuf.json_format import Parse
 
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from qrl.core import config, logger
 from qrl.core.Block import Block
-from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
-from qrl.core.processors.TxnProcessor import TxnProcessor
-from qrl.generated import qrl_pb2, qrllegacy_pb2
-from queue import PriorityQueue
+from qrl.core.messagereceipt import MessageReceipt
+from qrl.generated import qrllegacy_pb2
 
 
 # SubService Network (Discovery/Health)
@@ -26,37 +24,39 @@ from queue import PriorityQueue
 # SubService POS Controller
 # SubService TX Propagation
 
+# NOTE: There is a consistency problem in the message objects.
+# NOTE: There are three cases, 1) send request 2) recv request 3) recv respose (implicit )
 
 class P2PProtocol(Protocol):
     def __init__(self):
-        self._service = {
+        self._services = {
             ######################
-            'VE': self.VE,  # X SEND/RECV         Version
-            'PL': self.PL,  # X RECV              Peers List
-            'PONG': self.PONG,  # X RECV/DSEND        Pong
+            qrllegacy_pb2.LegacyMessage.VE: self.handle_version,
+            qrllegacy_pb2.LegacyMessage.PL: self.handle_peer_list,
+            qrllegacy_pb2.LegacyMessage.PONG: self.handle_pong,
 
             ######################
-            'MR': self.MR,  # RECV+Filters      It will send a RequestFullMessage
-            'SFM': self.SFM,  # RECV=>SEND        Send Full Message
+            qrllegacy_pb2.LegacyMessage.MR: self.MR,        # RECV+Filters      It will send a RequestFullMessage
+            qrllegacy_pb2.LegacyMessage.SFM: self.SFM,      # RECV=>SEND        Send Full Message
 
-            'BK': self.BK,  # RECV      Block
-            'FB': self.FB,  # Fetch request for block
-            'PB': self.PB,  # Push Block
-            'PBB': self.PBB,  # Push Block Buffer
+            qrllegacy_pb2.LegacyMessage.BK: self.BK,        # RECV      Block
+            qrllegacy_pb2.LegacyMessage.FB: self.FB,        # Fetch request for block
+            qrllegacy_pb2.LegacyMessage.PB: self.PB,        # Push Block
+            qrllegacy_pb2.LegacyMessage.PBB: self.PBB,      # Push Block Buffer
 
             ############################
-            'ST': self.ST,  # RECV/BCAST        Stake Transaction
-            'DST': self.DST,  # Destake Transaction
-            'DT': self.DT,  # Duplicate Transaction
+            qrllegacy_pb2.LegacyMessage.ST: self.ST,        # RECV/BCAST        Stake Transaction
+            qrllegacy_pb2.LegacyMessage.DST: self.DST,      # Destake Transaction
+            qrllegacy_pb2.LegacyMessage.DT: self.DT,        # Duplicate Transaction
 
             ############################
-            'TX': self.TX,  # RECV Transaction
-            'VT': self.VT,  # Vote Txn
-            # 'LT': self.LT,  # Lattice Public Key Transaction
+            qrllegacy_pb2.LegacyMessage.TX: self.TX,        # RECV Transaction
+            qrllegacy_pb2.LegacyMessage.VT: self.VT,        # Vote Txn
+            qrllegacy_pb2.LegacyMessage.LT: self.LT,        # Lattice Public Key Transaction
 
-            # 'EPH': self.EPH,  # Ephemeral Transaction
+            qrllegacy_pb2.LegacyMessage.EPH: self.EPH,      # Ephemeral Transaction
 
-            'SYNC': self.synced_state,  # Add into synced list, if the node replies
+            qrllegacy_pb2.LegacyMessage.SYNC: self.synced_state,  # Add into synced list, if the node replies
         }
         self._buffer = b''
         self._last_requested_blocknum = None
@@ -65,7 +65,7 @@ class P2PProtocol(Protocol):
         self._disconnect_callLater = None
         self._ping_callLater = None
 
-    def MR(self, data):
+    def MR(self, message):
         """
         Message Receipt
         This function accepts message receipt from peer,
@@ -76,7 +76,7 @@ class P2PProtocol(Protocol):
         """
         mr_data = qrllegacy_pb2.MRData()
         try:
-            Parse(data, mr_data)
+            Parse(message, mr_data)
         except Exception as e:  # Disconnect peer not following protocol
             logger.debug('Disconnected peer %s not following protocol in MR %s', self._conn_identity, e)
             self.transport.loseConnection()
@@ -473,33 +473,54 @@ class P2PProtocol(Protocol):
                 return
             logger.info(' Send for blocknumber #%s to %s', idx, self._conn_identity)
 
-    def _send_pong(self):
-        """
-        Ping
-        :return:
-        """
-        self.transport.write(self.wrap_message('PONG'))
+    def send_pong(self):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
+        self.transport.write(self.wrap_message(msg))
         logger.debug('Sending PING to %s', self._conn_identity)
 
-    def PONG(self):
-        """
-        Pong
-        :return:
-        """
+    def handle_pong(self, message):
         self._disconnect_callLater.reset(config.user.ping_timeout)
         if self._ping_callLater.active():
             self._ping_callLater.cancel()
-        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self._send_pong)
+
+        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self.send_pong)
         logger.debug('Received PONG from %s', self._conn_identity)
 
-    def PL(self, data):  # receiving a list of peers to save into peer list..
+    def send_peers(self):
         """
-        Peers List
+        Get Peers
+        Sends the peers list.
         :return:
         """
-        self._recv_peers(data)
+        logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
+        peer_ips = self.factory.get_connected_peer_ips()
 
-    def VE(self, data=None):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
+                                          pldata=qrllegacy_pb2.PLData(peer_ips=peer_ips))
+
+        self.transport.write(self.wrap_message(msg))
+
+    def handle_peer_list(self, message):
+        if message.func_name != qrllegacy_pb2.LegacyMessage.PL:
+            raise ValueError("Invalid func_name")
+
+        if not config.user.enable_peer_discovery:
+            return
+
+        if message.peer_ips is None:
+            return
+
+        new_ips = set(ip for ip in message.peer_ips)
+        new_ips.discard(self.transport.getHost().host)              # Remove local address
+        self.factory.qrl_node.update_peer_addresses(new_ips)
+
+        logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
+
+    def send_version(self):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
+        self.transport.write(self.wrap_message(msg))
+
+    def handle_version(self, message):
         """
         Version
         If data is None then sends the version & genesis_prev_headerhash.
@@ -507,38 +528,27 @@ class P2PProtocol(Protocol):
         genesis_prev_headerhash, it disconnects the odd peer.
         :return:
         """
-        if not data:
-            # FIXME: This is not active. It is just an example
-            veData = qrllegacy_pb2.VEData(version=config.dev.version,
-                                          genesis_prev_hash=bytes(config.dev.genesis_prev_headerhash.encode()))
+        if message.func_name != qrllegacy_pb2.LegacyMessage.VE:
+            raise ValueError("Invalid func_name")
 
-            qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
-                                        veData=veData)
-            #############
+        if message.veData is None:
+            msg = qrllegacy_pb2.LegacyMessage(
+                func_name=qrllegacy_pb2.LegacyMessage.VE,
+                veData=qrllegacy_pb2.VEData(version=config.dev.version,
+                                            genesis_prev_hash=bytes(config.dev.genesis_prev_headerhash.encode())))
 
-            version_details = {
-                'version': config.dev.version,
-                'genesis_prev_headerhash': config.dev.genesis_prev_headerhash
-            }
-            self.transport.write(self.wrap_message('VE', json.dumps(version_details)))
-        else:
-            try:
-                data = json.loads(data)
-                logger.info('%s version: %s | genesis prev_headerhash %s',
-                            self.transport.getPeer().host,
-                            data['version'],
-                            data['genesis_prev_headerhash'])
+            self.transport.write(self.wrap_message(msg))
+            return
 
-                if data['genesis_prev_headerhash'] == config.dev.genesis_prev_headerhash:
-                    return
+        logger.info('%s version: %s | genesis prev_headerhash %s',
+                    self.transport.getPeer().host,
+                    message.veData.version,
+                    message.veData.genesis_prev_hash)
 
-                logger.warning('%s genesis_prev_headerhash mismatch', self._conn_identity)
-                logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
-                logger.warning('Found: %s', data['genesis_prev_headerhash'])
-            except Exception as e:
-                logger.error('Peer Caused Exception %s', self._conn_identity)
-                logger.exception(e)
-
+        if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
+            logger.warning('%s genesis_prev_headerhash mismatch', self._conn_identity)
+            logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
+            logger.warning('Found: %s', message.veData.genesis_prev_headerhash)
             self.transport.loseConnection()
 
     def EPH(self, data):
@@ -597,29 +607,6 @@ class P2PProtocol(Protocol):
         if message is not None:
             self.transport.write(message)
 
-    def _recv_peers(self, json_data):
-        """
-        Receive Peers
-        Received peers list is saved.
-        :return:
-        """
-        if not config.user.enable_peer_discovery:
-            return
-        data = json.loads(json_data)
-        new_ips = []
-        for ip in data:
-            if ip not in new_ips:
-                new_ips.append(ip)
-
-        peer_addresses = self.factory.qrl_node.peer_addresses
-        logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
-        for node in new_ips:
-            if node not in peer_addresses:
-                if node != self.transport.getHost().host:
-                    peer_addresses.append(node)
-                    reactor.connectTCP(node, 9000, self.factory)
-
-        self.factory.qrl_node.update_peer_addresses(peer_addresses)
 
     def _synced_state(self, state=None):
         if state:
@@ -628,26 +615,6 @@ class P2PProtocol(Protocol):
             if self.factory.pos.sync_state.state == ESyncState.synced:
                 self.transport.write(self.wrap_message('SYNC', 'Synced'))
                 self.factory.set_peer_synced(self, False)
-
-    def _get_version(self):
-        """
-        Get Version
-        Sends request for the version.
-        :return:
-        """
-        logger.info('<<<Getting version %s', self.transport.getPeer().host)
-        self.transport.write(self.wrap_message('VE'))
-
-    def _send_peers(self):
-        """
-        Get Peers
-        Sends the peers list.
-        :return:
-        """
-        logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
-        peer_ips = self.factory.get_connected_peer_ips()
-        peer_ips_json = json.dumps(peer_ips)
-        self.transport.write(self.wrap_message('PL', peer_ips_json))
 
     def fetch_block_n(self, n):
         """
@@ -685,196 +652,74 @@ class P2PProtocol(Protocol):
     ###################################################
     ###################################################
     # Low-level serialization/connections/etc
-    # NOTE: No need to refactor, it is obsolete
+    # FIXME: This is a temporary refactoring, it will be completely replaced before release
 
-    MSG_INITIATOR = bytearray(b'\xff\x00\x00')
-    MSG_TERMINATOR = bytearray(b'\x00\x00\xff')
-
-    def _parse_msg(self, data):
-        try:
-            jdata = json.loads(data.decode())
-        except Exception as e:
-            logger.warning("parse_msg [json] %s", e)
-            logger.exception(e)
-            return
-
-        func_name = jdata['type']
-
-        if func_name not in self._service:
-            return
-
-        func = self._service[func_name]
-        try:
-            if 'data' in jdata:
-                func(jdata['data'])
-            else:
-                func()
-        except Exception as e:
-            logger.debug("executing [%s] by %s", func_name, self._conn_identity)
-            logger.exception(e)
+    def _handle_msg(self, message: qrllegacy_pb2.LegacyMessage):
+        func = self._services.get(message.func_name, default=None)
+        if func:
+            try:
+                # FIXME: use WhichOneof to discover payloads
+                func(message)
+            except Exception as e:
+                logger.debug("executing [%s] by %s", message.func_name, self._conn_identity)
+                logger.exception(e)
 
     @staticmethod
-    def wrap_message(mtype, data=None):
+    def wrap_message(protobuf_obj) -> bytes:
         """
-        :param mtype:
-        :type mtype: str
-        :param data:
-        :type data: Union[None, str, None, None, None, None, None, None, None, None, None]
-        :return:
-        :rtype: str
-
-        >>> answer = bin2hstr(P2PProtocol.wrap_message('TESTKEY_1234', 12345))
-        >>> EX1 = 'ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff'
-        >>> EX2 = 'ff00003030303030303237007b2274797065223a2022544553544b45595f31323334222c202264617461223a2031323334357d0000ff'
-        >>> answer == EX1 or answer == EX2
-        True
+        Receives a protobuf object and encodes it as (length)(data)
+        :return: the encoded message
+        :rtype: bytes
+        >>> veData = qrllegacy_pb2.VEData(version="version", genesis_prev_hash=b'genesis_hash')
+        >>> msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE, veData=veData)
+        >>> bin2hstr(P2PProtocol.wrap_message(msg))
+        '000000191a170a0776657273696f6e120c67656e657369735f68617368'
         """
-        # FIXME: Move this to protobuf
-        jdata = {'type': mtype}
-        if data:
-            jdata['data'] = data
-
-        str_data = json.dumps(jdata)
-
+        # FIXME: This is not the final implementation, it is just a workaround for refactoring
         # FIXME: struct.pack may result in endianness problems
-        str_data_len = bin2hstr(struct.pack('>L', len(str_data)))
+        # NOTE: This temporary approach does not allow for alignment. Once the stream is off, it will need to clear
+        data = protobuf_obj.SerializeToString()
+        str_data_len = struct.pack('>L', len(data))
+        return str_data_len + data
 
-        tmp = b''
-        tmp += P2PProtocol.MSG_INITIATOR
-        tmp += str_data_len.encode()
-        tmp += bytearray(b'\x00')
-        tmp += str_data.encode()
-        tmp += P2PProtocol.MSG_TERMINATOR
-
-        return tmp
-
-    def clean_buffer(self, reason=None, upto=None):
-        if reason:
-            logger.info('%s', reason)
-        if upto:
-            self._buffer = self._buffer[upto:]  # Clean buffer till the value provided in upto
-        else:
-            self._buffer = b''  # Clean buffer completely
-
-    def _parse_buffer(self) -> Optional[list]:
+    def _parse_buffer(self):
         # FIXME: This parsing/wire protocol needs to be replaced
         """
-        :return:
-        :rtype: bool
-
         >>> p=P2PProtocol()
-        >>> p._buffer = bytes(hstr2bin("ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff"))
+        >>> p._buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'+ \
+                                       '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
         >>> messages = p._parse_buffer()
-        >>> messages
-        [b'{"data": 12345, "type": "TESTKEY_1234"}']
+        >>> len(list(messages))
+        2
         """
-        # FIXME
-        if len(self._buffer) == 0:
-            return None
+        while self._buffer:
+            # FIXME: This is not the final implementation, it is just a minimal implementation for refactoring
+            if len(self._buffer) < 4:
+                # Buffer is still incomplete as it doesn't have message size
+                return
 
-        d = self._buffer.find(P2PProtocol.MSG_INITIATOR)  # find the initiator sequence
-        num_d = self._buffer.count(P2PProtocol.MSG_INITIATOR)  # count the initiator sequences
+            chunk_size_raw = self._buffer[:4]
+            chunk_size = struct.unpack('>L', chunk_size_raw)[0]  # is m length encoded correctly?
 
-        if d == -1:  # if no initiator sequences found then wipe buffer..
-            logger.warning('Message data without initiator')
-            self.clean_buffer(reason='Message data without initiator')
-            return None
+            # FIXME: There is no limitation on the buffer size or timeout
+            if len(self._buffer) < chunk_size:
+                # Buffer is still incomplete as it doesn't have message
+                return
 
-        self._buffer = self._buffer[d:]  # delete data up to initiator
-
-        if len(self._buffer) < 8:  # Buffer is still incomplete as it doesn't have message size
-            return None
-
-        try:
-            tmp = self._buffer[3:11]
-            tmp2 = hstr2bin(tmp.decode())
-            tmp3 = bytearray(tmp2)
-            m = struct.unpack('>L', tmp3)[0]  # is m length encoded correctly?
-        except (UnicodeDecodeError, ValueError):
-            logger.info('Peer not following protocol %s', self._conn_identity)
-            self.transport.loseConnection()
-            return None
-        except Exception as e:
-            logger.exception(e)
-            if num_d > 1:  # if not, is this the only initiator in the buffer?
-                self._buffer = self._buffer[3:]
-                d = self._buffer.find(P2PProtocol.MSG_INITIATOR)
-                self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length, next msg preserved',
-                                  upto=d)  # no
-                return []
-            else:
-                self.clean_buffer(reason='Struct.unpack error attempting to decipher msg length..')  # yes
-            return None
-
-        if m > config.dev.message_buffer_size:  # check if size is more than 500 KB
-            if num_d > 1:
-                self._buffer = self._buffer[3:]
-                d = self._buffer.find(P2PProtocol.MSG_INITIATOR)
-                self.clean_buffer(reason='Size is more than 500 KB, next msg preserved', upto=d)
-                return []
-            else:
-                self.clean_buffer(reason='Size is more than 500 KB')
-            return None
-
-        e = self._buffer.find(P2PProtocol.MSG_TERMINATOR)  # find the terminator sequence
-
-        if e == -1:  # no terminator sequence found
-            if len(self._buffer) > 12 + m + 3:
-                if num_d > 1:  # if not is this the only initiator sequence?
-                    self._buffer = self._buffer[3:]
-                    d = self._buffer.find(P2PProtocol.MSG_INITIATOR)
-                    self.clean_buffer(reason='Message without appropriate terminator, next msg preserved', upto=d)  # no
-                    return []
-                else:
-                    self.clean_buffer(reason='Message without initiator and terminator')  # yes
-            return None
-
-        if e != 3 + 9 + m:  # is terminator sequence located correctly?
-            if num_d > 1:  # if not is this the only initiator sequence?
-                self._buffer = self._buffer[3:]
-                d = self._buffer.find(P2PProtocol.MSG_INITIATOR)
-                self.clean_buffer(reason='Message terminator incorrectly positioned, next msg preserved', upto=d)  # no
-                return []
-            else:
-                self.clean_buffer(reason='Message terminator incorrectly positioned')  # yes
-            return None
-
-        messages = [self._buffer[12:12 + m]]
-        self._buffer = self._buffer[12 + m + 3:]  # reset the buffer to after the msg
-        return messages
+            try:
+                message_raw = self._buffer[4:4 + chunk_size]
+                message = qrllegacy_pb2.LegacyMessage()
+                message.ParseFromString(message_raw)
+                yield message
+            except Exception as e:
+                logger.warning("Problem parsing message. Skipping")
+            finally:
+                self._buffer = self._buffer[4 + chunk_size:]
 
     def dataReceived(self, data: bytes) -> None:
-        """
-        adds data received to buffer. then tries to parse the buffer twice..
-        :param data:Message data without initiator
-        :return:
-        :rtype: None
-
-        >>> from unittest.mock import MagicMock
-        >>> p=P2PProtocol()
-        >>> p._service['TESTKEY_1234'] = MagicMock(side_effect=(lambda x: x))
-        >>> p.dataReceived(bytes(hstr2bin("ff00003030303030303237007b2264617461223a2031323334352c202274797065223a2022544553544b45595f31323334227d0000ff")))
-        >>> p._service['TESTKEY_1234'].call_args
-        call(12345)
-        >>> from unittest.mock import MagicMock
-        >>> from qrl.crypto.doctest_data import *
-        >>> data = bytearray(hstr2bin(message_example))
-        >>> p=P2PProtocol()
-        >>> p._service['PL'] = MagicMock()
-        >>> p._service['VE'] = MagicMock()
-        >>> p.dataReceived(data)
-        >>> p._service['PL'].call_count == 1 and p._service['VE'].call_count == 2
-        True
-        """
         self._buffer += data
-
-        for x in range(50):
-            messages = self._parse_buffer()
-            if messages is None:
-                break
-
-            for msg in messages:
-                self._parse_msg(msg)
+        for msg in self._parse_buffer():
+            self._handle_msg(msg)
 
     ###################################################
     ###################################################
@@ -886,10 +731,10 @@ class P2PProtocol(Protocol):
                                              self.transport.getPeer().port)
 
         if self.factory.add_connection(self):
-            self._send_peers()
-            self._get_version()
+            self.send_peers()
+            self.send_version()
 
-        self._ping_callLater = reactor.callLater(1, self._send_pong)
+        self._ping_callLater = reactor.callLater(1, self.send_pong)
         self._disconnect_callLater = reactor.callLater(config.user.ping_timeout,
                                                        self.transport.loseConnection)
 

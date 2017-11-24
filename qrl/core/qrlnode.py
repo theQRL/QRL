@@ -21,7 +21,7 @@ class QRLNode:
     def __init__(self, db_state: State):
         self.start_time = time.time()
 
-        self._peer_addresses = []
+        self._peer_addresses = set()
         self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
         self._load_peer_addresses()
 
@@ -142,10 +142,12 @@ class QRLNode:
                 logger.info('Opening peers.qrl')
                 with open(self.peers_path, 'rb') as infile:
                     known_peers = qrl_pb2.StoredPeers()
-                    known_peers.ParseFromString(bytes(infile.read()))
-                    self._peer_addresses = [peer.ip for peer in known_peers.peers]
-                    self._peer_addresses.extend(config.user.peer_list)
+                    known_peers.ParseFromString(infile.read())
+
+                    self._peer_addresses |= set([peer.ip for peer in known_peers.peers])
+                    self._peer_addresses |= set(config.user.peer_list)
                     return
+
         except Exception as e:
             logger.warning("Error loading peers")
             logger.exception(e)
@@ -157,11 +159,16 @@ class QRLNode:
 
         logger.info('Known Peers: %s', self._peer_addresses)
 
-    def update_peer_addresses(self, peer_addresses) -> None:
+    def update_peer_addresses(self, peer_addresses: set) -> None:
         # FIXME: Probably will be refactored
-        self._peer_addresses = peer_addresses
+        new_addresses = self._peer_addresses - peer_addresses
+        for peer_address in new_addresses:
+            self._p2pfactory.connect_peer(peer_address)
+
+        self._peer_addresses |= set(peer_addresses)
+
         known_peers = qrl_pb2.StoredPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in set(self._peer_addresses)])
+        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 

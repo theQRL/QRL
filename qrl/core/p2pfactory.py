@@ -316,6 +316,13 @@ class P2PFactory(ServerFactory):
         if self.connections == 0:
             reactor.callLater(60, self.connect_peers)
 
+    def connect_peer(self, peer_address):
+        #FIXME: this should be kept as a set
+        connected_peers = set([peer_conn.transport.getPeer().host for peer_conn in self._peer_connections])
+
+        if peer_address not in connected_peers:
+            reactor.connectTCP(peer_address, 9000, self)
+
     def connect_peers(self):
         """
         Will connect to all known peers. This is typically the entry point
@@ -327,10 +334,7 @@ class P2PFactory(ServerFactory):
         :return:
         :rtype: None
         """
-
+        # FIXME: This probably should be in the qrl_node
         logger.info('<<<Reconnecting to peer list: %s', self.qrl_node._peer_addresses)
-        connected_peers = set([peer_conn.transport.getPeer().host for peer_conn in self._peer_connections])
-
         for peer_address in self.qrl_node._peer_addresses:
-            if peer_address not in connected_peers:
-                reactor.connectTCP(peer_address, 9000, self)
+            self.connect_peer(peer_address)
