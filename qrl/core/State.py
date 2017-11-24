@@ -8,7 +8,6 @@ from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
-from qrl.core.Block import Block
 from qrl.generated import qrl_pb2
 
 
