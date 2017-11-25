@@ -65,7 +65,7 @@ class P2PFactory(ServerFactory):
         return random.sample(self._synced_peers_protocol, 1)[0]
 
     def get_connected_peer_ips(self):
-        return [peer.transport.getPeer().host for peer in self._peer_connections]
+        return set([peer.host_ip for peer in self._peer_connections])
 
     ##############################################
     ##############################################
@@ -204,7 +204,7 @@ class P2PFactory(ServerFactory):
         # Request all peers to update their synced status
         self._synced_peers_protocol = set()
         for peer in self._peer_connections:
-            peer.transport.write(peer.wrap_message('SYNC'))
+            peer.send_sync()
 
     ###################################################
     ###################################################
