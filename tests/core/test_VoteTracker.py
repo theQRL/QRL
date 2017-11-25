@@ -61,14 +61,13 @@ class TestVoteTracker(TestCase):
 
         validator_xmss2 = get_random_xmss()
         slave_xmss2 = XMSS(validator_xmss2.height, validator_xmss2.get_seed())
+        stake_amount2 = 10000
         headerhash2 = b'ffff'
         vote2 = Vote.create(addr_from=validator_xmss2.get_address().encode(),
                             blocknumber=0,
                             headerhash=headerhash2,
                             xmss=slave_xmss2)
         vote2.sign(slave_xmss2)
-
-        stake_amount2 = 10000
 
         self.assertTrue(vote_tracker.add_vote(vote2, stake_amount2))
 
@@ -98,13 +97,12 @@ class TestVoteTracker(TestCase):
         validator_xmss2 = get_random_xmss()
         slave_xmss2 = XMSS(validator_xmss2.height, validator_xmss2.get_seed())
         headerhash2 = b'aaaa'
+        stake_amount2 = 10000
         vote2 = Vote.create(addr_from=validator_xmss2.get_address().encode(),
                             blocknumber=0,
                             headerhash=headerhash2,
                             xmss=slave_xmss2)
         vote2.sign(slave_xmss2)
-
-        stake_amount2 = 10000
 
         self.assertTrue(vote_tracker.add_vote(vote2, stake_amount2))
 
