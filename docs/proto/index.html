@@ -207,10 +207,6 @@
                 </li>
               
                 <li>
-                  <a href="#qrl.EphemeralMessage.Data"><span class="badge">M</span>EphemeralMessage.Data</a>
-                </li>
-              
-                <li>
                   <a href="#qrl.GenesisBalance"><span class="badge">M</span>GenesisBalance</a>
                 </li>
               
@@ -263,11 +259,23 @@
                 </li>
               
                 <li>
+                  <a href="#qrl.GetStakersReq"><span class="badge">M</span>GetStakersReq</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.GetStakersResp"><span class="badge">M</span>GetStakersResp</a>
+                </li>
+              
+                <li>
                   <a href="#qrl.GetStatsReq"><span class="badge">M</span>GetStatsReq</a>
                 </li>
               
                 <li>
                   <a href="#qrl.GetStatsResp"><span class="badge">M</span>GetStatsResp</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.LatticePublicKeyTxnReq"><span class="badge">M</span>LatticePublicKeyTxnReq</a>
                 </li>
               
                 <li>
@@ -296,6 +304,10 @@
               
                 <li>
                   <a href="#qrl.PushTransactionResp"><span class="badge">M</span>PushTransactionResp</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakerData"><span class="badge">M</span>StakerData</a>
                 </li>
               
                 <li>
@@ -357,6 +369,10 @@
               
                 <li>
                   <a href="#qrl.GetLatestDataReq.Filter"><span class="badge">E</span>GetLatestDataReq.Filter</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.GetStakersReq.Filter"><span class="badge">E</span>GetStakersReq.Filter</a>
                 </li>
               
                 <li>
@@ -702,7 +718,7 @@
               
                 <tr>
                   <td>id</td>
-                  <td><a href="#uint64">uint64</a></td>
+                  <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -714,48 +730,11 @@
                   <td><p> </p></td>
                 </tr>
               
-            </tbody>
-          </table>
-        
-
-        
-      
-        <h3 id="qrl.EphemeralMessage.Data">EphemeralMessage.Data</h3>
-        <p></p>
-
-        
-          <table class="field-table">
-            <thead>
-              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
-            </thead>
-            <tbody>
-              
                 <tr>
-                  <td>aes512_symkey</td>
+                  <td>data</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>prf512_seed</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>xmss_address</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
-                </tr>
-              
-                <tr>
-                  <td>xmss_signature</td>
-                  <td><a href="#bytes">bytes</a></td>
-                  <td></td>
-                  <td><p> </p></td>
+                  <td><p>Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature </p></td>
                 </tr>
               
             </tbody>
@@ -1108,6 +1087,66 @@
 
         
       
+        <h3 id="qrl.GetStakersReq">GetStakersReq</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>filter</td>
+                  <td><a href="#qrl.GetStakersReq.Filter">GetStakersReq.Filter</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>offset</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>quantity</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.GetStakersResp">GetStakersResp</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>stakers</td>
+                  <td><a href="#qrl.StakerData">StakerData</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
         <h3 id="qrl.GetStatsReq">GetStatsReq</h3>
         <p></p>
 
@@ -1190,6 +1229,57 @@
               
                 <tr>
                   <td>coins_atstake</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.LatticePublicKeyTxnReq">LatticePublicKeyTxnReq</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>address_from</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>kyber_pk</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>tesla_pk</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>xmss_pk</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>xmss_ots_index</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -1411,6 +1501,36 @@
                 <tr>
                   <td>some_response</td>
                   <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakerData">StakerData</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>address_state</td>
+                  <td><a href="#qrl.AddressState">AddressState</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>hash_terminator</td>
+                  <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -1687,14 +1807,14 @@
             <tbody>
               
                 <tr>
-                  <td>pk_kyber</td>
+                  <td>kyber_pk</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
               
                 <tr>
-                  <td>pk_tesla</td>
+                  <td>tesla_pk</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -1988,6 +2108,29 @@
           </tbody>
         </table>
       
+        <h3 id="qrl.GetStakersReq.Filter">GetStakersReq.Filter</h3>
+        <p></p>
+        <table class="enum-table">
+          <thead>
+            <tr><td>Name</td><td>Number</td><td>Description</td></tr>
+          </thead>
+          <tbody>
+            
+              <tr>
+                <td>CURRENT</td>
+                <td>0</td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>NEXT</td>
+                <td>1</td>
+                <td><p></p></td>
+              </tr>
+            
+          </tbody>
+        </table>
+      
         <h3 id="qrl.NodeInfo.State">NodeInfo.State</h3>
         <p></p>
         <table class="enum-table">
@@ -2186,6 +2329,13 @@
               </tr>
             
               <tr>
+                <td>GetStakers</td>
+                <td><a href="#qrl.GetStakersReq">GetStakersReq</a></td>
+                <td><a href="#qrl.GetStakersResp">GetStakersResp</a></td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
                 <td>TransferCoins</td>
                 <td><a href="#qrl.TransferCoinsReq">TransferCoinsReq</a></td>
                 <td><a href="#qrl.TransferCoinsResp">TransferCoinsResp</a></td>
@@ -2196,6 +2346,13 @@
                 <td>PushTransaction</td>
                 <td><a href="#qrl.PushTransactionReq">PushTransactionReq</a></td>
                 <td><a href="#qrl.PushTransactionResp">PushTransactionResp</a></td>
+                <td><p></p></td>
+              </tr>
+            
+              <tr>
+                <td>GetLatticePublicKeyTxn</td>
+                <td><a href="#qrl.LatticePublicKeyTxnReq">LatticePublicKeyTxnReq</a></td>
+                <td><a href="#qrl.TransferCoinsResp">TransferCoinsResp</a></td>
                 <td><p></p></td>
               </tr>
             

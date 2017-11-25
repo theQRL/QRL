@@ -43,6 +43,8 @@ service PublicAPI
 
     rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp);
 
+    rpc GetStakers(GetStakersReq) returns (GetStakersResp);
+
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
@@ -144,6 +146,21 @@ message GetLatestDataResp {
     repeated Transaction transactions_unconfirmed = 3;
 }
 
+message GetStakersReq {
+    enum Filter {
+        CURRENT = 0;
+        NEXT = 1;
+    }
+
+    Filter filter = 1;
+    uint32 offset = 2;
+    uint32 quantity = 3;
+}
+
+message GetStakersResp {
+    repeated StakerData stakers = 1;
+}
+
 message TransferCoinsReq {
     bytes address_from = 1;
     bytes address_to = 2;
@@ -222,6 +239,11 @@ message AddressState {
     uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
     repeated bytes transaction_hashes = 5;
+}
+
+message StakerData {
+    AddressState address_state = 1;
+    bytes hash_terminator = 2;
 }
 
 message BlockHeader {
