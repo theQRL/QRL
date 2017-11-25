@@ -5,91 +5,116 @@ language: python
 python: 3.5
 cache:
   timeout: 600
-
 jobs:
   include:
-    - stage: build+test
-      os: linux
-      env:
-      - D="STYLE"
-      - STYLECHECK='TRUE'
-      - PLATFORM='xenial'
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt"
-      script:
-      - "./travis/build.sh"
+  - stage: build+test
+    os: linux
+    env:
+    - D="STYLE"
+    - STYLECHECK='TRUE'
+    - PLATFORM='xenial'
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt"
+    script:                    
+    - "./travis/build.sh"
 
-    - stage: build+test
-      os: linux
-      env:
-      - D="UNITTESTS"
-      - TEST='TRUE'
-      - PLATFORM='xenial'
-      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt when running integration tests"
-      script:
-      - "./travis/build.sh"
-      - sudo pip install -U coverage codacy-coverage
-      - if [[ "$TRAVIS_BRANCH" == "master" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
-
-    - stage: build+test
-      os: linux
-      env:
-      - D="INTTEST_SYNC"
-      - INTEGRATION_TESTINPLACE='TRUE'
-      - PLATFORM='xenial'
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt when running integration tests"
-      script:
-      - sudo pip install -U docker-compose
-      - docker-compose --version
-      - "cd tests_integration; python3 runtest_nodes_synchronize.py"
-
-    - stage: build+test
-      os: linux
-      env:
-      - D="INTTEST_SYNC+1MIN"
-      - INTEGRATION_TESTINPLACE='TRUE'
-      - PLATFORM='xenial'
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt when running integration tests"
-      script:
-      - sudo pip install -U docker-compose
-      - docker-compose --version
-      - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
-
-#    - stage: build+test
-#      os: linux
-#      env:
-#      - TEST='TRUE'
-#      - PLATFORM='trusty'
-#      script: "./travis/build.sh"
-
-    - stage: publish
-      if: tag =~ ^v
-      os: linux
-      env:
-      - PLATFORM='xenial'
-      - DEPLOY='TRUE'
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt when using docker builders"
-      script:
-      - sudo apt install -y python-dev libssl-dev libffi-dev
-      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1
-      - "./travis/build.sh"
-
-      deploy:
-        provider: pypi
-        skip_cleanup: true
-        user: deployqrl
-        password:
-          secure: rav+35H/zB7IiVmFEeoJ0FAbTph3b9fc74NrKwKrQTrtD9vvQx3q66sWrKibA/Ws1DqkORS3leMBqJGU5Q4JTp5lcfMTvqtZhdBCJwUHMUlZ9Qw5SiVHpK+adFOwbtzKisgMPhPTgOyxiUtI18I9fMd5SeHEzTXDDZAWuJRVPuLYLDhHj+he5EfoaGtNgN5kVDIP3c6jo6mE+dVvJl89IvuMQihDScpv3TSEmA9klUF4Vm7VeQwrkZn81SfoR8RpIU4QoWhxXbK52hVRK9126Y9JMMBK4XXfGRLjtv3likdX50TjclS7IBjarMGc27LBKfcmpRBqCXcYo4oWV/hDaH7U+AdB+M0wUnR8zoNEEJX1pzTbMsnu+yvLDZ8wS1gjJxr5JEMgkWxg4cnND2hJW2zLKzRqVpFpicYH48Hv13p0QXMxfbpI3hsRHjs9Sl2oV9svcYoFlFTZHcxHkmw6RthxaI/85pj7m1RzfTy1CatRpmY8sRgjpbuztU8lkRTiiuOhqL+OBidstsjygXKMUVP78LxqBuSH3i/kJxF0vkE6FxlkwnSjxk6isN+T+CvAfvqqqjYNI+sbZ1grLVEhC0eOtgLXTcvzfHj2Zcc9XscJMfo8EQ9rnXVRhJAI67P0EqRTdGcv6GH5xCZfRFYkmG4+0kWUl5LYJJpEyMHtV9I=
-        on:
-          tags: true
-          all_branches: true
+  - stage: build+test
+    os: linux
+    env:
+    - D="UNITTESTS"
+    - TEST='TRUE'
+    - PLATFORM='xenial'
+    - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when running integration tests"
+    script:
+    - "./travis/build.sh"
+    - sudo pip install -U coverage codacy-coverage
+    - if [[ "$TRAVIS_BRANCH" == "master" ]]; then python-codacy-coverage -r coverage.xml
+      || echo "failed"; fi
+  - stage: build+test
+    os: linux
+    env:
+    - D="INTTEST_SYNC"
+    - INTEGRATION_TESTINPLACE='TRUE'
+    - PLATFORM='xenial'
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when running integration tests"
+    script:
+    - sudo pip install -U docker-compose
+    - docker-compose --version
+    - cd tests_integration; python3 runtest_nodes_synchronize.py
+  - stage: build+test
+    os: linux
+    env:
+    - D="INTTEST_SYNC+1MIN"
+    - INTEGRATION_TESTINPLACE='TRUE'
+    - PLATFORM='xenial'
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when running integration tests"
+    script:
+    - sudo pip install -U docker-compose
+    - docker-compose --version
+    - cd tests_integration; python3 runtest_nodes_1minAfterSync.py
+  - stage: build+debs
+    if: tag =~ ^v
+    before_install:
+    - openssl aes-256-cbc -K $encrypted_a456d86e55a5_key -iv $encrypted_a456d86e55a5_iv -in keys.tar.enc -out keys.tar -d
+    os: linux
+    env:
+    - PLATFORM='xenial'
+    - BUILD_DIST='TRUE'
+    - GPGKEY=84B8A307
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when using docker builders"
+    script:
+    - "./travis/build.sh"
+    - "./travis/push_to_git.sh"
+  - stage: build+debs
+    if: tag =~ ^v
+    before_install:
+    - openssl aes-256-cbc -K $encrypted_a456d86e55a5_key -iv $encrypted_a456d86e55a5_iv -in keys.tar.enc -out keys.tar -d
+    os: linux
+    env:
+    - PLATFORM='stretch'
+    - BUILD_DIST='TRUE'
+    - GPGKEY=84B8A307
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when using docker builders"
+    script:
+    - "./travis/build.sh"
+    - "./travis/push_to_git.sh"
+  - stage: merge git branches, push to ghpages
+    if: tag =~ ^v
+    os: linux
+    install:
+    - echo "Skip installing requirements.txt when uploading debs"
+    script: "./travis/merge_debs_ghpages.sh"
+  - stage: publish
+    if: tag =~ ^v
+    os: linux
+    env:
+    - PLATFORM='xenial'
+    - DEPLOY='TRUE'
+    install:
+    - python --version
+    - echo "Skip installing requirements.txt when using docker builders"
+    script:
+    - sudo apt-get install -y python-dev libssl-dev libffi-dev
+    - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1
+    - "./travis/build.sh"
+    deploy:
+      provider: pypi
+      skip_cleanup: true
+      user: deployqrl
+      password:
+        secure: rav+35H/zB7IiVmFEeoJ0FAbTph3b9fc74NrKwKrQTrtD9vvQx3q66sWrKibA/Ws1DqkORS3leMBqJGU5Q4JTp5lcfMTvqtZhdBCJwUHMUlZ9Qw5SiVHpK+adFOwbtzKisgMPhPTgOyxiUtI18I9fMd5SeHEzTXDDZAWuJRVPuLYLDhHj+he5EfoaGtNgN5kVDIP3c6jo6mE+dVvJl89IvuMQihDScpv3TSEmA9klUF4Vm7VeQwrkZn81SfoR8RpIU4QoWhxXbK52hVRK9126Y9JMMBK4XXfGRLjtv3likdX50TjclS7IBjarMGc27LBKfcmpRBqCXcYo4oWV/hDaH7U+AdB+M0wUnR8zoNEEJX1pzTbMsnu+yvLDZ8wS1gjJxr5JEMgkWxg4cnND2hJW2zLKzRqVpFpicYH48Hv13p0QXMxfbpI3hsRHjs9Sl2oV9svcYoFlFTZHcxHkmw6RthxaI/85pj7m1RzfTy1CatRpmY8sRgjpbuztU8lkRTiiuOhqL+OBidstsjygXKMUVP78LxqBuSH3i/kJxF0vkE6FxlkwnSjxk6isN+T+CvAfvqqqjYNI+sbZ1grLVEhC0eOtgLXTcvzfHj2Zcc9XscJMfo8EQ9rnXVRhJAI67P0EqRTdGcv6GH5xCZfRFYkmG4+0kWUl5LYJJpEyMHtV9I=
+      on:
+        tags: true
+        all_branches: true

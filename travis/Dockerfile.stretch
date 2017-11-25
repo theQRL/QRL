@@ -1,12 +1,12 @@
-#Download base ubuntu image
-FROM ubuntu:16.04
+#Download base debian image
+FROM debian:stretch
 RUN apt-get update && \
-    apt-get -y install software-properties-common python-software-properties && \
+    apt-get -y install software-properties-common software-properties-common && \
     apt-get -y install ca-certificates curl && \
     apt-get -y install build-essential pkg-config git sudo wget nano vim
 
 # Prepare python
-RUN apt-get -y install swig3.0 python3 python3-dev python3-pip python-stdeb python3-stdeb
+RUN apt-get -y install swig3.0 python-pip python3 python3-dev python3-pip python-stdeb python3-stdeb
 
 RUN pip3 install --upgrade pip cmake virtualenv setuptools PyScaffold==2.5.8
 
