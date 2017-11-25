@@ -13,12 +13,12 @@ message LegacyMessage {
         VE = 0;         // Version
         PL = 1;         // Peers List
         PONG = 2;       // Pong
+
         MR = 3;         // Message received
         SFM = 4;        // Send Full Message
         BK = 5;         // Block
         FB = 6;         // Fetch request for block
         PB = 7;         // Push Block
-        PBB = 8;        // Push Block Buffer
 
         ST = 9;        // Stake Transaction
         DST = 10;       // Destake Transaction
@@ -41,7 +41,6 @@ message LegacyMessage {
         BKData bkData = 8;
         FBData fbData = 9;
         PBData pbData = 10;
-        PBData pbbData = 11;
         SYNCData syncData = 12;
     }
 }
@@ -88,4 +87,5 @@ message PBData {
 
 message SYNCData
 {
+    string state = 1;
 }
