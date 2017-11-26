@@ -207,7 +207,7 @@ class TransferTransaction(Transaction):
     def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk, xmss_ots_index):
         transaction = TransferTransaction()
 
-        transaction._data.addr_from = addr_from
+        transaction._data.addr_from = bytes(addr_from)
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer.addr_to = addr_to

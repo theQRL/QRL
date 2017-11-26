@@ -5,6 +5,8 @@ from unittest import TestCase
 
 from qrl.core import logger
 from qrl.core.State import State
+from qrl.crypto.misc import sha256
+from tests.misc.helper import set_data_dir, get_alice_xmss
 
 logger.initialize_default(force_console_output=True)
 
@@ -31,3 +33,18 @@ class TestState(TestCase):
 
             self.assertEqual(block_position, read_position)
             self.assertEqual(block_size, read_size)
+
+    def test_addr_tx_hashes(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                alice_address = bytes(alice_xmss.get_address().encode())     # FIXME: This needs to be refactored
+                some_hash1 = sha256(b'some_hash1')
+                some_hash2 = sha256(b'some_hash2')
+
+                state.update_address_tx_hashes(alice_address, some_hash1)
+                state.update_address_tx_hashes(alice_address, some_hash2)
+                result = state.get_address_tx_hashes(alice_address)
+
+                self.assertEqual(some_hash1, result[0])
+                self.assertEqual(some_hash2, result[1])
