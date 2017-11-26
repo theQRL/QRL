@@ -41,7 +41,7 @@ class P2PProtocol(Protocol):
 
             qrllegacy_pb2.LegacyMessage.BK: self.BK,        # RECV      Block
             qrllegacy_pb2.LegacyMessage.FB: self.FB,        # Fetch request for block
-            qrllegacy_pb2.LegacyMessage.PB: self.PB,        # Push Block
+            qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,        # Push Block
             qrllegacy_pb2.LegacyMessage.PBB: self.PBB,      # Push Block Buffer
 
             ############################
@@ -375,21 +375,7 @@ class P2PProtocol(Protocol):
         self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
         self.factory.master_mr.register('BK', block.headerhash, message)
 
-    def isNoMoreBlock(self, data):
-        # FIXME: Seems like a state function but it has side effects
-        if isinstance(data, int):
-            blocknumber = data
-            if blocknumber != self._last_requested_blocknum:
-                return True
-            try:
-                reactor.download_monitor.cancel()
-            except:  # noqa
-                pass
-            self.factory.pos.update_node_state(ESyncState.synced)
-            return True
-        return False
-
-    def PB(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_push_block(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Push Block
         This function processes requested blocks received while syncing.
@@ -398,27 +384,37 @@ class P2PProtocol(Protocol):
         It is expected to receive only one block for a given blocknumber.
         :return:
         """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
+        if message.pbData is None:
+            return
+
         self.factory.pos.last_pb_time = time.time()
         try:
-            if self.isNoMoreBlock(message):
+            block = message.pbData.block
+            if block.block_number == self._last_requested_blocknum:
+                try:
+                    reactor.download_monitor.cancel()
+                except:  # noqa
+                    pass
+                self.factory.pos.update_node_state(ESyncState.synced)
                 return
 
-            block = Block.from_json(message)
+            logger.info('>>> Received Block #%d', block.block_number)
 
-            blocknumber = block.block_number
-            logger.info('>>> Received Block #%d', blocknumber)
-
-            if not self.factory.buffered_chain.check_expected_headerhash(blocknumber, block.headerhash):
-                logger.warning('Block #%s downloaded from peer doesnt match with expected headerhash', blocknumber)
+            if not self.factory.buffered_chain.check_expected_headerhash(block.block_number,
+                                                                         block.headerhash):
+                logger.warning('Block #%s downloaded from peer doesnt match with expected headerhash',
+                               message.pbData.block.block_number)
                 return
 
-            if blocknumber != self._last_requested_blocknum:
+            if block.block_number != self._last_requested_blocknum:
                 logger.warning('Did not match %s %s', self._last_requested_blocknum, self._conn_identity)
                 return
 
             self._last_requested_blocknum = None
 
-            if blocknumber > self.factory.buffered_chain.height:
+            # FIXME: This check should not be necessary
+            if block.block_number > self.factory.buffered_chain.height:
                 if not self.factory.buffered_chain.add_block(block):
                     logger.warning('PB failed to add block to mainchain')
                     self.factory.buffered_chain.remove_last_buffer_block()
@@ -429,7 +425,7 @@ class P2PProtocol(Protocol):
             except Exception as e:
                 logger.warning("PB: %s", e)
 
-            self.factory.pos.randomize_block_fetch()
+            self.factory.pos.randomize_block_fetch()        # NOTE: Get next block
 
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)

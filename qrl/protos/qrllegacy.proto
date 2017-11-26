@@ -81,8 +81,7 @@ message FBData {
 }
 
 message PBData {
-    uint64 index = 1;
-    Block block = 2;
+    Block block = 1;
 }
 
 message SYNCData
