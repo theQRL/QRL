@@ -100,10 +100,10 @@ message GetBlockResp {
 message GetStatsReq { }
 message GetStatsResp {
     NodeInfo node_info = 1;
-    uint64 epoch = 2;
-    uint64 uptime_network = 3;          // Indicates uptime in seconds
+    uint64 epoch = 2;                       // Current epoch
+    uint64 uptime_network = 3;              // Indicates uptime in seconds
 
-    uint64 stakers_count = 4;
+    uint64 stakers_count = 4;               // Number of active stakers
     uint64 block_last_reward = 5;
     uint64 block_time_mean = 6;
     uint64 block_time_sd = 7;
@@ -136,8 +136,8 @@ message GetLatestDataReq {
         TRANSACTIONS_UNCONFIRMED = 3;
     }
     Filter filter = 1;
-    uint32 offset = 2;
-    uint32 quantity = 3;
+    uint32 offset = 2;                      // Offset in the result list (works backwards in this case)
+    uint32 quantity = 3;                    // Number of items to retrive. Capped at 100
 }
 
 message GetLatestDataResp {
@@ -152,9 +152,9 @@ message GetStakersReq {
         NEXT = 1;
     }
 
-    Filter filter = 1;
-    uint32 offset = 2;
-    uint32 quantity = 3;
+    Filter filter = 1;                      // Indicates which group of stakers (current / next)
+    uint32 offset = 2;                      // Offset in the staker list
+    uint32 quantity = 3;                    // Number of stakers to retrive. Capped at 100
 }
 
 message GetStakersResp {
@@ -162,12 +162,12 @@ message GetStakersResp {
 }
 
 message TransferCoinsReq {
-    bytes address_from = 1;
-    bytes address_to = 2;
-    uint64 amount = 3; // IMPORTANT: These should be expressed in Shor
-    uint64 fee = 4; // IMPORTANT: These should be expressed in Shor
-    bytes xmss_pk = 5;
-    uint64 xmss_ots_index = 6;
+    bytes address_from = 1;                 // Transaction source address
+    bytes address_to = 2;                   // Transaction destination address
+    uint64 amount = 3;                      // Amount. It should be expressed in Shor
+    uint64 fee = 4;                         // Fee. It should be expressed in Shor
+    bytes xmss_pk = 5;                      // XMSS Public key
+    uint64 xmss_ots_index = 6;              // XMSS One time signature index
 }
 message TransferCoinsResp {
     Transaction transaction_unsigned = 1;
@@ -243,7 +243,7 @@ message AddressState {
 
 message StakerData {
     AddressState address_state = 1;
-    bytes hash_terminator = 2;
+    bytes terminator_hash = 2;
 }
 
 message BlockHeader {

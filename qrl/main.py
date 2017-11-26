@@ -118,9 +118,10 @@ def main():
             print(tmp[0].decode())
         return
 
-    buffered_chain.load()
-
     #######
     # NOTE: Keep assigned to a variable or might get collected
     grpc_service, p2p_node = start_services(qrlnode)
+
+    buffered_chain.load()
+
     start_legacy_services(buffered_chain, qrlnode, sync_state)

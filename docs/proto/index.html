@@ -937,14 +937,14 @@
                   <td>offset</td>
                   <td><a href="#uint32">uint32</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Offset in the result list (works backwards in this case) </p></td>
                 </tr>
               
                 <tr>
                   <td>quantity</td>
                   <td><a href="#uint32">uint32</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Number of items to retrive. Capped at 100 </p></td>
                 </tr>
               
             </tbody>
@@ -1101,21 +1101,21 @@
                   <td>filter</td>
                   <td><a href="#qrl.GetStakersReq.Filter">GetStakersReq.Filter</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Indicates which group of stakers (current / next) </p></td>
                 </tr>
               
                 <tr>
                   <td>offset</td>
                   <td><a href="#uint32">uint32</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Offset in the staker list </p></td>
                 </tr>
               
                 <tr>
                   <td>quantity</td>
                   <td><a href="#uint32">uint32</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Number of stakers to retrive. Capped at 100 </p></td>
                 </tr>
               
             </tbody>
@@ -1175,7 +1175,7 @@
                   <td>epoch</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Current epoch </p></td>
                 </tr>
               
                 <tr>
@@ -1189,7 +1189,7 @@
                   <td>stakers_count</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Number of active stakers </p></td>
                 </tr>
               
                 <tr>
@@ -1529,7 +1529,7 @@
                 </tr>
               
                 <tr>
-                  <td>hash_terminator</td>
+                  <td>terminator_hash</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -1944,42 +1944,42 @@
                   <td>address_from</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Transaction source address </p></td>
                 </tr>
               
                 <tr>
                   <td>address_to</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>Transaction destination address </p></td>
                 </tr>
               
                 <tr>
                   <td>amount</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
-                  <td><p>IMPORTANT: These should be expressed in Shor </p></td>
+                  <td><p>Amount. It should be expressed in Shor </p></td>
                 </tr>
               
                 <tr>
                   <td>fee</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
-                  <td><p>IMPORTANT: These should be expressed in Shor </p></td>
+                  <td><p>Fee. It should be expressed in Shor </p></td>
                 </tr>
               
                 <tr>
                   <td>xmss_pk</td>
                   <td><a href="#bytes">bytes</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>XMSS Public key </p></td>
                 </tr>
               
                 <tr>
                   <td>xmss_ots_index</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
-                  <td><p> </p></td>
+                  <td><p>XMSS One time signature index </p></td>
                 </tr>
               
             </tbody>
