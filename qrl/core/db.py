@@ -41,7 +41,8 @@ class DB:
 
         # FIXME: Bottleneck
         dictObj = {'value': value_obj}
-        self.db.Put(key_obj, json.dumps(dictObj).encode())
+        tmp_json = json.dumps(dictObj).encode()
+        self.db.Put(key_obj, tmp_json)
 
     def get(self, key_obj):
         if not isinstance(key_obj, bytes):

@@ -1,8 +1,9 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from typing import List
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
@@ -113,25 +114,28 @@ class State:
 
     def update_address_tx_hashes(self, addr: bytes, new_txhash: bytes):
         txhash = self.get_address_tx_hashes(addr)
-        txhash.append(bin2hstr(new_txhash).encode())
-        self._db.put(b'txn_' + addr, txhash)
+        txhash.append(new_txhash)
+
+        # FIXME:  Json does not support bytes directly | Temporary workaround
+        tmp_hashes = [bin2hstr(item) for item in txhash]
+
+        self._db.put(b'txn_' + addr, tmp_hashes)
 
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
         self.stake_validators_tracker = stake_validators_tracker
 
-    def get_address_tx_hashes(self, addr: bytes):
+    def get_address_tx_hashes(self, addr: bytes) -> List[bytes]:
         try:
-            txhash = self._db.get(b'txn_' + addr)
+            tx_hashes = self._db.get(b'txn_' + addr)
         except KeyError:
-            txhash = []
+            tx_hashes = []
         except Exception as e:
             logger.exception(e)
-            txhash = []
+            tx_hashes = []
 
-        for i in range(len(txhash)):
-            txhash[i] = bytes(txhash[i].encode())
+        tx_hashes = [bytes(hstr2bin(item)) for item in tx_hashes]
 
-        return txhash
+        return tx_hashes
 
     #########################################
     #########################################
