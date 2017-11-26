@@ -56,7 +56,7 @@ class TestChain(TestCase):
                                           signing_xmss=alice_xmss,
                                           nonce=1)
 
-                res = chain.add_block(tmp_block1)
+                res = chain.add_block(tmp_block1, None)
                 self.assertTrue(res)
                 self.assertEqual(0, chain.height)           # FIXME: wrong name, it is not height but max_index
 
@@ -87,7 +87,7 @@ class TestChain(TestCase):
                                                   signing_xmss=alice_xmss,
                                                   nonce=1)
                         prev = tmp_block1.headerhash
-                        res = chain.add_block(tmp_block1)
+                        res = chain.add_block(tmp_block1, None)
 
                         self.assertEqual(i, chain.height)  # FIXME: wrong name, it is not height but max_index
 

@@ -7,6 +7,7 @@ from typing import Optional
 
 from qrl.core import config, logger
 from qrl.core.Block import Block
+from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
 from qrl.core.Wallet import Wallet
 
@@ -36,7 +37,7 @@ class Chain:
             return self.blockchain[-1].block_number
         return 0
 
-    def add_block(self, block: Block) -> bool:
+    def add_block(self, block: Block, stake_validators_tracker: StakeValidatorsTracker) -> bool:
         # TODO : minimum block validation in unsynced _state
         if block.block_number < self.height:
             logger.warning("Block already in the chain")
@@ -54,6 +55,8 @@ class Chain:
 
         # FIXME: Check the logig behind these operations
         self.blockchain.append(block)
+
+        self.pstate.update_stake_validators(stake_validators_tracker)
 
         # This looks more like optimization/caching
         self.pstate.update_last_tx(block)

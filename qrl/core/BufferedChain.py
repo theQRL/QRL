@@ -152,8 +152,9 @@ class BufferedChain:
             # FIXME: self.blocks why a dict instead of a deque?
             block_idx = min(self.blocks.keys())
             block = self.blocks[block_idx].block
+            stake_validators_tracker = self.blocks[block_idx].stake_validators_tracker
 
-            if not self._add_block_mainchain(block):
+            if not self._add_block_mainchain(block, stake_validators_tracker):
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
                 return False
 
@@ -175,12 +176,12 @@ class BufferedChain:
 
         return True
 
-    def _add_block_mainchain(self, block) -> bool:
+    def _add_block_mainchain(self, block, stake_validators_tracker) -> bool:
         # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
         if block.block_number == 1:
             self.initialize_chain(block)
 
-        if not self._chain.add_block(block):
+        if not self._chain.add_block(block, stake_validators_tracker):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
             return False
@@ -200,11 +201,11 @@ class BufferedChain:
 
         self.epoch_seed = sha256(block.reveal_hash + self.epoch_seed)
 
-        # self._chain.pstate.update_last_tx(block)
-        # self._chain.pstate.update_tx_metadata(block)
-
         self.epoch = block.epoch
         return True
+
+    def add_lattice_public_key(self, lattice_public_key_txn):
+        self._chain.pstate.put_lattice_public_key(lattice_public_key_txn)
 
     def add_vote(self, vote: Vote):
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
