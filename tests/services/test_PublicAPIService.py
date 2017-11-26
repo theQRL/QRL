@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from grpc import ServicerContext
 from mock import Mock, MagicMock
+from pyqrllib.pyqrllib import str2bin
 
 from qrl.core import logger
 from qrl.core.AddressState import AddressState
@@ -244,6 +245,27 @@ class TestPublicAPI(TestCase):
         self.assertEqual(SOME_ADDR2, response.transaction.transfer.addr_to)
         self.assertEqual(125, response.transaction.transfer.amount)
         self.assertEqual(19, response.transaction.transfer.fee)
+
+        # Find a block
+        buffered_chain.get_block = MagicMock(
+            return_value=Block.create(staking_address=qrladdress('staking_addr'),
+                                      block_number=1,
+                                      reveal_hash=sha256(b'reveal'),
+                                      prevblock_headerhash=sha256(b'reveal'),
+                                      transactions=[],
+                                      duplicate_transactions=OrderedDict(),
+                                      vote=VoteMetadata(),
+                                      signing_xmss=get_alice_xmss(),
+                                      nonce=1))
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetObjectReq()
+        request.query = bytes(str2bin('1'))
+        response = service.GetObject(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertTrue(response.found)
+        self.assertIsNotNone(response.block)
+        self.assertEqual(1, response.block.header.block_number)
 
     def test_getLatestData(self):
         blocks = []

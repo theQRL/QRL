@@ -130,7 +130,7 @@ class PublicAPIService(PublicAPIServicer):
             block = self.qrlnode.get_block_from_index(query_index)
             if block is not None:
                 answer.found = True
-                answer.block = block.pbdata
+                answer.block.CopyFrom(block.pbdata)
                 return answer
         except Exception:
             pass
@@ -139,7 +139,7 @@ class PublicAPIService(PublicAPIServicer):
 
     def _stake_validator_to_staker_data(self, stake_validator: StakeValidator) -> qrl_pb2.StakerData:
         answer = qrl_pb2.StakerData()
-        answer.address_state = self.qrlnode.get_address_state(stake_validator.address)
+        answer.address_state.CopyFrom(self.qrlnode.get_address_state(stake_validator.address))
         answer.terminator_hash = stake_validator.terminator_hash
         return answer
 
