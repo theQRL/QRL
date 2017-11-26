@@ -58,10 +58,16 @@ def get_alice_xmss() -> XMSS:
     return XMSS(xmss_height, seed)
 
 
+def get_bob_xmss() -> XMSS:
+    xmss_height = 6
+    seed = bytes([i + 5 for i in range(48)])
+    return XMSS(xmss_height, seed)
+
+
 def get_random_xmss() -> XMSS:
     xmss_height = 6
     return XMSS(xmss_height)
 
 
-def qrladdress(address_seed: str)->bytes:
+def qrladdress(address_seed: str) -> bytes:
     return b'Q' + sha256(address_seed.encode())
