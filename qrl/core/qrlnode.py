@@ -341,6 +341,7 @@ class QRLNode:
         # TODO: Search tx hash
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
+
         for tx in self._buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == query_hash:
                 return tx
