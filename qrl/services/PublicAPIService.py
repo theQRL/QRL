@@ -88,7 +88,7 @@ class PublicAPIService(PublicAPIServicer):
     @grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
         logger.debug("[PublicAPI] GetObject")
-        answer = qrl_pb2.GetObjectResp
+        answer = qrl_pb2.GetObjectResp()
         answer.found = False
 
         # FIXME: We need a unified way to access and validate data.
