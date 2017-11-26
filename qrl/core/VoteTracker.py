@@ -20,7 +20,7 @@ class VoteTracker:
 
     def add_vote(self, vote: Vote, stake_amount: float):
         if self.is_already_voted(vote):
-            return
+            return False
 
         self._headerhash_voteMetadata[vote.headerhash].add_vote(vote, stake_amount)
         self.voted_stake_validators.add(vote.addr_from)

@@ -163,6 +163,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
 
     def test_getObject(self):
+        SOME_ODD_HASH = sha256(b'this should not be found')
         SOME_ADDR1 = b'Q' + sha256(b'address1')
         SOME_ADDR2 = b'Q' + sha256(b'address2')
 
@@ -193,6 +194,13 @@ class TestPublicAPI(TestCase):
                                                                           balance=10,
                                                                           pubhashes=[sha256(b'a'), sha256(b'b')]))
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetObjectReq()
+        request.query = SOME_ODD_HASH
+        response = service.GetObject(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertFalse(response.found)
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()

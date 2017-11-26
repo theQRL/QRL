@@ -11,7 +11,6 @@
     - [BlockMetaData](#qrl.BlockMetaData)
     - [BlockMetaDataList](#qrl.BlockMetaDataList)
     - [EphemeralMessage](#qrl.EphemeralMessage)
-    - [EphemeralMessage.Data](#qrl.EphemeralMessage.Data)
     - [GenesisBalance](#qrl.GenesisBalance)
     - [GetAddressStateReq](#qrl.GetAddressStateReq)
     - [GetAddressStateResp](#qrl.GetAddressStateResp)
@@ -25,8 +24,11 @@
     - [GetNodeStateResp](#qrl.GetNodeStateResp)
     - [GetObjectReq](#qrl.GetObjectReq)
     - [GetObjectResp](#qrl.GetObjectResp)
+    - [GetStakersReq](#qrl.GetStakersReq)
+    - [GetStakersResp](#qrl.GetStakersResp)
     - [GetStatsReq](#qrl.GetStatsReq)
     - [GetStatsResp](#qrl.GetStatsResp)
+    - [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq)
     - [MR](#qrl.MR)
     - [NodeInfo](#qrl.NodeInfo)
     - [Peer](#qrl.Peer)
@@ -34,6 +36,7 @@
     - [PongResp](#qrl.PongResp)
     - [PushTransactionReq](#qrl.PushTransactionReq)
     - [PushTransactionResp](#qrl.PushTransactionResp)
+    - [StakerData](#qrl.StakerData)
     - [StoredPeers](#qrl.StoredPeers)
     - [Timestamp](#qrl.Timestamp)
     - [Transaction](#qrl.Transaction)
@@ -50,6 +53,7 @@
     - [WalletStore](#qrl.WalletStore)
   
     - [GetLatestDataReq.Filter](#qrl.GetLatestDataReq.Filter)
+    - [GetStakersReq.Filter](#qrl.GetStakersReq.Filter)
     - [NodeInfo.State](#qrl.NodeInfo.State)
     - [Transaction.Type](#qrl.Transaction.Type)
   
@@ -196,26 +200,9 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| id | [uint64](#uint64) |  |  |
+| id | [bytes](#bytes) |  |  |
 | ttl | [uint64](#uint64) |  |  |
-
-
-
-
-
-
-<a name="qrl.EphemeralMessage.Data"/>
-
-### EphemeralMessage.Data
-
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| aes512_symkey | [bytes](#bytes) |  |  |
-| prf512_seed | [bytes](#bytes) |  |  |
-| xmss_address | [bytes](#bytes) |  |  |
-| xmss_signature | [bytes](#bytes) |  |  |
+| data | [bytes](#bytes) |  | Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature |
 
 
 
@@ -335,8 +322,8 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | filter | [GetLatestDataReq.Filter](#qrl.GetLatestDataReq.Filter) |  |  |
-| offset | [uint32](#uint32) |  |  |
-| quantity | [uint32](#uint32) |  |  |
+| offset | [uint32](#uint32) |  | Offset in the result list (works backwards in this case) |
+| quantity | [uint32](#uint32) |  | Number of items to retrive. Capped at 100 |
 
 
 
@@ -418,6 +405,38 @@
 
 
 
+<a name="qrl.GetStakersReq"/>
+
+### GetStakersReq
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| filter | [GetStakersReq.Filter](#qrl.GetStakersReq.Filter) |  | Indicates which group of stakers (current / next) |
+| offset | [uint32](#uint32) |  | Offset in the staker list |
+| quantity | [uint32](#uint32) |  | Number of stakers to retrive. Capped at 100 |
+
+
+
+
+
+
+<a name="qrl.GetStakersResp"/>
+
+### GetStakersResp
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| stakers | [StakerData](#qrl.StakerData) | repeated |  |
+
+
+
+
+
+
 <a name="qrl.GetStatsReq"/>
 
 ### GetStatsReq
@@ -437,15 +456,34 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_info | [NodeInfo](#qrl.NodeInfo) |  |  |
-| epoch | [uint64](#uint64) |  |  |
+| epoch | [uint64](#uint64) |  | Current epoch |
 | uptime_network | [uint64](#uint64) |  | Indicates uptime in seconds |
-| stakers_count | [uint64](#uint64) |  |  |
+| stakers_count | [uint64](#uint64) |  | Number of active stakers |
 | block_last_reward | [uint64](#uint64) |  |  |
 | block_time_mean | [uint64](#uint64) |  |  |
 | block_time_sd | [uint64](#uint64) |  |  |
 | coins_total_supply | [uint64](#uint64) |  |  |
 | coins_emitted | [uint64](#uint64) |  |  |
 | coins_atstake | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="qrl.LatticePublicKeyTxnReq"/>
+
+### LatticePublicKeyTxnReq
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address_from | [bytes](#bytes) |  |  |
+| kyber_pk | [bytes](#bytes) |  |  |
+| tesla_pk | [bytes](#bytes) |  |  |
+| xmss_pk | [bytes](#bytes) |  |  |
+| xmss_ots_index | [uint64](#uint64) |  |  |
 
 
 
@@ -554,6 +592,22 @@ FIXME: This is legacy. Plan removal
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | some_response | [string](#string) |  |  |
+
+
+
+
+
+
+<a name="qrl.StakerData"/>
+
+### StakerData
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address_state | [AddressState](#qrl.AddressState) |  |  |
+| terminator_hash | [bytes](#bytes) |  |  |
 
 
 
@@ -673,8 +727,8 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| pk_kyber | [bytes](#bytes) |  |  |
-| pk_tesla | [bytes](#bytes) |  |  |
+| kyber_pk | [bytes](#bytes) |  |  |
+| tesla_pk | [bytes](#bytes) |  |  |
 
 
 
@@ -739,12 +793,12 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| address_from | [bytes](#bytes) |  |  |
-| address_to | [bytes](#bytes) |  |  |
-| amount | [uint64](#uint64) |  | IMPORTANT: These should be expressed in Shor |
-| fee | [uint64](#uint64) |  | IMPORTANT: These should be expressed in Shor |
-| xmss_pk | [bytes](#bytes) |  |  |
-| xmss_ots_index | [uint64](#uint64) |  |  |
+| address_from | [bytes](#bytes) |  | Transaction source address |
+| address_to | [bytes](#bytes) |  | Transaction destination address |
+| amount | [uint64](#uint64) |  | Amount. It should be expressed in Shor |
+| fee | [uint64](#uint64) |  | Fee. It should be expressed in Shor |
+| xmss_pk | [bytes](#bytes) |  | XMSS Public key |
+| xmss_ots_index | [uint64](#uint64) |  | XMSS One time signature index |
 
 
 
@@ -811,6 +865,18 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 | BLOCKHEADERS | 1 |  |
 | TRANSACTIONS | 2 |  |
 | TRANSACTIONS_UNCONFIRMED | 3 |  |
+
+
+
+<a name="qrl.GetStakersReq.Filter"/>
+
+### GetStakersReq.Filter
+
+
+| Name | Number | Description |
+| ---- | ------ | ----------- |
+| CURRENT | 0 |  |
+| NEXT | 1 |  |
 
 
 
@@ -885,8 +951,10 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | GetAddressState | [GetAddressStateReq](#qrl.GetAddressStateReq) | [GetAddressStateResp](#qrl.GetAddressStateReq) |  |
 | GetObject | [GetObjectReq](#qrl.GetObjectReq) | [GetObjectResp](#qrl.GetObjectReq) |  |
 | GetLatestData | [GetLatestDataReq](#qrl.GetLatestDataReq) | [GetLatestDataResp](#qrl.GetLatestDataReq) |  |
+| GetStakers | [GetStakersReq](#qrl.GetStakersReq) | [GetStakersResp](#qrl.GetStakersReq) |  |
 | TransferCoins | [TransferCoinsReq](#qrl.TransferCoinsReq) | [TransferCoinsResp](#qrl.TransferCoinsReq) |  |
 | PushTransaction | [PushTransactionReq](#qrl.PushTransactionReq) | [PushTransactionResp](#qrl.PushTransactionReq) |  |
+| GetLatticePublicKeyTxn | [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq) | [TransferCoinsResp](#qrl.LatticePublicKeyTxnReq) |  |
 
  
 
