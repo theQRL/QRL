@@ -12,8 +12,9 @@ from qrl.core import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
+from qrl.core.StakeValidator import StakeValidator
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.Transaction import TransferTransaction
+from qrl.core.Transaction import TransferTransaction, StakeTransaction
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
@@ -22,7 +23,7 @@ from qrl.core.State import State
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from tests.misc.helper import qrladdress, get_alice_xmss
+from tests.misc.helper import qrladdress, get_alice_xmss, get_bob_xmss
 
 logger.initialize_default(force_console_output=True)
 
@@ -349,3 +350,58 @@ class TestPublicAPI(TestCase):
         self.assertEqual(1013, response.transactions_unconfirmed[0].transfer.amount)
         self.assertEqual(1012, response.transactions_unconfirmed[1].transfer.amount)
         self.assertEqual(1011, response.transactions_unconfirmed[2].transfer.amount)
+
+    def test_getStakers(self):
+        db_state = Mock(spec=State)
+        db_state.stake_validators_tracker = Mock(spec=StakeValidatorsTracker)
+        db_state.stake_validators_tracker.sv_dict = dict()
+
+        p2p_factory = Mock(spec=P2PFactory)
+        buffered_chain = Mock(spec=BufferedChain)
+        buffered_chain.tx_pool = Mock()
+        buffered_chain.get_block = Mock()
+        buffered_chain._chain = Mock()
+
+        qrlnode = QRLNode(db_state)
+        qrlnode.set_p2pfactory(p2p_factory)
+        qrlnode.set_chain(buffered_chain)
+
+        service = PublicAPIService(qrlnode)
+        context = Mock(spec=ServicerContext)
+
+        request = qrl_pb2.GetStakersReq(filter=qrl_pb2.GetStakersReq.CURRENT,
+                                        offset=0,
+                                        quantity=3)
+
+        response = service.GetStakers(request=request, context=context)
+        context.set_code.assert_not_called()
+        context.set_details.assert_not_called()
+        self.assertEqual(0, len(response.stakers))
+
+        # Add a few validators
+        stake_tx = StakeTransaction.create(1,
+                                           get_alice_xmss(),
+                                           get_bob_xmss().pk(),
+                                           sha256(b'terminator'))
+
+        expected_address = bytes(get_alice_xmss().get_address().encode())
+        db_state.get_address = MagicMock(
+            return_value=AddressState.create(address=expected_address,
+                                             nonce=1,
+                                             balance=100,
+                                             pubhashes=[]))
+
+        db_state.get_address_tx_hashes = MagicMock(return_value=[])
+
+        validator1 = StakeValidator(100, stake_tx)
+
+        db_state.stake_validators_tracker.sv_dict[validator1.address] = validator1
+        request = qrl_pb2.GetStakersReq(filter=qrl_pb2.GetStakersReq.CURRENT,
+                                        offset=0,
+                                        quantity=3)
+
+        response = service.GetStakers(request=request, context=context)
+        context.set_code.assert_not_called()
+        context.set_details.assert_not_called()
+        self.assertEqual(1, len(response.stakers))
+        self.assertEqual(expected_address, response.stakers[0].address_state.address)

@@ -157,7 +157,7 @@ class PublicAPIService(PublicAPIServicer):
             raise NotImplementedError("filter value is not supported")
 
         sv_data = [self._stake_validator_to_staker_data(sv) for sv in sv_list]
-        response.stakers.extent(sv_data)
+        response.stakers.extend(sv_data)
         return response
 
     @grpc_exception_wrapper(qrl_pb2.GetLatestDataResp, StatusCode.UNKNOWN)
