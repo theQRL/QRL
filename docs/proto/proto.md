@@ -322,8 +322,8 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | filter | [GetLatestDataReq.Filter](#qrl.GetLatestDataReq.Filter) |  |  |
-| offset | [uint32](#uint32) |  |  |
-| quantity | [uint32](#uint32) |  |  |
+| offset | [uint32](#uint32) |  | Offset in the result list (works backwards in this case) |
+| quantity | [uint32](#uint32) |  | Number of items to retrive. Capped at 100 |
 
 
 
@@ -413,9 +413,9 @@
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| filter | [GetStakersReq.Filter](#qrl.GetStakersReq.Filter) |  |  |
-| offset | [uint32](#uint32) |  |  |
-| quantity | [uint32](#uint32) |  |  |
+| filter | [GetStakersReq.Filter](#qrl.GetStakersReq.Filter) |  | Indicates which group of stakers (current / next) |
+| offset | [uint32](#uint32) |  | Offset in the staker list |
+| quantity | [uint32](#uint32) |  | Number of stakers to retrive. Capped at 100 |
 
 
 
@@ -456,9 +456,9 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | node_info | [NodeInfo](#qrl.NodeInfo) |  |  |
-| epoch | [uint64](#uint64) |  |  |
+| epoch | [uint64](#uint64) |  | Current epoch |
 | uptime_network | [uint64](#uint64) |  | Indicates uptime in seconds |
-| stakers_count | [uint64](#uint64) |  |  |
+| stakers_count | [uint64](#uint64) |  | Number of active stakers |
 | block_last_reward | [uint64](#uint64) |  |  |
 | block_time_mean | [uint64](#uint64) |  |  |
 | block_time_sd | [uint64](#uint64) |  |  |
@@ -607,7 +607,7 @@ FIXME: This is legacy. Plan removal
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | address_state | [AddressState](#qrl.AddressState) |  |  |
-| hash_terminator | [bytes](#bytes) |  |  |
+| terminator_hash | [bytes](#bytes) |  |  |
 
 
 
@@ -793,12 +793,12 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| address_from | [bytes](#bytes) |  |  |
-| address_to | [bytes](#bytes) |  |  |
-| amount | [uint64](#uint64) |  | IMPORTANT: These should be expressed in Shor |
-| fee | [uint64](#uint64) |  | IMPORTANT: These should be expressed in Shor |
-| xmss_pk | [bytes](#bytes) |  |  |
-| xmss_ots_index | [uint64](#uint64) |  |  |
+| address_from | [bytes](#bytes) |  | Transaction source address |
+| address_to | [bytes](#bytes) |  | Transaction destination address |
+| amount | [uint64](#uint64) |  | Amount. It should be expressed in Shor |
+| fee | [uint64](#uint64) |  | Fee. It should be expressed in Shor |
+| xmss_pk | [bytes](#bytes) |  | XMSS Public key |
+| xmss_ots_index | [uint64](#uint64) |  | XMSS One time signature index |
 
 
 

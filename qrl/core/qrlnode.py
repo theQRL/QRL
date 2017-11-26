@@ -8,6 +8,7 @@ from typing import Optional, List
 
 from qrl.core import config, logger
 from qrl.core.BufferedChain import BufferedChain
+from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
@@ -358,6 +359,18 @@ class QRLNode:
         """
         # FIXME: At some point, all objects in DB will indexed by a hash
         return self._buffered_chain.get_block(index)
+
+    def get_current_stakers(self, offset, count) -> List[StakeValidator]:
+        stakers = list(self.db_state.stake_validators_tracker.sv_dict.values())
+        start = min(offset, len(stakers))
+        end = min(start + count, len(stakers))
+        return stakers[start:end]
+
+    def get_next_stakers(self, offset, count) -> List[StakeValidator]:
+        stakers = list(self.db_state.stake_validators_tracker.sv_dict.values())
+        start = min(offset, len(stakers))
+        end = min(start + count, len(stakers))
+        return stakers[start:end]
 
     def get_latest_blocks(self, offset, count) -> List[Block]:
         # FIXME: This is incorrect. Offset does not work

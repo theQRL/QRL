@@ -4,6 +4,7 @@
 from grpc import StatusCode
 
 from qrl.core import logger
+from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
@@ -12,6 +13,8 @@ from qrl.services.grpcHelper import grpc_exception_wrapper
 
 
 class PublicAPIService(PublicAPIServicer):
+    MAX_REQUEST_QUANTITY = 100
+
     # TODO: Separate the Service from the node model
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
@@ -99,25 +102,25 @@ class PublicAPIService(PublicAPIServicer):
                 address_state = self.qrlnode.get_address_state(query)
                 if address_state is not None:
                     answer.found = True
-                    answer.address_state = address_state
+                    answer.address_state.CopyFrom(address_state)
                     return answer
 
         transaction = self.qrlnode.get_transaction(query)
         if transaction is not None:
             answer.found = True
-            answer.transaction = transaction.pbdata
+            answer.transaction.CopyFrom(transaction.pbdata)
             return answer
 
         block = self.qrlnode.get_block_from_hash(query)
         if block is not None:
             answer.found = True
-            answer.block = block.pbdata
+            answer.block.CopyFrom(block.pbdata)
             return answer
 
         block = self.qrlnode.get_block_from_hash(query)
         if block is not None:
             answer.found = True
-            answer.block = block.pbdata
+            answer.block.CopyFrom(block.pbdata)
             return answer
 
         # NOTE: This is temporary, indexes are accepted for blocks
@@ -134,16 +137,40 @@ class PublicAPIService(PublicAPIServicer):
 
         return answer
 
+    def _stake_validator_to_staker_data(self, stake_validator: StakeValidator) -> qrl_pb2.StakerData:
+        answer = qrl_pb2.StakerData()
+        answer.address_state = self.qrlnode.get_address_state(stake_validator.address)
+        answer.terminator_hash = stake_validator.terminator_hash
+        return answer
+
+    @grpc_exception_wrapper(qrl_pb2.GetStakersResp, StatusCode.UNKNOWN)
+    def GetStakers(self, request: qrl_pb2.GetStakersReq, context) -> qrl_pb2.GetStakersResp:
+        logger.debug("[PublicAPI] GetStakers")
+        response = qrl_pb2.GetStakersResp()
+        quantity = min(request.quantity, self.MAX_REQUEST_QUANTITY)
+
+        if request.filter == qrl_pb2.GetStakersReq.CURRENT:
+            sv_list = self.qrlnode.get_current_stakers(offset=request.offset, count=quantity)
+        elif request.filter == qrl_pb2.GetStakersReq.NEXT:
+            sv_list = self.qrlnode.get_next_stakers(offset=request.offset, count=quantity)
+        else:
+            raise NotImplementedError("filter value is not supported")
+
+        sv_data = [self._stake_validator_to_staker_data(sv) for sv in sv_list]
+        response.stakers.extent(sv_data)
+        return response
+
     @grpc_exception_wrapper(qrl_pb2.GetLatestDataResp, StatusCode.UNKNOWN)
     def GetLatestData(self, request: qrl_pb2.GetLatestDataReq, context) -> qrl_pb2.GetLatestDataResp:
         logger.debug("[PublicAPI] GetLatestData")
         response = qrl_pb2.GetLatestDataResp()
 
         all_requested = request.filter == qrl_pb2.GetLatestDataReq.ALL
+        quantity = min(request.quantity, self.MAX_REQUEST_QUANTITY)
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.BLOCKHEADERS:
             result = []
-            for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=request.quantity):
+            for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=quantity):
                 tx_count = len(blk.transactions)
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
                                                           transaction_count=tx_count))
@@ -151,13 +178,13 @@ class PublicAPIService(PublicAPIServicer):
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS:
             result = []
-            for tx in self.qrlnode.get_latest_transactions(offset=request.offset, count=request.quantity):
+            for tx in self.qrlnode.get_latest_transactions(offset=request.offset, count=quantity):
                 result.append(tx.pbdata)
             response.transactions.extend(result)
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS_UNCONFIRMED:
             result = []
-            for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=request.quantity):
+            for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=quantity):
                 result.append(tx.pbdata)
             response.transactions_unconfirmed.extend(result)
 

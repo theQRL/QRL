@@ -202,7 +202,6 @@ class TestPublicAPI(TestCase):
         context.set_code.assert_not_called()
         self.assertFalse(response.found)
 
-
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
         request.query = SOME_ADDR1

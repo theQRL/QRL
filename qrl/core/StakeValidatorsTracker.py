@@ -18,7 +18,7 @@ class StakeValidatorsTracker:
     def __init__(self):
         # Active stake validator objects
         self.sv_dict = OrderedDict()                    # type: Dict[bytes, StakeValidator]
-        self.future_stake_addresses = dict()
+        self.future_stake_addresses = dict()            # type: Dict[bytes, StakeValidator]
 
         self._expiry = defaultdict(set)  # Maintains the blocknumber as key at which Stake validator has to be expired
         self._future_sv_dict = defaultdict(set)
