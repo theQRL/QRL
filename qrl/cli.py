@@ -13,12 +13,27 @@ def get_wallet_obj():
     walletObj = Wallet()
     return walletObj
 
+def get_address_balance(address, channel):
+    """
+    address: b'Q......'
+    channel: grpc.insecure_channel(nodeip:nodeport)
+    """
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+    
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=address)
+    f = stub.GetAddressState.future(getAddressStateReq, timeout=5)
+    getAddressStateResp = f.result(timeout=5)
+
+    return getAddressStateResp.state.balance
 
 # TODO add balance
 def print_wallet_list(walletObj):
-    print('Number\t\tAddress')
+    channel = get_channel()
+
+    print('Number\tAddress\tBalance')
     for pos, addr in enumerate(walletObj.address_bundle):
-        print('%s\t\t%s' % (pos, addr.address.decode()))
+        balance = get_address_balance(addr.address, channel)
+        print('%s\t%s\t%s' % (pos, addr.address.decode(), balance/1e8))  # TODO standardize quanta/shor conversion
 
 
 def select_wallet(walletObj):
@@ -44,7 +59,7 @@ def wallet():
 
 
 @wallet.command()
-def list():  # FIXME: method name is a python keyword
+def list_wallets():  # FIXME: method name is a python keyword
     """
     Lists available wallets
     """
