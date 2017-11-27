@@ -197,7 +197,7 @@ class State:
         if data is None:
             raise KeyError("{} not found".format(address))
         pbdata = qrl_pb2.AddressState()
-        pbdata.ParseFromString(data)
+        pbdata.ParseFromString(bytes(data))
         address_state = AddressState(pbdata)
         return address_state
 

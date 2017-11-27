@@ -34,11 +34,44 @@ class TestState(TestCase):
             self.assertEqual(block_position, read_position)
             self.assertEqual(block_size, read_size)
 
+    def test_get_address(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+
+                alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                address_state = state.get_address(alice_address)
+                self.assertTrue(isinstance(address_state.address, bytes))
+
+                alice_address = bytearray(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                with self.assertRaises(TypeError):
+                    address_state = state.get_address(alice_address)
+
+                alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                address_state = state.get_address(alice_address)
+                self.assertTrue(isinstance(address_state.address, bytes))
+                state._save_address_state(address_state)
+
+                address_state = state.get_address(alice_address)
+                self.assertTrue(isinstance(address_state.address, bytes))
+
+    def test_get_address2(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+
+                alice_address = bytes(alice_xmss.get_address().encode())
+                address_state = state.get_address(alice_address)
+                self.assertTrue(isinstance(address_state.address, bytes))
+                state._save_address_state(address_state)
+                address_state = state.get_address(alice_address)
+                self.assertTrue(isinstance(address_state.address, bytes))
+
     def test_addr_tx_hashes(self):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                alice_address = bytes(alice_xmss.get_address().encode())     # FIXME: This needs to be refactored
+                alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
                 some_hash1 = sha256(b'some_hash1')
                 some_hash2 = sha256(b'some_hash2')
 
