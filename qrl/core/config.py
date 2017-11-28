@@ -31,7 +31,7 @@ class UserConfig(object):
                           '104.251.219.145',
                           '104.251.219.40']             # Atleast one active peer IP required
 
-        self.max_peers_limit = 40  # Number of allowed peers
+        self.max_peers_limit = 100  # Number of allowed peers
         self.ping_timeout = 180
         self.ping_frequency = 20  # How frequently a node should ping (in seconds)
         # must be less than ping_timeout
@@ -124,7 +124,7 @@ class DevConfig(object):
 
         self.slave_dat_filename = 'slave.qrl'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = 'Do androids dream of electric sheep?'
+        self.genesis_prev_headerhash = 'Earth abides'
 
     @staticmethod
     def getInstance():
