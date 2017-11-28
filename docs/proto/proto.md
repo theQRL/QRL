@@ -20,6 +20,8 @@
     - [GetKnownPeersResp](#qrl.GetKnownPeersResp)
     - [GetLatestDataReq](#qrl.GetLatestDataReq)
     - [GetLatestDataResp](#qrl.GetLatestDataResp)
+    - [GetLocalAddressesReq](#qrl.GetLocalAddressesReq)
+    - [GetLocalAddressesResp](#qrl.GetLocalAddressesResp)
     - [GetNodeStateReq](#qrl.GetNodeStateReq)
     - [GetNodeStateResp](#qrl.GetNodeStateResp)
     - [GetObjectReq](#qrl.GetObjectReq)
@@ -28,6 +30,8 @@
     - [GetStakersResp](#qrl.GetStakersResp)
     - [GetStatsReq](#qrl.GetStatsReq)
     - [GetStatsResp](#qrl.GetStatsResp)
+    - [GetWalletReq](#qrl.GetWalletReq)
+    - [GetWalletResp](#qrl.GetWalletResp)
     - [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq)
     - [MR](#qrl.MR)
     - [NodeInfo](#qrl.NodeInfo)
@@ -52,26 +56,26 @@
     - [TransferCoinsResp](#qrl.TransferCoinsResp)
     - [Wallet](#qrl.Wallet)
     - [WalletStore](#qrl.WalletStore)
-  
+
     - [GetLatestDataReq.Filter](#qrl.GetLatestDataReq.Filter)
     - [GetStakersReq.Filter](#qrl.GetStakersReq.Filter)
     - [NodeInfo.State](#qrl.NodeInfo.State)
     - [Transaction.Type](#qrl.Transaction.Type)
-  
-  
+
+
     - [AdminAPI](#qrl.AdminAPI)
     - [P2PAPI](#qrl.P2PAPI)
     - [PublicAPI](#qrl.PublicAPI)
-  
+
 
 - [qrlbase.proto](#qrlbase.proto)
     - [GetNodeInfoReq](#qrl.GetNodeInfoReq)
     - [GetNodeInfoResp](#qrl.GetNodeInfoResp)
-  
-  
-  
+
+
+
     - [Base](#qrl.Base)
-  
+
 
 - [Scalar Value Types](#scalar-value-types)
 
@@ -348,6 +352,31 @@
 
 
 
+<a name="qrl.GetLocalAddressesReq"/>
+
+### GetLocalAddressesReq
+
+
+
+
+
+
+
+<a name="qrl.GetLocalAddressesResp"/>
+
+### GetLocalAddressesResp
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| addresses | [bytes](#bytes) | repeated |  |
+
+
+
+
+
+
 <a name="qrl.GetNodeStateReq"/>
 
 ### GetNodeStateReq
@@ -466,6 +495,36 @@
 | coins_total_supply | [uint64](#uint64) |  |  |
 | coins_emitted | [uint64](#uint64) |  |  |
 | coins_atstake | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="qrl.GetWalletReq"/>
+
+### GetWalletReq
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address | [bytes](#bytes) |  |  |
+
+
+
+
+
+
+<a name="qrl.GetWalletResp"/>
+
+### GetWalletResp
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| wallet | [Wallet](#qrl.Wallet) |  | FIXME: Encrypt |
 
 
 
@@ -868,7 +927,7 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 
 
- 
+
 
 
 <a name="qrl.GetLatestDataReq.Filter"/>
@@ -929,9 +988,9 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 | VOTE | 7 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="qrl.AdminAPI"/>
@@ -941,6 +1000,8 @@ This is a place holder for testing/instrumentation APIs
 
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
+| GetLocalAddresses | [GetLocalAddressesReq](#qrl.GetLocalAddressesReq) | [GetLocalAddressesResp](#qrl.GetLocalAddressesReq) | FIXME: Use TLS and some signature scheme to validate the cli? At the moment, it will run locally |
+| GetWallet | [GetWalletReq](#qrl.GetWalletReq) | [GetWalletResp](#qrl.GetWalletReq) |  |
 
 
 <a name="qrl.P2PAPI"/>
@@ -973,7 +1034,7 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | PushTransaction | [PushTransactionReq](#qrl.PushTransactionReq) | [PushTransactionResp](#qrl.PushTransactionReq) |  |
 | GetLatticePublicKeyTxn | [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq) | [TransferCoinsResp](#qrl.LatticePublicKeyTxnReq) |  |
 
- 
+
 
 
 
@@ -1009,11 +1070,11 @@ This service describes the Public API used by clients (wallet/cli/etc)
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="qrl.Base"/>
@@ -1025,7 +1086,7 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | ----------- | ------------ | ------------- | ------------|
 | GetNodeInfo | [GetNodeInfoReq](#qrl.GetNodeInfoReq) | [GetNodeInfoResp](#qrl.GetNodeInfoReq) |  |
 
- 
+
 
 
 

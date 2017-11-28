@@ -180,11 +180,10 @@ class QRLNode:
         Decimal(amount_str)
         return True
 
-    def _find_xmss(self, key_addr: bytes):
-        # FIXME: Move down the wallet management
+    def get_address_bundle(self, key_addr: bytes):
         for addr in self._buffered_chain.wallet.address_bundle:
             if addr.address == key_addr:
-                return addr.xmss
+                return addr
         return None
 
     # FIXME: Rename this appropriately
@@ -192,7 +191,13 @@ class QRLNode:
         block_chain_buffer = self._buffered_chain.block_chain_buffer
         stake_validators_tracker = block_chain_buffer.get_stake_validators_tracker(block_chain_buffer.height() + 1)
 
-        xmss_from = self._find_xmss(addr_from)
+        addr_bundle = self.get_address_bundle(addr_from)
+        if addr_bundle is None:
+            raise LookupError("The source address does not belong to this wallet/node")
+
+        xmss_from = addr_bundle.xmss
+        if xmss_from is None:
+            raise LookupError("The source address does not belong to this wallet/node")
 
         if addr_from in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[addr_from].is_active:
             raise LookupError("Source address is a Stake Validator, balance is locked while staking")
@@ -201,8 +206,6 @@ class QRLNode:
                 stake_validators_tracker.future_stake_addresses[addr_from].is_active):
             raise LookupError("Source address is a Future Stake Validator, balance is locked")
 
-        if xmss_from is None:
-            raise LookupError("The source address does not belong to this wallet/node")
         xmss_pk = xmss_from.pk()
         xmss_ots_index = xmss_from.get_index()
 

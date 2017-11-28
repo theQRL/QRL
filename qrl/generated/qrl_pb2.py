@@ -1091,6 +1091,123 @@ _PUSHTRANSACTIONRESP = _descriptor.Descriptor(
 )
 
 
+_GETLOCALADDRESSESREQ = _descriptor.Descriptor(
+  name='GetLocalAddressesReq',
+  full_name='qrl.GetLocalAddressesReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1930,
+  serialized_end=1952,
+)
+
+
+_GETLOCALADDRESSESRESP = _descriptor.Descriptor(
+  name='GetLocalAddressesResp',
+  full_name='qrl.GetLocalAddressesResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='addresses', full_name='qrl.GetLocalAddressesResp.addresses', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1954,
+  serialized_end=1996,
+)
+
+
+_GETWALLETREQ = _descriptor.Descriptor(
+  name='GetWalletReq',
+  full_name='qrl.GetWalletReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.GetWalletReq.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1998,
+  serialized_end=2029,
+)
+
+
+_GETWALLETRESP = _descriptor.Descriptor(
+  name='GetWalletResp',
+  full_name='qrl.GetWalletResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='wallet', full_name='qrl.GetWalletResp.wallet', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2031,
+  serialized_end=2075,
+)
+
+
 _NODEINFO = _descriptor.Descriptor(
   name='NodeInfo',
   full_name='qrl.NodeInfo',
@@ -2777,6 +2894,7 @@ _GETSTAKERSREQ_FILTER.containing_type = _GETSTAKERSREQ
 _GETSTAKERSRESP.fields_by_name['stakers'].message_type = _STAKERDATA
 _TRANSFERCOINSRESP.fields_by_name['transaction_unsigned'].message_type = _TRANSACTION
 _PUSHTRANSACTIONREQ.fields_by_name['transaction_signed'].message_type = _TRANSACTION
+_GETWALLETRESP.fields_by_name['wallet'].message_type = _WALLET
 _NODEINFO.fields_by_name['state'].enum_type = _NODEINFO_STATE
 _NODEINFO_STATE.containing_type = _NODEINFO
 _WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
@@ -2868,6 +2986,10 @@ DESCRIPTOR.message_types_by_name['TransferCoinsResp'] = _TRANSFERCOINSRESP
 DESCRIPTOR.message_types_by_name['LatticePublicKeyTxnReq'] = _LATTICEPUBLICKEYTXNREQ
 DESCRIPTOR.message_types_by_name['PushTransactionReq'] = _PUSHTRANSACTIONREQ
 DESCRIPTOR.message_types_by_name['PushTransactionResp'] = _PUSHTRANSACTIONRESP
+DESCRIPTOR.message_types_by_name['GetLocalAddressesReq'] = _GETLOCALADDRESSESREQ
+DESCRIPTOR.message_types_by_name['GetLocalAddressesResp'] = _GETLOCALADDRESSESRESP
+DESCRIPTOR.message_types_by_name['GetWalletReq'] = _GETWALLETREQ
+DESCRIPTOR.message_types_by_name['GetWalletResp'] = _GETWALLETRESP
 DESCRIPTOR.message_types_by_name['NodeInfo'] = _NODEINFO
 DESCRIPTOR.message_types_by_name['WalletStore'] = _WALLETSTORE
 DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
@@ -3060,6 +3182,34 @@ PushTransactionResp = _reflection.GeneratedProtocolMessageType('PushTransactionR
   # @@protoc_insertion_point(class_scope:qrl.PushTransactionResp)
   ))
 _sym_db.RegisterMessage(PushTransactionResp)
+
+GetLocalAddressesReq = _reflection.GeneratedProtocolMessageType('GetLocalAddressesReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETLOCALADDRESSESREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetLocalAddressesReq)
+  ))
+_sym_db.RegisterMessage(GetLocalAddressesReq)
+
+GetLocalAddressesResp = _reflection.GeneratedProtocolMessageType('GetLocalAddressesResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETLOCALADDRESSESRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetLocalAddressesResp)
+  ))
+_sym_db.RegisterMessage(GetLocalAddressesResp)
+
+GetWalletReq = _reflection.GeneratedProtocolMessageType('GetWalletReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETWALLETREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetWalletReq)
+  ))
+_sym_db.RegisterMessage(GetWalletReq)
+
+GetWalletResp = _reflection.GeneratedProtocolMessageType('GetWalletResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETWALLETRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetWalletResp)
+  ))
+_sym_db.RegisterMessage(GetWalletResp)
 
 NodeInfo = _reflection.GeneratedProtocolMessageType('NodeInfo', (_message.Message,), dict(
   DESCRIPTOR = _NODEINFO,
@@ -3486,6 +3636,24 @@ _ADMINAPI = _descriptor.ServiceDescriptor(
   serialized_start=6682,
   serialized_end=6692,
   methods=[
+  _descriptor.MethodDescriptor(
+    name='GetLocalAddresses',
+    full_name='qrl.AdminAPI.GetLocalAddresses',
+    index=0,
+    containing_service=None,
+    input_type=_GETLOCALADDRESSESREQ,
+    output_type=_GETLOCALADDRESSESRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetWallet',
+    full_name='qrl.AdminAPI.GetWallet',
+    index=1,
+    containing_service=None,
+    input_type=_GETWALLETREQ,
+    output_type=_GETWALLETRESP,
+    options=None,
+  ),
 ])
 _sym_db.RegisterServiceDescriptor(_ADMINAPI)
 

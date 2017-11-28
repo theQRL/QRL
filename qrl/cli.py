@@ -3,38 +3,79 @@ import click
 import grpc
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 
-from qrl.core.Transaction import Transaction
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
-context = {"host": ""}
+from qrl.core.Transaction import Transaction
 
-def get_wallet_obj():
-    # FIXME: Not sure we need this redirection here. Maybe avoid
-    walletObj = Wallet()
-    return walletObj
 
-def get_address_balance(address, channel):
+class CLIContext(object):
+    def __init__(self, host, port_public, port_admin):
+        self.host = host
+        self.port_public = port_public
+        self.port_admin = port_admin
+
+        self.channel_public = grpc.insecure_channel(self.node_public_address)
+        self.channel_admin = grpc.insecure_channel(self.node_admin_address)
+
+    @property
+    def node_public_address(self):
+        return '{}:{}'.format(self.host, self.port_public)
+
+    @property
+    def node_admin_address(self):
+        return '{}:{}'.format(self.host, self.port_admin)
+
+
+@click.group()
+@click.option('--host', default='127.0.0.1', help='host address')
+@click.option('--port_pub', default=9009, help='port number (public api)')
+@click.option('--port_adm', default=9008, help='port number (admin api)')
+@click.pass_context
+def qrl(ctx, host, port_pub, port_adm):
     """
-    address: b'Q......'
-    channel: grpc.insecure_channel(nodeip:nodeport)
+    QRL Command Line Interface
     """
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
-    
+    ctx.obj = CLIContext(host, port_pub, port_adm)
+
+
+def _get_local_addresses(ctx):
+    stub = qrl_pb2_grpc.AdminAPIStub(ctx.obj.channel_admin)
+
+    getAddressStateResp = stub.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=5)
+
+    return getAddressStateResp.addresses
+
+
+def _get_address_balance(ctx, address):
+    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+
     getAddressStateReq = qrl_pb2.GetAddressStateReq(address=address)
     f = stub.GetAddressState.future(getAddressStateReq, timeout=5)
     getAddressStateResp = f.result(timeout=5)
 
     return getAddressStateResp.state.balance
 
-# TODO add balance
-def print_wallet_list(walletObj):
-    channel = get_channel()
 
-    print('Number\tAddress\tBalance')
-    for pos, addr in enumerate(walletObj.address_bundle):
-        balance = get_address_balance(addr.address, channel)
-        print('%s\t%s\t%s' % (pos, addr.address.decode(), balance/1e8))  # TODO standardize quanta/shor conversion
+def _get_wallet(ctx, address):
+    stub = qrl_pb2_grpc.AdminAPIStub(ctx.obj.channel_admin)
+
+    req = qrl_pb2.GetWalletReq()
+    req.address = address
+
+    getAddressStateResp = stub.GetWallet(req, timeout=5)
+
+    return getAddressStateResp.wallet
+
+
+def _print_wallet_list(ctx):
+    addresses = _get_local_addresses(ctx)
+    click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
+    click.echo('-' * 95)
+    for pos, addr in enumerate(addresses):
+        balance = _get_address_balance(ctx, addr)
+        # TODO standardize quanta/shor conversion
+        click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance / 1e8))
 
 
 def select_wallet(walletObj):
@@ -44,34 +85,22 @@ def select_wallet(walletObj):
     if 0 <= walletnum < len(walletObj.address_bundle):
         return walletObj.address_bundle[walletnum]
 
-    print('Invalid Wallet Number')
+    click.echo('Invalid Wallet Number')
     return None
 
 
-def get_channel():
-    return grpc.insecure_channel(context['host'])
-
-
-@click.group()
-@click.option('--host', default='127.0.0.1:9009')
-def wallet(host):
-    """Wallet Commands
-    """
-    context["host"] = host
-    pass
-
-
-@wallet.command()
-def list_wallets():  # FIXME: method name is a python keyword
+@qrl.command()
+@click.pass_context
+def wallets(ctx):
     """
     Lists available wallets
     """
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
+    _print_wallet_list(ctx)
 
 
-@wallet.command()
+@qrl.command()
 @click.option('--seed-type', type=click.Choice(['hexseed', 'mnemonic']), default='hexseed')
+@click.pass_context
 def recover(seed_type):
     """
     Recover Wallet using hexseed or mnemonic (32 words)
@@ -93,7 +122,7 @@ def recover(seed_type):
             return
         bin_seed = hstr2bin(seed)
 
-    walletObj = get_wallet_obj()
+    walletObj = Wallet()
     addrBundle = walletObj.get_new_address(seed=bin_seed)
     print('Recovered Wallet Address : %s' % (addrBundle.address.decode(),))
     for addr in walletObj.address_bundle:
@@ -108,12 +137,13 @@ def recover(seed_type):
         click.echo('Done')
 
 
-@wallet.command()
+@qrl.command()
+@click.pass_context
 def generate():
     """
     Generates new wallet address
     """
-    walletObj = get_wallet_obj()
+    walletObj = Wallet()
     click.echo('Generating...')
     addressBundle = walletObj.get_new_address()
     click.echo('Wallet Address     : %s' % (addressBundle.address.decode(),))
@@ -127,44 +157,39 @@ def generate():
         click.echo('Done')
 
 
-@wallet.command()
-def hexseed():
-    """
-    Provides the Hexseed of the address into wallet list.
-    """
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
-
-    if selected_wallet:
-        click.echo('Wallet Address : %s' % (selected_wallet.address.decode(),))
-        click.echo('Hexseed        : %s' % (selected_wallet.xmss.get_hexseed(),))
-
-
-@wallet.command()
-def mnemonic():
+@qrl.command()
+@click.option('--wallet-idx', default=0, prompt=True)
+@click.pass_context
+def mnemonic(ctx, wallet_idx):
     """
     Provides the mnemonic words of the address into wallet list.
     """
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
+    addresses = _get_local_addresses(ctx)
 
-    if selected_wallet:
-        click.echo('Wallet Address  : %s' % (selected_wallet.address.decode(),))
-        click.echo('Mnemonic        : %s' % (selected_wallet.xmss.get_mnemonic(),))
+    if 0 <= wallet_idx < len(addresses):
+        wallet = _get_wallet(ctx, addresses[wallet_idx])
+
+        click.echo('Wallet Address  : %s' % (wallet.address,))
+        click.echo('Mnemonic        : %s' % (wallet.mnemonic,))
+    else:
+        click.echo('Wallet index not found', color='yellow')
 
 
-@wallet.command()
-def send():
+@qrl.command()
+@click.option('--from', default=0, prompt=True)
+@click.option('--to', default=0, prompt=True)
+@click.option('--amount', default=0, prompt=True)
+@click.option('--fee', default=0, prompt=True)
+@click.pass_context
+def send(ctx):
     """
     Transfer coins
     """
-    channel = get_channel()
+    channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
+    walletObj = Wallet()
+    _print_wallet_list(walletObj)
     selected_wallet = select_wallet(walletObj)
     if not selected_wallet:
         return
@@ -200,13 +225,14 @@ def send():
         print("Error {}".format(str(e)))
 
 
-@wallet.command()
+@qrl.command()
+@click.pass_context
 def eph():
     # channel = get_channel()
     # stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
+    walletObj = Wallet()
+    _print_wallet_list(walletObj)
     selected_wallet = select_wallet(walletObj)
     if not selected_wallet:
         return
@@ -215,13 +241,14 @@ def eph():
     # message = click.prompt('Message', type=str)
 
 
-@wallet.command()
+@qrl.command()
+@click.pass_context
 def lattice():
-    channel = get_channel()
+    channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
+    walletObj = Wallet()
+    _print_wallet_list(walletObj)
     selected_wallet = select_wallet(walletObj)
     if not selected_wallet:
         return
@@ -253,7 +280,7 @@ def lattice():
 
 
 def main():
-    wallet()
+    qrl()
 
 
 if __name__ == '__main__':
