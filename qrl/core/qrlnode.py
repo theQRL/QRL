@@ -142,7 +142,7 @@ class QRLNode:
                 logger.info('Opening peers.qrl')
                 with open(self.peers_path, 'rb') as infile:
                     known_peers = qrl_pb2.StoredPeers()
-                    known_peers.ParseFromString(infile.read())
+                    known_peers.ParseFromString(bytes(infile.read()))
                     self._peer_addresses = [peer.ip for peer in known_peers.peers]
                     self._peer_addresses.extend(config.user.peer_list)
                     return

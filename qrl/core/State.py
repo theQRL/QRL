@@ -241,7 +241,7 @@ class State:
         addresses = []
         for key, data in self._db.RangeIter(b'Q', b'Qz'):
             pbdata = qrl_pb2.AddressState()
-            pbdata.ParseFromString(data)
+            pbdata.ParseFromString(bytes(data))
             address_state = AddressState(pbdata)
             addresses.append(address_state)
         return addresses
