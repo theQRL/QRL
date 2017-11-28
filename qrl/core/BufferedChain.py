@@ -570,6 +570,8 @@ class BufferedChain:
 
         while starting_blocknumber in self.blocks:
             del self.blocks[starting_blocknumber]
+            if starting_blocknumber - 1 in self._vote_tracker:
+                del self._vote_tracker[starting_blocknumber - 1]
             starting_blocknumber += 1
 
     def load_address_state(self, block: Block,
