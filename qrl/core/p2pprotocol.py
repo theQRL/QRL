@@ -55,9 +55,9 @@ class P2PProtocol(Protocol):
             ############################
             'TX': self.TX,  # RECV Transaction
             'VT': self.VT,  # Vote Txn
-            'LT': self.LT,  # Lattice Public Key Transaction
+            # 'LT': self.LT,  # Lattice Public Key Transaction
 
-            'EPH': self.EPH,  # Ephemeral Transaction
+            # 'EPH': self.EPH,  # Ephemeral Transaction
 
             'SYNC': self.synced_state,  # Add into synced list, if the node replies
         }
