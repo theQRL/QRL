@@ -38,6 +38,32 @@ jobs:
     - stage: build+test
       os: linux
       env:
+      - D="UNITTESTS"
+      - TEST='TRUE'
+      - PLATFORM='stretch'
+      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when running integration tests"
+      script:
+      - "./travis/build.sh"
+
+    - stage: build+test
+      os: linux
+      env:
+      - D="UNITTESTS"
+      - TEST='TRUE'
+      - PLATFORM='jessie'
+      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
+      install:
+      - python --version
+      - echo "Skip installing requirements.txt when running integration tests"
+      script:
+      - "./travis/build.sh"
+
+    - stage: build+test
+      os: linux
+      env:
       - D="INTTEST_SYNC"
       - INTEGRATION_TESTINPLACE='TRUE'
       - PLATFORM='xenial'
@@ -62,13 +88,6 @@ jobs:
       - sudo pip install -U docker-compose
       - docker-compose --version
       - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
-
-#    - stage: build+test
-#      os: linux
-#      env:
-#      - TEST='TRUE'
-#      - PLATFORM='trusty'
-#      script: "./travis/build.sh"
 
     - stage: publish
       if: tag =~ ^v
