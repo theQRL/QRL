@@ -152,9 +152,10 @@ class BufferedChain:
             # FIXME: self.blocks why a dict instead of a deque?
             block_idx = min(self.blocks.keys())
             block = self.blocks[block_idx].block
+            address_state_dict = self.blocks[block_idx].address_state_dict
             stake_validators_tracker = self.blocks[block_idx].stake_validators_tracker
 
-            if not self._add_block_mainchain(block, stake_validators_tracker):
+            if not self._add_block_mainchain(block, address_state_dict, stake_validators_tracker):
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
                 return False
 
@@ -176,12 +177,12 @@ class BufferedChain:
 
         return True
 
-    def _add_block_mainchain(self, block, stake_validators_tracker) -> bool:
+    def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker) -> bool:
         # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
         if block.block_number == 1:
             self.initialize_chain(block)
 
-        if not self._chain.add_block(block, stake_validators_tracker):
+        if not self._chain.add_block(block, address_state_dict, stake_validators_tracker):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
             return False
