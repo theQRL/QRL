@@ -1,0 +1,8 @@
+-   repo: git://github.com/pre-commit/pre-commit-hooks
+    sha: v1.1.1  # Use the ref you want to point at
+    hooks:
+    -   id: trailing-whitespace
+    -   id: flake8
+    -   id: check-added-large-files
+    -   id: check-executables-have-shebangs
+    -   id: detect-private-key
