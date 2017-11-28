@@ -3,11 +3,12 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import bz2
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 from qrl.core import config, logger
 from qrl.core.Block import Block
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
+from qrl.core.AddressState import AddressState
 from qrl.core.Transaction import Transaction
 from qrl.core.Wallet import Wallet
 
@@ -64,6 +65,32 @@ class Chain:
 
         self.save_chain()
 
+        return True
+
+    def _commit(self,
+                block: Block,
+                address_state_dict: Dict[bytes, AddressState],
+                wallet: Wallet,
+                ignore_save_wallet=False):
+
+        # FIXME: This indexing approach is very inefficient
+        staker = block.stake_selector
+        self.pstate.stake_validators_tracker.sv_dict[staker].increase_nonce()
+
+        for address in address_state_dict:
+            self.pstate._save_address_state(address_state_dict[address])
+
+        for dup_tx in block.duplicate_transactions:
+            if dup_tx.coinbase1.txto in self.pstate.stake_validators_tracker.sv_dict:
+                # FIXME: Setting the property is invalid
+                self.pstate.stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto]._is_banned = True
+
+        if not ignore_save_wallet:
+            wallet.save_wallet()
+
+        self.pstate.stake_validators_tracker.update_sv(block.block_number)
+
+        logger.debug('%s %s tx passed verification.', block.headerhash, len(block.transactions))
         return True
 
     def get_block(self, block_idx: int) -> Optional[Block]:

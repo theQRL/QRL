@@ -8,7 +8,7 @@ from typing import Optional, Dict
 
 from pyqrllib.pyqrllib import bin2hstr, XmssPool
 
-from qrl.core import config, logger, Wallet, State
+from qrl.core import config, logger, State
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -595,32 +595,6 @@ class BufferedChain:
         blocks_left = blocknumber - (epoch * config.dev.blocks_per_epoch)
         blocks_left = config.dev.blocks_per_epoch - blocks_left
         return blocks_left
-
-    def _commit(self,
-                block: Block,
-                address_state_dict: Dict[bytes, AddressState],
-                wallet: Wallet,
-                ignore_save_wallet=False):
-
-        # FIXME: This indexing approach is very inefficient
-        staker = block.stake_selector
-        self._chain.pstate.stake_validators_tracker.sv_dict[staker].increase_nonce()
-
-        for address in address_state_dict:
-            self._chain.pstate._save_address_state(address_state_dict[address])
-
-        for dup_tx in block.duplicate_transactions:
-            if dup_tx.coinbase1.txto in self._chain.pstate.stake_validators_tracker.sv_dict:
-                # FIXME: Setting the property is invalid
-                self._chain.pstate.stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto]._is_banned = True
-
-        if not ignore_save_wallet:
-            wallet.save_wallet()
-
-        self._chain.pstate.stake_validators_tracker.update_sv(block.block_number)
-
-        logger.debug('%s %s tx passed verification.', bin2hstr(block.headerhash), len(block.transactions))
-        return True
 
     def _state_add_block_buffer(self,
                                 block: Block,
