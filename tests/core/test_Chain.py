@@ -12,6 +12,7 @@ from qrl.core.Block import Block
 from qrl.core.Chain import Chain
 from qrl.core.State import State
 from qrl.core.VoteMetadata import VoteMetadata
+from qrl.core.AddressState import AddressState
 from tests.misc.helper import set_wallet_dir, get_alice_xmss
 
 logger.initialize_default(force_console_output=True)
@@ -46,6 +47,12 @@ class TestChain(TestCase):
                 alice_xmss = get_alice_xmss()
                 staking_address = bytes(alice_xmss.get_address().encode())
 
+                address_state_dict = dict()
+                address_state_dict[staking_address] = AddressState.create(address=staking_address,
+                                                                          nonce=0,
+                                                                          balance=100,
+                                                                          pubhashes=[])
+
                 tmp_block1 = Block.create(staking_address=staking_address,
                                           block_number=0,
                                           reveal_hash=bytes(),
@@ -54,9 +61,11 @@ class TestChain(TestCase):
                                           duplicate_transactions=OrderedDict(),
                                           vote=VoteMetadata(),
                                           signing_xmss=alice_xmss,
-                                          nonce=1)
+                                          nonce=address_state_dict[staking_address].nonce + 1)
 
-                res = chain.add_block(tmp_block1, None)
+                res = chain.add_block(tmp_block1, address_state_dict, None)
+                address_state_dict[staking_address].increase_nonce()
+                address_state_dict[staking_address].balance += tmp_block1.block_reward
                 self.assertTrue(res)
                 self.assertEqual(0, chain.height)           # FIXME: wrong name, it is not height but max_index
 
@@ -76,6 +85,11 @@ class TestChain(TestCase):
                     qrl.core.config.dev.disk_writes_after_x_blocks = 4
 
                     prev = bytes()
+                    address_state_dict = dict()
+                    address_state_dict[staking_address] = AddressState.create(address=staking_address,
+                                                                              nonce=0,
+                                                                              balance=100,
+                                                                              pubhashes=[])
                     for i in range(10):
                         tmp_block1 = Block.create(staking_address=staking_address,
                                                   block_number=i,
@@ -85,9 +99,13 @@ class TestChain(TestCase):
                                                   duplicate_transactions=OrderedDict(),
                                                   vote=VoteMetadata(),
                                                   signing_xmss=alice_xmss,
-                                                  nonce=1)
+                                                  nonce=address_state_dict[staking_address].nonce + 1)
                         prev = tmp_block1.headerhash
-                        res = chain.add_block(tmp_block1, None)
+
+                        res = chain.add_block(tmp_block1, address_state_dict, None)
+
+                        address_state_dict[staking_address].increase_nonce()
+                        address_state_dict[staking_address].balance += tmp_block1.block_reward
 
                         self.assertEqual(i, chain.height)  # FIXME: wrong name, it is not height but max_index
 

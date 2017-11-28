@@ -38,7 +38,10 @@ class Chain:
             return self.blockchain[-1].block_number
         return 0
 
-    def add_block(self, block: Block, stake_validators_tracker: StakeValidatorsTracker) -> bool:
+    def add_block(self,
+                  block: Block,
+                  address_state_dict: Dict[bytes, AddressState],
+                  stake_validators_tracker: StakeValidatorsTracker) -> bool:
         # TODO : minimum block validation in unsynced _state
         if block.block_number < self.height:
             logger.warning("Block already in the chain")
@@ -54,28 +57,24 @@ class Chain:
                 logger.warning('main: Block {} rejected. prevheaderhash mismatch'.format(block.block_number))
                 return False
 
-        # FIXME: Check the logig behind these operations
-        self.blockchain.append(block)
+        logger.debug('%s %s tx passed verification.', block.headerhash, len(block.transactions))
 
-        self.pstate.update_stake_validators(stake_validators_tracker)
-
-        # This looks more like optimization/caching
-        self.pstate.update_last_tx(block)
-        self.pstate.update_tx_metadata(block)
-
-        self.save_chain()
+        self._commit(block=block,
+                     address_state_dict=address_state_dict,
+                     stake_validators_tracker=stake_validators_tracker)
 
         return True
 
     def _commit(self,
                 block: Block,
                 address_state_dict: Dict[bytes, AddressState],
-                wallet: Wallet,
+                stake_validators_tracker: StakeValidatorsTracker,
                 ignore_save_wallet=False):
 
-        # FIXME: This indexing approach is very inefficient
-        staker = block.stake_selector
-        self.pstate.stake_validators_tracker.sv_dict[staker].increase_nonce()
+        # FIXME: Check the logig behind these operations
+        self.blockchain.append(block)
+
+        self.pstate.update_stake_validators(stake_validators_tracker)
 
         for address in address_state_dict:
             self.pstate._save_address_state(address_state_dict[address])
@@ -85,12 +84,20 @@ class Chain:
                 # FIXME: Setting the property is invalid
                 self.pstate.stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto]._is_banned = True
 
+        # This looks more like optimization/caching
+        self.pstate.update_last_tx(block)
+        self.pstate.update_tx_metadata(block)
+
+        self.save_chain()
+
         if not ignore_save_wallet:
-            wallet.save_wallet()
+            self.wallet.save_wallet()
 
-        self.pstate.stake_validators_tracker.update_sv(block.block_number)
+        logger.debug('#%s[%s]\nWinner Stake Selector: %s has been committed.',
+                     block.block_number,
+                     block.headerhash,
+                     block.stake_selector)
 
-        logger.debug('%s %s tx passed verification.', block.headerhash, len(block.transactions))
         return True
 
     def get_block(self, block_idx: int) -> Optional[Block]:
