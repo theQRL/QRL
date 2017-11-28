@@ -55,7 +55,8 @@ class BlockMetadata(object):
         return sha256(self.block.reveal_hash + self.epoch_seed)
 
     def update_stxn_state(self, pstate):
-        for addr in self.address_state_dict.keys():
+        address_state_keys = list(self.address_state_dict.keys())
+        for addr in address_state_keys:
             addr_state = pstate.get_address(addr)
 
             if self.address_state_dict[addr].balance == addr_state.balance and \
