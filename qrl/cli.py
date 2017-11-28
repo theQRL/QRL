@@ -7,6 +7,7 @@ from qrl.core.Transaction import Transaction
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
+context = {"host": ""}
 
 def get_wallet_obj():
     # FIXME: Not sure we need this redirection here. Maybe avoid
@@ -48,13 +49,15 @@ def select_wallet(walletObj):
 
 
 def get_channel():
-    return grpc.insecure_channel('127.0.0.1:9009')
+    return grpc.insecure_channel(context['host'])
 
 
 @click.group()
-def wallet():
+@click.option('--host', default='127.0.0.1:9009')
+def wallet(host):
     """Wallet Commands
     """
+    context["host"] = host
     pass
 
 
