@@ -68,7 +68,7 @@ class Wallet:
         try:
             with open(self.slave_dat_filename, "rb") as infile:
                 w = qrl_pb2.Wallet()
-                w.ParseFromString(infile.read())
+                w.ParseFromString(bytes(infile.read()))
                 return AddressSerialized(w.address, w.mnemonic, w.xmss_index)
 
         except Exception as e:
@@ -86,7 +86,7 @@ class Wallet:
             logger.info('Retrieving wallet file')
             with open(self.wallet_dat_filename, "rb") as infile:
                 wallet_store = qrl_pb2.WalletStore()
-                wallet_store.ParseFromString(infile.read())
+                wallet_store.ParseFromString(bytes(infile.read()))
 
                 self.address_bundle = []
                 for a in wallet_store.wallets:
