@@ -543,7 +543,7 @@ class BufferedChain:
                     stake_validators_tracker.sv_dict[tx.txfrom]._is_active = False
 
                 if tx.txfrom in stake_validators_tracker.future_stake_addresses:
-                    stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active = False
+                    stake_validators_tracker.future_stake_addresses[tx.txfrom]._is_active = False
 
                 destake_txn.add(tx.txfrom)
 
