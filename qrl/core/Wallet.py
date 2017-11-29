@@ -22,16 +22,17 @@ class Wallet:
     # TODO: Extremely simple persistance. Upgrade to protobuf / encrypt / etc.
     # TODO: Allow for wallets to be removed / modified?
     # TODO: Consider error handling in the new version
+    # NOTE: wallet_path being configurable is essential for testing
     ADDRESS_TYPE_XMSS = 'XMSS'
 
-    def __init__(self):
+    def __init__(self, wallet_path=config.user.wallet_path):
         """
         >>> Wallet().address_bundle is not None
         True
         """
-        config.create_path(config.user.wallet_path)
-        self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
-        self.slave_dat_filename = os.path.join(config.user.wallet_path, config.dev.slave_dat_filename)
+        config.create_path(wallet_path)
+        self.wallet_dat_filename = os.path.join(wallet_path, config.dev.wallet_dat_filename)
+        self.slave_dat_filename = os.path.join(wallet_path, config.dev.slave_dat_filename)
 
         self.address_bundle = None
         self._read_wallet()
