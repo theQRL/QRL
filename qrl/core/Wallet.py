@@ -24,7 +24,7 @@ class Wallet:
     # TODO: Consider error handling in the new version
     ADDRESS_TYPE_XMSS = 'XMSS'
 
-    def __init__(self):
+    def __init__(self, valid_or_create=True):
         """
         >>> Wallet().address_bundle is not None
         True
@@ -35,7 +35,9 @@ class Wallet:
 
         self.address_bundle = None
         self._read_wallet()
-        self._valid_or_create()
+
+        if valid_or_create:
+            self._valid_or_create()
 
     @property
     def addresses(self) -> List[bytes]:
@@ -75,7 +77,7 @@ class Wallet:
             logger.warning("It was not possible to open the wallet: %s", e)
 
     def _read_wallet(self):
-        self.address_bundle = None
+        self.address_bundle = []
 
         if not os.path.isfile(self.wallet_dat_filename):
             upgraded = self._upgrade_old_wallet()
@@ -126,7 +128,7 @@ class Wallet:
             self.address_bundle = [self.get_new_address()]
             self.save_wallet()
 
-    def append_wallet(self, new_addr):
+    def append(self, new_addr):
         if new_addr:
             self.address_bundle.append(new_addr)
             self.save_wallet()
