@@ -47,6 +47,7 @@
     - [Transaction.Stake](#qrl.Transaction.Stake)
     - [Transaction.Transfer](#qrl.Transaction.Transfer)
     - [Transaction.Vote](#qrl.Transaction.Vote)
+    - [TransactionExtended](#qrl.TransactionExtended)
     - [TransferCoinsReq](#qrl.TransferCoinsReq)
     - [TransferCoinsResp](#qrl.TransferCoinsResp)
     - [Wallet](#qrl.Wallet)
@@ -339,8 +340,8 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | blockheaders | [BlockHeaderExtended](#qrl.BlockHeaderExtended) | repeated |  |
-| transactions | [Transaction](#qrl.Transaction) | repeated |  |
-| transactions_unconfirmed | [Transaction](#qrl.Transaction) | repeated |  |
+| transactions | [TransactionExtended](#qrl.TransactionExtended) | repeated |  |
+| transactions_unconfirmed | [TransactionExtended](#qrl.TransactionExtended) | repeated |  |
 
 
 
@@ -397,7 +398,7 @@
 | ----- | ---- | ----- | ----------- |
 | found | [bool](#bool) |  |  |
 | address_state | [AddressState](#qrl.AddressState) |  |  |
-| transaction | [Transaction](#qrl.Transaction) |  |  |
+| transaction | [TransactionExtended](#qrl.TransactionExtended) |  |  |
 | block | [Block](#qrl.Block) |  |  |
 
 
@@ -779,6 +780,22 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 | ----- | ---- | ----- | ----------- |
 | block_number | [uint64](#uint64) |  |  |
 | hash_header | [bytes](#bytes) |  |  |
+
+
+
+
+
+
+<a name="qrl.TransactionExtended"/>
+
+### TransactionExtended
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| header | [BlockHeader](#qrl.BlockHeader) |  |  |
+| tx | [Transaction](#qrl.Transaction) |  |  |
 
 
 

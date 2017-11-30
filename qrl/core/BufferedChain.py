@@ -141,6 +141,12 @@ class BufferedChain:
             return self.blocks[block_idx].block
         return self._chain.get_block(block_idx)
 
+    def get_transaction(self, transaction_hash)->Optional[Transaction]:
+        for tx in self.tx_pool.transaction_pool:
+            if tx.txhash == transaction_hash:
+                return tx
+        return self._chain.get_transaction(transaction_hash)
+
     def _move_to_mainchain(self) -> bool:
         if len(self.blocks) == 0:
             return True
