@@ -360,7 +360,7 @@ class QRLNode:
         answer = []
         end = self.block_height - offset
         start = max(0, end - count - offset)
-        for blk_idx in range(start, end):
+        for blk_idx in range(start, end + 1):
             answer.append(self._buffered_chain.get_block(blk_idx))
 
         return answer
