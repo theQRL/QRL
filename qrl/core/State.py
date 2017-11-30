@@ -106,6 +106,20 @@ class State:
         del last_txn[20:]
         self._db.put('last_txn', last_txn)
 
+    def get_last_txs(self):
+        try:
+            last_txn = self._db.get('last_txn')
+        except:  # noqa
+            return []
+
+        txs = []
+        for tx_metadata in last_txn:
+            tx_json, block_num, block_ts = tx_metadata
+            tx = Transaction.from_json(tx_json)
+            txs.append(tx)
+
+        return txs
+
     #########################################
     #########################################
     #########################################
@@ -185,6 +199,16 @@ class State:
                 self.update_address_tx_hashes(txn.txto, txn.txhash)
                 self.increase_txn_count(txn.txto)
                 self.increase_txn_count(txn.txfrom)
+
+    def get_tx_metadata(self, txhash: bytes):
+        try:
+            tx_metadata = self._db.get(bin2hstr(txhash))
+        except Exception:
+            return None
+        if tx_metadata is None:
+            return None
+        txn_json, block_number, _ = tx_metadata
+        return Transaction.from_json(txn_json), block_number
 
     #########################################
     #########################################

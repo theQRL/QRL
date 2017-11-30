@@ -117,6 +117,23 @@ class Chain:
 
         return None
 
+    def get_transaction(self, transaction_hash)->Optional[Transaction]:
+        answer = self.pstate.get_tx_metadata(transaction_hash)
+        if answer is None:
+            return None
+        else:
+            tx, _ = answer
+        return tx
+
+    # FIXME: We need a clear database schema
+    def get_blockidx_from_txhash(self, transaction_hash):
+        answer = self.pstate.get_tx_metadata(transaction_hash)
+        if answer is None:
+            return None
+        else:
+            _, block_index = answer
+        return block_index
+
     def get_last_block(self) -> Optional[Block]:
         if len(self.blockchain) == 0:
             return None
