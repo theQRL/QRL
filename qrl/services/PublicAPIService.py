@@ -175,7 +175,7 @@ class PublicAPIService(PublicAPIServicer):
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.BLOCKHEADERS:
             result = []
             for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=quantity):
-                tx_count = len(blk.transactions)
+                tx_count = len(blk.transactions) + len(blk.vote)
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
                                                           transaction_count=tx_count))
             response.blockheaders.extend(result)
