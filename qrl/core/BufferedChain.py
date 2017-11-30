@@ -276,7 +276,7 @@ class BufferedChain:
             # FIXME: reference to a buffer
             tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=tx.txfrom)
 
-            if not tx.validate_extended(tx_state=tx_state):
+            if not tx.validate_extended(tx_state=tx_state, transaction_pool=self.tx_pool.transaction_pool):
                 result = False
                 logger.warning('tx %s failed', tx.txhash)
                 self.tx_pool.remove_tx_from_pool(tx)
