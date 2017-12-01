@@ -74,6 +74,8 @@ class Chain:
         # FIXME: Check the logig behind these operations
         self.blockchain.append(block)
 
+        self.pstate.update_vote_metadata(block)  # This has to be updated, before the pstate stake_validators
+
         self.pstate.update_stake_validators(stake_validators_tracker)
 
         for address in address_state_dict:
