@@ -5,7 +5,7 @@ from grpc import StatusCode
 
 from qrl.core import logger
 from qrl.core.StakeValidator import StakeValidator
-from qrl.core.Transaction import Transaction, Vote
+from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer

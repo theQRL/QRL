@@ -210,7 +210,6 @@ class State:
         txn_json, block_number, _ = tx_metadata
         return Transaction.from_json(txn_json), block_number
 
-
     def update_vote_metadata(self, block):
         if len(block.transactions) == 0:
             return
