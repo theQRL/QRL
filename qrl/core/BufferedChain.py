@@ -141,6 +141,17 @@ class BufferedChain:
             return self.blocks[block_idx].block
         return self._chain.get_block(block_idx)
 
+    def get_vote_metadata(self, blocknumber: int):
+        if blocknumber in self.blocks:
+            return [self.blocks[blocknumber].voted_weight, self.blocks[blocknumber].total_stake_amount]
+        return self._chain.pstate.get_vote_metadata(blocknumber)
+
+    def get_transaction(self, transaction_hash)->Optional[Transaction]:
+        for tx in self.tx_pool.transaction_pool:
+            if tx.txhash == transaction_hash:
+                return tx
+        return self._chain.get_transaction(transaction_hash)
+
     def _move_to_mainchain(self) -> bool:
         if len(self.blocks) == 0:
             return True
@@ -410,6 +421,9 @@ class BufferedChain:
         block_metadata.stake_validators_tracker = prev_sv_tracker
         block_metadata.address_state_dict = address_state_dict
         block_metadata.update_stxn_state(self._chain.pstate)
+
+        if block.block_number > 0:
+            block_metadata.update_vote_metadata(prev_sv_tracker)
 
         # add/replace if new option is better
         if old_block_metadata is None or block_metadata.sorting_key < old_block_metadata.sorting_key:

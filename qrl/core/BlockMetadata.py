@@ -5,6 +5,7 @@ from typing import Dict  # noqa
 
 from qrl.core.AddressState import AddressState  # noqa
 from qrl.core.Block import Block
+from qrl.core.Transaction import Transaction
 
 from qrl.core.formulas import score
 from qrl.crypto.misc import sha256
@@ -33,6 +34,15 @@ class BlockMetadata(object):
         self.stake_validators_tracker = None
         self.address_state_dict = {}  # type: Dict[bytes, AddressState]
         self.hash_chain = hash_chain
+        self.voted_weight = 0
+        self.total_stake_amount = 0
+
+    def update_vote_metadata(self, prev_stake_validators_tracker):
+        self.total_stake_amount = prev_stake_validators_tracker.get_total_stake_amount()
+        for vote_protobuf in self.block.vote:
+            vote = Transaction.from_pbdata(vote_protobuf)
+            if vote.headerhash == self.block.prev_headerhash:
+                self.voted_weight += prev_stake_validators_tracker.get_stake_balance(vote.txfrom)
 
     def set_voted(self):
         self.isVoted = True

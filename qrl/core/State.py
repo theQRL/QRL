@@ -106,6 +106,20 @@ class State:
         del last_txn[20:]
         self._db.put('last_txn', last_txn)
 
+    def get_last_txs(self):
+        try:
+            last_txn = self._db.get('last_txn')
+        except:  # noqa
+            return []
+
+        txs = []
+        for tx_metadata in last_txn:
+            tx_json, block_num, block_ts = tx_metadata
+            tx = Transaction.from_json(tx_json)
+            txs.append(tx)
+
+        return txs
+
     #########################################
     #########################################
     #########################################
@@ -185,6 +199,37 @@ class State:
                 self.update_address_tx_hashes(txn.txto, txn.txhash)
                 self.increase_txn_count(txn.txto)
                 self.increase_txn_count(txn.txfrom)
+
+    def get_tx_metadata(self, txhash: bytes):
+        try:
+            tx_metadata = self._db.get(bin2hstr(txhash))
+        except Exception:
+            return None
+        if tx_metadata is None:
+            return None
+        txn_json, block_number, _ = tx_metadata
+        return Transaction.from_json(txn_json), block_number
+
+    def update_vote_metadata(self, block):
+        if len(block.transactions) == 0:
+            return
+
+        total_stake_amount = self.stake_validators_tracker.get_total_stake_amount()
+        voted_weight = 0
+        # FIXME: Inconsistency in the keys/types
+        for protobuf_txn in block.vote:
+            vote = Transaction.from_pbdata(protobuf_txn)
+            voted_weight += self.stake_validators_tracker.get_stake_balance(vote.txfrom)
+
+        self._db.put(b'vote_'+str(block.block_number).encode(),
+                     [voted_weight,
+                      total_stake_amount])
+
+    def get_vote_metadata(self, blocknumber: int):
+        try:
+            return self._db.get(b'vote_'+str(blocknumber).encode())
+        except Exception:
+            return None
 
     #########################################
     #########################################

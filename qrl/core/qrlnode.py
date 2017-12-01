@@ -51,7 +51,7 @@ class QRLNode:
     @property
     def num_known_peers(self):
         # FIXME
-        return len(self._peer_addresses)
+        return len(set(self._peer_addresses))
 
     @property
     def uptime(self):
@@ -173,29 +173,6 @@ class QRLNode:
         # FIXME: Validate string, etc.
         return decimal.Decimal(decimal.Decimal(str_amount_arg) * 100000000).quantize(decimal.Decimal('1'),
                                                                                      rounding=decimal.ROUND_HALF_UP)
-
-    def get_wallet_absolute(self, addr_or_index):
-        # FIXME: Refactor. Define concerns, etc. Validation vs logic
-        # FIXME: It is possible to receive integers instead of strings....
-
-        if addr_or_index == b'':
-            raise ValueError("address is empty")
-
-        if addr_or_index.isdigit():
-            # FIXME: The whole idea of accepting relative (index based) wallets internally is flawed.
-            # There is a risk of confusing things. Relative should be a feature of UIs
-
-            num_wallets = len(self._buffered_chain.wallet.address_bundle)
-            addr_idx = int(addr_or_index)
-            if 0 <= addr_idx < num_wallets:
-                return self._buffered_chain.wallet.address_bundle[addr_idx].address
-            else:
-                raise ValueError("invalid address index")
-
-        if addr_or_index[0] != ord('Q'):
-            raise ValueError("Invalid address")
-
-        return addr_or_index
 
     @staticmethod
     def validate_amount(amount_str: str) -> bool:
@@ -342,10 +319,7 @@ class QRLNode:
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
 
-        for tx in self._buffered_chain.tx_pool.transaction_pool:
-            if tx.txhash == query_hash:
-                return tx
-        return None
+        return self._buffered_chain.get_transaction(query_hash)
 
     def get_block_from_hash(self, query_hash: bytes) -> Optional[Block]:
         """
@@ -361,6 +335,14 @@ class QRLNode:
         # FIXME: At some point, all objects in DB will indexed by a hash
         return self._buffered_chain.get_block(index)
 
+    def get_blockidx_from_txhash(self, transaction_hash):
+        answer = self.db_state.get_tx_metadata(transaction_hash)
+        if answer is None:
+            return None
+        else:
+            _, block_index = answer
+        return block_index
+
     def get_current_stakers(self, offset, count) -> List[StakeValidator]:
         stakers = list(self.db_state.stake_validators_tracker.sv_dict.values())
         start = min(offset, len(stakers))
@@ -373,12 +355,15 @@ class QRLNode:
         end = min(start + count, len(stakers))
         return stakers[start:end]
 
+    def get_vote_metadata(self, blocknumber):
+        return self._buffered_chain.get_vote_metadata(blocknumber)
+
     def get_latest_blocks(self, offset, count) -> List[Block]:
         # FIXME: This is incorrect. Offset does not work
         answer = []
         end = self.block_height - offset
         start = max(0, end - count - offset)
-        for blk_idx in range(start, end):
+        for blk_idx in range(start, end + 1):
             answer.append(self._buffered_chain.get_block(blk_idx))
 
         return answer
@@ -386,15 +371,9 @@ class QRLNode:
     def get_latest_transactions(self, offset, count):
         # FIXME: This is incorrect
         # FIXME: Moved code. Breaking encapsulation. Refactor
-        if not self._buffered_chain._chain.blockchain:
-            return []
-
-        last_block = self._buffered_chain._chain.blockchain[-1]
-
         answer = []
         skipped = 0
-        for pbtx in reversed(last_block.transactions):
-            tx = Transaction.from_pbdata(pbtx)
+        for tx in self.db_state.get_last_txs():
             if isinstance(tx, TransferTransaction):
                 if skipped >= offset:
                     answer.append(tx)
@@ -408,7 +387,7 @@ class QRLNode:
     def get_latest_transactions_unconfirmed(self, offset, count):
         answer = []
         skipped = 0
-        for tx in reversed(self._buffered_chain.tx_pool.transaction_pool):
+        for tx in self._buffered_chain.tx_pool.transaction_pool:
             if isinstance(tx, TransferTransaction):
                 if skipped >= offset:
                     answer.append(tx)

@@ -74,6 +74,8 @@ class Chain:
         # FIXME: Check the logig behind these operations
         self.blockchain.append(block)
 
+        self.pstate.update_vote_metadata(block)  # This has to be updated, before the pstate stake_validators
+
         self.pstate.update_stake_validators(stake_validators_tracker)
 
         for address in address_state_dict:
@@ -116,6 +118,23 @@ class Chain:
                 return self.blockchain[inmem_offset]
 
         return None
+
+    def get_transaction(self, transaction_hash)->Optional[Transaction]:
+        answer = self.pstate.get_tx_metadata(transaction_hash)
+        if answer is None:
+            return None
+        else:
+            tx, _ = answer
+        return tx
+
+    # FIXME: We need a clear database schema
+    def get_blockidx_from_txhash(self, transaction_hash):
+        answer = self.pstate.get_tx_metadata(transaction_hash)
+        if answer is None:
+            return None
+        else:
+            _, block_index = answer
+        return block_index
 
     def get_last_block(self) -> Optional[Block]:
         if len(self.blockchain) == 0:

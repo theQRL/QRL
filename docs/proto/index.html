@@ -351,6 +351,10 @@
                 </li>
               
                 <li>
+                  <a href="#qrl.TransactionExtended"><span class="badge">M</span>TransactionExtended</a>
+                </li>
+              
+                <li>
                   <a href="#qrl.TransferCoinsReq"><span class="badge">M</span>TransferCoinsReq</a>
                 </li>
               
@@ -972,14 +976,14 @@
               
                 <tr>
                   <td>transactions</td>
-                  <td><a href="#qrl.Transaction">Transaction</a></td>
+                  <td><a href="#qrl.TransactionExtended">TransactionExtended</a></td>
                   <td>repeated</td>
                   <td><p> </p></td>
                 </tr>
               
                 <tr>
                   <td>transactions_unconfirmed</td>
-                  <td><a href="#qrl.Transaction">Transaction</a></td>
+                  <td><a href="#qrl.TransactionExtended">TransactionExtended</a></td>
                   <td>repeated</td>
                   <td><p> </p></td>
                 </tr>
@@ -1069,7 +1073,7 @@
               
                 <tr>
                   <td>transaction</td>
-                  <td><a href="#qrl.Transaction">Transaction</a></td>
+                  <td><a href="#qrl.TransactionExtended">TransactionExtended</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -1920,6 +1924,36 @@
                 <tr>
                   <td>hash_header</td>
                   <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.TransactionExtended">TransactionExtended</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>header</td>
+                  <td><a href="#qrl.BlockHeader">BlockHeader</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>tx</td>
+                  <td><a href="#qrl.Transaction">Transaction</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>

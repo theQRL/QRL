@@ -13,6 +13,7 @@ from qrl.core.Chain import Chain
 from qrl.core.State import State
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.AddressState import AddressState
+from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from tests.misc.helper import set_wallet_dir, get_alice_xmss
 
 logger.initialize_default(force_console_output=True)
@@ -102,7 +103,7 @@ class TestChain(TestCase):
                                                   nonce=address_state_dict[staking_address].nonce + 1)
                         prev = tmp_block1.headerhash
 
-                        res = chain.add_block(tmp_block1, address_state_dict, None)
+                        res = chain.add_block(tmp_block1, address_state_dict, StakeValidatorsTracker())
 
                         address_state_dict[staking_address].increase_nonce()
                         address_state_dict[staking_address].balance += tmp_block1.block_reward

@@ -108,7 +108,11 @@ class PublicAPIService(PublicAPIServicer):
         transaction = self.qrlnode.get_transaction(query)
         if transaction is not None:
             answer.found = True
-            answer.transaction.CopyFrom(transaction.pbdata)
+            block_index = self.qrlnode.get_blockidx_from_txhash(transaction.txhash)
+            block = self.qrlnode.get_block_from_index(block_index)
+            txextended = qrl_pb2.TransactionExtended(header=block.blockheader.pbdata,
+                                                     tx=transaction.pbdata)
+            answer.transaction.CopyFrom(txextended)
             return answer
 
         block = self.qrlnode.get_block_from_hash(query)
@@ -171,21 +175,39 @@ class PublicAPIService(PublicAPIServicer):
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.BLOCKHEADERS:
             result = []
             for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=quantity):
-                tx_count = len(blk.transactions)
+                tx_count = len(blk.transactions) + len(blk.vote)
+                voted_weight = 0
+                total_stake_weight = 0
+
+                if blk.block_number > 0:
+                    self.qrlnode.get_vote_metadata(blk.block_number)
+
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
-                                                          transaction_count=tx_count))
+                                                          transaction_count=tx_count,
+                                                          voted_weight=voted_weight,
+                                                          total_stake_weight=total_stake_weight))
             response.blockheaders.extend(result)
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS:
             result = []
             for tx in self.qrlnode.get_latest_transactions(offset=request.offset, count=quantity):
-                result.append(tx.pbdata)
+                # FIXME: Improve this once we have a proper database schema
+                block_index = self.qrlnode.get_blockidx_from_txhash(tx.txhash)
+                block = self.qrlnode.get_block_from_index(block_index)
+                txextended = qrl_pb2.TransactionExtended(header=block.blockheader.pbdata,
+                                                         tx=tx.pbdata)
+                result.append(txextended)
+
             response.transactions.extend(result)
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS_UNCONFIRMED:
             result = []
             for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=quantity):
-                result.append(tx.pbdata)
+                block_index = self.qrlnode.get_blockidx_from_txhash(tx.txhash)
+                block = self.qrlnode.get_block_from_index(block_index)
+                txextended = qrl_pb2.TransactionExtended(header=block.blockheader.pbdata,
+                                                         tx=tx.pbdata)
+                result.append(txextended)
             response.transactions_unconfirmed.extend(result)
 
         return response

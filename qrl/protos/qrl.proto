@@ -123,7 +123,7 @@ message GetObjectResp {
     bool found = 1;
     oneof result {
         AddressState address_state = 2;
-        Transaction transaction = 3;
+        TransactionExtended transaction = 3;
         Block block = 4;
     }
 }
@@ -142,8 +142,8 @@ message GetLatestDataReq {
 
 message GetLatestDataResp {
     repeated BlockHeaderExtended blockheaders = 1;
-    repeated Transaction transactions = 2;
-    repeated Transaction transactions_unconfirmed = 3;
+    repeated TransactionExtended transactions = 2;
+    repeated TransactionExtended transactions_unconfirmed = 3;
 }
 
 message GetStakersReq {
@@ -266,6 +266,13 @@ message BlockHeader {
 message BlockHeaderExtended {
     BlockHeader header = 1;
     uint64 transaction_count = 2;
+    uint64 voted_weight = 3;
+    uint64 total_stake_weight = 4;
+}
+
+message TransactionExtended {
+    BlockHeader header = 1;
+    Transaction tx = 2;
 }
 
 message Block {
