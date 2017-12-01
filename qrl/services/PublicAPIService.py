@@ -176,8 +176,16 @@ class PublicAPIService(PublicAPIServicer):
             result = []
             for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=quantity):
                 tx_count = len(blk.transactions) + len(blk.vote)
+                voted_weight = 0
+                total_stake_weight = 0
+
+                if blk.block_number > 0:
+                    self.qrlnode.get_vote_metadata(blk.block_number)
+
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
-                                                          transaction_count=tx_count))
+                                                          transaction_count=tx_count,
+                                                          voted_weight=voted_weight,
+                                                          total_stake_weight=total_stake_weight))
             response.blockheaders.extend(result)
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS:

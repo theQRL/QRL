@@ -266,6 +266,8 @@ message BlockHeader {
 message BlockHeaderExtended {
     BlockHeader header = 1;
     uint64 transaction_count = 2;
+    uint64 voted_weight = 3;
+    uint64 total_stake_weight = 4;
 }
 
 message TransactionExtended {

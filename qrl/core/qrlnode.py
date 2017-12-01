@@ -355,6 +355,9 @@ class QRLNode:
         end = min(start + count, len(stakers))
         return stakers[start:end]
 
+    def get_vote_metadata(self, blocknumber):
+        return self._buffered_chain.get_vote_metadata(blocknumber)
+
     def get_latest_blocks(self, offset, count) -> List[Block]:
         # FIXME: This is incorrect. Offset does not work
         answer = []
