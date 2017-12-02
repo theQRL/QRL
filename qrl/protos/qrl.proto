@@ -285,6 +285,12 @@ message Block {
     repeated GenesisBalance genesis_balance = 5;
 }
 
+message BlockExtended {
+    Block block = 1;
+    uint64 voted_weight = 2;
+    uint64 total_stake_weight = 3;
+}
+
 message GenesisBalance
 {
     string address = 1;                     // Address is string only here to increase visibility
@@ -385,4 +391,31 @@ message EphemeralMessage {
     bytes id = 1;
     uint64 ttl = 2;
     bytes data = 3;                 // Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature
+}
+
+message StakeValidator {
+    bytes address = 1;
+    bytes slave_public_key = 2;
+    bytes terminator_hash = 3;
+    uint64 balance = 4;
+    uint64 activation_blocknumber = 5;
+    uint64 nonce = 6;
+    bool is_banned = 7;
+    bool is_active = 8;
+}
+
+message StakeValidatorsList {
+    repeated StakeValidator stake_validators = 1;
+}
+
+message AddressList {
+    repeated bytes addresses = 1;
+}
+
+message StakeValidatorsTracker {
+    map<string, StakeValidator> sv_dict = 1;
+    map<string, StakeValidator> future_stake_addresses = 2;
+    map<uint64, AddressList> expiry = 3;
+    map<uint64, StakeValidatorsList> future_sv_dict = 4;
+    uint64 total_stake_amount = 5;
 }

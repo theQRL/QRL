@@ -625,7 +625,7 @@ class BufferedChain:
 
         if is_successful:
             if block.block_number > 0:
-                stake_validators_tracker.sv_dict[block.stake_selector].increase_nonce()
+                stake_validators_tracker.increase_nonce(block.stake_selector)
 
                 for dup_tx in block.duplicate_transactions:
                     if dup_tx.coinbase1.txto in stake_validators_tracker.sv_dict:
@@ -903,12 +903,7 @@ class BufferedChain:
         """
         prev_epoch = int((block_idx - 1) // config.dev.blocks_per_epoch)
 
-        sv_dict = self._chain.pstate.stake_validators_tracker.sv_dict
-        if self.height in sv_dict:
-            activation_blocknumber = sv_dict[self.height].activation_blocknumber
-            if activation_blocknumber + config.dev.blocks_per_epoch == block_idx:
-                self._clean_mining_data(block_idx - 1)
-        elif prev_epoch != self.epoch:
+        if prev_epoch != self.epoch:
             self._clean_mining_data(block_idx - 1)
 
     #############################################

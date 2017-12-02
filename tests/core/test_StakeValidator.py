@@ -26,7 +26,7 @@ class TestStakeValidator(TestCase):
 
         stake_transaction._data.stake.hash = bytes([])
         with self.assertRaises(ValueError):
-            StakeValidator(0, stake_transaction)
+            StakeValidator.create(0, stake_transaction)
 
     def test_invalid_balance(self):
         alice_xmss = get_alice_xmss()
@@ -36,7 +36,7 @@ class TestStakeValidator(TestCase):
                                                     slavePK=slave_xmss.pk())
 
         with self.assertRaises(ValueError):
-            StakeValidator(config.dev.minimum_staking_balance_required - 1, stake_transaction)
+            StakeValidator.create(config.dev.minimum_staking_balance_required - 1, stake_transaction)
 
     def test_negative_balance(self):
         alice_xmss = get_alice_xmss()
@@ -46,7 +46,7 @@ class TestStakeValidator(TestCase):
                                                     slavePK=slave_xmss.pk())
 
         with self.assertRaises(ValueError):
-            StakeValidator(-1, stake_transaction)
+            StakeValidator.create(-1, stake_transaction)
 
     def test_create(self):
         alice_xmss = get_alice_xmss()
@@ -63,7 +63,7 @@ class TestStakeValidator(TestCase):
                                                     slavePK=slave_xmss.pk(),
                                                     hashchain_terminator=h2)
 
-        sv = StakeValidator(100, stake_transaction)
+        sv = StakeValidator.create(100, stake_transaction)
 
         self.assertEqual(staking_address, sv.address)
         self.assertEqual(slave_xmss.pk(), sv.slave_public_key)
@@ -88,7 +88,7 @@ class TestStakeValidator(TestCase):
                                                     slavePK=slave_xmss.pk(),
                                                     hashchain_terminator=h3)
 
-        sv = StakeValidator(100, stake_transaction)
+        sv = StakeValidator.create(100, stake_transaction)
         self.assertTrue(sv.validate_hash(h0, 2))
         self.assertTrue(sv.validate_hash(h2, 0))
 

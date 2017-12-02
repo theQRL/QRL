@@ -396,7 +396,7 @@ class TestPublicAPI(TestCase):
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[])
 
-        validator1 = StakeValidator(100, stake_tx)
+        validator1 = StakeValidator.create(100, stake_tx)
 
         db_state.stake_validators_tracker.sv_dict[validator1.address] = validator1
         request = qrl_pb2.GetStakersReq(filter=qrl_pb2.GetStakersReq.CURRENT,
