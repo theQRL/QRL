@@ -97,7 +97,7 @@ class TestBufferedChain(TestCase):
 
                 with mocked_genesis() as custom_genesis:
                     custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
-                                                                                  balance=100)])
+                                                                                  balance=700000000000000)])
 
                     res = buffered_chain.add_block(block=custom_genesis)
                     self.assertTrue(res)
@@ -119,7 +119,7 @@ class TestBufferedChain(TestCase):
 
                     stake_transaction.sign(alice_xmss)
 
-                    chain.pstate.stake_validators_tracker.add_sv(balance=100,
+                    chain.pstate.stake_validators_tracker.add_sv(balance=700000000000000,
                                                                  stake_txn=stake_transaction,
                                                                  blocknumber=1)
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
@@ -157,7 +157,7 @@ class TestBufferedChain(TestCase):
 
                 with mocked_genesis() as custom_genesis:
                     custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
-                                                                                  balance=100)])
+                                                                                  balance=700000000000000)])
 
                     res = buffered_chain.add_block(block=GenesisBlock())
                     self.assertTrue(res)
@@ -176,7 +176,7 @@ class TestBufferedChain(TestCase):
                     buffered_chain.add_vote(vote)
                     vote_metadata = buffered_chain.get_consensus(0)
 
-                    chain.pstate.stake_validators_tracker.add_sv(balance=100,
+                    chain.pstate.stake_validators_tracker.add_sv(balance=700000000000000,
                                                                  stake_txn=stake_transaction,
                                                                  blocknumber=1)
 
@@ -190,7 +190,7 @@ class TestBufferedChain(TestCase):
                                               transactions=[stake_transaction],
                                               duplicate_transactions=OrderedDict(),
                                               vote=vote_metadata,
-                                              signing_xmss=alice_xmss,
+                                              signing_xmss=slave_xmss,
                                               nonce=1)
 
                     res = buffered_chain.add_block(block=tmp_block1)
@@ -215,7 +215,7 @@ class TestBufferedChain(TestCase):
                                                   transactions=[],
                                                   duplicate_transactions=OrderedDict(),
                                                   vote=vote_metadata,
-                                                  signing_xmss=alice_xmss,
+                                                  signing_xmss=slave_xmss,
                                                   nonce=2)
 
                     res = buffered_chain.add_block(block=tmp_block2)
@@ -240,7 +240,7 @@ class TestBufferedChain(TestCase):
                                                   transactions=[],
                                                   duplicate_transactions=OrderedDict(),
                                                   vote=vote_metadata,
-                                                  signing_xmss=alice_xmss,
+                                                  signing_xmss=slave_xmss,
                                                   nonce=3)
 
                     res = buffered_chain.add_block(block=tmp_block3)

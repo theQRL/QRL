@@ -21,6 +21,7 @@ class State:
         self._db = db.DB()  # generate db object here
 
         # FIXME: Move to BufferedChain
+        self.prev_stake_validators_tracker = StakeValidatorsTracker()
         self.stake_validators_tracker = StakeValidatorsTracker()
 
     def __enter__(self):
@@ -136,6 +137,7 @@ class State:
         self._db.put(b'txn_' + addr, tmp_hashes)
 
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
+        self.prev_stake_validators_tracker = self.stake_validators_tracker
         self.stake_validators_tracker = stake_validators_tracker
 
     def get_address_tx_hashes(self, addr: bytes) -> List[bytes]:
