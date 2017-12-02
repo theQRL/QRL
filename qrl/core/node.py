@@ -419,6 +419,12 @@ class POS:
         self.pos_blocknum = blocknumber
 
     def create_next_block(self, blocknumber, activation_blocknumber) -> bool:
+        if blocknumber - activation_blocknumber + 1 > config.dev.blocks_per_epoch:
+            logger.warning('Too old activation_blocknumber')
+            logger.warning('Activation Blocknumber: %s', activation_blocknumber)
+            logger.warning('Current Blocknumber: %s', blocknumber)
+            return False
+
         if self.buffered_chain.get_slave_xmss(blocknumber):
             hash_chain = self.buffered_chain.hash_chain_get(blocknumber)
 
@@ -553,6 +559,9 @@ class POS:
         else:
             activation_blocknumber = curr_blocknumber + 2  # Activate as Stake Validator, 2 blocks after current block
 
+        if activation_blocknumber < curr_blocknumber:
+            activation_blocknumber = curr_blocknumber + 2
+
         balance = self.buffered_chain.get_stxn_state(curr_blocknumber, self.buffered_chain.staking_address).balance
         if balance < config.dev.minimum_staking_balance_required:
             logger.warning('Staking not allowed due to insufficient balance')
@@ -564,20 +573,6 @@ class POS:
             return
 
         signing_xmss = self.buffered_chain.wallet.address_bundle[0].xmss
-
-        blocknumber_headerhash = dict()
-        current_blocknumber = self.buffered_chain.height
-
-        for stamp in config.dev.stamping_series:
-            if stamp > current_blocknumber:
-                continue
-            blocknumber = self.get_last_blockheight_endswith(current_blocknumber, stamp)
-            finalized_block = self.buffered_chain.get_block(blocknumber)
-            if not finalized_block:
-                logger.warning('Cannot make ST txn, unable to get blocknumber %s', blocknumber)
-                return
-
-            blocknumber_headerhash[blocknumber] = finalized_block.headerhash
 
         st = StakeTransaction.create(
             activation_blocknumber=activation_blocknumber,

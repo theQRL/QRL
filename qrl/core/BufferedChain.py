@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import copy
-import os
 from collections import defaultdict
 from typing import Optional, Dict
 
@@ -163,10 +162,11 @@ class BufferedChain:
             # FIXME: self.blocks why a dict instead of a deque?
             block_idx = min(self.blocks.keys())
             block = self.blocks[block_idx].block
+            next_seed = self.blocks[block_idx].next_seed
             address_state_dict = self.blocks[block_idx].address_state_dict
             stake_validators_tracker = self.blocks[block_idx].stake_validators_tracker
 
-            if not self._add_block_mainchain(block, address_state_dict, stake_validators_tracker):
+            if not self._add_block_mainchain(block, address_state_dict, stake_validators_tracker, next_seed):
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
                 return False
 
@@ -188,12 +188,14 @@ class BufferedChain:
 
         return True
 
-    def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker) -> bool:
+    def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker, next_seed) -> bool:
         # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
         if block.block_number == 1:
             self.initialize_chain(block)
 
-        if not self._chain.add_block(block, address_state_dict, stake_validators_tracker):
+        slave_xmss = self.get_slave_xmss(block.block_number)
+
+        if not self._chain.add_block(block, address_state_dict, stake_validators_tracker, next_seed, slave_xmss):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
             return False
@@ -649,7 +651,7 @@ class BufferedChain:
                     epoch = int((block.block_number + 1) // config.dev.blocks_per_epoch)
                     logger.info('Created new hash chain')
 
-                    prev_private_seed = self._wallet_private_seeds[epoch - 1]
+                    prev_private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
                     self._wallet_private_seeds[epoch] = prev_private_seed
                     self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
@@ -931,8 +933,25 @@ class BufferedChain:
         # TODO: Persistence will move to rocksdb
         self._chain.blockchain = []
 
-        # FIXME: Adds an empty block, later ignores and overwrites.. A complete genesis block should be here
-        self._chain.pstate.zero_all_addresses()
+        if self._chain.load_state():
+            state_block_number = self._chain.pstate.get_state_version()
+            self.epoch = state_block_number // config.dev.blocks_per_epoch
+            self.epoch_seed = self._chain.pstate.get_next_seed()
+            private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+            self._wallet_private_seeds = {self.epoch: private_seed}
+            mining_address = self.wallet.address_bundle[0].address
+            if mining_address in self._chain.pstate.stake_validators_tracker.sv_dict:
+                activation_blocknumber = self._chain.pstate.stake_validators_tracker.sv_dict[mining_address].activation_blocknumber
+            else:
+                activation_blocknumber = state_block_number
+            slave_epoch = activation_blocknumber // config.dev.blocks_per_epoch
+            self.hash_chain[slave_epoch] = hashchain(private_seed, slave_epoch).hashchain
+            data = self._chain.pstate.get_slave_xmss()
+            if data:
+                self.slave_xmss[slave_epoch] = XMSS(config.dev.slave_xmss_height, seed=data[1])
+                self.slave_xmss[slave_epoch].set_index(data[0])
+            return
+
         genesis_block = GenesisBlock()
 
         # FIXME: This should happen when the block is added to the main chain
@@ -948,6 +967,7 @@ class BufferedChain:
         # FIXME: Direct access - Breaks encapsulation
         self._chain.blockchain.append(genesis_block)  # FIXME: Adds without checking???
 
+        '''
         # FIXME: it is not nice how genesis block is ignored
         tmp_chain = self._chain._read_chain(0)
         if len(tmp_chain) > 0:
@@ -962,7 +982,7 @@ class BufferedChain:
                 self.add_block(block)
 
             epoch += 1
-
+        '''
         self.wallet.save_wallet()
         logger.info('{} blocks'.format(self.length))
         return self._chain.blockchain

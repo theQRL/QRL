@@ -20,7 +20,6 @@ class DB:
         os.makedirs(self.db_path, exist_ok=True)
 
         # TODO: leveldb python module is not very active. Decouple and replace
-        self.destroy()
         self.db = leveldb.LevelDB(self.db_path)
 
     def destroy(self):
@@ -35,14 +34,17 @@ class DB:
 
         return self.db.RangeIter(key_obj_start, key_obj_end)
 
-    def put(self, key_obj, value_obj):  # serialise with pickle into a string
+    def put(self, key_obj, value_obj, batch=None):  # serialise with pickle into a string
         if not isinstance(key_obj, bytes) and not isinstance(key_obj, bytearray):
             key_obj = key_obj.encode()
 
         # FIXME: Bottleneck
         dictObj = {'value': value_obj}
         tmp_json = json.dumps(dictObj).encode()
-        self.db.Put(key_obj, tmp_json)
+        if batch:
+            batch.Put(key_obj, tmp_json)
+        else:
+            self.db.Put(key_obj, tmp_json)
 
     def get(self, key_obj):
         if not isinstance(key_obj, bytes):
@@ -61,10 +63,19 @@ class DB:
     def delete(self, key_obj):
         self.db.Delete(key_obj)
 
-    def put_raw(self, key, value):
-        self.db.Put(key, value)
+    def put_raw(self, key, value, batch=None):
+        if batch:
+            batch.Put(key, value)
+        else:
+            self.db.Put(key, value)
 
     def get_raw(self, key):
         if isinstance(key, str):
             key = bytes(key, 'utf-8')
         return self.db.Get(key)
+
+    def get_batch(self):
+        return leveldb.WriteBatch()
+
+    def write_batch(self, batch):
+        self.db.Write(batch, sync=True)
