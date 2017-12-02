@@ -46,6 +46,7 @@ class XMSS(object):
 
         if _xmssfast is not None:
             self._xmss = _xmssfast
+            self._seed = self._xmss.getSeed()
         else:
             # TODO: This is the old code, probably it should be removed
 
