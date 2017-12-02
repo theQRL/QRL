@@ -190,7 +190,7 @@ class TestBufferedChain(TestCase):
                                               transactions=[stake_transaction],
                                               duplicate_transactions=OrderedDict(),
                                               vote=vote_metadata,
-                                              signing_xmss=alice_xmss,
+                                              signing_xmss=slave_xmss,
                                               nonce=1)
 
                     res = buffered_chain.add_block(block=tmp_block1)
@@ -215,7 +215,7 @@ class TestBufferedChain(TestCase):
                                                   transactions=[],
                                                   duplicate_transactions=OrderedDict(),
                                                   vote=vote_metadata,
-                                                  signing_xmss=alice_xmss,
+                                                  signing_xmss=slave_xmss,
                                                   nonce=2)
 
                     res = buffered_chain.add_block(block=tmp_block2)
@@ -240,7 +240,7 @@ class TestBufferedChain(TestCase):
                                                   transactions=[],
                                                   duplicate_transactions=OrderedDict(),
                                                   vote=vote_metadata,
-                                                  signing_xmss=alice_xmss,
+                                                  signing_xmss=slave_xmss,
                                                   nonce=3)
 
                     res = buffered_chain.add_block(block=tmp_block3)

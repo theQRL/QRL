@@ -223,7 +223,7 @@ class BufferedChain:
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
             return
 
-        if (self.height != 0 and vote.blocknumber <= self._chain.height) or vote.blocknumber > self.height:
+        if (self.height != 0 and vote.blocknumber < self._chain.height) or vote.blocknumber > self.height:
             return
 
         height = self.height
@@ -239,7 +239,7 @@ class BufferedChain:
                 if self._vote_tracker[vote.blocknumber].is_already_voted(vote):
                     return
 
-            tx_state = self.get_stxn_state(blocknumber=self.height, addr=vote.addr_from)
+            tx_state = self.get_stxn_state(blocknumber=self.height+1, addr=vote.addr_from)
 
             if not (vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict)):
                 logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
@@ -435,7 +435,7 @@ class BufferedChain:
         block_metadata.update_stxn_state(self._chain.pstate)
 
         if block.block_number > 1:  # FIXME: Temporarily 1, once sv added to Genesis Block, change it to 0
-            block_metadata.update_vote_metadata(prev_sv_tracker)
+            block_metadata.update_vote_metadata(prev_prev_sv_tracker)
 
         # add/replace if new option is better
         if old_block_metadata is None or block_metadata.sorting_key < old_block_metadata.sorting_key:
@@ -1316,7 +1316,7 @@ class BufferedChain:
             if block_idx - 1 == self._chain.height:
                 return self._chain.pstate.stake_validators_tracker
 
-            if block_idx - 1 not in self.blocks and block_idx - 2 == self._chain.height:
+            if block_idx - 1 not in self.blocks and block_idx == self._chain.height:
                 return self._chain.pstate.prev_stake_validators_tracker
 
             return self.blocks[block_idx - 1].stake_validators_tracker
