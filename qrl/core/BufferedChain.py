@@ -967,22 +967,6 @@ class BufferedChain:
         # FIXME: Direct access - Breaks encapsulation
         self._chain.blockchain.append(genesis_block)  # FIXME: Adds without checking???
 
-        '''
-        # FIXME: it is not nice how genesis block is ignored
-        tmp_chain = self._chain._read_chain(0)
-        if len(tmp_chain) > 0:
-            for block in tmp_chain[1:]:
-                self.add_block(block)
-
-        epoch = 1
-        # FIXME: Avoid checking files here..
-        while os.path.isfile(self._chain._get_chain_datafile(epoch)):
-            del self._chain.blockchain[:-1]  # FIXME: This optimization could be encapsulated
-            for block in self._chain._read_chain(epoch):
-                self.add_block(block)
-
-            epoch += 1
-        '''
         self.wallet.save_wallet()
         logger.info('{} blocks'.format(self.length))
         return self._chain.blockchain
