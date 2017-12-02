@@ -64,7 +64,11 @@ class TestChain(TestCase):
                                           signing_xmss=alice_xmss,
                                           nonce=address_state_dict[staking_address].nonce + 1)
 
-                res = chain.add_block(tmp_block1, address_state_dict, None)
+                res = chain.add_block(tmp_block1,
+                                      address_state_dict,
+                                      StakeValidatorsTracker(),
+                                      b'101',
+                                      alice_xmss)
                 address_state_dict[staking_address].increase_nonce()
                 address_state_dict[staking_address].balance += tmp_block1.block_reward
                 self.assertTrue(res)
@@ -103,7 +107,11 @@ class TestChain(TestCase):
                                                   nonce=address_state_dict[staking_address].nonce + 1)
                         prev = tmp_block1.headerhash
 
-                        res = chain.add_block(tmp_block1, address_state_dict, StakeValidatorsTracker())
+                        res = chain.add_block(tmp_block1,
+                                              address_state_dict,
+                                              StakeValidatorsTracker(),
+                                              b'1001',
+                                              alice_xmss)
 
                         address_state_dict[staking_address].increase_nonce()
                         address_state_dict[staking_address].balance += tmp_block1.block_reward

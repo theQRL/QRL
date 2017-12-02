@@ -77,6 +77,9 @@ class P2PFactory(ServerFactory):
                 del self.master_mr.requested_hash[msg_hash]
             return
 
+        if msg_hash not in self.master_mr.requested_hash:
+            return
+
         peers_list = self.master_mr.requested_hash[msg_hash].peers_connection_list
         message_request = self.master_mr.requested_hash[msg_hash]
         for peer in peers_list:

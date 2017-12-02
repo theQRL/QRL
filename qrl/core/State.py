@@ -87,7 +87,7 @@ class State:
     #########################################
     #########################################
 
-    def update_last_tx(self, block):
+    def update_last_tx(self, block, batch):
         if len(block.transactions) == 0:
             return
         last_txn = []
@@ -105,7 +105,7 @@ class State:
                                     block.timestamp])
 
         del last_txn[20:]
-        self._db.put('last_txn', last_txn)
+        self._db.put('last_txn', last_txn, batch)
 
     def get_last_txs(self):
         try:
@@ -139,6 +139,45 @@ class State:
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
         self.prev_stake_validators_tracker = self.stake_validators_tracker
         self.stake_validators_tracker = stake_validators_tracker
+
+    def get_stake_validators_tracker(self):
+        return self._db.get_raw(b'stake_validators_tracker')
+
+    def write_stake_validators_tracker(self, batch):
+        self._db.put_raw(b'stake_validators_tracker', self.stake_validators_tracker.to_json().encode(), batch)
+
+    def get_prev_stake_validators_tracker(self):
+        return self._db.get_raw(b'prev_stake_validators_tracker')
+
+    def write_prev_stake_validators_tracker(self, batch):
+        self._db.put_raw(b'prev_stake_validators_tracker', self.prev_stake_validators_tracker.to_json().encode(), batch)
+
+    def get_next_seed(self):
+        return self._db.get_raw(b'next_seed')
+
+    def update_next_seed(self, next_seed, batch):
+        self._db.put_raw(b'next_seed', next_seed, batch)
+
+    def get_state_version(self):
+        return self._db.get(b'state_version')
+
+    def update_state_version(self, block_number, batch):
+        self._db.put(b'state_version', block_number, batch)
+
+    def get_slave_xmss(self):
+        return self._db.get(b'slave_xmss')
+
+    def update_slave_xmss(self, slave_xmss, batch):
+        if slave_xmss is None:
+            self._db.put(b'slave_xmss', None, batch)
+        else:
+            self._db.put(b'slave_xmss', [slave_xmss.get_index(), slave_xmss.get_seed()], batch)
+
+    def get_block(self, block_number):
+        return self._db.get_raw(str(block_number).encode())
+
+    def put_block(self, block, batch):
+        self._db.put_raw(str(block.block_number).encode(), block.to_json().encode(), batch)
 
     def get_address_tx_hashes(self, addr: bytes) -> List[bytes]:
         try:
@@ -182,7 +221,7 @@ class State:
     #########################################
     #########################################
 
-    def update_tx_metadata(self, block):
+    def update_tx_metadata(self, block, batch):
         if len(block.transactions) == 0:
             return
 
@@ -191,9 +230,8 @@ class State:
             txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 self._db.put(bin2hstr(txn.txhash),
-                             [txn.to_json(),
-                              block.block_number,
-                              block.timestamp])
+                             [txn.to_json(), block.block_number, block.timestamp],
+                             batch)
 
                 if txn.subtype == qrl_pb2.Transaction.TRANSFER:
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
@@ -212,7 +250,7 @@ class State:
         txn_json, block_number, _ = tx_metadata
         return Transaction.from_json(txn_json), block_number
 
-    def update_vote_metadata(self, block):
+    def update_vote_metadata(self, block, batch):
         if len(block.transactions) == 0:
             return
 
@@ -225,7 +263,7 @@ class State:
 
         self._db.put(b'vote_'+str(block.block_number).encode(),
                      [voted_weight,
-                      total_stake_amount])
+                      total_stake_amount], batch)
 
     def get_vote_metadata(self, blocknumber: int):
         try:
@@ -248,9 +286,9 @@ class State:
         address_state = AddressState(pbdata)
         return address_state
 
-    def _save_address_state(self, address_state: AddressState):
+    def _save_address_state(self, address_state: AddressState, batch=None):
         data = address_state.pbdata.SerializeToString()
-        self._db.put_raw(address_state.address, data)
+        self._db.put_raw(address_state.address, data, batch)
 
     def get_address(self, address: bytes) -> AddressState:
         # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
@@ -292,6 +330,12 @@ class State:
             address_state = AddressState(pbdata)
             addresses.append(address_state)
         return addresses
+
+    def get_batch(self):
+        return self._db.get_batch()
+
+    def write_batch(self, batch):
+        self._db.write_batch(batch)
 
     def zero_all_addresses(self):
         for k, v in self._db.RangeIter(b'Q', b'Qz'):

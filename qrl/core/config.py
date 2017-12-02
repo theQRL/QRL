@@ -98,8 +98,6 @@ class DevConfig(object):
         self.disk_writes_after_x_blocks = 100
         self.blocks_per_chain_file = 1000
         self.chain_read_buffer_size = 1024
-        self.binary_file_delimiter = b'-_-_'
-        self.compression_level = 1
         self.version = version
         self.chain_file_directory = 'data'
         self.transaction_pool_size = 1000
@@ -110,7 +108,6 @@ class DevConfig(object):
         self.xmss_tree_height = 10
         self.default_nonce = 0
         self.default_account_balance = 100 * (10 ** 8)
-        self.stamping_series = [5, 10, 20, 30, 40, 50, 60, 70, 80, 100]
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.vote_x_seconds_before_next_block = 15  # Vote will be done X seconds before creation of next block
