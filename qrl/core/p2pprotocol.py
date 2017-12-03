@@ -42,7 +42,6 @@ class P2PProtocol(Protocol):
             qrllegacy_pb2.LegacyMessage.BK: self.BK,        # RECV      Block
             qrllegacy_pb2.LegacyMessage.FB: self.FB,        # Fetch request for block
             qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,        # Push Block
-            qrllegacy_pb2.LegacyMessage.PBB: self.PBB,      # Push Block Buffer
 
             ############################
             qrllegacy_pb2.LegacyMessage.ST: self.ST,        # RECV/BCAST        Stake Transaction
@@ -485,7 +484,7 @@ class P2PProtocol(Protocol):
         peer_ips = self.factory.get_connected_peer_ips()
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
-                                          pldata=qrllegacy_pb2.PLData(peer_ips=peer_ips))
+                                          plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
 
         self.transport.write(self.wrap_message(msg))
 
@@ -609,7 +608,7 @@ class P2PProtocol(Protocol):
     # Low-level serialization/connections/etc
     # FIXME: This is a temporary refactoring, it will be completely replaced before release
     def _dispatch_messages(self, message: qrllegacy_pb2.LegacyMessage):
-        func = self._services.get(message.func_name, default=None)
+        func = self._services.get(message.func_name)
         if func:
             try:
                 # FIXME: use WhichOneof to discover payloads

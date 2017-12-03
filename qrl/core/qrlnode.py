@@ -161,7 +161,7 @@ class QRLNode:
 
     def update_peer_addresses(self, peer_addresses: set) -> None:
         # FIXME: Probably will be refactored
-        new_addresses = self._peer_addresses - peer_addresses
+        new_addresses = self._peer_addresses - set(peer_addresses)
         for peer_address in new_addresses:
             self._p2pfactory.connect_peer(peer_address)
 
