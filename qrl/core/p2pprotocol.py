@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import json
 import struct
 import time
 from queue import PriorityQueue
@@ -93,15 +92,15 @@ class P2PProtocol(Protocol):
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
-        if mr_data.type in ['TX'] and self.factory.sync_state.state != ESyncState.synced:
+        if mr_data.type in [qrllegacy_pb2.LegacyMessage.TX] and self.factory.sync_state.state != ESyncState.synced:
             return
 
-        if mr_data.type == 'TX':
+        if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
             if len(self.factory.buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
-        if mr_data.type == 'ST' or mr_data.type == 'VT':
+        if mr_data.type in [qrllegacy_pb2.LegacyMessage.ST, qrllegacy_pb2.LegacyMessage.VT]:
             if self.factory.buffered_chain.height > 1 and self.factory.sync_state.state != ESyncState.synced:
                 return
 
@@ -113,7 +112,7 @@ class P2PProtocol(Protocol):
         if self.factory.master_mr.is_callLater_active(msg_hash):  # Ignore if already requested
             return
 
-        if mr_data.type == 'BK':
+        if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
             block_chain_buffer = self.factory.buffered_chain
 
             if not block_chain_buffer.verify_BK_hash(mr_data, self._conn_identity):
@@ -577,8 +576,8 @@ class P2PProtocol(Protocol):
                                             lattice_public_key_txn.to_json())
 
     def send_sync(self):
-        
-        self.transport.write(self.wrap_message('SYNC'))
+        data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC)
+        self.transport.write(self.wrap_message(data))
 
     def handle_sync(self, message: qrllegacy_pb2.LegacyMessage):
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
@@ -587,7 +586,9 @@ class P2PProtocol(Protocol):
             self.factory.set_peer_synced(self, True)
         else:
             if self.factory.pos.sync_state.state == ESyncState.synced:
-                self.transport.write(self.wrap_message('SYNC', 'Synced'))
+                data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
+                                                   mrData=qrllegacy_pb2.SYNCData(state='Synced'))
+                self.transport.write(self.wrap_message(data))
                 self.factory.set_peer_synced(self, False)
 
     def fetch_block_n(self, n):
@@ -599,7 +600,6 @@ class P2PProtocol(Protocol):
         self._last_requested_blocknum = n
         logger.info('<<<Fetching block: %s from %s', n, self._conn_identity)
         self.transport.write(self.wrap_message('FB', str(n)))
-
 
     ###################################################
     ###################################################

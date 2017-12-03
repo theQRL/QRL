@@ -320,7 +320,7 @@ class P2PFactory(ServerFactory):
             reactor.callLater(60, self.connect_peers)
 
     def connect_peer(self, peer_address):
-        #FIXME: this should be kept as a set
+        # FIXME: this should be kept as a set
         connected_peers = set([peer_conn.transport.getPeer().host for peer_conn in self._peer_connections])
 
         if peer_address not in connected_peers:

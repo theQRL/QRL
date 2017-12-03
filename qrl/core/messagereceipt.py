@@ -8,7 +8,7 @@ from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core.Transaction import CoinBase
-
+from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
 # FIXME: Refactor / improve
 class MessageReceipt(object):
@@ -43,7 +43,14 @@ class MessageReceipt(object):
     """
 
     # TODO: Use enumerations instead of strings to reduce data size
-    allowed_types = ['TX', 'ST', 'DST', 'BK', 'DT', 'VT', 'LT', 'EPH']
+    allowed_types = [LegacyMessage.TX,
+                     LegacyMessage.ST,
+                     LegacyMessage.DST,
+                     LegacyMessage.BK,
+                     LegacyMessage.DT,
+                     LegacyMessage.VT,
+                     LegacyMessage.LT,
+                     LegacyMessage.EPH]
 
     def __init__(self):
         self.hash_msg = OrderedDict()
