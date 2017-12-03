@@ -139,15 +139,15 @@ class P2PFactory(ServerFactory):
     # NOTE: PoS related.. broadcasting, etc. OBSOLETE
     def broadcast_st(self, st: StakeTransaction):
         logger.info('<<<Transmitting ST: %s', st.activation_blocknumber)
-        self.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.to_json())
 
     def broadcast_vote(self, vote: Vote):
         logger.info('<<<Transmitting Vote Txn: %s', vote.blocknumber)
-        self.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.to_json())
 
     def broadcast_destake(self, destake_txn: DestakeTransaction):
         logger.info('<<<Transmitting Destake Txn: %s', destake_txn.txfrom)
-        self.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.DST, destake_txn.get_message_hash(), destake_txn.to_json())
 
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
@@ -159,16 +159,16 @@ class P2PFactory(ServerFactory):
         if block.block_number > 1:
             data.reveal_hash = block.reveal_hash
 
-        self.register_and_broadcast('BK', block.headerhash, block.to_json(), data)
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.to_json(), data)
 
     def broadcast_tx(self, tx):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
-        self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), tx.to_json())
 
     def broadcast_lt(self, lattice_public_key_txn):
         logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
         self.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
-        self.register_and_broadcast('LT', lattice_public_key_txn.get_message_hash(), lattice_public_key_txn.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(), lattice_public_key_txn.to_json())
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json: str, data=None):
         self.master_mr.register(msg_type, msg_hash, msg_json)
@@ -195,7 +195,10 @@ class P2PFactory(ServerFactory):
         data.hash = msg_hash
         data.type = msg_type
 
-        msg = self.protocol.wrap_message('MR', MessageToJson(data))
+        data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.MR,
+                                           mrData=qrllegacy_pb2.MRData(hash=data.hash, type=msg_type))
+
+        msg = self.protocol.wrap_message(data)
         for peer in self._peer_connections:
             if peer not in ignore_peers:
                 peer.transport.write(msg)
@@ -226,8 +229,8 @@ class P2PFactory(ServerFactory):
                 return
 
         self.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-        self.master_mr.register('TX', tx.get_message_hash(), json_tx_obj)
-        self.broadcast('TX', tx.get_message_hash())
+        self.master_mr.register(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), json_tx_obj)
+        self.broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash())
 
         if not self._txn_processor_running:
             # FIXME: TxnProcessor breaks tx_pool encapsulation
@@ -291,7 +294,7 @@ class P2PFactory(ServerFactory):
 
         if conn_protocol.transport.getPeer().host not in peer_list:
             logger.info('Adding to peer_list')
-            peer_list.append(conn_protocol.transport.getPeer().host)
+            peer_list.add(conn_protocol.transport.getPeer().host)
             self.qrl_node.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ', conn_protocol.transport.getPeer().host,

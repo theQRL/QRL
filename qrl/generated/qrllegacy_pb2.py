@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrllegacy.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fqrllegacy.proto\x12\x03qrl\x1a\tqrl.proto\"\xb2\x04\n\rLegacyMessage\x12.\n\tfunc_name\x18\x01 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x1d\n\x06noData\x18\x02 \x01(\x0b\x32\x0b.qrl.NoDataH\x00\x12\x1d\n\x06veData\x18\x03 \x01(\x0b\x32\x0b.qrl.VEDataH\x00\x12\x1d\n\x06plData\x18\x04 \x01(\x0b\x32\x0b.qrl.PLDataH\x00\x12!\n\x08pongData\x18\x05 \x01(\x0b\x32\r.qrl.PONGDataH\x00\x12\x1d\n\x06mrData\x18\x06 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1e\n\x07sfmData\x18\x07 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1d\n\x06\x62kData\x18\x08 \x01(\x0b\x32\x0b.qrl.BKDataH\x00\x12\x1d\n\x06\x66\x62\x44\x61ta\x18\t \x01(\x0b\x32\x0b.qrl.FBDataH\x00\x12\x1d\n\x06pbData\x18\n \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12\x1e\n\x07pbbData\x18\x0b \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12!\n\x08syncData\x18\x0c \x01(\x0b\x32\r.qrl.SYNCDataH\x00\"\x89\x01\n\x08\x46uncName\x12\x06\n\x02VE\x10\x00\x12\x06\n\x02PL\x10\x01\x12\x08\n\x04PONG\x10\x02\x12\x06\n\x02MR\x10\x03\x12\x07\n\x03SFM\x10\x04\x12\x06\n\x02\x42K\x10\x05\x12\x06\n\x02\x46\x42\x10\x06\x12\x06\n\x02PB\x10\x07\x12\x07\n\x03PBB\x10\x08\x12\x06\n\x02ST\x10\t\x12\x07\n\x03\x44ST\x10\n\x12\x06\n\x02\x44T\x10\x0b\x12\x06\n\x02TX\x10\x0c\x12\x06\n\x02VT\x10\r\x12\x08\n\x04SYNC\x10\x0e\x42\x06\n\x04\x64\x61ta\"\x08\n\x06NoData\"4\n\x06VEData\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x19\n\x11genesis_prev_hash\x18\x02 \x01(\x0c\"\x1a\n\x06PLData\x12\x10\n\x08peer_ips\x18\x01 \x03(\t\"\n\n\x08PONGData\"\x9d\x01\n\x06MRData\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12)\n\x04type\x18\x02 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"@\n\x06\x42KData\x12\x1b\n\x06mrData\x18\x01 \x01(\x0b\x32\x0b.qrl.MRData\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x17\n\x06\x46\x42\x44\x61ta\x12\r\n\x05index\x18\x01 \x01(\x04\"2\n\x06PBData\x12\r\n\x05index\x18\x01 \x01(\x04\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x19\n\x08SYNCData\x12\r\n\x05state\x18\x01 \x01(\tb\x06proto3')
+  serialized_pb=_b('\n\x0fqrllegacy.proto\x12\x03qrl\x1a\tqrl.proto\"\x9a\x04\n\rLegacyMessage\x12.\n\tfunc_name\x18\x01 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x1d\n\x06noData\x18\x02 \x01(\x0b\x32\x0b.qrl.NoDataH\x00\x12\x1d\n\x06veData\x18\x03 \x01(\x0b\x32\x0b.qrl.VEDataH\x00\x12\x1d\n\x06plData\x18\x04 \x01(\x0b\x32\x0b.qrl.PLDataH\x00\x12!\n\x08pongData\x18\x05 \x01(\x0b\x32\r.qrl.PONGDataH\x00\x12\x1d\n\x06mrData\x18\x06 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1e\n\x07sfmData\x18\x07 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1d\n\x06\x62kData\x18\x08 \x01(\x0b\x32\x0b.qrl.BKDataH\x00\x12\x1d\n\x06\x66\x62\x44\x61ta\x18\t \x01(\x0b\x32\x0b.qrl.FBDataH\x00\x12\x1d\n\x06pbData\x18\n \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12!\n\x08syncData\x18\x0c \x01(\x0b\x32\r.qrl.SYNCDataH\x00\"\x91\x01\n\x08\x46uncName\x12\x06\n\x02VE\x10\x00\x12\x06\n\x02PL\x10\x01\x12\x08\n\x04PONG\x10\x02\x12\x06\n\x02MR\x10\x03\x12\x07\n\x03SFM\x10\x04\x12\x06\n\x02\x42K\x10\x05\x12\x06\n\x02\x46\x42\x10\x06\x12\x06\n\x02PB\x10\x07\x12\x06\n\x02ST\x10\t\x12\x07\n\x03\x44ST\x10\n\x12\x06\n\x02\x44T\x10\x0b\x12\x06\n\x02TX\x10\x0c\x12\x06\n\x02VT\x10\r\x12\x06\n\x02LT\x10\x0e\x12\x07\n\x03\x45PH\x10\x0f\x12\x08\n\x04SYNC\x10\x10\x42\x06\n\x04\x64\x61ta\"\x08\n\x06NoData\"4\n\x06VEData\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x19\n\x11genesis_prev_hash\x18\x02 \x01(\x0c\"\x1a\n\x06PLData\x12\x10\n\x08peer_ips\x18\x01 \x03(\t\"\n\n\x08PONGData\"\x9d\x01\n\x06MRData\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12)\n\x04type\x18\x02 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"@\n\x06\x42KData\x12\x1b\n\x06mrData\x18\x01 \x01(\x0b\x32\x0b.qrl.MRData\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x17\n\x06\x46\x42\x44\x61ta\x12\r\n\x05index\x18\x01 \x01(\x04\"#\n\x06PBData\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x19\n\x08SYNCData\x12\r\n\x05state\x18\x01 \x01(\tb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -65,38 +65,42 @@ _LEGACYMESSAGE_FUNCNAME = _descriptor.EnumDescriptor(
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='PBB', index=8, number=8,
+      name='ST', index=8, number=9,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='ST', index=9, number=9,
+      name='DST', index=9, number=10,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DST', index=10, number=10,
+      name='DT', index=10, number=11,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DT', index=11, number=11,
+      name='TX', index=11, number=12,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='TX', index=12, number=12,
+      name='VT', index=12, number=13,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='VT', index=13, number=13,
+      name='LT', index=13, number=14,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='SYNC', index=14, number=14,
+      name='EPH', index=14, number=15,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='SYNC', index=15, number=16,
       options=None,
       type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=453,
-  serialized_end=590,
+  serialized_start=421,
+  serialized_end=566,
 )
 _sym_db.RegisterEnumDescriptor(_LEGACYMESSAGE_FUNCNAME)
 
@@ -179,14 +183,7 @@ _LEGACYMESSAGE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='pbbData', full_name='qrl.LegacyMessage.pbbData', index=10,
-      number=11, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='syncData', full_name='qrl.LegacyMessage.syncData', index=11,
+      name='syncData', full_name='qrl.LegacyMessage.syncData', index=10,
       number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -209,7 +206,7 @@ _LEGACYMESSAGE = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=36,
-  serialized_end=598,
+  serialized_end=574,
 )
 
 
@@ -232,8 +229,8 @@ _NODATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=600,
-  serialized_end=608,
+  serialized_start=576,
+  serialized_end=584,
 )
 
 
@@ -270,8 +267,8 @@ _VEDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=610,
-  serialized_end=662,
+  serialized_start=586,
+  serialized_end=638,
 )
 
 
@@ -301,8 +298,8 @@ _PLDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=664,
-  serialized_end=690,
+  serialized_start=640,
+  serialized_end=666,
 )
 
 
@@ -325,8 +322,8 @@ _PONGDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=692,
-  serialized_end=702,
+  serialized_start=668,
+  serialized_end=678,
 )
 
 
@@ -391,8 +388,8 @@ _MRDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=705,
-  serialized_end=862,
+  serialized_start=681,
+  serialized_end=838,
 )
 
 
@@ -429,8 +426,8 @@ _BKDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=864,
-  serialized_end=928,
+  serialized_start=840,
+  serialized_end=904,
 )
 
 
@@ -460,8 +457,8 @@ _FBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=930,
-  serialized_end=953,
+  serialized_start=906,
+  serialized_end=929,
 )
 
 
@@ -473,15 +470,8 @@ _PBDATA = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='index', full_name='qrl.PBData.index', index=0,
-      number=1, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='block', full_name='qrl.PBData.block', index=1,
-      number=2, type=11, cpp_type=10, label=1,
+      name='block', full_name='qrl.PBData.block', index=0,
+      number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -498,8 +488,8 @@ _PBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=955,
-  serialized_end=1005,
+  serialized_start=931,
+  serialized_end=966,
 )
 
 
@@ -529,8 +519,8 @@ _SYNCDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1007,
-  serialized_end=1032,
+  serialized_start=968,
+  serialized_end=993,
 )
 
 _LEGACYMESSAGE.fields_by_name['func_name'].enum_type = _LEGACYMESSAGE_FUNCNAME
@@ -543,7 +533,6 @@ _LEGACYMESSAGE.fields_by_name['sfmData'].message_type = _MRDATA
 _LEGACYMESSAGE.fields_by_name['bkData'].message_type = _BKDATA
 _LEGACYMESSAGE.fields_by_name['fbData'].message_type = _FBDATA
 _LEGACYMESSAGE.fields_by_name['pbData'].message_type = _PBDATA
-_LEGACYMESSAGE.fields_by_name['pbbData'].message_type = _PBDATA
 _LEGACYMESSAGE.fields_by_name['syncData'].message_type = _SYNCDATA
 _LEGACYMESSAGE_FUNCNAME.containing_type = _LEGACYMESSAGE
 _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
@@ -573,9 +562,6 @@ _LEGACYMESSAGE.fields_by_name['fbData'].containing_oneof = _LEGACYMESSAGE.oneofs
 _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
   _LEGACYMESSAGE.fields_by_name['pbData'])
 _LEGACYMESSAGE.fields_by_name['pbData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
-_LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
-  _LEGACYMESSAGE.fields_by_name['pbbData'])
-_LEGACYMESSAGE.fields_by_name['pbbData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
 _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
   _LEGACYMESSAGE.fields_by_name['syncData'])
 _LEGACYMESSAGE.fields_by_name['syncData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
