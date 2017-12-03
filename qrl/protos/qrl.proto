@@ -265,9 +265,13 @@ message BlockHeader {
 
 message BlockHeaderExtended {
     BlockHeader header = 1;
-    uint64 transaction_count = 2;
+    TransactionCount transaction_count = 2;
     uint64 voted_weight = 3;
     uint64 total_stake_weight = 4;
+}
+
+message TransactionCount {
+    map<uint32, uint32> count = 1;
 }
 
 message TransactionExtended {
