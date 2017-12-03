@@ -43,7 +43,9 @@ message LegacyMessage {
         BKData bkData = 8;
         FBData fbData = 9;
         PBData pbData = 10;
-        SYNCData syncData = 12;
+        TransactionData stData = 11;
+        TransactionData vtData = 12;
+        SYNCData syncData = 13;
     }
 }
 
@@ -89,4 +91,76 @@ message PBData {
 message SYNCData
 {
     string state = 1;
+}
+
+message TransactionData {
+    enum Type {
+        UNKNOWN = 0;
+        TRANSFER = 1;
+        STAKE = 2;
+        DESTAKE = 3;
+        COINBASE = 4;
+        LATTICE = 5;
+        DUPLICATE = 6;
+        VOTE = 7;
+    }
+
+    Type type = 1;
+
+    uint64 nonce = 2;
+    bytes addr_from = 3;
+    bytes public_key = 4;
+    bytes transaction_hash = 5;
+    uint32 ots_key = 6;
+    bytes signature = 7;
+
+    oneof transactionType {
+        Transfer transfer = 8;
+        Stake stake = 9;
+        CoinBase coinbase = 10;
+        LatticePublicKey latticePK = 11;
+        Duplicate duplicate = 12;
+        Vote vote = 13;
+    }
+
+    //////////
+    message Transfer {
+        bytes addr_to = 1;
+        uint64 amount = 2;
+        uint64 fee = 3;
+    }
+
+    message Stake {
+        uint64 activation_blocknumber = 1;
+        bytes slavePK = 2;
+        bytes hash = 3;
+    }
+
+    message Destake {
+    }
+
+    message CoinBase {
+        bytes addr_to = 1;
+        uint64 amount = 2;
+    }
+
+    message LatticePublicKey {
+        bytes kyber_pk = 1;
+        bytes tesla_pk = 2;
+    }
+
+    message Duplicate {
+        uint64 block_number = 1;
+        uint64 prev_header_hash = 2;
+        bytes coinbase1_hhash = 3;
+        bytes coinbase2_hhash = 4;
+        Transaction coinbase1 = 5;
+        Transaction coinbase2 = 6;
+    }
+
+    message Vote {
+        uint64 block_number = 1;
+        bytes hash_header = 2;
+    }
+
 }

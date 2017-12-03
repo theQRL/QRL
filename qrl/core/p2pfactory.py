@@ -42,13 +42,13 @@ class P2PFactory(ServerFactory):
             qrllegacy_pb2.LegacyMessage.PB: 'pbData',
 
             ############################
-            qrllegacy_pb2.LegacyMessage.ST: '',
+            qrllegacy_pb2.LegacyMessage.ST: 'stData',
             qrllegacy_pb2.LegacyMessage.DST: '',
             qrllegacy_pb2.LegacyMessage.DT: '',
 
             ############################
             qrllegacy_pb2.LegacyMessage.TX: '',
-            qrllegacy_pb2.LegacyMessage.VT: '',
+            qrllegacy_pb2.LegacyMessage.VT: 'vtData',
             qrllegacy_pb2.LegacyMessage.LT: '',
 
             qrllegacy_pb2.LegacyMessage.EPH: '',
@@ -99,7 +99,7 @@ class P2PFactory(ServerFactory):
     ##############################################
     ##############################################
 
-    def RFM(self, data: qrllegacy_pb2.MRData):
+    def RFM(self, mr_data: qrllegacy_pb2.MRData):
         """
         Request Full Message
         This function request for the full message against,
@@ -109,8 +109,7 @@ class P2PFactory(ServerFactory):
 
         # FIXME: Again, breaking encasulation
         # FIXME: Huge amount of lookups in dictionaries
-
-        msg_hash = data.hash
+        msg_hash = mr_data.hash
 
         if msg_hash in self.master_mr.hash_msg:
             if msg_hash in self.master_mr.requested_hash:
@@ -128,12 +127,12 @@ class P2PFactory(ServerFactory):
             message_request.already_requested_peers.append(peer)
 
             data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SFM,
-                                               mrData=qrllegacy_pb2.MRData(hash=data.hash, type=data.type))
+                                               sfmData=qrllegacy_pb2.MRData(hash=mr_data.hash, type=mr_data.type))
 
             peer.transport.write(peer.wrap_message(data))
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                self.RFM,
-                                               data)
+                                               mr_data)
             message_request.callLater = call_later_obj
             return
 
@@ -172,11 +171,11 @@ class P2PFactory(ServerFactory):
     # NOTE: PoS related.. broadcasting, etc. OBSOLETE
     def broadcast_st(self, st: StakeTransaction):
         logger.info('<<<Transmitting ST: %s', st.activation_blocknumber)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
 
     def broadcast_vote(self, vote: Vote):
         logger.info('<<<Transmitting Vote Txn: %s', vote.blocknumber)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
     def broadcast_destake(self, destake_txn: DestakeTransaction):
         logger.info('<<<Transmitting Destake Txn: %s', destake_txn.txfrom)
@@ -203,8 +202,8 @@ class P2PFactory(ServerFactory):
         self.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(), lattice_public_key_txn.to_json())
 
-    def register_and_broadcast(self, msg_type, msg_hash: bytes, msg_json: str, data=None):
-        self.master_mr.register(msg_type, msg_hash, msg_json)
+    def register_and_broadcast(self, msg_type, msg_hash: bytes, pbdata, data=None):
+        self.master_mr.register(msg_type, msg_hash, pbdata)
         self.broadcast(msg_type, msg_hash, data)
 
     def broadcast_relay(self, source_peer, raw_message):
@@ -227,10 +226,10 @@ class P2PFactory(ServerFactory):
 
         data.hash = msg_hash
         data.type = msg_type
-
+        logger.info('Transmitting type >> %s', data.type)
         data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.MR,
                                            mrData=qrllegacy_pb2.MRData(hash=data.hash, type=msg_type))
-
+        logger.info('Final Transmitting type >> %s', data.mrData.type)
         msg = self.protocol.wrap_message(data)
         for peer in self._peer_connections:
             if peer not in ignore_peers:

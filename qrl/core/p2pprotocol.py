@@ -43,13 +43,13 @@ class P2PProtocol(Protocol):
             qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,        # Push Block
 
             ############################
-            qrllegacy_pb2.LegacyMessage.ST: self.ST,        # RECV/BCAST        Stake Transaction
+            qrllegacy_pb2.LegacyMessage.ST: self.handle_st,        # RECV/BCAST        Stake Transaction
             qrllegacy_pb2.LegacyMessage.DST: self.DST,      # Destake Transaction
             qrllegacy_pb2.LegacyMessage.DT: self.DT,        # Duplicate Transaction
 
             ############################
             qrllegacy_pb2.LegacyMessage.TX: self.handle_tx, # RECV Transaction
-            qrllegacy_pb2.LegacyMessage.VT: self.VT,        # Vote Txn
+            qrllegacy_pb2.LegacyMessage.VT: self.handle_vt,        # Vote Txn
             qrllegacy_pb2.LegacyMessage.LT: self.LT,        # Lattice Public Key Transaction
 
             qrllegacy_pb2.LegacyMessage.EPH: self.EPH,      # Ephemeral Transaction
@@ -80,14 +80,9 @@ class P2PProtocol(Protocol):
         Otherwise the request is made to get the full message.
         :return:
         """
-        mr_data = qrllegacy_pb2.MRData()
-        try:
-            Parse(message, mr_data)
-        except Exception as e:  # Disconnect peer not following protocol
-            logger.debug('Disconnected peer %s not following protocol in MR %s', self._conn_identity, e)
-            self.transport.loseConnection()
-
+        mr_data = message.mrData
         msg_hash = mr_data.hash
+
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
@@ -148,8 +143,7 @@ class P2PProtocol(Protocol):
         This function serves the request made for the full message.
         :return:
         """
-        mr_data = qrllegacy_pb2.MRData()
-        Parse(message, mr_data)
+        mr_data = message.sfmData
         msg_hash = mr_data.hash
         msg_type = mr_data.type
 
@@ -161,7 +155,6 @@ class P2PProtocol(Protocol):
         msg = self.factory.master_mr.hash_msg[msg_hash].msg
         data = qrllegacy_pb2.LegacyMessage(**{'func_name': msg_type,
                                               self.factory.services_arg[msg_type]: msg})
-
         self.transport.write(self.wrap_message(data))
 
     def handle_tx(self, message: qrllegacy_pb2.LegacyMessage):
@@ -184,15 +177,16 @@ class P2PProtocol(Protocol):
 
         self.factory.trigger_tx_processor(tx, message)
 
-    def VT(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_vt(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Vote Transaction
         This function processes whenever a Transaction having
         subtype VOTE is received.
         :return:
         """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.VT)
         try:
-            vote = Transaction.from_json(message)
+            vote = Transaction.from_pbdata(message.vtData)
         except Exception as e:
             logger.error('Vote Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -203,17 +197,18 @@ class P2PProtocol(Protocol):
             return
 
         if self.factory.buffered_chain.add_vote(vote):
-            self.factory.register_and_broadcast('VT', vote.get_message_hash(), vote.to_json())
+            self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
-    def ST(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_st(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Stake Transaction
         This function processes whenever a Transaction having
         subtype ST is received.
         :return:
         """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.ST)
         try:
-            st = Transaction.from_json(message)
+            st = Transaction.from_pbdata(message.stData)
         except Exception as e:
             logger.error('st rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -257,7 +252,7 @@ class P2PProtocol(Protocol):
             logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(tuple(st.hash)))
             return
 
-        self.factory.register_and_broadcast('ST', st.get_message_hash(), st.to_json())
+        self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
 
     def DST(self, message: qrllegacy_pb2.LegacyMessage):
         """

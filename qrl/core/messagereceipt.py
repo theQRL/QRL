@@ -59,13 +59,13 @@ class MessageReceipt(object):
     def register_duplicate(self, msg_hash: bytes):
         self.requested_hash[msg_hash].is_duplicate = True
 
-    def register(self, msg_type, msg_hash: bytes, msg_obj):
+    def register(self, msg_type, msg_hash: bytes, pbdata):
         """
         Registers an object and type on with msg_hash as key
         There is a limitation on the amount of items (config.dev.message_q_size)
         Containers operate in a FIFO fashion.
         :param msg_hash:
-        :param msg_obj:
+        :param pbdata:
         :param msg_type: Any type!? There is not check on msg_type
         """
         # FIXME: Hash is converted to string
@@ -73,7 +73,7 @@ class MessageReceipt(object):
         if len(self.hash_msg) >= config.dev.message_q_size:
             self.__remove__(self.hash_msg)
 
-        message = Message(msg_obj, msg_type)
+        message = Message(pbdata, msg_type)
 
         self.hash_msg[msg_hash] = message
 
