@@ -88,11 +88,10 @@ class P2PProtocol(Protocol):
             self.transport.loseConnection()
 
         msg_hash = mr_data.hash
-
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
-        if mr_data.type in [qrllegacy_pb2.LegacyMessage.TX] and self.factory.sync_state.state != ESyncState.synced:
+        if mr_data.type == qrllegacy_pb2.LegacyMessage.TX and self.factory.sync_state.state != ESyncState.synced:
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
@@ -159,7 +158,11 @@ class P2PProtocol(Protocol):
 
         # Sending message from node, doesn't guarantee that peer has received it.
         # Thus requesting peer could re request it, may be ACK would be required
-        self.transport.write(self.wrap_message(msg_type, self.factory.master_mr.hash_msg[msg_hash].msg))
+        msg = self.factory.master_mr.hash_msg[msg_hash].msg
+        data = qrllegacy_pb2.LegacyMessage(**{'func_name': msg_type,
+                                              self.factory.services_arg[msg_type]: msg})
+
+        self.transport.write(self.wrap_message(data))
 
     def handle_tx(self, message: qrllegacy_pb2.LegacyMessage):
         """

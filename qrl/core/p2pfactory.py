@@ -27,7 +27,34 @@ class P2PFactory(ServerFactory):
                  buffered_chain: BufferedChain,
                  sync_state: SyncState,
                  qrl_node: QRLNode):
+        self.services_arg = {
+            ######################
+            qrllegacy_pb2.LegacyMessage.VE: 'veData',
+            qrllegacy_pb2.LegacyMessage.PL: 'plData',
+            qrllegacy_pb2.LegacyMessage.PONG: 'pongData',
 
+            ######################
+            qrllegacy_pb2.LegacyMessage.MR: 'mrData',
+            qrllegacy_pb2.LegacyMessage.SFM: 'sfmData',
+
+            qrllegacy_pb2.LegacyMessage.BK: 'bkData',
+            qrllegacy_pb2.LegacyMessage.FB: 'fbData',
+            qrllegacy_pb2.LegacyMessage.PB: 'pbData',
+
+            ############################
+            qrllegacy_pb2.LegacyMessage.ST: '',
+            qrllegacy_pb2.LegacyMessage.DST: '',
+            qrllegacy_pb2.LegacyMessage.DT: '',
+
+            ############################
+            qrllegacy_pb2.LegacyMessage.TX: '',
+            qrllegacy_pb2.LegacyMessage.VT: '',
+            qrllegacy_pb2.LegacyMessage.LT: '',
+
+            qrllegacy_pb2.LegacyMessage.EPH: '',
+
+            qrllegacy_pb2.LegacyMessage.SYNC: 'syncData',
+        }
         self.master_mr = MessageReceipt()
         self.pos = None
         self.ntp = ntp
@@ -100,7 +127,10 @@ class P2PFactory(ServerFactory):
                 continue
             message_request.already_requested_peers.append(peer)
 
-            peer.transport.write(peer.wrap_message('SFM', MessageToJson(data)))
+            data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SFM,
+                                               mrData=qrllegacy_pb2.MRData(hash=data.hash, type=data.type))
+
+            peer.transport.write(peer.wrap_message(data))
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                self.RFM,
                                                data)
