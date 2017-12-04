@@ -5,7 +5,6 @@ import struct
 import time
 from queue import PriorityQueue
 
-from google.protobuf.json_format import Parse
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
@@ -38,7 +37,7 @@ class P2PProtocol(Protocol):
             qrllegacy_pb2.LegacyMessage.MR: self.MR,        # RECV+Filters      It will send a RequestFullMessage
             qrllegacy_pb2.LegacyMessage.SFM: self.SFM,      # RECV=>SEND        Send Full Message
 
-            qrllegacy_pb2.LegacyMessage.BK: self.BK,        # RECV      Block
+            qrllegacy_pb2.LegacyMessage.BK: self.handle_bk,        # RECV      Block
             qrllegacy_pb2.LegacyMessage.FB: self.FB,        # Fetch request for block
             qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,        # Push Block
 
@@ -143,7 +142,7 @@ class P2PProtocol(Protocol):
         This function serves the request made for the full message.
         :return:
         """
-        mr_data = message.sfmData
+        mr_data = message.mrData
         msg_hash = mr_data.hash
         msg_type = mr_data.type
 
@@ -325,14 +324,15 @@ class P2PProtocol(Protocol):
 
         self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
 
-    def BK(self, message: qrllegacy_pb2.LegacyMessage):  # block received
+    def handle_bk(self, message: qrllegacy_pb2.LegacyMessage):  # block received
         """
         Block
         This function processes any new block received.
         :return:
         """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.BK)
         try:
-            block = Block.from_json(message)
+            block = Block(message.block)
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
@@ -369,7 +369,7 @@ class P2PProtocol(Protocol):
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
             '''
         self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
-        self.factory.master_mr.register('BK', block.headerhash, message)
+        self.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
 
     def handle_push_block(self, message: qrllegacy_pb2.LegacyMessage):
         """

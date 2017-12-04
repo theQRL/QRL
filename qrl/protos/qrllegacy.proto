@@ -39,13 +39,12 @@ message LegacyMessage {
         PLData plData = 4;
         PONGData pongData = 5;
         MRData mrData = 6;
-        MRData sfmData = 7;
-        BKData bkData = 8;
-        FBData fbData = 9;
-        PBData pbData = 10;
-        Transaction stData = 11;
-        Transaction vtData = 12;
-        SYNCData syncData = 13;
+        Block block = 7;
+        FBData fbData = 8;
+        PBData pbData = 9;
+        Transaction stData = 10;
+        Transaction vtData = 11;
+        SYNCData syncData = 12;
     }
 }
 

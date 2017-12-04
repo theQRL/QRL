@@ -34,9 +34,9 @@ class P2PFactory(ServerFactory):
 
             ######################
             qrllegacy_pb2.LegacyMessage.MR: 'mrData',
-            qrllegacy_pb2.LegacyMessage.SFM: 'sfmData',
+            qrllegacy_pb2.LegacyMessage.SFM: 'mrData',
 
-            qrllegacy_pb2.LegacyMessage.BK: 'bkData',
+            qrllegacy_pb2.LegacyMessage.BK: 'block',
             qrllegacy_pb2.LegacyMessage.FB: 'fbData',
             qrllegacy_pb2.LegacyMessage.PB: 'pbData',
 
@@ -126,7 +126,7 @@ class P2PFactory(ServerFactory):
             message_request.already_requested_peers.append(peer)
 
             data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SFM,
-                                               sfmData=qrllegacy_pb2.MRData(hash=mr_data.hash, type=mr_data.type))
+                                               mrData=qrllegacy_pb2.MRData(hash=mr_data.hash, type=mr_data.type))
 
             peer.transport.write(peer.wrap_message(data))
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
@@ -156,7 +156,7 @@ class P2PFactory(ServerFactory):
             data = qrllegacy_pb2.MRData()
 
             data.hash = dhash
-            data.type = 'BK'
+            data.type = qrllegacy_pb2.LegacyMessage.BK
 
             self.RFM(data)
             self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
@@ -190,7 +190,7 @@ class P2PFactory(ServerFactory):
         if block.block_number > 1:
             data.reveal_hash = block.reveal_hash
 
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.to_json(), data)
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.pbdata, data)
 
     def broadcast_tx(self, tx):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
@@ -210,7 +210,7 @@ class P2PFactory(ServerFactory):
             if peer != source_peer:
                 peer.transport.write(raw_message)
 
-    def broadcast(self, msg_type, msg_hash: bytes, data=None):  # Move to factory
+    def broadcast(self, msg_type, msg_hash: bytes, mr_data=None):  # Move to factory
         """
         Broadcast
         This function sends the Message Receipt to all connected peers.
@@ -220,13 +220,13 @@ class P2PFactory(ServerFactory):
         if msg_hash in self.master_mr.requested_hash:
             ignore_peers = self.master_mr.requested_hash[msg_hash].peers_connection_list
 
-        if not data:
-            data = qrllegacy_pb2.MRData()
+        if not mr_data:
+            mr_data = qrllegacy_pb2.MRData()
 
-        data.hash = msg_hash
-        data.type = msg_type
+        mr_data.hash = msg_hash
+        mr_data.type = msg_type
         data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.MR,
-                                           mrData=qrllegacy_pb2.MRData(hash=msg_hash, type=msg_type))
+                                           mrData=mr_data)
 
         msg = self.protocol.wrap_message(data)
         for peer in self._peer_connections:
