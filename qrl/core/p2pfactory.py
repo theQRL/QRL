@@ -4,7 +4,6 @@
 import queue
 import random
 
-from google.protobuf.json_format import MessageToJson
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
@@ -226,10 +225,9 @@ class P2PFactory(ServerFactory):
 
         data.hash = msg_hash
         data.type = msg_type
-        logger.info('Transmitting type >> %s', data.type)
         data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.MR,
-                                           mrData=qrllegacy_pb2.MRData(hash=data.hash, type=msg_type))
-        logger.info('Final Transmitting type >> %s', data.mrData.type)
+                                           mrData=qrllegacy_pb2.MRData(hash=msg_hash, type=msg_type))
+
         msg = self.protocol.wrap_message(data)
         for peer in self._peer_connections:
             if peer not in ignore_peers:

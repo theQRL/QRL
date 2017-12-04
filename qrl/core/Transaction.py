@@ -11,7 +11,7 @@ from qrl.core import config, logger
 from qrl.crypto.hashchain import hashchain_reveal
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-from qrl.generated import qrllegacy_pb2
+from qrl.generated import qrl_pb2
 
 
 class Transaction(object, metaclass=ABCMeta):
@@ -22,7 +22,7 @@ class Transaction(object, metaclass=ABCMeta):
     def __init__(self, protobuf_transaction=None):
         self._data = protobuf_transaction  # This object cointains persistable data
         if protobuf_transaction is None:
-            self._data = qrllegacy_pb2.TransactionData()
+            self._data = qrl_pb2.Transaction()
 
     @property
     def pbdata(self):
@@ -70,24 +70,24 @@ class Transaction(object, metaclass=ABCMeta):
     def tx_id_to_name(idarg):
         # FIXME: Move to enums
         id_name = {
-            qrllegacy_pb2.TransactionData.TRANSFER: 'TX',
-            qrllegacy_pb2.TransactionData.STAKE: 'STAKE',
-            qrllegacy_pb2.TransactionData.DESTAKE: 'DESTAKE',
-            qrllegacy_pb2.TransactionData.COINBASE: 'COINBASE',
-            qrllegacy_pb2.TransactionData.LATTICE: 'LATTICE',
-            qrllegacy_pb2.TransactionData.DUPLICATE: 'DUPLICATE',
-            qrllegacy_pb2.TransactionData.VOTE: 'VOTE'
+            qrl_pb2.Transaction.TRANSFER: 'TX',
+            qrl_pb2.Transaction.STAKE: 'STAKE',
+            qrl_pb2.Transaction.DESTAKE: 'DESTAKE',
+            qrl_pb2.Transaction.COINBASE: 'COINBASE',
+            qrl_pb2.Transaction.LATTICE: 'LATTICE',
+            qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE',
+            qrl_pb2.Transaction.VOTE: 'VOTE'
         }
         return id_name[idarg]
 
     @staticmethod
-    def from_pbdata(pbdata: qrllegacy_pb2.TransactionData):
+    def from_pbdata(pbdata: qrl_pb2.Transaction):
         txtype = TYPEMAP[pbdata.type]
         return txtype(pbdata)
 
     @staticmethod
     def from_json(json_data):
-        pbdata = qrllegacy_pb2.TransactionData()
+        pbdata = qrl_pb2.Transaction()
         Parse(json_data, pbdata)
         return Transaction.from_pbdata(pbdata)
 
@@ -177,7 +177,7 @@ class TransferTransaction(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(TransferTransaction, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
-            self._data.type = qrllegacy_pb2.TransactionData.TRANSFER
+            self._data.type = qrl_pb2.Transaction.TRANSFER
 
     @property
     def txto(self):
@@ -262,7 +262,7 @@ class StakeTransaction(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(StakeTransaction, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
-            self._data.type = qrllegacy_pb2.TransactionData.STAKE
+            self._data.type = qrl_pb2.Transaction.STAKE
 
     @property
     def activation_blocknumber(self):
@@ -347,7 +347,7 @@ class DestakeTransaction(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(DestakeTransaction, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
-            self._data.type = qrllegacy_pb2.TransactionData.DESTAKE
+            self._data.type = qrl_pb2.Transaction.DESTAKE
 
     def _get_hashable_bytes(self):
         """
@@ -399,7 +399,7 @@ class CoinBase(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(CoinBase, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
-            self._data.type = qrllegacy_pb2.TransactionData.COINBASE
+            self._data.type = qrl_pb2.Transaction.COINBASE
 
         # This attribute is not persistable
         self.blockheader = None
@@ -509,7 +509,7 @@ class DuplicateTransaction(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(DuplicateTransaction, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
-            self._data.type = qrllegacy_pb2.TransactionData.DUPLICATE
+            self._data.type = qrl_pb2.Transaction.DUPLICATE
 
     @property
     def blocknumber(self):
@@ -607,7 +607,7 @@ class Vote(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(Vote, self).__init__(protobuf_transaction)
         if protobuf_transaction is None:
-            self._data.type = qrllegacy_pb2.TransactionData.VOTE
+            self._data.type = qrl_pb2.Transaction.VOTE
 
     @property
     def addr_from(self):
@@ -667,11 +667,11 @@ class Vote(Transaction):
 
 
 TYPEMAP = {
-    qrllegacy_pb2.TransactionData.TRANSFER: TransferTransaction,
-    qrllegacy_pb2.TransactionData.STAKE: StakeTransaction,
-    qrllegacy_pb2.TransactionData.DESTAKE: DestakeTransaction,
-    qrllegacy_pb2.TransactionData.COINBASE: CoinBase,
-    qrllegacy_pb2.TransactionData.LATTICE: LatticePublicKey,
-    qrllegacy_pb2.TransactionData.DUPLICATE: DuplicateTransaction,
-    qrllegacy_pb2.TransactionData.VOTE: Vote
+    qrl_pb2.Transaction.TRANSFER: TransferTransaction,
+    qrl_pb2.Transaction.STAKE: StakeTransaction,
+    qrl_pb2.Transaction.DESTAKE: DestakeTransaction,
+    qrl_pb2.Transaction.COINBASE: CoinBase,
+    qrl_pb2.Transaction.LATTICE: LatticePublicKey,
+    qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction,
+    qrl_pb2.Transaction.VOTE: Vote
 }

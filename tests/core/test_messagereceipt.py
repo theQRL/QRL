@@ -6,6 +6,7 @@ from unittest import TestCase
 from pyqrllib.pyqrllib import str2bin
 from qrl.core import logger, config
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
 logger.initialize_default(force_console_output=True)
 
@@ -17,7 +18,14 @@ class TestMessageReceipt(TestCase):
     def test_create(self):
         mr = MessageReceipt()
         self.assertIsNotNone(mr)
-        self.assertEqual(mr.allowed_types, ['TX', 'ST', 'DST', 'BK', 'DT', 'VT', 'LT', 'EPH'])
+        self.assertEqual(mr.allowed_types, [LegacyMessage.TX,
+                                            LegacyMessage.ST,
+                                            LegacyMessage.DST,
+                                            LegacyMessage.BK,
+                                            LegacyMessage.DT,
+                                            LegacyMessage.VT,
+                                            LegacyMessage.LT,
+                                            LegacyMessage.EPH])
 
     def test_register(self):
         mr = MessageReceipt()

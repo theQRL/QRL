@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrllegacy.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fqrllegacy.proto\x12\x03qrl\x1a\tqrl.proto\"\xea\x04\n\rLegacyMessage\x12.\n\tfunc_name\x18\x01 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x1d\n\x06noData\x18\x02 \x01(\x0b\x32\x0b.qrl.NoDataH\x00\x12\x1d\n\x06veData\x18\x03 \x01(\x0b\x32\x0b.qrl.VEDataH\x00\x12\x1d\n\x06plData\x18\x04 \x01(\x0b\x32\x0b.qrl.PLDataH\x00\x12!\n\x08pongData\x18\x05 \x01(\x0b\x32\r.qrl.PONGDataH\x00\x12\x1d\n\x06mrData\x18\x06 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1e\n\x07sfmData\x18\x07 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1d\n\x06\x62kData\x18\x08 \x01(\x0b\x32\x0b.qrl.BKDataH\x00\x12\x1d\n\x06\x66\x62\x44\x61ta\x18\t \x01(\x0b\x32\x0b.qrl.FBDataH\x00\x12\x1d\n\x06pbData\x18\n \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12&\n\x06stData\x18\x0b \x01(\x0b\x32\x14.qrl.TransactionDataH\x00\x12&\n\x06vtData\x18\x0c \x01(\x0b\x32\x14.qrl.TransactionDataH\x00\x12!\n\x08syncData\x18\r \x01(\x0b\x32\r.qrl.SYNCDataH\x00\"\x91\x01\n\x08\x46uncName\x12\x06\n\x02VE\x10\x00\x12\x06\n\x02PL\x10\x01\x12\x08\n\x04PONG\x10\x02\x12\x06\n\x02MR\x10\x03\x12\x07\n\x03SFM\x10\x04\x12\x06\n\x02\x42K\x10\x05\x12\x06\n\x02\x46\x42\x10\x06\x12\x06\n\x02PB\x10\x07\x12\x06\n\x02ST\x10\t\x12\x07\n\x03\x44ST\x10\n\x12\x06\n\x02\x44T\x10\x0b\x12\x06\n\x02TX\x10\x0c\x12\x06\n\x02VT\x10\r\x12\x06\n\x02LT\x10\x0e\x12\x07\n\x03\x45PH\x10\x0f\x12\x08\n\x04SYNC\x10\x10\x42\x06\n\x04\x64\x61ta\"\x08\n\x06NoData\"4\n\x06VEData\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x19\n\x11genesis_prev_hash\x18\x02 \x01(\x0c\"\x1a\n\x06PLData\x12\x10\n\x08peer_ips\x18\x01 \x03(\t\"\n\n\x08PONGData\"\x9d\x01\n\x06MRData\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12)\n\x04type\x18\x02 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"@\n\x06\x42KData\x12\x1b\n\x06mrData\x18\x01 \x01(\x0b\x32\x0b.qrl.MRData\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x17\n\x06\x46\x42\x44\x61ta\x12\r\n\x05index\x18\x01 \x01(\x04\"#\n\x06PBData\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x19\n\x08SYNCData\x12\r\n\x05state\x18\x01 \x01(\t\"\xbe\x08\n\x0fTransactionData\x12\'\n\x04type\x18\x01 \x01(\x0e\x32\x19.qrl.TransactionData.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x12\n\npublic_key\x18\x04 \x01(\x0c\x12\x18\n\x10transaction_hash\x18\x05 \x01(\x0c\x12\x0f\n\x07ots_key\x18\x06 \x01(\r\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12\x31\n\x08transfer\x18\x08 \x01(\x0b\x32\x1d.qrl.TransactionData.TransferH\x00\x12+\n\x05stake\x18\t \x01(\x0b\x32\x1a.qrl.TransactionData.StakeH\x00\x12\x31\n\x08\x63oinbase\x18\n \x01(\x0b\x32\x1d.qrl.TransactionData.CoinBaseH\x00\x12:\n\tlatticePK\x18\x0b \x01(\x0b\x32%.qrl.TransactionData.LatticePublicKeyH\x00\x12\x33\n\tduplicate\x18\x0c \x01(\x0b\x32\x1e.qrl.TransactionData.DuplicateH\x00\x12)\n\x04vote\x18\r \x01(\x0b\x32\x19.qrl.TransactionData.VoteH\x00\x1a\x38\n\x08Transfer\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x1a\x46\n\x05Stake\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x01 \x01(\x04\x12\x0f\n\x07slavePK\x18\x02 \x01(\x0c\x12\x0c\n\x04hash\x18\x03 \x01(\x0c\x1a\t\n\x07\x44\x65stake\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a\x36\n\x10LatticePublicKey\x12\x10\n\x08kyber_pk\x18\x01 \x01(\x0c\x12\x10\n\x08tesla_pk\x18\x02 \x01(\x0c\x1a\xb7\x01\n\tDuplicate\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10prev_header_hash\x18\x02 \x01(\x04\x12\x17\n\x0f\x63oinbase1_hhash\x18\x03 \x01(\x0c\x12\x17\n\x0f\x63oinbase2_hhash\x18\x04 \x01(\x0c\x12#\n\tcoinbase1\x18\x05 \x01(\x0b\x32\x10.qrl.Transaction\x12#\n\tcoinbase2\x18\x06 \x01(\x0b\x32\x10.qrl.Transaction\x1a\x31\n\x04Vote\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\"m\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08TRANSFER\x10\x01\x12\t\n\x05STAKE\x10\x02\x12\x0b\n\x07\x44\x45STAKE\x10\x03\x12\x0c\n\x08\x43OINBASE\x10\x04\x12\x0b\n\x07LATTICE\x10\x05\x12\r\n\tDUPLICATE\x10\x06\x12\x08\n\x04VOTE\x10\x07\x42\x11\n\x0ftransactionTypeb\x06proto3')
+  serialized_pb=_b('\n\x0fqrllegacy.proto\x12\x03qrl\x1a\tqrl.proto\"\xe2\x04\n\rLegacyMessage\x12.\n\tfunc_name\x18\x01 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x1d\n\x06noData\x18\x02 \x01(\x0b\x32\x0b.qrl.NoDataH\x00\x12\x1d\n\x06veData\x18\x03 \x01(\x0b\x32\x0b.qrl.VEDataH\x00\x12\x1d\n\x06plData\x18\x04 \x01(\x0b\x32\x0b.qrl.PLDataH\x00\x12!\n\x08pongData\x18\x05 \x01(\x0b\x32\r.qrl.PONGDataH\x00\x12\x1d\n\x06mrData\x18\x06 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1e\n\x07sfmData\x18\x07 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1d\n\x06\x62kData\x18\x08 \x01(\x0b\x32\x0b.qrl.BKDataH\x00\x12\x1d\n\x06\x66\x62\x44\x61ta\x18\t \x01(\x0b\x32\x0b.qrl.FBDataH\x00\x12\x1d\n\x06pbData\x18\n \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12\"\n\x06stData\x18\x0b \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06vtData\x18\x0c \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12!\n\x08syncData\x18\r \x01(\x0b\x32\r.qrl.SYNCDataH\x00\"\x91\x01\n\x08\x46uncName\x12\x06\n\x02VE\x10\x00\x12\x06\n\x02PL\x10\x01\x12\x08\n\x04PONG\x10\x02\x12\x06\n\x02MR\x10\x03\x12\x07\n\x03SFM\x10\x04\x12\x06\n\x02\x42K\x10\x05\x12\x06\n\x02\x46\x42\x10\x06\x12\x06\n\x02PB\x10\x07\x12\x06\n\x02ST\x10\t\x12\x07\n\x03\x44ST\x10\n\x12\x06\n\x02\x44T\x10\x0b\x12\x06\n\x02TX\x10\x0c\x12\x06\n\x02VT\x10\r\x12\x06\n\x02LT\x10\x0e\x12\x07\n\x03\x45PH\x10\x0f\x12\x08\n\x04SYNC\x10\x10\x42\x06\n\x04\x64\x61ta\"\x08\n\x06NoData\"4\n\x06VEData\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x19\n\x11genesis_prev_hash\x18\x02 \x01(\x0c\"\x1a\n\x06PLData\x12\x10\n\x08peer_ips\x18\x01 \x03(\t\"\n\n\x08PONGData\"\x9d\x01\n\x06MRData\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12)\n\x04type\x18\x02 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"@\n\x06\x42KData\x12\x1b\n\x06mrData\x18\x01 \x01(\x0b\x32\x0b.qrl.MRData\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x17\n\x06\x46\x42\x44\x61ta\x12\r\n\x05index\x18\x01 \x01(\x04\"#\n\x06PBData\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x19\n\x08SYNCData\x12\r\n\x05state\x18\x01 \x01(\tb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -99,56 +99,10 @@ _LEGACYMESSAGE_FUNCNAME = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=501,
-  serialized_end=646,
+  serialized_start=493,
+  serialized_end=638,
 )
 _sym_db.RegisterEnumDescriptor(_LEGACYMESSAGE_FUNCNAME)
-
-_TRANSACTIONDATA_TYPE = _descriptor.EnumDescriptor(
-  name='Type',
-  full_name='qrl.TransactionData.Type',
-  filename=None,
-  file=DESCRIPTOR,
-  values=[
-    _descriptor.EnumValueDescriptor(
-      name='UNKNOWN', index=0, number=0,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='TRANSFER', index=1, number=1,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='STAKE', index=2, number=2,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='DESTAKE', index=3, number=3,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='COINBASE', index=4, number=4,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='LATTICE', index=5, number=5,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='DUPLICATE', index=6, number=6,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='VOTE', index=7, number=7,
-      options=None,
-      type=None),
-  ],
-  containing_type=None,
-  options=None,
-  serialized_start=2034,
-  serialized_end=2143,
-)
-_sym_db.RegisterEnumDescriptor(_TRANSACTIONDATA_TYPE)
 
 
 _LEGACYMESSAGE = _descriptor.Descriptor(
@@ -266,7 +220,7 @@ _LEGACYMESSAGE = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=36,
-  serialized_end=654,
+  serialized_end=646,
 )
 
 
@@ -289,8 +243,8 @@ _NODATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=656,
-  serialized_end=664,
+  serialized_start=648,
+  serialized_end=656,
 )
 
 
@@ -327,8 +281,8 @@ _VEDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=666,
-  serialized_end=718,
+  serialized_start=658,
+  serialized_end=710,
 )
 
 
@@ -358,8 +312,8 @@ _PLDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=720,
-  serialized_end=746,
+  serialized_start=712,
+  serialized_end=738,
 )
 
 
@@ -382,8 +336,8 @@ _PONGDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=748,
-  serialized_end=758,
+  serialized_start=740,
+  serialized_end=750,
 )
 
 
@@ -448,8 +402,8 @@ _MRDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=761,
-  serialized_end=918,
+  serialized_start=753,
+  serialized_end=910,
 )
 
 
@@ -486,8 +440,8 @@ _BKDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=920,
-  serialized_end=984,
+  serialized_start=912,
+  serialized_end=976,
 )
 
 
@@ -517,8 +471,8 @@ _FBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=986,
-  serialized_end=1009,
+  serialized_start=978,
+  serialized_end=1001,
 )
 
 
@@ -548,8 +502,8 @@ _PBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1011,
-  serialized_end=1046,
+  serialized_start=1003,
+  serialized_end=1038,
 )
 
 
@@ -579,414 +533,8 @@ _SYNCDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1048,
-  serialized_end=1073,
-)
-
-
-_TRANSACTIONDATA_TRANSFER = _descriptor.Descriptor(
-  name='Transfer',
-  full_name='qrl.TransactionData.Transfer',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='addr_to', full_name='qrl.TransactionData.Transfer.addr_to', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='amount', full_name='qrl.TransactionData.Transfer.amount', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='fee', full_name='qrl.TransactionData.Transfer.fee', index=2,
-      number=3, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1555,
-  serialized_end=1611,
-)
-
-_TRANSACTIONDATA_STAKE = _descriptor.Descriptor(
-  name='Stake',
-  full_name='qrl.TransactionData.Stake',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='activation_blocknumber', full_name='qrl.TransactionData.Stake.activation_blocknumber', index=0,
-      number=1, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='slavePK', full_name='qrl.TransactionData.Stake.slavePK', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='hash', full_name='qrl.TransactionData.Stake.hash', index=2,
-      number=3, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1613,
-  serialized_end=1683,
-)
-
-_TRANSACTIONDATA_DESTAKE = _descriptor.Descriptor(
-  name='Destake',
-  full_name='qrl.TransactionData.Destake',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1685,
-  serialized_end=1694,
-)
-
-_TRANSACTIONDATA_COINBASE = _descriptor.Descriptor(
-  name='CoinBase',
-  full_name='qrl.TransactionData.CoinBase',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='addr_to', full_name='qrl.TransactionData.CoinBase.addr_to', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='amount', full_name='qrl.TransactionData.CoinBase.amount', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1696,
-  serialized_end=1739,
-)
-
-_TRANSACTIONDATA_LATTICEPUBLICKEY = _descriptor.Descriptor(
-  name='LatticePublicKey',
-  full_name='qrl.TransactionData.LatticePublicKey',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='kyber_pk', full_name='qrl.TransactionData.LatticePublicKey.kyber_pk', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='tesla_pk', full_name='qrl.TransactionData.LatticePublicKey.tesla_pk', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1741,
-  serialized_end=1795,
-)
-
-_TRANSACTIONDATA_DUPLICATE = _descriptor.Descriptor(
-  name='Duplicate',
-  full_name='qrl.TransactionData.Duplicate',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='block_number', full_name='qrl.TransactionData.Duplicate.block_number', index=0,
-      number=1, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='prev_header_hash', full_name='qrl.TransactionData.Duplicate.prev_header_hash', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='coinbase1_hhash', full_name='qrl.TransactionData.Duplicate.coinbase1_hhash', index=2,
-      number=3, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='coinbase2_hhash', full_name='qrl.TransactionData.Duplicate.coinbase2_hhash', index=3,
-      number=4, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='coinbase1', full_name='qrl.TransactionData.Duplicate.coinbase1', index=4,
-      number=5, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='coinbase2', full_name='qrl.TransactionData.Duplicate.coinbase2', index=5,
-      number=6, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1798,
-  serialized_end=1981,
-)
-
-_TRANSACTIONDATA_VOTE = _descriptor.Descriptor(
-  name='Vote',
-  full_name='qrl.TransactionData.Vote',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='block_number', full_name='qrl.TransactionData.Vote.block_number', index=0,
-      number=1, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='hash_header', full_name='qrl.TransactionData.Vote.hash_header', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=1983,
-  serialized_end=2032,
-)
-
-_TRANSACTIONDATA = _descriptor.Descriptor(
-  name='TransactionData',
-  full_name='qrl.TransactionData',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='type', full_name='qrl.TransactionData.type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='nonce', full_name='qrl.TransactionData.nonce', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='addr_from', full_name='qrl.TransactionData.addr_from', index=2,
-      number=3, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='public_key', full_name='qrl.TransactionData.public_key', index=3,
-      number=4, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='transaction_hash', full_name='qrl.TransactionData.transaction_hash', index=4,
-      number=5, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='ots_key', full_name='qrl.TransactionData.ots_key', index=5,
-      number=6, type=13, cpp_type=3, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='signature', full_name='qrl.TransactionData.signature', index=6,
-      number=7, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='transfer', full_name='qrl.TransactionData.transfer', index=7,
-      number=8, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='stake', full_name='qrl.TransactionData.stake', index=8,
-      number=9, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='coinbase', full_name='qrl.TransactionData.coinbase', index=9,
-      number=10, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='latticePK', full_name='qrl.TransactionData.latticePK', index=10,
-      number=11, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='duplicate', full_name='qrl.TransactionData.duplicate', index=11,
-      number=12, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='vote', full_name='qrl.TransactionData.vote', index=12,
-      number=13, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-  ],
-  extensions=[
-  ],
-  nested_types=[_TRANSACTIONDATA_TRANSFER, _TRANSACTIONDATA_STAKE, _TRANSACTIONDATA_DESTAKE, _TRANSACTIONDATA_COINBASE, _TRANSACTIONDATA_LATTICEPUBLICKEY, _TRANSACTIONDATA_DUPLICATE, _TRANSACTIONDATA_VOTE, ],
-  enum_types=[
-    _TRANSACTIONDATA_TYPE,
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-    _descriptor.OneofDescriptor(
-      name='transactionType', full_name='qrl.TransactionData.transactionType',
-      index=0, containing_type=None, fields=[]),
-  ],
-  serialized_start=1076,
-  serialized_end=2162,
+  serialized_start=1040,
+  serialized_end=1065,
 )
 
 _LEGACYMESSAGE.fields_by_name['func_name'].enum_type = _LEGACYMESSAGE_FUNCNAME
@@ -999,8 +547,8 @@ _LEGACYMESSAGE.fields_by_name['sfmData'].message_type = _MRDATA
 _LEGACYMESSAGE.fields_by_name['bkData'].message_type = _BKDATA
 _LEGACYMESSAGE.fields_by_name['fbData'].message_type = _FBDATA
 _LEGACYMESSAGE.fields_by_name['pbData'].message_type = _PBDATA
-_LEGACYMESSAGE.fields_by_name['stData'].message_type = _TRANSACTIONDATA
-_LEGACYMESSAGE.fields_by_name['vtData'].message_type = _TRANSACTIONDATA
+_LEGACYMESSAGE.fields_by_name['stData'].message_type = qrl__pb2._TRANSACTION
+_LEGACYMESSAGE.fields_by_name['vtData'].message_type = qrl__pb2._TRANSACTION
 _LEGACYMESSAGE.fields_by_name['syncData'].message_type = _SYNCDATA
 _LEGACYMESSAGE_FUNCNAME.containing_type = _LEGACYMESSAGE
 _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
@@ -1043,41 +591,6 @@ _MRDATA.fields_by_name['type'].enum_type = _LEGACYMESSAGE_FUNCNAME
 _BKDATA.fields_by_name['mrData'].message_type = _MRDATA
 _BKDATA.fields_by_name['block'].message_type = qrl__pb2._BLOCK
 _PBDATA.fields_by_name['block'].message_type = qrl__pb2._BLOCK
-_TRANSACTIONDATA_TRANSFER.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA_STAKE.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA_DESTAKE.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA_COINBASE.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA_LATTICEPUBLICKEY.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA_DUPLICATE.fields_by_name['coinbase1'].message_type = qrl__pb2._TRANSACTION
-_TRANSACTIONDATA_DUPLICATE.fields_by_name['coinbase2'].message_type = qrl__pb2._TRANSACTION
-_TRANSACTIONDATA_DUPLICATE.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA_VOTE.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA.fields_by_name['type'].enum_type = _TRANSACTIONDATA_TYPE
-_TRANSACTIONDATA.fields_by_name['transfer'].message_type = _TRANSACTIONDATA_TRANSFER
-_TRANSACTIONDATA.fields_by_name['stake'].message_type = _TRANSACTIONDATA_STAKE
-_TRANSACTIONDATA.fields_by_name['coinbase'].message_type = _TRANSACTIONDATA_COINBASE
-_TRANSACTIONDATA.fields_by_name['latticePK'].message_type = _TRANSACTIONDATA_LATTICEPUBLICKEY
-_TRANSACTIONDATA.fields_by_name['duplicate'].message_type = _TRANSACTIONDATA_DUPLICATE
-_TRANSACTIONDATA.fields_by_name['vote'].message_type = _TRANSACTIONDATA_VOTE
-_TRANSACTIONDATA_TYPE.containing_type = _TRANSACTIONDATA
-_TRANSACTIONDATA.oneofs_by_name['transactionType'].fields.append(
-  _TRANSACTIONDATA.fields_by_name['transfer'])
-_TRANSACTIONDATA.fields_by_name['transfer'].containing_oneof = _TRANSACTIONDATA.oneofs_by_name['transactionType']
-_TRANSACTIONDATA.oneofs_by_name['transactionType'].fields.append(
-  _TRANSACTIONDATA.fields_by_name['stake'])
-_TRANSACTIONDATA.fields_by_name['stake'].containing_oneof = _TRANSACTIONDATA.oneofs_by_name['transactionType']
-_TRANSACTIONDATA.oneofs_by_name['transactionType'].fields.append(
-  _TRANSACTIONDATA.fields_by_name['coinbase'])
-_TRANSACTIONDATA.fields_by_name['coinbase'].containing_oneof = _TRANSACTIONDATA.oneofs_by_name['transactionType']
-_TRANSACTIONDATA.oneofs_by_name['transactionType'].fields.append(
-  _TRANSACTIONDATA.fields_by_name['latticePK'])
-_TRANSACTIONDATA.fields_by_name['latticePK'].containing_oneof = _TRANSACTIONDATA.oneofs_by_name['transactionType']
-_TRANSACTIONDATA.oneofs_by_name['transactionType'].fields.append(
-  _TRANSACTIONDATA.fields_by_name['duplicate'])
-_TRANSACTIONDATA.fields_by_name['duplicate'].containing_oneof = _TRANSACTIONDATA.oneofs_by_name['transactionType']
-_TRANSACTIONDATA.oneofs_by_name['transactionType'].fields.append(
-  _TRANSACTIONDATA.fields_by_name['vote'])
-_TRANSACTIONDATA.fields_by_name['vote'].containing_oneof = _TRANSACTIONDATA.oneofs_by_name['transactionType']
 DESCRIPTOR.message_types_by_name['LegacyMessage'] = _LEGACYMESSAGE
 DESCRIPTOR.message_types_by_name['NoData'] = _NODATA
 DESCRIPTOR.message_types_by_name['VEData'] = _VEDATA
@@ -1088,7 +601,6 @@ DESCRIPTOR.message_types_by_name['BKData'] = _BKDATA
 DESCRIPTOR.message_types_by_name['FBData'] = _FBDATA
 DESCRIPTOR.message_types_by_name['PBData'] = _PBDATA
 DESCRIPTOR.message_types_by_name['SYNCData'] = _SYNCDATA
-DESCRIPTOR.message_types_by_name['TransactionData'] = _TRANSACTIONDATA
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 LegacyMessage = _reflection.GeneratedProtocolMessageType('LegacyMessage', (_message.Message,), dict(
@@ -1160,69 +672,6 @@ SYNCData = _reflection.GeneratedProtocolMessageType('SYNCData', (_message.Messag
   # @@protoc_insertion_point(class_scope:qrl.SYNCData)
   ))
 _sym_db.RegisterMessage(SYNCData)
-
-TransactionData = _reflection.GeneratedProtocolMessageType('TransactionData', (_message.Message,), dict(
-
-  Transfer = _reflection.GeneratedProtocolMessageType('Transfer', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_TRANSFER,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.Transfer)
-    ))
-  ,
-
-  Stake = _reflection.GeneratedProtocolMessageType('Stake', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_STAKE,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.Stake)
-    ))
-  ,
-
-  Destake = _reflection.GeneratedProtocolMessageType('Destake', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_DESTAKE,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.Destake)
-    ))
-  ,
-
-  CoinBase = _reflection.GeneratedProtocolMessageType('CoinBase', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_COINBASE,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.CoinBase)
-    ))
-  ,
-
-  LatticePublicKey = _reflection.GeneratedProtocolMessageType('LatticePublicKey', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_LATTICEPUBLICKEY,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.LatticePublicKey)
-    ))
-  ,
-
-  Duplicate = _reflection.GeneratedProtocolMessageType('Duplicate', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_DUPLICATE,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.Duplicate)
-    ))
-  ,
-
-  Vote = _reflection.GeneratedProtocolMessageType('Vote', (_message.Message,), dict(
-    DESCRIPTOR = _TRANSACTIONDATA_VOTE,
-    __module__ = 'qrllegacy_pb2'
-    # @@protoc_insertion_point(class_scope:qrl.TransactionData.Vote)
-    ))
-  ,
-  DESCRIPTOR = _TRANSACTIONDATA,
-  __module__ = 'qrllegacy_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.TransactionData)
-  ))
-_sym_db.RegisterMessage(TransactionData)
-_sym_db.RegisterMessage(TransactionData.Transfer)
-_sym_db.RegisterMessage(TransactionData.Stake)
-_sym_db.RegisterMessage(TransactionData.Destake)
-_sym_db.RegisterMessage(TransactionData.CoinBase)
-_sym_db.RegisterMessage(TransactionData.LatticePublicKey)
-_sym_db.RegisterMessage(TransactionData.Duplicate)
-_sym_db.RegisterMessage(TransactionData.Vote)
 
 
 # @@protoc_insertion_point(module_scope)

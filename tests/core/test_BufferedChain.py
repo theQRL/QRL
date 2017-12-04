@@ -132,7 +132,7 @@ class TestBufferedChain(TestCase):
                                              transactions=[stake_transaction],
                                              duplicate_transactions=OrderedDict(),
                                              vote=vote_metadata,
-                                             signing_xmss=alice_xmss,
+                                             signing_xmss=slave_xmss,
                                              nonce=1)
 
                     res = buffered_chain.add_block(block=tmp_block)
