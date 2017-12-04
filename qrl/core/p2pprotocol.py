@@ -387,14 +387,6 @@ class P2PProtocol(Protocol):
         self.factory.pos.last_pb_time = time.time()
         try:
             block = Block(message.pbData.block)
-            if block.block_number == self._last_requested_blocknum:
-                try:
-                    reactor.download_monitor.cancel()
-                except:  # noqa
-                    pass
-                self.factory.pos.update_node_state(ESyncState.synced)
-                return
-
             logger.info('>>> Received Block #%d', block.block_number)
 
             if not self.factory.buffered_chain.check_expected_headerhash(block.block_number,
