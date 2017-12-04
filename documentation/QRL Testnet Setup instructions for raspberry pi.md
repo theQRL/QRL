@@ -55,10 +55,8 @@ sudo pip3 install -U setuptools
 - To get the source and start the node, use the following: :
 
 ```
-git clone https://github.com/theQRL/QRL.git
-cd QRL/
-sudo pip3 install -r requirements.txt
-python3 start_qrl.py
+pip3 install --user -U qrl
+start_qrl
 ```
 
 - If you've set it up correctly, it should start to output the following:
@@ -74,17 +72,21 @@ This might take a while, leave it running until the chain is sync
 
 - If you want to keep QRL running after disconnecting terminal, you have to launch it in background :
 
-```nohup python3 start_qrl.py &```
+```nohup start_qrl &```
+
+- By default nohup will output logs to ${CWD}/nohup.out. Override this with
+
+```nohup start_qrl > /path/to/file.log &
 
 ## Check Sync process
 
 - You can find the status of the sync process (synced, syncing or unsynced) in the QRL log :
 
-```grep -i sync /home/pi/QRL/qrl.log | tail -1```
+```grep -i sync /path/to/file.log | tail -1```
 
 - Find last received blocks and compare it with QRL chain explorer http://qrlexplorer.info/
 
-```grep -i "Received Block"  /home/pi/QRL/qrl.log | tail -1```
+```grep -i "Received Block" /path/to/file.log | tail -1```
 
 > Another way to get the last received block is to connect locally on the wallet (see below) and use command `blockheight`
 
@@ -94,7 +96,7 @@ This might take a while, leave it running until the chain is sync
 
 - Find QRL process :
 
-```pgrep python3```
+```pgrep start_qrl```
 
 - Check memory usage
 
@@ -103,7 +105,7 @@ This might take a while, leave it running until the chain is sync
 - Is this example, memory usage is : 112MB (994232 x 11.2%)
 
 ```
-pi@raspberrypi:$ pgrep python3
+pi@raspberrypi:$ pgrep start_qrl
 5051
 pi@raspberrypi:$ top -p 5051
 top - 21:42:59 up 11 days, 17 min,  3 users,  load average: 1.54, 1.43, 0.99
@@ -113,28 +115,26 @@ KiB Mem :   **994232** total,   183584 free,   239048 used,   571600 buff/cache
 KiB Swap:   524284 total,   482864 free,    41420 used.   625072 avail Mem
 
   PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND
- 5051 pi        20   0  129784 111256  11264 R 135.7 **11.2**  15:18.28 python3
+ 5051 pi        20   0  129784 111256  11264 R 135.7 **11.2**  15:18.28 start_qrl
 ```
 
 
 ## Stopping the node
 - It can be required to stop the node, specially during testnet. Type the following to kill python process.
 
-```pkill python3```
+```pkill start_qrl```
 
 ## Update the node
 
-- First stop the python process (see above) and update the local git repository
+- First stop the python process (see above) and update the package through pip
 
 ```
-cd /home/pi/QRL/
-git pull
+pip3 install --user -U qrl
 ```
 - restart QRL
 
 ```
-cd /home/pi/QRL/
-python3 start_qrl.py
+start_qrl
 ```
 
 ## Accessing the wallet
@@ -144,7 +144,7 @@ python3 start_qrl.py
 
 - Run the following command to start the node :
 
-`python3 start_qrl.py`
+`start_qrl`
 
 - Once it starts the synchronisation process, you can telnet into the node. Type the following command in the terminal :
 
@@ -155,31 +155,19 @@ python3 start_qrl.py
 ## Launch the node automatically at startup
 - In the system settings (Start - Preferences - Raspberry Pi Configuration), make sure the "Boot" option is set to "To Desktop". In GUI distributions this is already pre-configured.
 
-- Make sure you have the `/home/pi/QRL/autostartQRL.sh` script with executable right
-
-`ls -l /home/pi/QRL/autostartQRL.sh/home/pi/autostartQRL.sh`
-
 - Add the script to the autostart folder (the location of the autostart file varies depending on your raspberry distribution) :
 
 `nano /home/pi/.config/lxsession/LXDE-pi/autostart`
 
 - Add the following line above(!) @xscreensaver -no-splash :
 
-`@lxterminal -e /home/pi/QRL/autostartQRL.sh &`
+`@lxterminal -e start_qrl &`
 Press ctrl+x to close, press y to save and press enter
-
-- Make the python script executable :
-
-`sudo chmodx [your folder]/QRL/main.py`
 
 - See if it works!
 
 ## Launch the node automatically every night
 - It can be useful to restart the node on a regular basis, specially during testnet
-
-- Make sure you have the `/home/pi/QRL/autostartQRL.sh` script with executable right
-
-`ls -l /home/pi/QRL/autostartQRL.sh`
 
 - Edit the crontab to restart QRL automatically
 
@@ -187,6 +175,6 @@ Press ctrl+x to close, press y to save and press enter
 
 - Append the following entry :
 
-`43 6 * * * /home/pi/QRL/autostartQRL.sh`
+`43 6 * * * pkill start_qrl && start_qrl`
 
 > In this example, QRL is restarted every day at 6:43. Please change the time to whatever in order to avoid all nodes restart at same time !
