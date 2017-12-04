@@ -163,7 +163,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
-
+        tx = Transaction(message.txData)
         if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
             return
 

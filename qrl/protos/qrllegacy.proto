@@ -43,8 +43,9 @@ message LegacyMessage {
         FBData fbData = 8;
         PBData pbData = 9;
         Transaction stData = 10;
-        Transaction vtData = 11;
-        SYNCData syncData = 12;
+        Transaction txData = 11;
+        Transaction vtData = 12;
+        SYNCData syncData = 13;
     }
 }
 

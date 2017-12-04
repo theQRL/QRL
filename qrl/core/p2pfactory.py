@@ -46,7 +46,7 @@ class P2PFactory(ServerFactory):
             qrllegacy_pb2.LegacyMessage.DT: '',
 
             ############################
-            qrllegacy_pb2.LegacyMessage.TX: '',
+            qrllegacy_pb2.LegacyMessage.TX: 'txData',
             qrllegacy_pb2.LegacyMessage.VT: 'vtData',
             qrllegacy_pb2.LegacyMessage.LT: '',
 
