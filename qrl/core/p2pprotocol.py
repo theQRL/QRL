@@ -38,7 +38,7 @@ class P2PProtocol(Protocol):
             qrllegacy_pb2.LegacyMessage.SFM: self.SFM,      # RECV=>SEND        Send Full Message
 
             qrllegacy_pb2.LegacyMessage.BK: self.handle_bk,        # RECV      Block
-            qrllegacy_pb2.LegacyMessage.FB: self.FB,        # Fetch request for block
+            qrllegacy_pb2.LegacyMessage.FB: self.handle_fb,        # Fetch request for block
             qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,        # Push Block
 
             ############################
@@ -386,7 +386,7 @@ class P2PProtocol(Protocol):
 
         self.factory.pos.last_pb_time = time.time()
         try:
-            block = message.pbData.block
+            block = Block(message.pbData.block)
             if block.block_number == self._last_requested_blocknum:
                 try:
                     reactor.download_monitor.cancel()
@@ -427,7 +427,7 @@ class P2PProtocol(Protocol):
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
 
-    def FB(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
+    def handle_fb(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
         """
         Fetch Block
         Sends the request for the block.
@@ -435,26 +435,16 @@ class P2PProtocol(Protocol):
         """
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
 
-        idx = int(message)
+        idx = message.fbData.index
         logger.info(' Request for %s by %s', idx, self._conn_identity)
         if 0 < idx <= self.factory.buffered_chain.height:
             blocknumber = idx
-            message = None
 
-            tmp_block = self.factory.buffered_chain.get_block(blocknumber)
-
-            if blocknumber <= self.factory.buffered_chain.height:
-                # FIXME: Breaking encapsulation
-                message = self.wrap_message('PB', self.factory.buffered_chain.get_block(blocknumber).to_json())
-                self.transport.write(message)
-            elif blocknumber in self.factory.buffered_chain.blocks:
-                blockStateBuffer = self.blocks[blocknumber]
-
-                # FIXME: Breaking encapsulation
-                message = self.wrap_message('PBB', blockStateBuffer[0].block.to_json())
-
-            if message is not None:
-                self.transport.write(message)
+            block = self.factory.buffered_chain.get_block(blocknumber)
+            # FIXME: Breaking encapsulation
+            pb_data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
+                                                  pbData=qrllegacy_pb2.PBData(block=block.pbdata))
+            self.transport.write(self.wrap_message(pb_data))
 
     def send_pong(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
@@ -574,18 +564,19 @@ class P2PProtocol(Protocol):
                                             lattice_public_key_txn.to_json())
 
     def send_sync(self):
-        data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC)
+        data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
+                                           syncData=qrllegacy_pb2.SYNCData(state=''))
         self.transport.write(self.wrap_message(data))
 
     def handle_sync(self, message: qrllegacy_pb2.LegacyMessage):
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
 
-        if message:
+        if message.syncData.state == 'Synced':
             self.factory.set_peer_synced(self, True)
-        else:
+        elif message.syncData.state == '':
             if self.factory.pos.sync_state.state == ESyncState.synced:
                 data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
-                                                   mrData=qrllegacy_pb2.SYNCData(state='Synced'))
+                                                   syncData=qrllegacy_pb2.SYNCData(state='Synced'))
                 self.transport.write(self.wrap_message(data))
                 self.factory.set_peer_synced(self, False)
 
@@ -597,7 +588,9 @@ class P2PProtocol(Protocol):
         """
         self._last_requested_blocknum = n
         logger.info('<<<Fetching block: %s from %s', n, self._conn_identity)
-        self.transport.write(self.wrap_message('FB', str(n)))
+        fb_data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
+                                              fbData=qrllegacy_pb2.FBData(index=n))
+        self.transport.write(self.wrap_message(fb_data))
 
     ###################################################
     ###################################################
