@@ -5,7 +5,7 @@ import struct
 import time
 from queue import PriorityQueue
 
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
@@ -47,11 +47,11 @@ class P2PProtocol(Protocol):
             qrllegacy_pb2.LegacyMessage.DT: self.DT,        # Duplicate Transaction
 
             ############################
-            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx, # RECV Transaction
+            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,  # RECV Transaction
             qrllegacy_pb2.LegacyMessage.VT: self.handle_vt,        # Vote Txn
-            qrllegacy_pb2.LegacyMessage.LT: self.LT,        # Lattice Public Key Transaction
+            qrllegacy_pb2.LegacyMessage.LT: self.LT,         # Lattice Public Key Transaction
 
-            qrllegacy_pb2.LegacyMessage.EPH: self.EPH,      # Ephemeral Transaction
+            qrllegacy_pb2.LegacyMessage.EPH: self.EPH,       # Ephemeral Transaction
 
             qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,  # Add into synced list, if the node replies
         }
@@ -621,6 +621,7 @@ class P2PProtocol(Protocol):
     def _parse_buffer(self):
         # FIXME: This parsing/wire protocol needs to be replaced
         """
+        >>> from pyqrllib.pyqrllib import hstr2bin
         >>> p=P2PProtocol()
         >>> p._buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'+ \
                                        '000000191a170a0776657273696f6e120c67656e657369735f68617368'))

@@ -10,6 +10,7 @@ from qrl.core.MessageRequest import MessageRequest
 from qrl.core.Transaction import CoinBase
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
+
 # FIXME: Refactor / improve
 class MessageReceipt(object):
     """
