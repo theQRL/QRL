@@ -54,6 +54,9 @@ service PublicAPI
 // This is a place holder for testing/instrumentation APIs
 service AdminAPI
 {
+    // FIXME: Use TLS and some signature scheme to validate the cli?
+    // At the moment, it will run locally
+    rpc GetLocalAddresses(GetLocalAddressesReq) returns (GetLocalAddressesResp);
 }
 
 ////////////////////////////
@@ -184,6 +187,31 @@ message LatticePublicKeyTxnReq {
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
     string some_response = 1;
+}
+
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+
+message GetLocalAddressesReq { }
+message GetLocalAddressesResp
+{
+    repeated bytes addresses = 1;
+}
+
+message GetWalletReq
+{
+    bytes address = 1;
+}
+
+message GetWalletResp
+{
+    // FIXME: Encrypt
+    Wallet wallet = 1;
 }
 
 ////////////////////////////

@@ -1,63 +1,186 @@
 #!/usr/bin/env python3
+import os
+
 import click
 import grpc
-from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
+from qrl.core import config
 from qrl.core.Transaction import Transaction
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
-
-def get_wallet_obj():
-    # FIXME: Not sure we need this redirection here. Maybe avoid
-    walletObj = Wallet()
-    return walletObj
+ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
 
 
-# TODO add balance
-def print_wallet_list(walletObj):
-    print('Number\t\tAddress')
-    for pos, addr in enumerate(walletObj.address_bundle):
-        print('%s\t\t%s' % (pos, addr.address.decode()))
+class CLIContext(object):
+
+    def __init__(self, remote, host, port_public, port_admin, wallet_dir):
+        self.remote = remote
+        self.host = host
+        self.port_public = port_public
+        self.port_admin = port_admin
+
+        self.wallet_dir = os.path.abspath(wallet_dir)
+
+        self.channel_public = grpc.insecure_channel(self.node_public_address)
+        self.channel_admin = grpc.insecure_channel(self.node_admin_address)
+
+    @property
+    def node_public_address(self):
+        return '{}:{}'.format(self.host, self.port_public)
+
+    @property
+    def node_admin_address(self):
+        return '{}:{}'.format(self.host, self.port_admin)
 
 
-def select_wallet(walletObj):
-    # FIXME: Get values from arguments, interactive only when necessary
-    walletnum = click.prompt('Enter wallet number ', type=int)
+def _admin_get_local_addresses(ctx):
+    try:
+        stub = qrl_pb2_grpc.AdminAPIStub(ctx.obj.channel_admin)
+        getAddressStateResp = stub.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=5)
+        return getAddressStateResp.addresses
+    except Exception as e:
+        click.echo('Error connecting to node', color='red')
+        return []
 
-    if 0 <= walletnum < len(walletObj.address_bundle):
-        return walletObj.address_bundle[walletnum]
 
-    print('Invalid Wallet Number')
-    return None
+def _print_addresses(ctx, addresses, source_description):
+    if len(addresses) == 0:
+        click.echo('No wallet found at {}'.format(source_description))
+        return
+
+    click.echo('Wallet at          : {}'.format(source_description))
+    click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
+    click.echo('-' * 95)
+
+    for pos, addr in enumerate(addresses):
+        try:
+            balance = _public_get_address_balance(ctx, addr)
+            # TODO standardize quanta/shor conversion
+            balance /= 1e8
+            click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
+        except Exception as e:
+            click.echo('{:<8}{:<75}?'.format(pos, addr.decode()))
 
 
-def get_channel():
-    return grpc.insecure_channel('127.0.0.1:9009')
+def _public_get_address_balance(ctx, address):
+    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=address)
+    getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
+    return getAddressStateResp.state.balance
 
+
+def _select_wallet(ctx, src):
+    try:
+        if src.isdigit():
+            src_idx = int(src)
+            config.user.wallet_path = ctx.obj.wallet_dir
+            wallet = Wallet(valid_or_create=False)
+            addresses = [a.address for a in wallet.address_bundle]
+            if not addresses:
+                click.echo('This command is requires a local wallet')
+                return
+
+            if 0 <= src_idx < len(addresses):
+                # FIXME: This should only return pk and index
+                ab = wallet.address_bundle[src_idx]
+                return ab.address, ab.xmss
+
+            click.echo('Wallet index not found', color='yellow')
+            quit(1)
+
+        return src.encode(), None
+    except Exception as e:
+        click.echo("Error selecting wallet")
+        quit(1)
+
+
+########################
+########################
+########################
+########################
 
 @click.group()
-def wallet():
-    """Wallet Commands
+@click.option('--remote', '-r', default=False, is_flag=True, help='connect to remote node')
+@click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
+@click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
+@click.option('--port_adm', default=9008, help='remote port number (admin api)  [9009]* will change')
+@click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
+@click.pass_context
+def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
     """
-    pass
+    QRL Command Line Interface
+    """
+    ctx.obj = CLIContext(remote=remote,
+                         host=host,
+                         port_public=port_pub,
+                         port_admin=port_adm,
+                         wallet_dir=wallet_dir)
 
 
-@wallet.command()
-def list():  # FIXME: method name is a python keyword
+@qrl.command()
+@click.pass_context
+def wallet_ls(ctx):
     """
     Lists available wallets
     """
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
+    if ctx.obj.remote:
+        addresses = _admin_get_local_addresses(ctx)
+        _print_addresses(ctx, addresses, ctx.obj.node_public_address)
+    else:
+        config.user.wallet_path = ctx.obj.wallet_dir
+        wallet = Wallet(valid_or_create=False)
+        addresses = [a.address for a in wallet.address_bundle]
+        _print_addresses(ctx, addresses, config.user.wallet_path)
 
 
-@wallet.command()
+@qrl.command()
+@click.pass_context
+def wallet_gen(ctx):
+    """
+    Generates a new wallet with one address
+    """
+    if ctx.obj.remote:
+        click.echo('This command is unsupported for remote wallets')
+        return
+
+    config.user.wallet_path = ctx.obj.wallet_dir
+    wallet = Wallet()
+
+    addresses = [a.address for a in wallet.address_bundle]
+    _print_addresses(ctx, addresses, config.user.wallet_path)
+
+
+@qrl.command()
+@click.pass_context
+def wallet_add(ctx):
+    """
+    Adds an address or generates a new wallet (working directory)
+    """
+    if ctx.obj.remote:
+        click.echo('This command is unsupported for remote wallets')
+        return
+
+    config.user.wallet_path = ctx.obj.wallet_dir
+    wallet = Wallet()
+    wallet.append(wallet.get_new_address())
+
+    addresses = [a.address for a in wallet.address_bundle]
+    _print_addresses(ctx, addresses, config.user.wallet_path)
+
+
+@qrl.command()
 @click.option('--seed-type', type=click.Choice(['hexseed', 'mnemonic']), default='hexseed')
-def recover(seed_type):
+@click.pass_context
+def wallet_recover(ctx, seed_type):
     """
-    Recover Wallet using hexseed or mnemonic (32 words)
+    Recovers a wallet from a hexseed or mnemonic (32 words)
     """
+    if ctx.obj.remote:
+        click.echo('This command is unsupported for remote wallets')
+        return
+
     seed = click.prompt('Please enter your %s' % (seed_type,))
     seed = seed.lower().strip()
 
@@ -75,7 +198,8 @@ def recover(seed_type):
             return
         bin_seed = hstr2bin(seed)
 
-    walletObj = get_wallet_obj()
+    config.user.wallet_path = ctx.obj.wallet_dir
+    walletObj = Wallet()
     addrBundle = walletObj.get_new_address(seed=bin_seed)
     print('Recovered Wallet Address : %s' % (addrBundle.address.decode(),))
     for addr in walletObj.address_bundle:
@@ -90,152 +214,259 @@ def recover(seed_type):
         click.echo('Done')
 
 
-@wallet.command()
-def generate():
+@qrl.command()
+@click.option('--wallet-idx', default=0, prompt=True)
+@click.pass_context
+def wallet_secret(ctx, wallet_idx):
     """
-    Generates new wallet address
+    Provides the mnemonic/hexseed of the given address index
     """
-    walletObj = get_wallet_obj()
-    click.echo('Generating...')
-    addressBundle = walletObj.get_new_address()
-    click.echo('Wallet Address     : %s' % (addressBundle.address.decode(),))
-    click.echo('Hexseed            : %s' % (addressBundle.xmss.get_hexseed(),))
-    click.echo('Mnemonic           : %s' % (addressBundle.xmss.get_mnemonic(),))
-
-    if click.confirm('Do you want to save the generated wallet?'):
-        walletObj.address_bundle.append(addressBundle)
-        click.echo('Saving...')
-        walletObj.save_wallet()
-        click.echo('Done')
-
-
-@wallet.command()
-def hexseed():
-    """
-    Provides the Hexseed of the address into wallet list.
-    """
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
-
-    if selected_wallet:
-        click.echo('Wallet Address : %s' % (selected_wallet.address.decode(),))
-        click.echo('Hexseed        : %s' % (selected_wallet.xmss.get_hexseed(),))
-
-
-@wallet.command()
-def mnemonic():
-    """
-    Provides the mnemonic words of the address into wallet list.
-    """
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
-
-    if selected_wallet:
-        click.echo('Wallet Address  : %s' % (selected_wallet.address.decode(),))
-        click.echo('Mnemonic        : %s' % (selected_wallet.xmss.get_mnemonic(),))
-
-
-@wallet.command()
-def send():
-    """
-    Transfer coins
-    """
-    channel = get_channel()
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
-
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
-    if not selected_wallet:
+    if ctx.obj.remote:
+        click.echo('This command is unsupported for remote wallets')
         return
 
-    address_to = click.prompt('Enter Address To', type=str)
-    amount = click.prompt('Enter Amount', type=float)
-    fee = click.prompt('Fee', type=float)
+    config.user.wallet_path = ctx.obj.wallet_dir
 
-    address_to = address_to.encode()
-    int_amount = int(amount * 10 ** 8)
-    int_fee = int(fee * 10 ** 8)
+    wallet = Wallet(valid_or_create=False)
+
+    if 0 <= wallet_idx < len(wallet.address_bundle):
+        addr_bundle = wallet.address_bundle[wallet_idx]
+        click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
+        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
+    else:
+        click.echo('Wallet index not found', color='yellow')
+
+
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='source address or index')
+@click.option('--dst', default='', prompt=True, help='destination address')
+@click.option('--amount', default=0, type=float, prompt=True, help='amount to transfer (Quanta)')
+@click.option('--fee', default=0, type=float, prompt=True, help='fee (Quanta)')
+@click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
+@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
+@click.pass_context
+def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
+    """
+    Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
+    """
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if src_xmss:
+            address_src_pk = src_xmss.pk()
+            address_src_otsidx = src_xmss.get_index()
+        else:
+            address_src_pk = pk.encode()
+            address_src_otsidx = int(otsidx)
+
+        address_dst = dst.encode()
+        amount_shor = int(amount * 1.e8)
+        fee_shor = int(fee * 1.e8)
+    except Exception as e:
+        click.echo("Error validating arguments")
+        quit(1)
+
+    channel = grpc.insecure_channel(ctx.obj.node_public_address)
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+    # FIXME: This could be problematic. Check
+    transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
+                                                address_to=address_dst,
+                                                amount=amount_shor,
+                                                fee=fee_shor,
+                                                xmss_pk=address_src_pk,
+                                                xmss_ots_index=address_src_otsidx)
 
     try:
-        transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=selected_wallet.address,
-                                                    address_to=address_to,
-                                                    amount=int_amount,
-                                                    fee=int_fee,
-                                                    xmss_pk=selected_wallet.xmss.pk(),
-                                                    xmss_ots_index=selected_wallet.xmss.get_index())
+        transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
+    except grpc.RpcError as e:
+        click.echo(e.details())
+        quit(1)
+    except Exception as e:
+        click.echo("Unhandled error: {}".format(str(e)))
+        quit(1)
 
-        f = stub.TransferCoins.future(transferCoinsReq, timeout=5)
-        transferCoinsResp = f.result(timeout=5)
+    txblob = bin2hstr(transferCoinsResp.transaction_unsigned.SerializeToString())
+    print(txblob)
+
+
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='signing address index')
+@click.option('--txblob', default='', prompt=True, help='transaction blob (unsigned)')
+@click.pass_context
+def tx_sign(ctx, src, txblob):
+    """
+    Sign a tx blob
+    """
+    txbin = bytes(hstr2bin(txblob))
+    pbdata = qrl_pb2.Transaction()
+    pbdata.ParseFromString(txbin)
+    tx = Transaction.from_pbdata(pbdata)
+
+    address_src, address_xmss = _select_wallet(ctx, src)
+    tx.sign(address_xmss)
+
+    txblob = bin2hstr(tx.pbdata.SerializeToString())
+    print(txblob)
+
+
+@qrl.command()
+@click.option('--txblob', default='', prompt=True, help='transaction blob (unsigned)')
+@click.pass_context
+def tx_inspect(ctx, txblob):
+    """
+    Inspected a transaction blob
+    """
+    tx = None
+    try:
+        txbin = bytes(hstr2bin(txblob))
+        pbdata = qrl_pb2.Transaction()
+        pbdata.ParseFromString(txbin)
+        tx = Transaction.from_pbdata(pbdata)
+    except Exception as e:
+        click.echo("tx blob is not valid")
+        quit(1)
+
+    tmp_json = tx.to_json()
+    # FIXME: binary fields are represented in base64. Improve output
+    print(tmp_json)
+
+
+@qrl.command()
+@click.option('--txblob', default='', prompt=True, help='transaction blob (unsigned)')
+@click.pass_context
+def tx_push(ctx, txblob):
+    tx = None
+    try:
+        txbin = bytes(hstr2bin(txblob))
+        pbdata = qrl_pb2.Transaction()
+        pbdata.ParseFromString(txbin)
+        tx = Transaction.from_pbdata(pbdata)
+    except Exception as e:
+        click.echo("tx blob is not valid")
+        quit(1)
+
+    tmp_json = tx.to_json()
+    # FIXME: binary fields are represented in base64. Improve output
+    print(tmp_json)
+    if (len(tx.signature) == 0):
+        click.echo('Signature missing')
+        quit(1)
+
+    channel = grpc.insecure_channel(ctx.obj.node_public_address)
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+    pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+    pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+    print(pushTransactionResp.some_response)
+
+
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--dst', default='', prompt=True, help='destination QRL address')
+@click.option('--amount', default=0, prompt=True, help='amount to transfer in Quanta')
+@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
+@click.pass_context
+def tx_transfer(ctx, src, dst, amount, fee):
+    """
+    Transfer coins from src to dst
+    """
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        address_src_pk = src_xmss.pk()
+        address_src_otsidx = src_xmss.get_index()
+        address_dst = dst.encode()
+        # FIXME: This could be problematic. Check
+        amount_shor = int(amount * 1.e8)
+        fee_shor = int(fee * 1.e8)
+    except Exception as e:
+        click.echo("Error validating arguments")
+        quit(1)
+
+    try:
+        channel = grpc.insecure_channel(ctx.obj.node_public_address)
+        stub = qrl_pb2_grpc.PublicAPIStub(channel)
+        transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
+                                                    address_to=address_dst,
+                                                    amount=amount_shor,
+                                                    fee=fee_shor,
+                                                    xmss_pk=address_src_pk,
+                                                    xmss_ots_index=address_src_otsidx)
+
+        transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
         tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
-        tx.sign(selected_wallet.xmss)
+        tx.sign(src_xmss.xmss)
+
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
-        pushTransactionResp = f.result(timeout=5)
-
-        print('%s' % (pushTransactionResp.some_response,))
+        print(pushTransactionResp.some_response)
     except Exception as e:
         print("Error {}".format(str(e)))
 
 
-@wallet.command()
-def eph():
-    # channel = get_channel()
-    # stub = qrl_pb2_grpc.PublicAPIStub(channel)
+# FIXME: Enable back
+# @qrl.command()
+# @click.pass_context
+# def eph(ctx):
+#     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+#
+#     walletObj = Wallet()
+#     _admin_print_wallet_list(walletObj)
+#     selected_wallet = select_wallet(walletObj)
+#     if not selected_wallet:
+#         return
+#
+#     # address_to = click.prompt('Address To', type=str)
+#     # message = click.prompt('Message', type=str)
 
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
-    if not selected_wallet:
-        return
 
-    # address_to = click.prompt('Address To', type=str)
-    # message = click.prompt('Message', type=str)
-
-
-@wallet.command()
-def lattice():
-    channel = get_channel()
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
-
-    walletObj = get_wallet_obj()
-    print_wallet_list(walletObj)
-    selected_wallet = select_wallet(walletObj)
-    if not selected_wallet:
-        return
-
-    lattice_public_key = click.prompt('Enter Lattice Public Key', type=str)
-
-    lattice_public_key = lattice_public_key.encode()
-
-    try:
-        latticePublicKeyTxnReq = qrl_pb2.LatticePublicKeyTxnReq(address_from=selected_wallet.address,
-                                                                kyber_pk=lattice_public_key,
-                                                                tesla_pk=lattice_public_key,
-                                                                xmss_pk=selected_wallet.xmss.pk(),
-                                                                xmss_ots_index=selected_wallet.xmss.get_index())
-
-        f = stub.GetLatticePublicKeyTxn.future(latticePublicKeyTxnReq, timeout=5)
-        latticePublicKeyResp = f.result(timeout=5)
-
-        tx = Transaction.from_pbdata(latticePublicKeyResp.transaction_unsigned)
-        tx.sign(selected_wallet.xmss)
-        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-
-        f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
-        pushTransactionResp = f.result(timeout=5)
-
-        print('%s' % (pushTransactionResp.some_response,))
-    except Exception as e:
-        print("Error {}".format(str(e)))
+# FIXME: Enable back
+# @qrl.command()
+# @click.pass_context
+# def lattice(ctx):
+#     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+#
+#     walletObj = Wallet()
+#     _admin_print_wallet_list(walletObj)
+#     selected_wallet = select_wallet(walletObj)
+#     if not selected_wallet:
+#         return
+#
+#     lattice_public_key = click.prompt('Enter Lattice Public Key', type=str)
+#
+#     lattice_public_key = lattice_public_key.encode()
+#
+#     try:
+#         latticePublicKeyTxnReq = qrl_pb2.LatticePublicKeyTxnReq(address_from=selected_wallet.address,
+#                                                                 kyber_pk=lattice_public_key,
+#                                                                 tesla_pk=lattice_public_key,
+#                                                                 xmss_pk=selected_wallet.xmss.pk(),
+#                                                                 xmss_ots_index=selected_wallet.xmss.get_index())
+#
+#         f = stub.GetLatticePublicKeyTxn.future(latticePublicKeyTxnReq, timeout=5)
+#         latticePublicKeyResp = f.result(timeout=5)
+#
+#         tx = Transaction.from_pbdata(latticePublicKeyResp.transaction_unsigned)
+#         tx.sign(selected_wallet.xmss)
+#         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+#
+#         f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
+#         pushTransactionResp = f.result(timeout=5)
+#
+#         print('%s' % (pushTransactionResp.some_response,))
+#     except Exception as e:
+#         print("Error {}".format(str(e)))
 
 
 def main():
-    wallet()
+    qrl()
 
 
 if __name__ == '__main__':

@@ -179,11 +179,19 @@
             <ul>
               
                 <li>
+                  <a href="#qrl.AddressList"><span class="badge">M</span>AddressList</a>
+                </li>
+              
+                <li>
                   <a href="#qrl.AddressState"><span class="badge">M</span>AddressState</a>
                 </li>
               
                 <li>
                   <a href="#qrl.Block"><span class="badge">M</span>Block</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.BlockExtended"><span class="badge">M</span>BlockExtended</a>
                 </li>
               
                 <li>
@@ -243,6 +251,14 @@
                 </li>
               
                 <li>
+                  <a href="#qrl.GetLocalAddressesReq"><span class="badge">M</span>GetLocalAddressesReq</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.GetLocalAddressesResp"><span class="badge">M</span>GetLocalAddressesResp</a>
+                </li>
+              
+                <li>
                   <a href="#qrl.GetNodeStateReq"><span class="badge">M</span>GetNodeStateReq</a>
                 </li>
               
@@ -275,6 +291,14 @@
                 </li>
               
                 <li>
+                  <a href="#qrl.GetWalletReq"><span class="badge">M</span>GetWalletReq</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.GetWalletResp"><span class="badge">M</span>GetWalletResp</a>
+                </li>
+              
+                <li>
                   <a href="#qrl.LatticePublicKeyTxnReq"><span class="badge">M</span>LatticePublicKeyTxnReq</a>
                 </li>
               
@@ -304,6 +328,34 @@
               
                 <li>
                   <a href="#qrl.PushTransactionResp"><span class="badge">M</span>PushTransactionResp</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidator"><span class="badge">M</span>StakeValidator</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidatorsList"><span class="badge">M</span>StakeValidatorsList</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidatorsTracker"><span class="badge">M</span>StakeValidatorsTracker</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidatorsTracker.ExpiryEntry"><span class="badge">M</span>StakeValidatorsTracker.ExpiryEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidatorsTracker.FutureStakeAddressesEntry"><span class="badge">M</span>StakeValidatorsTracker.FutureStakeAddressesEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidatorsTracker.FutureSvDictEntry"><span class="badge">M</span>StakeValidatorsTracker.FutureSvDictEntry</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.StakeValidatorsTracker.SvDictEntry"><span class="badge">M</span>StakeValidatorsTracker.SvDictEntry</a>
                 </li>
               
                 <li>
@@ -348,6 +400,14 @@
               
                 <li>
                   <a href="#qrl.Transaction.Vote"><span class="badge">M</span>Transaction.Vote</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.TransactionCount"><span class="badge">M</span>TransactionCount</a>
+                </li>
+              
+                <li>
+                  <a href="#qrl.TransactionCount.CountEntry"><span class="badge">M</span>TransactionCount.CountEntry</a>
                 </li>
               
                 <li>
@@ -438,6 +498,29 @@
       </div>
       <p></p>
 
+      
+        <h3 id="qrl.AddressList">AddressList</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>addresses</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
       
         <h3 id="qrl.AddressState">AddressState</h3>
         <p></p>
@@ -533,6 +616,43 @@
                   <td><a href="#qrl.GenesisBalance">GenesisBalance</a></td>
                   <td>repeated</td>
                   <td><p>This is only applicable to genesis blocks </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.BlockExtended">BlockExtended</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>block</td>
+                  <td><a href="#qrl.Block">Block</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>voted_weight</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>total_stake_weight</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
                 </tr>
               
             </tbody>
@@ -646,6 +766,20 @@
               
                 <tr>
                   <td>transaction_count</td>
+                  <td><a href="#qrl.TransactionCount">TransactionCount</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>voted_weight</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>total_stake_weight</td>
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
                   <td><p> </p></td>
@@ -994,6 +1128,36 @@
 
         
       
+        <h3 id="qrl.GetLocalAddressesReq">GetLocalAddressesReq</h3>
+        <p></p>
+
+        
+
+        
+      
+        <h3 id="qrl.GetLocalAddressesResp">GetLocalAddressesResp</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>addresses</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
         <h3 id="qrl.GetNodeStateReq">GetNodeStateReq</h3>
         <p></p>
 
@@ -1236,6 +1400,52 @@
                   <td><a href="#uint64">uint64</a></td>
                   <td></td>
                   <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.GetWalletReq">GetWalletReq</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.GetWalletResp">GetWalletResp</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>wallet</td>
+                  <td><a href="#qrl.Wallet">Wallet</a></td>
+                  <td></td>
+                  <td><p>FIXME: Encrypt </p></td>
                 </tr>
               
             </tbody>
@@ -1505,6 +1715,272 @@
                 <tr>
                   <td>some_response</td>
                   <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidator">StakeValidator</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>address</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>slave_public_key</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>terminator_hash</td>
+                  <td><a href="#bytes">bytes</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>balance</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>activation_blocknumber</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>nonce</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>is_banned</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>is_active</td>
+                  <td><a href="#bool">bool</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidatorsList">StakeValidatorsList</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>stake_validators</td>
+                  <td><a href="#qrl.StakeValidator">StakeValidator</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidatorsTracker">StakeValidatorsTracker</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>sv_dict</td>
+                  <td><a href="#qrl.StakeValidatorsTracker.SvDictEntry">StakeValidatorsTracker.SvDictEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>future_stake_addresses</td>
+                  <td><a href="#qrl.StakeValidatorsTracker.FutureStakeAddressesEntry">StakeValidatorsTracker.FutureStakeAddressesEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>expiry</td>
+                  <td><a href="#qrl.StakeValidatorsTracker.ExpiryEntry">StakeValidatorsTracker.ExpiryEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>future_sv_dict</td>
+                  <td><a href="#qrl.StakeValidatorsTracker.FutureSvDictEntry">StakeValidatorsTracker.FutureSvDictEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>total_stake_amount</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidatorsTracker.ExpiryEntry">StakeValidatorsTracker.ExpiryEntry</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#qrl.AddressList">AddressList</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidatorsTracker.FutureStakeAddressesEntry">StakeValidatorsTracker.FutureStakeAddressesEntry</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#qrl.StakeValidator">StakeValidator</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidatorsTracker.FutureSvDictEntry">StakeValidatorsTracker.FutureSvDictEntry</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#uint64">uint64</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#qrl.StakeValidatorsList">StakeValidatorsList</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.StakeValidatorsTracker.SvDictEntry">StakeValidatorsTracker.SvDictEntry</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#string">string</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#qrl.StakeValidator">StakeValidator</a></td>
                   <td></td>
                   <td><p> </p></td>
                 </tr>
@@ -1934,6 +2410,59 @@
 
         
       
+        <h3 id="qrl.TransactionCount">TransactionCount</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>count</td>
+                  <td><a href="#qrl.TransactionCount.CountEntry">TransactionCount.CountEntry</a></td>
+                  <td>repeated</td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
+        <h3 id="qrl.TransactionCount.CountEntry">TransactionCount.CountEntry</h3>
+        <p></p>
+
+        
+          <table class="field-table">
+            <thead>
+              <tr><td>Field</td><td>Type</td><td>Label</td><td>Description</td></tr>
+            </thead>
+            <tbody>
+              
+                <tr>
+                  <td>key</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+                <tr>
+                  <td>value</td>
+                  <td><a href="#uint32">uint32</a></td>
+                  <td></td>
+                  <td><p> </p></td>
+                </tr>
+              
+            </tbody>
+          </table>
+        
+
+        
+      
         <h3 id="qrl.TransactionExtended">TransactionExtended</h3>
         <p></p>
 
@@ -2276,6 +2805,14 @@
             <tr><td>Method Name</td><td>Request Type</td><td>Response Type</td><td>Description</td></tr>
           </thead>
           <tbody>
+            
+              <tr>
+                <td>GetLocalAddresses</td>
+                <td><a href="#qrl.GetLocalAddressesReq">GetLocalAddressesReq</a></td>
+                <td><a href="#qrl.GetLocalAddressesResp">GetLocalAddressesResp</a></td>
+                <td><p>FIXME: Use TLS and some signature scheme to validate the cli?
+At the moment, it will run locally</p></td>
+              </tr>
             
           </tbody>
         </table>

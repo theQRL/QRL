@@ -289,15 +289,33 @@ class AdminAPIStub(object):
     Args:
       channel: A grpc.Channel.
     """
+    self.GetLocalAddresses = channel.unary_unary(
+        '/qrl.AdminAPI/GetLocalAddresses',
+        request_serializer=qrl__pb2.GetLocalAddressesReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetLocalAddressesResp.FromString,
+        )
 
 
 class AdminAPIServicer(object):
   """This is a place holder for testing/instrumentation APIs
   """
 
+  def GetLocalAddresses(self, request, context):
+    """FIXME: Use TLS and some signature scheme to validate the cli?
+    At the moment, it will run locally
+    """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_AdminAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
+      'GetLocalAddresses': grpc.unary_unary_rpc_method_handler(
+          servicer.GetLocalAddresses,
+          request_deserializer=qrl__pb2.GetLocalAddressesReq.FromString,
+          response_serializer=qrl__pb2.GetLocalAddressesResp.SerializeToString,
+      ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
       'qrl.AdminAPI', rpc_method_handlers)
