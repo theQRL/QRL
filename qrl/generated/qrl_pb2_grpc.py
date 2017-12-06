@@ -294,11 +294,6 @@ class AdminAPIStub(object):
         request_serializer=qrl__pb2.GetLocalAddressesReq.SerializeToString,
         response_deserializer=qrl__pb2.GetLocalAddressesResp.FromString,
         )
-    self.GetWallet = channel.unary_unary(
-        '/qrl.AdminAPI/GetWallet',
-        request_serializer=qrl__pb2.GetWalletReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetWalletResp.FromString,
-        )
 
 
 class AdminAPIServicer(object):
@@ -313,12 +308,6 @@ class AdminAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetWallet(self, request, context):
-    # missing associated documentation comment in .proto file
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
 
 def add_AdminAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -326,11 +315,6 @@ def add_AdminAPIServicer_to_server(servicer, server):
           servicer.GetLocalAddresses,
           request_deserializer=qrl__pb2.GetLocalAddressesReq.FromString,
           response_serializer=qrl__pb2.GetLocalAddressesResp.SerializeToString,
-      ),
-      'GetWallet': grpc.unary_unary_rpc_method_handler(
-          servicer.GetWallet,
-          request_deserializer=qrl__pb2.GetWalletReq.FromString,
-          response_serializer=qrl__pb2.GetWalletResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

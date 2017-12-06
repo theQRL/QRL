@@ -4,8 +4,10 @@
 ## Table of Contents
 
 - [qrl.proto](#qrl.proto)
+    - [AddressList](#qrl.AddressList)
     - [AddressState](#qrl.AddressState)
     - [Block](#qrl.Block)
+    - [BlockExtended](#qrl.BlockExtended)
     - [BlockHeader](#qrl.BlockHeader)
     - [BlockHeaderExtended](#qrl.BlockHeaderExtended)
     - [BlockMetaData](#qrl.BlockMetaData)
@@ -40,6 +42,13 @@
     - [PongResp](#qrl.PongResp)
     - [PushTransactionReq](#qrl.PushTransactionReq)
     - [PushTransactionResp](#qrl.PushTransactionResp)
+    - [StakeValidator](#qrl.StakeValidator)
+    - [StakeValidatorsList](#qrl.StakeValidatorsList)
+    - [StakeValidatorsTracker](#qrl.StakeValidatorsTracker)
+    - [StakeValidatorsTracker.ExpiryEntry](#qrl.StakeValidatorsTracker.ExpiryEntry)
+    - [StakeValidatorsTracker.FutureStakeAddressesEntry](#qrl.StakeValidatorsTracker.FutureStakeAddressesEntry)
+    - [StakeValidatorsTracker.FutureSvDictEntry](#qrl.StakeValidatorsTracker.FutureSvDictEntry)
+    - [StakeValidatorsTracker.SvDictEntry](#qrl.StakeValidatorsTracker.SvDictEntry)
     - [StakerData](#qrl.StakerData)
     - [StoredPeers](#qrl.StoredPeers)
     - [Timestamp](#qrl.Timestamp)
@@ -51,31 +60,33 @@
     - [Transaction.Stake](#qrl.Transaction.Stake)
     - [Transaction.Transfer](#qrl.Transaction.Transfer)
     - [Transaction.Vote](#qrl.Transaction.Vote)
+    - [TransactionCount](#qrl.TransactionCount)
+    - [TransactionCount.CountEntry](#qrl.TransactionCount.CountEntry)
     - [TransactionExtended](#qrl.TransactionExtended)
     - [TransferCoinsReq](#qrl.TransferCoinsReq)
     - [TransferCoinsResp](#qrl.TransferCoinsResp)
     - [Wallet](#qrl.Wallet)
     - [WalletStore](#qrl.WalletStore)
-
+  
     - [GetLatestDataReq.Filter](#qrl.GetLatestDataReq.Filter)
     - [GetStakersReq.Filter](#qrl.GetStakersReq.Filter)
     - [NodeInfo.State](#qrl.NodeInfo.State)
     - [Transaction.Type](#qrl.Transaction.Type)
-
-
+  
+  
     - [AdminAPI](#qrl.AdminAPI)
     - [P2PAPI](#qrl.P2PAPI)
     - [PublicAPI](#qrl.PublicAPI)
-
+  
 
 - [qrlbase.proto](#qrlbase.proto)
     - [GetNodeInfoReq](#qrl.GetNodeInfoReq)
     - [GetNodeInfoResp](#qrl.GetNodeInfoResp)
-
-
-
+  
+  
+  
     - [Base](#qrl.Base)
-
+  
 
 - [Scalar Value Types](#scalar-value-types)
 
@@ -85,6 +96,21 @@
 <p align="right"><a href="#top">Top</a></p>
 
 ## qrl.proto
+
+
+
+<a name="qrl.AddressList"/>
+
+### AddressList
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| addresses | [bytes](#bytes) | repeated |  |
+
+
+
 
 
 
@@ -126,6 +152,23 @@
 
 
 
+<a name="qrl.BlockExtended"/>
+
+### BlockExtended
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| block | [Block](#qrl.Block) |  |  |
+| voted_weight | [uint64](#uint64) |  |  |
+| total_stake_weight | [uint64](#uint64) |  |  |
+
+
+
+
+
+
 <a name="qrl.BlockHeader"/>
 
 ### BlockHeader
@@ -159,7 +202,9 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | header | [BlockHeader](#qrl.BlockHeader) |  |  |
-| transaction_count | [uint64](#uint64) |  |  |
+| transaction_count | [TransactionCount](#qrl.TransactionCount) |  |  |
+| voted_weight | [uint64](#uint64) |  |  |
+| total_stake_weight | [uint64](#uint64) |  |  |
 
 
 
@@ -658,6 +703,126 @@ FIXME: This is legacy. Plan removal
 
 
 
+<a name="qrl.StakeValidator"/>
+
+### StakeValidator
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| address | [bytes](#bytes) |  |  |
+| slave_public_key | [bytes](#bytes) |  |  |
+| terminator_hash | [bytes](#bytes) |  |  |
+| balance | [uint64](#uint64) |  |  |
+| activation_blocknumber | [uint64](#uint64) |  |  |
+| nonce | [uint64](#uint64) |  |  |
+| is_banned | [bool](#bool) |  |  |
+| is_active | [bool](#bool) |  |  |
+
+
+
+
+
+
+<a name="qrl.StakeValidatorsList"/>
+
+### StakeValidatorsList
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| stake_validators | [StakeValidator](#qrl.StakeValidator) | repeated |  |
+
+
+
+
+
+
+<a name="qrl.StakeValidatorsTracker"/>
+
+### StakeValidatorsTracker
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| sv_dict | [StakeValidatorsTracker.SvDictEntry](#qrl.StakeValidatorsTracker.SvDictEntry) | repeated |  |
+| future_stake_addresses | [StakeValidatorsTracker.FutureStakeAddressesEntry](#qrl.StakeValidatorsTracker.FutureStakeAddressesEntry) | repeated |  |
+| expiry | [StakeValidatorsTracker.ExpiryEntry](#qrl.StakeValidatorsTracker.ExpiryEntry) | repeated |  |
+| future_sv_dict | [StakeValidatorsTracker.FutureSvDictEntry](#qrl.StakeValidatorsTracker.FutureSvDictEntry) | repeated |  |
+| total_stake_amount | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="qrl.StakeValidatorsTracker.ExpiryEntry"/>
+
+### StakeValidatorsTracker.ExpiryEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [uint64](#uint64) |  |  |
+| value | [AddressList](#qrl.AddressList) |  |  |
+
+
+
+
+
+
+<a name="qrl.StakeValidatorsTracker.FutureStakeAddressesEntry"/>
+
+### StakeValidatorsTracker.FutureStakeAddressesEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [StakeValidator](#qrl.StakeValidator) |  |  |
+
+
+
+
+
+
+<a name="qrl.StakeValidatorsTracker.FutureSvDictEntry"/>
+
+### StakeValidatorsTracker.FutureSvDictEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [uint64](#uint64) |  |  |
+| value | [StakeValidatorsList](#qrl.StakeValidatorsList) |  |  |
+
+
+
+
+
+
+<a name="qrl.StakeValidatorsTracker.SvDictEntry"/>
+
+### StakeValidatorsTracker.SvDictEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [string](#string) |  |  |
+| value | [StakeValidator](#qrl.StakeValidator) |  |  |
+
+
+
+
+
+
 <a name="qrl.StakerData"/>
 
 ### StakerData
@@ -845,6 +1010,37 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 
 
+<a name="qrl.TransactionCount"/>
+
+### TransactionCount
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| count | [TransactionCount.CountEntry](#qrl.TransactionCount.CountEntry) | repeated |  |
+
+
+
+
+
+
+<a name="qrl.TransactionCount.CountEntry"/>
+
+### TransactionCount.CountEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| key | [uint32](#uint32) |  |  |
+| value | [uint32](#uint32) |  |  |
+
+
+
+
+
+
 <a name="qrl.TransactionExtended"/>
 
 ### TransactionExtended
@@ -927,7 +1123,7 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 
 
-
+ 
 
 
 <a name="qrl.GetLatestDataReq.Filter"/>
@@ -988,9 +1184,9 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 | VOTE | 7 |  |
 
 
+ 
 
-
-
+ 
 
 
 <a name="qrl.AdminAPI"/>
@@ -1001,7 +1197,6 @@ This is a place holder for testing/instrumentation APIs
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 | GetLocalAddresses | [GetLocalAddressesReq](#qrl.GetLocalAddressesReq) | [GetLocalAddressesResp](#qrl.GetLocalAddressesReq) | FIXME: Use TLS and some signature scheme to validate the cli? At the moment, it will run locally |
-| GetWallet | [GetWalletReq](#qrl.GetWalletReq) | [GetWalletResp](#qrl.GetWalletReq) |  |
 
 
 <a name="qrl.P2PAPI"/>
@@ -1034,7 +1229,7 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | PushTransaction | [PushTransactionReq](#qrl.PushTransactionReq) | [PushTransactionResp](#qrl.PushTransactionReq) |  |
 | GetLatticePublicKeyTxn | [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq) | [TransferCoinsResp](#qrl.LatticePublicKeyTxnReq) |  |
 
-
+ 
 
 
 
@@ -1070,11 +1265,11 @@ This service describes the Public API used by clients (wallet/cli/etc)
 
 
 
+ 
 
+ 
 
-
-
-
+ 
 
 
 <a name="qrl.Base"/>
@@ -1086,7 +1281,7 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | ----------- | ------------ | ------------- | ------------|
 | GetNodeInfo | [GetNodeInfoReq](#qrl.GetNodeInfoReq) | [GetNodeInfoResp](#qrl.GetNodeInfoReq) |  |
 
-
+ 
 
 
 
