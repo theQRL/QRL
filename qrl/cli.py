@@ -60,7 +60,7 @@ def _print_addresses(ctx, addresses, source_description):
             # TODO standardize quanta/shor conversion
             balance /= 1e8
             click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
-        except Exception:
+        except Exception as e:
             click.echo('{:<8}{:<75}?'.format(pos, addr.decode()))
 
 
@@ -70,7 +70,30 @@ def _public_get_address_balance(ctx, address):
     getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
     return getAddressStateResp.state.balance
 
+
 def _select_wallet(ctx, src):
+    try:
+        if src.isdigit():
+            src_idx = int(src)
+            config.user.wallet_path = ctx.obj.wallet_dir
+            wallet = Wallet(valid_or_create=False)
+            addresses = [a.address for a in wallet.address_bundle]
+            if not addresses:
+                click.echo('This command is requires a local wallet')
+                return
+
+            if 0 <= src_idx < len(addresses):
+                # FIXME: This should only return pk and index
+                ab = wallet.address_bundle[src_idx]
+                return ab.address, ab.xmss
+
+            click.echo('Wallet index not found', color='yellow')
+            quit(1)
+
+        return src.encode(), None
+    except Exception as e:
+        click.echo("Error selecting wallet")
+        quit(1)
 
 
 ########################
@@ -227,33 +250,18 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
     Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
     """
     try:
-        if src.isdigit():
-            src_idx = int(src)
-            config.user.wallet_path = ctx.obj.wallet_dir
-            wallet = Wallet(valid_or_create=False)
-            addresses = [a.address for a in wallet.address_bundle]
-            if not addresses:
-                click.echo('This command is requires a local wallet')
-                return
-
-            if 0 <= src_idx < len(addresses):
-                # FIXME: This should only return pk and index
-                ab = wallet.address_bundle[src_idx]
-                address_src = ab.address
-                address_src_pk = ab.xmss.pk()
-                address_src_otsidx = ab.xmss.get_index()
-            else:
-                click.echo('Wallet index not found', color='yellow')
-                quit(1)
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if src_xmss:
+            address_src_pk = src_xmss.pk()
+            address_src_otsidx = src_xmss.get_index()
         else:
-            address_src = src.encode()
             address_src_pk = pk.encode()
             address_src_otsidx = int(otsidx)
 
         address_dst = dst.encode()
         amount_shor = int(amount * 1.e8)
         fee_shor = int(fee * 1.e8)
-    except:
+    except Exception as e:
         click.echo("Error validating arguments")
         quit(1)
 
@@ -293,32 +301,7 @@ def tx_sign(ctx, src, txblob):
     pbdata.ParseFromString(txbin)
     tx = Transaction.from_pbdata(pbdata)
 
-    try:
-        if not src.isdigit():
-            click.echo('a wallet index is required', color='yellow')
-            quit(1)
-
-        src_idx = int(src)
-        config.user.wallet_path = ctx.obj.wallet_dir
-        wallet = Wallet(valid_or_create=False)
-        addresses = [a.address for a in wallet.address_bundle]
-        if not addresses:
-            click.echo('This command is requires a local wallet')
-            return
-
-        if 0 <= src_idx < len(addresses):
-            # FIXME: This should only return pk and index
-            ab = wallet.address_bundle[src_idx]
-            address_src = ab.address
-            address_xmss = ab.xmss
-        else:
-            click.echo('Wallet index not found', color='yellow')
-            quit(1)
-
-    except:
-        click.echo("Error validating arguments")
-        quit(1)
-
+    address_src, address_xmss = _select_wallet(ctx, src)
     tx.sign(address_xmss)
 
     txblob = bin2hstr(tx.pbdata.SerializeToString())
@@ -338,7 +321,7 @@ def tx_inspect(ctx, txblob):
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
-    except:
+    except Exception as e:
         click.echo("tx blob is not valid")
         quit(1)
 
@@ -357,7 +340,7 @@ def tx_push(ctx, txblob):
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
-    except:
+    except Exception as e:
         click.echo("tx blob is not valid")
         quit(1)
 
@@ -389,37 +372,46 @@ def tx_transfer(ctx, src, dst, amount, fee):
         click.echo('This command is unsupported for local wallets')
         return
 
-    channel = grpc.insecure_channel(ctx.obj.node_public_address)
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
 
-    address_src = src.encode()
-    address_dst = dst.encode()
-
-    # FIXME: This could be problematic. Check
-    amount_shor = int(amount * 1e8)
-    fee_shor = int(fee * 1e8)
+        address_src_pk = src_xmss.pk()
+        address_src_otsidx = src_xmss.get_index()
+        address_dst = dst.encode()
+        # FIXME: This could be problematic. Check
+        amount_shor = int(amount * 1.e8)
+        fee_shor = int(fee * 1.e8)
+    except Exception as e:
+        click.echo("Error validating arguments")
+        quit(1)
 
     try:
+        channel = grpc.insecure_channel(ctx.obj.node_public_address)
+        stub = qrl_pb2_grpc.PublicAPIStub(channel)
         transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
                                                     address_to=address_dst,
                                                     amount=amount_shor,
                                                     fee=fee_shor,
-                                                    xmss_pk=selected_wallet.xmss.pk(),
-                                                    xmss_ots_index=selected_wallet.xmss.get_index())
+                                                    xmss_pk=address_src_pk,
+                                                    xmss_ots_index=address_src_otsidx)
 
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
         tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
-        tx.sign(selected_wallet.xmss)
+        tx.sign(src_xmss.xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print('%s' % (pushTransactionResp.some_response,))
+        print(pushTransactionResp.some_response)
     except Exception as e:
         print("Error {}".format(str(e)))
 
 
+# FIXME: Enable back
 # @qrl.command()
 # @click.pass_context
 # def eph(ctx):
@@ -433,8 +425,9 @@ def tx_transfer(ctx, src, dst, amount, fee):
 #
 #     # address_to = click.prompt('Address To', type=str)
 #     # message = click.prompt('Message', type=str)
-#
-#
+
+
+# FIXME: Enable back
 # @qrl.command()
 # @click.pass_context
 # def lattice(ctx):
