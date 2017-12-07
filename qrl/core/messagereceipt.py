@@ -43,7 +43,7 @@ class MessageReceipt(object):
     """
 
     # TODO: Use enumerations instead of strings to reduce data size
-    allowed_types = ['TX', 'ST', 'DST', 'BK', 'DT', 'VT', 'LT', 'EPH']
+    allowed_types = ['TX', 'ST', 'DST', 'BK', 'DT', 'VT', 'LT', 'EPH', 'MT']
 
     def __init__(self):
         self.hash_msg = OrderedDict()

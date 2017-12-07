@@ -228,7 +228,9 @@ class State:
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
+            if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
+                               qrl_pb2.Transaction.COINBASE,
+                               qrl_pb2.Transaction.MESSAGE):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
@@ -236,8 +238,10 @@ class State:
                 if txn.subtype == qrl_pb2.Transaction.TRANSFER:
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
-                self.update_address_tx_hashes(txn.txto, txn.txhash)
-                self.increase_txn_count(txn.txto)
+                if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
+                                   qrl_pb2.Transaction.COINBASE):
+                    self.update_address_tx_hashes(txn.txto, txn.txhash)
+                    self.increase_txn_count(txn.txto)
                 self.increase_txn_count(txn.txfrom)
 
     def get_tx_metadata(self, txhash: bytes):

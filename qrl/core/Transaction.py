@@ -76,7 +76,8 @@ class Transaction(object, metaclass=ABCMeta):
             qrl_pb2.Transaction.COINBASE: 'COINBASE',
             qrl_pb2.Transaction.LATTICE: 'LATTICE',
             qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE',
-            qrl_pb2.Transaction.VOTE: 'VOTE'
+            qrl_pb2.Transaction.VOTE: 'VOTE',
+            qrl_pb2.Transaction.MESSAGE: 'MESSAGE'
         }
         return id_name[idarg]
 
@@ -666,6 +667,88 @@ class Vote(Transaction):
         return True
 
 
+class MessageTransaction(Transaction):
+    """
+    Vote Transaction must be signed by Slave XMSS only.
+    """
+
+    def __init__(self, protobuf_transaction=None):
+        super(MessageTransaction, self).__init__(protobuf_transaction)
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.MESSAGE
+
+    @property
+    def addr_from(self):
+        return self._data.addr_from
+
+    @property
+    def message_hash(self):
+        return self._data.message.message_hash
+
+    @property
+    def fee(self):
+        return self._data.message.fee
+
+    def _get_hashable_bytes(self):
+        """
+        This method should return bytes that are to be hashed and represent the transaction
+        :return: hashable bytes
+        :rtype: bytes
+        """
+
+        tmptxhash = self.addr_from + self.message_hash
+
+        return bytes(sha256(tmptxhash))
+
+    @staticmethod
+    def create(message_hash: bytes, fee: int, xmss: XMSS):
+        transaction = MessageTransaction()
+
+        transaction._data.addr_from = xmss.get_address().encode()
+        transaction._data.message.message_hash = message_hash
+        transaction._data.message.fee = fee
+
+        transaction._data.public_key = bytes(xmss.pk())
+
+        transaction._data.ots_key = xmss.get_index()
+        transaction._data.transaction_hash = transaction.calculate_txhash()
+
+        return transaction
+
+    def _validate_custom(self) -> bool:
+        if len(self.message_hash) > 80:
+            logger.warning('Message hash length more than 80, %s', len(self.message_hash))
+            return False
+        return True
+
+    def validate_extended(self, tx_state, transaction_pool) -> bool:
+        tx_balance = tx_state.balance
+        tx_pubhashes = tx_state.pubhashes
+
+        if self.fee < 0:
+            logger.info('State validation failed for %s because: Negative send', self.txhash)
+            return False
+
+        if tx_balance < self.fee:
+            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('balance: %s, amount: %s', tx_balance, self.fee)
+            return False
+
+        if self.pubhash in tx_pubhashes:
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            return False
+
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if txn.pubhash == self.pubhash:
+                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                return False
+
+        return True
+
+
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: TransferTransaction,
     qrl_pb2.Transaction.STAKE: StakeTransaction,
@@ -673,5 +756,6 @@ TYPEMAP = {
     qrl_pb2.Transaction.COINBASE: CoinBase,
     qrl_pb2.Transaction.LATTICE: LatticePublicKey,
     qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction,
-    qrl_pb2.Transaction.VOTE: Vote
+    qrl_pb2.Transaction.VOTE: Vote,
+    qrl_pb2.Transaction.MESSAGE: MessageTransaction
 }

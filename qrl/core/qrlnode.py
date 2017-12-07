@@ -267,7 +267,7 @@ class QRLNode:
 
         if tx.subtype == qrl_pb2.Transaction.LATTICE:
             self._p2pfactory.broadcast_lt(tx)
-        elif tx.subtype == qrl_pb2.Transaction.TRANSFER:
+        elif tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.MESSAGE):
             tx.validate_or_raise()
 
             block_number = self._buffered_chain.height + 1
