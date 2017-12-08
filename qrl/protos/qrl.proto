@@ -358,6 +358,8 @@ message Transaction {
         DUPLICATE = 6;
         VOTE = 7;
         MESSAGE = 8;
+        TOKEN = 9;
+        TRANSFERTOKEN = 10;
     }
 
     Type type = 1;
@@ -422,6 +424,21 @@ message Transaction {
     message Message {
         bytes message_hash = 1;
         uint64 fee=2;
+    }
+
+    message Token {
+        bytes symbol = 1;
+        bytes name = 2;
+        bytes owner = 3;
+        uint64 decimals = 4;
+        uint64 initial_supply = 5;
+        uint64 fee = 6;
+    }
+
+    message TransferToken {
+        bytes addr_to = 1;
+        uint64 amount = 2;
+        uint64 fee = 3;
     }
 
 }
