@@ -469,6 +469,7 @@ class BufferedChain:
         stake_txn = set()
         transfercoin_txn = set()
         destake_txn = set()
+        message_txn = set()
 
         # cycle through every tx in the new block to check state
         for protobuf_tx in block.transactions:
@@ -575,11 +576,39 @@ class BufferedChain:
 
                 destake_txn.add(tx.txfrom)
 
+            elif tx.subtype == qrl_pb2.Transaction.MESSAGE:
+                if tx.txfrom in stake_txn:
+                    logger.warning("Message Txn done by %s address is a Stake Validator", tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.warning("Source address is a Stake Validator, balance is locked while staking")
+                    logger.warning("Message Txn dropped")
+                    return False
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.warning("Source address is in Future Stake Validator List, balance is locked")
+                    logger.warning("Message Txn dropped")
+                    return False
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid message tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Free %s', address_txn[tx.txfrom].balance, tx.fee)
+                    return False
+
+                message_txn.add(tx.txfrom)
+
             if tx.subtype != qrl_pb2.Transaction.COINBASE:
                 address_txn[tx.txfrom].increase_nonce()
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 address_txn[tx.txfrom].balance -= tx.amount - tx.fee
+
+            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+                address_txn[tx.txfrom].balance -= tx.fee
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
@@ -1096,14 +1125,17 @@ class BufferedChain:
         # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
         stake_txn = set()
         transfercoin_txn = set()
+        message_txn = set()
         destake_txn = set()
+        address_txn = dict()
         while txnum < total_txn:
             tx = t_pool2[txnum]
             if self.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
-
+            if tx.txfrom not in address_txn:
+                address_txn[tx.txfrom] = self.get_stxn_state(last_block_number + 1, tx.txfrom)
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 if tx.txfrom in stake_txn:
                     logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
@@ -1121,6 +1153,14 @@ class BufferedChain:
                 if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
                         stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
                     logger.debug("Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if address_txn[tx.txfrom].balance < tx.amount:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s', address_txn[tx.txfrom].balance, tx.amount)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -1202,6 +1242,47 @@ class BufferedChain:
                     continue
 
                 destake_txn.add(tx.txfrom)
+
+            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+                if tx.txfrom in stake_txn:
+                    logger.debug("Txn dropped: %s address is a Message TXN", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.debug("Message Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.debug("Message Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid message tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Free %s', address_txn[tx.txfrom].balance, tx.fee)
+                    total_txn -= 1
+                    continue
+
+                message_txn.add(tx.txfrom)
+
+            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
+                address_txn[tx.txfrom].balance -= tx.amount - tx.fee
+
+            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+                address_txn[tx.txfrom].balance -= tx.fee
+
+            if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
+                address_txn[tx.txto].balance += tx.amount
+
+            address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
 
             self.tx_pool.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1

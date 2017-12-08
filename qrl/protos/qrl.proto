@@ -357,6 +357,7 @@ message Transaction {
         LATTICE = 5;
         DUPLICATE = 6;
         VOTE = 7;
+        MESSAGE = 8;
     }
 
     Type type = 1;
@@ -375,6 +376,7 @@ message Transaction {
         LatticePublicKey latticePK = 11;
         Duplicate duplicate = 12;
         Vote vote = 13;
+        Message message = 14;
     }
 
     //////////
@@ -415,6 +417,11 @@ message Transaction {
     message Vote {
         uint64 block_number = 1;
         bytes hash_header = 2;
+    }
+
+    message Message {
+        bytes message_hash = 1;
+        uint64 fee=2;
     }
 
 }
