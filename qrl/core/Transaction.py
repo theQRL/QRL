@@ -77,7 +77,9 @@ class Transaction(object, metaclass=ABCMeta):
             qrl_pb2.Transaction.LATTICE: 'LATTICE',
             qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE',
             qrl_pb2.Transaction.VOTE: 'VOTE',
-            qrl_pb2.Transaction.MESSAGE: 'MESSAGE'
+            qrl_pb2.Transaction.MESSAGE: 'MESSAGE',
+            qrl_pb2.Transaction.TOKEN: 'TOKEN',
+            qrl_pb2.Transaction.TRANSFERTOKEN :'TRANSFERTOKEN'
         }
         return id_name[idarg]
 
@@ -749,6 +751,230 @@ class MessageTransaction(Transaction):
         return True
 
 
+class TokenTransaction(Transaction):
+    """
+    SimpleTransaction for the transaction of QRL from one wallet to another.
+    """
+
+    def __init__(self, protobuf_transaction=None):
+        super(TokenTransaction, self).__init__(protobuf_transaction)
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.TOKEN
+
+    @property
+    def symbol(self):
+        return self._data.token.symbol
+
+    @property
+    def name(self):
+        return self._data.token.name
+
+    @property
+    def owner(self):
+        return self._data.token.owner
+
+    @property
+    def decimals(self):
+        return self._data.token.decimals
+
+    @property
+    def initial_balances(self):
+        return self._data.token.initial_balances
+
+    @property
+    def fee(self):
+        return self._data.token.fee
+
+    def _get_hashable_bytes(self):
+        """
+        This method should return bytes that are to be hashed and represent the transaction
+        :return: hashable bytes
+        :rtype: bytes
+        """
+        tmptxhash = self.symbol + \
+            self.name + \
+            self.owner + \
+            str(self.decimals).encode() + \
+            str(self.fee).encode()
+
+        for initial_balance in self._data.token.initial_balances:
+            tmptxhash += initial_balance.address
+            tmptxhash += str(initial_balance.amount).encode()
+
+        return bytes(sha256(tmptxhash))
+
+    @staticmethod
+    def create(addr_from: bytes,
+               symbol: bytes,
+               name: bytes,
+               owner: bytes,
+               decimals: int,
+               initial_balances: list,
+               fee: int,
+               xmss_pk,
+               xmss_ots_index):
+        transaction = TokenTransaction()
+
+        transaction._data.addr_from = bytes(addr_from)
+        transaction._data.public_key = bytes(xmss_pk)
+
+        transaction._data.token.symbol = symbol
+        transaction._data.token.name = name
+        transaction._data.token.owner = owner
+        transaction._data.token.decimals = decimals
+
+        for initial_balance in initial_balances:
+            transaction._data.token.initial_balances.extend([initial_balance])
+
+        transaction._data.token.fee = int(fee)
+
+        transaction._data.ots_key = xmss_ots_index
+        transaction._data.transaction_hash = transaction.calculate_txhash()
+
+        return transaction
+
+    def _validate_custom(self):
+        if self.fee <= 0:
+            raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+        for initial_balance in self._data.token.initial_balances:
+            if initial_balance.amount <= 0:
+                raise ValueError('TokenTransaction [%s] Invalid Amount = %s for address %s',
+                                 bin2hstr(self.txhash),
+                                 initial_balance.amount,
+                                 initial_balance.address)
+
+        return True
+
+    # checks new tx validity based upon node statedb and node mempool.
+    def validate_extended(self, tx_state, transaction_pool):
+        tx_balance = tx_state.balance
+        tx_pubhashes = tx_state.pubhashes
+
+        if self.fee < 0:
+            logger.info('State validation failed for %s because: Negative send', self.txhash)
+            return False
+
+        if tx_balance < self.fee:
+            logger.info('TokenTxn State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
+            return False
+
+        if self.pubhash in tx_pubhashes:
+            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            return False
+
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if txn.pubhash == self.pubhash:
+                logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
+                            self.txhash)
+                return False
+
+        return True
+
+
+class TransferTokenTransaction(Transaction):
+    """
+    SimpleTransaction for the transaction of QRL from one wallet to another.
+    """
+
+    def __init__(self, protobuf_transaction=None):
+        super(TransferTokenTransaction, self).__init__(protobuf_transaction)
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.TRANSFERTOKEN
+
+    @property
+    def token_txhash(self):
+        return self._data.transfer_token.token_txhash
+
+    @property
+    def addr_to(self):
+        return self._data.transfer_token.addr_to
+
+    @property
+    def amount(self):
+        return self._data.transfer_token.amount
+
+    @property
+    def fee(self):
+        return self._data.transfer_token.fee
+
+    def _get_hashable_bytes(self):
+        """
+        This method should return bytes that are to be hashed and represent the transaction
+        :return: hashable bytes
+        :rtype: bytes
+        """
+        tmptxhash = self.token_txhash + \
+            self.addr_to + \
+            str(self.amount).encode() + \
+            str(self.fee).encode()
+
+        return bytes(sha256(tmptxhash))
+
+    @staticmethod
+    def create(addr_from: bytes,
+               token_txhash: bytes,
+               addr_to, bytes,
+               amount: int,
+               fee: int,
+               xmss_pk,
+               xmss_ots_index):
+        transaction = TokenTransaction()
+
+        transaction._data.addr_from = bytes(addr_from)
+        transaction._data.public_key = bytes(xmss_pk)
+
+        transaction._data.transfer_token.token_txhash = token_txhash
+        transaction._data.transfer_token.addr_to = addr_to
+        transaction._data.transfer_token.amount = amount
+        transaction._data.transfer_token.fee = int(fee)
+
+        transaction._data.ots_key = xmss_ots_index
+        transaction._data.transaction_hash = transaction.calculate_txhash()
+
+        return transaction
+
+    def _validate_custom(self):
+        if self.fee <= 0:
+            raise ValueError('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+        return True
+
+    # checks new tx validity based upon node statedb and node mempool.
+    def validate_extended(self, tx_state, transaction_pool):
+        tx_balance = tx_state.balance
+        tx_pubhashes = tx_state.pubhashes
+
+        if self.fee < 0 or self.amount < 0:
+            logger.info('TransferTokenTransaction State validation failed for %s because: ', self.txhash)
+            logger.info('Txn amount: %s, Fee: %s', self.amount, self.fee)
+            return False
+
+        if tx_balance < self.fee:
+            logger.info('TransferTokenTransaction State validation failed for %s because: Insufficient funds',
+                        self.txhash)
+            logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
+            return False
+
+        if self.pubhash in tx_pubhashes:
+            logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
+                        self.txhash)
+            return False
+
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if txn.pubhash == self.pubhash:
+                logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
+                            self.txhash)
+                return False
+
+        return True
+
+
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: TransferTransaction,
     qrl_pb2.Transaction.STAKE: StakeTransaction,
@@ -757,5 +983,7 @@ TYPEMAP = {
     qrl_pb2.Transaction.LATTICE: LatticePublicKey,
     qrl_pb2.Transaction.DUPLICATE: DuplicateTransaction,
     qrl_pb2.Transaction.VOTE: Vote,
-    qrl_pb2.Transaction.MESSAGE: MessageTransaction
+    qrl_pb2.Transaction.MESSAGE: MessageTransaction,
+    qrl_pb2.Transaction.TOKEN: TokenTransaction,
+    qrl_pb2.Transaction.TRANSFERTOKEN: TransferTokenTransaction,
 }

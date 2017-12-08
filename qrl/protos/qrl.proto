@@ -347,6 +347,11 @@ message MR {                                            // FIXME: This is legacy
     bytes reveal_hash = 6;
 }
 
+message AddressAmount {
+    bytes address = 1;
+    uint64 amount = 2;
+}
+
 message Transaction {
     enum Type {
         UNKNOWN = 0;
@@ -379,6 +384,8 @@ message Transaction {
         Duplicate duplicate = 12;
         Vote vote = 13;
         Message message = 14;
+        Token token = 15;
+        TransferToken transfer_token = 16;
     }
 
     //////////
@@ -431,14 +438,15 @@ message Transaction {
         bytes name = 2;
         bytes owner = 3;
         uint64 decimals = 4;
-        uint64 initial_supply = 5;
+        repeated AddressAmount initial_balances = 5;
         uint64 fee = 6;
     }
 
     message TransferToken {
-        bytes addr_to = 1;
-        uint64 amount = 2;
-        uint64 fee = 3;
+        bytes token_txhash = 1;
+        bytes addr_to = 2;
+        uint64 amount = 3;
+        uint64 fee = 4;
     }
 
 }
