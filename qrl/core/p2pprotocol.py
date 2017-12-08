@@ -34,26 +34,25 @@ class P2PProtocol(Protocol):
             qrllegacy_pb2.LegacyMessage.PONG: self.handle_pong,
 
             ######################
-            qrllegacy_pb2.LegacyMessage.MR: self.MR,        # RECV+Filters      It will send a RequestFullMessage
-            qrllegacy_pb2.LegacyMessage.SFM: self.SFM,      # RECV=>SEND        Send Full Message
+            qrllegacy_pb2.LegacyMessage.MR: self.handle_message_received,
+            qrllegacy_pb2.LegacyMessage.SFM: self.handle_send_full_message,
 
-            qrllegacy_pb2.LegacyMessage.BK: self.handle_bk,        # RECV      Block
-            qrllegacy_pb2.LegacyMessage.FB: self.handle_fb,        # Fetch request for block
-            qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,        # Push Block
-
-            ############################
-            qrllegacy_pb2.LegacyMessage.ST: self.handle_st,        # RECV/BCAST        Stake Transaction
-            qrllegacy_pb2.LegacyMessage.DST: self.DST,      # Destake Transaction
-            qrllegacy_pb2.LegacyMessage.DT: self.DT,        # Duplicate Transaction
+            qrllegacy_pb2.LegacyMessage.BK: self.handle_block,
+            qrllegacy_pb2.LegacyMessage.FB: self.handle_fetch_block,
+            qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,
 
             ############################
-            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,  # RECV Transaction
-            qrllegacy_pb2.LegacyMessage.VT: self.handle_vt,        # Vote Txn
-            qrllegacy_pb2.LegacyMessage.LT: self.LT,         # Lattice Public Key Transaction
+            qrllegacy_pb2.LegacyMessage.ST: self.handle_stake,
+            qrllegacy_pb2.LegacyMessage.DST: self.handle_destake,
+            qrllegacy_pb2.LegacyMessage.DT: self.handle_duplicate,
 
-            qrllegacy_pb2.LegacyMessage.EPH: self.EPH,       # Ephemeral Transaction
+            ############################
+            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,
+            qrllegacy_pb2.LegacyMessage.VT: self.handle_vote,
+            qrllegacy_pb2.LegacyMessage.LT: self.handle_lattice,
+            qrllegacy_pb2.LegacyMessage.EPH: self.handle_ephemeral,
 
-            qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,  # Add into synced list, if the node replies
+            qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,
         }
         self._buffer = b''
         self._last_requested_blocknum = None
@@ -70,7 +69,7 @@ class P2PProtocol(Protocol):
         if message.func_name != expected_func:
             raise ValueError("Invalid func_name")
 
-    def MR(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_message_received(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Message Receipt
         This function accepts message receipt from peer,
@@ -136,7 +135,7 @@ class P2PProtocol(Protocol):
 
         self.factory.RFM(mr_data)
 
-    def SFM(self, message: qrllegacy_pb2.LegacyMessage):  # Send full message
+    def handle_send_full_message(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Send Full Message
         This function serves the request made for the full message.
@@ -176,7 +175,7 @@ class P2PProtocol(Protocol):
 
         self.factory.trigger_tx_processor(tx, message)
 
-    def handle_vt(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_vote(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Vote Transaction
         This function processes whenever a Transaction having
@@ -198,7 +197,7 @@ class P2PProtocol(Protocol):
         if self.factory.buffered_chain.add_vote(vote):
             self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
-    def handle_st(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_stake(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Stake Transaction
         This function processes whenever a Transaction having
@@ -253,7 +252,7 @@ class P2PProtocol(Protocol):
 
         self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
 
-    def DST(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_destake(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Destake Transaction
         This function processes whenever a Transaction having
@@ -294,7 +293,7 @@ class P2PProtocol(Protocol):
 
         self.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
 
-    def DT(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_duplicate(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Duplicate Transaction
         This function processes whenever a Transaction having
@@ -324,7 +323,7 @@ class P2PProtocol(Protocol):
 
         self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
 
-    def handle_bk(self, message: qrllegacy_pb2.LegacyMessage):  # block received
+    def handle_block(self, message: qrllegacy_pb2.LegacyMessage):  # block received
         """
         Block
         This function processes any new block received.
@@ -419,7 +418,7 @@ class P2PProtocol(Protocol):
             logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
             logger.exception(e)
 
-    def handle_fb(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
+    def handle_fetch_block(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
         """
         Fetch Block
         Sends the request for the block.
@@ -516,7 +515,7 @@ class P2PProtocol(Protocol):
             logger.warning('Found: %s', message.veData.genesis_prev_headerhash)
             self.transport.loseConnection()
 
-    def EPH(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_ephemeral(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Ephemeral Transaction
         :param message:
@@ -524,7 +523,7 @@ class P2PProtocol(Protocol):
         """
         pass
 
-    def LT(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_lattice(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Lattice Public Key Transaction
         :param message:
