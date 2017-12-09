@@ -195,9 +195,9 @@ class P2PProtocol(Protocol):
 
     def MT(self, data):
         """
-        Vote Transaction
+        Message Transaction
         This function processes whenever a Transaction having
-        subtype VOTE is received.
+        subtype MESSAGE is received.
         :return:
         """
         try:

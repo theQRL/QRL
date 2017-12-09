@@ -151,9 +151,9 @@ class P2PFactory(ServerFactory):
 
         self.register_and_broadcast('BK', block.headerhash, block.to_json(), data)
 
-    def broadcast_tx(self, tx):
+    def broadcast_tx(self, tx, subtype='TX'):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
-        self.register_and_broadcast('TX', tx.get_message_hash(), tx.to_json())
+        self.register_and_broadcast(subtype, tx.get_message_hash(), tx.to_json())
 
     def broadcast_lt(self, lattice_public_key_txn):
         logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)

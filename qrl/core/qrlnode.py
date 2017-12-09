@@ -268,18 +268,30 @@ class QRLNode:
 
         if tx.subtype == qrl_pb2.Transaction.LATTICE:
             self._p2pfactory.broadcast_lt(tx)
-        elif tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.MESSAGE):
+        elif tx.subtype in (qrl_pb2.Transaction.TRANSFER,
+                            qrl_pb2.Transaction.MESSAGE,
+                            qrl_pb2.Transaction.TOKEN,
+                            qrl_pb2.Transaction.TRANSFERTOKEN):
             tx.validate_or_raise()
 
             block_number = self._buffered_chain.height + 1
             tx_state = self._buffered_chain.get_stxn_state(block_number, tx.txfrom)
 
-            if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
+            if not tx.validate_extended(tx_state=tx_state,
+                                        transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
                 raise ValueError("The transaction failed validatation (blockchain state)")
 
             self._buffered_chain.tx_pool.add_tx_to_pool(tx)
             self._buffered_chain.wallet.save_wallet()
-            self._p2pfactory.broadcast_tx(tx)
+            # FIXME: Optimization Required
+            subtype = 'TX'
+            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+                subtype = 'MT'
+            elif tx.subtype == qrl_pb2.Transaction.TOKEN:
+                subtype = 'TK'
+            elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                subtype = 'TT'
+            self._p2pfactory.broadcast_tx(tx, subtype=subtype)
 
         return True
 
