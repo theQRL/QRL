@@ -665,4 +665,4 @@ class POS:
         # FIXME: unsafe access to synced_peers
         random_peer = self.p2p_factory.get_random_synced_peer()
         blocknumber = self.buffered_chain.height + 1
-        random_peer.fetch_block_n(blocknumber)
+        random_peer.send_fetch_block(blocknumber)

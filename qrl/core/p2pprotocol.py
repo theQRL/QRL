@@ -28,36 +28,40 @@ from qrl.generated import qrllegacy_pb2
 class P2PProtocol(Protocol):
     def __init__(self):
         self._services = {
-            ######################
+            ###################### NODE STATE
             qrllegacy_pb2.LegacyMessage.VE: self.handle_version,
             qrllegacy_pb2.LegacyMessage.PL: self.handle_peer_list,
             qrllegacy_pb2.LegacyMessage.PONG: self.handle_pong,
+            qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,
 
-            ######################
-            qrllegacy_pb2.LegacyMessage.MR: self.handle_message_received,
-            qrllegacy_pb2.LegacyMessage.SFM: self.handle_send_full_message,
-
-            qrllegacy_pb2.LegacyMessage.BK: self.handle_block,
+            ###################### SYNCHRONIZATION
             qrllegacy_pb2.LegacyMessage.FB: self.handle_fetch_block,
             qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,
 
-            ############################
+            ###################### CACHING
+            qrllegacy_pb2.LegacyMessage.MR: self.handle_message_received,
+            qrllegacy_pb2.LegacyMessage.SFM: self.handle_full_message_request,
+
+            ###################### Linked to MR...
+            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,
             qrllegacy_pb2.LegacyMessage.ST: self.handle_stake,
             qrllegacy_pb2.LegacyMessage.DST: self.handle_destake,
             qrllegacy_pb2.LegacyMessage.DT: self.handle_duplicate,
-
-            ############################
-            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,
             qrllegacy_pb2.LegacyMessage.VT: self.handle_vote,
             qrllegacy_pb2.LegacyMessage.LT: self.handle_lattice,
             qrllegacy_pb2.LegacyMessage.EPH: self.handle_ephemeral,
-
-            qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,
+            qrllegacy_pb2.LegacyMessage.BK: self.handle_block,
         }
+
+        ######################  Communication
         self._buffer = b''
+
+        ######################  Communication
         self._last_requested_blocknum = None
+
         self._conn_identity = None
         self._prev_txpool_hashes = [None] * 1000
+
         self._disconnect_callLater = None
         self._ping_callLater = None
 
@@ -65,7 +69,197 @@ class P2PProtocol(Protocol):
     def host_ip(self):
         return self.transport.getPeer().host
 
-    def _validate_message(self, message: qrllegacy_pb2.LegacyMessage, expected_func):
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    def send_version(self):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
+        self.transport.write(self.wrap_message(msg))
+
+    def handle_version(self, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Version
+        If data is None then sends the version & genesis_prev_headerhash.
+        Otherwise, process the content of data and incase of non matching,
+        genesis_prev_headerhash, it disconnects the odd peer.
+        :return:
+        """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.VE)
+
+        if message.veData is None:
+            msg = qrllegacy_pb2.LegacyMessage(
+                func_name=qrllegacy_pb2.LegacyMessage.VE,
+                veData=qrllegacy_pb2.VEData(version=config.dev.version,
+                                            genesis_prev_hash=bytes(config.dev.genesis_prev_headerhash.encode())))
+
+            self.transport.write(self.wrap_message(msg))
+            return
+
+        logger.info('%s version: %s | genesis prev_headerhash %s',
+                    self.transport.getPeer().host,
+                    message.veData.version,
+                    message.veData.genesis_prev_hash)
+
+        if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
+            logger.warning('%s genesis_prev_headerhash mismatch', self._conn_identity)
+            logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
+            logger.warning('Found: %s', message.veData.genesis_prev_headerhash)
+            self.transport.loseConnection()
+
+    def send_peer_list(self):
+        """
+        Get Peers
+        Sends the peers list.
+        :return:
+        """
+        logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
+        peer_ips = self.factory.get_connected_peer_ips()
+
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
+                                          plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
+
+        self.transport.write(self.wrap_message(msg))
+
+    def handle_peer_list(self, message: qrllegacy_pb2.LegacyMessage):
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
+
+        if not config.user.enable_peer_discovery:
+            return
+
+        if message.peer_ips is None:
+            return
+
+        new_ips = set(ip for ip in message.peer_ips)
+        new_ips.discard(self.transport.getHost().host)              # Remove local address
+        self.factory.qrl_node.update_peer_addresses(new_ips)
+
+        logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
+
+    def send_pong(self):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
+        self.transport.write(self.wrap_message(msg))
+        logger.debug('Sending PING to %s', self._conn_identity)
+
+    def handle_pong(self, message: qrllegacy_pb2.LegacyMessage):
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
+
+        self._disconnect_callLater.reset(config.user.ping_timeout)
+        if self._ping_callLater.active():
+            self._ping_callLater.cancel()
+
+        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self.send_pong)
+        logger.debug('Received PONG from %s', self._conn_identity)
+
+    def send_sync(self):
+        data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
+                                           syncData=qrllegacy_pb2.SYNCData(state=''))
+        self.transport.write(self.wrap_message(data))
+
+    def handle_sync(self, message: qrllegacy_pb2.LegacyMessage):
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
+
+        if message.syncData.state == 'Synced':
+            self.factory.set_peer_synced(self, True)
+        elif message.syncData.state == '':
+            if self.factory.pos.sync_state.state == ESyncState.synced:
+                data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
+                                                   syncData=qrllegacy_pb2.SYNCData(state='Synced'))
+                self.transport.write(self.wrap_message(data))
+                self.factory.set_peer_synced(self, False)
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    def send_fetch_block(self, n):
+        """
+        Fetch Block n
+        Sends request for the block number n.
+        :return:
+        """
+        self._last_requested_blocknum = n
+        logger.info('<<<Fetching block: %s from %s', n, self._conn_identity)
+        fb_data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
+                                              fbData=qrllegacy_pb2.FBData(index=n))
+        self.transport.write(self.wrap_message(fb_data))
+
+    def handle_fetch_block(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
+        """
+        Fetch Block
+        Sends the request for the block.
+        :return:
+        """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
+
+        idx = message.fbData.index
+        logger.info(' Request for %s by %s', idx, self._conn_identity)
+        if 0 < idx <= self.factory.buffered_chain.height:
+            blocknumber = idx
+
+            block = self.factory.buffered_chain.get_block(blocknumber)
+            # FIXME: Breaking encapsulation
+            pb_data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
+                                                  pbData=qrllegacy_pb2.PBData(block=block.pbdata))
+            self.transport.write(self.wrap_message(pb_data))
+
+    def handle_push_block(self, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Push Block
+        This function processes requested blocks received while syncing.
+        Block received under this function are directly added to the main
+        chain i.e. chain.blockchain
+        It is expected to receive only one block for a given blocknumber.
+        :return:
+        """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
+        if message.pbData is None:
+            return
+
+        self.factory.pos.last_pb_time = time.time()
+        try:
+            block = Block(message.pbData.block)
+            logger.info('>>> Received Block #%d', block.block_number)
+
+            if not self.factory.buffered_chain.check_expected_headerhash(block.block_number,
+                                                                         block.headerhash):
+                logger.warning('Block #%s downloaded from peer doesnt match with expected headerhash',
+                               message.pbData.block.block_number)
+                return
+
+            if block.block_number != self._last_requested_blocknum:
+                logger.warning('Did not match %s %s', self._last_requested_blocknum, self._conn_identity)
+                return
+
+            self._last_requested_blocknum = None
+
+            # FIXME: This check should not be necessary
+            if block.block_number > self.factory.buffered_chain.height:
+                if not self.factory.buffered_chain.add_block(block):
+                    logger.warning('PB failed to add block to mainchain')
+                    self.factory.buffered_chain.remove_last_buffer_block()
+                    return
+
+            try:
+                reactor.download_monitor.cancel()
+            except Exception as e:
+                logger.warning("PB: %s", e)
+
+            self.factory.pos.randomize_block_fetch()        # NOTE: Get next block
+
+        except Exception as e:
+            logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
+            logger.exception(e)
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    @staticmethod
+    def _validate_message(message: qrllegacy_pb2.LegacyMessage, expected_func):
         if message.func_name != expected_func:
             raise ValueError("Invalid func_name")
 
@@ -135,25 +329,20 @@ class P2PProtocol(Protocol):
 
         self.factory.RFM(mr_data)
 
-    def handle_send_full_message(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_full_message_request(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Send Full Message
         This function serves the request made for the full message.
         :return:
         """
-        mr_data = message.mrData
-        msg_hash = mr_data.hash
-        msg_type = mr_data.type
+        data = self.factory.master_mr.get(message.mrData.type, message.mrData.hash)
+        if data is not None:
+            self.transport.write(self.wrap_message(data))
 
-        if not self.factory.master_mr.contains(msg_hash, msg_type):
-            return
-
-        # Sending message from node, doesn't guarantee that peer has received it.
-        # Thus requesting peer could re request it, may be ACK would be required
-        msg = self.factory.master_mr.hash_msg[msg_hash].msg
-        data = qrllegacy_pb2.LegacyMessage(**{'func_name': msg_type,
-                                              self.factory.services_arg[msg_type]: msg})
-        self.transport.write(self.wrap_message(data))
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
 
     def handle_tx(self, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -163,15 +352,18 @@ class P2PProtocol(Protocol):
         """
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
         tx = Transaction(message.txData)
+
+        # NOTE: Connects to MR
         if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
             return
 
+        # NOTE ----------
         if tx.txhash in self._prev_txpool_hashes or \
                 tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
-
         del self._prev_txpool_hashes[0]
         self._prev_txpool_hashes.append(tx.txhash)
+        # NOTE ^^^^^^^^^^^^^
 
         self.factory.trigger_tx_processor(tx, message)
 
@@ -370,150 +562,6 @@ class P2PProtocol(Protocol):
         self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
         self.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
 
-    def handle_push_block(self, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Push Block
-        This function processes requested blocks received while syncing.
-        Block received under this function are directly added to the main
-        chain i.e. chain.blockchain
-        It is expected to receive only one block for a given blocknumber.
-        :return:
-        """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
-        if message.pbData is None:
-            return
-
-        self.factory.pos.last_pb_time = time.time()
-        try:
-            block = Block(message.pbData.block)
-            logger.info('>>> Received Block #%d', block.block_number)
-
-            if not self.factory.buffered_chain.check_expected_headerhash(block.block_number,
-                                                                         block.headerhash):
-                logger.warning('Block #%s downloaded from peer doesnt match with expected headerhash',
-                               message.pbData.block.block_number)
-                return
-
-            if block.block_number != self._last_requested_blocknum:
-                logger.warning('Did not match %s %s', self._last_requested_blocknum, self._conn_identity)
-                return
-
-            self._last_requested_blocknum = None
-
-            # FIXME: This check should not be necessary
-            if block.block_number > self.factory.buffered_chain.height:
-                if not self.factory.buffered_chain.add_block(block):
-                    logger.warning('PB failed to add block to mainchain')
-                    self.factory.buffered_chain.remove_last_buffer_block()
-                    return
-
-            try:
-                reactor.download_monitor.cancel()
-            except Exception as e:
-                logger.warning("PB: %s", e)
-
-            self.factory.pos.randomize_block_fetch()        # NOTE: Get next block
-
-        except Exception as e:
-            logger.error('block rejected - unable to decode serialised data %s', self.transport.getPeer().host)
-            logger.exception(e)
-
-    def handle_fetch_block(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
-        """
-        Fetch Block
-        Sends the request for the block.
-        :return:
-        """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
-
-        idx = message.fbData.index
-        logger.info(' Request for %s by %s', idx, self._conn_identity)
-        if 0 < idx <= self.factory.buffered_chain.height:
-            blocknumber = idx
-
-            block = self.factory.buffered_chain.get_block(blocknumber)
-            # FIXME: Breaking encapsulation
-            pb_data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
-                                                  pbData=qrllegacy_pb2.PBData(block=block.pbdata))
-            self.transport.write(self.wrap_message(pb_data))
-
-    def send_pong(self):
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
-        self.transport.write(self.wrap_message(msg))
-        logger.debug('Sending PING to %s', self._conn_identity)
-
-    def handle_pong(self, message: qrllegacy_pb2.LegacyMessage):
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
-
-        self._disconnect_callLater.reset(config.user.ping_timeout)
-        if self._ping_callLater.active():
-            self._ping_callLater.cancel()
-
-        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self.send_pong)
-        logger.debug('Received PONG from %s', self._conn_identity)
-
-    def send_peer_list(self):
-        """
-        Get Peers
-        Sends the peers list.
-        :return:
-        """
-        logger.info('<<<Sending connected peers to %s', self.transport.getPeer().host)
-        peer_ips = self.factory.get_connected_peer_ips()
-
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
-                                          plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
-
-        self.transport.write(self.wrap_message(msg))
-
-    def handle_peer_list(self, message: qrllegacy_pb2.LegacyMessage):
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
-
-        if not config.user.enable_peer_discovery:
-            return
-
-        if message.peer_ips is None:
-            return
-
-        new_ips = set(ip for ip in message.peer_ips)
-        new_ips.discard(self.transport.getHost().host)              # Remove local address
-        self.factory.qrl_node.update_peer_addresses(new_ips)
-
-        logger.info('%s peers data received: %s', self.transport.getPeer().host, new_ips)
-
-    def send_version(self):
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
-        self.transport.write(self.wrap_message(msg))
-
-    def handle_version(self, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Version
-        If data is None then sends the version & genesis_prev_headerhash.
-        Otherwise, process the content of data and incase of non matching,
-        genesis_prev_headerhash, it disconnects the odd peer.
-        :return:
-        """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.VE)
-
-        if message.veData is None:
-            msg = qrllegacy_pb2.LegacyMessage(
-                func_name=qrllegacy_pb2.LegacyMessage.VE,
-                veData=qrllegacy_pb2.VEData(version=config.dev.version,
-                                            genesis_prev_hash=bytes(config.dev.genesis_prev_headerhash.encode())))
-
-            self.transport.write(self.wrap_message(msg))
-            return
-
-        logger.info('%s version: %s | genesis prev_headerhash %s',
-                    self.transport.getPeer().host,
-                    message.veData.version,
-                    message.veData.genesis_prev_hash)
-
-        if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
-            logger.warning('%s genesis_prev_headerhash mismatch', self._conn_identity)
-            logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
-            logger.warning('Found: %s', message.veData.genesis_prev_headerhash)
-            self.transport.loseConnection()
 
     def handle_ephemeral(self, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -553,35 +601,6 @@ class P2PProtocol(Protocol):
         self.factory.register_and_broadcast('LT',
                                             lattice_public_key_txn.get_message_hash(),
                                             lattice_public_key_txn.to_json())
-
-    def send_sync(self):
-        data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
-                                           syncData=qrllegacy_pb2.SYNCData(state=''))
-        self.transport.write(self.wrap_message(data))
-
-    def handle_sync(self, message: qrllegacy_pb2.LegacyMessage):
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
-
-        if message.syncData.state == 'Synced':
-            self.factory.set_peer_synced(self, True)
-        elif message.syncData.state == '':
-            if self.factory.pos.sync_state.state == ESyncState.synced:
-                data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
-                                                   syncData=qrllegacy_pb2.SYNCData(state='Synced'))
-                self.transport.write(self.wrap_message(data))
-                self.factory.set_peer_synced(self, False)
-
-    def fetch_block_n(self, n):
-        """
-        Fetch Block n
-        Sends request for the block number n.
-        :return:
-        """
-        self._last_requested_blocknum = n
-        logger.info('<<<Fetching block: %s from %s', n, self._conn_identity)
-        fb_data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
-                                              fbData=qrllegacy_pb2.FBData(index=n))
-        self.transport.write(self.wrap_message(fb_data))
 
     ###################################################
     ###################################################

@@ -4,10 +4,13 @@
 
 from collections import OrderedDict
 
+from typing import Optional
+
 from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core.Transaction import CoinBase
+from qrl.generated import qrllegacy_pb2
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
 
@@ -47,14 +50,43 @@ class MessageReceipt(object):
     allowed_types = [LegacyMessage.TX,
                      LegacyMessage.ST,
                      LegacyMessage.DST,
-                     LegacyMessage.BK,
                      LegacyMessage.DT,
                      LegacyMessage.VT,
                      LegacyMessage.LT,
-                     LegacyMessage.EPH]
+                     LegacyMessage.EPH,
+                     LegacyMessage.BK]
+
+    services_arg = {
+        ######################
+        qrllegacy_pb2.LegacyMessage.VE: 'veData',
+        qrllegacy_pb2.LegacyMessage.PL: 'plData',
+        qrllegacy_pb2.LegacyMessage.PONG: 'pongData',
+
+        ######################
+        qrllegacy_pb2.LegacyMessage.MR: 'mrData',
+        qrllegacy_pb2.LegacyMessage.SFM: 'mrData',
+
+        qrllegacy_pb2.LegacyMessage.BK: 'block',
+        qrllegacy_pb2.LegacyMessage.FB: 'fbData',
+        qrllegacy_pb2.LegacyMessage.PB: 'pbData',
+
+        ############################
+        qrllegacy_pb2.LegacyMessage.ST: 'stData',
+        qrllegacy_pb2.LegacyMessage.DST: '',
+        qrllegacy_pb2.LegacyMessage.DT: '',
+
+        ############################
+        qrllegacy_pb2.LegacyMessage.TX: 'txData',
+        qrllegacy_pb2.LegacyMessage.VT: 'vtData',
+        qrllegacy_pb2.LegacyMessage.LT: '',
+
+        qrllegacy_pb2.LegacyMessage.EPH: '',
+
+        qrllegacy_pb2.LegacyMessage.SYNC: 'syncData',
+    }
 
     def __init__(self):
-        self.hash_msg = OrderedDict()
+        self._hash_msg = OrderedDict()
         self.requested_hash = OrderedDict()
 
     def register_duplicate(self, msg_hash: bytes):
@@ -71,12 +103,21 @@ class MessageReceipt(object):
         """
         # FIXME: Hash is converted to string
         # FIXME: No check on the validity of the message type
-        if len(self.hash_msg) >= config.dev.message_q_size:
-            self.__remove__(self.hash_msg)
+        if len(self._hash_msg) >= config.dev.message_q_size:
+            self.__remove__(self._hash_msg)
 
         message = Message(pbdata, msg_type)
 
-        self.hash_msg[msg_hash] = message
+        self._hash_msg[msg_hash] = message
+
+    def get(self, msg_type, msg_hash: bytes) -> Optional[qrllegacy_pb2.LegacyMessage]:
+        if not self.contains(msg_hash, msg_type):
+            return None
+
+        msg = self._hash_msg[msg_hash].msg
+        data = qrllegacy_pb2.LegacyMessage(**{'func_name': msg_type,
+                                              self.services_arg[msg_type]: msg})
+        return data
 
     def add_peer(self, msg_hash: bytes, msg_type, peer, data=None):
         # Filter
@@ -125,8 +166,8 @@ class MessageReceipt(object):
         return True
 
     def deregister(self, msg_hash: bytes, msg_type):
-        if msg_hash in self.hash_msg:
-            del self.hash_msg[msg_hash]
+        if msg_hash in self._hash_msg:
+            del self._hash_msg[msg_hash]
 
     def __remove__(self, myObj):
         myObj.popitem(last=False)
@@ -147,8 +188,8 @@ class MessageReceipt(object):
         :param msg_type: The type of msg to match
         :return: True is the msg_obj is known and matches the msg_type
         """
-        if msg_hash in self.hash_msg:
-            message = self.hash_msg[msg_hash]
+        if msg_hash in self._hash_msg:
+            message = self._hash_msg[msg_hash]
             if message.msg_type == msg_type:
                 return True
 

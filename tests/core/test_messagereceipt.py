@@ -73,4 +73,4 @@ class TestMessageReceipt(TestCase):
             msg_hash = str2bin(str(i))
             mr.register(msg_type, msg_hash, msg_obj)
 
-        self.assertEqual(len(mr.hash_msg), config.dev.message_q_size)
+        self.assertEqual(len(mr._hash_msg), config.dev.message_q_size)

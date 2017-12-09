@@ -26,34 +26,6 @@ class P2PFactory(ServerFactory):
                  buffered_chain: BufferedChain,
                  sync_state: SyncState,
                  qrl_node: QRLNode):
-        self.services_arg = {
-            ######################
-            qrllegacy_pb2.LegacyMessage.VE: 'veData',
-            qrllegacy_pb2.LegacyMessage.PL: 'plData',
-            qrllegacy_pb2.LegacyMessage.PONG: 'pongData',
-
-            ######################
-            qrllegacy_pb2.LegacyMessage.MR: 'mrData',
-            qrllegacy_pb2.LegacyMessage.SFM: 'mrData',
-
-            qrllegacy_pb2.LegacyMessage.BK: 'block',
-            qrllegacy_pb2.LegacyMessage.FB: 'fbData',
-            qrllegacy_pb2.LegacyMessage.PB: 'pbData',
-
-            ############################
-            qrllegacy_pb2.LegacyMessage.ST: 'stData',
-            qrllegacy_pb2.LegacyMessage.DST: '',
-            qrllegacy_pb2.LegacyMessage.DT: '',
-
-            ############################
-            qrllegacy_pb2.LegacyMessage.TX: 'txData',
-            qrllegacy_pb2.LegacyMessage.VT: 'vtData',
-            qrllegacy_pb2.LegacyMessage.LT: '',
-
-            qrllegacy_pb2.LegacyMessage.EPH: '',
-
-            qrllegacy_pb2.LegacyMessage.SYNC: 'syncData',
-        }
         self.master_mr = MessageReceipt()
         self.pos = None
         self.ntp = ntp
@@ -110,7 +82,7 @@ class P2PFactory(ServerFactory):
         # FIXME: Huge amount of lookups in dictionaries
         msg_hash = mr_data.hash
 
-        if msg_hash in self.master_mr.hash_msg:
+        if msg_hash in self.master_mr._hash_msg:
             if msg_hash in self.master_mr.requested_hash:
                 del self.master_mr.requested_hash[msg_hash]
             return
