@@ -40,14 +40,21 @@ class AddressState(object):
     def pubhashes(self):
         return self._data.pubhashes
 
+    @property
+    def tokens(self):
+        return self._data.tokens
+
     @staticmethod
-    def create(address: bytes, nonce: int, balance: int, pubhashes: list):
+    def create(address: bytes, nonce: int, balance: int, pubhashes: list, tokens: dict):
         address_state = AddressState()
 
         address_state._data.address = address
         address_state._data.nonce = nonce
         address_state._data.balance = balance
         address_state._data.pubhashes.extend(pubhashes)
+
+        for token_txhash in tokens:
+            address_state._data.tokens[token_txhash] = tokens[token_txhash]
 
         return address_state
 

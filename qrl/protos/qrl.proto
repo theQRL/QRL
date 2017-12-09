@@ -267,6 +267,7 @@ message AddressState {
     uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
     repeated bytes transaction_hashes = 5;
+    map<string, uint64> tokens = 6;
 }
 
 message StakerData {
@@ -347,6 +348,11 @@ message MR {                                            // FIXME: This is legacy
     bytes reveal_hash = 6;
 }
 
+message AddressAmount {
+    bytes address = 1;
+    uint64 amount = 2;
+}
+
 message Transaction {
     enum Type {
         UNKNOWN = 0;
@@ -358,6 +364,8 @@ message Transaction {
         DUPLICATE = 6;
         VOTE = 7;
         MESSAGE = 8;
+        TOKEN = 9;
+        TRANSFERTOKEN = 10;
     }
 
     Type type = 1;
@@ -377,6 +385,8 @@ message Transaction {
         Duplicate duplicate = 12;
         Vote vote = 13;
         Message message = 14;
+        Token token = 15;
+        TransferToken transfer_token = 16;
     }
 
     //////////
@@ -424,6 +434,26 @@ message Transaction {
         uint64 fee=2;
     }
 
+    message Token {
+        bytes symbol = 1;
+        bytes name = 2;
+        bytes owner = 3;
+        uint64 decimals = 4;
+        repeated AddressAmount initial_balances = 5;
+        uint64 fee = 6;
+    }
+
+    message TransferToken {
+        bytes token_txhash = 1;
+        bytes addr_to = 2;
+        uint64 amount = 3;
+        uint64 fee = 4;
+    }
+
+}
+
+message TokenList {
+    repeated bytes token_txhash = 1;
 }
 
 message EphemeralMessage {
