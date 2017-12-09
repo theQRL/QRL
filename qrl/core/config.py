@@ -121,7 +121,7 @@ class DevConfig(object):
 
         self.slave_dat_filename = 'slave.qrl'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = 'Earth abides'
+        self.genesis_prev_headerhash = 'Consider Phlebas'
 
     @staticmethod
     def getInstance():
