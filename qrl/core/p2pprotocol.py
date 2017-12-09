@@ -56,11 +56,10 @@ class P2PProtocol(Protocol):
         ######################  Communication
         self._buffer = b''
 
-        ######################  Communication
+        ######################  Blocks
         self._last_requested_blocknum = None
 
         self._conn_identity = None
-        self._prev_txpool_hashes = [None] * 1000
 
         self._disconnect_callLater = None
         self._ping_callLater = None
@@ -356,14 +355,6 @@ class P2PProtocol(Protocol):
         # NOTE: Connects to MR
         if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
             return
-
-        # NOTE ----------
-        if tx.txhash in self._prev_txpool_hashes or \
-                tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
-            return
-        del self._prev_txpool_hashes[0]
-        self._prev_txpool_hashes.append(tx.txhash)
-        # NOTE ^^^^^^^^^^^^^
 
         self.factory.trigger_tx_processor(tx, message)
 
