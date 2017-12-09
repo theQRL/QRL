@@ -730,6 +730,8 @@ class BufferedChain:
                     address_txn[tx.txto] = self.get_stxn_state(block.block_number, tx.txto)
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
+                if tx.owner not in address_txn:
+                    address_txn[tx.owner] = self.get_stxn_state(block.block_number, tx.owner)
                 for initial_balance in tx.initial_balances:
                     if initial_balance.address not in address_txn:
                         address_txn[initial_balance.address] = self.get_stxn_state(block.block_number,
@@ -1369,7 +1371,8 @@ class BufferedChain:
                 message_txn.add(tx.txfrom)
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
-
+                if tx.owner not in address_txn:
+                    address_txn[tx.owner] = self.get_stxn_state(last_block_number+1, tx.owner)
                 for initial_balance in tx.initial_balances:
                     if initial_balance.address not in address_txn:
                         address_txn[initial_balance.address] = self.get_stxn_state(last_block_number+1,
@@ -1437,16 +1440,16 @@ class BufferedChain:
                     total_txn -= 1
                     continue
 
-                if tx.txhash not in address_txn[tx.txfrom].tokens:
+                if tx.token_txhash not in address_txn[tx.txfrom].tokens:
                     logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom, tx.token_txhash)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
-                if address_txn[tx.txfrom].tokens[tx.txhash] < tx.amount:
+                if address_txn[tx.txfrom].tokens[tx.token_txhash] < tx.amount:
                     logger.warning('Token Transfer amount exceeds available token')
                     logger.warning('Token Txhash %s', tx.token_txhash)
-                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.txhash])
+                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.token_txhash])
                     logger.warning('Transaction Amount %s', tx.amount)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1467,8 +1470,8 @@ class BufferedChain:
                     address_txn[initial_balance.address].tokens[tx.txhash] += initial_balance.amount
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                address_txn[tx.txfrom].tokens[tx.txhash] -= tx.amount
-                address_txn[tx.txto].tokens[tx.txhash] += tx.amount
+                address_txn[tx.txfrom].tokens[tx.token_txhash] -= tx.amount
+                address_txn[tx.txto].tokens[tx.token_txhash] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount

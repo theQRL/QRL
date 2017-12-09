@@ -276,6 +276,13 @@ class State:
                     # Thus cache is required to have only 1 time get
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
+                    if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                        self.update_address_tx_hashes(txn.owner, txn.txhash)
+                        for initial_balance in txn.initial_balances:
+                            if initial_balance.address == txn.owner:
+                                continue
+                            self.update_address_tx_hashes(initial_balance.address, txn.txhash)
+
                 if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
                                    qrl_pb2.Transaction.COINBASE,
                                    qrl_pb2.Transaction.TRANSFERTOKEN):
