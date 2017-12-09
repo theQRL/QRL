@@ -94,5 +94,8 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
 
 
 def destroy_state():
-    db_path = os.path.join(config.user.data_path, config.dev.db_name)
-    shutil.rmtree(db_path)
+    try:
+        db_path = os.path.join(config.user.data_path, config.dev.db_name)
+        shutil.rmtree(db_path)
+    except FileNotFoundError:
+        pass
