@@ -3,13 +3,12 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import List
 
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
+from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.TokenList import TokenList
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.generated import qrl_pb2
 
 
@@ -133,7 +132,7 @@ class State:
         txhash.append(new_txhash)
 
         # FIXME:  Json does not support bytes directly | Temporary workaround
-        tmp_hashes = [bin2hstr(item) for item in txhash]
+        tmp_hashes = [item for item in txhash]
 
         self._db.put(b'txn_' + addr, tmp_hashes)
 
@@ -141,13 +140,28 @@ class State:
         try:
             return self._db.get_raw(b'token_list')
         except KeyError:
-            return TokenList()
+            return TokenList().to_json()
 
     def update_token_list(self, token_txhashes: list, batch):
         pbdata = self.get_token_list()
         token_list = TokenList.from_json(pbdata)
         token_list.update(token_txhashes)
         self._db.put_raw(b'token_list', token_list.to_json().encode(), batch)
+
+    def get_token_metadata(self, token_txhash: bytes):
+        json_data = self._db.get_raw(b'token_'+token_txhash)
+        return TokenMetadata.from_json(json_data)
+
+    def update_token_metadata(self, transfer_token: TransferTokenTransaction):
+        token_metadata = self.get_token_metadata(transfer_token.token_txhash)
+        token_metadata.update([transfer_token.txhash])
+        self._db.put_raw(b'token_'+transfer_token.token_txhash,
+                         token_metadata.to_json().encode())
+
+    def create_token_metadata(self, token: TokenTransaction):
+        token_metadata = TokenMetadata.create(token_txhash=token.txhash, transfer_token_txhashes=[token.txhash])
+        self._db.put_raw(b'token_'+token.txhash,
+                         token_metadata.to_json().encode())
 
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
         self.prev_stake_validators_tracker = self.stake_validators_tracker
@@ -201,7 +215,7 @@ class State:
             logger.exception(e)
             tx_hashes = []
 
-        tx_hashes = [bytes(hstr2bin(item)) for item in tx_hashes]
+        tx_hashes = [item.encode() for item in tx_hashes]
 
         return tx_hashes
 
@@ -248,7 +262,8 @@ class State:
                                qrl_pb2.Transaction.MESSAGE,
                                qrl_pb2.Transaction.TOKEN,
                                qrl_pb2.Transaction.TRANSFERTOKEN):
-                self._db.put(bin2hstr(txn.txhash),
+
+                self._db.put(txn.txhash,
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
 
@@ -256,18 +271,22 @@ class State:
                                    qrl_pb2.Transaction.MESSAGE,
                                    qrl_pb2.Transaction.TOKEN,
                                    qrl_pb2.Transaction.TRANSFERTOKEN):
+                    # FIXME: Being updated without batch, need to fix,
+                    # as its making get request, and batch get not possible
+                    # Thus cache is required to have only 1 time get
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
                 if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
-                                   qrl_pb2.Transaction.COINBASE):
+                                   qrl_pb2.Transaction.COINBASE,
+                                   qrl_pb2.Transaction.TRANSFERTOKEN):
+                    # FIXME: Being updated without batch, need to fix,
+                    if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                        self.update_token_metadata(txn)
                     self.update_address_tx_hashes(txn.txto, txn.txhash)
                     self.increase_txn_count(txn.txto)
 
-                if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                    self.update_address_tx_hashes(txn.addr_to, txn.txhash)
-                    self.increase_txn_count(txn.addr_to)
-
                 if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                    self.create_token_metadata(txn)
                     token_list.append(txn.txhash)
 
                 self.increase_txn_count(txn.txfrom)
@@ -277,7 +296,7 @@ class State:
 
     def get_tx_metadata(self, txhash: bytes):
         try:
-            tx_metadata = self._db.get(bin2hstr(txhash))
+            tx_metadata = self._db.get(txhash)
         except Exception:
             return None
         if tx_metadata is None:

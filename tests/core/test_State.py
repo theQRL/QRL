@@ -2,11 +2,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import logger
 from qrl.core.State import State
+from qrl.core.Transaction import TransferTokenTransaction
 from qrl.crypto.misc import sha256
-from tests.misc.helper import set_data_dir, get_alice_xmss
+from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
 logger.initialize_default(force_console_output=True)
 
@@ -72,8 +74,8 @@ class TestState(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
-                some_hash1 = sha256(b'some_hash1')
-                some_hash2 = sha256(b'some_hash2')
+                some_hash1 = bin2hstr(sha256(b'some_hash1')).encode()
+                some_hash2 = bin2hstr(sha256(b'some_hash2')).encode()
 
                 state.update_address_tx_hashes(alice_address, some_hash1)
                 state.update_address_tx_hashes(alice_address, some_hash2)
@@ -81,3 +83,40 @@ class TestState(TestCase):
 
                 self.assertEqual(some_hash1, result[0])
                 self.assertEqual(some_hash2, result[1])
+
+    def test_create_token_metadata(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                bob_xmss = get_bob_xmss()
+
+                token_transaction = get_token_transaction(alice_xmss, bob_xmss)
+                state.create_token_metadata(token_transaction)
+
+                token_metadata = state.get_token_metadata(token_transaction.txhash)
+                self.assertEqual(token_metadata.token_txhash, token_transaction.txhash)
+                self.assertEqual(token_metadata.transfer_token_tx_hashes[0], token_transaction.txhash)
+
+    def test_update_token_metadata(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                bob_xmss = get_bob_xmss()
+
+                token_transaction = get_token_transaction(alice_xmss, bob_xmss)
+                state.create_token_metadata(token_transaction)
+
+                transfer_token_transaction = TransferTokenTransaction.create(addr_from=bob_xmss.get_address().encode(),
+                                                                             token_txhash=token_transaction.txhash,
+                                                                             addr_to=alice_xmss.get_address().encode(),
+                                                                             amount=100000000,
+                                                                             fee=1,
+                                                                             xmss_pk=bob_xmss.pk(),
+                                                                             xmss_ots_index=bob_xmss.get_index())
+
+                state.update_token_metadata(transfer_token_transaction)
+
+                token_metadata = state.get_token_metadata(token_transaction.txhash)
+                self.assertEqual(len(token_metadata.transfer_token_tx_hashes), 2)
+                self.assertEqual(token_metadata.transfer_token_tx_hashes[0], token_transaction.txhash)
+                self.assertEqual(token_metadata.transfer_token_tx_hashes[1], transfer_token_transaction.txhash)

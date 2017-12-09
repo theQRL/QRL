@@ -42,6 +42,6 @@ class TokenList(object):
 
     @staticmethod
     def from_json(json_data):
-        pbdata = qrl_pb2.StakeValidatorsTracker()
+        pbdata = qrl_pb2.TokenList()
         Parse(json_data, pbdata)
         return TokenList(pbdata)

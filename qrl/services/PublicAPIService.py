@@ -141,6 +141,13 @@ class PublicAPIService(PublicAPIServicer):
 
         return answer
 
+    @grpc_exception_wrapper(qrl_pb2.TokenDetailedList, StatusCode.UNKNOWN)
+    def GetTokenDetailedList(self, request: qrl_pb2.Empty, context) -> qrl_pb2.TokenDetailedList:
+        logger.debug("[PublicAPI] TokenDetailedList")
+        token_detailed_list = self.qrlnode.get_token_detailed_list()
+
+        return token_detailed_list
+
     def _stake_validator_to_staker_data(self, stake_validator: StakeValidator) -> qrl_pb2.StakerData:
         answer = qrl_pb2.StakerData()
         answer.address_state.CopyFrom(self.qrlnode.get_address_state(stake_validator.address))

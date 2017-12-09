@@ -12,6 +12,8 @@ from mock import mock
 
 from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.Transaction import TokenTransaction
+from qrl.generated import qrl_pb2
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 
@@ -71,3 +73,26 @@ def get_random_xmss() -> XMSS:
 
 def qrladdress(address_seed: str) -> bytes:
     return b'Q' + sha256(address_seed.encode())
+
+
+def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fee=1) -> TokenTransaction:
+    initial_balances = list()
+    initial_balances.append(qrl_pb2.AddressAmount(address=xmss1.get_address().encode(),
+                                                  amount=amount1))
+    initial_balances.append(qrl_pb2.AddressAmount(address=xmss2.get_address().encode(),
+                                                  amount=amount2))
+
+    return TokenTransaction.create(addr_from=xmss1.get_address().encode(),
+                                   symbol=b'QRL',
+                                   name=b'Quantum Resistant Ledger',
+                                   owner=xmss1.get_address().encode(),
+                                   decimals=4,
+                                   initial_balances=initial_balances,
+                                   fee=fee,
+                                   xmss_pk=xmss1.pk(),
+                                   xmss_ots_index=xmss1.get_index())
+
+
+def destroy_state():
+    db_path = os.path.join(config.user.data_path, config.dev.db_name)
+    shutil.rmtree(db_path)

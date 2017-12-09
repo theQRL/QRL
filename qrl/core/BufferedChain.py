@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 from typing import Optional, Dict
 
-from pyqrllib.pyqrllib import bin2hstr, XmssPool
+from pyqrllib.pyqrllib import XmssPool
 
 from qrl.core import config, logger, State
 from qrl.core.AddressState import AddressState
@@ -16,6 +16,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.VoteTracker import VoteTracker
 from qrl.core.VoteMetadata import VoteMetadata
+from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Transaction import CoinBase, Transaction, Vote
 from qrl.core.TransactionPool import TransactionPool
 from qrl.crypto.hashchain import hashchain
@@ -221,6 +222,9 @@ class BufferedChain:
     def add_lattice_public_key(self, lattice_public_key_txn):
         self._chain.pstate.put_lattice_public_key(lattice_public_key_txn)
 
+    def get_token_metadata(self, token_txnhash) -> TokenMetadata:
+        return self._chain.pstate.get_token_metadata(token_txnhash)
+
     def add_vote(self, vote: Vote):
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
             return
@@ -244,7 +248,7 @@ class BufferedChain:
             tx_state = self.get_stxn_state(blocknumber=self.height+1, addr=vote.addr_from)
 
             if not (vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict)):
-                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
+                logger.warning('>>>Vote %s invalid state validation failed..', vote.txhash)
                 return
 
         if vote.blocknumber not in self._vote_tracker:
@@ -653,14 +657,14 @@ class BufferedChain:
                     logger.warning('Buffer State Balance: %s  Free %s', address_txn[tx.txfrom].balance, tx.fee)
                     return False
 
-                if tx.txhash not in address_txn[tx.txfrom].tokens:
+                if tx.token_txhash not in address_txn[tx.txfrom].tokens:
                     logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom, tx.token_txhash)
                     return False
 
-                if address_txn[tx.txfrom].tokens[tx.txhash] < tx.amount:
+                if address_txn[tx.txfrom].tokens[tx.token_txhash] < tx.amount:
                     logger.warning('Token Transfer amount exceeds available token')
                     logger.warning('Token Txhash %s', tx.token_txhash)
-                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.txhash])
+                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.token_txhash])
                     logger.warning('Transaction Amount %s', tx.amount)
                     return False
 
@@ -682,8 +686,11 @@ class BufferedChain:
                     address_txn[initial_balance.address].tokens[tx.txhash] += initial_balance.amount
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                address_txn[tx.txfrom].tokens[tx.txhash] -= tx.amount
-                address_txn[tx.txto].tokens[tx.txhash] += tx.amount
+                address_txn[tx.txfrom].tokens[tx.token_txhash] -= tx.amount
+                #  Remove Token from address_state when token balance is Zero
+                if address_txn[tx.txfrom].tokens[tx.token_txhash] == 0:
+                    del address_txn[tx.txfrom].tokens[tx.token_txhash]
+                address_txn[tx.txto].tokens[tx.token_txhash] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
