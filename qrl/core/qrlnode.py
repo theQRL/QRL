@@ -11,6 +11,7 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
 from qrl.core.Block import Block
+from qrl.core.TokenList import TokenList
 from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
 from qrl.generated import qrl_pb2
@@ -345,6 +346,15 @@ class QRLNode:
         else:
             _, block_index = answer
         return block_index
+
+    def get_token_detailed_list(self):
+        pbdata = self.db_state.get_token_list()
+        token_list = TokenList.from_json(pbdata)
+        token_detailed_list = qrl_pb2.TokenDetailedList()
+        for token_txhash in token_list.token_txhash:
+            token_txn = self.db_state.get_tx_metadata(token_txhash)
+            token_detailed_list.tokens.extend([token_txn.pbdata])
+        return token_detailed_list
 
     def get_current_stakers(self, offset, count) -> List[StakeValidator]:
         stakers = list(self.db_state.stake_validators_tracker.sv_dict.values())

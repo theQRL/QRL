@@ -48,7 +48,7 @@ class Transaction(object, metaclass=ABCMeta):
     @property
     def pubhash(self):
         # FIXME: Review this. Leon?
-        return bytes(sha256(bytes(self.PK) + str(self.ots_key).encode()))
+        return bin2hstr(sha256(bytes(self.PK) + str(self.ots_key).encode())).encode()
 
     @property
     def txhash(self):
@@ -104,7 +104,7 @@ class Transaction(object, metaclass=ABCMeta):
         return bytes()
 
     def calculate_txhash(self):
-        return bytes(sha2_256(self._get_hashable_bytes() + self.pubhash))
+        return bin2hstr(sha2_256(self._get_hashable_bytes() + self.pubhash)).encode()
 
     def sign(self, xmss):
         self._data.signature = xmss.SIGN(self.txhash)
@@ -890,7 +890,7 @@ class TransferTokenTransaction(Transaction):
         return self._data.transfer_token.token_txhash
 
     @property
-    def addr_to(self):
+    def txto(self):
         return self._data.transfer_token.addr_to
 
     @property
@@ -908,7 +908,7 @@ class TransferTokenTransaction(Transaction):
         :rtype: bytes
         """
         tmptxhash = self.token_txhash + \
-            self.addr_to + \
+            self.txto + \
             str(self.amount).encode() + \
             str(self.fee).encode()
 
