@@ -424,3 +424,11 @@ class TestBufferedChain(TestCase):
                     self.assertEqual(token_metadata.token_txhash, token_transaction.txhash)
                     self.assertEqual(len(token_metadata.transfer_token_tx_hashes), 3)
                     self.assertEqual(token_metadata.transfer_token_tx_hashes[0], token_transaction.txhash)
+
+                    random_xmss1_state = chain.pstate._get_address_state(random_xmss1.get_address().encode())
+                    random_xmss2_state = chain.pstate._get_address_state(random_xmss2.get_address().encode())
+                    alice_state = chain.pstate._get_address_state(alice_xmss.get_address().encode())
+
+                    self.assertEqual(random_xmss1_state.tokens[token_transaction.txhash], 300000000)
+                    self.assertEqual(random_xmss2_state.tokens[token_transaction.txhash], 0)
+                    self.assertEqual(alice_state.tokens[token_transaction.txhash], 300000000)
