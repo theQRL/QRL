@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
+from qrl.core.TokenList import TokenList
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction
 from qrl.generated import qrl_pb2
@@ -136,6 +137,18 @@ class State:
 
         self._db.put(b'txn_' + addr, tmp_hashes)
 
+    def get_token_list(self):
+        try:
+            return self._db.get_raw(b'token_list')
+        except KeyError:
+            return TokenList()
+
+    def update_token_list(self, token_txhashes: list, batch):
+        pbdata = self.get_token_list()
+        token_list = TokenList.from_json(pbdata)
+        token_list.update(token_txhashes)
+        self._db.put_raw(b'token_list', token_list.to_json().encode(), batch)
+
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
         self.prev_stake_validators_tracker = self.stake_validators_tracker
         self.stake_validators_tracker = stake_validators_tracker
@@ -225,24 +238,42 @@ class State:
         if len(block.transactions) == 0:
             return
 
+        token_list = []
+
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
             if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
                                qrl_pb2.Transaction.COINBASE,
-                               qrl_pb2.Transaction.MESSAGE):
+                               qrl_pb2.Transaction.MESSAGE,
+                               qrl_pb2.Transaction.TOKEN,
+                               qrl_pb2.Transaction.TRANSFERTOKEN):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
 
-                if txn.subtype == qrl_pb2.Transaction.TRANSFER:
+                if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
+                                   qrl_pb2.Transaction.MESSAGE,
+                                   qrl_pb2.Transaction.TOKEN,
+                                   qrl_pb2.Transaction.TRANSFERTOKEN):
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
                 if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
                                    qrl_pb2.Transaction.COINBASE):
                     self.update_address_tx_hashes(txn.txto, txn.txhash)
                     self.increase_txn_count(txn.txto)
+
+                if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                    self.update_address_tx_hashes(txn.addr_to, txn.txhash)
+                    self.increase_txn_count(txn.addr_to)
+
+                if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                    token_list.append(txn.txhash)
+
                 self.increase_txn_count(txn.txfrom)
+
+        if token_list:
+            self.update_token_list(token_list, batch)
 
     def get_tx_metadata(self, txhash: bytes):
         try:
@@ -303,7 +334,8 @@ class State:
             return AddressState.create(address=address,
                                        nonce=config.dev.default_nonce,
                                        balance=config.dev.default_account_balance,
-                                       pubhashes=[])
+                                       pubhashes=[],
+                                       tokens=dict())
 
     def nonce(self, addr: bytes) -> int:
         return self.get_address(addr).nonce

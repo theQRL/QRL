@@ -267,6 +267,7 @@ message AddressState {
     uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
     repeated bytes pubhashes = 4;
     repeated bytes transaction_hashes = 5;
+    map<string, uint64> tokens = 6;
 }
 
 message StakerData {
@@ -449,6 +450,10 @@ message Transaction {
         uint64 fee = 4;
     }
 
+}
+
+message TokenList {
+    repeated bytes token_txhash = 1;
 }
 
 message EphemeralMessage {

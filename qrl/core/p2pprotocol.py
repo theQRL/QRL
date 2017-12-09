@@ -56,9 +56,12 @@ class P2PProtocol(Protocol):
             'TX': self.TX,  # RECV Transaction
             'VT': self.VT,  # Vote Txn
             'MT': self.MT,  # Message Txn
-            # 'LT': self.LT,  # Lattice Public Key Transaction
 
+            # 'LT': self.LT,  # Lattice Public Key Transaction
             # 'EPH': self.EPH,  # Ephemeral Transaction
+
+            'TK': self.TK,  # Token Transaction
+            'TT': self.TT,  # Transfer Token Transaction
 
             'SYNC': self.synced_state,  # Add into synced list, if the node replies
         }
@@ -222,6 +225,96 @@ class P2PProtocol(Protocol):
         self.factory.buffered_chain.tx_pool.update_pending_tx_pool(message_tx, self)
         self.factory.master_mr.register('MT', message_tx.get_message_hash(), data)
         self.factory.broadcast(message_tx.get_message_hash(), 'MT')
+
+        # FIXME: This is tx processor related..
+        if not self.factory.txn_processor_running:
+            # FIXME: TxnProcessor breaks tx_pool encapsulation
+            txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
+                                         pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
+                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+            task_defer.addCallback(self.factory.reset_processor_flag) \
+                .addErrback(self.factory.reset_processor_flag_with_err)
+            self.factory.txn_processor_running = True
+
+    def TK(self, data):
+        """
+        Vote Transaction
+        This function processes whenever a Transaction having
+        subtype VOTE is received.
+        :return:
+        """
+        try:
+            message_tx = Transaction.from_json(data)
+        except Exception as e:
+            logger.info('Token txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(message_tx.get_message_hash(), self):
+            return
+
+        if message_tx.txhash in self.prev_txpool_hashes or message_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
+        del self.prev_txpool_hashes[0]
+        self.prev_txpool_hashes.append(message_tx.txhash)
+
+        # duplicate tx already received, would mess up nonce..
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
+            if message_tx.txhash == t.txhash:
+                return
+
+        self.factory.buffered_chain.tx_pool.update_pending_tx_pool(message_tx, self)
+        self.factory.master_mr.register('TK', message_tx.get_message_hash(), data)
+        self.factory.broadcast(message_tx.get_message_hash(), 'TK')
+
+        # FIXME: This is tx processor related..
+        if not self.factory.txn_processor_running:
+            # FIXME: TxnProcessor breaks tx_pool encapsulation
+            txn_processor = TxnProcessor(buffered_chain=self.factory.buffered_chain,
+                                         pending_tx_pool=self.factory.buffered_chain.tx_pool.pending_tx_pool,
+                                         transaction_pool=self.factory.buffered_chain.tx_pool.transaction_pool)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+            task_defer.addCallback(self.factory.reset_processor_flag) \
+                .addErrback(self.factory.reset_processor_flag_with_err)
+            self.factory.txn_processor_running = True
+
+    def TT(self, data):
+        """
+        Vote Transaction
+        This function processes whenever a Transaction having
+        subtype VOTE is received.
+        :return:
+        """
+        try:
+            message_tx = Transaction.from_json(data)
+        except Exception as e:
+            logger.info('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.transport.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(message_tx.get_message_hash(), self):
+            return
+
+        if message_tx.txhash in self.prev_txpool_hashes or message_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
+        del self.prev_txpool_hashes[0]
+        self.prev_txpool_hashes.append(message_tx.txhash)
+
+        # duplicate tx already received, would mess up nonce..
+        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
+            if message_tx.txhash == t.txhash:
+                return
+
+        self.factory.buffered_chain.tx_pool.update_pending_tx_pool(message_tx, self)
+        self.factory.master_mr.register('TT', message_tx.get_message_hash(), data)
+        self.factory.broadcast(message_tx.get_message_hash(), 'TT')
 
         # FIXME: This is tx processor related..
         if not self.factory.txn_processor_running:

@@ -52,7 +52,8 @@ class TestChain(TestCase):
                 address_state_dict[staking_address] = AddressState.create(address=staking_address,
                                                                           nonce=0,
                                                                           balance=100,
-                                                                          pubhashes=[])
+                                                                          pubhashes=[],
+                                                                          tokens=dict())
 
                 tmp_block1 = Block.create(staking_address=staking_address,
                                           block_number=0,
@@ -94,7 +95,8 @@ class TestChain(TestCase):
                     address_state_dict[staking_address] = AddressState.create(address=staking_address,
                                                                               nonce=0,
                                                                               balance=100,
-                                                                              pubhashes=[])
+                                                                              pubhashes=[],
+                                                                              tokens=dict())
                     for i in range(10):
                         tmp_block1 = Block.create(staking_address=staking_address,
                                                   block_number=i,

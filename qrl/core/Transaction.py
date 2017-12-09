@@ -79,7 +79,7 @@ class Transaction(object, metaclass=ABCMeta):
             qrl_pb2.Transaction.VOTE: 'VOTE',
             qrl_pb2.Transaction.MESSAGE: 'MESSAGE',
             qrl_pb2.Transaction.TOKEN: 'TOKEN',
-            qrl_pb2.Transaction.TRANSFERTOKEN :'TRANSFERTOKEN'
+            qrl_pb2.Transaction.TRANSFERTOKEN: 'TRANSFERTOKEN'
         }
         return id_name[idarg]
 
@@ -753,7 +753,7 @@ class MessageTransaction(Transaction):
 
 class TokenTransaction(Transaction):
     """
-    SimpleTransaction for the transaction of QRL from one wallet to another.
+    TokenTransaction to create new Token.
     """
 
     def __init__(self, protobuf_transaction=None):
@@ -877,7 +877,7 @@ class TokenTransaction(Transaction):
 
 class TransferTokenTransaction(Transaction):
     """
-    SimpleTransaction for the transaction of QRL from one wallet to another.
+    TransferTokenTransaction for the transaction of pre-existing Token from one wallet to another.
     """
 
     def __init__(self, protobuf_transaction=None):
@@ -917,12 +917,12 @@ class TransferTokenTransaction(Transaction):
     @staticmethod
     def create(addr_from: bytes,
                token_txhash: bytes,
-               addr_to, bytes,
+               addr_to: bytes,
                amount: int,
                fee: int,
                xmss_pk,
                xmss_ots_index):
-        transaction = TokenTransaction()
+        transaction = TransferTokenTransaction()
 
         transaction._data.addr_from = bytes(addr_from)
         transaction._data.public_key = bytes(xmss_pk)

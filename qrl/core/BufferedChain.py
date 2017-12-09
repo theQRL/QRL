@@ -470,6 +470,8 @@ class BufferedChain:
         transfercoin_txn = set()
         destake_txn = set()
         message_txn = set()
+        token_txn = set()
+        transfer_token_txn = set()
 
         # cycle through every tx in the new block to check state
         for protobuf_tx in block.transactions:
@@ -517,8 +519,8 @@ class BufferedChain:
                 transfercoin_txn.add(tx.txfrom)
 
             elif tx.subtype == qrl_pb2.Transaction.STAKE:
-                if tx.txfrom in transfercoin_txn:
-                    logger.warning('Block cannot have both st txn & transfer coin txn from same address %s', tx.txfrom)
+                if tx.txfrom in (transfercoin_txn, message_txn, token_txn, transfer_token_txn):
+                    logger.warning('Block cannot have both st txn & %s txn from same address %s', tx.subtype, tx.txfrom)
                     return False
                 if tx.txfrom in stake_txn:
                     logger.warning('Block cannot have multiple Stake Txn from same address %s', tx.txfrom)
@@ -601,14 +603,87 @@ class BufferedChain:
 
                 message_txn.add(tx.txfrom)
 
+            elif tx.subtype == qrl_pb2.Transaction.TOKEN:
+                if tx.txfrom in stake_txn:
+                    logger.warning("Token Transaction done by %s address is a Stake Validator", tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.warning("Source address is a Stake Validator, balance is locked while staking")
+                    logger.warning("Token Txn dropped")
+                    return False
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.warning("Source address is in Future Stake Validator List, balance is locked")
+                    logger.warning("Token Txn dropped")
+                    return False
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid Token tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Fee %s',
+                                   address_txn[tx.txfrom].balance,
+                                   tx.fee)
+                    return False
+
+                token_txn.add(tx.txfrom)
+
+            elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                if tx.txfrom in stake_txn:
+                    logger.warning("Transfer Token Transaction done by %s address is a Stake Validator", tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.warning("Source address is a Stake Validator, balance is locked while staking")
+                    logger.warning("Transfer Token Txn dropped")
+                    return False
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.warning("Source address is in Future Stake Validator List, balance is locked")
+                    logger.warning("Transfer Token Txn dropped")
+                    return False
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid Transfer Token Txn', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Free %s', address_txn[tx.txfrom].balance, tx.fee)
+                    return False
+
+                if tx.txhash not in address_txn[tx.txfrom].tokens:
+                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom, tx.token_txhash)
+                    return False
+
+                if address_txn[tx.txfrom].tokens[tx.txhash] < tx.amount:
+                    logger.warning('Token Transfer amount exceeds available token')
+                    logger.warning('Token Txhash %s', tx.token_txhash)
+                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.txhash])
+                    logger.warning('Transaction Amount %s', tx.amount)
+                    return False
+
+                transfer_token_txn.add(tx.txfrom)
+
             if tx.subtype != qrl_pb2.Transaction.COINBASE:
                 address_txn[tx.txfrom].increase_nonce()
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 address_txn[tx.txfrom].balance -= tx.amount - tx.fee
 
-            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+            if tx.subtype in (qrl_pb2.Transaction.MESSAGE,
+                              qrl_pb2.Transaction.TOKEN,
+                              qrl_pb2.Transaction.TRANSFERTOKEN):
                 address_txn[tx.txfrom].balance -= tx.fee
+
+            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+                for initial_balance in tx.initial_balances:
+                    address_txn[initial_balance.address].tokens[tx.txhash] += initial_balance.amount
+
+            if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                address_txn[tx.txfrom].tokens[tx.txhash] -= tx.amount
+                address_txn[tx.txto].tokens[tx.txhash] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
@@ -640,10 +715,18 @@ class BufferedChain:
                 # FIXME: Access to chain buffer from here
                 address_txn[tx.txfrom] = self.get_stxn_state(block.block_number, tx.txfrom)
 
-            if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
+            if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
+                              qrl_pb2.Transaction.COINBASE,
+                              qrl_pb2.Transaction.TRANSFERTOKEN):
                 if tx.txto not in address_txn:
                     # FIXME: Access to chain buffer from here
                     address_txn[tx.txto] = self.get_stxn_state(block.block_number, tx.txto)
+
+            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+                for initial_balance in tx.initial_balances:
+                    if initial_balance.address not in address_txn:
+                        address_txn[initial_balance.address] = self.get_stxn_state(block.block_number,
+                                                                                   initial_balance.address)
 
         # FIXME: Modifying input. Side effect, etc.
         return address_txn
@@ -989,7 +1072,8 @@ class BufferedChain:
             address_state = AddressState.create(address=genesis_address,
                                                 nonce=config.dev.default_nonce,
                                                 balance=genesis_balance.balance,
-                                                pubhashes=[])
+                                                pubhashes=[],
+                                                tokens=dict())
             self._chain.pstate._save_address_state(address_state)
         ###########
 
@@ -1127,7 +1211,11 @@ class BufferedChain:
         transfercoin_txn = set()
         message_txn = set()
         destake_txn = set()
+        token_txn = set()
+        transfer_token_txn = set()
+
         address_txn = dict()
+
         while txnum < total_txn:
             tx = t_pool2[txnum]
             if self.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
@@ -1183,8 +1271,8 @@ class BufferedChain:
                         total_txn -= 1
                         continue
 
-                if tx.txfrom in transfercoin_txn:
-                    logger.debug('Dropping st txn as transfer coin txn found in pool %s', tx.txfrom)
+                if tx.txfrom in (transfercoin_txn, message_txn, token_txn, transfer_token_txn):
+                    logger.debug('Dropping st txn as %s txn found in pool %s', tx.subtype, tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
@@ -1273,11 +1361,107 @@ class BufferedChain:
 
                 message_txn.add(tx.txfrom)
 
+            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+
+                for initial_balance in tx.initial_balances:
+                    if initial_balance.address not in address_txn:
+                        address_txn[initial_balance.address] = self.get_stxn_state(last_block_number+1,
+                                                                                   initial_balance.address)
+                if tx.txfrom in stake_txn:
+                    logger.debug("Token Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.debug("Token Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.debug("Token Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Fee %s',
+                                   address_txn[tx.txfrom].balance,
+                                   tx.fee)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                token_txn.add(tx.txfrom)
+
+            if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                if tx.txfrom in stake_txn:
+                    logger.debug("Transfer Token Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.debug("Transfer Token Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.debug("Transfer Token Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s',
+                                   address_txn[tx.txfrom].balance,
+                                   tx.fee)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if tx.txhash not in address_txn[tx.txfrom].tokens:
+                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom, tx.token_txhash)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if address_txn[tx.txfrom].tokens[tx.txhash] < tx.amount:
+                    logger.warning('Token Transfer amount exceeds available token')
+                    logger.warning('Token Txhash %s', tx.token_txhash)
+                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.txhash])
+                    logger.warning('Transaction Amount %s', tx.amount)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                transfer_token_txn.add(tx.txfrom)
+
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 address_txn[tx.txfrom].balance -= tx.amount - tx.fee
 
-            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+            if tx.subtype in (qrl_pb2.Transaction.MESSAGE,
+                              qrl_pb2.Transaction.TOKEN,
+                              qrl_pb2.Transaction.TRANSFERTOKEN):
                 address_txn[tx.txfrom].balance -= tx.fee
+
+            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+                for initial_balance in tx.initial_balances:
+                    address_txn[initial_balance.address].tokens[tx.txhash] += initial_balance.amount
+
+            if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                address_txn[tx.txfrom].tokens[tx.txhash] -= tx.amount
+                address_txn[tx.txto].tokens[tx.txhash] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
