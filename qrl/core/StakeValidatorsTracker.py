@@ -21,7 +21,8 @@ class StakeValidatorsTracker:
 
     @property
     def sv_dict(self):
-        return self._data.sv_dict
+        tmp = {k.encode(): v for k, v in self._data.sv_dict._values.items()}
+        return tmp
 
     @property
     def future_stake_addresses(self):
@@ -94,7 +95,7 @@ class StakeValidatorsTracker:
     def validate_hash(self,
                       reveal_hash: bytes,
                       block_idx: int,
-                      stake_address: bytes=None)->bool:
+                      stake_address: bytes = None) -> bool:
 
         if stake_address not in self._data.sv_dict:
             return False
@@ -104,7 +105,7 @@ class StakeValidatorsTracker:
         self._data.sv_dict[stake_address].CopyFrom(sv.pbdata)
         return result
 
-    def get_stake_balance(self, stake_address: bytes)->int:
+    def get_stake_balance(self, stake_address: bytes) -> int:
         if stake_address not in self._data.sv_dict:
             logger.warning('Stake address %s not found in Stake Validators Tracker', stake_address)
             raise Exception
