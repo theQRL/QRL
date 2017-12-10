@@ -378,7 +378,9 @@ class BufferedChain:
                                                  block_number=block.block_number)
 
             if block_balance is None:
-                logger.warning('main: Block {} rejected. prevheaderhash mismatch'.format(block.block_number))
+                logger.warning('Rejected block #%s block_balance None for %s',
+                               block.block_number,
+                               block.transactions[0].addr_from)
                 return False
 
         if block.block_number == 0 and self.epoch_seed is None:
@@ -1535,7 +1537,10 @@ class BufferedChain:
             if block_number - 1 == self._chain.height:
                 if stake_address in self._chain.pstate.stake_validators_tracker.sv_dict:
                     return self._chain.pstate.stake_validators_tracker.sv_dict[stake_address].balance
-                logger.info('Blocknumber not found')
+                logger.warning('Stake address not found')
+                logger.warning('Stake Address : %s', stake_address)
+                stake_address_list = str(list(self._chain.pstate.stake_validators_tracker.sv_dict.keys()))
+                logger.warning('Stake Address list : %s', stake_address_list)
                 return None
 
             return self.blocks[block_number - 1].stake_validators_tracker.sv_dict[stake_address].balance
