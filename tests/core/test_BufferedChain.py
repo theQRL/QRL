@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import OrderedDict
 from unittest import TestCase
+from pyqrllib.pyqrllib import bin2hstr
 
 from mock import Mock, MagicMock, mock
 
@@ -12,7 +13,7 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
-from qrl.core.Transaction import StakeTransaction, Vote, TransferTokenTransaction
+from qrl.core.Transaction import StakeTransaction, Vote, TransferTokenTransaction, TransferTransaction
 from qrl.core.Wallet import Wallet
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -324,6 +325,16 @@ class TestBufferedChain(TestCase):
                     transfer_token2._data.nonce = 1
                     transfer_token2.sign(random_xmss2)
 
+                    # Transfer Coin Transaction
+                    transfer_transaction = TransferTransaction.create(addr_from=random_xmss1.get_address().encode(),
+                                                                      addr_to=random_xmss2.get_address().encode(),
+                                                                      amount=10,
+                                                                      fee=1,
+                                                                      xmss_pk=random_xmss1.pk(),
+                                                                      xmss_ots_index=random_xmss1.get_index())
+                    transfer_transaction._data.nonce = 3
+                    transfer_transaction.sign(random_xmss1)
+
                     tmp_block1 = Block.create(staking_address=staking_address,
                                               block_number=1,
                                               reveal_hash=h3,
@@ -353,7 +364,7 @@ class TestBufferedChain(TestCase):
                                                   block_number=2,
                                                   reveal_hash=h2,
                                                   prevblock_headerhash=tmp_block1.headerhash,
-                                                  transactions=[transfer_token1, transfer_token2],
+                                                  transactions=[transfer_token1, transfer_token2, transfer_transaction],
                                                   duplicate_transactions=OrderedDict(),
                                                   vote=vote_metadata,
                                                   signing_xmss=slave_xmss,
@@ -391,8 +402,8 @@ class TestBufferedChain(TestCase):
                     random_xmss1_state = chain.pstate._get_address_state(random_xmss1.get_address().encode())
                     random_xmss2_state = chain.pstate._get_address_state(random_xmss2.get_address().encode())
 
-                    self.assertEqual(random_xmss1_state.tokens[token_transaction.txhash], 400000000)
-                    self.assertEqual(random_xmss2_state.tokens[token_transaction.txhash], 200000000)
+                    self.assertEqual(random_xmss1_state.tokens[bin2hstr(token_transaction.txhash).encode()], 400000000)
+                    self.assertEqual(random_xmss2_state.tokens[bin2hstr(token_transaction.txhash).encode()], 200000000)
 
                     # Need to move forward the time to align with block times
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
@@ -429,6 +440,8 @@ class TestBufferedChain(TestCase):
                     random_xmss2_state = chain.pstate._get_address_state(random_xmss2.get_address().encode())
                     alice_state = chain.pstate._get_address_state(alice_xmss.get_address().encode())
 
-                    self.assertEqual(random_xmss1_state.tokens[token_transaction.txhash], 300000000)
-                    self.assertEqual(random_xmss2_state.tokens[token_transaction.txhash], 0)
-                    self.assertEqual(alice_state.tokens[token_transaction.txhash], 300000000)
+                    self.assertEqual(random_xmss1_state.tokens[bin2hstr(token_transaction.txhash).encode()], 300000000)
+                    self.assertEqual(random_xmss2_state.tokens[bin2hstr(token_transaction.txhash).encode()], 0)
+                    self.assertEqual(alice_state.tokens[bin2hstr(token_transaction.txhash).encode()], 300000000)
+                    self.assertEqual(random_xmss1_state.balance, config.dev.default_account_balance - 13)
+                    self.assertEqual(random_xmss2_state.balance, config.dev.default_account_balance + 9)
