@@ -1475,9 +1475,13 @@ class BufferedChain:
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
                 address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] -= tx.amount
+                if tx.txto not in address_txn:
+                    address_txn[tx.txto] = self.get_stxn_state(last_block_number + 1, tx.txto)
                 address_txn[tx.txto].tokens[bin2hstr(tx.token_txhash).encode()] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
+                if tx.txto not in address_txn:
+                    address_txn[tx.txto] = self.get_stxn_state(last_block_number + 1, tx.txto)
                 address_txn[tx.txto].balance += tx.amount
 
             address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
