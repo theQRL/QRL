@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import List
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
@@ -132,7 +133,7 @@ class State:
         txhash.append(new_txhash)
 
         # FIXME:  Json does not support bytes directly | Temporary workaround
-        tmp_hashes = [item for item in txhash]
+        tmp_hashes = [bin2hstr(item) for item in txhash]
 
         self._db.put(b'txn_' + addr, tmp_hashes)
 
@@ -215,7 +216,7 @@ class State:
             logger.exception(e)
             tx_hashes = []
 
-        tx_hashes = [item.encode() for item in tx_hashes]
+        tx_hashes = [bytes(hstr2bin(item)) for item in tx_hashes]
 
         return tx_hashes
 
@@ -263,7 +264,7 @@ class State:
                                qrl_pb2.Transaction.TOKEN,
                                qrl_pb2.Transaction.TRANSFERTOKEN):
 
-                self._db.put(txn.txhash,
+                self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
 
@@ -303,7 +304,7 @@ class State:
 
     def get_tx_metadata(self, txhash: bytes):
         try:
-            tx_metadata = self._db.get(txhash)
+            tx_metadata = self._db.get(bin2hstr(txhash))
         except Exception:
             return None
         if tx_metadata is None:

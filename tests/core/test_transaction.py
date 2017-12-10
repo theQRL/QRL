@@ -17,7 +17,7 @@ test_json_Simple = """{
   "type": "TRANSFER",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "MzIyNWEwY2NiNWZkYzVjZWM3Yzk3NmIxZDY3MTUwZjU0NjI0MGQwYTMwNzM5MzY2YjM0NGM1MTQxNzAwMmFmYg==",
+  "transactionHash": "mGKZMU0UifDCPXC2iWOcnABZWIVjWCy3shQ5thWDpcA=",
   "otsKey": 10,
   "transfer": {
     "addrTo": "UWZkNWQ2NDQ1NTkwM2I4ZTUwMGExNGNhZmIxYzRlYTk1YTFmOTc1NjJhYWFhMjRkODNlNWI5ZGMzODYxYTQ3Mzg2Y2U5YWQxNQ==",
@@ -30,7 +30,7 @@ test_json_Stake = """{
   "type": "STAKE",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "ZWIzMmQzY2M4OWY4MDE4MjhlMTg3YTY5NjQ1NDgwZjFjYTc3NjNjMzJhZjc0ODZmZWYzNDQ0NTcxZDExMjE2Ng==",
+  "transactionHash": "BrD8ry4sppKZqKLOMvDAXNFM1h4lqeMk/62KvFqIqn8=",
   "otsKey": 10,
   "stake": {
     "activationBlocknumber": "2",
@@ -43,7 +43,7 @@ test_json_CoinBase = """{
   "type": "COINBASE",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "YzQ4YzM2YTk1YTZjYmE5OWY1ZmMxM2IyZjY2YzVkODc0MDQ1ZGNjYmU0M2ZhODE1ODY3ZGU5ZGJjNGYyYzhlYw==",
+  "transactionHash": "pioe9/rt+Cqh9WL/CKizzHs8TU9F72x2U78HTfLNoSI=",
   "otsKey": 11,
   "coinbase": {
     "addrTo": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
@@ -55,7 +55,7 @@ test_json_Vote = """{
   "type": "VOTE",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "MjFlOWM1ODc4YTE1Y2VhODRhMzg1MTJiNGNmMGZiNDhjY2Y4ZWEzODViNDdjOGU5ZjQ1MjIzZDk0NmNkODI5Mw==",
+  "transactionHash": "t3QQ5I6djuFAyLSdYzEVLgkP46zF3NfkzTtOpr+MODk=",
   "otsKey": 11,
   "vote": {
     "blockNumber": "10",
@@ -67,7 +67,7 @@ test_json_Token = """{
   "type": "TOKEN",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "M2U4NTkwYjAyZDA0MjUxZTZkMTRlNDQ4NTczOTUyYzk5ZDg2YmY1Njg4NzE3NDk4Y2ZhNGU3NzJkYzI4YzcyMw==",
+  "transactionHash": "9tEVYoIH2pwb/+wgiup/sZbTlDMGKxj0NhkQbEPP9Ok=",
   "otsKey": 10,
   "token": {
     "symbol": "UVJM",
@@ -92,7 +92,7 @@ test_json_TransferToken = """{
   "type": "TRANSFERTOKEN",
   "addrFrom": "UTIyM2JjNWU1Yjc4ZWRmZDc3OGIxYmY3MjcwMjA2MWNjMDUzMDEwNzExZmZlZWZiOWQ5NjkzMThiZTVkN2I4NmIwMjFiNzNjMg==",
   "publicKey": "PFI/nMJvgAhjwANSQ5KAb/bfNzrLTUfMYHtiNl/kq3fPMBjTId99y2U8n3loZz5D0SzCbjRhtfQl/V2XdAD+pQ==",
-  "transactionHash": "ODA0ZGQzYWU1Nzc3N2NiYjdiNmFhOTVmNTQwNzJlNjMxYTU1MjU1NTA3NmE1YjlkNGQ5MDI5MWMzY2RlOGY3Mw==",
+  "transactionHash": "cS7FLEg9HlE7g/1NEhD9lDkDrojgyASAWLBtTiiocns=",
   "otsKey": 10,
   "transferToken": {
     "tokenTxhash": "MDAwMDAwMDAwMDAwMDAw",
@@ -171,10 +171,10 @@ class TestSimpleTransaction(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual(b'3225a0ccb5fdc5cec7c976b1d67150f546240d0a30739366b344c51417002afb', tx.txhash)
+        self.assertEqual('986299314d1489f0c23d70b689639c9c0059588563582cb7b21439b61583a5c0', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
-        self.assertEqual(b'e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', tx.pubhash)
+        self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
 
         # Test that specific content was copied over.
         self.assertEqual(b'Qfd5d64455903b8e500a14cafb1c4ea95a1f97562aaaa24d83e5b9dc3861a47386ce9ad15', tx.txto)
@@ -236,10 +236,10 @@ class TestStakeTransaction(TestCase):
         self.assertEqual('3c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab77'
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
-        self.assertEqual(b'eb32d3cc89f801828e187a69645480f1ca7763c32af7486fef3444571d112166', tx.txhash)
+        self.assertEqual('06b0fcaf2e2ca69299a8a2ce32f0c05cd14cd61e25a9e324ffad8abc5a88aa7f', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
-        self.assertEqual(b'e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', tx.pubhash)
+        self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
 
         # Test that specific content was copied over.
         self.assertEqual(2, tx.activation_blocknumber)
@@ -268,8 +268,8 @@ class TestStakeTransaction(TestCase):
                                      hashchain_terminator=sha256(b'T1'))
 
         # Currently, a Transaction's message is always blank (what is it used for?)
-        self.assertEqual(b'eb32d3cc89f801828e187a69645480f1ca7763c32af7486fef3444571d112166',
-                         tx.get_message_hash())
+        self.assertEqual('06b0fcaf2e2ca69299a8a2ce32f0c05cd14cd61e25a9e324ffad8abc5a88aa7f',
+                         bin2hstr(tuple(tx.get_message_hash())))
 
 
 class TestCoinBase(TestCase):
@@ -310,9 +310,9 @@ class TestCoinBase(TestCase):
                          bin2hstr(tx.PK))
         self.assertEqual(11, tx.ots_key)
         self.assertEqual(b'', tx.signature)
-        self.assertEqual(b'1a1274bedfc53287853c3aea5b8a93d64f2e4dff23ddbf96e52c8033f0107154', tx.pubhash)
+        self.assertEqual('1a1274bedfc53287853c3aea5b8a93d64f2e4dff23ddbf96e52c8033f0107154', bin2hstr(tx.pubhash))
 
-        self.assertEqual(b'c48c36a95a6cba99f5fc13b2f66c5d874045dccbe43fa815867de9dbc4f2c8ec', tx.txhash)
+        self.assertEqual('a62a1ef7faedf82aa1f562ff08a8b3cc7b3c4d4f45ef6c7653bf074df2cda122', bin2hstr(tx.txhash))
 
         # Test that specific content was copied over.
         self.assertEqual(b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2', tx.txto)
@@ -353,9 +353,9 @@ class TestVote(TestCase):
                          bin2hstr(tx.PK))
         self.assertEqual(11, tx.ots_key)
         self.assertEqual(b'', tx.signature)
-        self.assertEqual(b'1a1274bedfc53287853c3aea5b8a93d64f2e4dff23ddbf96e52c8033f0107154', tx.pubhash)
+        self.assertEqual('1a1274bedfc53287853c3aea5b8a93d64f2e4dff23ddbf96e52c8033f0107154', bin2hstr(tx.pubhash))
 
-        self.assertEqual(b'21e9c5878a15cea84a38512b4cf0fb48ccf8ea385b47c8e9f45223d946cd8293', tx.txhash)
+        self.assertEqual('b77410e48e9d8ee140c8b49d6331152e090fe3acc5dcd7e4cd3b4ea6bf8c3839', bin2hstr(tx.txhash))
 
 
 class TestTokenTransaction(TestCase):
@@ -430,10 +430,10 @@ class TestTokenTransaction(TestCase):
         self.assertEqual(b'QRL', tx.symbol)
         self.assertEqual(b'Quantum Resistant Ledger', tx.name)
         self.assertEqual(b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2', tx.owner)
-        self.assertEqual(b'3e8590b02d04251e6d14e448573952c99d86bf5688717498cfa4e772dc28c723', tx.txhash)
+        self.assertEqual('f6d115628207da9c1bffec208aea7fb196d39433062b18f43619106c43cff4e9', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
-        self.assertEqual(b'e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', tx.pubhash)
+        self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
 
         total_supply = 0
         for initial_balance in tx.initial_balances:
@@ -515,10 +515,10 @@ class TestTransferTokenTransaction(TestCase):
                          bin2hstr(tx.PK))
         self.assertEqual(b'000000000000000', tx.token_txhash)
         self.assertEqual(200000, tx.amount)
-        self.assertEqual(b'804dd3ae57777cbb7b6aa95f54072e631a552555076a5b9d4d90291c3cde8f73', tx.txhash)
+        self.assertEqual('712ec52c483d1e513b83fd4d1210fd943903ae88e0c8048058b06d4e28a8727b', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
         self.assertEqual(b'', tx.signature)
-        self.assertEqual(b'e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', tx.pubhash)
+        self.assertEqual('e2e3d8b08e65b25411af455eb9bb402827fa7b600fa0b36011d62e26899dfa05', bin2hstr(tx.pubhash))
 
         self.assertEqual(1, tx.fee)
 

@@ -48,7 +48,7 @@ class Transaction(object, metaclass=ABCMeta):
     @property
     def pubhash(self):
         # FIXME: Review this. Leon?
-        return bin2hstr(sha256(bytes(self.PK) + str(self.ots_key).encode())).encode()
+        return bytes(sha256(bytes(self.PK) + str(self.ots_key).encode()))
 
     @property
     def txhash(self):
@@ -104,7 +104,7 @@ class Transaction(object, metaclass=ABCMeta):
         return bytes()
 
     def calculate_txhash(self):
-        return bin2hstr(sha2_256(self._get_hashable_bytes() + self.pubhash)).encode()
+        return bytes(sha2_256(self._get_hashable_bytes() + self.pubhash))
 
     def sign(self, xmss):
         self._data.signature = xmss.SIGN(self.txhash)

@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 from typing import Optional, Dict
 
-from pyqrllib.pyqrllib import XmssPool
+from pyqrllib.pyqrllib import bin2hstr, XmssPool
 
 from qrl.core import config, logger, State
 from qrl.core.AddressState import AddressState
@@ -248,7 +248,7 @@ class BufferedChain:
             tx_state = self.get_stxn_state(blocknumber=self.height+1, addr=vote.addr_from)
 
             if not (vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict)):
-                logger.warning('>>>Vote %s invalid state validation failed..', vote.txhash)
+                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
                 return
 
         if vote.blocknumber not in self._vote_tracker:
@@ -657,14 +657,16 @@ class BufferedChain:
                     logger.warning('Buffer State Balance: %s  Free %s', address_txn[tx.txfrom].balance, tx.fee)
                     return False
 
-                if tx.token_txhash not in address_txn[tx.txfrom].tokens:
-                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom, tx.token_txhash)
+                if bin2hstr(tx.token_txhash).encode() not in address_txn[tx.txfrom].tokens:
+                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom,
+                                   bin2hstr(tx.token_txhash).encode())
                     return False
 
-                if address_txn[tx.txfrom].tokens[tx.token_txhash] < tx.amount:
+                if address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] < tx.amount:
                     logger.warning('Token Transfer amount exceeds available token')
-                    logger.warning('Token Txhash %s', tx.token_txhash)
-                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.token_txhash])
+                    logger.warning('Token Txhash %s', bin2hstr(tx.token_txhash).encode())
+                    logger.warning('Available Token Amount %s',
+                                   address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()])
                     logger.warning('Transaction Amount %s', tx.amount)
                     return False
 
@@ -674,7 +676,7 @@ class BufferedChain:
                 address_txn[tx.txfrom].increase_nonce()
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
-                address_txn[tx.txfrom].balance -= tx.amount - tx.fee
+                address_txn[tx.txfrom].balance -= tx.amount + tx.fee
 
             if tx.subtype in (qrl_pb2.Transaction.MESSAGE,
                               qrl_pb2.Transaction.TOKEN,
@@ -683,14 +685,14 @@ class BufferedChain:
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
                 for initial_balance in tx.initial_balances:
-                    address_txn[initial_balance.address].tokens[tx.txhash] += initial_balance.amount
+                    address_txn[initial_balance.address].tokens[bin2hstr(tx.txhash).encode()] += initial_balance.amount
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                address_txn[tx.txfrom].tokens[tx.token_txhash] -= tx.amount
+                address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] -= tx.amount
                 #  Remove Token from address_state when token balance is Zero
-                if address_txn[tx.txfrom].tokens[tx.token_txhash] == 0:
-                    del address_txn[tx.txfrom].tokens[tx.token_txhash]
-                address_txn[tx.txto].tokens[tx.token_txhash] += tx.amount
+                if address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] == 0:
+                    del address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()]
+                address_txn[tx.txto].tokens[bin2hstr(tx.token_txhash).encode()] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
@@ -1440,16 +1442,18 @@ class BufferedChain:
                     total_txn -= 1
                     continue
 
-                if tx.token_txhash not in address_txn[tx.txfrom].tokens:
-                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom, tx.token_txhash)
+                if bin2hstr(tx.token_txhash).encode() not in address_txn[tx.txfrom].tokens:
+                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom,
+                                   bin2hstr(tx.token_txhash).encode())
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
-                if address_txn[tx.txfrom].tokens[tx.token_txhash] < tx.amount:
+                if address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] < tx.amount:
                     logger.warning('Token Transfer amount exceeds available token')
-                    logger.warning('Token Txhash %s', tx.token_txhash)
-                    logger.warning('Available Token Amount %s', address_txn[tx.txfrom].tokens[tx.token_txhash])
+                    logger.warning('Token Txhash %s', bin2hstr(tx.token_txhash).encode())
+                    logger.warning('Available Token Amount %s',
+                                   address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()])
                     logger.warning('Transaction Amount %s', tx.amount)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1458,7 +1462,7 @@ class BufferedChain:
                 transfer_token_txn.add(tx.txfrom)
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
-                address_txn[tx.txfrom].balance -= tx.amount - tx.fee
+                address_txn[tx.txfrom].balance -= tx.amount + tx.fee
 
             if tx.subtype in (qrl_pb2.Transaction.MESSAGE,
                               qrl_pb2.Transaction.TOKEN,
@@ -1467,11 +1471,11 @@ class BufferedChain:
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
                 for initial_balance in tx.initial_balances:
-                    address_txn[initial_balance.address].tokens[tx.txhash] += initial_balance.amount
+                    address_txn[initial_balance.address].tokens[bin2hstr(tx.txhash).encode()] += initial_balance.amount
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                address_txn[tx.txfrom].tokens[tx.token_txhash] -= tx.amount
-                address_txn[tx.txto].tokens[tx.token_txhash] += tx.amount
+                address_txn[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] -= tx.amount
+                address_txn[tx.txto].tokens[bin2hstr(tx.token_txhash).encode()] += tx.amount
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
