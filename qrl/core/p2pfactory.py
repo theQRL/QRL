@@ -4,6 +4,7 @@
 import queue
 import random
 
+from qrl.core.ESyncState import ESyncState
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
@@ -13,14 +14,14 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
-from qrl.core.p2pprotocol import P2PProtocol
+from qrl.core.p2phandler import P2PHandler
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 
 
 class P2PFactory(ServerFactory):
-    protocol = P2PProtocol
+    protocol = P2PHandler
 
     def __init__(self,
                  buffered_chain: BufferedChain,
@@ -28,8 +29,10 @@ class P2PFactory(ServerFactory):
                  qrl_node: QRLNode):
         self.master_mr = MessageReceipt()
         self.pos = None
-        self.ntp = ntp
-        self.qrl_node = qrl_node
+
+        self._ntp = ntp
+        self._qrl_node = qrl_node
+
         self.buffered_chain = buffered_chain
         self.sync_state = sync_state
 
@@ -47,6 +50,13 @@ class P2PFactory(ServerFactory):
         self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)  # FIXME: Accessed by every p2pprotocol
         self.bkmr_processor.cancel()
 
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
     @property
     def connections(self):
         return len(self._peer_connections)
@@ -56,6 +66,10 @@ class P2PFactory(ServerFactory):
         return len(self._synced_peers_protocol) > 0
 
     @property
+    def synced(self):
+        return self.pos.sync_state.state == ESyncState.synced
+
+    @property
     def reached_conn_limit(self):
         return len(self._peer_connections) >= config.user.max_peers_limit
 
@@ -63,12 +77,31 @@ class P2PFactory(ServerFactory):
         return random.sample(self._synced_peers_protocol, 1)[0]
 
     def get_connected_peer_ips(self):
-        return set([peer.host_ip for peer in self._peer_connections])
+        return set([peer.peer_ip for peer in self._peer_connections])
 
-    ##############################################
-    ##############################################
-    ##############################################
-    ##############################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    # Encapsulating code that is node related
+    # FIXME: Refactoring in progress
+    def update_peer_addresses(self, new_ips):
+        self._qrl_node.update_peer_addresses(new_ips)
+
+    def set_peer_synced(self, conn_protocol, synced: bool):
+        if synced:
+            self._synced_peers_protocol.add(conn_protocol)
+        else:
+            self._synced_peers_protocol.discard(conn_protocol)
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
 
     def RFM(self, mr_data: qrllegacy_pb2.MRData):
         """
@@ -100,7 +133,7 @@ class P2PFactory(ServerFactory):
             data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SFM,
                                                mrData=qrllegacy_pb2.MRData(hash=mr_data.hash, type=mr_data.type))
 
-            peer.transport.write(peer.wrap_message(data))
+            peer.transport.write(peer._wrap_message(data))
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                self.RFM,
                                                mr_data)
@@ -200,7 +233,7 @@ class P2PFactory(ServerFactory):
         data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.MR,
                                            mrData=mr_data)
 
-        msg = self.protocol.wrap_message(data)
+        msg = self.protocol._wrap_message(data)
         for peer in self._peer_connections:
             if peer not in ignore_peers:
                 peer.transport.write(msg)
@@ -263,12 +296,6 @@ class P2PFactory(ServerFactory):
     def startedConnecting(self, connector):
         logger.debug('Started connecting: %s', connector)
 
-    def set_peer_synced(self, conn_protocol, synced: bool):
-        if synced:
-            self._synced_peers_protocol.add(conn_protocol)
-        else:
-            self._synced_peers_protocol.discard(conn_protocol)
-
     def add_connection(self, conn_protocol) -> bool:
         # FIXME: (For AWS) This could be problematic for other users
         # FIXME: identify nodes by an GUID?
@@ -282,12 +309,12 @@ class P2PFactory(ServerFactory):
             conn_protocol.transport.loseConnection()
             return False
 
-        peer_list = self.qrl_node.peer_addresses
+        peer_list = self._qrl_node.peer_addresses
         if conn_protocol.transport.getPeer().host == conn_protocol.transport.getHost().host:
             if conn_protocol.transport.getPeer().host in peer_list:
                 logger.info('Self in peer_list, removing..')
                 peer_list.remove(conn_protocol.transport.getPeer().host)
-                self.qrl_node.update_peer_addresses(peer_list)
+                self._qrl_node.update_peer_addresses(peer_list)
 
             conn_protocol.transport.loseConnection()
             return False
@@ -297,7 +324,7 @@ class P2PFactory(ServerFactory):
         if conn_protocol.transport.getPeer().host not in peer_list:
             logger.info('Adding to peer_list')
             peer_list.add(conn_protocol.transport.getPeer().host)
-            self.qrl_node.update_peer_addresses(peer_list)
+            self._qrl_node.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ', conn_protocol.transport.getPeer().host,
                     str(conn_protocol.transport.getPeer().port))
@@ -337,6 +364,6 @@ class P2PFactory(ServerFactory):
         :rtype: None
         """
         # FIXME: This probably should be in the qrl_node
-        logger.info('<<<Reconnecting to peer list: %s', self.qrl_node._peer_addresses)
-        for peer_address in self.qrl_node._peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self._qrl_node._peer_addresses)
+        for peer_address in self._qrl_node._peer_addresses:
             self.connect_peer(peer_address)

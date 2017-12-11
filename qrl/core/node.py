@@ -271,7 +271,7 @@ class POS:
             logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
             self.buffered_chain.tx_pool.add_tx_to_pool(tx)
 
-            txn_msg = tx_peer.wrap_message('TX', tx.to_json())
+            txn_msg = tx_peer._wrap_message('TX', tx.to_json())
             self.p2p_factory.broadcast_relay(tx_peer, txn_msg)
 
         for i in range(num - tmp_num):
