@@ -322,7 +322,8 @@ class QRLNode:
                                              balance=tmp_address_state.balance,
                                              nonce=tmp_address_state.nonce,
                                              pubhashes=tmp_address_state.pubhashes,
-                                             transaction_hashes=transaction_hashes)
+                                             transaction_hashes=transaction_hashes,
+                                             tokens=tmp_address_state.tokens)
 
         return address_state
 
@@ -364,7 +365,7 @@ class QRLNode:
         token_list = TokenList.from_json(pbdata)
         token_detailed_list = qrl_pb2.TokenDetailedList()
         for token_txhash in token_list.token_txhash:
-            token_txn = self.db_state.get_tx_metadata(token_txhash)
+            token_txn, _ = self.db_state.get_tx_metadata(token_txhash)
             token_detailed_list.tokens.extend([token_txn.pbdata])
         return token_detailed_list
 
