@@ -84,8 +84,8 @@ class TestSimpleTransaction(TestCase):
 
     def test_create(self):
         # Alice sending coins to Bob
-        tx = TransferTransaction.create(addr_from=self.alice.get_address().encode(),
-                                        addr_to=self.bob.get_address().encode(),
+        tx = TransferTransaction.create(addr_from=self.alice.get_address(),
+                                        addr_to=self.bob.get_address(),
                                         amount=100,
                                         fee=1,
                                         xmss_pk=self.alice.pk(),
@@ -94,8 +94,8 @@ class TestSimpleTransaction(TestCase):
 
     def test_create_negative_amount(self):
         with self.assertRaises(ValueError):
-            TransferTransaction.create(addr_from=self.alice.get_address().encode(),
-                                       addr_to=self.bob.get_address().encode(),
+            TransferTransaction.create(addr_from=self.alice.get_address(),
+                                       addr_to=self.bob.get_address(),
                                        amount=-100,
                                        fee=1,
                                        xmss_pk=self.alice.pk(),
@@ -103,16 +103,16 @@ class TestSimpleTransaction(TestCase):
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            TransferTransaction.create(addr_from=self.alice.get_address().encode(),
-                                       addr_to=self.bob.get_address().encode(),
+            TransferTransaction.create(addr_from=self.alice.get_address(),
+                                       addr_to=self.bob.get_address(),
                                        amount=-100,
                                        fee=-1,
                                        xmss_pk=self.alice.pk(),
                                        xmss_ots_index=self.alice.get_index())
 
     def test_to_json(self):
-        tx = TransferTransaction.create(addr_from=self.alice.get_address().encode(),
-                                        addr_to=self.bob.get_address().encode(),
+        tx = TransferTransaction.create(addr_from=self.alice.get_address(),
+                                        addr_to=self.bob.get_address(),
                                         amount=100,
                                         fee=1,
                                         xmss_pk=self.alice.pk(),
@@ -144,8 +144,8 @@ class TestSimpleTransaction(TestCase):
 
     def test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
-        tx = TransferTransaction.create(addr_from=self.alice.get_address().encode(),
-                                        addr_to=self.bob.get_address().encode(),
+        tx = TransferTransaction.create(addr_from=self.alice.get_address(),
+                                        addr_to=self.bob.get_address(),
                                         amount=100,
                                         fee=1,
                                         xmss_pk=self.alice.pk(),
@@ -240,7 +240,7 @@ class TestCoinBase(TestCase):
         self.alice.set_index(11)
 
         self.mock_blockheader = Mock(spec=BlockHeader)
-        self.mock_blockheader.stake_selector = self.alice.get_address().encode()
+        self.mock_blockheader.stake_selector = self.alice.get_address()
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
         self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
@@ -286,7 +286,7 @@ class TestVote(TestCase):
         self.alice = XMSS(4, seed='a' * 48)
         self.alice.set_index(11)
 
-        self.addr_from = self.alice.get_address().encode()
+        self.addr_from = self.alice.get_address()
         self.blocknumber = 10
         self.headerhash = sha256(b'headerhash')
 

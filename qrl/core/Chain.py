@@ -20,7 +20,7 @@ class Chain:
 
     @property
     def staking_address(self):
-        return self.wallet.address_bundle[0].xmss.get_address().encode()
+        return self.wallet.address_bundle[0].xmss.get_address()
 
     @property
     def height(self):

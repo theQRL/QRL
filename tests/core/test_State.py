@@ -39,15 +39,15 @@ class TestState(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
-                alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                alice_address = alice_xmss.get_address()
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
 
-                alice_address = bytearray(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                alice_address = bytearray(alice_xmss.get_address())
                 with self.assertRaises(TypeError):
                     address_state = state.get_address(alice_address)
 
-                alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                alice_address = alice_xmss.get_address()
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
                 state._save_address_state(address_state)
@@ -60,7 +60,7 @@ class TestState(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
-                alice_address = bytes(alice_xmss.get_address().encode())
+                alice_address = alice_xmss.get_address()
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
                 state._save_address_state(address_state)
@@ -71,7 +71,7 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                alice_address = bytes(alice_xmss.get_address().encode())  # FIXME: This needs to be refactored
+                alice_address = alice_xmss.get_address()
                 some_hash1 = sha256(b'some_hash1')
                 some_hash2 = sha256(b'some_hash2')
 

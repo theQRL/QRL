@@ -94,10 +94,10 @@ class Wallet:
                 for a in wallet_store.wallets:
                     tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a.mnemonic.strip()))
                     tmpxmss.set_index(a.xmss_index)
-                    if a.address != tmpxmss.get_address():
+                    if a.address.encode() != tmpxmss.get_address():
                         logger.fatal("Mnemonic and address do not match.")
                         exit(1)
-                    self.address_bundle.append(AddressBundle(tmpxmss.get_address().encode(), tmpxmss))
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
 
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
@@ -116,7 +116,7 @@ class Wallet:
                 for a in data:
                     tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a['mnemonic'].strip()))
                     tmpxmss.set_index(a['index'])
-                    self.address_bundle.append(AddressBundle(tmpxmss.get_address().encode(), tmpxmss))
+                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
 
@@ -209,4 +209,4 @@ class Wallet:
             raise Exception('OTS type not recognised')
 
         xmss = XMSS(tree_height=signature_tree_height, seed=seed)
-        return AddressBundle(xmss.get_address().encode(), xmss)
+        return AddressBundle(xmss.get_address(), xmss)

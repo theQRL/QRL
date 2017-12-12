@@ -90,7 +90,7 @@ class TestBufferedChain(TestCase):
 
                 alice_xmss = get_alice_xmss()
                 slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
-                staking_address = bytes(alice_xmss.get_address().encode())
+                staking_address = alice_xmss.get_address()
 
                 h0 = sha256(b'hashchain_seed')
                 h1 = sha256(h0)
@@ -106,7 +106,7 @@ class TestBufferedChain(TestCase):
                                                                 xmss=alice_xmss,
                                                                 slavePK=slave_xmss.pk(),
                                                                 hashchain_terminator=h1)
-                    vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                    vote = Vote.create(addr_from=alice_xmss.get_address(),
                                        blocknumber=0,
                                        headerhash=custom_genesis.headerhash,
                                        xmss=slave_xmss)
@@ -125,7 +125,7 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    tmp_block = Block.create(staking_address=bytes(alice_xmss.get_address().encode()),
+                    tmp_block = Block.create(staking_address=bytes(alice_xmss.get_address()),
                                              block_number=1,
                                              reveal_hash=h0,
                                              prevblock_headerhash=custom_genesis.headerhash,
@@ -147,7 +147,7 @@ class TestBufferedChain(TestCase):
                 alice_xmss = get_alice_xmss()
                 slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
-                staking_address = bytes(alice_xmss.get_address().encode())
+                staking_address = alice_xmss.get_address()
 
                 # FIXME: Replace this with a call to create a hash_chain
                 h0 = sha256(b'hashchain_seed')
@@ -168,7 +168,7 @@ class TestBufferedChain(TestCase):
                     stake_transaction._data.nonce = 1  # FIXME: The test needs private access.. This is an API issue
                     stake_transaction.sign(alice_xmss)
 
-                    vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                    vote = Vote.create(addr_from=alice_xmss.get_address(),
                                        blocknumber=0,
                                        headerhash=GenesisBlock().headerhash,
                                        xmss=slave_xmss)
@@ -200,7 +200,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                        vote = Vote.create(addr_from=alice_xmss.get_address(),
                                            blocknumber=1,
                                            headerhash=tmp_block1.headerhash,
                                            xmss=slave_xmss)
@@ -225,7 +225,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block2.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address().encode(),
+                        vote = Vote.create(addr_from=alice_xmss.get_address(),
                                            blocknumber=2,
                                            headerhash=tmp_block2.headerhash,
                                            xmss=slave_xmss)

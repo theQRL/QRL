@@ -46,7 +46,7 @@ class TestChain(TestCase):
 
                 chain = Chain(state)
                 alice_xmss = get_alice_xmss()
-                staking_address = bytes(alice_xmss.get_address().encode())
+                staking_address = alice_xmss.get_address()
 
                 address_state_dict = dict()
                 address_state_dict[staking_address] = AddressState.create(address=staking_address,
@@ -84,7 +84,7 @@ class TestChain(TestCase):
 
                 chain = Chain(state)
                 alice_xmss = get_alice_xmss()
-                staking_address = bytes(alice_xmss.get_address().encode())
+                staking_address = alice_xmss.get_address()
 
                 with patch('qrl.core.config.dev.disk_writes_after_x_blocks'):
                     qrl.core.config.dev.disk_writes_after_x_blocks = 4

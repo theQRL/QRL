@@ -387,7 +387,7 @@ class TestPublicAPI(TestCase):
                                            get_bob_xmss().pk(),
                                            sha256(b'terminator'))
 
-        expected_address = bytes(get_alice_xmss().get_address().encode())
+        expected_address = get_alice_xmss().get_address()
         db_state.get_address = MagicMock(
             return_value=AddressState.create(address=expected_address,
                                              nonce=1,

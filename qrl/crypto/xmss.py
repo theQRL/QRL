@@ -131,9 +131,9 @@ class XMSS(object):
         """
         return bin2mnemonic(self._xmss.getSeed())
 
-    def get_address(self):
+    def get_address(self)->bytes:
         # FIXME: Move to property
-        return self._xmss.getAddress('Q')
+        return bytes(self._xmss.getAddress('Q').encode())
 
     def get_type(self):
         # FIXME: Move to property

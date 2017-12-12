@@ -52,7 +52,7 @@ class TestStakeValidator(TestCase):
         alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
 
-        staking_address = bytes(alice_xmss.get_address().encode())
+        staking_address = alice_xmss.get_address()
 
         h0 = sha256(b'hashchain_seed')
         h1 = sha256(h0)

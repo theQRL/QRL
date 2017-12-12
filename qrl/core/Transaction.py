@@ -305,7 +305,7 @@ class StakeTransaction(Transaction):
 
         transaction = StakeTransaction()
 
-        transaction._data.addr_from = bytes(xmss.get_address().encode())
+        transaction._data.addr_from = xmss.get_address()
         transaction._data.public_key = bytes(xmss.pk())
 
         # Stake specific
@@ -369,7 +369,7 @@ class DestakeTransaction(Transaction):
 
         transaction = DestakeTransaction()
 
-        transaction._data.addr_from = bytes(xmss.get_address().encode())
+        transaction._data.addr_from = xmss.get_address()
         transaction._data.public_key = bytes(xmss.pk())
 
         # WARNING: These fields need to the calculated once all other fields are set
