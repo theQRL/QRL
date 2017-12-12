@@ -38,7 +38,7 @@ class P2PProtocol(Protocol):
 
         if self.factory.add_connection(self):
             self.send_peer_list()
-            self.send_version()
+            self.send_version_request()
 
         self._ping_callLater = reactor.callLater(1, self.send_pong)
         self._disconnect_callLater = reactor.callLater(config.user.ping_timeout,

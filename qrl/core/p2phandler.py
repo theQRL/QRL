@@ -82,25 +82,24 @@ class P2PHandler(P2PProtocol):
     ###################################################
     ###################################################
 
-    def send_version(self):
+    def send_version_request(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
         self.send(msg)
 
     def handle_version(self, message: qrllegacy_pb2.LegacyMessage):
         """
         Version
-        If data is None then sends the version & genesis_prev_headerhash.
-        Otherwise, process the content of data and incase of non matching,
-        genesis_prev_headerhash, it disconnects the odd peer.
-        :return:
+        If version is empty, it sends the version & genesis_prev_headerhash.
+        Otherwise, processes the content of data.
+        In case of mismatches, it disconnects from the peer
         """
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.VE)
 
-        if message.veData is None:
+        if not message.veData.version:
             msg = qrllegacy_pb2.LegacyMessage(
                 func_name=qrllegacy_pb2.LegacyMessage.VE,
                 veData=qrllegacy_pb2.VEData(version=config.dev.version,
-                                            genesis_prev_hash=bytes(config.dev.genesis_prev_headerhash.encode())))
+                                            genesis_prev_hash=config.dev.genesis_prev_headerhash))
 
             self.send(msg)
             return
@@ -122,8 +121,9 @@ class P2PHandler(P2PProtocol):
         Sends the peers list.
         :return:
         """
-        logger.info('<<<Sending connected peers to %s', self.peer_ip)
         peer_ips = self.factory.get_connected_peer_ips()
+
+        logger.info('<<< Sending connected peers to %s [%s]', self.peer_ip, peer_ips)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
                                           plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
@@ -134,9 +134,6 @@ class P2PHandler(P2PProtocol):
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
 
         if not config.user.enable_peer_discovery:
-            return
-
-        if message.plData is None:
             return
 
         if message.plData.peer_ips is None:
