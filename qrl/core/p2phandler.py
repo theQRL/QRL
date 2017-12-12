@@ -20,22 +20,6 @@ from qrl.generated import qrllegacy_pb2
 # NOTE: There is a consistency problem in the message objects.
 # NOTE: There are three cases, 1) send request 2) recv request 3) recv respose (implicit )
 
-# class P2PObservable(object):
-#     def __init__(self, source):
-#         # FIXME: Add mutexes
-#         self.source = source
-#         self._observers = dict()
-#
-#     def register(self, message_type, func: Callable):
-#         # FIXME: Add mutexes
-#         self._observers.setdefault(message_type, []).append(func)
-#
-#     def _notify(self, message: qrllegacy_pb2.LegacyMessage):
-#         # FIXME: Add mutexes
-#         observers = self._observers.get(message.msg_type, [])
-#         for o in observers:
-#             o(self, self.source, message)
-#
 #
 # class P2PObserver(object):
 #     def __init__(self, message_source: P2PObservable):
@@ -49,33 +33,29 @@ from qrl.generated import qrllegacy_pb2
 class P2PHandler(P2PProtocol):
     def __init__(self):
         super().__init__()
-        self._services = {
-            # NODE STATE
-            qrllegacy_pb2.LegacyMessage.VE: self.handle_version,
-            qrllegacy_pb2.LegacyMessage.PL: self.handle_peer_list,
-            qrllegacy_pb2.LegacyMessage.PONG: self.handle_pong,
-            qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,
 
-            # SYNCHRONIZATION
-            qrllegacy_pb2.LegacyMessage.FB: self.handle_fetch_block,
-            qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,
+        # NODE STATE
+        self._observable.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
 
-            # CACHING
-            qrllegacy_pb2.LegacyMessage.MR: self.handle_message_received,
-            qrllegacy_pb2.LegacyMessage.SFM: self.handle_full_message_request,
+        # SYNCHRONIZATION
+        self._observable.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
 
-            # Linked to MR...
-            qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,
-            qrllegacy_pb2.LegacyMessage.ST: self.handle_stake,
-            qrllegacy_pb2.LegacyMessage.DST: self.handle_destake,
-            qrllegacy_pb2.LegacyMessage.DT: self.handle_duplicate,
-            qrllegacy_pb2.LegacyMessage.VT: self.handle_vote,
-            qrllegacy_pb2.LegacyMessage.LT: self.handle_lattice,
-            qrllegacy_pb2.LegacyMessage.EPH: self.handle_ephemeral,
-            qrllegacy_pb2.LegacyMessage.BK: self.handle_block,
-        }
+        # CACHING
+        self._observable.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
 
-        self._last_requested_blocknum = None
+        # Linked to MR...
+        self._observable.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.DT, self.handle_duplicate)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.VT, self.handle_vote)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
 
     ###################################################
     ###################################################
@@ -86,7 +66,7 @@ class P2PHandler(P2PProtocol):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
         self.send(msg)
 
-    def handle_version(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Version
         If version is empty, it sends the version & genesis_prev_headerhash.
@@ -110,7 +90,7 @@ class P2PHandler(P2PProtocol):
                     message.veData.genesis_prev_hash)
 
         if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
-            logger.warning('%s genesis_prev_headerhash mismatch', self._conn_identity)
+            logger.warning('%s genesis_prev_headerhash mismatch', self.connection_id)
             logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             self.loseConnection()
@@ -130,7 +110,7 @@ class P2PHandler(P2PProtocol):
 
         self.send(msg)
 
-    def handle_peer_list(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
 
         if not config.user.enable_peer_discovery:
@@ -148,9 +128,9 @@ class P2PHandler(P2PProtocol):
     def send_pong(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
         self.send(msg)
-        logger.debug('Sending PING to %s', self._conn_identity)
+        logger.debug('Sending PING to %s', self.connection_id)
 
-    def handle_pong(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_pong(self, source, message: qrllegacy_pb2.LegacyMessage):
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
 
         self._disconnect_callLater.reset(config.user.ping_timeout)
@@ -158,14 +138,14 @@ class P2PHandler(P2PProtocol):
             self._ping_callLater.cancel()
 
         self._ping_callLater = reactor.callLater(config.user.ping_frequency, self.send_pong)
-        logger.debug('Received PONG from %s', self._conn_identity)
+        logger.debug('Received PONG from %s', self.connection_id)
 
     def send_sync(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
                                           syncData=qrllegacy_pb2.SYNCData(state=''))
         self.send(msg)
 
-    def handle_sync(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
 
         if message.syncData.state == 'Synced':
@@ -188,12 +168,12 @@ class P2PHandler(P2PProtocol):
         Sends request for the block number n.
         :return:
         """
-        logger.info('<<<Fetching block: %s from %s', block_idx, self._conn_identity)
+        logger.info('<<<Fetching block: %s from %s', block_idx, self.connection_id)
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
 
-    def handle_fetch_block(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
+    def handle_fetch_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
         """
         Fetch Block
         Sends the request for the block.
@@ -203,14 +183,14 @@ class P2PHandler(P2PProtocol):
 
         block_number = message.fbData.index
 
-        logger.info(' Request for %s by %s', block_number, self._conn_identity)
+        logger.info(' Request for %s by %s', block_number, self.connection_id)
         if 0 < block_number <= self.factory.chain_height:
             block = self.factory.get_block(block_number)
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
                                               pbData=qrllegacy_pb2.PBData(block=block.pbdata))
             self.send(msg)
 
-    def handle_push_block(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_push_block(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Push Block
         This function processes requested blocks received while syncing.
@@ -242,7 +222,7 @@ class P2PHandler(P2PProtocol):
         if message.func_name != expected_func:
             raise ValueError("Invalid func_name")
 
-    def handle_message_received(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_message_received(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Message Receipt
         This function accepts message receipt from peer,
@@ -280,7 +260,7 @@ class P2PHandler(P2PProtocol):
         if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
             block_chain_buffer = self.factory._buffered_chain
 
-            if not block_chain_buffer.verify_BK_hash(mr_data, self._conn_identity):
+            if not block_chain_buffer.verify_BK_hash(mr_data, self.connection_id):
                 if block_chain_buffer.is_duplicate_block(block_idx=mr_data.block_number,
                                                          prev_headerhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
@@ -308,7 +288,7 @@ class P2PHandler(P2PProtocol):
 
         self.factory.RFM(mr_data)
 
-    def handle_full_message_request(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_full_message_request(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Send Full Message
         This function serves the request made for the full message.
@@ -323,7 +303,7 @@ class P2PHandler(P2PProtocol):
     ###################################################
     ###################################################
 
-    def handle_tx(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_tx(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Transaction
         Executed whenever a new TX type message is received.
@@ -338,7 +318,7 @@ class P2PHandler(P2PProtocol):
 
         self.factory.trigger_tx_processor(tx, message)
 
-    def handle_vote(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_vote(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Vote Transaction
         This function processes whenever a Transaction having
@@ -360,7 +340,7 @@ class P2PHandler(P2PProtocol):
         if self.factory._buffered_chain.add_vote(vote):
             self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
-    def handle_stake(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_stake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Stake Transaction
         This function processes whenever a Transaction having
@@ -415,7 +395,7 @@ class P2PHandler(P2PProtocol):
 
         self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
 
-    def handle_destake(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_destake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Destake Transaction
         This function processes whenever a Transaction having
@@ -457,7 +437,7 @@ class P2PHandler(P2PProtocol):
 
         self.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
 
-    def handle_duplicate(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_duplicate(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Duplicate Transaction
         This function processes whenever a Transaction having
@@ -487,7 +467,7 @@ class P2PHandler(P2PProtocol):
 
         self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
 
-    def handle_block(self, message: qrllegacy_pb2.LegacyMessage):  # block received
+    def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
         """
         Block
         This function processes any new block received.
@@ -502,7 +482,7 @@ class P2PHandler(P2PProtocol):
             return
 
         logger.info('>>>Received block from %s %s %s',
-                    self._conn_identity,
+                    self.connection_id,
                     block.block_number,
                     block.stake_selector)
 
@@ -534,7 +514,7 @@ class P2PHandler(P2PProtocol):
         self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
         self.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
 
-    def handle_ephemeral(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Ephemeral Transaction
         :param message:
@@ -542,7 +522,7 @@ class P2PHandler(P2PProtocol):
         """
         pass
 
-    def handle_lattice(self, message: qrllegacy_pb2.LegacyMessage):
+    def handle_lattice(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Lattice Public Key Transaction
         :param message:

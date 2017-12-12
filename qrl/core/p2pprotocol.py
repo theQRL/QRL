@@ -8,18 +8,19 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
 from qrl.core import config, logger
+from qrl.core.Observable import Observable
 from qrl.generated import qrllegacy_pb2
 
 
 class P2PProtocol(Protocol):
     def __init__(self):
-        self._buffer = b''
-        self._conn_identity = ""
+        self._buffer = bytes()
+
         self._disconnect_callLater = None
         self._ping_callLater = None
 
-        # FIXME: TO BE REMOVED
-        self._services = {}
+        self._services = {}                     # FIXME: TO BE REMOVED
+        self._observable = Observable(self)     # Need to use composition instead of inheritance here
 
     @property
     def peer_ip(self):
@@ -33,28 +34,29 @@ class P2PProtocol(Protocol):
     def host_ip(self):
         return self.transport.getHost().host
 
-    def connectionMade(self):
-        self._conn_identity = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
+    @property
+    def connection_id(self):
+        return "{}:{}".format(self.peer_ip, self.peer_port)
 
+    def connectionMade(self):
         if self.factory.add_connection(self):
             self.send_peer_list()
             self.send_version_request()
 
         self._ping_callLater = reactor.callLater(1, self.send_pong)
-        self._disconnect_callLater = reactor.callLater(config.user.ping_timeout,
-                                                       self.transport.loseConnection)
+        self._disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
 
     def connectionLost(self, reason=connectionDone):
-        logger.info('%s disconnected. remainder connected: %s',
-                    self.transport.getPeer().host,
-                    str(self.factory.connections))  # , reason
+        logger.info('%s disconnected. remainder connected: %d',
+                    self.peer_ip,
+                    self.factory.connections)
 
         self.factory.remove_connection(self)
 
     def dataReceived(self, data: bytes) -> None:
         self._buffer += data
         for msg in self._parse_buffer():
-            self._dispatch_messages(msg)
+            self._observable.notify(msg)
 
     def send(self, message: qrllegacy_pb2.LegacyMessage):
         self.transport.write(self._wrap_message(message))
@@ -68,15 +70,6 @@ class P2PProtocol(Protocol):
     ###################################################
     # Low-level serialization/connections/etc
     # FIXME: This is a temporary refactoring, it will be completely replaced before release
-    def _dispatch_messages(self, message: qrllegacy_pb2.LegacyMessage):
-        func = self._services.get(message.func_name)
-        if func:
-            try:
-                # FIXME: use WhichOneof to discover payloads
-                func(message)
-            except Exception as e:
-                logger.debug("executing [%s] by %s", message.func_name, self._conn_identity)
-                logger.exception(e)
 
     @staticmethod
     def _wrap_message(protobuf_obj) -> bytes:

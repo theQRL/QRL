@@ -108,7 +108,7 @@ class P2PFactory(ServerFactory):
             return
 
         if block.block_number != self._last_requested_block_idx:
-            logger.warning('Did not match %s %s', self._last_requested_block_idx, self._conn_identity)
+            logger.warning('Did not match %s', self._last_requested_block_idx)
             return
 
         self._last_requested_block_idx = None
