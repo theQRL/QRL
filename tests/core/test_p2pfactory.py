@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from qrl.core import logger
 from qrl.core.p2pfactory import P2PFactory
-from qrl.core.p2pprotocol import P2PProtocol
+from qrl.core.p2phandler import P2PHandler
 
 logger.initialize_default(force_console_output=True)
 
@@ -16,5 +16,5 @@ class TestP2PFactory(TestCase):
 
     def test_create_factory(self):
         factory = P2PFactory(buffered_chain=None, sync_state=None, qrl_node=None)
-        self.assertEqual(factory.protocol, P2PProtocol,
+        self.assertEqual(P2PHandler, factory.protocol,
                          "Factory has not been assigned the expected protocol")

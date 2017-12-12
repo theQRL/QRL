@@ -5,6 +5,7 @@ from unittest import TestCase
 
 from qrl.core import logger
 from qrl.core.GenesisBlock import GenesisBlock
+from tests.misc.helper import clean_genesis
 
 logger.initialize_default(force_console_output=True)
 
@@ -14,9 +15,10 @@ class TestGenesisBlock(TestCase):
         super(TestGenesisBlock, self).__init__(*args, **kwargs)
 
     def test_genesis_block_values(self):
-        gb = GenesisBlock()
+        with clean_genesis():
+            gb = GenesisBlock()
 
-        self.assertIsNotNone(gb)
-        self.assertEqual(0, gb.block_number)
-        self.assertEqual(b'QuantumBoosterTestnet', gb.prev_headerhash)
-        self.assertEqual(6, len(gb.genesis_balance))
+            self.assertIsNotNone(gb)
+            self.assertEqual(0, gb.block_number)
+            self.assertEqual(b'QuantumBoosterTestnet', gb.prev_headerhash)
+            self.assertEqual(6, len(gb.genesis_balance))

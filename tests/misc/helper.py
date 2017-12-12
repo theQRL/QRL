@@ -19,6 +19,7 @@ from qrl.crypto.xmss import XMSS
 @contextlib.contextmanager
 def set_wallet_dir(wallet_name):
     dst_dir = tempfile.mkdtemp()
+    prev_val = config.user.wallet_path
     try:
         test_path = os.path.dirname(os.path.abspath(__file__))
         src_dir = os.path.join(test_path, "..", "data", wallet_name)
@@ -28,12 +29,15 @@ def set_wallet_dir(wallet_name):
         yield
     finally:
         shutil.rmtree(dst_dir)
+        config.user.wallet_path = prev_val
 
 
 @contextlib.contextmanager
 def set_data_dir(data_name):
     dst_dir = tempfile.mkdtemp()
+    prev_val = config.user.data_path
     try:
+
         test_path = os.path.dirname(os.path.abspath(__file__))
         src_dir = os.path.join(test_path, "..", "data", data_name)
         shutil.rmtree(dst_dir)
@@ -42,6 +46,7 @@ def set_data_dir(data_name):
         yield
     finally:
         shutil.rmtree(dst_dir)
+        config.user.data_path = prev_val
 
 
 @contextlib.contextmanager
@@ -50,6 +55,27 @@ def mocked_genesis():
     with mock.patch('qrl.core.GenesisBlock.GenesisBlock.instance'):
         GenesisBlock.instance = custom_genesis_block
         yield custom_genesis_block
+
+
+@contextlib.contextmanager
+def clean_genesis():
+    data_name = "no_data"
+    dst_dir = tempfile.mkdtemp()
+    prev_val = config.user.qrl_dir
+    try:
+        GenesisBlock.instance = None
+        test_path = os.path.dirname(os.path.abspath(__file__))
+        src_dir = os.path.join(test_path, "..", "data", data_name)
+        shutil.rmtree(dst_dir)
+        shutil.copytree(src_dir, dst_dir)
+        config.user.qrl_dir = dst_dir
+        _ = GenesisBlock()
+        config.user.qrl_dir = prev_val
+        yield
+    finally:
+        shutil.rmtree(dst_dir)
+        GenesisBlock.instance = None
+        config.user.qrl_dir = prev_val
 
 
 def get_alice_xmss() -> XMSS:

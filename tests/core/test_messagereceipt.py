@@ -21,11 +21,11 @@ class TestMessageReceipt(TestCase):
         self.assertEqual(mr.allowed_types, [LegacyMessage.TX,
                                             LegacyMessage.ST,
                                             LegacyMessage.DST,
-                                            LegacyMessage.BK,
                                             LegacyMessage.DT,
                                             LegacyMessage.VT,
                                             LegacyMessage.LT,
-                                            LegacyMessage.EPH])
+                                            LegacyMessage.EPH,
+                                            LegacyMessage.BK])
 
     def test_register(self):
         mr = MessageReceipt()
