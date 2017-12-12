@@ -6,6 +6,7 @@ import struct
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
+from typing import Callable
 
 from qrl.core import config, logger
 from qrl.core.Observable import Observable
@@ -37,6 +38,9 @@ class P2PProtocol(Protocol):
     @property
     def connection_id(self):
         return "{}:{}".format(self.peer_ip, self.peer_port)
+
+    def register(self, message_type, func: Callable):
+        self._observable.register(message_type, func)
 
     def connectionMade(self):
         self._conn_identity = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)

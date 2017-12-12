@@ -8,6 +8,8 @@ from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.p2pObserver import P2PBaseObserver
+from qrl.core.p2pPeerManagement import P2PPeerManagement
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 
@@ -20,23 +22,17 @@ from qrl.generated import qrllegacy_pb2
 # NOTE: There is a consistency problem in the message objects.
 # NOTE: There are three cases, 1) send request 2) recv request 3) recv respose (implicit )
 
-#
-# class P2PObserver(object):
-#     def __init__(self, message_source: P2PObservable):
-#         self.message_source = message_source
-#
-#
-# class P2PPeerObserver(P2PObserver):
-#     def __init__(self):
-#         pass
 
 class P2PHandler(P2PProtocol):
     def __init__(self):
         super().__init__()
 
+        self.peer_management = P2PPeerManagement()          # TODO: we only need 1 of this
+        self.peer_management.new_channel(self)
+
         # NODE STATE
-        self._observable.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
         self._observable.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
+
         self._observable.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
         self._observable.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
 
@@ -66,35 +62,6 @@ class P2PHandler(P2PProtocol):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
         self.send(msg)
 
-    def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Version
-        If version is empty, it sends the version & genesis_prev_headerhash.
-        Otherwise, processes the content of data.
-        In case of mismatches, it disconnects from the peer
-        """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.VE)
-
-        if not message.veData.version:
-            msg = qrllegacy_pb2.LegacyMessage(
-                func_name=qrllegacy_pb2.LegacyMessage.VE,
-                veData=qrllegacy_pb2.VEData(version=config.dev.version,
-                                            genesis_prev_hash=config.dev.genesis_prev_headerhash))
-
-            self.send(msg)
-            return
-
-        logger.info('%s version: %s | genesis prev_headerhash %s',
-                    self.peer_ip,
-                    message.veData.version,
-                    message.veData.genesis_prev_hash)
-
-        if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
-            logger.warning('%s genesis_prev_headerhash mismatch', self.connection_id)
-            logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
-            logger.warning('Found: %s', message.veData.genesis_prev_hash)
-            self.loseConnection()
-
     def send_peer_list(self):
         """
         Get Peers
@@ -111,7 +78,7 @@ class P2PHandler(P2PProtocol):
         self.send(msg)
 
     def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
 
         if not config.user.enable_peer_discovery:
             return
@@ -131,7 +98,7 @@ class P2PHandler(P2PProtocol):
         logger.debug('Sending PING to %s', self.connection_id)
 
     def handle_pong(self, source, message: qrllegacy_pb2.LegacyMessage):
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
 
         self._disconnect_callLater.reset(config.user.ping_timeout)
         if self._ping_callLater.active():
@@ -146,7 +113,7 @@ class P2PHandler(P2PProtocol):
         self.send(msg)
 
     def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
 
         if message.syncData.state == 'Synced':
             self.factory.set_peer_synced(self, True)
@@ -179,7 +146,7 @@ class P2PHandler(P2PProtocol):
         Sends the request for the block.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
 
         block_number = message.fbData.index
 
@@ -200,7 +167,7 @@ class P2PHandler(P2PProtocol):
         :return:
         """
         # FIXME: Later rename
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
         if message.pbData is None:
             return
 
@@ -216,11 +183,6 @@ class P2PHandler(P2PProtocol):
     ###################################################
     ###################################################
     ###################################################
-
-    @staticmethod
-    def _validate_message(message: qrllegacy_pb2.LegacyMessage, expected_func):
-        if message.func_name != expected_func:
-            raise ValueError("Invalid func_name")
 
     def handle_message_received(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -309,7 +271,7 @@ class P2PHandler(P2PProtocol):
         Executed whenever a new TX type message is received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
         tx = Transaction(message.txData)
 
         # NOTE: Connects to MR
@@ -325,7 +287,7 @@ class P2PHandler(P2PProtocol):
         subtype VOTE is received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.VT)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.VT)
         try:
             vote = Transaction.from_pbdata(message.vtData)
         except Exception as e:
@@ -419,7 +381,7 @@ class P2PHandler(P2PProtocol):
         subtype ST is received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.ST)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.ST)
         try:
             st = Transaction.from_pbdata(message.stData)
         except Exception as e:
@@ -545,7 +507,7 @@ class P2PHandler(P2PProtocol):
         This function processes any new block received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.BK)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.BK)
         try:
             block = Block(message.block)
         except Exception as e:
@@ -624,3 +586,5 @@ class P2PHandler(P2PProtocol):
         self.factory.register_and_broadcast('LT',
                                             lattice_public_key_txn.get_message_hash(),
                                             lattice_public_key_txn.to_json())
+
+

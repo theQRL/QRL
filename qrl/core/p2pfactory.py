@@ -28,20 +28,19 @@ class P2PFactory(ServerFactory):
                  buffered_chain: BufferedChain,
                  sync_state: SyncState,
                  qrl_node: QRLNode):
+
         self.master_mr = MessageReceipt()
         self.pos = None
+        self.sync_state = sync_state
 
         self._ntp = ntp
         self._qrl_node = qrl_node
-
         self._buffered_chain = buffered_chain
-        self.sync_state = sync_state
 
         self._genesis_processed = False
         self._peer_connections = []
         self._synced_peers_protocol = set()
-
-        self._txn_processor_running = False                 # FIXME: Accessed by every p2pprotocol instance
+        self._txn_processor_running = False
 
         # Blocknumber for which bkmr is being tracked
         self.bkmr_blocknumber = 0                           # FIXME: Accessed by every p2pprotocol instance
