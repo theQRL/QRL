@@ -12,7 +12,7 @@ from twisted.internet.protocol import ServerFactory
 from qrl.core import config, logger, ntp
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
-from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction
+from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction, TransferTransaction, LatticePublicKey
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2phandler import P2PHandler
@@ -41,11 +41,11 @@ class P2PFactory(ServerFactory):
         self._peer_connections = []
         self._synced_peers_protocol = set()
 
-        self._txn_processor_running = False  # FIXME: Accessed by every p2pprotocol instance
+        self._txn_processor_running = False                 # FIXME: Accessed by every p2pprotocol instance
 
         # Blocknumber for which bkmr is being tracked
-        self.bkmr_blocknumber = 0  # FIXME: Accessed by every p2pprotocol instance
-        self.bkmr_priorityq = queue.PriorityQueue()  # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_blocknumber = 0                           # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_priorityq = queue.PriorityQueue()         # FIXME: Accessed by every p2pprotocol instance
 
         # Scheduled and cancel the call, just to initialize with IDelayedCall
         self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)  # FIXME: Accessed by every p2pprotocol
@@ -245,6 +245,9 @@ class P2PFactory(ServerFactory):
             logger.error('%s', e)
 
     ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
     # NOTE: PoS related.. broadcasting, etc. OBSOLETE
     def broadcast_st(self, st: StakeTransaction):
         logger.info('<<<Transmitting ST: %s', st.activation_blocknumber)
@@ -259,6 +262,27 @@ class P2PFactory(ServerFactory):
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.DST, destake_txn.get_message_hash(),
                                     destake_txn.to_json())
 
+    def broadcast_tx(self, tx: TransferTransaction):
+        logger.info('<<<Transmitting TX: %s', tx.txhash)
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), tx.to_json())
+
+    def broadcast_lt(self, lattice_public_key_txn : LatticePublicKey ):
+        logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
+        self._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(),
+                                    lattice_public_key_txn.to_json())
+
+    def broadcast_tx_relay(self, source_peer, tx):
+        txn_msg = source_peer._wrap_message('TX', tx.to_json())
+        for peer in self._peer_connections:
+            if peer != source_peer:
+                peer.transport.write(txn_msg)
+
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
         data = qrllegacy_pb2.MRData()
@@ -271,24 +295,14 @@ class P2PFactory(ServerFactory):
 
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.pbdata, data)
 
-    def broadcast_tx(self, tx, subtype=qrllegacy_pb2.LegacyMessage.TX):
-        logger.info('<<<Transmitting TX: %s', tx.txhash)
-        self.register_and_broadcast(subtype, tx.get_message_hash(), tx.to_json())
-
-    def broadcast_lt(self, lattice_public_key_txn):
-        logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
-        self._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(),
-                                    lattice_public_key_txn.to_json())
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, pbdata, data=None):
         self.master_mr.register(msg_type, msg_hash, pbdata)
         self.broadcast(msg_type, msg_hash, data)
-
-    def broadcast_relay(self, source_peer, raw_message):
-        for peer in self._peer_connections:
-            if peer != source_peer:
-                peer.transport.write(raw_message)
 
     def broadcast(self, msg_type, msg_hash: bytes, mr_data=None):
         """

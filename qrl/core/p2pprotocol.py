@@ -12,6 +12,7 @@ from qrl.core.Observable import Observable
 from qrl.generated import qrllegacy_pb2
 
 
+# Rename to p2p channel
 class P2PProtocol(Protocol):
     def __init__(self):
         self._buffer = bytes()
@@ -115,7 +116,7 @@ class P2PProtocol(Protocol):
                 # Buffer is still incomplete as it doesn't have message
                 if chunk_size_raw[0] == 0xff:
                     # FIXME: Remove this. Workaround for old protocol
-                    self.transport.loseConnection()
+                    self.loseConnection()
                 return
 
             try:
