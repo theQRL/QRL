@@ -1,4 +1,3 @@
-import time
 from queue import PriorityQueue
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -51,21 +50,21 @@ class P2PHandler(P2PProtocol):
     def __init__(self):
         super().__init__()
         self._services = {
-            ###################### NODE STATE
+            # NODE STATE
             qrllegacy_pb2.LegacyMessage.VE: self.handle_version,
             qrllegacy_pb2.LegacyMessage.PL: self.handle_peer_list,
             qrllegacy_pb2.LegacyMessage.PONG: self.handle_pong,
             qrllegacy_pb2.LegacyMessage.SYNC: self.handle_sync,
 
-            ###################### SYNCHRONIZATION
+            # SYNCHRONIZATION
             qrllegacy_pb2.LegacyMessage.FB: self.handle_fetch_block,
             qrllegacy_pb2.LegacyMessage.PB: self.handle_push_block,
 
-            ###################### CACHING
+            # CACHING
             qrllegacy_pb2.LegacyMessage.MR: self.handle_message_received,
             qrllegacy_pb2.LegacyMessage.SFM: self.handle_full_message_request,
 
-            ###################### Linked to MR...
+            # Linked to MR...
             qrllegacy_pb2.LegacyMessage.TX: self.handle_tx,
             qrllegacy_pb2.LegacyMessage.ST: self.handle_stake,
             qrllegacy_pb2.LegacyMessage.DST: self.handle_destake,
@@ -114,7 +113,7 @@ class P2PHandler(P2PProtocol):
         if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
             logger.warning('%s genesis_prev_headerhash mismatch', self._conn_identity)
             logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
-            logger.warning('Found: %s', message.veData.genesis_prev_headerhash)
+            logger.warning('Found: %s', message.veData.genesis_prev_hash)
             self.loseConnection()
 
     def send_peer_list(self):
@@ -137,11 +136,14 @@ class P2PHandler(P2PProtocol):
         if not config.user.enable_peer_discovery:
             return
 
-        if message.peer_ips is None:
+        if message.plData is None:
             return
 
-        new_ips = set(ip for ip in message.peer_ips)
-        new_ips.discard(self.peer_ip)  # Remove local address
+        if message.plData.peer_ips is None:
+            return
+
+        new_ips = set(ip for ip in message.plData.peer_ips)
+        new_ips.discard(self.host_ip)  # Remove local address
         self.factory.update_peer_addresses(new_ips)
 
         logger.info('%s peers data received: %s', self.peer_ip, new_ips)
@@ -183,16 +185,15 @@ class P2PHandler(P2PProtocol):
     ###################################################
     ###################################################
 
-    def send_fetch_block(self, n):
+    def send_fetch_block(self, block_idx):
         """
         Fetch Block n
         Sends request for the block number n.
         :return:
         """
-        self._last_requested_blocknum = n
-        logger.info('<<<Fetching block: %s from %s', n, self._conn_identity)
+        logger.info('<<<Fetching block: %s from %s', block_idx, self._conn_identity)
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
-                                          fbData=qrllegacy_pb2.FBData(index=n))
+                                          fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
 
     def handle_fetch_block(self, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
@@ -203,13 +204,11 @@ class P2PHandler(P2PProtocol):
         """
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
 
-        idx = message.fbData.index
-        logger.info(' Request for %s by %s', idx, self._conn_identity)
-        if 0 < idx <= self.factory.buffered_chain.height:
-            blocknumber = idx
+        block_number = message.fbData.index
 
-            block = self.factory.buffered_chain.get_block(blocknumber)
-            # FIXME: Breaking encapsulation
+        logger.info(' Request for %s by %s', block_number, self._conn_identity)
+        if 0 < block_number <= self.factory.chain_height:
+            block = self.factory.get_block(block_number)
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
                                               pbData=qrllegacy_pb2.PBData(block=block.pbdata))
             self.send(msg)
@@ -223,40 +222,14 @@ class P2PHandler(P2PProtocol):
         It is expected to receive only one block for a given blocknumber.
         :return:
         """
+        # FIXME: Later rename
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
         if message.pbData is None:
             return
 
-        self.factory.pos.last_pb_time = time.time()
         try:
             block = Block(message.pbData.block)
-            logger.info('>>> Received Block #%d', block.block_number)
-
-            if not self.factory.buffered_chain.check_expected_headerhash(block.block_number,
-                                                                         block.headerhash):
-                logger.warning('Block #%s downloaded from peer doesnt match with expected headerhash',
-                               message.pbData.block.block_number)
-                return
-
-            if block.block_number != self._last_requested_blocknum:
-                logger.warning('Did not match %s %s', self._last_requested_blocknum, self._conn_identity)
-                return
-
-            self._last_requested_blocknum = None
-
-            # FIXME: This check should not be necessary
-            if block.block_number > self.factory.buffered_chain.height:
-                if not self.factory.buffered_chain.add_block(block):
-                    logger.warning('PB failed to add block to mainchain')
-                    self.factory.buffered_chain.remove_last_buffer_block()
-                    return
-
-            try:
-                reactor.download_monitor.cancel()
-            except Exception as e:
-                logger.warning("PB: %s", e)
-
-            self.factory.pos.randomize_block_fetch()  # NOTE: Get next block
+            self.factory.block_received(block)
 
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', self.peer_ip)
@@ -291,12 +264,12 @@ class P2PHandler(P2PProtocol):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
-            if len(self.factory.buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
+            if len(self.factory._buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
         if mr_data.type in [qrllegacy_pb2.LegacyMessage.ST, qrllegacy_pb2.LegacyMessage.VT]:
-            if self.factory.buffered_chain.height > 1 and self.factory.sync_state.state != ESyncState.synced:
+            if self.factory.chain_height > 1 and self.factory.sync_state.state != ESyncState.synced:
                 return
 
         if self.factory.master_mr.contains(msg_hash, mr_data.type):
@@ -308,7 +281,7 @@ class P2PHandler(P2PProtocol):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
-            block_chain_buffer = self.factory.buffered_chain
+            block_chain_buffer = self.factory._buffered_chain
 
             if not block_chain_buffer.verify_BK_hash(mr_data, self._conn_identity):
                 if block_chain_buffer.is_duplicate_block(block_idx=mr_data.block_number,
@@ -387,7 +360,7 @@ class P2PHandler(P2PProtocol):
         if not self.factory.master_mr.isRequested(vote.get_message_hash(), self):
             return
 
-        if self.factory.buffered_chain.add_vote(vote):
+        if self.factory._buffered_chain.add_vote(vote):
             self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
     def handle_stake(self, message: qrllegacy_pb2.LegacyMessage):
@@ -409,12 +382,12 @@ class P2PHandler(P2PProtocol):
         if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
             return
 
-        if len(self.factory.buffered_chain._chain.blockchain) == 1 and \
-                st.activation_blocknumber > self.factory.buffered_chain.height + config.dev.blocks_per_epoch:
+        if len(self.factory._buffered_chain._chain.blockchain) == 1 and \
+                st.activation_blocknumber > self.factory.chain_height + config.dev.blocks_per_epoch:
             return
 
-        height = self.factory.buffered_chain.height + 1
-        stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
+        height = self.factory.chain_height + 1
+        stake_validators_tracker = self.factory._buffered_chain.get_stake_validators_tracker(height)
 
         if st.txfrom in stake_validators_tracker.future_stake_addresses:
             logger.debug('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
@@ -430,15 +403,15 @@ class P2PHandler(P2PProtocol):
             logger.debug('P2P dropping st as activation_blocknumber beyond limit')
             return False
 
-        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
+        for t in self.factory._buffered_chain.tx_pool.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
 
-        tx_state = self.factory.buffered_chain.get_stxn_state(
-            blocknumber=self.factory.buffered_chain.height + 1,
+        tx_state = self.factory._buffered_chain.get_stxn_state(
+            blocknumber=self.factory.chain_height + 1,
             addr=st.txfrom)
         if st.validate() and st.validate_extended(tx_state=tx_state):
-            self.factory.buffered_chain.tx_pool.add_tx_to_pool(st)
+            self.factory._buffered_chain.tx_pool.add_tx_to_pool(st)
         else:
             logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(tuple(st.hash)))
             return
@@ -463,24 +436,24 @@ class P2PHandler(P2PProtocol):
         if not self.factory.master_mr.isRequested(destake_txn.get_message_hash(), self):
             return
 
-        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
+        for t in self.factory._buffered_chain.tx_pool.transaction_pool:
             if destake_txn.get_message_hash() == t.get_message_hash():
                 return
 
         txfrom = destake_txn.txfrom
-        height = self.factory.buffered_chain.height + 1
-        stake_validators_tracker = self.factory.buffered_chain.get_stake_validators_tracker(height)
+        height = self.factory.chain_height + 1
+        stake_validators_tracker = self.factory._buffered_chain.get_stake_validators_tracker(height)
 
         if not (
                 txfrom in stake_validators_tracker.sv_dict or txfrom in stake_validators_tracker.future_stake_addresses):
             logger.debug('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
             return
 
-        tx_state = self.factory.buffered_chain.get_stxn_state(
+        tx_state = self.factory._buffered_chain.get_stxn_state(
             blocknumber=height,
             addr=txfrom)
         if destake_txn.validate() and destake_txn.validate_extended(tx_state=tx_state):
-            self.factory.buffered_chain.tx_pool.add_tx_to_pool(destake_txn)
+            self.factory._buffered_chain.tx_pool.add_tx_to_pool(destake_txn)
         else:
             logger.debug('>>>Destake %s invalid state validation failed..', txfrom)
             return
@@ -505,12 +478,12 @@ class P2PHandler(P2PProtocol):
         if not self.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), self):
             return
 
-        if duplicate_txn.get_message_hash() in self.factory.buffered_chain.tx_pool.duplicate_tx_pool:
+        if duplicate_txn.get_message_hash() in self.factory._buffered_chain.tx_pool.duplicate_tx_pool:
             return
 
         # TODO: State validate for duplicate_txn is pending
         if duplicate_txn.validate():
-            self.factory.buffered_chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
+            self.factory._buffered_chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
         else:
             logger.debug('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
             return
@@ -539,7 +512,7 @@ class P2PHandler(P2PProtocol):
         if not self.factory.master_mr.isRequested(block.headerhash, self, block):
             return
 
-        block_chain_buffer = self.factory.buffered_chain
+        block_chain_buffer = self.factory._buffered_chain
 
         if block_chain_buffer.is_duplicate_block(block_idx=block.block_number,
                                                  prev_headerhash=block.prev_headerhash,
@@ -551,14 +524,14 @@ class P2PHandler(P2PProtocol):
             '''
             # coinbase_txn = CoinBase.from_pbdata(block.transactions[0])
             #
-            # sv_dict = self.factory.buffered_chain.stake_list_get(block.block_number)
+            # sv_dict = self.factory._buffered_chain.stake_list_get(block.block_number)
             if coinbase_txn.validate_extended(sv_dict=sv_dict, blockheader=block.blockheader):
                 self.factory.master_mr.register_duplicate(block.headerhash)
                 block2 = block_chain_buffer.get_block_n(block.blocknumber)
 
                 duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
                 if duplicate_txn.validate():
-                    self.factory.buffered_chain._chain.add_tx_to_duplicate_pool(duplicate_txn)
+                    self.factory._buffered_chain._chain.add_tx_to_duplicate_pool(duplicate_txn)
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
             '''
         self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
@@ -591,13 +564,13 @@ class P2PHandler(P2PProtocol):
             return
 
         if lattice_public_key_txn.validate():
-            self.factory.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+            self.factory._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
         else:
             logger.warning('>>>Lattice Public Key %s invalid state validation failed..', lattice_public_key_txn.hash)
             return
 
         # TODO: This need to be moved to add_block before next hard fork
-        self.factory.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+        self.factory._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
 
         self.factory.register_and_broadcast('LT',
                                             lattice_public_key_txn.get_message_hash(),

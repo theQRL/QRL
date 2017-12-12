@@ -129,6 +129,7 @@ class POS:
 
     def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
         logger.info('pre_pos_1')
+
         # are we a staker in the stake list?
         genesis_block = self.buffered_chain.get_block(0)
         found = False
@@ -322,7 +323,7 @@ class POS:
 
         self.update_node_state(ESyncState.syncing)
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
-        self.randomize_block_fetch()
+        self.p2p_factory.randomize_block_fetch()
 
     def pre_block_logic(self, block: Block) -> bool:
         # FIXME: Ensure that the chain is in memory
@@ -643,26 +644,3 @@ class POS:
             self.update_node_state(ESyncState.synced)
             return True
         return False
-
-    def randomize_block_fetch(self):
-        # Why PoS is fetching blocks?
-        if self.sync_state.state != ESyncState.syncing:
-            return
-
-        if self.sync_state.state == ESyncState.syncing:
-            block = self.buffered_chain.get_last_block()
-            block_timestamp = block.timestamp
-            if self.isSynced(block_timestamp):
-                return
-
-        if not self.p2p_factory.has_synced_peers:
-            logger.warning('No connected peers in synced state. Retrying...')
-            self.update_node_state(ESyncState.unsynced)
-            return
-
-        reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
-
-        # FIXME: unsafe access to synced_peers
-        random_peer = self.p2p_factory.get_random_synced_peer()
-        blocknumber = self.buffered_chain.height + 1
-        random_peer.send_fetch_block(blocknumber)

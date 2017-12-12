@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import struct
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
@@ -24,6 +24,14 @@ class P2PProtocol(Protocol):
     @property
     def peer_ip(self):
         return self.transport.getPeer().host
+
+    @property
+    def peer_port(self):
+        return self.transport.getPeer().port
+
+    @property
+    def host_ip(self):
+        return self.transport.getHost().host
 
     def connectionMade(self):
         self._conn_identity = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)

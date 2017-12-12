@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import time
 import queue
 import random
 
@@ -33,7 +34,7 @@ class P2PFactory(ServerFactory):
         self._ntp = ntp
         self._qrl_node = qrl_node
 
-        self.buffered_chain = buffered_chain
+        self._buffered_chain = buffered_chain
         self.sync_state = sync_state
 
         self._genesis_processed = False
@@ -43,12 +44,14 @@ class P2PFactory(ServerFactory):
         self._txn_processor_running = False  # FIXME: Accessed by every p2pprotocol instance
 
         # Blocknumber for which bkmr is being tracked
-        self.bkmr_blocknumber = 0                    # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_blocknumber = 0  # FIXME: Accessed by every p2pprotocol instance
         self.bkmr_priorityq = queue.PriorityQueue()  # FIXME: Accessed by every p2pprotocol instance
 
         # Scheduled and cancel the call, just to initialize with IDelayedCall
         self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)  # FIXME: Accessed by every p2pprotocol
         self.bkmr_processor.cancel()
+
+        self._last_requested_block_idx = None
 
     ###################################################
     ###################################################
@@ -77,7 +80,75 @@ class P2PFactory(ServerFactory):
         return random.sample(self._synced_peers_protocol, 1)[0]
 
     def get_connected_peer_ips(self):
+        # FIXME: Convert self._peer_connections to set
         return set([peer.peer_ip for peer in self._peer_connections])
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    @property
+    def chain_height(self):
+        return self._buffered_chain.height
+
+    def get_block(self, block_number):
+        return self._buffered_chain.get_block(block_number)
+
+    def block_received(self, block: Block):
+        self.pos.last_pb_time = time.time()
+        logger.info('>>> Received Block #%d', block.block_number)
+
+        if not self._buffered_chain.check_expected_headerhash(block.block_number,
+                                                              block.headerhash):
+            logger.warning('Block #%s downloaded from peer doesnt match with expected headerhash',
+                           block.block_number)
+            return
+
+        if block.block_number != self._last_requested_block_idx:
+            logger.warning('Did not match %s %s', self._last_requested_block_idx, self._conn_identity)
+            return
+
+        self._last_requested_block_idx = None
+
+        # FIXME: This check should not be necessary
+        if block.block_number > self.chain_height:
+            if not self._buffered_chain.add_block(block):
+                logger.warning('PB failed to add block to mainchain')
+                self._buffered_chain.remove_last_buffer_block()
+                return
+
+        try:
+            reactor.download_monitor.cancel()
+        except Exception as e:
+            logger.warning("PB: %s", e)
+
+        self.randomize_block_fetch()  # NOTE: Get next block
+
+    def randomize_block_fetch(self):
+        if self.sync_state.state != ESyncState.syncing:
+            return
+
+        if self.sync_state.state == ESyncState.syncing:
+            block = self._buffered_chain.get_last_block()
+            block_timestamp = block.timestamp
+            if self.pos.isSynced(block_timestamp):
+                return
+
+        if not self.has_synced_peers:
+            logger.warning('No connected peers in synced state. Retrying...')
+            self.pos.update_node_state(ESyncState.unsynced)
+            return
+
+        reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
+
+        random_peer = self.get_random_synced_peer()
+        block_index = self._buffered_chain.height + 1
+
+        self._last_requested_block_idx = block_index
+        random_peer.send_fetch_block(block_index)
 
     ###################################################
     ###################################################
@@ -130,13 +201,15 @@ class P2PFactory(ServerFactory):
                 continue
             message_request.already_requested_peers.append(peer)
 
-            data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SFM,
-                                               mrData=qrllegacy_pb2.MRData(hash=mr_data.hash, type=mr_data.type))
+            msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SFM,
+                                              mrData=qrllegacy_pb2.MRData(hash=mr_data.hash, type=mr_data.type))
 
-            peer.transport.write(peer._wrap_message(data))
+            peer.send(msg)
+
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
                                                self.RFM,
                                                mr_data)
+
             message_request.callLater = call_later_obj
             return
 
@@ -151,8 +224,8 @@ class P2PFactory(ServerFactory):
         blocknumber = self.bkmr_blocknumber
         try:
             dscore, dhash = self.bkmr_priorityq.get_nowait()
-            if blocknumber <= self.buffered_chain.height:
-                oldscore = self.buffered_chain.get_block_score(blocknumber)
+            if blocknumber <= self._buffered_chain.height:
+                oldscore = self._buffered_chain.get_block_score(blocknumber)
                 if dscore > oldscore:
                     del self.bkmr_priorityq
                     self.bkmr_priorityq = queue.PriorityQueue()
@@ -183,7 +256,8 @@ class P2PFactory(ServerFactory):
 
     def broadcast_destake(self, destake_txn: DestakeTransaction):
         logger.info('<<<Transmitting Destake Txn: %s', destake_txn.txfrom)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.DST, destake_txn.get_message_hash(), destake_txn.to_json())
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.DST, destake_txn.get_message_hash(),
+                                    destake_txn.to_json())
 
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
@@ -203,8 +277,9 @@ class P2PFactory(ServerFactory):
 
     def broadcast_lt(self, lattice_public_key_txn):
         logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
-        self.buffered_chain.add_lattice_public_key(lattice_public_key_txn)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(), lattice_public_key_txn.to_json())
+        self._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(),
+                                    lattice_public_key_txn.to_json())
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, pbdata, data=None):
         self.master_mr.register(msg_type, msg_hash, pbdata)
@@ -215,7 +290,7 @@ class P2PFactory(ServerFactory):
             if peer != source_peer:
                 peer.transport.write(raw_message)
 
-    def broadcast(self, msg_type, msg_hash: bytes, mr_data=None):  # Move to factory
+    def broadcast(self, msg_type, msg_hash: bytes, mr_data=None):
         """
         Broadcast
         This function sends the Message Receipt to all connected peers.
@@ -233,10 +308,9 @@ class P2PFactory(ServerFactory):
         data = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.MR,
                                            mrData=mr_data)
 
-        msg = self.protocol._wrap_message(data)
         for peer in self._peer_connections:
             if peer not in ignore_peers:
-                peer.transport.write(msg)
+                peer.send(data)
 
     def broadcast_get_synced_state(self):
         # Request all peers to update their synced status
@@ -259,24 +333,23 @@ class P2PFactory(ServerFactory):
 
     def trigger_tx_processor(self, tx, json_tx_obj):
         # duplicate tx already received, would mess up nonce..
-        for t in self.factory.buffered_chain.tx_pool.transaction_pool:
+        for t in self._buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == t.txhash:
                 return
 
-        self.buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
+        self._buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
         self.master_mr.register(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), json_tx_obj)
         self.broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash())
 
         if not self._txn_processor_running:
             # FIXME: TxnProcessor breaks tx_pool encapsulation
-            txn_processor = TxnProcessor(buffered_chain=self.buffered_chain,
-                                         pending_tx_pool=self.buffered_chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self.buffered_chain.tx_pool.transaction_pool)
+            txn_processor = TxnProcessor(buffered_chain=self._buffered_chain,
+                                         pending_tx_pool=self._buffered_chain.tx_pool.pending_tx_pool,
+                                         transaction_pool=self._buffered_chain.tx_pool.transaction_pool)
 
             task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
 
-            task_defer\
-                .addCallback(self.reset_processor_flag)\
+            task_defer.addCallback(self.reset_processor_flag) \
                 .addErrback(self.reset_processor_flag_with_err)
 
             self._txn_processor_running = True
@@ -299,42 +372,43 @@ class P2PFactory(ServerFactory):
     def add_connection(self, conn_protocol) -> bool:
         # FIXME: (For AWS) This could be problematic for other users
         # FIXME: identify nodes by an GUID?
-        if config.dev.public_ip and conn_protocol.transport.getPeer().host == config.dev.public_ip:
-            conn_protocol.transport.loseConnection()
+        if config.dev.public_ip and conn_protocol.peer_ip == config.dev.public_ip:
+            conn_protocol.loseConnection()
             return False
 
         if self.reached_conn_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?
-            logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.transport.getPeer().host)
-            conn_protocol.transport.loseConnection()
+            logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer_ip)
+            conn_protocol.loseConnection()
             return False
 
         peer_list = self._qrl_node.peer_addresses
-        if conn_protocol.transport.getPeer().host == conn_protocol.transport.getHost().host:
-            if conn_protocol.transport.getPeer().host in peer_list:
+        if conn_protocol.peer_ip == conn_protocol.host_ip:
+            if conn_protocol.peer_ip in peer_list:
                 logger.info('Self in peer_list, removing..')
-                peer_list.remove(conn_protocol.transport.getPeer().host)
+                peer_list.remove(conn_protocol.peer_ip)
                 self._qrl_node.update_peer_addresses(peer_list)
 
-            conn_protocol.transport.loseConnection()
+            conn_protocol.loseConnection()
             return False
 
         self._peer_connections.append(conn_protocol)
 
-        if conn_protocol.transport.getPeer().host not in peer_list:
+        if conn_protocol.peer_ip not in peer_list:
             logger.info('Adding to peer_list')
-            peer_list.add(conn_protocol.transport.getPeer().host)
+            peer_list.add(conn_protocol.peer_ip)
             self._qrl_node.update_peer_addresses(peer_list)
 
-        logger.info('>>> new peer connection : %s:%s ', conn_protocol.transport.getPeer().host,
-                    str(conn_protocol.transport.getPeer().port))
+        logger.info('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
 
         # FIXME: This seem PoS related
-        if self.buffered_chain.height == 0 and not self._genesis_processed:
+        if self._buffered_chain.height == 0 and not self._genesis_processed:
             # set the flag so that no other Protocol instances trigger the genesis stake functions..
             self._genesis_processed = True
             logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
             reactor.callLater(1, self.pos.pre_pos_1)
+
+        return True
 
     def remove_connection(self, conn_protocol):
         if conn_protocol in self._peer_connections:
@@ -346,10 +420,7 @@ class P2PFactory(ServerFactory):
             reactor.callLater(60, self.connect_peers)
 
     def connect_peer(self, peer_address):
-        # FIXME: this should be kept as a set
-        connected_peers = set([peer_conn.transport.getPeer().host for peer_conn in self._peer_connections])
-
-        if peer_address not in connected_peers:
+        if peer_address not in self.get_connected_peer_ips():
             reactor.connectTCP(peer_address, 9000, self)
 
     def connect_peers(self):

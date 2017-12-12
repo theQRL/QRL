@@ -69,7 +69,7 @@ def clean_genesis():
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
         config.user.qrl_dir = dst_dir
-        _ = GenesisBlock()
+        _ = GenesisBlock()  # noqa
         config.user.qrl_dir = prev_val
         yield
     finally:
