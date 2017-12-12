@@ -7,5 +7,6 @@ class Ephemeral:
     """
     Ephemeral Messaging Layer
     """
+
     def __init__(self):
         pass

@@ -125,5 +125,3 @@ class P2PProtocol(Protocol):
                 logger.warning("Problem parsing message. Skipping")
             finally:
                 self._buffer = self._buffer[4 + chunk_size:]
-
-

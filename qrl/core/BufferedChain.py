@@ -240,7 +240,7 @@ class BufferedChain:
                 if self._vote_tracker[vote.blocknumber].is_already_voted(vote):
                     return
 
-            tx_state = self.get_stxn_state(blocknumber=self.height+1, addr=vote.addr_from)
+            tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=vote.addr_from)
 
             if not (vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict)):
                 logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))

@@ -261,13 +261,13 @@ class State:
             vote = Transaction.from_pbdata(protobuf_txn)
             voted_weight += self.stake_validators_tracker.get_stake_balance(vote.txfrom)
 
-        self._db.put(b'vote_'+str(block.block_number).encode(),
+        self._db.put(b'vote_' + str(block.block_number).encode(),
                      [voted_weight,
                       total_stake_amount], batch)
 
     def get_vote_metadata(self, blocknumber: int):
         try:
-            return self._db.get(b'vote_'+str(blocknumber).encode())
+            return self._db.get(b'vote_' + str(blocknumber).encode())
         except Exception:
             return None
 

@@ -15,6 +15,7 @@ class StakeValidatorsTracker:
     """
     Maintains the Stake validators list for current and next epoch
     """
+
     def __init__(self, stakevalidator_protobuf=None):
         self._data = stakevalidator_protobuf
         self.sv_dict = dict()
