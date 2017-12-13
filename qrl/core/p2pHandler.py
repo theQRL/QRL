@@ -13,6 +13,7 @@ from qrl.core.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.p2pObserver import P2PBaseObserver
 from qrl.core.p2pPeerManagement import P2PPeerManagement
+from qrl.core.p2pChainManagement import P2PChainManagement
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 
@@ -30,18 +31,16 @@ class P2PHandler(P2PProtocol):
     def __init__(self):
         super().__init__()
 
-        self.peer_management = P2PPeerManagement()          # TODO: we only need 1 of this
+        self.peer_management = P2PPeerManagement()                  # TODO: we only need 1 of this
+        self.chain_synchronizer = P2PChainManagement()              # TODO: we only need 1 of this
+
+        # Inform about new channel
         self.peer_management.new_channel(self)
-
-        # SYNCHRONIZATION
-        self._observable.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
-
-        # CACHING
-        self._observable.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
+        self.chain_synchronizer.new_channel(self)
 
         # Linked to MR...
+        self._observable.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
+        self._observable.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
         self._observable.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
         self._observable.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
         self._observable.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
@@ -98,45 +97,6 @@ class P2PHandler(P2PProtocol):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
-
-    def handle_fetch_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
-        """
-        Fetch Block
-        Sends the request for the block.
-        :return:
-        """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
-
-        block_number = message.fbData.index
-
-        logger.info(' Request for %s by %s', block_number, self.connection_id)
-        if 0 < block_number <= self.factory.chain_height:
-            block = self.factory.get_block(block_number)
-            msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
-                                              pbData=qrllegacy_pb2.PBData(block=block.pbdata))
-            self.send(msg)
-
-    def handle_push_block(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Push Block
-        This function processes requested blocks received while syncing.
-        Block received under this function are directly added to the main
-        chain i.e. chain.blockchain
-        It is expected to receive only one block for a given blocknumber.
-        :return:
-        """
-        # FIXME: Later rename
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PB)
-        if message.pbData is None:
-            return
-
-        try:
-            block = Block(message.pbData.block)
-            self.factory.block_received(block)
-
-        except Exception as e:
-            logger.error('block rejected - unable to decode serialised data %s', self.peer_ip)
-            logger.exception(e)
 
     ###################################################
     ###################################################

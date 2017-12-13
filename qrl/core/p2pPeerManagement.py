@@ -31,9 +31,6 @@ class P2PPeerManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
         channel.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
 
-        # self._ping_callLater = reactor.callLater(1, self.send_pong)
-        # self._disconnect_callLater = reactor.callLater(config.user.ping_timeout, channel.loseConnection)
-
     def handle_version(self, source: P2PProtocol, message: qrllegacy_pb2.LegacyMessage):
         """
         Version
@@ -83,9 +80,7 @@ class P2PPeerManagement(P2PBaseObserver):
         # FIXME: Refactor this
         if message.syncData.state == 'Synced':
             source.factory.set_peer_synced(source, True)
-            return
-
-        if message.syncData.state == '':
+        elif message.syncData.state == '':
             if source.factory.synced:
                 source.send_sync(synced=True)
                 source.factory.set_peer_synced(source, False)
@@ -94,7 +89,8 @@ class P2PPeerManagement(P2PBaseObserver):
     def send_ping(dest_channel):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
         dest_channel.send(msg)
-        logger.debug('<<<< PING [%s]', dest_channel.connection_id)
+
+    #        logger.debug('<<<< PING [%18s]', dest_channel.connection_id)
 
     def periodic_health_check(self):
         # TODO: Verify/Disconnect problematic channels
@@ -108,6 +104,7 @@ class P2PPeerManagement(P2PBaseObserver):
             delta = current_timestamp - self._ping_timestamp[channel]
             if delta > config.user.ping_timeout:
                 self._ping_timestamp.pop(channel, None)
+                logger.debug('>>>> PING [%18s] %2.2f (TIMEOUT)', channel.connection_id, delta)
                 channel.loseConnection()
             else:
                 self.send_ping(channel)
@@ -121,5 +118,7 @@ class P2PPeerManagement(P2PBaseObserver):
 
         current_timestamp = time.time()
         delta = current_timestamp - self._ping_timestamp.get(source, current_timestamp)
-        logger.debug('>>>> PONG [%s] %2.2f', source.connection_id, delta)
+        #        logger.debug('>>>> PONG [%18s] %2.2f', source.connection_id, delta)
         self._ping_timestamp.pop(source, None)
+
+
