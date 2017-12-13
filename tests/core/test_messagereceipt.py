@@ -25,7 +25,10 @@ class TestMessageReceipt(TestCase):
                                             LegacyMessage.VT,
                                             LegacyMessage.LT,
                                             LegacyMessage.EPH,
-                                            LegacyMessage.BK])
+                                            LegacyMessage.BK,
+                                            LegacyMessage.MT,
+                                            LegacyMessage.TK,
+                                            LegacyMessage.TT])
 
     def test_register(self):
         mr = MessageReceipt()

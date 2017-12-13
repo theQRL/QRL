@@ -20,15 +20,17 @@ message LegacyMessage {
         FB = 6;         // Fetch request for block
         PB = 7;         // Push Block
 
-        ST = 9;        // Stake Transaction
+        ST = 9;         // Stake Transaction
         DST = 10;       // Destake Transaction
         DT = 11;        // Duplicate Transaction
         TX = 12;        // Transfer Transaction
         VT = 13;        // Vote
-        LT = 14;
-        EPH = 15;
-
-        SYNC = 16;      // Add into synced list, if the node replies
+        LT = 14;        // Lattice Transaction
+        EPH = 15;       // Ephemeral
+        MT = 16;        // Message Transaction
+        TK = 17;        // Token Transaction
+        TT = 18;        // Transfer Token Transaction
+        SYNC = 19;      // Add into synced list, if the node replies
     }
 
     FuncName func_name = 1;
@@ -45,7 +47,10 @@ message LegacyMessage {
         Transaction stData = 10;
         Transaction txData = 11;
         Transaction vtData = 12;
-        SYNCData syncData = 13;
+        Transaction mtData = 13;
+        Transaction tkData = 14;
+        Transaction ttData = 15;
+        SYNCData syncData = 16;
     }
 }
 

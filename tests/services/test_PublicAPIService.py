@@ -133,7 +133,8 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q' + sha256(b'address'),
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          pubhashes=[sha256(b'a'), sha256(b'b')]))
+                                                                          pubhashes=[sha256(b'a'), sha256(b'b')],
+                                                                          tokens=dict()))
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
@@ -392,7 +393,8 @@ class TestPublicAPI(TestCase):
             return_value=AddressState.create(address=expected_address,
                                              nonce=1,
                                              balance=100,
-                                             pubhashes=[]))
+                                             pubhashes=[],
+                                             tokens=dict()))
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[])
 

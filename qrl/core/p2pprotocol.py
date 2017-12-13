@@ -15,7 +15,6 @@ from qrl.generated import qrllegacy_pb2
 class P2PProtocol(Protocol):
     def __init__(self):
         self._buffer = bytes()
-
         self._disconnect_callLater = None
         self._ping_callLater = None
 
@@ -39,6 +38,8 @@ class P2PProtocol(Protocol):
         return "{}:{}".format(self.peer_ip, self.peer_port)
 
     def connectionMade(self):
+        self._conn_identity = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
+
         if self.factory.add_connection(self):
             self.send_peer_list()
             self.send_version_request()

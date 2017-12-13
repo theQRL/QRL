@@ -123,7 +123,7 @@ class DevConfig(object):
 
         self.slave_dat_filename = 'slave.qrl'
         self.mnemonic_filename = 'mnemonic'
-        self.genesis_prev_headerhash = b'Earth abides'
+        self.genesis_prev_headerhash = b'Rescue Party'
 
     @staticmethod
     def getInstance():

@@ -6,7 +6,7 @@ import grpc
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
@@ -407,6 +407,156 @@ def tx_transfer(ctx, src, dst, amount, fee):
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
         print(pushTransactionResp.some_response)
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--symbol', default='', prompt=True, help='Symbol Name')
+@click.option('--name', default='', prompt=True, help='Token Name')
+@click.option('--owner', default='', prompt=True, help='Owner QRL address')
+@click.option('--decimals', default=0, prompt=True, help='decimals')
+@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.pass_context
+def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
+    """
+    Create Token Transaction, that results into the formation of new token if accepted.
+    """
+
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    initial_balances = []
+
+    while True:
+        address = click.prompt('Address ', default='')
+        if address == '':
+            break
+        amount = int(click.prompt('Amount ')) * (10**int(decimals))
+        initial_balances.append(qrl_pb2.AddressAmount(address=address.encode(), amount=amount))
+
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        address_src_pk = src_xmss.pk()
+        src_xmss.set_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.get_index()
+        address_owner = owner.encode()
+        # FIXME: This could be problematic. Check
+        fee_shor = int(fee * 1.e8)
+    except KeyboardInterrupt as e:
+        click.echo("Error validating arguments")
+        quit(1)
+
+    try:
+        channel = grpc.insecure_channel(ctx.obj.node_public_address)
+        stub = qrl_pb2_grpc.PublicAPIStub(channel)
+
+        tx = TokenTransaction.create(addr_from=address_src,
+                                     symbol=symbol.encode(),
+                                     name=name.encode(),
+                                     owner=address_owner,
+                                     decimals=decimals,
+                                     initial_balances=initial_balances,
+                                     fee=fee_shor,
+                                     xmss_pk=address_src_pk,
+                                     xmss_ots_index=address_src_otsidx)
+
+        tx.sign(src_xmss)
+
+        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+
+        print(pushTransactionResp.some_response)
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
+@click.option('--dst', default='', prompt=True, help='Destination QRL address')
+@click.option('--amount', default=0, prompt=True, help='amount')
+@click.option('--decimals', default=0, prompt=True, help='decimals')
+@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.pass_context
+def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key_index):
+    """
+    Create Token Transaction, that results into the formation of new token if accepted.
+    """
+
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        address_src_pk = src_xmss.pk()
+        src_xmss.set_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.get_index()
+        address_dst = dst.encode()
+        bin_token_txhash = bytes(hstr2bin(token_txhash))
+        # FIXME: This could be problematic. Check
+        amount = int(amount * (10**int(decimals)))
+        fee_shor = int(fee * 1.e8)
+    except KeyboardInterrupt as e:
+        click.echo("Error validating arguments")
+        quit(1)
+
+    try:
+        channel = grpc.insecure_channel(ctx.obj.node_public_address)
+        stub = qrl_pb2_grpc.PublicAPIStub(channel)
+
+        tx = TransferTokenTransaction.create(addr_from=address_src,
+                                             token_txhash=bin_token_txhash,
+                                             addr_to=address_dst,
+                                             amount=amount,
+                                             fee=fee_shor,
+                                             xmss_pk=address_src_pk,
+                                             xmss_ots_index=address_src_otsidx)
+        tx.sign(src_xmss)
+
+        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+
+        print(pushTransactionResp.some_response)
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+@qrl.command()
+@click.option('--owner', default='', prompt=True, help='source QRL address')
+@click.pass_context
+def token_list(ctx, owner):
+    """
+    Create Token Transaction, that results into the formation of new token if accepted.
+    """
+
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    try:
+
+        channel = grpc.insecure_channel(ctx.obj.node_public_address)
+        stub = qrl_pb2_grpc.PublicAPIStub(channel)
+        addressStateReq = qrl_pb2.GetAddressStateReq(address=owner.encode())
+        addressStateResp = stub.GetAddressState(addressStateReq, timeout=5)
+
+        for token_hash in addressStateResp.state.tokens:
+            click.echo('Hash: %s' % (token_hash, ))
+            click.echo('Balance: %s' % (addressStateResp.state.tokens[token_hash], ))
     except Exception as e:
         print("Error {}".format(str(e)))
 

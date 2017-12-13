@@ -7,8 +7,10 @@ from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import db, logger, config
 from qrl.core.AddressState import AddressState
+from qrl.core.TokenMetadata import TokenMetadata
+from qrl.core.TokenList import TokenList
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.generated import qrl_pb2
 
 
@@ -136,6 +138,33 @@ class State:
 
         self._db.put(b'txn_' + addr, tmp_hashes)
 
+    def get_token_list(self):
+        try:
+            return self._db.get_raw(b'token_list')
+        except KeyError:
+            return TokenList().to_json()
+
+    def update_token_list(self, token_txhashes: list, batch):
+        pbdata = self.get_token_list()
+        token_list = TokenList.from_json(pbdata)
+        token_list.update(token_txhashes)
+        self._db.put_raw(b'token_list', token_list.to_json().encode(), batch)
+
+    def get_token_metadata(self, token_txhash: bytes):
+        json_data = self._db.get_raw(b'token_' + token_txhash)
+        return TokenMetadata.from_json(json_data)
+
+    def update_token_metadata(self, transfer_token: TransferTokenTransaction):
+        token_metadata = self.get_token_metadata(transfer_token.token_txhash)
+        token_metadata.update([transfer_token.txhash])
+        self._db.put_raw(b'token_' + transfer_token.token_txhash,
+                         token_metadata.to_json().encode())
+
+    def create_token_metadata(self, token: TokenTransaction):
+        token_metadata = TokenMetadata.create(token_txhash=token.txhash, transfer_token_txhashes=[token.txhash])
+        self._db.put_raw(b'token_' + token.txhash,
+                         token_metadata.to_json().encode())
+
     def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
         self.prev_stake_validators_tracker = self.stake_validators_tracker
         self.stake_validators_tracker = stake_validators_tracker
@@ -225,20 +254,53 @@ class State:
         if len(block.transactions) == 0:
             return
 
+        token_list = []
+
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
+            if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
+                               qrl_pb2.Transaction.COINBASE,
+                               qrl_pb2.Transaction.MESSAGE,
+                               qrl_pb2.Transaction.TOKEN,
+                               qrl_pb2.Transaction.TRANSFERTOKEN):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
 
-                if txn.subtype == qrl_pb2.Transaction.TRANSFER:
+                if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
+                                   qrl_pb2.Transaction.MESSAGE,
+                                   qrl_pb2.Transaction.TOKEN,
+                                   qrl_pb2.Transaction.TRANSFERTOKEN):
+                    # FIXME: Being updated without batch, need to fix,
+                    # as its making get request, and batch get not possible
+                    # Thus cache is required to have only 1 time get
                     self.update_address_tx_hashes(txn.txfrom, txn.txhash)
 
-                self.update_address_tx_hashes(txn.txto, txn.txhash)
-                self.increase_txn_count(txn.txto)
+                if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                    self.update_address_tx_hashes(txn.owner, txn.txhash)
+                    for initial_balance in txn.initial_balances:
+                        if initial_balance.address == txn.owner:
+                            continue
+                        self.update_address_tx_hashes(initial_balance.address, txn.txhash)
+
+                if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
+                                   qrl_pb2.Transaction.COINBASE,
+                                   qrl_pb2.Transaction.TRANSFERTOKEN):
+                    # FIXME: Being updated without batch, need to fix,
+                    if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                        self.update_token_metadata(txn)
+                    self.update_address_tx_hashes(txn.txto, txn.txhash)
+                    self.increase_txn_count(txn.txto)
+
+                if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                    self.create_token_metadata(txn)
+                    token_list.append(txn.txhash)
+
                 self.increase_txn_count(txn.txfrom)
+
+        if token_list:
+            self.update_token_list(token_list, batch)
 
     def get_tx_metadata(self, txhash: bytes):
         try:
@@ -299,7 +361,8 @@ class State:
             return AddressState.create(address=address,
                                        nonce=config.dev.default_nonce,
                                        balance=config.dev.default_account_balance,
-                                       pubhashes=[])
+                                       pubhashes=[],
+                                       tokens=dict())
 
     def nonce(self, addr: bytes) -> int:
         return self.get_address(addr).nonce

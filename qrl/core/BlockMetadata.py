@@ -70,5 +70,6 @@ class BlockMetadata(object):
             addr_state = pstate.get_address(addr)
 
             if self.address_state_dict[addr].balance == addr_state.balance and \
-                    self.address_state_dict[addr].pubhashes == addr_state.pubhashes:
+                    self.address_state_dict[addr].pubhashes == addr_state.pubhashes and \
+                    self.address_state_dict[addr].tokens == addr_state.tokens:
                 del self.address_state_dict[addr]
