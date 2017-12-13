@@ -47,8 +47,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @property
     def pubhash(self):
-        # FIXME: Review this. Leon?
-        return bytes(sha256(bytes(self.PK) + str(self.ots_key).encode()))
+        return bytes(sha256(bytes(self.PK))) #+ str(self.ots_key).encode()))
 
     @property
     def txhash(self):
