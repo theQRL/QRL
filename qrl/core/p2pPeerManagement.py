@@ -88,8 +88,7 @@ class P2PPeerManagement(P2PBaseObserver):
     def send_ping(dest_channel):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
         dest_channel.send(msg)
-
-    #        logger.debug('<<<< PING [%18s]', dest_channel.connection_id)
+        logger.debug('<<<< PING [%18s]', dest_channel.connection_id)
 
     def periodic_health_check(self):
         # TODO: Verify/Disconnect problematic channels
@@ -117,7 +116,5 @@ class P2PPeerManagement(P2PBaseObserver):
 
         current_timestamp = time.time()
         delta = current_timestamp - self._ping_timestamp.get(source, current_timestamp)
-        #        logger.debug('>>>> PONG [%18s] %2.2f', source.connection_id, delta)
+        logger.debug('>>>> PONG [%18s] %2.2f', source.connection_id, delta)
         self._ping_timestamp.pop(source, None)
-
-

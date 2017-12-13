@@ -43,8 +43,8 @@ class P2PFactory(ServerFactory):
         self._txn_processor_running = False
 
         # Blocknumber for which bkmr is being tracked
-        self.bkmr_blocknumber = 0                           # FIXME: Accessed by every p2pprotocol instance
-        self.bkmr_priorityq = queue.PriorityQueue()         # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_blocknumber = 0  # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_priorityq = queue.PriorityQueue()  # FIXME: Accessed by every p2pprotocol instance
 
         # Scheduled and cancel the call, just to initialize with IDelayedCall
         self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)  # FIXME: Accessed by every p2pprotocol
@@ -265,7 +265,7 @@ class P2PFactory(ServerFactory):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), tx.to_json())
 
-    def broadcast_lt(self, lattice_public_key_txn : LatticePublicKey ):
+    def broadcast_lt(self, lattice_public_key_txn: LatticePublicKey):
         logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
         self._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(),

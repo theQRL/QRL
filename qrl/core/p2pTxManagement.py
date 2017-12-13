@@ -21,6 +21,7 @@ class P2PTxManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
         channel.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
 
+        channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
         channel.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
         channel.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
