@@ -45,12 +45,16 @@ message LegacyMessage {
         FBData fbData = 8;
         PBData pbData = 9;
         Transaction stData = 10;
-        Transaction txData = 11;
-        Transaction vtData = 12;
-        Transaction mtData = 13;
-        Transaction tkData = 14;
-        Transaction ttData = 15;
-        SYNCData syncData = 16;
+        Transaction dstData = 11;
+        Transaction dtData = 12;
+        Transaction txData = 13;
+        Transaction vtData = 14;
+        Transaction mtData = 15;
+        Transaction tkData = 16;
+        Transaction ttData = 17;
+        Transaction ltData = 18;
+        EphemeralMessage ephData = 19;
+        SYNCData syncData = 20;
     }
 }
 

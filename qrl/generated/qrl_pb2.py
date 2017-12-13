@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"+\n\tTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\x05\"\x07\n\x05\x45mpty\"\t\n\x07PingReq\"\n\n\x08PongResp\"\x11\n\x0fGetNodeStateReq\"/\n\x10GetNodeStateResp\x12\x1b\n\x04info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\"\x12\n\x10GetKnownPeersReq\"U\n\x11GetKnownPeersResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\x1e\n\x0bknown_peers\x18\x02 \x03(\x0b\x32\t.qrl.Peer\"=\n\x0bGetBlockReq\x12\x0f\n\x05index\x18\x01 \x01(\x04H\x00\x12\x14\n\nafter_hash\x18\x02 \x01(\x0cH\x00\x42\x07\n\x05query\"K\n\x0cGetBlockResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"F\n\tMsgObject\x12*\n\tephemeral\x18\x01 \x01(\x0b\x32\x15.qrl.EphemeralMessageH\x00\x42\r\n\x0bmessageKind\"\r\n\x0bGetStatsReq\"\x83\x02\n\x0cGetStatsResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12\x16\n\x0euptime_network\x18\x03 \x01(\x04\x12\x15\n\rstakers_count\x18\x04 \x01(\x04\x12\x19\n\x11\x62lock_last_reward\x18\x05 \x01(\x04\x12\x17\n\x0f\x62lock_time_mean\x18\x06 \x01(\x04\x12\x15\n\rblock_time_sd\x18\x07 \x01(\x04\x12\x1a\n\x12\x63oins_total_supply\x18\x08 \x01(\x04\x12\x15\n\rcoins_emitted\x18\t \x01(\x04\x12\x15\n\rcoins_atstake\x18\n \x01(\x04\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"\x1d\n\x0cGetObjectReq\x12\r\n\x05query\x18\x01 \x01(\x0c\"\xa2\x01\n\rGetObjectResp\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12*\n\raddress_state\x18\x02 \x01(\x0b\x32\x11.qrl.AddressStateH\x00\x12/\n\x0btransaction\x18\x03 \x01(\x0b\x32\x18.qrl.TransactionExtendedH\x00\x12\x1b\n\x05\x62lock\x18\x04 \x01(\x0b\x32\n.qrl.BlockH\x00\x42\x08\n\x06result\"\xb7\x01\n\x10GetLatestDataReq\x12,\n\x06\x66ilter\x18\x01 \x01(\x0e\x32\x1c.qrl.GetLatestDataReq.Filter\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08quantity\x18\x03 \x01(\r\"S\n\x06\x46ilter\x12\x07\n\x03\x41LL\x10\x00\x12\x10\n\x0c\x42LOCKHEADERS\x10\x01\x12\x10\n\x0cTRANSACTIONS\x10\x02\x12\x1c\n\x18TRANSACTIONS_UNCONFIRMED\x10\x03\"\xaf\x01\n\x11GetLatestDataResp\x12.\n\x0c\x62lockheaders\x18\x01 \x03(\x0b\x32\x18.qrl.BlockHeaderExtended\x12.\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x18.qrl.TransactionExtended\x12:\n\x18transactions_unconfirmed\x18\x03 \x03(\x0b\x32\x18.qrl.TransactionExtended\"}\n\rGetStakersReq\x12)\n\x06\x66ilter\x18\x01 \x01(\x0e\x32\x19.qrl.GetStakersReq.Filter\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08quantity\x18\x03 \x01(\r\"\x1f\n\x06\x46ilter\x12\x0b\n\x07\x43URRENT\x10\x00\x12\x08\n\x04NEXT\x10\x01\"2\n\x0eGetStakersResp\x12 \n\x07stakers\x18\x01 \x03(\x0b\x32\x0f.qrl.StakerData\"\x82\x01\n\x10TransferCoinsReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x12\n\naddress_to\x18\x02 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\x12\x16\n\x0exmss_ots_index\x18\x06 \x01(\x04\"C\n\x11TransferCoinsResp\x12.\n\x14transaction_unsigned\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"{\n\x16LatticePublicKeyTxnReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x10\n\x08kyber_pk\x18\x02 \x01(\x0c\x12\x10\n\x08tesla_pk\x18\x03 \x01(\x0c\x12\x0f\n\x07xmss_pk\x18\x04 \x01(\x0c\x12\x16\n\x0exmss_ots_index\x18\x05 \x01(\x04\"B\n\x12PushTransactionReq\x12,\n\x12transaction_signed\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\",\n\x13PushTransactionResp\x12\x15\n\rsome_response\x18\x01 \x01(\t\"\x16\n\x14GetLocalAddressesReq\"*\n\x15GetLocalAddressesResp\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"\x1f\n\x0cGetWalletReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\",\n\rGetWalletResp\x12\x1b\n\x06wallet\x18\x01 \x01(\x0b\x32\x0b.qrl.Wallet\"\xa4\x02\n\x08NodeInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\"\n\x05state\x18\x02 \x01(\x0e\x32\x13.qrl.NodeInfo.State\x12\x17\n\x0fnum_connections\x18\x03 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x04 \x01(\r\x12\x0e\n\x06uptime\x18\x05 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x06 \x01(\x04\x12\x17\n\x0f\x62lock_last_hash\x18\x07 \x01(\x0c\x12\x15\n\rstake_enabled\x18\x08 \x01(\x08\x12\x12\n\nnetwork_id\x18\t \x01(\t\"G\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08UNSYNCED\x10\x01\x12\x0b\n\x07SYNCING\x10\x02\x12\n\n\x06SYNCED\x10\x03\x12\n\n\x06\x46ORKED\x10\x04\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"\'\n\x0bStoredPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"\xcc\x01\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x11\n\tpubhashes\x18\x04 \x03(\x0c\x12\x1a\n\x12transaction_hashes\x18\x05 \x03(\x0c\x12-\n\x06tokens\x18\x06 \x03(\x0b\x32\x1d.qrl.AddressState.TokensEntry\x1a-\n\x0bTokensEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"O\n\nStakerData\x12(\n\raddress_state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\x12\x17\n\x0fterminator_hash\x18\x02 \x01(\x0c\"0\n\rAddressAmount\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\"\xf0\x01\n\x0b\x42lockHeader\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12!\n\ttimestamp\x18\x03 \x01(\x0b\x32\x0e.qrl.Timestamp\x12\x13\n\x0bhash_header\x18\x04 \x01(\x0c\x12\x18\n\x10hash_header_prev\x18\x05 \x01(\x0c\x12\x14\n\x0creward_block\x18\x06 \x01(\x04\x12\x12\n\nreward_fee\x18\x07 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x08 \x01(\x0c\x12\x13\n\x0bhash_reveal\x18\t \x01(\x0c\x12\x16\n\x0estake_selector\x18\n \x01(\x0c\"\x9b\x01\n\x13\x42lockHeaderExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x30\n\x11transaction_count\x18\x02 \x01(\x0b\x32\x15.qrl.TransactionCount\x12\x14\n\x0cvoted_weight\x18\x03 \x01(\x04\x12\x1a\n\x12total_stake_weight\x18\x04 \x01(\x04\"q\n\x10TransactionCount\x12/\n\x05\x63ount\x18\x01 \x03(\x0b\x32 .qrl.TransactionCount.CountEntry\x1a,\n\nCountEntry\x12\x0b\n\x03key\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"U\n\x13TransactionExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x1c\n\x02tx\x18\x02 \x01(\x0b\x32\x10.qrl.Transaction\"\xcb\x01\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12&\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x10.qrl.Transaction\x12*\n\x10\x64up_transactions\x18\x03 \x03(\x0b\x32\x10.qrl.Transaction\x12\x1e\n\x04vote\x18\x04 \x03(\x0b\x32\x10.qrl.Transaction\x12,\n\x0fgenesis_balance\x18\x05 \x03(\x0b\x32\x13.qrl.GenesisBalance\"\\\n\rBlockExtended\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\x12\x14\n\x0cvoted_weight\x18\x02 \x01(\x04\x12\x1a\n\x12total_stake_weight\x18\x03 \x01(\x04\"2\n\x0eGenesisBalance\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"D\n\x11\x42lockMetaDataList\x12/\n\x13\x62lock_number_hashes\x18\x01 \x03(\x0b\x32\x12.qrl.BlockMetaData\":\n\rBlockMetaData\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\"\xe1\x0b\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x12\n\npublic_key\x18\x04 \x01(\x0c\x12\x18\n\x10transaction_hash\x18\x05 \x01(\x0c\x12\x0f\n\x07ots_key\x18\x06 \x01(\r\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12-\n\x08transfer\x18\x08 \x01(\x0b\x32\x19.qrl.Transaction.TransferH\x00\x12\'\n\x05stake\x18\t \x01(\x0b\x32\x16.qrl.Transaction.StakeH\x00\x12-\n\x08\x63oinbase\x18\n \x01(\x0b\x32\x19.qrl.Transaction.CoinBaseH\x00\x12\x36\n\tlatticePK\x18\x0b \x01(\x0b\x32!.qrl.Transaction.LatticePublicKeyH\x00\x12/\n\tduplicate\x18\x0c \x01(\x0b\x32\x1a.qrl.Transaction.DuplicateH\x00\x12%\n\x04vote\x18\r \x01(\x0b\x32\x15.qrl.Transaction.VoteH\x00\x12+\n\x07message\x18\x0e \x01(\x0b\x32\x18.qrl.Transaction.MessageH\x00\x12\'\n\x05token\x18\x0f \x01(\x0b\x32\x16.qrl.Transaction.TokenH\x00\x12\x38\n\x0etransfer_token\x18\x10 \x01(\x0b\x32\x1e.qrl.Transaction.TransferTokenH\x00\x1a\x38\n\x08Transfer\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x1a\x46\n\x05Stake\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x01 \x01(\x04\x12\x0f\n\x07slavePK\x18\x02 \x01(\x0c\x12\x0c\n\x04hash\x18\x03 \x01(\x0c\x1a\t\n\x07\x44\x65stake\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a\x36\n\x10LatticePublicKey\x12\x10\n\x08kyber_pk\x18\x01 \x01(\x0c\x12\x10\n\x08tesla_pk\x18\x02 \x01(\x0c\x1a\xb7\x01\n\tDuplicate\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10prev_header_hash\x18\x02 \x01(\x04\x12\x17\n\x0f\x63oinbase1_hhash\x18\x03 \x01(\x0c\x12\x17\n\x0f\x63oinbase2_hhash\x18\x04 \x01(\x0c\x12#\n\tcoinbase1\x18\x05 \x01(\x0b\x32\x10.qrl.Transaction\x12#\n\tcoinbase2\x18\x06 \x01(\x0b\x32\x10.qrl.Transaction\x1a\x31\n\x04Vote\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\x1a,\n\x07Message\x12\x14\n\x0cmessage_hash\x18\x01 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x1a\x81\x01\n\x05Token\x12\x0e\n\x06symbol\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\x0c\x12\r\n\x05owner\x18\x03 \x01(\x0c\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12,\n\x10initial_balances\x18\x05 \x03(\x0b\x32\x12.qrl.AddressAmount\x12\x0b\n\x03\x66\x65\x65\x18\x06 \x01(\x04\x1aS\n\rTransferToken\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x02 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\"\x98\x01\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08TRANSFER\x10\x01\x12\t\n\x05STAKE\x10\x02\x12\x0b\n\x07\x44\x45STAKE\x10\x03\x12\x0c\n\x08\x43OINBASE\x10\x04\x12\x0b\n\x07LATTICE\x10\x05\x12\r\n\tDUPLICATE\x10\x06\x12\x08\n\x04VOTE\x10\x07\x12\x0b\n\x07MESSAGE\x10\x08\x12\t\n\x05TOKEN\x10\t\x12\x11\n\rTRANSFERTOKEN\x10\nB\x11\n\x0ftransactionType\"!\n\tTokenList\x12\x14\n\x0ctoken_txhash\x18\x01 \x03(\x0c\"5\n\x11TokenDetailedList\x12 \n\x06tokens\x18\x01 \x03(\x0b\x32\x10.qrl.Transaction\"G\n\rTokenMetadata\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12 \n\x18transfer_token_tx_hashes\x18\x02 \x03(\x0c\"9\n\x10\x45phemeralMessage\x12\n\n\x02id\x18\x01 \x01(\x0c\x12\x0b\n\x03ttl\x18\x02 \x01(\x04\x12\x0c\n\x04\x64\x61ta\x18\x03 \x01(\x0c\"\xba\x01\n\x0eStakeValidator\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x18\n\x10slave_public_key\x18\x02 \x01(\x0c\x12\x17\n\x0fterminator_hash\x18\x03 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x04\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x05 \x01(\x04\x12\r\n\x05nonce\x18\x06 \x01(\x04\x12\x11\n\tis_banned\x18\x07 \x01(\x08\x12\x11\n\tis_active\x18\x08 \x01(\x08\"D\n\x13StakeValidatorsList\x12-\n\x10stake_validators\x18\x01 \x03(\x0b\x32\x13.qrl.StakeValidator\" \n\x0b\x41\x64\x64ressList\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"\xeb\x04\n\x16StakeValidatorsTracker\x12\x38\n\x07sv_dict\x18\x01 \x03(\x0b\x32\'.qrl.StakeValidatorsTracker.SvDictEntry\x12U\n\x16\x66uture_stake_addresses\x18\x02 \x03(\x0b\x32\x35.qrl.StakeValidatorsTracker.FutureStakeAddressesEntry\x12\x37\n\x06\x65xpiry\x18\x03 \x03(\x0b\x32\'.qrl.StakeValidatorsTracker.ExpiryEntry\x12\x45\n\x0e\x66uture_sv_dict\x18\x04 \x03(\x0b\x32-.qrl.StakeValidatorsTracker.FutureSvDictEntry\x12\x1a\n\x12total_stake_amount\x18\x05 \x01(\x04\x1a\x42\n\x0bSvDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\"\n\x05value\x18\x02 \x01(\x0b\x32\x13.qrl.StakeValidator:\x02\x38\x01\x1aP\n\x19\x46utureStakeAddressesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\"\n\x05value\x18\x02 \x01(\x0b\x32\x13.qrl.StakeValidator:\x02\x38\x01\x1a?\n\x0b\x45xpiryEntry\x12\x0b\n\x03key\x18\x01 \x01(\x04\x12\x1f\n\x05value\x18\x02 \x01(\x0b\x32\x10.qrl.AddressList:\x02\x38\x01\x1aM\n\x11\x46utureSvDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\x04\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.qrl.StakeValidatorsList:\x02\x38\x01\x32\xec\x01\n\x06P2PAPI\x12;\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\x12>\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\x12/\n\x08GetBlock\x12\x10.qrl.GetBlockReq\x1a\x11.qrl.GetBlockResp\x12\x34\n\x0eObjectExchange\x12\x0e.qrl.MsgObject\x1a\x0e.qrl.MsgObject(\x01\x30\x01\x32\xbb\x05\n\tPublicAPI\x12;\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\x12>\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\x12/\n\x08GetStats\x12\x10.qrl.GetStatsReq\x1a\x11.qrl.GetStatsResp\x12\x44\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\x12\x32\n\tGetObject\x12\x11.qrl.GetObjectReq\x1a\x12.qrl.GetObjectResp\x12>\n\rGetLatestData\x12\x15.qrl.GetLatestDataReq\x1a\x16.qrl.GetLatestDataResp\x12\x35\n\nGetStakers\x12\x12.qrl.GetStakersReq\x1a\x13.qrl.GetStakersResp\x12>\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\x12\x44\n\x0fPushTransaction\x12\x17.qrl.PushTransactionReq\x1a\x18.qrl.PushTransactionResp\x12M\n\x16GetLatticePublicKeyTxn\x12\x1b.qrl.LatticePublicKeyTxnReq\x1a\x16.qrl.TransferCoinsResp\x12:\n\x14GetTokenDetailedList\x12\n.qrl.Empty\x1a\x16.qrl.TokenDetailedList2V\n\x08\x41\x64minAPI\x12J\n\x11GetLocalAddresses\x12\x19.qrl.GetLocalAddressesReq\x1a\x1a.qrl.GetLocalAddressesRespb\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"+\n\tTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\x05\"\x07\n\x05\x45mpty\"\t\n\x07PingReq\"\n\n\x08PongResp\"\x11\n\x0fGetNodeStateReq\"/\n\x10GetNodeStateResp\x12\x1b\n\x04info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\"\x12\n\x10GetKnownPeersReq\"U\n\x11GetKnownPeersResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\x1e\n\x0bknown_peers\x18\x02 \x03(\x0b\x32\t.qrl.Peer\"=\n\x0bGetBlockReq\x12\x0f\n\x05index\x18\x01 \x01(\x04H\x00\x12\x14\n\nafter_hash\x18\x02 \x01(\x0cH\x00\x42\x07\n\x05query\"K\n\x0cGetBlockResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"F\n\tMsgObject\x12*\n\tephemeral\x18\x01 \x01(\x0b\x32\x15.qrl.EphemeralMessageH\x00\x42\r\n\x0bmessageKind\"\r\n\x0bGetStatsReq\"\x83\x02\n\x0cGetStatsResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12\x16\n\x0euptime_network\x18\x03 \x01(\x04\x12\x15\n\rstakers_count\x18\x04 \x01(\x04\x12\x19\n\x11\x62lock_last_reward\x18\x05 \x01(\x04\x12\x17\n\x0f\x62lock_time_mean\x18\x06 \x01(\x04\x12\x15\n\rblock_time_sd\x18\x07 \x01(\x04\x12\x1a\n\x12\x63oins_total_supply\x18\x08 \x01(\x04\x12\x15\n\rcoins_emitted\x18\t \x01(\x04\x12\x15\n\rcoins_atstake\x18\n \x01(\x04\"%\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"\x1d\n\x0cGetObjectReq\x12\r\n\x05query\x18\x01 \x01(\x0c\"\xa2\x01\n\rGetObjectResp\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12*\n\raddress_state\x18\x02 \x01(\x0b\x32\x11.qrl.AddressStateH\x00\x12/\n\x0btransaction\x18\x03 \x01(\x0b\x32\x18.qrl.TransactionExtendedH\x00\x12\x1b\n\x05\x62lock\x18\x04 \x01(\x0b\x32\n.qrl.BlockH\x00\x42\x08\n\x06result\"\xb7\x01\n\x10GetLatestDataReq\x12,\n\x06\x66ilter\x18\x01 \x01(\x0e\x32\x1c.qrl.GetLatestDataReq.Filter\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08quantity\x18\x03 \x01(\r\"S\n\x06\x46ilter\x12\x07\n\x03\x41LL\x10\x00\x12\x10\n\x0c\x42LOCKHEADERS\x10\x01\x12\x10\n\x0cTRANSACTIONS\x10\x02\x12\x1c\n\x18TRANSACTIONS_UNCONFIRMED\x10\x03\"\xaf\x01\n\x11GetLatestDataResp\x12.\n\x0c\x62lockheaders\x18\x01 \x03(\x0b\x32\x18.qrl.BlockHeaderExtended\x12.\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x18.qrl.TransactionExtended\x12:\n\x18transactions_unconfirmed\x18\x03 \x03(\x0b\x32\x18.qrl.TransactionExtended\"}\n\rGetStakersReq\x12)\n\x06\x66ilter\x18\x01 \x01(\x0e\x32\x19.qrl.GetStakersReq.Filter\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08quantity\x18\x03 \x01(\r\"\x1f\n\x06\x46ilter\x12\x0b\n\x07\x43URRENT\x10\x00\x12\x08\n\x04NEXT\x10\x01\"2\n\x0eGetStakersResp\x12 \n\x07stakers\x18\x01 \x03(\x0b\x32\x0f.qrl.StakerData\"\x82\x01\n\x10TransferCoinsReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x12\n\naddress_to\x18\x02 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\x12\x16\n\x0exmss_ots_index\x18\x06 \x01(\x04\"C\n\x11TransferCoinsResp\x12.\n\x14transaction_unsigned\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"\x8c\x01\n\x16LatticePublicKeyTxnReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x10\n\x08kyber_pk\x18\x03 \x01(\x0c\x12\x14\n\x0c\x64ilithium_pk\x18\x04 \x01(\x0c\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\x12\x16\n\x0exmss_ots_index\x18\x06 \x01(\x04\"\x94\x01\n\x13\x45phemeralChannelReq\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x01 \x01(\x0c\x12\x12\n\naddress_to\x18\x02 \x01(\x0c\x12\x0b\n\x03ttl\x18\x03 \x01(\x04\x12\x0e\n\x06\x61\x63tive\x18\x04 \x01(\x04\x12\x15\n\rsymmetric_key\x18\x05 \x01(\x0c\x12\x0e\n\x06prf512\x18\x06 \x01(\x0c\x12\x0f\n\x07message\x18\x07 \x01(\x0c\"\x86\x01\n\x19\x45ncryptedEphemeralMessage\x12\x15\n\raes256_symkey\x18\x01 \x01(\x0c\x12\x13\n\x0bprf512_seed\x18\x02 \x01(\x0c\x12\x14\n\x0cxmss_address\x18\x03 \x01(\x0c\x12\x0f\n\x07xmss_pk\x18\x04 \x01(\x0c\x12\x16\n\x0exmss_signature\x18\x05 \x01(\x0c\"B\n\x12PushTransactionReq\x12,\n\x12transaction_signed\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\",\n\x13PushTransactionResp\x12\x15\n\rsome_response\x18\x01 \x01(\t\"\x16\n\x14GetLocalAddressesReq\"*\n\x15GetLocalAddressesResp\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"\x1f\n\x0cGetWalletReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\",\n\rGetWalletResp\x12\x1b\n\x06wallet\x18\x01 \x01(\x0b\x32\x0b.qrl.Wallet\"\xa4\x02\n\x08NodeInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\"\n\x05state\x18\x02 \x01(\x0e\x32\x13.qrl.NodeInfo.State\x12\x17\n\x0fnum_connections\x18\x03 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x04 \x01(\r\x12\x0e\n\x06uptime\x18\x05 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x06 \x01(\x04\x12\x17\n\x0f\x62lock_last_hash\x18\x07 \x01(\x0c\x12\x15\n\rstake_enabled\x18\x08 \x01(\x08\x12\x12\n\nnetwork_id\x18\t \x01(\t\"G\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08UNSYNCED\x10\x01\x12\x0b\n\x07SYNCING\x10\x02\x12\n\n\x06SYNCED\x10\x03\x12\n\n\x06\x46ORKED\x10\x04\"+\n\x0bWalletStore\x12\x1c\n\x07wallets\x18\x01 \x03(\x0b\x32\x0b.qrl.Wallet\"?\n\x06Wallet\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x10\n\x08mnemonic\x18\x02 \x01(\t\x12\x12\n\nxmss_index\x18\x03 \x01(\x05\"\'\n\x0bStoredPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"\xcc\x01\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x11\n\tpubhashes\x18\x04 \x03(\x0c\x12\x1a\n\x12transaction_hashes\x18\x05 \x03(\x0c\x12-\n\x06tokens\x18\x06 \x03(\x0b\x32\x1d.qrl.AddressState.TokensEntry\x1a-\n\x0bTokensEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"O\n\nStakerData\x12(\n\raddress_state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\x12\x17\n\x0fterminator_hash\x18\x02 \x01(\x0c\"0\n\rAddressAmount\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\"\xf0\x01\n\x0b\x42lockHeader\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12!\n\ttimestamp\x18\x03 \x01(\x0b\x32\x0e.qrl.Timestamp\x12\x13\n\x0bhash_header\x18\x04 \x01(\x0c\x12\x18\n\x10hash_header_prev\x18\x05 \x01(\x0c\x12\x14\n\x0creward_block\x18\x06 \x01(\x04\x12\x12\n\nreward_fee\x18\x07 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x08 \x01(\x0c\x12\x13\n\x0bhash_reveal\x18\t \x01(\x0c\x12\x16\n\x0estake_selector\x18\n \x01(\x0c\"\x9b\x01\n\x13\x42lockHeaderExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x30\n\x11transaction_count\x18\x02 \x01(\x0b\x32\x15.qrl.TransactionCount\x12\x14\n\x0cvoted_weight\x18\x03 \x01(\x04\x12\x1a\n\x12total_stake_weight\x18\x04 \x01(\x04\"q\n\x10TransactionCount\x12/\n\x05\x63ount\x18\x01 \x03(\x0b\x32 .qrl.TransactionCount.CountEntry\x1a,\n\nCountEntry\x12\x0b\n\x03key\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"U\n\x13TransactionExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x1c\n\x02tx\x18\x02 \x01(\x0b\x32\x10.qrl.Transaction\"\xcb\x01\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12&\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x10.qrl.Transaction\x12*\n\x10\x64up_transactions\x18\x03 \x03(\x0b\x32\x10.qrl.Transaction\x12\x1e\n\x04vote\x18\x04 \x03(\x0b\x32\x10.qrl.Transaction\x12,\n\x0fgenesis_balance\x18\x05 \x03(\x0b\x32\x13.qrl.GenesisBalance\"\\\n\rBlockExtended\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\x12\x14\n\x0cvoted_weight\x18\x02 \x01(\x04\x12\x1a\n\x12total_stake_weight\x18\x03 \x01(\x04\"2\n\x0eGenesisBalance\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"D\n\x11\x42lockMetaDataList\x12/\n\x13\x62lock_number_hashes\x18\x01 \x03(\x0b\x32\x12.qrl.BlockMetaData\":\n\rBlockMetaData\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\"\xf2\x0b\n\x0bTransaction\x12#\n\x04type\x18\x01 \x01(\x0e\x32\x15.qrl.Transaction.Type\x12\r\n\x05nonce\x18\x02 \x01(\x04\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x12\n\npublic_key\x18\x04 \x01(\x0c\x12\x18\n\x10transaction_hash\x18\x05 \x01(\x0c\x12\x0f\n\x07ots_key\x18\x06 \x01(\r\x12\x11\n\tsignature\x18\x07 \x01(\x0c\x12-\n\x08transfer\x18\x08 \x01(\x0b\x32\x19.qrl.Transaction.TransferH\x00\x12\'\n\x05stake\x18\t \x01(\x0b\x32\x16.qrl.Transaction.StakeH\x00\x12-\n\x08\x63oinbase\x18\n \x01(\x0b\x32\x19.qrl.Transaction.CoinBaseH\x00\x12\x36\n\tlatticePK\x18\x0b \x01(\x0b\x32!.qrl.Transaction.LatticePublicKeyH\x00\x12/\n\tduplicate\x18\x0c \x01(\x0b\x32\x1a.qrl.Transaction.DuplicateH\x00\x12%\n\x04vote\x18\r \x01(\x0b\x32\x15.qrl.Transaction.VoteH\x00\x12+\n\x07message\x18\x0e \x01(\x0b\x32\x18.qrl.Transaction.MessageH\x00\x12\'\n\x05token\x18\x0f \x01(\x0b\x32\x16.qrl.Transaction.TokenH\x00\x12\x38\n\x0etransfer_token\x18\x10 \x01(\x0b\x32\x1e.qrl.Transaction.TransferTokenH\x00\x1a\x38\n\x08Transfer\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x1a\x46\n\x05Stake\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x01 \x01(\x04\x12\x0f\n\x07slavePK\x18\x02 \x01(\x0c\x12\x0c\n\x04hash\x18\x03 \x01(\x0c\x1a\t\n\x07\x44\x65stake\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1aG\n\x10LatticePublicKey\x12\x0b\n\x03\x66\x65\x65\x18\x01 \x01(\x04\x12\x10\n\x08kyber_pk\x18\x02 \x01(\x0c\x12\x14\n\x0c\x64ilithium_pk\x18\x03 \x01(\x0c\x1a\xb7\x01\n\tDuplicate\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10prev_header_hash\x18\x02 \x01(\x04\x12\x17\n\x0f\x63oinbase1_hhash\x18\x03 \x01(\x0c\x12\x17\n\x0f\x63oinbase2_hhash\x18\x04 \x01(\x0c\x12#\n\tcoinbase1\x18\x05 \x01(\x0b\x32\x10.qrl.Transaction\x12#\n\tcoinbase2\x18\x06 \x01(\x0b\x32\x10.qrl.Transaction\x1a\x31\n\x04Vote\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bhash_header\x18\x02 \x01(\x0c\x1a,\n\x07Message\x12\x14\n\x0cmessage_hash\x18\x01 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x1a\x81\x01\n\x05Token\x12\x0e\n\x06symbol\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\x0c\x12\r\n\x05owner\x18\x03 \x01(\x0c\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12,\n\x10initial_balances\x18\x05 \x03(\x0b\x32\x12.qrl.AddressAmount\x12\x0b\n\x03\x66\x65\x65\x18\x06 \x01(\x04\x1aS\n\rTransferToken\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x02 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\"\x98\x01\n\x04Type\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08TRANSFER\x10\x01\x12\t\n\x05STAKE\x10\x02\x12\x0b\n\x07\x44\x45STAKE\x10\x03\x12\x0c\n\x08\x43OINBASE\x10\x04\x12\x0b\n\x07LATTICE\x10\x05\x12\r\n\tDUPLICATE\x10\x06\x12\x08\n\x04VOTE\x10\x07\x12\x0b\n\x07MESSAGE\x10\x08\x12\t\n\x05TOKEN\x10\t\x12\x11\n\rTRANSFERTOKEN\x10\nB\x11\n\x0ftransactionType\"!\n\tTokenList\x12\x14\n\x0ctoken_txhash\x18\x01 \x03(\x0c\"5\n\x11TokenDetailedList\x12 \n\x06tokens\x18\x01 \x03(\x0b\x32\x10.qrl.Transaction\"G\n\rTokenMetadata\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12 \n\x18transfer_token_tx_hashes\x18\x02 \x03(\x0c\"P\n\x10\x45phemeralMessage\x12\x0e\n\x06msg_id\x18\x01 \x01(\x0c\x12\x0b\n\x03ttl\x18\x02 \x01(\x04\x12\x0e\n\x06\x61\x63tive\x18\x03 \x01(\x04\x12\x0f\n\x07message\x18\x04 \x01(\x0c\"@\n\nMessageLog\x12\x0f\n\x07message\x18\x01 \x01(\x0c\x12\x0b\n\x03ttl\x18\x02 \x01(\x04\x12\x14\n\x0c\x61\x64\x64ress_from\x18\x03 \x01(\x0c\"\xdc\x01\n\x11\x45phemeralMetadata\x12)\n\x0flattice_key_txn\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\x12\x11\n\txmss_from\x18\x02 \x01(\x0c\x12\x0f\n\x07xmss_to\x18\x03 \x01(\x0c\x12\x1b\n\x13sender_expected_prf\x18\x04 \x01(\x0c\x12\x1d\n\x15receiver_expected_prf\x18\x05 \x01(\x0c\x12\x15\n\raes256_symkey\x18\x06 \x01(\x0c\x12%\n\x0cmessage_logs\x18\x07 \x03(\x0b\x32\x0f.qrl.MessageLog\";\n\x11LatticePublicKeys\x12&\n\x0clattice_keys\x18\x01 \x03(\x0b\x32\x10.qrl.Transaction\"\xba\x01\n\x0eStakeValidator\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x18\n\x10slave_public_key\x18\x02 \x01(\x0c\x12\x17\n\x0fterminator_hash\x18\x03 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x04\x12\x1e\n\x16\x61\x63tivation_blocknumber\x18\x05 \x01(\x04\x12\r\n\x05nonce\x18\x06 \x01(\x04\x12\x11\n\tis_banned\x18\x07 \x01(\x08\x12\x11\n\tis_active\x18\x08 \x01(\x08\"D\n\x13StakeValidatorsList\x12-\n\x10stake_validators\x18\x01 \x03(\x0b\x32\x13.qrl.StakeValidator\" \n\x0b\x41\x64\x64ressList\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"\xeb\x04\n\x16StakeValidatorsTracker\x12\x38\n\x07sv_dict\x18\x01 \x03(\x0b\x32\'.qrl.StakeValidatorsTracker.SvDictEntry\x12U\n\x16\x66uture_stake_addresses\x18\x02 \x03(\x0b\x32\x35.qrl.StakeValidatorsTracker.FutureStakeAddressesEntry\x12\x37\n\x06\x65xpiry\x18\x03 \x03(\x0b\x32\'.qrl.StakeValidatorsTracker.ExpiryEntry\x12\x45\n\x0e\x66uture_sv_dict\x18\x04 \x03(\x0b\x32-.qrl.StakeValidatorsTracker.FutureSvDictEntry\x12\x1a\n\x12total_stake_amount\x18\x05 \x01(\x04\x1a\x42\n\x0bSvDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\"\n\x05value\x18\x02 \x01(\x0b\x32\x13.qrl.StakeValidator:\x02\x38\x01\x1aP\n\x19\x46utureStakeAddressesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\"\n\x05value\x18\x02 \x01(\x0b\x32\x13.qrl.StakeValidator:\x02\x38\x01\x1a?\n\x0b\x45xpiryEntry\x12\x0b\n\x03key\x18\x01 \x01(\x04\x12\x1f\n\x05value\x18\x02 \x01(\x0b\x32\x10.qrl.AddressList:\x02\x38\x01\x1aM\n\x11\x46utureSvDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\x04\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.qrl.StakeValidatorsList:\x02\x38\x01\x32\xec\x01\n\x06P2PAPI\x12;\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\x12>\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\x12/\n\x08GetBlock\x12\x10.qrl.GetBlockReq\x1a\x11.qrl.GetBlockResp\x12\x34\n\x0eObjectExchange\x12\x0e.qrl.MsgObject\x1a\x0e.qrl.MsgObject(\x01\x30\x01\x32\xa2\x07\n\tPublicAPI\x12;\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\x12>\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\x12/\n\x08GetStats\x12\x10.qrl.GetStatsReq\x1a\x11.qrl.GetStatsResp\x12\x44\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\x12\x32\n\tGetObject\x12\x11.qrl.GetObjectReq\x1a\x12.qrl.GetObjectResp\x12>\n\rGetLatestData\x12\x15.qrl.GetLatestDataReq\x1a\x16.qrl.GetLatestDataResp\x12\x35\n\nGetStakers\x12\x12.qrl.GetStakersReq\x1a\x13.qrl.GetStakersResp\x12>\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\x12\x44\n\x0fPushTransaction\x12\x17.qrl.PushTransactionReq\x1a\x18.qrl.PushTransactionResp\x12M\n\x16GetLatticePublicKeyTxn\x12\x1b.qrl.LatticePublicKeyTxnReq\x1a\x16.qrl.TransferCoinsResp\x12J\n\x14PushEphemeralChannel\x12\x18.qrl.EphemeralChannelReq\x1a\x18.qrl.PushTransactionResp\x12J\n\x14PushEphemeralMessage\x12\x18.qrl.EphemeralChannelReq\x1a\x18.qrl.PushTransactionResp\x12M\n\x17GetEphemeralMessageLogs\x12\x18.qrl.EphemeralChannelReq\x1a\x18.qrl.PushTransactionResp\x12:\n\x14GetTokenDetailedList\x12\n.qrl.Empty\x1a\x16.qrl.TokenDetailedList2V\n\x08\x41\x64minAPI\x12J\n\x11GetLocalAddresses\x12\x19.qrl.GetLocalAddressesReq\x1a\x1a.qrl.GetLocalAddressesRespb\x06proto3')
 )
 
 
@@ -105,8 +105,8 @@ _NODEINFO_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2404,
-  serialized_end=2475,
+  serialized_start=2710,
+  serialized_end=2781,
 )
 _sym_db.RegisterEnumDescriptor(_NODEINFO_STATE)
 
@@ -163,8 +163,8 @@ _TRANSACTION_TYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=5406,
-  serialized_end=5558,
+  serialized_start=5729,
+  serialized_end=5881,
 )
 _sym_db.RegisterEnumDescriptor(_TRANSACTION_TYPE)
 
@@ -1055,29 +1055,36 @@ _LATTICEPUBLICKEYTXNREQ = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='kyber_pk', full_name='qrl.LatticePublicKeyTxnReq.kyber_pk', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
+      name='fee', full_name='qrl.LatticePublicKeyTxnReq.fee', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='tesla_pk', full_name='qrl.LatticePublicKeyTxnReq.tesla_pk', index=2,
+      name='kyber_pk', full_name='qrl.LatticePublicKeyTxnReq.kyber_pk', index=2,
       number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='xmss_pk', full_name='qrl.LatticePublicKeyTxnReq.xmss_pk', index=3,
+      name='dilithium_pk', full_name='qrl.LatticePublicKeyTxnReq.dilithium_pk', index=3,
       number=4, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='xmss_ots_index', full_name='qrl.LatticePublicKeyTxnReq.xmss_ots_index', index=4,
-      number=5, type=4, cpp_type=4, label=1,
+      name='xmss_pk', full_name='qrl.LatticePublicKeyTxnReq.xmss_pk', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xmss_ots_index', full_name='qrl.LatticePublicKeyTxnReq.xmss_ots_index', index=5,
+      number=6, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1094,8 +1101,140 @@ _LATTICEPUBLICKEYTXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1796,
-  serialized_end=1919,
+  serialized_start=1797,
+  serialized_end=1937,
+)
+
+
+_EPHEMERALCHANNELREQ = _descriptor.Descriptor(
+  name='EphemeralChannelReq',
+  full_name='qrl.EphemeralChannelReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address_from', full_name='qrl.EphemeralChannelReq.address_from', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='address_to', full_name='qrl.EphemeralChannelReq.address_to', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='ttl', full_name='qrl.EphemeralChannelReq.ttl', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='active', full_name='qrl.EphemeralChannelReq.active', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='symmetric_key', full_name='qrl.EphemeralChannelReq.symmetric_key', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='prf512', full_name='qrl.EphemeralChannelReq.prf512', index=5,
+      number=6, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='message', full_name='qrl.EphemeralChannelReq.message', index=6,
+      number=7, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1940,
+  serialized_end=2088,
+)
+
+
+_ENCRYPTEDEPHEMERALMESSAGE = _descriptor.Descriptor(
+  name='EncryptedEphemeralMessage',
+  full_name='qrl.EncryptedEphemeralMessage',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='aes256_symkey', full_name='qrl.EncryptedEphemeralMessage.aes256_symkey', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='prf512_seed', full_name='qrl.EncryptedEphemeralMessage.prf512_seed', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xmss_address', full_name='qrl.EncryptedEphemeralMessage.xmss_address', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xmss_pk', full_name='qrl.EncryptedEphemeralMessage.xmss_pk', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xmss_signature', full_name='qrl.EncryptedEphemeralMessage.xmss_signature', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2091,
+  serialized_end=2225,
 )
 
 
@@ -1125,8 +1264,8 @@ _PUSHTRANSACTIONREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1921,
-  serialized_end=1987,
+  serialized_start=2227,
+  serialized_end=2293,
 )
 
 
@@ -1156,8 +1295,8 @@ _PUSHTRANSACTIONRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1989,
-  serialized_end=2033,
+  serialized_start=2295,
+  serialized_end=2339,
 )
 
 
@@ -1180,8 +1319,8 @@ _GETLOCALADDRESSESREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2035,
-  serialized_end=2057,
+  serialized_start=2341,
+  serialized_end=2363,
 )
 
 
@@ -1211,8 +1350,8 @@ _GETLOCALADDRESSESRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2059,
-  serialized_end=2101,
+  serialized_start=2365,
+  serialized_end=2407,
 )
 
 
@@ -1242,8 +1381,8 @@ _GETWALLETREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2103,
-  serialized_end=2134,
+  serialized_start=2409,
+  serialized_end=2440,
 )
 
 
@@ -1273,8 +1412,8 @@ _GETWALLETRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2136,
-  serialized_end=2180,
+  serialized_start=2442,
+  serialized_end=2486,
 )
 
 
@@ -1361,8 +1500,8 @@ _NODEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2183,
-  serialized_end=2475,
+  serialized_start=2489,
+  serialized_end=2781,
 )
 
 
@@ -1392,8 +1531,8 @@ _WALLETSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2477,
-  serialized_end=2520,
+  serialized_start=2783,
+  serialized_end=2826,
 )
 
 
@@ -1437,8 +1576,8 @@ _WALLET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2522,
-  serialized_end=2585,
+  serialized_start=2828,
+  serialized_end=2891,
 )
 
 
@@ -1468,8 +1607,8 @@ _STOREDPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2587,
-  serialized_end=2626,
+  serialized_start=2893,
+  serialized_end=2932,
 )
 
 
@@ -1499,8 +1638,8 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2628,
-  serialized_end=2646,
+  serialized_start=2934,
+  serialized_end=2952,
 )
 
 
@@ -1537,8 +1676,8 @@ _ADDRESSSTATE_TOKENSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2808,
-  serialized_end=2853,
+  serialized_start=3114,
+  serialized_end=3159,
 )
 
 _ADDRESSSTATE = _descriptor.Descriptor(
@@ -1602,8 +1741,8 @@ _ADDRESSSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2649,
-  serialized_end=2853,
+  serialized_start=2955,
+  serialized_end=3159,
 )
 
 
@@ -1640,8 +1779,8 @@ _STAKERDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2855,
-  serialized_end=2934,
+  serialized_start=3161,
+  serialized_end=3240,
 )
 
 
@@ -1678,8 +1817,8 @@ _ADDRESSAMOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2936,
-  serialized_end=2984,
+  serialized_start=3242,
+  serialized_end=3290,
 )
 
 
@@ -1772,8 +1911,8 @@ _BLOCKHEADER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2987,
-  serialized_end=3227,
+  serialized_start=3293,
+  serialized_end=3533,
 )
 
 
@@ -1824,8 +1963,8 @@ _BLOCKHEADEREXTENDED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3230,
-  serialized_end=3385,
+  serialized_start=3536,
+  serialized_end=3691,
 )
 
 
@@ -1862,8 +2001,8 @@ _TRANSACTIONCOUNT_COUNTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3456,
-  serialized_end=3500,
+  serialized_start=3762,
+  serialized_end=3806,
 )
 
 _TRANSACTIONCOUNT = _descriptor.Descriptor(
@@ -1892,8 +2031,8 @@ _TRANSACTIONCOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3387,
-  serialized_end=3500,
+  serialized_start=3693,
+  serialized_end=3806,
 )
 
 
@@ -1930,8 +2069,8 @@ _TRANSACTIONEXTENDED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3502,
-  serialized_end=3587,
+  serialized_start=3808,
+  serialized_end=3893,
 )
 
 
@@ -1989,8 +2128,8 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3590,
-  serialized_end=3793,
+  serialized_start=3896,
+  serialized_end=4099,
 )
 
 
@@ -2034,8 +2173,8 @@ _BLOCKEXTENDED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3795,
-  serialized_end=3887,
+  serialized_start=4101,
+  serialized_end=4193,
 )
 
 
@@ -2072,8 +2211,8 @@ _GENESISBALANCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3889,
-  serialized_end=3939,
+  serialized_start=4195,
+  serialized_end=4245,
 )
 
 
@@ -2103,8 +2242,8 @@ _BLOCKMETADATALIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3941,
-  serialized_end=4009,
+  serialized_start=4247,
+  serialized_end=4315,
 )
 
 
@@ -2141,8 +2280,8 @@ _BLOCKMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4011,
-  serialized_end=4069,
+  serialized_start=4317,
+  serialized_end=4375,
 )
 
 
@@ -2186,8 +2325,8 @@ _TRANSACTION_TRANSFER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4663,
-  serialized_end=4719,
+  serialized_start=4969,
+  serialized_end=5025,
 )
 
 _TRANSACTION_STAKE = _descriptor.Descriptor(
@@ -2230,8 +2369,8 @@ _TRANSACTION_STAKE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4721,
-  serialized_end=4791,
+  serialized_start=5027,
+  serialized_end=5097,
 )
 
 _TRANSACTION_DESTAKE = _descriptor.Descriptor(
@@ -2253,8 +2392,8 @@ _TRANSACTION_DESTAKE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4793,
-  serialized_end=4802,
+  serialized_start=5099,
+  serialized_end=5108,
 )
 
 _TRANSACTION_COINBASE = _descriptor.Descriptor(
@@ -2290,8 +2429,8 @@ _TRANSACTION_COINBASE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4804,
-  serialized_end=4847,
+  serialized_start=5110,
+  serialized_end=5153,
 )
 
 _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
@@ -2302,15 +2441,22 @@ _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='kyber_pk', full_name='qrl.Transaction.LatticePublicKey.kyber_pk', index=0,
-      number=1, type=12, cpp_type=9, label=1,
+      name='fee', full_name='qrl.Transaction.LatticePublicKey.fee', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='kyber_pk', full_name='qrl.Transaction.LatticePublicKey.kyber_pk', index=1,
+      number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='tesla_pk', full_name='qrl.Transaction.LatticePublicKey.tesla_pk', index=1,
-      number=2, type=12, cpp_type=9, label=1,
+      name='dilithium_pk', full_name='qrl.Transaction.LatticePublicKey.dilithium_pk', index=2,
+      number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -2327,8 +2473,8 @@ _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4849,
-  serialized_end=4903,
+  serialized_start=5155,
+  serialized_end=5226,
 )
 
 _TRANSACTION_DUPLICATE = _descriptor.Descriptor(
@@ -2392,8 +2538,8 @@ _TRANSACTION_DUPLICATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4906,
-  serialized_end=5089,
+  serialized_start=5229,
+  serialized_end=5412,
 )
 
 _TRANSACTION_VOTE = _descriptor.Descriptor(
@@ -2429,8 +2575,8 @@ _TRANSACTION_VOTE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5091,
-  serialized_end=5140,
+  serialized_start=5414,
+  serialized_end=5463,
 )
 
 _TRANSACTION_MESSAGE = _descriptor.Descriptor(
@@ -2466,8 +2612,8 @@ _TRANSACTION_MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5142,
-  serialized_end=5186,
+  serialized_start=5465,
+  serialized_end=5509,
 )
 
 _TRANSACTION_TOKEN = _descriptor.Descriptor(
@@ -2531,8 +2677,8 @@ _TRANSACTION_TOKEN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5189,
-  serialized_end=5318,
+  serialized_start=5512,
+  serialized_end=5641,
 )
 
 _TRANSACTION_TRANSFERTOKEN = _descriptor.Descriptor(
@@ -2582,8 +2728,8 @@ _TRANSACTION_TRANSFERTOKEN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5320,
-  serialized_end=5403,
+  serialized_start=5643,
+  serialized_end=5726,
 )
 
 _TRANSACTION = _descriptor.Descriptor(
@@ -2721,8 +2867,8 @@ _TRANSACTION = _descriptor.Descriptor(
       name='transactionType', full_name='qrl.Transaction.transactionType',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=4072,
-  serialized_end=5577,
+  serialized_start=4378,
+  serialized_end=5900,
 )
 
 
@@ -2752,8 +2898,8 @@ _TOKENLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5579,
-  serialized_end=5612,
+  serialized_start=5902,
+  serialized_end=5935,
 )
 
 
@@ -2783,8 +2929,8 @@ _TOKENDETAILEDLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5614,
-  serialized_end=5667,
+  serialized_start=5937,
+  serialized_end=5990,
 )
 
 
@@ -2821,8 +2967,8 @@ _TOKENMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5669,
-  serialized_end=5740,
+  serialized_start=5992,
+  serialized_end=6063,
 )
 
 
@@ -2834,7 +2980,7 @@ _EPHEMERALMESSAGE = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='id', full_name='qrl.EphemeralMessage.id', index=0,
+      name='msg_id', full_name='qrl.EphemeralMessage.msg_id', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -2848,7 +2994,59 @@ _EPHEMERALMESSAGE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='data', full_name='qrl.EphemeralMessage.data', index=2,
+      name='active', full_name='qrl.EphemeralMessage.active', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='message', full_name='qrl.EphemeralMessage.message', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6065,
+  serialized_end=6145,
+)
+
+
+_MESSAGELOG = _descriptor.Descriptor(
+  name='MessageLog',
+  full_name='qrl.MessageLog',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='message', full_name='qrl.MessageLog.message', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='ttl', full_name='qrl.MessageLog.ttl', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='address_from', full_name='qrl.MessageLog.address_from', index=2,
       number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -2866,8 +3064,112 @@ _EPHEMERALMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5742,
-  serialized_end=5799,
+  serialized_start=6147,
+  serialized_end=6211,
+)
+
+
+_EPHEMERALMETADATA = _descriptor.Descriptor(
+  name='EphemeralMetadata',
+  full_name='qrl.EphemeralMetadata',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='lattice_key_txn', full_name='qrl.EphemeralMetadata.lattice_key_txn', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xmss_from', full_name='qrl.EphemeralMetadata.xmss_from', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='xmss_to', full_name='qrl.EphemeralMetadata.xmss_to', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='sender_expected_prf', full_name='qrl.EphemeralMetadata.sender_expected_prf', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='receiver_expected_prf', full_name='qrl.EphemeralMetadata.receiver_expected_prf', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='aes256_symkey', full_name='qrl.EphemeralMetadata.aes256_symkey', index=5,
+      number=6, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='message_logs', full_name='qrl.EphemeralMetadata.message_logs', index=6,
+      number=7, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6214,
+  serialized_end=6434,
+)
+
+
+_LATTICEPUBLICKEYS = _descriptor.Descriptor(
+  name='LatticePublicKeys',
+  full_name='qrl.LatticePublicKeys',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='lattice_keys', full_name='qrl.LatticePublicKeys.lattice_keys', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6436,
+  serialized_end=6495,
 )
 
 
@@ -2946,8 +3248,8 @@ _STAKEVALIDATOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5802,
-  serialized_end=5988,
+  serialized_start=6498,
+  serialized_end=6684,
 )
 
 
@@ -2977,8 +3279,8 @@ _STAKEVALIDATORSLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5990,
-  serialized_end=6058,
+  serialized_start=6686,
+  serialized_end=6754,
 )
 
 
@@ -3008,8 +3310,8 @@ _ADDRESSLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6060,
-  serialized_end=6092,
+  serialized_start=6756,
+  serialized_end=6788,
 )
 
 
@@ -3046,8 +3348,8 @@ _STAKEVALIDATORSTRACKER_SVDICTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6422,
-  serialized_end=6488,
+  serialized_start=7118,
+  serialized_end=7184,
 )
 
 _STAKEVALIDATORSTRACKER_FUTURESTAKEADDRESSESENTRY = _descriptor.Descriptor(
@@ -3083,8 +3385,8 @@ _STAKEVALIDATORSTRACKER_FUTURESTAKEADDRESSESENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6490,
-  serialized_end=6570,
+  serialized_start=7186,
+  serialized_end=7266,
 )
 
 _STAKEVALIDATORSTRACKER_EXPIRYENTRY = _descriptor.Descriptor(
@@ -3120,8 +3422,8 @@ _STAKEVALIDATORSTRACKER_EXPIRYENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6572,
-  serialized_end=6635,
+  serialized_start=7268,
+  serialized_end=7331,
 )
 
 _STAKEVALIDATORSTRACKER_FUTURESVDICTENTRY = _descriptor.Descriptor(
@@ -3157,8 +3459,8 @@ _STAKEVALIDATORSTRACKER_FUTURESVDICTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6637,
-  serialized_end=6714,
+  serialized_start=7333,
+  serialized_end=7410,
 )
 
 _STAKEVALIDATORSTRACKER = _descriptor.Descriptor(
@@ -3215,8 +3517,8 @@ _STAKEVALIDATORSTRACKER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6095,
-  serialized_end=6714,
+  serialized_start=6791,
+  serialized_end=7410,
 )
 
 _GETNODESTATERESP.fields_by_name['info'].message_type = _NODEINFO
@@ -3332,6 +3634,9 @@ _TRANSACTION.oneofs_by_name['transactionType'].fields.append(
   _TRANSACTION.fields_by_name['transfer_token'])
 _TRANSACTION.fields_by_name['transfer_token'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
 _TOKENDETAILEDLIST.fields_by_name['tokens'].message_type = _TRANSACTION
+_EPHEMERALMETADATA.fields_by_name['lattice_key_txn'].message_type = _TRANSACTION
+_EPHEMERALMETADATA.fields_by_name['message_logs'].message_type = _MESSAGELOG
+_LATTICEPUBLICKEYS.fields_by_name['lattice_keys'].message_type = _TRANSACTION
 _STAKEVALIDATORSLIST.fields_by_name['stake_validators'].message_type = _STAKEVALIDATOR
 _STAKEVALIDATORSTRACKER_SVDICTENTRY.fields_by_name['value'].message_type = _STAKEVALIDATOR
 _STAKEVALIDATORSTRACKER_SVDICTENTRY.containing_type = _STAKEVALIDATORSTRACKER
@@ -3369,6 +3674,8 @@ DESCRIPTOR.message_types_by_name['GetStakersResp'] = _GETSTAKERSRESP
 DESCRIPTOR.message_types_by_name['TransferCoinsReq'] = _TRANSFERCOINSREQ
 DESCRIPTOR.message_types_by_name['TransferCoinsResp'] = _TRANSFERCOINSRESP
 DESCRIPTOR.message_types_by_name['LatticePublicKeyTxnReq'] = _LATTICEPUBLICKEYTXNREQ
+DESCRIPTOR.message_types_by_name['EphemeralChannelReq'] = _EPHEMERALCHANNELREQ
+DESCRIPTOR.message_types_by_name['EncryptedEphemeralMessage'] = _ENCRYPTEDEPHEMERALMESSAGE
 DESCRIPTOR.message_types_by_name['PushTransactionReq'] = _PUSHTRANSACTIONREQ
 DESCRIPTOR.message_types_by_name['PushTransactionResp'] = _PUSHTRANSACTIONRESP
 DESCRIPTOR.message_types_by_name['GetLocalAddressesReq'] = _GETLOCALADDRESSESREQ
@@ -3397,6 +3704,9 @@ DESCRIPTOR.message_types_by_name['TokenList'] = _TOKENLIST
 DESCRIPTOR.message_types_by_name['TokenDetailedList'] = _TOKENDETAILEDLIST
 DESCRIPTOR.message_types_by_name['TokenMetadata'] = _TOKENMETADATA
 DESCRIPTOR.message_types_by_name['EphemeralMessage'] = _EPHEMERALMESSAGE
+DESCRIPTOR.message_types_by_name['MessageLog'] = _MESSAGELOG
+DESCRIPTOR.message_types_by_name['EphemeralMetadata'] = _EPHEMERALMETADATA
+DESCRIPTOR.message_types_by_name['LatticePublicKeys'] = _LATTICEPUBLICKEYS
 DESCRIPTOR.message_types_by_name['StakeValidator'] = _STAKEVALIDATOR
 DESCRIPTOR.message_types_by_name['StakeValidatorsList'] = _STAKEVALIDATORSLIST
 DESCRIPTOR.message_types_by_name['AddressList'] = _ADDRESSLIST
@@ -3570,6 +3880,20 @@ LatticePublicKeyTxnReq = _reflection.GeneratedProtocolMessageType('LatticePublic
   # @@protoc_insertion_point(class_scope:qrl.LatticePublicKeyTxnReq)
   ))
 _sym_db.RegisterMessage(LatticePublicKeyTxnReq)
+
+EphemeralChannelReq = _reflection.GeneratedProtocolMessageType('EphemeralChannelReq', (_message.Message,), dict(
+  DESCRIPTOR = _EPHEMERALCHANNELREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.EphemeralChannelReq)
+  ))
+_sym_db.RegisterMessage(EphemeralChannelReq)
+
+EncryptedEphemeralMessage = _reflection.GeneratedProtocolMessageType('EncryptedEphemeralMessage', (_message.Message,), dict(
+  DESCRIPTOR = _ENCRYPTEDEPHEMERALMESSAGE,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.EncryptedEphemeralMessage)
+  ))
+_sym_db.RegisterMessage(EncryptedEphemeralMessage)
 
 PushTransactionReq = _reflection.GeneratedProtocolMessageType('PushTransactionReq', (_message.Message,), dict(
   DESCRIPTOR = _PUSHTRANSACTIONREQ,
@@ -3863,6 +4187,27 @@ EphemeralMessage = _reflection.GeneratedProtocolMessageType('EphemeralMessage', 
   ))
 _sym_db.RegisterMessage(EphemeralMessage)
 
+MessageLog = _reflection.GeneratedProtocolMessageType('MessageLog', (_message.Message,), dict(
+  DESCRIPTOR = _MESSAGELOG,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MessageLog)
+  ))
+_sym_db.RegisterMessage(MessageLog)
+
+EphemeralMetadata = _reflection.GeneratedProtocolMessageType('EphemeralMetadata', (_message.Message,), dict(
+  DESCRIPTOR = _EPHEMERALMETADATA,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.EphemeralMetadata)
+  ))
+_sym_db.RegisterMessage(EphemeralMetadata)
+
+LatticePublicKeys = _reflection.GeneratedProtocolMessageType('LatticePublicKeys', (_message.Message,), dict(
+  DESCRIPTOR = _LATTICEPUBLICKEYS,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.LatticePublicKeys)
+  ))
+_sym_db.RegisterMessage(LatticePublicKeys)
+
 StakeValidator = _reflection.GeneratedProtocolMessageType('StakeValidator', (_message.Message,), dict(
   DESCRIPTOR = _STAKEVALIDATOR,
   __module__ = 'qrl_pb2'
@@ -3943,8 +4288,8 @@ _P2PAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=6717,
-  serialized_end=6953,
+  serialized_start=7413,
+  serialized_end=7649,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetNodeState',
@@ -3994,8 +4339,8 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=6956,
-  serialized_end=7655,
+  serialized_start=7652,
+  serialized_end=8582,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetNodeState',
@@ -4088,9 +4433,36 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='PushEphemeralChannel',
+    full_name='qrl.PublicAPI.PushEphemeralChannel',
+    index=10,
+    containing_service=None,
+    input_type=_EPHEMERALCHANNELREQ,
+    output_type=_PUSHTRANSACTIONRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='PushEphemeralMessage',
+    full_name='qrl.PublicAPI.PushEphemeralMessage',
+    index=11,
+    containing_service=None,
+    input_type=_EPHEMERALCHANNELREQ,
+    output_type=_PUSHTRANSACTIONRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetEphemeralMessageLogs',
+    full_name='qrl.PublicAPI.GetEphemeralMessageLogs',
+    index=12,
+    containing_service=None,
+    input_type=_EPHEMERALCHANNELREQ,
+    output_type=_PUSHTRANSACTIONRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='GetTokenDetailedList',
     full_name='qrl.PublicAPI.GetTokenDetailedList',
-    index=10,
+    index=13,
     containing_service=None,
     input_type=_EMPTY,
     output_type=_TOKENDETAILEDLIST,
@@ -4108,8 +4480,8 @@ _ADMINAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=2,
   options=None,
-  serialized_start=7657,
-  serialized_end=7743,
+  serialized_start=8584,
+  serialized_end=8670,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetLocalAddresses',

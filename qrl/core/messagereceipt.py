@@ -75,8 +75,8 @@ class MessageReceipt(object):
 
         ############################
         qrllegacy_pb2.LegacyMessage.ST: 'stData',
-        qrllegacy_pb2.LegacyMessage.DST: '',
-        qrllegacy_pb2.LegacyMessage.DT: '',
+        qrllegacy_pb2.LegacyMessage.DST: 'dstData',
+        qrllegacy_pb2.LegacyMessage.DT: 'dtData',
 
         ############################
         qrllegacy_pb2.LegacyMessage.TX: 'txData',
@@ -84,9 +84,9 @@ class MessageReceipt(object):
         qrllegacy_pb2.LegacyMessage.MT: 'mtData',
         qrllegacy_pb2.LegacyMessage.TK: 'tkData',
         qrllegacy_pb2.LegacyMessage.TT: 'ttData',
-        qrllegacy_pb2.LegacyMessage.LT: '',
+        qrllegacy_pb2.LegacyMessage.LT: 'ltData',
 
-        qrllegacy_pb2.LegacyMessage.EPH: '',
+        qrllegacy_pb2.LegacyMessage.EPH: 'ephData',
 
         qrllegacy_pb2.LegacyMessage.SYNC: 'syncData',
     }

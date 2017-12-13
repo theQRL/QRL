@@ -472,12 +472,16 @@ class LatticePublicKey(Transaction):
             self._data.type = qrl_pb2.Transaction.LATTICE
 
     @property
+    def fee(self):
+        return self._data.fee
+
+    @property
     def kyber_pk(self):
         return self._data.latticePK.kyber_pk
 
     @property
-    def tesla_pk(self):
-        return self._data.latticePK.tesla_pk
+    def dilithium_pk(self):
+        return self._data.latticePK.dilithium_pk
 
     def _get_hashable_bytes(self):
         """
@@ -485,23 +489,53 @@ class LatticePublicKey(Transaction):
         :return: hashable bytes
         :rtype: bytes
         """
-        tmptxhash = self.kyber_pk + self.tesla_pk
+        tmptxhash = self.kyber_pk + self.dilithium_pk
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from, kyber_pk, tesla_pk, xmss_pk, xmss_ots_index):
+    def create(addr_from, fee, kyber_pk, dilithium_pk, xmss_pk, xmss_ots_index):
         transaction = LatticePublicKey()
+
+        transaction._data.fee = fee
 
         transaction._data.addr_from = addr_from
         transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = kyber_pk
-        transaction._data.latticePK.tesla_pk = tesla_pk
+        transaction._data.latticePK.dilithium_pk = dilithium_pk
 
         transaction._data.ots_key = xmss_ots_index
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
+
+    # checks new tx validity based upon node statedb and node mempool.
+    def validate_extended(self, tx_state, transaction_pool):
+        tx_balance = tx_state.balance
+        tx_pubhashes = tx_state.pubhashes
+
+        if self.fee < 0:
+            logger.info('Lattice Txn: State validation failed %s : Negative fee %s', self.txhash, self.fee)
+            return False
+
+        if tx_balance < self.fee:
+            logger.info('Lattice Txn: State validation failed %s : Insufficient funds', self.txhash)
+            logger.info('balance: %s, fee: %s', tx_balance, self.fee)
+            return False
+
+        if self.pubhash in tx_pubhashes:
+            logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
+            return False
+
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if txn.pubhash == self.pubhash:
+                logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
+                return False
+
+        return True
 
     def _validate_custom(self):
         # FIXME: This is missing

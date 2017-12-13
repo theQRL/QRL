@@ -18,6 +18,7 @@ from qrl.core.VoteTracker import VoteTracker
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Transaction import CoinBase, Transaction, Vote
+from qrl.core.EphemeralMessage import EphemeralMessage
 from qrl.core.TransactionPool import TransactionPool
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
@@ -218,8 +219,23 @@ class BufferedChain:
         self.epoch = block.epoch
         return True
 
+    def find_xmss(self, key_addr: bytes):
+        for addr in self.wallet.address_bundle:
+            if addr.address == key_addr:
+                return addr.xmss
+        return None
+
     def add_lattice_public_key(self, lattice_public_key_txn):
         self._chain.pstate.put_lattice_public_key(lattice_public_key_txn)
+
+    def get_lattice_public_key(self, address: bytes) -> list:
+        return self._chain.pstate.get_lattice_public_key(address)
+
+    def add_ephemeral_message(self, ephemeral_message: EphemeralMessage, operator_xmss_address):
+        self._chain.pstate.update_active_ephemeral_channel(ephemeral_message, operator_xmss_address)
+
+    def get_ephemeral_message_logs(self, address_from: bytes) -> bytes:
+        return self._chain.pstate.get_ephemeral_message_logs(address_from)
 
     def get_token_metadata(self, token_txnhash) -> TokenMetadata:
         return self._chain.pstate.get_token_metadata(token_txnhash)
@@ -477,6 +493,7 @@ class BufferedChain:
         message_txn = set()
         token_txn = set()
         transfer_token_txn = set()
+        lattice_public_key_txn = set()
 
         # cycle through every tx in the new block to check state
         for protobuf_tx in block.transactions:
@@ -673,6 +690,32 @@ class BufferedChain:
 
                 transfer_token_txn.add(tx.txfrom)
 
+            elif tx.subtype == qrl_pb2.Transaction.LATTICE:
+                if tx.txfrom in stake_txn:
+                    logger.debug("Lattice Txn dropped: ST txn has been accepted for %s address", tx.txfrom)
+                    return False
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.debug("Lattice Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    return False
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.debug("Lattice Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    return False
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s',
+                                   address_txn[tx.txfrom].balance,
+                                   tx.fee)
+                    return False
+
+                # TODO: Review If to add the check for new txn, but duplicate lattice keys by the same address
+                lattice_public_key_txn.add(tx.txfrom)
+
             if tx.subtype != qrl_pb2.Transaction.COINBASE:
                 address_txn[tx.txfrom].increase_nonce()
 
@@ -681,7 +724,8 @@ class BufferedChain:
 
             if tx.subtype in (qrl_pb2.Transaction.MESSAGE,
                               qrl_pb2.Transaction.TOKEN,
-                              qrl_pb2.Transaction.TRANSFERTOKEN):
+                              qrl_pb2.Transaction.TRANSFERTOKEN,
+                              qrl_pb2.Transaction.LATTICE):
                 address_txn[tx.txfrom].balance -= tx.fee
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
@@ -1218,13 +1262,14 @@ class BufferedChain:
         total_txn = len(t_pool2)
         txnum = 0
         stake_validators_tracker = self.get_stake_validators_tracker(last_block_number + 1)
-        # FIX ME : Temporary fix, to include only either ST txn or TransferCoin txn for an address
+        # FIX ME : Temporary fix, to include only either ST txn or Other txn for an address
         stake_txn = set()
         transfercoin_txn = set()
         message_txn = set()
         destake_txn = set()
         token_txn = set()
         transfer_token_txn = set()
+        lattice_public_key_txn = set()
 
         address_txn = dict()
 
@@ -1463,12 +1508,47 @@ class BufferedChain:
 
                 transfer_token_txn.add(tx.txfrom)
 
+            if tx.subtype == qrl_pb2.Transaction.LATTICE:
+                if tx.txfrom in stake_txn:
+                    logger.debug("Lattice Txn dropped: ST txn has been accepted for %s address", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
+                        tx.txfrom].is_active:
+                    logger.debug("Lattice Txn dropped: %s address is a Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                    logger.debug("Lattice Txn dropped: %s address is in Future Stake Validator", tx.txfrom)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                if address_txn[tx.txfrom].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s',
+                                   address_txn[tx.txfrom].balance,
+                                   tx.fee)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+                # TODO: Review If to add the check for new txn, but duplicate lattice keys by the same address
+                lattice_public_key_txn.add(tx.txfrom)
+
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 address_txn[tx.txfrom].balance -= tx.amount + tx.fee
 
             if tx.subtype in (qrl_pb2.Transaction.MESSAGE,
                               qrl_pb2.Transaction.TOKEN,
-                              qrl_pb2.Transaction.TRANSFERTOKEN):
+                              qrl_pb2.Transaction.TRANSFERTOKEN,
+                              qrl_pb2.Transaction.LATTICE):
                 address_txn[tx.txfrom].balance -= tx.fee
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:

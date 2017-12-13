@@ -51,7 +51,12 @@ service PublicAPI
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
+    // ------- Ephemeral API -------
     rpc GetLatticePublicKeyTxn (LatticePublicKeyTxnReq) returns (TransferCoinsResp);
+    rpc PushEphemeralChannel (EphemeralChannelReq) returns (PushTransactionResp);
+    rpc PushEphemeralMessage (EphemeralChannelReq) returns (PushTransactionResp);
+    rpc GetEphemeralMessageLogs (EphemeralChannelReq) returns (PushTransactionResp);
+    // ------------------------------
 
     rpc GetTokenDetailedList (Empty) returns (TokenDetailedList);
 }
@@ -202,11 +207,31 @@ message TransferCoinsResp {
 
 message LatticePublicKeyTxnReq {
     bytes address_from = 1;
-    bytes kyber_pk = 2;
-    bytes tesla_pk = 3;
-    bytes xmss_pk = 4;
-    uint64 xmss_ots_index = 5;
+    uint64 fee = 2;
+    bytes kyber_pk = 3;
+    bytes dilithium_pk = 4;
+    bytes xmss_pk = 5;
+    uint64 xmss_ots_index = 6;
 }
+
+message EphemeralChannelReq {
+    bytes address_from = 1;
+    bytes address_to = 2;
+    uint64 ttl = 3;
+    uint64 active = 4;
+    bytes symmetric_key = 5;
+    bytes prf512 = 6;
+    bytes message = 7;
+}
+
+message EncryptedEphemeralMessage {
+    bytes aes256_symkey = 1;
+    bytes prf512_seed = 2;
+    bytes xmss_address = 3;
+    bytes xmss_pk = 4;
+    bytes xmss_signature = 5;
+}
+
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
@@ -426,8 +451,9 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        bytes kyber_pk = 1;
-        bytes tesla_pk = 2;
+        uint64 fee = 1;
+        bytes kyber_pk = 2;
+        bytes dilithium_pk = 3;
     }
 
     message Duplicate {
@@ -479,11 +505,40 @@ message TokenMetadata {
     repeated bytes transfer_token_tx_hashes = 2;
 }
 
+////////////////////////////
+////////////////////////////
+////////////////////////////
+//       Ephemeral        //
+////////////////////////////
+////////////////////////////
+////////////////////////////
 message EphemeralMessage {
-    bytes id = 1;
+    bytes msg_id = 1;
     uint64 ttl = 2;
-    bytes data = 3;                 // Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature
+    uint64 active = 3;
+    bytes message = 4;       // Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature
 }
+
+message MessageLog {         // Change name to EphemeralMessageLog
+    bytes message = 1;
+    uint64 ttl = 2;
+    bytes address_from = 3;
+}
+
+message EphemeralMetadata {
+    Transaction lattice_key_txn = 1;
+    bytes xmss_from = 2;
+    bytes xmss_to = 3;
+    bytes sender_expected_prf = 4;
+    bytes receiver_expected_prf = 5;
+    bytes aes256_symkey = 6;
+    repeated MessageLog message_logs = 7;
+}
+
+message LatticePublicKeys {
+    repeated Transaction lattice_keys = 1;
+}
+////////////////////////////
 
 message StakeValidator {
     bytes address = 1;

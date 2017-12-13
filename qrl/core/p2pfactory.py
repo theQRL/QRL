@@ -13,6 +13,7 @@ from qrl.core import config, logger, ntp
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction, TransferTransaction, LatticePublicKey
+from qrl.core.EphemeralMessage import EphemeralMessage
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
@@ -264,6 +265,13 @@ class P2PFactory(ServerFactory):
     def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), tx.to_json())
+
+    def broadcast_eph(self, ephemeral_channel_request: EphemeralMessage, operator_xmss_address):
+        logger.info('<<<Broadcasting Ephemeral Channel Request')
+        self.buffered_chain.add_ephemeral_message(ephemeral_channel_request, operator_xmss_address)
+        self.register_and_broadcast('EPH',
+                                    ephemeral_channel_request.get_message_hash(),
+                                    ephemeral_channel_request.to_json())
 
     def broadcast_lt(self, lattice_public_key_txn: LatticePublicKey):
         logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
