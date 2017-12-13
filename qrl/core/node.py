@@ -260,7 +260,8 @@ class POS:
                 logger.info('>>>TX %s failed validate_tx', tx.txhash)
                 continue
 
-            tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height, addr=tx.txfrom)
+            tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height,
+                                                          addr=tx.txfrom)
 
             is_valid_state = tx.validate_extended(tx_state=tx_state,
                                                   transaction_pool=self.buffered_chain.tx_pool.transaction_pool)
@@ -269,11 +270,9 @@ class POS:
                 logger.info('>>>TX %s failed state_validate', tx.txhash)
                 continue
 
-            logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.transport.getPeer().host)
+            logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.peer_ip)
             self.buffered_chain.tx_pool.add_tx_to_pool(tx)
-
-            txn_msg = tx_peer._wrap_message('TX', tx.to_json())
-            self.p2p_factory.broadcast_relay(tx_peer, txn_msg)
+            self.p2p_factory.broadcast_tx_relay(tx_peer, tx)
 
         for i in range(num - tmp_num):
             del self.buffered_chain.tx_pool.pending_tx_pool[0]
@@ -506,14 +505,6 @@ class POS:
             self.restart_post_block_logic(last_blocknum + 1, delay)
 
         return
-
-    def get_last_blockheight_endswith(self, current_blocknumber, ending_number):
-        result = ((current_blocknumber // 100) * 100 + ending_number)
-
-        if result > current_blocknumber:
-            result -= 100
-
-        return result
 
     def create_vote_tx(self, blocknumber: int):
         block = self.buffered_chain.get_block(blocknumber)

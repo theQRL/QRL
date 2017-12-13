@@ -2,24 +2,35 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import struct
+from typing import Callable
 
 from pyqrllib.pyqrllib import bin2hstr  # noqa
-from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, connectionDone
 
-from qrl.core import config, logger
+from qrl.core import logger
 from qrl.core.Observable import Observable
+from qrl.core.p2pChainManagement import P2PChainManagement
+from qrl.core.p2pPeerManagement import P2PPeerManagement
+from qrl.core.p2pTxManagement import P2PTxManagement
 from qrl.generated import qrllegacy_pb2
 
 
+# Rename to p2p channel
 class P2PProtocol(Protocol):
     def __init__(self):
         self._buffer = bytes()
-        self._disconnect_callLater = None
-        self._ping_callLater = None
 
-        self._services = {}                     # FIXME: TO BE REMOVED
-        self._observable = Observable(self)     # Need to use composition instead of inheritance here
+        # Need to use composition instead of inheritance here
+        self._observable = Observable(self)
+
+        self.peer_management = P2PPeerManagement()                  # TODO: we only need 1 of this
+        self.chain_synchronizer = P2PChainManagement()              # TODO: we only need 1 of this
+        self.tx_management = P2PTxManagement()
+
+        # Inform about new channel
+        self.peer_management.new_channel(self)
+        self.chain_synchronizer.new_channel(self)
+        self.tx_management.new_channel(self)
 
     @property
     def peer_ip(self):
@@ -37,15 +48,15 @@ class P2PProtocol(Protocol):
     def connection_id(self):
         return "{}:{}".format(self.peer_ip, self.peer_port)
 
+    def register(self, message_type, func: Callable):
+        self._observable.register(message_type, func)
+
     def connectionMade(self):
         self._conn_identity = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
 
         if self.factory.add_connection(self):
             self.send_peer_list()
             self.send_version_request()
-
-        self._ping_callLater = reactor.callLater(1, self.send_pong)
-        self._disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
 
     def connectionLost(self, reason=connectionDone):
         logger.info('%s disconnected. remainder connected: %d',
@@ -115,7 +126,7 @@ class P2PProtocol(Protocol):
                 # Buffer is still incomplete as it doesn't have message
                 if chunk_size_raw[0] == 0xff:
                     # FIXME: Remove this. Workaround for old protocol
-                    self.transport.loseConnection()
+                    self.loseConnection()
                 return
 
             try:
@@ -127,3 +138,49 @@ class P2PProtocol(Protocol):
                 logger.warning("Problem parsing message. Skipping")
             finally:
                 self._buffer = self._buffer[4 + chunk_size:]
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    # FIXME: Take this out define the peer or leave as part of the channel object?
+
+    def send_version_request(self):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
+        self.send(msg)
+
+    def send_peer_list(self):
+        """
+        Get Peers
+        Sends the peers list.
+        :return:
+        """
+        peer_ips = self.factory.get_connected_peer_ips()
+
+        logger.info('<<< Sending connected peers to %s [%s]', self.peer_ip, peer_ips)
+
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
+                                          plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
+
+        self.send(msg)
+
+    def send_sync(self, synced=False):
+        state_str = ''
+        if synced:
+            state_str = 'Synced'
+
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
+                                          syncData=qrllegacy_pb2.SYNCData(state=state_str))
+        self.send(msg)
+
+    def send_fetch_block(self, block_idx):
+        """
+        Fetch Block n
+        Sends request for the block number n.
+        :return:
+        """
+        logger.info('<<<Fetching block: %s from %s', block_idx, self.connection_id)
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
+                                          fbData=qrllegacy_pb2.FBData(index=block_idx))
+        self.send(msg)

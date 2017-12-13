@@ -1,3 +1,7 @@
+# coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
 from typing import Callable
 
 from qrl.core import logger
@@ -21,5 +25,5 @@ class Observable(object):
             try:
                 o(self.source, message)
             except Exception as e:
-                logger.debug("[%s] executing [%s] by %s", self.source, message)
+                logger.debug("[%s] executing %s", self.source, message)
                 logger.exception(e)
