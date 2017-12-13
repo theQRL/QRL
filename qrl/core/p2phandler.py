@@ -7,7 +7,6 @@ from qrl.core import config, logger
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
-from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2

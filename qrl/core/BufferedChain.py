@@ -589,13 +589,13 @@ class BufferedChain:
                     return False
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.warning("Source address is a Stake Validator, balance is locked while staking")
                     logger.warning("Message Txn dropped")
                     return False
 
                 if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
-                    stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
                     logger.warning("Source address is in Future Stake Validator List, balance is locked")
                     logger.warning("Message Txn dropped")
                     return False
@@ -614,13 +614,13 @@ class BufferedChain:
                     return False
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.warning("Source address is a Stake Validator, balance is locked while staking")
                     logger.warning("Token Txn dropped")
                     return False
 
                 if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
-                    stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
                     logger.warning("Source address is in Future Stake Validator List, balance is locked")
                     logger.warning("Token Txn dropped")
                     return False
@@ -641,13 +641,13 @@ class BufferedChain:
                     return False
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.warning("Source address is a Stake Validator, balance is locked while staking")
                     logger.warning("Transfer Token Txn dropped")
                     return False
 
                 if (tx.txfrom in stake_validators_tracker.future_stake_addresses and
-                    stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
+                        stake_validators_tracker.future_stake_addresses[tx.txfrom].is_active):
                     logger.warning("Source address is in Future Stake Validator List, balance is locked")
                     logger.warning("Transfer Token Txn dropped")
                     return False
@@ -1352,7 +1352,7 @@ class BufferedChain:
                     continue
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.debug("Message Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1388,7 +1388,7 @@ class BufferedChain:
                     continue
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.debug("Token Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -1421,7 +1421,7 @@ class BufferedChain:
                     continue
 
                 if tx.txfrom in stake_validators_tracker.sv_dict and stake_validators_tracker.sv_dict[
-                    tx.txfrom].is_active:
+                        tx.txfrom].is_active:
                     logger.debug("Transfer Token Txn dropped: %s address is a Stake Validator", tx.txfrom)
                     del t_pool2[txnum]
                     total_txn -= 1
