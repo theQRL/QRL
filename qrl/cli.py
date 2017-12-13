@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import json
 
 import click
 import grpc
@@ -15,13 +16,15 @@ ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
 
 class CLIContext(object):
 
-    def __init__(self, remote, host, port_public, port_admin, wallet_dir):
+    def __init__(self, remote, host, port_public, port_admin, wallet_dir, machine_readable):
         self.remote = remote
         self.host = host
         self.port_public = port_public
         self.port_admin = port_admin
 
         self.wallet_dir = os.path.abspath(wallet_dir)
+
+        self.machine_readable = machine_readable
 
         self.channel_public = grpc.insecure_channel(self.node_public_address)
         self.channel_admin = grpc.insecure_channel(self.node_admin_address)
@@ -50,18 +53,34 @@ def _print_addresses(ctx, addresses, source_description):
         click.echo('No wallet found at {}'.format(source_description))
         return
 
-    click.echo('Wallet at          : {}'.format(source_description))
-    click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
-    click.echo('-' * 95)
+    output = {
+        "location": source_description,
+        "addresses": [],
+    }
 
     for pos, addr in enumerate(addresses):
+        address = {
+            "address": addr.decode()
+        }
         try:
             balance = _public_get_address_balance(ctx, addr)
             # TODO standardize quanta/shor conversion
             balance /= 1e8
-            click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
+            address["balance"] = balance
         except Exception as e:
-            click.echo('{:<8}{:<75}?'.format(pos, addr.decode()))
+            address["balance"] = "?"
+
+        output["addresses"].append(address)
+
+    if ctx.obj.machine_readable:
+        click.echo(json.dumps(output))
+    else:
+        click.echo('Wallet at          : {}'.format(source_description))
+        click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
+        click.echo('-' * 95)
+        for pos, a in enumerate(output["addresses"]):
+            click.echo('{:<8}{:<75}{}'.format(pos, a["address"], a["balance"]))
+
 
 
 def _public_get_address_balance(ctx, address):
@@ -103,12 +122,13 @@ def _select_wallet(ctx, src):
 
 @click.group()
 @click.option('--remote', '-r', default=False, is_flag=True, help='connect to remote node')
+@click.option('--machine_readable', '-m', default=False, is_flag=True, help='output in machine readable JSON whenever possible')
 @click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
 @click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
 @click.option('--port_adm', default=9008, help='remote port number (admin api)  [9009]* will change')
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
 @click.pass_context
-def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
+def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir, machine_readable):
     """
     QRL Command Line Interface
     """
@@ -116,7 +136,8 @@ def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
                          host=host,
                          port_public=port_pub,
                          port_admin=port_adm,
-                         wallet_dir=wallet_dir)
+                         wallet_dir=wallet_dir,
+                         machine_readable=machine_readable)
 
 
 @qrl.command()
