@@ -7,6 +7,7 @@ from qrl.core import config, logger
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
+from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
@@ -339,6 +340,78 @@ class P2PHandler(P2PProtocol):
 
         if self.factory._buffered_chain.add_vote(vote):
             self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
+
+    def handle_message_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Message Transaction
+        This function processes whenever a Transaction having
+        subtype MESSAGE is received.
+        :return:
+        """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
+        try:
+            message_tx = Transaction.from_pbdata(message.mtData)
+        except Exception as e:
+            logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(message_tx.get_message_hash(), self):
+            return
+
+        if message_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
+        self.factory.trigger_tx_processor(message_tx, message)
+
+    def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Token Transaction
+        This function processes whenever a Transaction having
+        subtype TOKEN is received.
+        :return:
+        """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
+        try:
+            transfer_token_tx = Transaction.from_pbdata(message.mtData)
+        except Exception as e:
+            logger.error('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(transfer_token_tx.get_message_hash(), self):
+            return
+
+        if transfer_token_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
+        self.factory.trigger_tx_processor(transfer_token_tx, message)
+
+    def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Message Transaction
+        This function processes whenever a Transaction having
+        subtype MESSAGE is received.
+        :return:
+        """
+        self._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
+        try:
+            token_tx = Transaction.from_pbdata(message.mtData)
+        except Exception as e:
+            logger.error('Token Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            self.loseConnection()
+            return
+
+        if not self.factory.master_mr.isRequested(token_tx.get_message_hash(), self):
+            return
+
+        if token_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
+        self.factory.trigger_tx_processor(token_tx, message)
 
     def handle_stake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """

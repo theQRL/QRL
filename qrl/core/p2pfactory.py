@@ -271,9 +271,9 @@ class P2PFactory(ServerFactory):
 
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.pbdata, data)
 
-    def broadcast_tx(self, tx):
+    def broadcast_tx(self, tx, subtype=qrllegacy_pb2.LegacyMessage.TX):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), tx.to_json())
+        self.register_and_broadcast(subtype, tx.get_message_hash(), tx.to_json())
 
     def broadcast_lt(self, lattice_public_key_txn):
         logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
@@ -331,15 +331,15 @@ class P2PFactory(ServerFactory):
         logger.error('%s', msg)
         self._txn_processor_running = False
 
-    def trigger_tx_processor(self, tx, json_tx_obj):
+    def trigger_tx_processor(self, tx, message):
         # duplicate tx already received, would mess up nonce..
         for t in self._buffered_chain.tx_pool.transaction_pool:
             if tx.txhash == t.txhash:
                 return
 
         self._buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-        self.master_mr.register(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), json_tx_obj)
-        self.broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash())
+        self.master_mr.register(message.func_name, tx.get_message_hash(), message)
+        self.broadcast(message.func_name, tx.get_message_hash())
 
         if not self._txn_processor_running:
             # FIXME: TxnProcessor breaks tx_pool encapsulation

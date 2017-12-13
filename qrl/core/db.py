@@ -22,9 +22,6 @@ class DB:
         # TODO: leveldb python module is not very active. Decouple and replace
         self.db = leveldb.LevelDB(self.db_path)
 
-    def destroy(self):
-        leveldb.DestroyDB(self.db_path)
-
     def RangeIter(self, key_obj_start, key_obj_end):
         if not isinstance(key_obj_start, bytes):
             key_obj_start = key_obj_start.encode()

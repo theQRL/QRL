@@ -34,6 +34,7 @@ class TestStakeValidatorsTracker(TestCase):
 
         total_stake_amount = stake_validators_tracker.get_total_stake_amount()
         self.assertEqual(100, total_stake_amount)
+        stake_validators_tracker.to_json()
 
     def test_add_future_sv(self):
         alice_xmss = get_alice_xmss()

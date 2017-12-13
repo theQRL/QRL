@@ -11,9 +11,10 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
 from qrl.core.Block import Block
+from qrl.core.TokenList import TokenList
 from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
-from qrl.generated import qrl_pb2
+from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 
 # FIXME: This will soon move to core. Split/group functionality
@@ -274,18 +275,30 @@ class QRLNode:
 
         if tx.subtype == qrl_pb2.Transaction.LATTICE:
             self._p2pfactory.broadcast_lt(tx)
-        elif tx.subtype == qrl_pb2.Transaction.TRANSFER:
+        elif tx.subtype in (qrl_pb2.Transaction.TRANSFER,
+                            qrl_pb2.Transaction.MESSAGE,
+                            qrl_pb2.Transaction.TOKEN,
+                            qrl_pb2.Transaction.TRANSFERTOKEN):
             tx.validate_or_raise()
 
             block_number = self._buffered_chain.height + 1
             tx_state = self._buffered_chain.get_stxn_state(block_number, tx.txfrom)
 
-            if not tx.validate_extended(tx_state=tx_state, transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
+            if not tx.validate_extended(tx_state=tx_state,
+                                        transaction_pool=self._buffered_chain.tx_pool.transaction_pool):
                 raise ValueError("The transaction failed validatation (blockchain state)")
 
             self._buffered_chain.tx_pool.add_tx_to_pool(tx)
             self._buffered_chain.wallet.save_wallet()
-            self._p2pfactory.broadcast_tx(tx)
+            # FIXME: Optimization Required
+            subtype = qrllegacy_pb2.LegacyMessage.TX
+            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+                subtype = qrllegacy_pb2.LegacyMessage.MT
+            elif tx.subtype == qrl_pb2.Transaction.TOKEN:
+                subtype = qrllegacy_pb2.LegacyMessage.TK
+            elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                subtype = qrllegacy_pb2.LegacyMessage.TT
+            self._p2pfactory.broadcast_tx(tx, subtype=subtype)
 
         return True
 
@@ -352,6 +365,15 @@ class QRLNode:
         else:
             _, block_index = answer
         return block_index
+
+    def get_token_detailed_list(self):
+        pbdata = self.db_state.get_token_list()
+        token_list = TokenList.from_json(pbdata)
+        token_detailed_list = qrl_pb2.TokenDetailedList()
+        for token_txhash in token_list.token_txhash:
+            token_txn, _ = self.db_state.get_tx_metadata(token_txhash)
+            token_detailed_list.tokens.extend([token_txn.pbdata])
+        return token_detailed_list
 
     def get_current_stakers(self, offset, count) -> List[StakeValidator]:
         stakers = list(self.db_state.stake_validators_tracker.sv_dict.values())

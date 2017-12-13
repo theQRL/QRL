@@ -54,7 +54,10 @@ class MessageReceipt(object):
                      LegacyMessage.VT,
                      LegacyMessage.LT,
                      LegacyMessage.EPH,
-                     LegacyMessage.BK]
+                     LegacyMessage.BK,
+                     LegacyMessage.MT,
+                     LegacyMessage.TK,
+                     LegacyMessage.TT]
 
     services_arg = {
         ######################
@@ -78,6 +81,9 @@ class MessageReceipt(object):
         ############################
         qrllegacy_pb2.LegacyMessage.TX: 'txData',
         qrllegacy_pb2.LegacyMessage.VT: 'vtData',
+        qrllegacy_pb2.LegacyMessage.MT: 'mtData',
+        qrllegacy_pb2.LegacyMessage.TK: 'tkData',
+        qrllegacy_pb2.LegacyMessage.TT: 'ttData',
         qrllegacy_pb2.LegacyMessage.LT: '',
 
         qrllegacy_pb2.LegacyMessage.EPH: '',
