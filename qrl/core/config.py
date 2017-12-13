@@ -33,7 +33,7 @@ class UserConfig(object):
 
         self.max_peers_limit = 100  # Number of allowed peers
         self.ping_timeout = 180
-        self.ping_frequency = 20  # How frequently a node should ping (in seconds)
+        self.ping_period = 10
         # must be less than ping_timeout
 
         self.qrl_dir = os.path.join(expanduser("~"), ".qrl")

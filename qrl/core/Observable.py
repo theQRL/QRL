@@ -25,5 +25,5 @@ class Observable(object):
             try:
                 o(self.source, message)
             except Exception as e:
-                logger.debug("[%s] executing [%s] by %s", self.source, message)
+                logger.debug("[%s] executing %s", self.source, message)
                 logger.exception(e)

@@ -74,14 +74,13 @@ class P2PHandler(P2PProtocol):
 
         self.send(msg)
 
-    def send_pong(self):
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
-        self.send(msg)
-        logger.debug('Sending PING to %s', self.connection_id)
+    def send_sync(self, synced=False):
+        state_str = ''
+        if synced:
+            state_str = 'Synced'
 
-    def send_sync(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
-                                          syncData=qrllegacy_pb2.SYNCData(state=''))
+                                          syncData=qrllegacy_pb2.SYNCData(state=state_str))
         self.send(msg)
 
     ###################################################

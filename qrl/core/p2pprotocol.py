@@ -17,11 +17,9 @@ from qrl.generated import qrllegacy_pb2
 class P2PProtocol(Protocol):
     def __init__(self):
         self._buffer = bytes()
-        self._disconnect_callLater = None
-        self._ping_callLater = None
 
-        self._services = {}                     # FIXME: TO BE REMOVED
-        self._observable = Observable(self)     # Need to use composition instead of inheritance here
+        # Need to use composition instead of inheritance here
+        self._observable = Observable(self)
 
     @property
     def peer_ip(self):
@@ -48,9 +46,6 @@ class P2PProtocol(Protocol):
         if self.factory.add_connection(self):
             self.send_peer_list()
             self.send_version_request()
-
-        self._ping_callLater = reactor.callLater(1, self.send_pong)
-        self._disconnect_callLater = reactor.callLater(config.user.ping_timeout, self.transport.loseConnection)
 
     def connectionLost(self, reason=connectionDone):
         logger.info('%s disconnected. remainder connected: %d',
