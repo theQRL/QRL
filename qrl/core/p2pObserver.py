@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 
 
@@ -14,5 +13,5 @@ class P2PBaseObserver(object):
         if message.func_name != expected_func_name:
             raise ValueError("Invalid func_name")
 
-    def new_channel(self, channel: P2PProtocol):
+    def new_channel(self, channel):
         pass

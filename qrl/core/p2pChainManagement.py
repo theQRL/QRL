@@ -1,7 +1,6 @@
 from qrl.core import logger
 from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
-from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 
 
@@ -9,7 +8,7 @@ class P2PChainManagement(P2PBaseObserver):
     def __init__(self):
         super().__init__()
 
-    def new_channel(self, channel: P2PProtocol):
+    def new_channel(self, channel):
         channel.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
         channel.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
 

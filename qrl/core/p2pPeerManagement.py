@@ -7,7 +7,6 @@ import time
 
 from qrl.core import config, logger
 from qrl.core.p2pObserver import P2PBaseObserver
-from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 
 
@@ -23,7 +22,7 @@ class P2PPeerManagement(P2PBaseObserver):
 
         self.periodic_health_check()
 
-    def new_channel(self, channel: P2PProtocol):
+    def new_channel(self, channel):
         self._channels.append(channel)
 
         channel.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
@@ -31,7 +30,7 @@ class P2PPeerManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
         channel.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
 
-    def handle_version(self, source: P2PProtocol, message: qrllegacy_pb2.LegacyMessage):
+    def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Version
         If version is empty, it sends the version & genesis_prev_headerhash.
@@ -60,7 +59,7 @@ class P2PPeerManagement(P2PBaseObserver):
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
 
-    def handle_peer_list(self, source: P2PProtocol, message: qrllegacy_pb2.LegacyMessage):
+    def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
 
         if not config.user.enable_peer_discovery:

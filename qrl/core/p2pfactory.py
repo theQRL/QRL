@@ -15,14 +15,14 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction, TransferTransaction, LatticePublicKey
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
-from qrl.core.p2pHandler import P2PHandler
+from qrl.core.p2pprotocol import P2PProtocol
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 
 
 class P2PFactory(ServerFactory):
-    protocol = P2PHandler
+    protocol = P2PProtocol
 
     def __init__(self,
                  buffered_chain: BufferedChain,

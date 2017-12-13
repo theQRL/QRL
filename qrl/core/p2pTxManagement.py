@@ -1,107 +1,33 @@
-# coding=utf-8
-# Distributed under the MIT software license, see the accompanying
-# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from queue import PriorityQueue
-
 from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
-from qrl.core import config, logger
-from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
+
 from qrl.core.messagereceipt import MessageReceipt
+
+from qrl.core import logger, config
+from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
-from qrl.core.p2pPeerManagement import P2PPeerManagement
-from qrl.core.p2pChainManagement import P2PChainManagement
-from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 
 
-# SubService Network (Discovery/Health)
-# SubService Synchronization (Block Chain/ForkHealing/etc)
-# SubService POS Controller
-# SubService TX Propagation
-
-# NOTE: There is a consistency problem in the message objects.
-# NOTE: There are three cases, 1) send request 2) recv request 3) recv respose (implicit )
-
-
-class P2PHandler(P2PProtocol):
+class P2PTxManagement(P2PBaseObserver):
     def __init__(self):
         super().__init__()
 
-        self.peer_management = P2PPeerManagement()                  # TODO: we only need 1 of this
-        self.chain_synchronizer = P2PChainManagement()              # TODO: we only need 1 of this
+    def new_channel(self, channel):
+        channel.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
+        channel.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
 
-        # Inform about new channel
-        self.peer_management.new_channel(self)
-        self.chain_synchronizer.new_channel(self)
-
-        # Linked to MR...
-        self._observable.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.DT, self.handle_duplicate)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.VT, self.handle_vote)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
-
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-
-    def send_version_request(self):
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
-        self.send(msg)
-
-    def send_peer_list(self):
-        """
-        Get Peers
-        Sends the peers list.
-        :return:
-        """
-        peer_ips = self.factory.get_connected_peer_ips()
-
-        logger.info('<<< Sending connected peers to %s [%s]', self.peer_ip, peer_ips)
-
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
-                                          plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
-
-        self.send(msg)
-
-    def send_sync(self, synced=False):
-        state_str = ''
-        if synced:
-            state_str = 'Synced'
-
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
-                                          syncData=qrllegacy_pb2.SYNCData(state=state_str))
-        self.send(msg)
-
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-
-    def send_fetch_block(self, block_idx):
-        """
-        Fetch Block n
-        Sends request for the block number n.
-        :return:
-        """
-        logger.info('<<<Fetching block: %s from %s', block_idx, self.connection_id)
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
-                                          fbData=qrllegacy_pb2.FBData(index=block_idx))
-        self.send(msg)
-
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
+        channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
+        channel.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
+        channel.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
+        channel.register(qrllegacy_pb2.LegacyMessage.DT, self.handle_duplicate)
+        channel.register(qrllegacy_pb2.LegacyMessage.VT, self.handle_vote)
+        channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
+        channel.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
 
     def handle_message_received(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -118,56 +44,56 @@ class P2PHandler(P2PProtocol):
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
-        if mr_data.type == qrllegacy_pb2.LegacyMessage.TX and self.factory.sync_state.state != ESyncState.synced:
+        if mr_data.type == qrllegacy_pb2.LegacyMessage.TX and source.factory.sync_state.state != ESyncState.synced:
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
-            if len(self.factory._buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
+            if len(source.factory._buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
         if mr_data.type in [qrllegacy_pb2.LegacyMessage.ST, qrllegacy_pb2.LegacyMessage.VT]:
-            if self.factory.chain_height > 1 and self.factory.sync_state.state != ESyncState.synced:
+            if source.factory.chain_height > 1 and source.factory.sync_state.state != ESyncState.synced:
                 return
 
-        if self.factory.master_mr.contains(msg_hash, mr_data.type):
+        if source.factory.master_mr.contains(msg_hash, mr_data.type):
             return
 
-        self.factory.master_mr.add_peer(msg_hash, mr_data.type, self, mr_data)
+        source.factory.master_mr.add_peer(msg_hash, mr_data.type, source, mr_data)
 
-        if self.factory.master_mr.is_callLater_active(msg_hash):  # Ignore if already requested
+        if source.factory.master_mr.is_callLater_active(msg_hash):  # Ignore if already requested
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
-            block_chain_buffer = self.factory._buffered_chain
+            block_chain_buffer = source.factory._buffered_chain
 
-            if not block_chain_buffer.verify_BK_hash(mr_data, self.connection_id):
+            if not block_chain_buffer.verify_BK_hash(mr_data, source.connection_id):
                 if block_chain_buffer.is_duplicate_block(block_idx=mr_data.block_number,
                                                          prev_headerhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
-                    self.factory.RFM(mr_data)
+                    source.factory.RFM(mr_data)
                 return
 
             blocknumber = mr_data.block_number
-            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(self.factory._ntp)
-            if target_blocknumber != self.factory.bkmr_blocknumber:
-                self.factory.bkmr_blocknumber = target_blocknumber
-                del self.factory.bkmr_priorityq
-                self.factory.bkmr_priorityq = PriorityQueue()
+            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(source.factory._ntp)
+            if target_blocknumber != source.factory.bkmr_blocknumber:
+                source.factory.bkmr_blocknumber = target_blocknumber
+                del source.factory.bkmr_priorityq
+                source.factory.bkmr_priorityq = PriorityQueue()
 
             if blocknumber != target_blocknumber or blocknumber == 1:
-                self.factory.RFM(mr_data)
+                source.factory.RFM(mr_data)
                 return
 
             score = block_chain_buffer.score_BK_hash(mr_data)
-            self.factory.bkmr_priorityq.put((score, msg_hash))
+            source.factory.bkmr_priorityq.put((score, msg_hash))
 
-            if not self.factory.bkmr_processor.active():
-                self.factory.bkmr_processor = reactor.callLater(1, self.factory.select_best_bkmr)
+            if not source.factory.bkmr_processor.active():
+                source.factory.bkmr_processor = reactor.callLater(1, source.factory.select_best_bkmr)
 
             return
 
-        self.factory.RFM(mr_data)
+        source.factory.RFM(mr_data)
 
     def handle_full_message_request(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -175,9 +101,9 @@ class P2PHandler(P2PProtocol):
         This function serves the request made for the full message.
         :return:
         """
-        msg = self.factory.master_mr.get(message.mrData.type, message.mrData.hash)
+        msg = source.factory.master_mr.get(message.mrData.type, message.mrData.hash)
         if msg is not None:
-            self.send(msg)
+            source.send(msg)
 
     ###################################################
     ###################################################
@@ -194,10 +120,10 @@ class P2PHandler(P2PProtocol):
         tx = Transaction(message.txData)
 
         # NOTE: Connects to MR
-        if not self.factory.master_mr.isRequested(tx.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        self.factory.trigger_tx_processor(tx, message)
+        source.factory.trigger_tx_processor(tx, message)
 
     def handle_vote(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -212,14 +138,14 @@ class P2PHandler(P2PProtocol):
         except Exception as e:
             logger.error('Vote Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(vote.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(vote.get_message_hash(), source):
             return
 
-        if self.factory._buffered_chain.add_vote(vote):
-            self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
+        if source.factory._buffered_chain.add_vote(vote):
+            source.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
     def handle_message_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -228,22 +154,22 @@ class P2PHandler(P2PProtocol):
         subtype MESSAGE is received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
         try:
             message_tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
             logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(message_tx.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(message_tx.get_message_hash(), source):
             return
 
-        if message_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if message_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.factory.trigger_tx_processor(message_tx, message)
+        source.factory.trigger_tx_processor(message_tx, message)
 
     def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -252,22 +178,22 @@ class P2PHandler(P2PProtocol):
         subtype TOKEN is received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
         try:
             transfer_token_tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
             logger.error('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(transfer_token_tx.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(transfer_token_tx.get_message_hash(), source):
             return
 
-        if transfer_token_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if transfer_token_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.factory.trigger_tx_processor(transfer_token_tx, message)
+        source.factory.trigger_tx_processor(transfer_token_tx, message)
 
     def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -276,22 +202,22 @@ class P2PHandler(P2PProtocol):
         subtype MESSAGE is received.
         :return:
         """
-        self._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
         try:
             token_tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
             logger.error('Token Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(token_tx.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(token_tx.get_message_hash(), source):
             return
 
-        if token_tx.txhash in self.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if token_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.factory.trigger_tx_processor(token_tx, message)
+        source.factory.trigger_tx_processor(token_tx, message)
 
     def handle_stake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -306,18 +232,18 @@ class P2PHandler(P2PProtocol):
         except Exception as e:
             logger.error('st rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(st.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(st.get_message_hash(), source):
             return
 
-        if len(self.factory._buffered_chain._chain.blockchain) == 1 and \
-                st.activation_blocknumber > self.factory.chain_height + config.dev.blocks_per_epoch:
+        if len(source.factory._buffered_chain._chain.blockchain) == 1 and \
+                st.activation_blocknumber > source.factory.chain_height + config.dev.blocks_per_epoch:
             return
 
-        height = self.factory.chain_height + 1
-        stake_validators_tracker = self.factory._buffered_chain.get_stake_validators_tracker(height)
+        height = source.factory.chain_height + 1
+        stake_validators_tracker = source.factory._buffered_chain.get_stake_validators_tracker(height)
 
         if st.txfrom in stake_validators_tracker.future_stake_addresses:
             logger.debug('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
@@ -333,20 +259,20 @@ class P2PHandler(P2PProtocol):
             logger.debug('P2P dropping st as activation_blocknumber beyond limit')
             return False
 
-        for t in self.factory._buffered_chain.tx_pool.transaction_pool:
+        for t in source.factory._buffered_chain.tx_pool.transaction_pool:
             if st.get_message_hash() == t.get_message_hash():
                 return
 
-        tx_state = self.factory._buffered_chain.get_stxn_state(
-            blocknumber=self.factory.chain_height + 1,
+        tx_state = source.factory._buffered_chain.get_stxn_state(
+            blocknumber=source.factory.chain_height + 1,
             addr=st.txfrom)
         if st.validate() and st.validate_extended(tx_state=tx_state):
-            self.factory._buffered_chain.tx_pool.add_tx_to_pool(st)
+            source.factory._buffered_chain.tx_pool.add_tx_to_pool(st)
         else:
             logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(tuple(st.hash)))
             return
 
-        self.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
+        source.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
 
     def handle_destake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -360,35 +286,35 @@ class P2PHandler(P2PProtocol):
         except Exception as e:
             logger.error('de stake rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(destake_txn.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(destake_txn.get_message_hash(), source):
             return
 
-        for t in self.factory._buffered_chain.tx_pool.transaction_pool:
+        for t in source.factory._buffered_chain.tx_pool.transaction_pool:
             if destake_txn.get_message_hash() == t.get_message_hash():
                 return
 
         txfrom = destake_txn.txfrom
-        height = self.factory.chain_height + 1
-        stake_validators_tracker = self.factory._buffered_chain.get_stake_validators_tracker(height)
+        height = source.factory.chain_height + 1
+        stake_validators_tracker = source.factory._buffered_chain.get_stake_validators_tracker(height)
 
         if not (
                 txfrom in stake_validators_tracker.sv_dict or txfrom in stake_validators_tracker.future_stake_addresses):
             logger.debug('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
             return
 
-        tx_state = self.factory._buffered_chain.get_stxn_state(
+        tx_state = source.factory._buffered_chain.get_stxn_state(
             blocknumber=height,
             addr=txfrom)
         if destake_txn.validate() and destake_txn.validate_extended(tx_state=tx_state):
-            self.factory._buffered_chain.tx_pool.add_tx_to_pool(destake_txn)
+            source.factory._buffered_chain.tx_pool.add_tx_to_pool(destake_txn)
         else:
             logger.debug('>>>Destake %s invalid state validation failed..', txfrom)
             return
 
-        self.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
+        source.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
 
     def handle_duplicate(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -402,23 +328,23 @@ class P2PHandler(P2PProtocol):
         except Exception as e:
             logger.error('DT rejected')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), source):
             return
 
-        if duplicate_txn.get_message_hash() in self.factory._buffered_chain.tx_pool.duplicate_tx_pool:
+        if duplicate_txn.get_message_hash() in source.factory._buffered_chain.tx_pool.duplicate_tx_pool:
             return
 
         # TODO: State validate for duplicate_txn is pending
         if duplicate_txn.validate():
-            self.factory._buffered_chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
+            source.factory._buffered_chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
         else:
             logger.debug('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
             return
 
-        self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
+        source.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
 
     def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
         """
@@ -430,19 +356,19 @@ class P2PHandler(P2PProtocol):
         try:
             block = Block(message.block)
         except Exception as e:
-            logger.error('block rejected - unable to decode serialised data %s', self.peer_ip)
+            logger.error('block rejected - unable to decode serialised data %s', source.peer_ip)
             logger.exception(e)
             return
 
         logger.info('>>>Received block from %s %s %s',
-                    self.connection_id,
+                    source.connection_id,
                     block.block_number,
                     block.stake_selector)
 
-        if not self.factory.master_mr.isRequested(block.headerhash, self, block):
+        if not source.factory.master_mr.isRequested(block.headerhash, source, block):
             return
 
-        block_chain_buffer = self.factory._buffered_chain
+        block_chain_buffer = source.factory._buffered_chain
 
         if block_chain_buffer.is_duplicate_block(block_idx=block.block_number,
                                                  prev_headerhash=block.prev_headerhash,
@@ -464,8 +390,8 @@ class P2PHandler(P2PProtocol):
                     self.factory._buffered_chain._chain.add_tx_to_duplicate_pool(duplicate_txn)
                     self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
             '''
-        self.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
-        self.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
+        source.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
+        source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
 
     def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -487,23 +413,21 @@ class P2PHandler(P2PProtocol):
         except Exception as e:
             logger.error('lattice_public_key rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
-            self.loseConnection()
+            source.loseConnection()
             return
 
-        if not self.factory.master_mr.isRequested(lattice_public_key_txn.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(lattice_public_key_txn.get_message_hash(), source):
             return
 
         if lattice_public_key_txn.validate():
-            self.factory._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+            source.factory._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
         else:
             logger.warning('>>>Lattice Public Key %s invalid state validation failed..', lattice_public_key_txn.hash)
             return
 
         # TODO: This need to be moved to add_block before next hard fork
-        self.factory._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
+        source.factory._buffered_chain.add_lattice_public_key(lattice_public_key_txn)
 
-        self.factory.register_and_broadcast('LT',
-                                            lattice_public_key_txn.get_message_hash(),
-                                            lattice_public_key_txn.to_json())
-
-
+        source.factory.register_and_broadcast('LT',
+                                              lattice_public_key_txn.get_message_hash(),
+                                              lattice_public_key_txn.to_json())
