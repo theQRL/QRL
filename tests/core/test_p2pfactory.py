@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from qrl.core import logger
 from qrl.core.p2pfactory import P2PFactory
-from qrl.core.p2phandler import P2PHandler
+from qrl.core.p2pHandler import P2PHandler
 
 logger.initialize_default(force_console_output=True)
 

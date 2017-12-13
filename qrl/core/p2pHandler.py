@@ -1,3 +1,6 @@
+# coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from queue import PriorityQueue
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -29,9 +32,6 @@ class P2PHandler(P2PProtocol):
 
         self.peer_management = P2PPeerManagement()          # TODO: we only need 1 of this
         self.peer_management.new_channel(self)
-
-        # NODE STATE
-        self._observable.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
 
         self._observable.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
         self._observable.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
@@ -77,52 +77,15 @@ class P2PHandler(P2PProtocol):
 
         self.send(msg)
 
-    def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
-
-        if not config.user.enable_peer_discovery:
-            return
-
-        if message.plData.peer_ips is None:
-            return
-
-        new_ips = set(ip for ip in message.plData.peer_ips)
-        new_ips.discard(self.host_ip)  # Remove local address
-        self.factory.update_peer_addresses(new_ips)
-
-        logger.info('%s peers data received: %s', self.peer_ip, new_ips)
-
     def send_pong(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
         self.send(msg)
         logger.debug('Sending PING to %s', self.connection_id)
 
-    def handle_pong(self, source, message: qrllegacy_pb2.LegacyMessage):
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
-
-        self._disconnect_callLater.reset(config.user.ping_timeout)
-        if self._ping_callLater.active():
-            self._ping_callLater.cancel()
-
-        self._ping_callLater = reactor.callLater(config.user.ping_frequency, self.send_pong)
-        logger.debug('Received PONG from %s', self.connection_id)
-
     def send_sync(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
                                           syncData=qrllegacy_pb2.SYNCData(state=''))
         self.send(msg)
-
-    def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
-
-        if message.syncData.state == 'Synced':
-            self.factory.set_peer_synced(self, True)
-        elif message.syncData.state == '':
-            if self.factory.synced:
-                msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.SYNC,
-                                                  syncData=qrllegacy_pb2.SYNCData(state='Synced'))
-                self.send(msg)
-                self.factory.set_peer_synced(self, False)
 
     ###################################################
     ###################################################

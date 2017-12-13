@@ -1,3 +1,6 @@
+# coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from qrl.core.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2
 

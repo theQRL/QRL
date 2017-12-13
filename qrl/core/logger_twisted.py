@@ -1,4 +1,6 @@
 # coding=utf-8
+# Distributed under the MIT software license, see the accompanying
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from twisted.logger import LogLevel, globalLogPublisher
 
 from qrl.core import logger
