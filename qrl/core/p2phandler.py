@@ -49,6 +49,7 @@ class P2PHandler(P2PProtocol):
         self._observable.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
 
         # Linked to MR...
+        self._observable.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         self._observable.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
         self._observable.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
         self._observable.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
