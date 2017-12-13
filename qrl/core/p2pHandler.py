@@ -33,9 +33,6 @@ class P2PHandler(P2PProtocol):
         self.peer_management = P2PPeerManagement()          # TODO: we only need 1 of this
         self.peer_management.new_channel(self)
 
-        self._observable.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
-        self._observable.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
-
         # SYNCHRONIZATION
         self._observable.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
         self._observable.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
