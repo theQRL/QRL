@@ -422,7 +422,7 @@ def tx_transfer(ctx, src, dst, amount, fee):
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
         tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
-        tx.sign(src_xmss.xmss)
+        tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
