@@ -37,9 +37,9 @@ class P2PFactory(ServerFactory):
         self._buffered_chain = buffered_chain
 
         self._genesis_processed = False
+
         self._peer_connections = []
         self._synced_peers_protocol = set()
-        self._txn_processor_running = False
 
         # Blocknumber for which bkmr is being tracked
         self.bkmr_blocknumber = 0  # FIXME: Accessed by every p2pprotocol instance
@@ -59,12 +59,28 @@ class P2PFactory(ServerFactory):
     ###################################################
 
     @property
-    def connections(self):
-        return len(self._peer_connections)
-
-    @property
     def has_synced_peers(self):
         return len(self._synced_peers_protocol) > 0
+
+    def get_random_synced_peer(self):
+        return random.sample(self._synced_peers_protocol, 1)[0]
+
+    def set_peer_synced(self, conn_protocol, synced: bool):
+        if synced:
+            self._synced_peers_protocol.add(conn_protocol)
+        else:
+            self._synced_peers_protocol.discard(conn_protocol)
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    @property
+    def connections(self):
+        return len(self._peer_connections)
 
     @property
     def synced(self):
@@ -73,9 +89,6 @@ class P2PFactory(ServerFactory):
     @property
     def reached_conn_limit(self):
         return len(self._peer_connections) >= config.user.max_peers_limit
-
-    def get_random_synced_peer(self):
-        return random.sample(self._synced_peers_protocol, 1)[0]
 
     def get_connected_peer_ips(self):
         # FIXME: Convert self._peer_connections to set
@@ -147,20 +160,6 @@ class P2PFactory(ServerFactory):
 
         self._last_requested_block_idx = block_index
         random_peer.send_fetch_block(block_index)
-
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-    # Encapsulating code that is node related
-
-    def set_peer_synced(self, conn_protocol, synced: bool):
-        if synced:
-            self._synced_peers_protocol.add(conn_protocol)
-        else:
-            self._synced_peers_protocol.discard(conn_protocol)
 
     ###################################################
     ###################################################
@@ -290,6 +289,10 @@ class P2PFactory(ServerFactory):
 
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.pbdata, data)
 
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
     ##############################################
     ##############################################
     ##############################################
