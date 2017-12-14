@@ -52,8 +52,6 @@ class P2PProtocol(Protocol):
         self._observable.register(message_type, func)
 
     def connectionMade(self):
-        self._conn_identity = "{}:{}".format(self.transport.getPeer().host, self.transport.getPeer().port)
-
         if self.factory.add_connection(self):
             self.send_peer_list()
             self.send_version_request()

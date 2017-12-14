@@ -28,6 +28,8 @@ class TransactionPool:
         if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
             del self.pending_tx_pool[0]
             del self.pending_tx_pool_hash[0]
+
+        # FIXME: Avoid using indexes, etc.
         self.pending_tx_pool.append([tx, peer])
         self.pending_tx_pool_hash.append(tx.txhash)
 
