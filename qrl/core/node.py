@@ -446,6 +446,7 @@ class POS:
 
         if consensus_ratio < 0.51:
             logger.warning('Consensus below 51%%, rescheduling post_block_logic after 5 sec')
+            logger.warning('%s/%s', voteMetadata.total_stake_amount, prev_sv_tracker.get_total_stake_amount())
             self.retry_consensus += 1
             if self.retry_consensus >= config.dev.max_consensus_retry and self.buffered_chain.height > 1:
                 self.retry_consensus = 0

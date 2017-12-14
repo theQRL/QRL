@@ -9,10 +9,11 @@ from decimal import Decimal
 import time
 from typing import Optional, List
 
-from qrl.core import config, logger
+from qrl.core import config, logger, ntp
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
+from qrl.core.EphemeralMessage import EphemeralMessage
 from qrl.core.Block import Block
 from qrl.core.TokenList import TokenList
 from qrl.core.ESyncState import ESyncState
@@ -260,16 +261,64 @@ class QRLNode:
 
     def create_lt(self,
                   addr_from: bytes,
+                  fee: int,
                   kyber_pk: bytes,
-                  tesla_pk: bytes,
+                  dilithium_pk: bytes,
                   xmss_pk: bytes,
                   xmss_ots_index: int) -> LatticePublicKey:
 
         return LatticePublicKey.create(addr_from=addr_from,
+                                       fee=fee,
                                        kyber_pk=kyber_pk,
-                                       tesla_pk=tesla_pk,
+                                       dilithium_pk=dilithium_pk,
                                        xmss_pk=xmss_pk,
                                        xmss_ots_index=xmss_ots_index)
+
+    def create_ephemeral_channel(self,
+                                 addr_from: bytes,
+                                 addr_to: bytes,
+                                 ttl: int,
+                                 active: int,
+                                 symmetric_key: bytes,
+                                 prf512: bytes):
+
+        active = int(active + ntp.getTime())
+        ttl = active + ttl
+
+        lattice_public_keys = self._buffered_chain.get_lattice_public_key(addr_to)
+        if not lattice_public_keys.lattice_keys:
+            return None
+
+        xmss = self._buffered_chain.find_xmss(addr_from)
+        if not xmss:
+            return None
+        lattice_public_key_txn = LatticePublicKey(lattice_public_keys.lattice_keys[0])
+        ephemeral_message = EphemeralMessage.create_channel_request(ttl=ttl,
+                                                                    active=active,
+                                                                    lattice_key_txn=lattice_public_key_txn,
+                                                                    aes256_symkey=symmetric_key,
+                                                                    prf512_seed=prf512,
+                                                                    address_to=addr_to,
+                                                                    xmss=xmss)
+        return ephemeral_message
+
+    def create_ephemeral_message(self,
+                                 ttl: int,
+                                 active: int,
+                                 symmetric_key: bytes,
+                                 prf512: bytes,
+                                 message: bytes):
+
+        ephemeral_message = EphemeralMessage.create_message(msg_id=prf512,
+                                                            ttl=ttl,
+                                                            active=active,
+                                                            message=message,
+                                                            aes256_symkey=symmetric_key)
+        return ephemeral_message
+
+    def get_ephemeral_message_logs(self, address_from: bytes) -> bytes:
+        message_log = self._buffered_chain.get_ephemeral_message_logs(address_from)
+        return message_log
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx: TransferTransaction) -> bool:
@@ -302,6 +351,14 @@ class QRLNode:
             elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
                 subtype = qrllegacy_pb2.LegacyMessage.TT
             self._p2pfactory.broadcast_tx(tx, subtype=subtype)
+
+        return True
+
+    def broadcast_eph(self, ephemeral_channel_request, operator_xmss_address) -> bool:
+        if not ephemeral_channel_request:
+            raise ValueError("EphemeralChannel was Empty")
+
+        self._p2pfactory.broadcast_eph(ephemeral_channel_request, operator_xmss_address)
 
         return True
 

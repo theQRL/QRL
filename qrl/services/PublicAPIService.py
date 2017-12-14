@@ -81,8 +81,9 @@ class PublicAPIService(PublicAPIServicer):
     def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetLatticePublicKeyTxn")
         tx = self.qrlnode.create_lt(addr_from=request.address_from,
+                                    fee=request.fee,
                                     kyber_pk=request.kyber_pk,
-                                    tesla_pk=request.tesla_pk,
+                                    dilithium_pk=request.dilithium_pk,
                                     xmss_pk=request.xmss_pk,
                                     xmss_ots_index=request.xmss_ots_index)
 

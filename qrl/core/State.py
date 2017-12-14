@@ -11,6 +11,8 @@ from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.TokenList import TokenList
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
+from qrl.core.EphemeralMessage import EphemeralMessage
+from qrl.core.EphemeralMetadata import EphemeralMetadata, LatticePublicKeys
 from qrl.generated import qrl_pb2
 
 
@@ -52,9 +54,11 @@ class State:
 
     def get_lattice_public_key(self, address):
         try:
-            return set(self._db.get(b'lattice_' + address))
+            raw_lattice_public_keys = self._db.get(b'lattice_' + address)
+            lattice_public_keys = LatticePublicKeys.from_json(raw_lattice_public_keys)
+            return lattice_public_keys
         except KeyError:
-            return set()
+            return LatticePublicKeys()
         except Exception as e:
             logger.exception(e)
             return False
@@ -62,8 +66,82 @@ class State:
     def put_lattice_public_key(self, lattice_public_key_txn):
         address = lattice_public_key_txn.txfrom
         lattice_public_keys = self.get_lattice_public_key(address)
-        lattice_public_keys.add(lattice_public_key_txn.kyber_pk)
-        self._db.put(b'lattice_' + address, list(lattice_public_keys))
+        lattice_public_keys.add_txn(lattice_public_key_txn)
+        self._db.put(b'lattice_' + address, lattice_public_keys.to_json())
+
+    def get_active_ephemeral_channel(self, address):
+        try:
+            logger.info('>>>>  key  --> %s', (b'channel_' + address))
+            active_channels = self._db.get(b'channel_' + address)
+
+            ephemeral_metadata_list = list()
+            for json_ephemeral_metadata in active_channels:
+                ephemeral_metadata_list.append(EphemeralMetadata.from_json(json_ephemeral_metadata))
+
+            return ephemeral_metadata_list
+        except KeyError:
+            pass
+        except Exception as e:
+            logger.exception(e)
+
+        return []
+
+    def update_active_ephemeral_channel(self, ephemeral_message: EphemeralMessage, operator_xmss_address):
+        active_channels = self.get_active_ephemeral_channel(operator_xmss_address)
+
+        if ephemeral_message.msg_id == b'NEW':
+            if int(ephemeral_message.prf512_seed) % 2 == 0:
+                odd = str(int(ephemeral_message.prf512_seed) + 1).encode()
+                even = str(int(odd) + 1).encode()
+            else:
+                even = str(int(ephemeral_message.prf512_seed) + 1).encode()
+                odd = str(int(even) + 1).encode()
+
+            ephemeral_metadata = EphemeralMetadata.create(lattice_key_txn=ephemeral_message.lattice_key_txn,
+                                                          xmss_from=ephemeral_message.xmss_from,
+                                                          xmss_to=ephemeral_message.xmss_to,
+                                                          sender_expected_prf=even,
+                                                          receiver_expected_prf=odd,
+                                                          aes256_symkey=ephemeral_message.aes256_symkey)
+            active_channels.append(ephemeral_metadata)
+        else:
+            prf_found = ephemeral_message.msg_id
+            for ephemeral_metadata in active_channels:
+                if ephemeral_metadata.sender_expected_prf == prf_found:
+                    address_from = ephemeral_metadata.xmss_from
+                elif ephemeral_metadata.receiver_expected_prf == prf_found:
+                    address_from = ephemeral_metadata.xmss_to
+                else:
+                    continue
+                if not ephemeral_message.verify_message(ephemeral_metadata.aes256_symkey):
+                    continue
+                ephemeral_metadata.update_prf(address_from)
+                ephemeral_metadata.add_message(message=ephemeral_message.decrypted_message,
+                                               ttl=ephemeral_message.ttl,
+                                               address_from=address_from)
+                break
+
+        json_ephemeral_metadata_list = list()
+
+        for ephemeral_metadata in active_channels:
+            json_ephemeral_metadata_list.append(ephemeral_metadata.to_json())
+
+        self._db.put(b'channel_' + operator_xmss_address, json_ephemeral_metadata_list)
+
+    def get_ephemeral_message_logs(self, address_from: bytes):
+        active_channels = self.get_active_ephemeral_channel(address_from)
+
+        json_ephemeral_metadata_list = list()
+
+        message_logs = bytes()
+
+        for ephemeral_metadata in active_channels:
+            message_logs += ephemeral_metadata.pop_messages()  # TODO: Use List
+            json_ephemeral_metadata_list.append(ephemeral_metadata.to_json())
+
+        self._db.put(b'channel_' + address_from, json_ephemeral_metadata_list)
+
+        return message_logs
 
     #########################################
     #########################################
@@ -263,7 +341,8 @@ class State:
                                qrl_pb2.Transaction.COINBASE,
                                qrl_pb2.Transaction.MESSAGE,
                                qrl_pb2.Transaction.TOKEN,
-                               qrl_pb2.Transaction.TRANSFERTOKEN):
+                               qrl_pb2.Transaction.TRANSFERTOKEN,
+                               qrl_pb2.Transaction.LATTICE):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
@@ -296,6 +375,9 @@ class State:
                 if txn.subtype == qrl_pb2.Transaction.TOKEN:
                     self.create_token_metadata(txn)
                     token_list.append(txn.txhash)
+
+                if txn.subtype == qrl_pb2.Transaction.LATTICE:
+                    self.put_lattice_public_key(txn)
 
                 self.increase_txn_count(txn.txfrom)
 

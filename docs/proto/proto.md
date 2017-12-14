@@ -68,26 +68,26 @@
     - [TransferCoinsResp](#qrl.TransferCoinsResp)
     - [Wallet](#qrl.Wallet)
     - [WalletStore](#qrl.WalletStore)
-  
+
     - [GetLatestDataReq.Filter](#qrl.GetLatestDataReq.Filter)
     - [GetStakersReq.Filter](#qrl.GetStakersReq.Filter)
     - [NodeInfo.State](#qrl.NodeInfo.State)
     - [Transaction.Type](#qrl.Transaction.Type)
-  
-  
+
+
     - [AdminAPI](#qrl.AdminAPI)
     - [P2PAPI](#qrl.P2PAPI)
     - [PublicAPI](#qrl.PublicAPI)
-  
+
 
 - [qrlbase.proto](#qrlbase.proto)
     - [GetNodeInfoReq](#qrl.GetNodeInfoReq)
     - [GetNodeInfoResp](#qrl.GetNodeInfoResp)
-  
-  
-  
+
+
+
     - [Base](#qrl.Base)
-  
+
 
 - [qrllegacy.proto](#qrllegacy.proto)
     - [BKData](#qrl.BKData)
@@ -100,11 +100,11 @@
     - [PONGData](#qrl.PONGData)
     - [SYNCData](#qrl.SYNCData)
     - [VEData](#qrl.VEData)
-  
+
     - [LegacyMessage.FuncName](#qrl.LegacyMessage.FuncName)
-  
-  
-  
+
+
+
 
 - [Scalar Value Types](#scalar-value-types)
 
@@ -622,7 +622,7 @@
 | ----- | ---- | ----- | ----------- |
 | address_from | [bytes](#bytes) |  |  |
 | kyber_pk | [bytes](#bytes) |  |  |
-| tesla_pk | [bytes](#bytes) |  |  |
+| dilithium_pk | [bytes](#bytes) |  |  |
 | xmss_pk | [bytes](#bytes) |  |  |
 | xmss_ots_index | [uint64](#uint64) |  |  |
 
@@ -1004,7 +1004,7 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | kyber_pk | [bytes](#bytes) |  |  |
-| tesla_pk | [bytes](#bytes) |  |  |
+| dilithium_pk | [bytes](#bytes) |  |  |
 
 
 
@@ -1174,7 +1174,7 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 
 
 
- 
+
 
 
 <a name="qrl.GetLatestDataReq.Filter"/>
@@ -1235,9 +1235,9 @@ import &#34;google/protobuf/timestamp.proto&#34;;
 | VOTE | 7 |  |
 
 
- 
 
- 
+
+
 
 
 <a name="qrl.AdminAPI"/>
@@ -1281,7 +1281,7 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | PushTransaction | [PushTransactionReq](#qrl.PushTransactionReq) | [PushTransactionResp](#qrl.PushTransactionReq) |  |
 | GetLatticePublicKeyTxn | [LatticePublicKeyTxnReq](#qrl.LatticePublicKeyTxnReq) | [TransferCoinsResp](#qrl.LatticePublicKeyTxnReq) |  |
 
- 
+
 
 
 
@@ -1317,11 +1317,11 @@ This service describes the Public API used by clients (wallet/cli/etc)
 
 
 
- 
 
- 
 
- 
+
+
+
 
 
 <a name="qrl.Base"/>
@@ -1333,7 +1333,7 @@ This service describes the Public API used by clients (wallet/cli/etc)
 | ----------- | ------------ | ------------- | ------------|
 | GetNodeInfo | [GetNodeInfoReq](#qrl.GetNodeInfoReq) | [GetNodeInfoResp](#qrl.GetNodeInfoReq) |  |
 
- 
+
 
 
 
@@ -1496,7 +1496,7 @@ Adding old code to refactor while keeping things working
 
 
 
- 
+
 
 
 <a name="qrl.LegacyMessage.FuncName"/>
@@ -1523,11 +1523,11 @@ Adding old code to refactor while keeping things working
 | SYNC | 14 | Add into synced list, if the node replies |
 
 
- 
 
- 
 
- 
+
+
+
 
 
 
