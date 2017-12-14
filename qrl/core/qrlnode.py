@@ -353,12 +353,7 @@ class QRLNode:
         return self._buffered_chain.get_block(index)
 
     def get_blockidx_from_txhash(self, transaction_hash):
-        answer = self.db_state.get_tx_metadata(transaction_hash)
-        if answer is None:
-            return None
-        else:
-            _, block_index = answer
-        return block_index
+        return self._buffered_chain.get_blockidx_from_txhash(transaction_hash)
 
     def get_token_detailed_list(self):
         pbdata = self.db_state.get_token_list()
