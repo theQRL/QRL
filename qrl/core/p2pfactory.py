@@ -169,7 +169,7 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
 
-    def RFM(self, mr_data: qrllegacy_pb2.MRData):
+    def request_full_message(self, mr_data: qrllegacy_pb2.MRData):
         """
         Request Full Message
         This function request for the full message against,
@@ -202,7 +202,7 @@ class P2PFactory(ServerFactory):
             peer.send(msg)
 
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
-                                               self.RFM,
+                                               self.request_full_message,
                                                mr_data)
 
             message_request.callLater = call_later_obj
@@ -231,7 +231,7 @@ class P2PFactory(ServerFactory):
             data.hash = dhash
             data.type = qrllegacy_pb2.LegacyMessage.BK
 
-            self.RFM(data)
+            self.request_full_message(data)
             self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
         except queue.Empty:
             return
@@ -330,32 +330,6 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
     ###################################################
-    # NOTE: tx processor related. Obsolete stage 2?
-
-    def reset_processor_flag(self, _):
-        self._txn_processor_running = False
-
-    def reset_processor_flag_with_err(self, msg):
-        logger.error('Exception in txn task')
-        logger.error('%s', msg)
-        self._txn_processor_running = False
-
-    def process_txn(self, tx):
-        if not tx.validate():
-            return False
-
-        tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height,
-                                                      addr=tx.txfrom)
-
-        is_valid_state = tx.validate_extended(tx_state=tx_state,
-                                              transaction_pool=self.transaction_pool)
-        if not is_valid_state:
-            return False
-        return True
-
-    ###################################################
-    ###################################################
-    ###################################################
     ###################################################
     # Event handlers
     # NOTE: No need to refactor, it is obsolete
@@ -369,6 +343,8 @@ class P2PFactory(ServerFactory):
         logger.debug('Started connecting: %s', connector)
 
     def add_connection(self, conn_protocol) -> bool:
+        # TODO: Most of this can go the peer manager
+
         # FIXME: (For AWS) This could be problematic for other users
         # FIXME: identify nodes by an GUID?
         if config.dev.public_ip and conn_protocol.peer_ip == config.dev.public_ip:
