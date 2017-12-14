@@ -13,7 +13,7 @@ from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
-from qrl.core.Transaction import StakeTransaction, Vote, TransferTokenTransaction, TransferTransaction
+from qrl.core.Transaction import StakeTransaction, Vote, TransferTokenTransaction, TransferTransaction, LatticePublicKey
 from qrl.core.Wallet import Wallet
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -299,9 +299,18 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
+                    lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
+                                                                     fee=1,
+                                                                     kyber_pk=b'0a9b82c1204f',
+                                                                     dilithium_pk=b'a4ec1a685df3',
+                                                                     xmss_pk=random_xmss1.pk(),
+                                                                     xmss_ots_index=random_xmss1.get_index())
+                    lattice_public_key_txn._data.nonce = 1
+                    lattice_public_key_txn.sign(random_xmss1)
+
                     # Token Transaction to create a token for test
                     token_transaction = get_token_transaction(random_xmss1, random_xmss2)
-                    token_transaction._data.nonce = 1
+                    token_transaction._data.nonce = 2
                     token_transaction.sign(random_xmss1)
 
                     # Transfer Token Transaction
@@ -312,7 +321,7 @@ class TestBufferedChain(TestCase):
                                                                       fee=1,
                                                                       xmss_pk=random_xmss1.pk(),
                                                                       xmss_ots_index=random_xmss1.get_index())
-                    transfer_token1._data.nonce = 2
+                    transfer_token1._data.nonce = 3
                     transfer_token1.sign(random_xmss1)
 
                     transfer_token2 = TransferTokenTransaction.create(addr_from=random_xmss2.get_address(),
@@ -332,14 +341,16 @@ class TestBufferedChain(TestCase):
                                                                       fee=1,
                                                                       xmss_pk=random_xmss1.pk(),
                                                                       xmss_ots_index=random_xmss1.get_index())
-                    transfer_transaction._data.nonce = 3
+                    transfer_transaction._data.nonce = 4
                     transfer_transaction.sign(random_xmss1)
 
                     tmp_block1 = Block.create(staking_address=staking_address,
                                               block_number=1,
                                               reveal_hash=h3,
                                               prevblock_headerhash=GenesisBlock().headerhash,
-                                              transactions=[stake_transaction, token_transaction],
+                                              transactions=[stake_transaction,
+                                                            lattice_public_key_txn,
+                                                            token_transaction],
                                               duplicate_transactions=OrderedDict(),
                                               vote=vote_metadata,
                                               signing_xmss=slave_xmss,
@@ -401,10 +412,14 @@ class TestBufferedChain(TestCase):
                     chain = buffered_chain._chain
                     random_xmss1_state = chain.pstate._get_address_state(random_xmss1.get_address())
                     random_xmss2_state = chain.pstate._get_address_state(random_xmss2.get_address())
+                    lattice_state = chain.pstate.get_lattice_public_key(random_xmss1.get_address())
+                    lattice_public_key_state_txn = LatticePublicKey(lattice_state.lattice_keys[0])
 
                     self.assertEqual(random_xmss1_state.tokens[bin2hstr(token_transaction.txhash).encode()], 400000000)
                     self.assertEqual(random_xmss2_state.tokens[bin2hstr(token_transaction.txhash).encode()], 200000000)
-
+                    self.assertEqual(lattice_public_key_state_txn.kyber_pk, lattice_public_key_txn.kyber_pk)
+                    self.assertEqual(lattice_public_key_state_txn.dilithium_pk, lattice_public_key_txn.dilithium_pk)
+                    self.assertEqual(lattice_public_key_state_txn.txfrom, lattice_public_key_txn.txfrom)
                     # Need to move forward the time to align with block times
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block3.timestamp + config.dev.minimum_minting_delay
@@ -443,5 +458,5 @@ class TestBufferedChain(TestCase):
                     self.assertEqual(random_xmss1_state.tokens[bin2hstr(token_transaction.txhash).encode()], 300000000)
                     self.assertEqual(random_xmss2_state.tokens[bin2hstr(token_transaction.txhash).encode()], 0)
                     self.assertEqual(alice_state.tokens[bin2hstr(token_transaction.txhash).encode()], 300000000)
-                    self.assertEqual(random_xmss1_state.balance, config.dev.default_account_balance - 13)
+                    self.assertEqual(random_xmss1_state.balance, config.dev.default_account_balance - 14)
                     self.assertEqual(random_xmss2_state.balance, config.dev.default_account_balance + 9)

@@ -250,34 +250,6 @@ class POS:
             self.last_bk_time = time.time()
             self.restart_unsynced_logic()
 
-    def process_transactions(self, num):
-        tmp_num = num
-        for tx in self.buffered_chain.tx_pool.pending_tx_pool:
-            tmp_num -= 1
-            tx_peer = tx[1]
-            tx = tx[0]
-            if not tx.validate():
-                logger.info('>>>TX %s failed validate_tx', tx.txhash)
-                continue
-
-            tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height,
-                                                          addr=tx.txfrom)
-
-            is_valid_state = tx.validate_extended(tx_state=tx_state,
-                                                  transaction_pool=self.buffered_chain.tx_pool.transaction_pool)
-
-            if not is_valid_state:
-                logger.info('>>>TX %s failed state_validate', tx.txhash)
-                continue
-
-            logger.info('>>>TX - %s from - %s relaying..', tx.txhash, tx_peer.peer_ip)
-            self.buffered_chain.tx_pool.add_tx_to_pool(tx)
-            self.p2p_factory.broadcast_tx_relay(tx_peer, tx)
-
-        for i in range(num - tmp_num):
-            del self.buffered_chain.tx_pool.pending_tx_pool[0]
-            del self.buffered_chain.tx_pool.pending_tx_pool_hash[0]
-
     def create_new_block(self, reveal_hash, last_block_number) -> Optional[Block]:
         logger.info('create_new_block #%s', (last_block_number + 1))
         block_obj = self.buffered_chain.create_stake_block(reveal_hash, last_block_number)
