@@ -16,7 +16,6 @@ from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction, Tra
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
-from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 
@@ -344,28 +343,18 @@ class P2PFactory(ServerFactory):
         logger.error('%s', msg)
         self._txn_processor_running = False
 
-    def trigger_tx_processor(self, tx, message):
-        # duplicate tx already received, would mess up nonce..
-        for t in self._buffered_chain.tx_pool.transaction_pool:
-            if tx.txhash == t.txhash:
-                return
+    def process_txn(self, tx):
+        if not tx.validate():
+            return False
 
-        self._buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-        self.master_mr.register(message.func_name, tx.get_message_hash(), message)
-        self.broadcast(message.func_name, tx.get_message_hash())
+        tx_state = self.buffered_chain.get_stxn_state(blocknumber=self.buffered_chain.height,
+                                                      addr=tx.txfrom)
 
-        if not self._txn_processor_running:
-            # FIXME: TxnProcessor breaks tx_pool encapsulation
-            txn_processor = TxnProcessor(buffered_chain=self._buffered_chain,
-                                         pending_tx_pool=self._buffered_chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self._buffered_chain.tx_pool.transaction_pool)
-
-            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-
-            task_defer.addCallback(self.reset_processor_flag) \
-                .addErrback(self.reset_processor_flag_with_err)
-
-            self._txn_processor_running = True
+        is_valid_state = tx.validate_extended(tx_state=tx_state,
+                                              transaction_pool=self.transaction_pool)
+        if not is_valid_state:
+            return False
+        return True
 
     ###################################################
     ###################################################
