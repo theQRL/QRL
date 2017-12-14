@@ -2,21 +2,20 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import decimal
-import os
-
-from decimal import Decimal
-
 import time
+from decimal import Decimal
 from typing import Optional, List
 
-from qrl.core import config, logger
-from qrl.core.BufferedChain import BufferedChain
-from qrl.core.StakeValidator import StakeValidator
-from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
+from qrl.core import config
 from qrl.core.Block import Block
-from qrl.core.TokenList import TokenList
+from qrl.core.BufferedChain import BufferedChain
 from qrl.core.ESyncState import ESyncState
+from qrl.core.P2PChainManager import P2PChainManager
+from qrl.core.P2PPeerManager import P2PPeerManager
+from qrl.core.StakeValidator import StakeValidator
 from qrl.core.State import State
+from qrl.core.TokenList import TokenList
+from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 
@@ -24,12 +23,12 @@ from qrl.generated import qrl_pb2, qrllegacy_pb2
 class QRLNode:
     def __init__(self, db_state: State):
         self.start_time = time.time()
-
-        self._peer_addresses = set()
-        self.peers_path = os.path.join(config.user.data_path, config.dev.peers_filename)
-        self._load_peer_addresses()
-
         self.db_state = db_state
+
+        self.peer_manager = P2PPeerManager()
+        self.peer_manager.load_peer_addresses()
+
+        self.chain_manager = P2PChainManager()
         self._buffered_chain = None  # FIXME: REMOVE. This is temporary
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
@@ -55,7 +54,7 @@ class QRLNode:
     @property
     def num_known_peers(self):
         # FIXME
-        return len(set(self._peer_addresses))
+        return len(self.peer_addresses)
 
     @property
     def uptime(self):
@@ -126,7 +125,7 @@ class QRLNode:
 
     @property
     def peer_addresses(self):
-        return self._peer_addresses
+        return self.peer_manager.peer_addresses
 
     @property
     def addresses(self) -> List[bytes]:
@@ -139,42 +138,6 @@ class QRLNode:
     # FIXME: REMOVE. This is temporary
     def set_p2pfactory(self, p2pfactory):
         self._p2pfactory = p2pfactory
-
-    def _load_peer_addresses(self) -> None:
-        try:
-            if os.path.isfile(self.peers_path):
-                logger.info('Opening peers.qrl')
-                with open(self.peers_path, 'rb') as infile:
-                    known_peers = qrl_pb2.StoredPeers()
-                    known_peers.ParseFromString(infile.read())
-
-                    self._peer_addresses |= set([peer.ip for peer in known_peers.peers])
-                    self._peer_addresses |= set(config.user.peer_list)
-                    return
-
-        except Exception as e:
-            logger.warning("Error loading peers")
-            logger.exception(e)
-
-        logger.info('Creating peers.qrl')
-        # Ensure the data path exists
-        config.create_path(config.user.data_path)
-        self.update_peer_addresses(config.user.peer_list)
-
-        logger.info('Known Peers: %s', self._peer_addresses)
-
-    def update_peer_addresses(self, peer_addresses: set) -> None:
-        # FIXME: Probably will be refactored
-        new_addresses = self._peer_addresses - set(peer_addresses)
-        for peer_address in new_addresses:
-            self._p2pfactory.connect_peer(peer_address)
-
-        self._peer_addresses |= set(peer_addresses)
-
-        known_peers = qrl_pb2.StoredPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
-        with open(self.peers_path, "wb") as outfile:
-            outfile.write(known_peers.SerializeToString())
 
     @staticmethod
     def get_dec_amount(str_amount_arg: str) -> Decimal:

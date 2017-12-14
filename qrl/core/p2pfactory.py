@@ -155,9 +155,6 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
     # Encapsulating code that is node related
-    # FIXME: Refactoring in progress
-    def update_peer_addresses(self, new_ips):
-        self._qrl_node.update_peer_addresses(new_ips)
 
     def set_peer_synced(self, conn_protocol, synced: bool):
         if synced:
@@ -389,7 +386,7 @@ class P2PFactory(ServerFactory):
             if conn_protocol.peer_ip in peer_list:
                 logger.info('Self in peer_list, removing..')
                 peer_list.remove(conn_protocol.peer_ip)
-                self._qrl_node.update_peer_addresses(peer_list)
+                self._qrl_node.peer_manager.update_peer_addresses(peer_list)
 
             conn_protocol.loseConnection()
             return False
@@ -399,7 +396,7 @@ class P2PFactory(ServerFactory):
         if conn_protocol.peer_ip not in peer_list:
             logger.info('Adding to peer_list')
             peer_list.add(conn_protocol.peer_ip)
-            self._qrl_node.update_peer_addresses(peer_list)
+            self._qrl_node.peer_manager.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
 
@@ -437,6 +434,6 @@ class P2PFactory(ServerFactory):
         :rtype: None
         """
         # FIXME: This probably should be in the qrl_node
-        logger.info('<<<Reconnecting to peer list: %s', self._qrl_node._peer_addresses)
-        for peer_address in self._qrl_node._peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self._qrl_node.peer_addresses)
+        for peer_address in self._qrl_node.peer_addresses:
             self.connect_peer(peer_address)

@@ -9,8 +9,6 @@ from twisted.internet.protocol import Protocol, connectionDone
 
 from qrl.core import logger
 from qrl.core.Observable import Observable
-from qrl.core.p2pChainManagement import P2PChainManagement
-from qrl.core.p2pPeerManagement import P2PPeerManagement
 from qrl.core.p2pTxManagement import P2PTxManagement
 from qrl.generated import qrllegacy_pb2
 
@@ -23,14 +21,9 @@ class P2PProtocol(Protocol):
         # Need to use composition instead of inheritance here
         self._observable = Observable(self)
 
-        self.peer_management = P2PPeerManagement()                  # TODO: we only need 1 of this
-        self.chain_synchronizer = P2PChainManagement()              # TODO: we only need 1 of this
-        self.tx_management = P2PTxManagement()
-
-        # Inform about new channel
-        self.peer_management.new_channel(self)
-        self.chain_synchronizer.new_channel(self)
-        self.tx_management.new_channel(self)
+        self.peer_management = None
+        self.chain_manager = None
+        self.tx_management = None
 
     @property
     def peer_ip(self):
@@ -53,6 +46,16 @@ class P2PProtocol(Protocol):
 
     def connectionMade(self):
         if self.factory.add_connection(self):
+
+            self.peer_management = self.factory._qrl_node.peer_manager
+            self.chain_manager = self.factory._qrl_node.chain_manager
+            self.tx_management = P2PTxManagement()
+
+            # Inform about new channel
+            self.peer_management.new_channel(self)
+            self.chain_manager.new_channel(self)
+            self.tx_management.new_channel(self)
+
             self.send_peer_list()
             self.send_version_request()
 
