@@ -77,7 +77,7 @@ def start_legacy_services(buffered_chain: BufferedChain,
 
     reactor.listenTCP(9000, p2p_factory)
 
-    p2p_factory.connect_peers()
+    qrlnode.connect_peers()
 
     pos.restart_monitor_bk(80)
     reactor.callLater(20, pos.unsynced_logic)
