@@ -59,7 +59,7 @@ class QRLNode:
     @property
     def num_known_peers(self):
         # FIXME
-        return len(set(self._peer_addresses))
+        return len(self.peer_addresses)
 
     @property
     def uptime(self):
