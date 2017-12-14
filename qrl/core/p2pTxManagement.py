@@ -72,7 +72,7 @@ class P2PTxManagement(P2PBaseObserver):
                 if block_chain_buffer.is_duplicate_block(block_idx=mr_data.block_number,
                                                          prev_headerhash=mr_data.prev_headerhash,
                                                          stake_selector=mr_data.stake_selector):
-                    source.factory.RFM(mr_data)
+                    source.factory.request_full_message(mr_data)
                 return
 
             blocknumber = mr_data.block_number
@@ -83,7 +83,7 @@ class P2PTxManagement(P2PBaseObserver):
                 source.factory.bkmr_priorityq = PriorityQueue()
 
             if blocknumber != target_blocknumber or blocknumber == 1:
-                source.factory.RFM(mr_data)
+                source.factory.request_full_message(mr_data)
                 return
 
             score = block_chain_buffer.score_BK_hash(mr_data)
@@ -94,7 +94,7 @@ class P2PTxManagement(P2PBaseObserver):
 
             return
 
-        source.factory.RFM(mr_data)
+        source.factory.request_full_message(mr_data)
 
     def handle_full_message_request(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -111,6 +111,19 @@ class P2PTxManagement(P2PBaseObserver):
     ###################################################
     ###################################################
 
+    def process(self, factory, tx):
+        if not tx.validate():
+            return False
+
+        buffered_chain = factory._buffered_chain
+
+        tx_state = buffered_chain.get_stxn_state(blocknumber=buffered_chain.height,
+                                                 addr=tx.txfrom)
+
+        is_valid_state = tx.validate_extended(tx_state=tx_state,
+                                              transaction_pool=buffered_chain.tx_pool.transaction_pool)
+        return is_valid_state
+
     def handle_tx(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Transaction
@@ -124,7 +137,7 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        source.factory.process(tx)
+        self.process(source.factory, tx)
 
     def handle_vote(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -157,20 +170,20 @@ class P2PTxManagement(P2PBaseObserver):
         """
         source._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
         try:
-            message_tx = Transaction.from_pbdata(message.mtData)
+            tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
             logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(message_tx.get_message_hash(), source):
+        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        if message_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        source.factory.process(message_tx)
+        self.process(source.factory, tx)
 
     def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -181,20 +194,20 @@ class P2PTxManagement(P2PBaseObserver):
         """
         source._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
         try:
-            transfer_token_tx = Transaction.from_pbdata(message.mtData)
+            tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
             logger.error('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(transfer_token_tx.get_message_hash(), source):
+        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        if transfer_token_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        source.factory.process(transfer_token_tx)
+        self.process(source.factory, tx)
 
     def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -205,20 +218,20 @@ class P2PTxManagement(P2PBaseObserver):
         """
         source._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
         try:
-            token_tx = Transaction.from_pbdata(message.mtData)
+            tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
             logger.error('Token Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(token_tx.get_message_hash(), source):
+        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        if token_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        source.factory.process(token_tx)
+        self.process(source.factory, tx)
 
     def handle_stake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """

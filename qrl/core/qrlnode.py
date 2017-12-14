@@ -16,6 +16,7 @@ from qrl.core.StakeValidator import StakeValidator
 from qrl.core.State import State
 from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
+from qrl.core.p2pTxManagement import P2PTxManagement
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 
@@ -25,12 +26,15 @@ class QRLNode:
         self.start_time = time.time()
         self.db_state = db_state
 
+        self.peer_manager = None
         self.peer_manager = P2PPeerManager()
         self.peer_manager.load_peer_addresses()
 
         self.chain_manager = P2PChainManager()
         self._buffered_chain = None  # FIXME: REMOVE. This is temporary
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
+
+        self.tx_manager = P2PTxManagement()
 
     @property
     def version(self):
