@@ -124,7 +124,7 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        source.factory.trigger_tx_processor(tx, message)
+        source.factory.process(tx)
 
     def handle_vote(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -170,7 +170,7 @@ class P2PTxManagement(P2PBaseObserver):
         if message_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        source.factory.trigger_tx_processor(message_tx, message)
+        source.factory.process(message_tx)
 
     def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -194,7 +194,7 @@ class P2PTxManagement(P2PBaseObserver):
         if transfer_token_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        source.factory.trigger_tx_processor(transfer_token_tx, message)
+        source.factory.process(transfer_token_tx)
 
     def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -218,7 +218,7 @@ class P2PTxManagement(P2PBaseObserver):
         if token_tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        source.factory.trigger_tx_processor(token_tx, message)
+        source.factory.process(token_tx)
 
     def handle_stake(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
