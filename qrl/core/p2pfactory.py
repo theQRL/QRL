@@ -17,7 +17,6 @@ from qrl.core.EphemeralMessage import EphemeralMessage
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
-from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 
@@ -157,9 +156,6 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
     # Encapsulating code that is node related
-    # FIXME: Refactoring in progress
-    def update_peer_addresses(self, new_ips):
-        self._qrl_node.update_peer_addresses(new_ips)
 
     def set_peer_synced(self, conn_protocol, synced: bool):
         if synced:
@@ -174,7 +170,7 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
 
-    def RFM(self, mr_data: qrllegacy_pb2.MRData):
+    def request_full_message(self, mr_data: qrllegacy_pb2.MRData):
         """
         Request Full Message
         This function request for the full message against,
@@ -207,7 +203,7 @@ class P2PFactory(ServerFactory):
             peer.send(msg)
 
             call_later_obj = reactor.callLater(config.dev.message_receipt_timeout,
-                                               self.RFM,
+                                               self.request_full_message,
                                                mr_data)
 
             message_request.callLater = call_later_obj
@@ -236,7 +232,7 @@ class P2PFactory(ServerFactory):
             data.hash = dhash
             data.type = qrllegacy_pb2.LegacyMessage.BK
 
-            self.RFM(data)
+            self.request_full_message(data)
             self.bkmr_processor = reactor.callLater(5, self.select_best_bkmr)
         except queue.Empty:
             return
@@ -342,42 +338,6 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
     ###################################################
-    # NOTE: tx processor related. Obsolete stage 2?
-
-    def reset_processor_flag(self, _):
-        self._txn_processor_running = False
-
-    def reset_processor_flag_with_err(self, msg):
-        logger.error('Exception in txn task')
-        logger.error('%s', msg)
-        self._txn_processor_running = False
-
-    def trigger_tx_processor(self, tx, message):
-        # duplicate tx already received, would mess up nonce..
-        for t in self._buffered_chain.tx_pool.transaction_pool:
-            if tx.txhash == t.txhash:
-                return
-
-        self._buffered_chain.tx_pool.update_pending_tx_pool(tx, self)
-        self.master_mr.register(message.func_name, tx.get_message_hash(), message)
-        self.broadcast(message.func_name, tx.get_message_hash())
-
-        if not self._txn_processor_running:
-            # FIXME: TxnProcessor breaks tx_pool encapsulation
-            txn_processor = TxnProcessor(buffered_chain=self._buffered_chain,
-                                         pending_tx_pool=self._buffered_chain.tx_pool.pending_tx_pool,
-                                         transaction_pool=self._buffered_chain.tx_pool.transaction_pool)
-
-            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-
-            task_defer.addCallback(self.reset_processor_flag) \
-                .addErrback(self.reset_processor_flag_with_err)
-
-            self._txn_processor_running = True
-
-    ###################################################
-    ###################################################
-    ###################################################
     ###################################################
     # Event handlers
     # NOTE: No need to refactor, it is obsolete
@@ -391,6 +351,8 @@ class P2PFactory(ServerFactory):
         logger.debug('Started connecting: %s', connector)
 
     def add_connection(self, conn_protocol) -> bool:
+        # TODO: Most of this can go the peer manager
+
         # FIXME: (For AWS) This could be problematic for other users
         # FIXME: identify nodes by an GUID?
         if config.dev.public_ip and conn_protocol.peer_ip == config.dev.public_ip:
@@ -408,7 +370,7 @@ class P2PFactory(ServerFactory):
             if conn_protocol.peer_ip in peer_list:
                 logger.info('Self in peer_list, removing..')
                 peer_list.remove(conn_protocol.peer_ip)
-                self._qrl_node.update_peer_addresses(peer_list)
+                self._qrl_node.peer_manager.update_peer_addresses(peer_list)
 
             conn_protocol.loseConnection()
             return False
@@ -418,7 +380,7 @@ class P2PFactory(ServerFactory):
         if conn_protocol.peer_ip not in peer_list:
             logger.info('Adding to peer_list')
             peer_list.add(conn_protocol.peer_ip)
-            self._qrl_node.update_peer_addresses(peer_list)
+            self._qrl_node.peer_manager.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
 
@@ -456,6 +418,6 @@ class P2PFactory(ServerFactory):
         :rtype: None
         """
         # FIXME: This probably should be in the qrl_node
-        logger.info('<<<Reconnecting to peer list: %s', self._qrl_node._peer_addresses)
-        for peer_address in self._qrl_node._peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self._qrl_node.peer_addresses)
+        for peer_address in self._qrl_node.peer_addresses:
             self.connect_peer(peer_address)

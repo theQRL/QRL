@@ -473,7 +473,7 @@ class LatticePublicKey(Transaction):
 
     @property
     def fee(self):
-        return self._data.fee
+        return self._data.latticePK.fee
 
     @property
     def kyber_pk(self):
@@ -496,7 +496,7 @@ class LatticePublicKey(Transaction):
     def create(addr_from, fee, kyber_pk, dilithium_pk, xmss_pk, xmss_ots_index):
         transaction = LatticePublicKey()
 
-        transaction._data.fee = fee
+        transaction._data.latticePK.fee = fee
 
         transaction._data.addr_from = addr_from
         transaction._data.public_key = xmss_pk

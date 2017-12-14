@@ -4,7 +4,7 @@ from qrl.core.p2pObserver import P2PBaseObserver
 from qrl.generated import qrllegacy_pb2
 
 
-class P2PChainManagement(P2PBaseObserver):
+class P2PChainManager(P2PBaseObserver):
     def __init__(self):
         super().__init__()
 
