@@ -10,12 +10,13 @@ from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.ESyncState import ESyncState
-from qrl.core.P2PChainManager import P2PChainManager
-from qrl.core.P2PPeerManager import P2PPeerManager
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.State import State
 from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
+from qrl.core.logger import logger
+from qrl.core.p2pChainManager import P2PChainManager
+from qrl.core.p2pPeerManager import P2PPeerManager
 from qrl.core.p2pTxManagement import P2PTxManagement
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 
@@ -29,12 +30,14 @@ class QRLNode:
         self.peer_manager = None
         self.peer_manager = P2PPeerManager()
         self.peer_manager.load_peer_addresses()
+        self.peer_manager.register(P2PPeerManager.EventType.NO_PEERS, self.connect_peers)
 
         self.chain_manager = P2PChainManager()
-        self._buffered_chain = None  # FIXME: REMOVE. This is temporary
-        self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
         self.tx_manager = P2PTxManagement()
+
+        self._buffered_chain = None  # FIXME: REMOVE. This is temporary
+        self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
     @property
     def version(self):
@@ -411,3 +414,13 @@ class QRLNode:
         info.stake_enabled = self.staking
         info.network_id = config.dev.genesis_prev_headerhash  # FIXME
         return info
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+
+    def connect_peers(self):
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
+        for peer_address in self.peer_addresses:
+            self._p2pfactory.connect_peer(peer_address)

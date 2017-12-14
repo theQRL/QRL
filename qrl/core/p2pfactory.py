@@ -391,25 +391,6 @@ class P2PFactory(ServerFactory):
 
         self._synced_peers_protocol.discard(conn_protocol)
 
-        if self.connections == 0:
-            reactor.callLater(60, self.connect_peers)
-
     def connect_peer(self, peer_address):
         if peer_address not in self.get_connected_peer_ips():
             reactor.connectTCP(peer_address, 9000, self)
-
-    def connect_peers(self):
-        """
-        Will connect to all known peers. This is typically the entry point
-        It does result in:
-        - connectionMade in each protocol (session)
-        - :py:meth:startedConnecting
-        - :py:meth:clientConnectionFailed
-        - :py:meth:clientConnectionLost
-        :return:
-        :rtype: None
-        """
-        # FIXME: This probably should be in the qrl_node
-        logger.info('<<<Reconnecting to peer list: %s', self._qrl_node.peer_addresses)
-        for peer_address in self._qrl_node.peer_addresses:
-            self.connect_peer(peer_address)

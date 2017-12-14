@@ -8,7 +8,7 @@ from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
 from qrl.core import logger
-from qrl.core.Observable import Observable
+from qrl.core.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2
 
 
@@ -18,7 +18,7 @@ class P2PProtocol(Protocol):
         self._buffer = bytes()
 
         # Need to use composition instead of inheritance here
-        self._observable = Observable(self)
+        self._observable = P2PObservable(self)
 
         self.peer_manager = None
         self.chain_manager = None

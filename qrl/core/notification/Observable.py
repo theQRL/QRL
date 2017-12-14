@@ -5,7 +5,6 @@
 from typing import Callable
 
 from qrl.core import logger
-from qrl.generated import qrllegacy_pb2
 
 
 class Observable(object):
@@ -18,7 +17,7 @@ class Observable(object):
         # FIXME: Add mutexes
         self._observers.setdefault(message_type, []).append(func)
 
-    def notify(self, message: qrllegacy_pb2.LegacyMessage):
+    def notify(self, message):
         # FIXME: Add mutexes
         observers = self._observers.get(message.func_name, [])
         for o in observers:
