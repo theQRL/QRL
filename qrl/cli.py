@@ -92,21 +92,27 @@ def _public_get_address_balance(ctx, address):
 
 def _select_wallet(ctx, src):
     try:
+        config.user.wallet_path = ctx.obj.wallet_dir
+        wallet = Wallet(valid_or_create=False)
+        addresses = [a.address for a in wallet.address_bundle]
+        if not addresses:
+            click.echo('This command requires a local wallet')
+            return
+
         if src.isdigit():
-            src_idx = int(src)
-            config.user.wallet_path = ctx.obj.wallet_dir
-            wallet = Wallet(valid_or_create=False)
-            addresses = [a.address for a in wallet.address_bundle]
-            if not addresses:
-                click.echo('This command is requires a local wallet')
-                return
-
-            if 0 <= src_idx < len(addresses):
+            try:
                 # FIXME: This should only return pk and index
-                ab = wallet.address_bundle[src_idx]
+                ab = wallet.address_bundle[int(src)]
                 return ab.address, ab.xmss
+            except IndexError:
+                click.echo('Wallet index not found', color='yellow')
+                quit(1)
 
-            click.echo('Wallet index not found', color='yellow')
+        elif src.startswith('Q'):
+            for i, addr in enumerate(wallet.addresses):
+                if src.encode() == addr:
+                    return wallet.address_bundle[i].address, wallet.address_bundle[i].xmss
+            click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
         return src.encode(), None
