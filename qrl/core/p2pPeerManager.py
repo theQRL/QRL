@@ -35,7 +35,8 @@ class P2PPeerManager(P2PBaseObserver):
                                        config.dev.peers_filename)
 
         self._observable = Observable(self)
-        self._p2pfactory = None  # FIXME: REMOVE. This is temporary
+
+        self._p2pfactory = None
 
         # Start health check monitoring
         self.periodic_health_check()
@@ -46,10 +47,6 @@ class P2PPeerManager(P2PBaseObserver):
     @property
     def peer_addresses(self):
         return self._peer_addresses
-
-    # FIXME: REMOVE. This is temporary
-    def set_p2pfactory(self, p2pfactory):
-        self._p2pfactory = p2pfactory
 
     def new_channel(self, channel):
         self._channels.append(channel)

@@ -95,7 +95,7 @@ def main():
 
     #######
     # NOTE: Keep assigned to a variable or might get collected
-    admin_service, grpc_service, p2p_node = start_services(qrlnode)
+    admin_service, grpc_service = start_services(qrlnode)
 
     buffered_chain.load()
 

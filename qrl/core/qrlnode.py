@@ -25,14 +25,12 @@ from qrl.core.p2pTxManagement import P2PTxManagement
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 
-# FIXME: This will soon move to core. Split/group functionality
 class QRLNode:
     def __init__(self, db_state: State):
         self.start_time = time.time()
         self.db_state = db_state
         self._sync_state = SyncState()
 
-        self.peer_manager = None
         self.peer_manager = P2PPeerManager()
         self.peer_manager.load_peer_addresses()
         self.peer_manager.register(P2PPeerManager.EventType.NO_PEERS, self.connect_peers)
@@ -52,7 +50,7 @@ class QRLNode:
         return config.dev.version
 
     @property
-    def sync_state(self)->SyncState:
+    def sync_state(self) -> SyncState:
         return self._sync_state
 
     @property
@@ -156,13 +154,7 @@ class QRLNode:
     def start_listening(self):
         self._p2pfactory = P2PFactory(buffered_chain=self._buffered_chain,
                                       sync_state=self.sync_state,
-                                      qrl_node=self)                    # FIXME: Try to avoid cycle references
-
-        # FIXME: This seems an unexpected side effect. It should be refactored
-        self._pos = POS(buffered_chain=self._buffered_chain,
-                        p2p_factory=self._p2pfactory,
-                        sync_state=self._sync_state,
-                        time_provider=ntp)
+                                      qrl_node=self)  # FIXME: Try to avoid cycle references
 
         self._p2pfactory.start_listening()
 
@@ -447,4 +439,10 @@ class QRLNode:
             self._p2pfactory.connect_peer(peer_address)
 
     def start_pos(self):
+        # FIXME: This seems an unexpected side effect. It should be refactored
+        self._pos = POS(buffered_chain=self._buffered_chain,
+                        p2p_factory=self._p2pfactory,
+                        sync_state=self._sync_state,
+                        time_provider=ntp)
+
         self._pos.start()

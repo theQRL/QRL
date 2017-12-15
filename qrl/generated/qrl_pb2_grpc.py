@@ -4,115 +4,16 @@ import grpc
 import qrl.generated.qrl_pb2 as qrl__pb2
 
 
-class P2PAPIStub(object):
-  """//////////////////////////
-  //////////////////////////
-  //////////////////////////
-  ////     API       ///////
-  //////////////////////////
-  //////////////////////////
-  //////////////////////////
-
-  This service describes the P2P API
-  """
-
-  def __init__(self, channel):
-    """Constructor.
-
-    Args:
-      channel: A grpc.Channel.
-    """
-    self.GetNodeState = channel.unary_unary(
-        '/qrl.P2PAPI/GetNodeState',
-        request_serializer=qrl__pb2.GetNodeStateReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetNodeStateResp.FromString,
-        )
-    self.GetKnownPeers = channel.unary_unary(
-        '/qrl.P2PAPI/GetKnownPeers',
-        request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
-        )
-    self.GetBlock = channel.unary_unary(
-        '/qrl.P2PAPI/GetBlock',
-        request_serializer=qrl__pb2.GetBlockReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetBlockResp.FromString,
-        )
-    self.ObjectExchange = channel.stream_stream(
-        '/qrl.P2PAPI/ObjectExchange',
-        request_serializer=qrl__pb2.MsgObject.SerializeToString,
-        response_deserializer=qrl__pb2.MsgObject.FromString,
-        )
-
-
-class P2PAPIServicer(object):
-  """//////////////////////////
-  //////////////////////////
-  //////////////////////////
-  ////     API       ///////
-  //////////////////////////
-  //////////////////////////
-  //////////////////////////
-
-  This service describes the P2P API
-  """
-
-  def GetNodeState(self, request, context):
-    # missing associated documentation comment in .proto file
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetKnownPeers(self, request, context):
-    # missing associated documentation comment in .proto file
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetBlock(self, request, context):
-    """rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp);
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def ObjectExchange(self, request_iterator, context):
-    """A bidirectional streaming channel is used to avoid any firewalling/NAT issues.
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-
-def add_P2PAPIServicer_to_server(servicer, server):
-  rpc_method_handlers = {
-      'GetNodeState': grpc.unary_unary_rpc_method_handler(
-          servicer.GetNodeState,
-          request_deserializer=qrl__pb2.GetNodeStateReq.FromString,
-          response_serializer=qrl__pb2.GetNodeStateResp.SerializeToString,
-      ),
-      'GetKnownPeers': grpc.unary_unary_rpc_method_handler(
-          servicer.GetKnownPeers,
-          request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
-          response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
-      ),
-      'GetBlock': grpc.unary_unary_rpc_method_handler(
-          servicer.GetBlock,
-          request_deserializer=qrl__pb2.GetBlockReq.FromString,
-          response_serializer=qrl__pb2.GetBlockResp.SerializeToString,
-      ),
-      'ObjectExchange': grpc.stream_stream_rpc_method_handler(
-          servicer.ObjectExchange,
-          request_deserializer=qrl__pb2.MsgObject.FromString,
-          response_serializer=qrl__pb2.MsgObject.SerializeToString,
-      ),
-  }
-  generic_handler = grpc.method_handlers_generic_handler(
-      'qrl.P2PAPI', rpc_method_handlers)
-  server.add_generic_rpc_handlers((generic_handler,))
-
-
 class PublicAPIStub(object):
-  """This service describes the Public API used by clients (wallet/cli/etc)
+  """//////////////////////////
+  //////////////////////////
+  //////////////////////////
+  ////     API       ///////
+  //////////////////////////
+  //////////////////////////
+  //////////////////////////
+
+  This service describes the Public API used by clients (wallet/cli/etc)
   """
 
   def __init__(self, channel):
@@ -179,7 +80,15 @@ class PublicAPIStub(object):
 
 
 class PublicAPIServicer(object):
-  """This service describes the Public API used by clients (wallet/cli/etc)
+  """//////////////////////////
+  //////////////////////////
+  //////////////////////////
+  ////     API       ///////
+  //////////////////////////
+  //////////////////////////
+  //////////////////////////
+
+  This service describes the Public API used by clients (wallet/cli/etc)
   """
 
   def GetNodeState(self, request, context):
