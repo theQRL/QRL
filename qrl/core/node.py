@@ -61,6 +61,10 @@ class POS:
 
         self.epoch_diff = None
 
+    def start(self):
+        self.restart_monitor_bk(80)
+        reactor.callLater(20, self.unsynced_logic)
+
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
         self.restart_unsynced_logic()

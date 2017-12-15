@@ -34,8 +34,10 @@ class TestPublicAPI(TestCase):
         buffered_chain.height = 0
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pos = p2p_factory.pos
+
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         self.service = P2PAPIService(qrlnode)

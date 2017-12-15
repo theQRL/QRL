@@ -6,7 +6,11 @@ import time
 from decimal import Decimal
 from typing import Optional, List
 
-from qrl.core import config
+from qrl.core.p2pfactory import P2PFactory
+
+from qrl.core.node import POS, SyncState
+
+from qrl.core import config, ntp
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.ESyncState import ESyncState
@@ -26,6 +30,7 @@ class QRLNode:
     def __init__(self, db_state: State):
         self.start_time = time.time()
         self.db_state = db_state
+        self._sync_state = SyncState()
 
         self.peer_manager = None
         self.peer_manager = P2PPeerManager()
@@ -39,10 +44,16 @@ class QRLNode:
         self._buffered_chain = None  # FIXME: REMOVE. This is temporary
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
+        self._pos = None
+
     @property
     def version(self):
         # FIXME: Move to __version__ coming from pip
         return config.dev.version
+
+    @property
+    def sync_state(self)->SyncState:
+        return self._sync_state
 
     @property
     def state(self):
@@ -142,13 +153,23 @@ class QRLNode:
     def set_chain(self, buffered_chain: BufferedChain):
         self._buffered_chain = buffered_chain
 
-    # FIXME: REMOVE. This is temporary
-    def set_p2pfactory(self, p2pfactory):
-        self._p2pfactory = p2pfactory
+    def start_listening(self):
+        self._p2pfactory = P2PFactory(buffered_chain=self._buffered_chain,
+                                      sync_state=self.sync_state,
+                                      qrl_node=self)                    # FIXME: Try to avoid cycle references
+
+        # FIXME: This seems an unexpected side effect. It should be refactored
+        self._pos = POS(buffered_chain=self._buffered_chain,
+                        p2p_factory=self._p2pfactory,
+                        sync_state=self._sync_state,
+                        time_provider=ntp)
+
+        self._p2pfactory.start_listening()
 
     @staticmethod
     def get_dec_amount(str_amount_arg: str) -> Decimal:
-        # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion. Quantity formats should be always clear
+        # FIXME: Concentrating logic into a single point. Fix this, make type safe to avoid confusion.
+        # FIXME: Quantity formats should be always clear
         # FIXME: Review. This is just relocated code. It looks odd
         # FIXME: Antipattern. Magic number.
         # FIXME: Validate string, etc.
@@ -424,3 +445,6 @@ class QRLNode:
         logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
         for peer_address in self.peer_addresses:
             self._p2pfactory.connect_peer(peer_address)
+
+    def start_pos(self):
+        self._pos.start()
