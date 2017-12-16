@@ -9,7 +9,7 @@ case "${TRAVIS_OS_NAME}" in
         brew install python3 swig
         brew outdated boost || brew upgrade boost
         brew outdated cmake || brew upgrade cmake
-        sudo pip3 install -U pip setuptools twine
+        sudo pip3 install -U pip setuptools twine | cat
         ;;
 
     linux)
