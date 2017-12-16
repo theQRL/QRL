@@ -31,7 +31,7 @@ if [ -n "${STYLECHECK:+1}" ]; then
     echo "                          STYLE CHECK"
     echo "****************************************************************"
     echo "****************************************************************"
-    sudo pip install -U pycodestyle flake8
+    sudo pip install -U pycodestyle flake8 | cat
     flake8
     pycodestyle
 fi
