@@ -32,7 +32,7 @@ jobs:
       - echo "Skip installing requirements.txt when running integration tests"
       script:
       - "./travis/build.sh"
-      - sudo pip install -U coverage codacy-coverage
+      - sudo pip install -U coverage codacy-coverage | cat
       - if [[ "$TRAVIS_BRANCH" == "master" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
 
     - stage: build+test
@@ -71,7 +71,7 @@ jobs:
       - python --version
       - echo "Skip installing requirements.txt when running integration tests"
       script:
-      - sudo pip install -U docker-compose
+      - sudo pip install -U docker-compose | cat
       - docker-compose --version
       - "cd tests_integration; python3 runtest_nodes_synchronize.py"
 
@@ -85,7 +85,7 @@ jobs:
       - python --version
       - echo "Skip installing requirements.txt when running integration tests"
       script:
-      - sudo pip install -U docker-compose
+      - sudo pip install -U docker-compose | cat
       - docker-compose --version
       - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
 
@@ -100,7 +100,7 @@ jobs:
       - echo "Skip installing requirements.txt when using docker builders"
       script:
       - sudo apt install -y python-dev libssl-dev libffi-dev
-      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1
+      - sudo pip install -U pip setuptools twine pyOpenSSL ndg-httpsclient pyasn1 | cat
       - "./travis/build.sh"
 
       deploy:
