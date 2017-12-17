@@ -6,7 +6,7 @@ from unittest import TestCase
 from qrl.core import logger
 from qrl.core.GenesisBlock import GenesisBlock
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestGenesisBlock(TestCase):

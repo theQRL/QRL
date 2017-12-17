@@ -9,7 +9,7 @@ from qrl.core import logger
 from qrl.crypto.hashchain import hashchain, hashchain_reveal
 from qrl.crypto.misc import sha256, sha256_n
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestHashChain(TestCase):
@@ -61,5 +61,5 @@ class TestHashChain(TestCase):
 
         for i, value in enumerate(hcb.hashchain):
             tmp = sha256_n(value, HASHCHAIN_SIZE - i)
-            print("{:-4} {} {}".format(i, bin2hstr(value), bin2hstr(tmp)))
+            logger.info("{:-4} {} {}".format(i, bin2hstr(value), bin2hstr(tmp)))
             self.assertEqual(hcb.hc_terminator, tmp)

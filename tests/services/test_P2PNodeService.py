@@ -14,7 +14,7 @@ from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.services.P2PAPIService import P2PAPIService
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestPublicAPI(TestCase):
