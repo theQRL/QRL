@@ -12,7 +12,7 @@ from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrlbase_pb2 import GetNodeInfoReq
 from qrl.services.BaseService import BaseService
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestBaseAPI(TestCase):

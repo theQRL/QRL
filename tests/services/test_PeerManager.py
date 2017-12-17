@@ -11,7 +11,7 @@ from qrl.core.State import State
 from qrl.core.qrlnode import QRLNode
 from qrl.services.PeerManager import PeerManager
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestPeerManager(TestCase):

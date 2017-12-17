@@ -10,7 +10,7 @@ from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from tests.misc.helper import get_alice_xmss
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestStakeValidator(TestCase):

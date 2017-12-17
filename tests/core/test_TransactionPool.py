@@ -6,7 +6,7 @@ from unittest import TestCase
 from qrl.core import logger
 from qrl.core.TransactionPool import TransactionPool
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestTransactionPool(TestCase):

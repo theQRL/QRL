@@ -1,7 +1,8 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from typing import Dict  # noqa
+from typing import Dict, Optional  # noqa
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.AddressState import AddressState  # noqa
 from qrl.core.Block import Block
@@ -36,6 +37,9 @@ class BlockMetadata(object):
         self.hash_chain = hash_chain
         self.voted_weight = 0
         self.total_stake_amount = 0
+        self.approved_txns = dict()
+        for tx in block.transactions:
+            self.approved_txns[bin2hstr(tx.transaction_hash)] = tx
 
     def update_vote_metadata(self, prev_stake_validators_tracker):
         self.total_stake_amount = prev_stake_validators_tracker.get_total_stake_amount()
@@ -73,3 +77,16 @@ class BlockMetadata(object):
                     self.address_state_dict[addr].pubhashes == addr_state.pubhashes and \
                     self.address_state_dict[addr].tokens == addr_state.tokens:
                 del self.address_state_dict[addr]
+
+    def contains_txn(self, transaction_hash: bytes) -> bool:
+        if bin2hstr(transaction_hash) in self.approved_txns:
+            return True
+
+        return False
+
+    def get_txn(self, transaction_hash: bytes) -> Optional[bool]:
+        txhash = bin2hstr(transaction_hash)
+        if txhash in self.approved_txns:
+            return self.approved_txns[txhash]
+
+        return None

@@ -146,10 +146,28 @@ class BufferedChain:
             return [self.blocks[blocknumber].voted_weight, self.blocks[blocknumber].total_stake_amount]
         return self._chain.pstate.get_vote_metadata(blocknumber)
 
-    def get_transaction(self, transaction_hash)->Optional[Transaction]:
+    def get_blockidx_from_txhash(self, transaction_hash) -> Optional[Transaction]:
+        answer = self._chain.pstate.get_tx_metadata(transaction_hash)
+        if answer is not None:
+            _, block_index = answer
+            return block_index
+
+        for block_idx in self.blocks:
+            if self.blocks[block_idx].contains_txn(transaction_hash):
+                return block_idx
+
+        return None
+
+    def get_transaction(self, transaction_hash) -> Optional[Transaction]:
         for tx in self.tx_pool.transaction_pool:
             if tx.txhash == transaction_hash:
                 return tx
+
+        for block_idx in self.blocks:
+            tx = self.blocks[block_idx].get_txn(transaction_hash)
+            if tx:
+                return tx
+
         return self._chain.get_transaction(transaction_hash)
 
     def _move_to_mainchain(self) -> bool:
