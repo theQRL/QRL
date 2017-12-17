@@ -7,7 +7,7 @@ from pyqrllib.pyqrllib import str2bin
 from qrl.core import logger, config
 from qrl.core.messagereceipt import MessageReceipt
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestMessageReceipt(TestCase):

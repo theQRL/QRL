@@ -26,7 +26,7 @@ from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
 from tests.misc.helper import qrladdress, get_alice_xmss, get_bob_xmss
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestPublicAPI(TestCase):
@@ -79,7 +79,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual('127.0.0.1', response.known_peers[0].ip)
         self.assertEqual('192.168.1.1', response.known_peers[1].ip)
 
-        print(response)
+        logger.info(response)
 
     def test_getStats(self):
         db_state = Mock(spec=State)
@@ -125,7 +125,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(1000, stats.coins_emitted)
         self.assertEqual(0, stats.coins_atstake)
 
-        print(stats)
+        logger.info(stats)
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
