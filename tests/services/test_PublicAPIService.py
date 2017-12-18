@@ -13,6 +13,7 @@ from qrl.core import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
+from qrl.core.Chain import Chain
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import TransferTransaction, StakeTransaction
@@ -139,7 +140,8 @@ class TestPublicAPI(TestCase):
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
         p2p_factory = Mock(spec=P2PFactory)
-        buffered_chain = Mock(spec=BufferedChain)
+        chain = Chain(db_state)
+        buffered_chain = BufferedChain(chain)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)
@@ -362,10 +364,8 @@ class TestPublicAPI(TestCase):
         db_state.stake_validators_tracker.sv_dict = dict()
 
         p2p_factory = Mock(spec=P2PFactory)
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.tx_pool = Mock()
-        buffered_chain.get_block = Mock()
-        buffered_chain._chain = Mock()
+        chain = Chain(db_state)
+        buffered_chain = BufferedChain(chain)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_p2pfactory(p2p_factory)

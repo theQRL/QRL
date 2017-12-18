@@ -49,6 +49,10 @@ class AddressState(object):
     def pubhashes(self):
         return self._data.pubhashes
 
+    @property
+    def transaction_hashes(self):
+        return self._data.transaction_hashes
+
     @staticmethod
     def create(address: bytes, nonce: int, balance: int, pubhashes: list, tokens: dict):
         address_state = AddressState()
