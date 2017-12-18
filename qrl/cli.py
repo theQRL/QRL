@@ -449,11 +449,10 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk()
         src_xmss.set_index(int(ots_key_index))
-        address_src_otsidx = src_xmss.get_index()
         address_owner = owner.encode()
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e8)
-    except KeyboardInterrupt as e:
+    except Exception as e:
         click.echo("Error validating arguments")
         quit(1)
 
@@ -468,8 +467,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
                                      decimals=decimals,
                                      initial_balances=initial_balances,
                                      fee=fee_shor,
-                                     xmss_pk=address_src_pk,
-                                     xmss_ots_index=address_src_otsidx)
+                                     xmss_pk=address_src_pk)
 
         tx.sign(src_xmss)
 
@@ -507,7 +505,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
 
         address_src_pk = src_xmss.pk()
         src_xmss.set_index(int(ots_key_index))
-        address_src_otsidx = src_xmss.get_index()
+
         address_dst = dst.encode()
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
@@ -526,8 +524,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
                                              addr_to=address_dst,
                                              amount=amount,
                                              fee=fee_shor,
-                                             xmss_pk=address_src_pk,
-                                             xmss_ots_index=address_src_otsidx)
+                                             xmss_pk=address_src_pk)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)

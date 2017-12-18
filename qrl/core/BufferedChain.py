@@ -389,13 +389,14 @@ class BufferedChain:
                 logger.warning('buff: Block {} rejected. prev_block is not available.'.format(block.block_number))
                 return False
 
-            block_balance = self._get_st_balance(stake_address=block.transactions[0].addr_from,
+            block_balance = self._get_st_balance(stake_address=self._get_st_address(block.transactions[0].public_key,
+                                                                                    block_number=block.block_number),
                                                  block_number=block.block_number)
 
             if block_balance is None:
                 logger.warning('Rejected block #%s block_balance None for %s',
                                block.block_number,
-                               block.transactions[0].addr_from)
+                               block.transactions[0].public_key)
                 return False
 
         if block.block_number == 0 and self.epoch_seed is None:
@@ -501,7 +502,8 @@ class BufferedChain:
 
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.subtype == qrl_pb2.Transaction.COINBASE:
-                expected_nonce = stake_validators_tracker.sv_dict[tx.txfrom].nonce + 1
+                sv = stake_validators_tracker.sv_dict[self._get_st_address(tx.PK, block.block_number)]
+                expected_nonce = sv.nonce + 1
             else:
                 expected_nonce = address_txn[tx.txfrom].nonce + 1
 
@@ -512,7 +514,8 @@ class BufferedChain:
                 return False
 
             # TODO: To be fixed later
-            if tx.pubhash in address_txn[tx.txfrom].pubhashes:
+            state_addr = self.get_stxn_state(block.block_number, tx.addr_from)
+            if tx.ots_key_reuse(state_addr, tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
                 return False
@@ -742,7 +745,7 @@ class BufferedChain:
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
 
-            address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
+            tx.set_ots_key(address_txn, tx.txfrom, tx.ots_key)
 
         return True
 
@@ -838,7 +841,6 @@ class BufferedChain:
             last_block = self.get_last_block()
         else:
             last_block = self.get_block(last_block_number)
-        # FIXME
 
         signing_xmss = self.get_slave_xmss(last_block.block_number + 1)
         sv_dict = self.get_stake_validators_tracker(last_block.block_number + 1).sv_dict
@@ -1128,7 +1130,7 @@ class BufferedChain:
             address_state = AddressState.create(address=genesis_address,
                                                 nonce=config.dev.default_nonce,
                                                 balance=genesis_balance.balance,
-                                                pubhashes=[],
+                                                ots_bitfield=[b'\x00']*config.dev.ots_bitfield,
                                                 tokens=dict())
             self._chain.pstate._save_address_state(address_state)
         ###########
@@ -1275,7 +1277,8 @@ class BufferedChain:
 
         while txnum < total_txn:
             tx = t_pool2[txnum]
-            if self.pubhashExists(tx.txfrom, tx.pubhash, last_block_number + 1):
+            state_addr = self.get_stxn_state(last_block_number + 1, tx.addr_from)
+            if tx.ots_key_reuse(state_addr, tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
@@ -1566,8 +1569,7 @@ class BufferedChain:
                     address_txn[tx.txto] = self.get_stxn_state(last_block_number + 1, tx.txto)
                 address_txn[tx.txto].balance += tx.amount
 
-            address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
-
+            tx.set_ots_key(address_txn, tx.txfrom, tx.ots_key)
             self.tx_pool.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
             tx._data.nonce = self.get_stxn_state(last_block_number + 1, tx.txfrom).nonce + tx_nonce[tx.txfrom]
@@ -1582,19 +1584,6 @@ class BufferedChain:
 
         return block_obj
 
-    def pubhashExists(self, addr, pubhash, blocknumber):
-        # FIXME: Move to chain
-        state_addr = self.get_stxn_state(blocknumber, addr)
-
-        if state_addr is None:
-            logger.info('-->> state_addr None not possible')
-            return False
-
-        if pubhash in state_addr.pubhashes:
-            return True
-
-        return False
-
     def _get_mining_epoch(self, blocknumber):
         sv_dict = self.stake_list_get(blocknumber)
 
@@ -1606,6 +1595,31 @@ class BufferedChain:
                 epoch = activation_blocknumber // config.dev.blocks_per_epoch
 
         return epoch
+
+    def _get_st_address(self, slave_public_key, block_number) -> Optional[bytes]:
+        if slave_public_key is None:
+            logger.error('slave_public_key should not be none')
+            return None
+
+        try:
+            str_slave_public_key = bin2hstr(slave_public_key)
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if block_number - 1 == self._chain.height:
+                if str_slave_public_key in self._chain.pstate.stake_validators_tracker.slave_public_key_dict:
+                    return self._chain.pstate.stake_validators_tracker.slave_public_key_dict[str_slave_public_key]
+                logger.warning('Slave public key not found')
+                logger.warning('Slave public key : %s', slave_public_key)
+                slave_public_key_list = list(self._chain.pstate.stake_validators_tracker.slave_public_key_dict.keys())
+                logger.warning('Stake Address list : %s', slave_public_key_list)
+                return None
+
+            return self.blocks[block_number - 1].stake_validators_tracker.slave_public_key_dict[str_slave_public_key]
+        except KeyError:
+            self.error_msg('get_st_address', block_number)
+        except Exception as e:
+            self.error_msg('get_st_address', block_number, e)
+
+        return None
 
     def _get_st_balance(self, stake_address, block_number) -> Optional[int]:
         if stake_address is None:

@@ -46,17 +46,17 @@ class AddressState(object):
         self._data.balance = new_balance
 
     @property
-    def pubhashes(self):
-        return self._data.pubhashes
+    def ots_bitfield(self):
+        return self._data.ots_bitfield
 
     @staticmethod
-    def create(address: bytes, nonce: int, balance: int, pubhashes: list, tokens: dict):
+    def create(address: bytes, nonce: int, balance: int, ots_bitfield: list, tokens: dict):
         address_state = AddressState()
 
         address_state._data.address = address
         address_state._data.nonce = nonce
         address_state._data.balance = balance
-        address_state._data.pubhashes.extend(pubhashes)
+        address_state._data.ots_bitfield.extend(ots_bitfield)
 
         for token_txhash in tokens:
             address_state.tokens[token_txhash] = tokens[token_txhash]

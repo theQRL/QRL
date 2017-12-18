@@ -303,8 +303,7 @@ class TestBufferedChain(TestCase):
                                                                      fee=1,
                                                                      kyber_pk=b'0a9b82c1204f',
                                                                      dilithium_pk=b'a4ec1a685df3',
-                                                                     xmss_pk=random_xmss1.pk(),
-                                                                     xmss_ots_index=random_xmss1.get_index())
+                                                                     xmss_pk=random_xmss1.pk())
                     lattice_public_key_txn._data.nonce = 1
                     lattice_public_key_txn.sign(random_xmss1)
 
@@ -319,8 +318,7 @@ class TestBufferedChain(TestCase):
                                                                       addr_to=alice_xmss.get_address(),
                                                                       amount=100000000,
                                                                       fee=1,
-                                                                      xmss_pk=random_xmss1.pk(),
-                                                                      xmss_ots_index=random_xmss1.get_index())
+                                                                      xmss_pk=random_xmss1.pk())
                     transfer_token1._data.nonce = 3
                     transfer_token1.sign(random_xmss1)
 
@@ -329,18 +327,15 @@ class TestBufferedChain(TestCase):
                                                                       addr_to=alice_xmss.get_address(),
                                                                       amount=200000000,
                                                                       fee=1,
-                                                                      xmss_pk=random_xmss2.pk(),
-                                                                      xmss_ots_index=random_xmss2.get_index())
+                                                                      xmss_pk=random_xmss2.pk())
                     transfer_token2._data.nonce = 1
                     transfer_token2.sign(random_xmss2)
 
                     # Transfer Coin Transaction
-                    transfer_transaction = TransferTransaction.create(addr_from=random_xmss1.get_address(),
-                                                                      addr_to=random_xmss2.get_address(),
+                    transfer_transaction = TransferTransaction.create(addr_to=random_xmss2.get_address(),
                                                                       amount=10,
                                                                       fee=1,
-                                                                      xmss_pk=random_xmss1.pk(),
-                                                                      xmss_ots_index=random_xmss1.get_index())
+                                                                      xmss_pk=random_xmss1.pk())
                     transfer_transaction._data.nonce = 4
                     transfer_transaction.sign(random_xmss1)
 

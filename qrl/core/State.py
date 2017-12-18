@@ -443,7 +443,7 @@ class State:
             return AddressState.create(address=address,
                                        nonce=config.dev.default_nonce,
                                        balance=config.dev.default_account_balance,
-                                       pubhashes=[],
+                                       ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
                                        tokens=dict())
 
     def nonce(self, addr: bytes) -> int:
@@ -451,9 +451,6 @@ class State:
 
     def balance(self, addr: bytes) -> int:
         return self.get_address(addr).balance
-
-    def pubhash(self, addr: bytes):
-        return self.get_address(addr).pubhashes
 
     def address_used(self, address: bytes):
         # FIXME: Probably obsolete

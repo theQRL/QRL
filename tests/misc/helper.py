@@ -115,8 +115,7 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
                                    decimals=4,
                                    initial_balances=initial_balances,
                                    fee=fee,
-                                   xmss_pk=xmss1.pk(),
-                                   xmss_ots_index=xmss1.get_index())
+                                   xmss_pk=xmss1.pk())
 
 
 def destroy_state():

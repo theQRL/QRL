@@ -314,7 +314,7 @@ message AddressState {
     bytes address = 1;
     uint64 balance = 2;
     uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
-    repeated bytes pubhashes = 4;
+    repeated bytes ots_bitfield = 4;
     repeated bytes transaction_hashes = 5;
     map<string, uint64> tokens = 6;
 }
@@ -411,22 +411,19 @@ message Transaction {
     Type type = 1;
 
     uint64 nonce = 2;
-    bytes addr_from = 3;
-    bytes public_key = 4;
-    bytes transaction_hash = 5;
-    uint32 ots_key = 6;
-    bytes signature = 7;
+    bytes public_key = 3;
+    bytes signature = 4;
 
     oneof transactionType {
-        Transfer transfer = 8;
-        Stake stake = 9;
-        CoinBase coinbase = 10;
-        LatticePublicKey latticePK = 11;
-        Duplicate duplicate = 12;
-        Vote vote = 13;
-        Message message = 14;
-        Token token = 15;
-        TransferToken transfer_token = 16;
+        Transfer transfer = 5;
+        Stake stake = 6;
+        CoinBase coinbase = 7;
+        LatticePublicKey latticePK = 8;
+        Duplicate duplicate = 9;
+        Vote vote = 10;
+        Message message = 11;
+        Token token = 12;
+        TransferToken transfer_token = 13;
     }
 
     //////////
@@ -448,6 +445,8 @@ message Transaction {
     message CoinBase {
         bytes addr_to = 1;
         uint64 amount = 2;
+        uint64 block_number = 3;
+        bytes headerhash = 4;
     }
 
     message LatticePublicKey {
