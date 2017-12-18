@@ -128,6 +128,27 @@ class BufferedChain:
 
         return False
 
+    def get_address_state(self, address: bytes):
+        address_state = None
+        for block_idx in self.blocks:
+            address_state_dict = self.blocks[block_idx].address_state_dict
+            if address in address_state_dict:
+                address_state = address_state_dict[address]._data
+
+        if address_state:
+            return address_state
+
+        tmp_address_state = self.pstate.get_address(address)
+        transaction_hashes = self.pstate.get_address_tx_hashes(address)
+        address_state = qrl_pb2.AddressState(address=tmp_address_state.address,
+                                             balance=tmp_address_state.balance,
+                                             nonce=tmp_address_state.nonce,
+                                             pubhashes=tmp_address_state.pubhashes,
+                                             transaction_hashes=transaction_hashes,
+                                             tokens=tmp_address_state.tokens)
+
+        return address_state
+
     def get_last_block(self) -> Optional[Block]:
         if len(self.blocks) == 0:
             return self._chain.get_last_block()
@@ -718,7 +739,7 @@ class BufferedChain:
                 address_txn[tx.txto].balance += tx.amount
 
             address_txn[tx.txfrom].pubhashes.append(tx.pubhash)
-
+            address_txn[tx.txfrom].transaction_hashes.append(tx.txhash)
         return True
 
     def remove_last_buffer_block(self):
