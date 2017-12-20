@@ -164,7 +164,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
-        self.assertEqual([b'0']*config.dev.ots_bitfield, response.state.ots_bitfield)
+        self.assertEqual([b'\x00']*config.dev.ots_bitfield, response.state.ots_bitfield)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
 
     @pytest.mark.skip(reason="Temporarily skipping test")

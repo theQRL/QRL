@@ -190,10 +190,6 @@ class BufferedChain:
         return True
 
     def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker, next_seed) -> bool:
-        # FIXME: Reorganize/rewrite this after refactoring is stable. Crazy nesting
-        if block.block_number == 1:
-            self.initialize_chain(block)
-
         slave_xmss = self.get_slave_xmss(block.block_number)
 
         if not self._chain.add_block(block, address_state_dict, stake_validators_tracker, next_seed, slave_xmss):
@@ -246,13 +242,13 @@ class BufferedChain:
 
         if (self.height != 0 and vote.blocknumber < self._chain.height) or vote.blocknumber > self.height:
             return
-
+        stake_address = self._get_st_address(vote.PK, vote.blocknumber)
         height = self.height
         # FIXME: Temporary fix, need to add ST txn into genesis block
         if height > 1:
             stake_validators_tracker = self.get_stake_validators_tracker(height)
 
-            if vote.addr_from not in stake_validators_tracker.sv_dict:
+            if stake_address not in stake_validators_tracker.sv_dict:
                 logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
                 return
 
@@ -262,24 +258,18 @@ class BufferedChain:
 
             tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=vote.addr_from)
 
-            if not (vote.validate() and vote.validate_extended(tx_state=tx_state, sv_dict=stake_validators_tracker.sv_dict)):
+            if not (vote.validate() and vote.validate_extended(tx_state=tx_state,
+                                                               stake_validators_tracker=stake_validators_tracker)):
                 logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
                 return
 
         if vote.blocknumber not in self._vote_tracker:
             self._vote_tracker[vote.blocknumber] = VoteTracker()
 
-        # FIXME: Temporary fix, ST txn must be added into genesis
-        if vote.blocknumber > 1:
-            stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
-            stake_balance = stake_validators_tracker.get_stake_balance(vote.addr_from)
-        else:
-            genesis_block = self.get_block(0)
-            for genesisBalance in genesis_block.genesis_balance:
-                if genesisBalance.address.encode() == vote.addr_from:
-                    stake_balance = genesisBalance.balance
+        stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
+        stake_balance = stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
 
-        # FIXME: There is a warning that stake_balance coould be reference before assignment.
+        # FIXME: There is a warning that stake_balance could be reference before assignment.
         return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
 
     def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
@@ -315,12 +305,14 @@ class BufferedChain:
 
         return result
 
-    def initialize_chain(self, block_number_1: Block):
+    def initialize_chain(self, genesis_block):
         # Initializes Required variables before adding blocknumber 1
         seed_list = []
-        genesis_block = self.get_block(0)
-        for raw_tx in block_number_1.transactions:
+
+        for raw_tx in genesis_block.transactions:
             tx = Transaction.from_pbdata(raw_tx)
+            if not tx.validate():
+                return False
             if tx.subtype == qrl_pb2.Transaction.STAKE:
                 for genesisBalance in genesis_block.genesis_balance:
                     if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber == 1:
@@ -329,6 +321,7 @@ class BufferedChain:
                         self._chain.pstate.stake_validators_tracker.add_sv(genesisBalance.balance, tx, 1)
 
         self.epoch_seed = calc_seed(seed_list)
+        return True
 
     def get_genesis_total_stake(self):
         genesis_block = self.get_block(0)
@@ -362,10 +355,6 @@ class BufferedChain:
             logger.warning('Failed to Add block #%s', block.block_number)
             return False
 
-        if block.block_number == 1:
-            self._chain.pstate.stake_validators_tracker = StakeValidatorsTracker()
-            self.initialize_chain(block)
-
         if not self.validate_block(block):  # This is here because of validators, etc
             logger.info('Block validation failed')
             logger.info('Block #%s', block.block_number)
@@ -378,35 +367,32 @@ class BufferedChain:
             return False
 
         prev_block = self.get_block(block.block_number - 1)
-        block_balance = 0
 
-        if block.block_number > 0:
-            if prev_block is None:
-                logger.warning('Prev_block is not available. Block {} rejected'.format(block.block_number))
-                return False
+        if prev_block is None:
+            logger.warning('Prev_block is not available. Block {} rejected'.format(block.block_number))
+            return False
 
-            if prev_block.headerhash != block.prev_headerhash:
-                logger.warning('buff: Block {} rejected. prev_block is not available.'.format(block.block_number))
-                return False
+        if prev_block.headerhash != block.prev_headerhash:
+            logger.warning('buff: Block {} rejected. prev_block is not available.'.format(block.block_number))
+            return False
 
-            block_balance = self._get_st_balance(stake_address=self._get_st_address(block.transactions[0].public_key,
-                                                                                    block_number=block.block_number),
-                                                 block_number=block.block_number)
+        block_balance = self._get_st_balance_by_slave_pk(slave_public_key=block.transactions[0].public_key,
+                                                         block_number=block.block_number)
 
-            if block_balance is None:
-                logger.warning('Rejected block #%s block_balance None for %s',
-                               block.block_number,
-                               block.transactions[0].public_key)
-                return False
+        if block_balance is None:
+            logger.warning('Rejected block #%s block_balance None for %s',
+                           block.block_number,
+                           block.transactions[0].public_key)
+            return False
 
-        if block.block_number == 0 and self.epoch_seed is None:
+        if self.epoch_seed is None:
             # FIXME: A proper epoch seed should be already available for the genesis block
             logger.error("epoch seed is None for the genesis block!!!!!")
             self.epoch_seed = sha256(b'INVALID_EPOCH_SEED')
 
         # Prepare Metadata inputs
 
-        if block.block_number == 0 or self._chain.height + 1 == block.block_number:
+        if self._chain.height + 1 == block.block_number:
             prev_prev_sv_tracker = copy.deepcopy(self._chain.pstate.prev_stake_validators_tracker)
             prev_sv_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
             address_state_dict = dict()
@@ -424,26 +410,25 @@ class BufferedChain:
             vote = Transaction.from_pbdata(raw_vote)
             self.add_vote(vote)
 
-        if block.block_number > 0:
-            voteMetadata = self.get_consensus(block.block_number - 1)
-            consensus_headerhash = self.get_consensus_headerhash(block.block_number - 1)
-            if block.block_number == 1:
-                total_stake_amount = self.get_genesis_total_stake()
-            else:
-                total_stake_amount = prev_prev_sv_tracker.get_total_stake_amount()
-            consensus_ratio = voteMetadata.total_stake_amount / total_stake_amount
+        voteMetadata = self.get_consensus(block.block_number - 1)
+        consensus_headerhash = self.get_consensus_headerhash(block.block_number - 1)
+        if block.block_number == 1:
+            total_stake_amount = self.get_genesis_total_stake()
+        else:
+            total_stake_amount = prev_prev_sv_tracker.get_total_stake_amount()
+        consensus_ratio = voteMetadata.total_stake_amount / total_stake_amount
 
-            if consensus_ratio < 0.51:
-                logger.warning('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
-                logger.warning('%s/%s', voteMetadata.total_stake_amount, total_stake_amount)
-                return False
-            elif consensus_headerhash != prev_block.headerhash:
-                logger.warning('Consensus headerhash doesnt match')
-                logger.warning('Consensus Previous Headerhash %s', consensus_headerhash)
-                logger.warning('Current Previous Headerhash %s', prev_block.headerhash)
-                logger.warning('Previous blocknumber #%s', prev_block.block_number)
-                # TODO: Fork Recovery Logic
-                return False
+        if consensus_ratio < 0.51:
+            logger.warning('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
+            logger.warning('%s/%s', voteMetadata.total_stake_amount, total_stake_amount)
+            return False
+        elif consensus_headerhash != prev_block.headerhash:
+            logger.warning('Consensus headerhash doesnt match')
+            logger.warning('Consensus Previous Headerhash %s', consensus_headerhash)
+            logger.warning('Current Previous Headerhash %s', prev_block.headerhash)
+            logger.warning('Previous blocknumber #%s', prev_block.block_number)
+            # TODO: Fork Recovery Logic
+            return False
 
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
@@ -458,7 +443,7 @@ class BufferedChain:
         block_metadata.address_state_dict = address_state_dict
         block_metadata.update_stxn_state(self._chain.pstate)
 
-        if block.block_number > 1:  # FIXME: Temporarily 1, once sv added to Genesis Block, change it to 0
+        if block.block_number > 0:  # FIXME: Temporarily 1, once sv added to Genesis Block, change it to 0
             block_metadata.update_vote_metadata(prev_prev_sv_tracker)
 
         # add/replace if new option is better
@@ -768,6 +753,18 @@ class BufferedChain:
 
         for protobuf_tx in block.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
+            if block.block_number == 0:
+                # balance = 0
+                for genesisBalance in block.genesis_balance:
+                    if genesisBalance.address.encode() == tx.addr_from:
+                        stake_balance = genesisBalance.balance
+                        address_state = AddressState.create(address=tx.addr_from,
+                                                            nonce=0,
+                                                            balance=stake_balance,
+                                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
+                                                            tokens=dict())
+                        address_txn[tx.addr_from] = address_state
+                continue
             if tx.txfrom not in address_txn:
                 # FIXME: Access to chain buffer from here
                 address_txn[tx.txfrom] = self.get_stxn_state(block.block_number, tx.txfrom)
@@ -826,7 +823,7 @@ class BufferedChain:
                     self._wallet_private_seeds[epoch] = prev_private_seed
                     self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
-                stake_validators_tracker.update_sv(block.block_number)
+            stake_validators_tracker.update_sv(block.block_number)
 
             logger.info('[ChainBuffer] Block #%s added  stake: %s', block.block_number, block.stake_selector)
 
@@ -879,7 +876,7 @@ class BufferedChain:
                     return False
 
             if last_block is None and block.block_number == 0:
-                return block == GenesisBlock()
+                return block == self.get_block(0)
 
             if len(block.transactions) == 0:
                 logger.warning('BLOCK : There must be atleast 1 txn')
@@ -906,33 +903,16 @@ class BufferedChain:
                 logger.info('fee_reward: %s', block.blockheader.fee_reward)
                 return False
 
-            if block.block_number == 1:
-                found = False
-                for protobuf_tx in block.transactions:
-                    tx = Transaction.from_pbdata(protobuf_tx)
-                    if tx.subtype == qrl_pb2.Transaction.STAKE:
-                        if tx.txfrom == block.stake_selector:
-                            found = True
-                            reveal_hash = self.select_hashchain(coinbase_tx.txto, tx.hash, blocknumber=1)
-                            if sha256(block.reveal_hash) != reveal_hash:
-                                logger.warning('reveal_hash does not hash correctly to terminator: failed validation')
-                                return False
+            stake_validators_tracker = self.get_stake_validators_tracker(block.block_number)
+            if coinbase_tx.txto not in stake_validators_tracker.sv_dict:
+                logger.warning('Stake selector not in stake_list for this epoch..')
+                return False
 
-                if not found:
-                    logger.warning('Stake selector not in block.stake: failed validation')
-                    return False
-
-            else:  # we look in stake_list for the hash terminator and hash to it..
-                stake_validators_tracker = self.get_stake_validators_tracker(block.block_number)
-                if coinbase_tx.txto not in stake_validators_tracker.sv_dict:
-                    logger.warning('Stake selector not in stake_list for this epoch..')
-                    return False
-
-                if not stake_validators_tracker.validate_hash(block.reveal_hash,
-                                                              block.block_number,
-                                                              coinbase_tx.txto):
-                    logger.warning('Supplied hash does not iterate to terminator: failed validation')
-                    return False
+            if not stake_validators_tracker.validate_hash(block.reveal_hash,
+                                                          block.block_number,
+                                                          coinbase_tx.txto):
+                logger.warning('Supplied hash does not iterate to terminator: failed validation')
+                return False
 
             if not self._validate_txs_in_block(block):
                 logger.warning('Block validate_tx_in_block error: failed validation')
@@ -991,26 +971,30 @@ class BufferedChain:
         return last_block.block_number
 
     def verify_BK_hash(self, mr_data: qrllegacy_pb2.MRData, conn_identity) -> bool:
-        stake_selector = mr_data.stake_selector
+        slave_public_key = mr_data.stake_selector
         prev_headerhash = mr_data.prev_headerhash
 
         if mr_data.block_number <= self._chain.height:
             return False
 
-        sv_dict = self.stake_list_get(mr_data.block_number)
+        stake_validators_tracker = self.get_stake_validators_tracker(mr_data.block_number)
 
-        if not sv_dict:
+        if not stake_validators_tracker:
             return False
 
-        if stake_selector not in sv_dict:
+        str_slave_public_key = bin2hstr(slave_public_key)
+
+        if str_slave_public_key not in stake_validators_tracker.slave_public_key_dict:
             return False
 
-        if sv_dict[stake_selector].is_banned:
-            logger.warning('Rejecting block created by banned stake selector %s', stake_selector)
+        stake_validator_address = stake_validators_tracker.slave_public_key_dict[str_slave_public_key]
+
+        if stake_validators_tracker.sv_dict[stake_validator_address].is_banned:
+            logger.warning('Rejecting block created by banned stake selector %s', stake_validator_address)
             return False
 
-        if not sv_dict[stake_selector].is_active:
-            logger.warning('Rejecting block created by inactive stake selector %s', stake_selector)
+        if not stake_validators_tracker.sv_dict[stake_validator_address].is_active:
+            logger.warning('Rejecting block created by inactive stake selector %s', stake_validator_address)
             return False
 
         # FIXME: Avoid +1/-1, assign a them to make things clear
@@ -1024,11 +1008,9 @@ class BufferedChain:
             logger.warning('verify_BK_hash Failed due to prevheaderhash mismatch, blockslen %d', len(self.blocks))
             return False
 
-        stake_validators_tracker = self.get_stake_validators_tracker(mr_data.block_number)
-
         if not stake_validators_tracker.validate_hash(mr_data.reveal_hash,
                                                       mr_data.block_number,
-                                                      stake_address=stake_selector):
+                                                      stake_address=stake_validator_address):
             logger.info('%s reveal doesnt hash to stake terminator reveal %s', conn_identity, mr_data.reveal_hash)
             return False
 
@@ -1040,10 +1022,13 @@ class BufferedChain:
     def score_BK_hash(self, block: Block) -> int:
         seed = self._get_epoch_seed(block.block_number)
 
+        balance = self._get_st_balance_by_slave_pk(slave_public_key=block.stake_selector,
+                                                   block_number=block.block_number)
+
         # FIXME: Duplicated code
         return score(stake_address=block.stake_selector,
                      reveal_one=block.reveal_hash,
-                     balance=self._get_st_balance(block.stake_selector, block.block_number),
+                     balance=balance,
                      seed=seed)
 
     def _is_better_block(self, block_idx: int, score: float)->bool:
@@ -1122,9 +1107,10 @@ class BufferedChain:
                 self.slave_xmss[slave_epoch].set_index(data[0])
             return
 
-        genesis_block = GenesisBlock()
+        return self.genesis_loader(GenesisBlock())
 
-        # FIXME: This should happen when the block is added to the main chain
+    def genesis_loader(self, genesis_block):
+
         for genesis_balance in genesis_block.genesis_balance:
             genesis_address = genesis_balance.address.encode()
             address_state = AddressState.create(address=genesis_address,
@@ -1135,9 +1121,15 @@ class BufferedChain:
             self._chain.pstate._save_address_state(address_state)
         ###########
 
-        # FIXME: Direct access - Breaks encapsulation
-        self._chain.blockchain.append(genesis_block)  # FIXME: Adds without checking???
+        is_success = self.initialize_chain(genesis_block)
 
+        if not is_success:
+            return None
+
+        self._chain.blockchain.append(genesis_block)
+
+        self._chain.pstate.stake_validators_tracker.update_sv(0)
+        self._chain.pstate.prev_stake_validators_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
         self.wallet.save_wallet()
         logger.info('{} blocks'.format(self.length))
         return self._chain.blockchain
@@ -1612,6 +1604,16 @@ class BufferedChain:
                 slave_public_key_list = list(self._chain.pstate.stake_validators_tracker.slave_public_key_dict.keys())
                 logger.warning('Stake Address list : %s', slave_public_key_list)
                 return None
+            elif block_number == 0:
+                genesis_block = self.get_block(0)
+                for raw_tx in genesis_block.transactions:
+                    tx = Transaction.from_pbdata(raw_tx)
+                    if tx.subtype == qrl_pb2.Transaction.STAKE:
+                        if tx.slave_public_key == slave_public_key:
+                            return tx.addr_from
+            elif block_number == self._chain.height:
+                if str_slave_public_key in self._chain.pstate.prev_stake_validators_tracker.slave_public_key_dict:
+                    return self._chain.pstate.prev_stake_validators_tracker.slave_public_key_dict[str_slave_public_key]
 
             return self.blocks[block_number - 1].stake_validators_tracker.slave_public_key_dict[str_slave_public_key]
         except KeyError:
@@ -1645,8 +1647,39 @@ class BufferedChain:
 
         return None
 
+    def _get_st_balance_by_slave_pk(self, slave_public_key, block_number) -> Optional[int]:
+        str_slave_public_key = bin2hstr(slave_public_key)
+        if str_slave_public_key is None:
+            logger.error('stake address should not be none, returning None')
+            return None
+
+        try:
+            # FIXME: Avoid +1/-1, assign a them to make things clear
+            if block_number - 1 == self._chain.height:
+                if str_slave_public_key in self._chain.pstate.stake_validators_tracker.slave_public_key_dict:
+                    return self._chain.pstate.stake_validators_tracker.get_stake_balance_by_slave_pk(slave_public_key)
+                logger.warning('Slave Public key not found')
+                logger.warning('Slave PK : %s', str_slave_public_key)
+                slave_public_keys = str(list(self._chain.pstate.stake_validators_tracker.slave_public_key_dict.keys()))
+                logger.warning('Slave public keys: %s', slave_public_keys)
+                return None
+
+            return self.blocks[block_number - 1].stake_validators_tracker.get_stake_balance_by_slave_pk(
+                                                                                                        slave_public_key
+                                                                                                       )
+        except KeyError:
+            self.error_msg('get_st_balance_by_slave_pk', block_number)
+        except Exception as e:
+            self.error_msg('get_st_balance_by_slave_pk', block_number, e)
+
+        return None
+
     def get_stxn_state(self, blocknumber, addr) -> Optional[AddressState]:
         try:
+            if self._chain.height == 0 and blocknumber == 0:
+                address_state = self._chain.pstate.get_address(addr)
+                return address_state
+
             # FIXME: Simplify this - self.blocks[blocknumber - 1][1] is a StateBuffer
             if blocknumber - 1 == self._chain.height or addr not in self.blocks[blocknumber - 1].address_state_dict:
                 address_state = self._chain.pstate.get_address(addr)
@@ -1674,6 +1707,9 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height or blocknumber <= 1:
                 return self._chain.pstate.stake_validators_tracker.sv_dict
 
+            if blocknumber - 1 not in self.blocks and blocknumber == self._chain.height:
+                return self._chain.pstate.prev_stake_validators_tracker.sv_dict
+
             return self.blocks[blocknumber - 1].stake_validators_tracker.sv_dict
         except KeyError:
             self.error_msg('stake_list_get', blocknumber)
@@ -1699,7 +1735,7 @@ class BufferedChain:
     def get_stake_validators_tracker(self, block_idx: int) -> Optional[StakeValidatorsTracker]:
         try:
             # FIXME: Avoid +1/-1, assign a them to make things clear
-            if block_idx - 1 == self._chain.height:
+            if block_idx - 1 == self._chain.height or block_idx == 0:
                 return self._chain.pstate.stake_validators_tracker
 
             if block_idx - 1 not in self.blocks and block_idx == self._chain.height:

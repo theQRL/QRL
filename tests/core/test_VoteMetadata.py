@@ -20,8 +20,7 @@ class TestVoteMetadata(TestCase):
         alice_xmss = get_alice_xmss()
         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
         headerhash = b'ffff'
-        vote = Vote.create(addr_from=alice_xmss.get_address(),
-                           blocknumber=0,
+        vote = Vote.create(blocknumber=0,
                            headerhash=headerhash,
                            xmss=slave_xmss)
         vote.sign(slave_xmss)
@@ -39,8 +38,7 @@ class TestVoteMetadata(TestCase):
         slave_xmss1 = XMSS(validator_xmss1.height, validator_xmss1.get_seed())
         stake_amount1 = 101.5012
         headerhash1 = b'ffff'
-        vote1 = Vote.create(addr_from=validator_xmss1.get_address(),
-                            blocknumber=0,
+        vote1 = Vote.create(blocknumber=0,
                             headerhash=headerhash1,
                             xmss=slave_xmss1)
         vote1.sign(slave_xmss1)
@@ -54,8 +52,7 @@ class TestVoteMetadata(TestCase):
         slave_xmss2 = XMSS(validator_xmss2.height, validator_xmss2.get_seed())
         stake_amount2 = 10000
         headerhash2 = b'ffff'
-        vote2 = Vote.create(addr_from=validator_xmss2.get_address(),
-                            blocknumber=0,
+        vote2 = Vote.create(blocknumber=0,
                             headerhash=headerhash2,
                             xmss=slave_xmss2)
         vote2.sign(slave_xmss2)

@@ -42,7 +42,7 @@ class BlockMetadata(object):
         for vote_protobuf in self.block.vote:
             vote = Transaction.from_pbdata(vote_protobuf)
             if vote.headerhash == self.block.prev_headerhash:
-                self.voted_weight += prev_stake_validators_tracker.get_stake_balance(vote.txfrom)
+                self.voted_weight += prev_stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
 
     def set_voted(self):
         self.isVoted = True

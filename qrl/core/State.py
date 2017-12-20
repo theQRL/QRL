@@ -403,7 +403,7 @@ class State:
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.vote:
             vote = Transaction.from_pbdata(protobuf_txn)
-            voted_weight += self.stake_validators_tracker.get_stake_balance(vote.txfrom)
+            voted_weight += self.stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
 
         self._db.put(b'vote_' + str(block.block_number).encode(),
                      [voted_weight,

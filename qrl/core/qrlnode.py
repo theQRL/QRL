@@ -231,8 +231,7 @@ class QRLNode:
                   dilithium_pk: bytes,
                   xmss_pk: bytes) -> LatticePublicKey:
 
-        return LatticePublicKey.create(addr_from=addr_from,
-                                       fee=fee,
+        return LatticePublicKey.create(fee=fee,
                                        kyber_pk=kyber_pk,
                                        dilithium_pk=dilithium_pk,
                                        xmss_pk=xmss_pk)

@@ -5,11 +5,11 @@ import time
 import queue
 import random
 
-from qrl.core.ESyncState import ESyncState
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from qrl.core import config, logger, ntp
+from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Transaction import Vote, StakeTransaction, DestakeTransaction, TransferTransaction, LatticePublicKey
@@ -289,7 +289,7 @@ class P2PFactory(ServerFactory):
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
         data = qrllegacy_pb2.MRData()
-        data.stake_selector = block.transactions[0].addr_from
+        data.stake_selector = block.transactions[0].public_key
         data.block_number = block.block_number
         data.prev_headerhash = bytes(block.prev_headerhash)
 
@@ -383,13 +383,6 @@ class P2PFactory(ServerFactory):
             self._qrl_node.peer_manager.update_peer_addresses(peer_list)
 
         logger.info('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
-
-        # FIXME: This seem PoS related
-        if self._buffered_chain.height == 0 and not self._genesis_processed:
-            # set the flag so that no other Protocol instances trigger the genesis stake functions..
-            self._genesis_processed = True
-            logger.info('genesis pos countdown to block 1 begun, 60s until stake tx circulated..')
-            reactor.callLater(1, self.pos.pre_pos_1)
 
         return True
 

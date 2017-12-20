@@ -46,26 +46,6 @@ class TestBufferedChain(TestCase):
             tmp_block = cb.get_last_block()
             self.assertIsNone(tmp_block)
 
-    def test_add_empty(self):
-        destroy_state()
-        with State() as state:
-            with set_wallet_dir("test_wallet"):
-                chain = Mock(spec=Chain)
-                chain.height = 0
-                chain.get_block = MagicMock(return_value=None)
-                chain.wallet = Wallet()
-                chain.pstate = state
-
-                buffered_chain = BufferedChain(chain)
-
-                b0 = buffered_chain.get_block(0)
-                buffered_chain._chain.get_block.assert_called()
-                self.assertIsNone(b0)
-
-                tmp_block = Block()
-                res = buffered_chain.add_block(block=tmp_block)
-                self.assertFalse(res)
-
     def test_add_genesis(self):
         destroy_state()
         with State() as state:
@@ -75,6 +55,7 @@ class TestBufferedChain(TestCase):
                 chain.get_block = MagicMock(return_value=None)
                 chain.wallet = Wallet()
                 chain.pstate = state
+                chain.blockchain = list()
 
                 buffered_chain = BufferedChain(chain)
 
@@ -82,7 +63,7 @@ class TestBufferedChain(TestCase):
                 buffered_chain._chain.get_block.assert_called()
                 self.assertIsNone(b0)
 
-                res = buffered_chain.add_block(block=GenesisBlock())
+                res = buffered_chain.genesis_loader(GenesisBlock())
                 self.assertTrue(res)
 
     def test_add_2(self):
@@ -103,15 +84,19 @@ class TestBufferedChain(TestCase):
                     custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
                                                                                   balance=700000000000000)])
 
-                    res = buffered_chain.add_block(block=custom_genesis)
-                    self.assertTrue(res)
-
                     stake_transaction = StakeTransaction.create(activation_blocknumber=1,
                                                                 xmss=alice_xmss,
                                                                 slavePK=slave_xmss.pk(),
                                                                 hashchain_terminator=h1)
-                    vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                       blocknumber=0,
+                    stake_transaction._data.nonce = 1
+                    stake_transaction.sign(alice_xmss)
+
+                    custom_genesis.transactions.extend([stake_transaction.pbdata])
+
+                    res = buffered_chain.genesis_loader(custom_genesis)
+                    self.assertTrue(res)
+
+                    vote = Vote.create(blocknumber=0,
                                        headerhash=custom_genesis.headerhash,
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
@@ -133,7 +118,7 @@ class TestBufferedChain(TestCase):
                                              block_number=1,
                                              reveal_hash=h0,
                                              prevblock_headerhash=custom_genesis.headerhash,
-                                             transactions=[stake_transaction],
+                                             transactions=[],
                                              duplicate_transactions=OrderedDict(),
                                              vote=vote_metadata,
                                              signing_xmss=slave_xmss,
@@ -163,18 +148,19 @@ class TestBufferedChain(TestCase):
                 with mocked_genesis() as custom_genesis:
                     custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
                                                                                   balance=700000000000000)])
-
-                    res = buffered_chain.add_block(block=GenesisBlock())
-                    self.assertTrue(res)
                     stake_transaction = StakeTransaction.create(activation_blocknumber=1,
                                                                 xmss=alice_xmss,
                                                                 slavePK=slave_xmss.pk(),
                                                                 hashchain_terminator=h3)
                     stake_transaction._data.nonce = 1  # FIXME: The test needs private access.. This is an API issue
                     stake_transaction.sign(alice_xmss)
+                    del custom_genesis.transactions[:]
+                    custom_genesis.transactions.extend([stake_transaction.pbdata])
 
-                    vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                       blocknumber=0,
+                    res = buffered_chain.genesis_loader(GenesisBlock())
+                    self.assertTrue(res)
+
+                    vote = Vote.create(blocknumber=0,
                                        headerhash=GenesisBlock().headerhash,
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
@@ -192,7 +178,7 @@ class TestBufferedChain(TestCase):
                                               block_number=1,
                                               reveal_hash=h2,
                                               prevblock_headerhash=GenesisBlock().headerhash,
-                                              transactions=[stake_transaction],
+                                              transactions=[],
                                               duplicate_transactions=OrderedDict(),
                                               vote=vote_metadata,
                                               signing_xmss=slave_xmss,
@@ -205,8 +191,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                           blocknumber=1,
+                        vote = Vote.create(blocknumber=1,
                                            headerhash=tmp_block1.headerhash,
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)
@@ -230,8 +215,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block2.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                           blocknumber=2,
+                        vote = Vote.create(blocknumber=2,
                                            headerhash=tmp_block2.headerhash,
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)
@@ -274,18 +258,18 @@ class TestBufferedChain(TestCase):
                 with mocked_genesis() as custom_genesis:
                     custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=alice_xmss.get_address(),
                                                                                   balance=700000000000000)])
-
-                    res = buffered_chain.add_block(block=GenesisBlock())
-                    self.assertTrue(res)
                     stake_transaction = StakeTransaction.create(activation_blocknumber=1,
                                                                 xmss=alice_xmss,
                                                                 slavePK=slave_xmss.pk(),
                                                                 hashchain_terminator=h4)
                     stake_transaction._data.nonce = 1  # FIXME: The test needs private access.. This is an API issue
                     stake_transaction.sign(alice_xmss)
+                    custom_genesis.transactions.extend([stake_transaction.pbdata])
 
-                    vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                       blocknumber=0,
+                    res = buffered_chain.genesis_loader(GenesisBlock())
+                    self.assertTrue(res)
+
+                    vote = Vote.create(blocknumber=0,
                                        headerhash=GenesisBlock().headerhash,
                                        xmss=slave_xmss)
                     vote.sign(slave_xmss)
@@ -299,8 +283,7 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
-                                                                     fee=1,
+                    lattice_public_key_txn = LatticePublicKey.create(fee=1,
                                                                      kyber_pk=b'0a9b82c1204f',
                                                                      dilithium_pk=b'a4ec1a685df3',
                                                                      xmss_pk=random_xmss1.pk())
@@ -343,8 +326,7 @@ class TestBufferedChain(TestCase):
                                               block_number=1,
                                               reveal_hash=h3,
                                               prevblock_headerhash=GenesisBlock().headerhash,
-                                              transactions=[stake_transaction,
-                                                            lattice_public_key_txn,
+                                              transactions=[lattice_public_key_txn,
                                                             token_transaction],
                                               duplicate_transactions=OrderedDict(),
                                               vote=vote_metadata,
@@ -358,8 +340,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                           blocknumber=1,
+                        vote = Vote.create(blocknumber=1,
                                            headerhash=tmp_block1.headerhash,
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)
@@ -383,8 +364,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block2.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                           blocknumber=2,
+                        vote = Vote.create(blocknumber=2,
                                            headerhash=tmp_block2.headerhash,
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)
@@ -419,8 +399,7 @@ class TestBufferedChain(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block3.timestamp + config.dev.minimum_minting_delay
 
-                        vote = Vote.create(addr_from=alice_xmss.get_address(),
-                                           blocknumber=3,
+                        vote = Vote.create(blocknumber=3,
                                            headerhash=tmp_block3.headerhash,
                                            xmss=slave_xmss)
                         vote.sign(slave_xmss)

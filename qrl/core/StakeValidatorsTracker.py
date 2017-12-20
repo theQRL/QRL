@@ -116,7 +116,7 @@ class StakeValidatorsTracker:
         self.sv_dict[stake_address] = deepcopy(sv.pbdata)
         return result
 
-    def get_stake_balance(self, stake_address: bytes)->int:
+    def get_stake_balance(self, stake_address: bytes) -> int:
         if stake_address not in self.sv_dict:
             logger.warning('Stake address %s not found in Stake Validators Tracker', stake_address)
             logger.warning('Stake validator lists %s', list(self.sv_dict.keys()))
@@ -124,11 +124,27 @@ class StakeValidatorsTracker:
 
         return self.sv_dict[stake_address].balance
 
+    def get_stake_balance_by_slave_pk(self, slave_public_key: bytes) -> int:
+        str_slave_public_key = bin2hstr(slave_public_key)
+        if str_slave_public_key not in self.slave_public_key_dict:
+            logger.warning('Slave public key not found %s', str_slave_public_key)
+            logger.warning('Available slave public key list %s', self.slave_public_key_dict.keys())
+            raise Exception
+        stake_validator_addr = self.slave_public_key_dict[str_slave_public_key]
+
+        return self.sv_dict[stake_validator_addr].balance
+
     def get_total_stake_amount(self):
         return self.total_stake_amount
 
     def increase_nonce(self, address):
         self.sv_dict[address].nonce += 1
+
+    def contains_slave_pk(self, slave_public_key):
+        str_slave_public_key = bin2hstr(slave_public_key)
+        if str_slave_public_key in self.slave_public_key_dict:
+            return True
+        return False
 
     @staticmethod
     def from_json(json_data):

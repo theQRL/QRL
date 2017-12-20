@@ -257,7 +257,6 @@ class TransferTransaction(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.amount < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -268,7 +267,7 @@ class TransferTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.amount)
             return False
 
-        if self.ots_key in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -276,7 +275,7 @@ class TransferTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.ots_key:
+            if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
@@ -358,7 +357,7 @@ class StakeTransaction(Transaction):
     def validate_extended(self, tx_state):
         # TODO no need to transmit pubhash over the network
         # pubhash has to be calculated by the receiver
-        if self.ots_key in tx_state.pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
             return False
 
@@ -406,9 +405,7 @@ class DestakeTransaction(Transaction):
         return True
 
     def validate_extended(self, tx_state):
-        state_pubhashes = tx_state.pubhashes
-
-        if self.ots_key in state_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected')
             return False
 
@@ -526,7 +523,7 @@ class LatticePublicKey(Transaction):
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from, fee, kyber_pk, dilithium_pk, xmss_pk):
+    def create(fee, kyber_pk, dilithium_pk, xmss_pk):
         transaction = LatticePublicKey()
 
         transaction._data.latticePK.fee = fee
@@ -541,7 +538,6 @@ class LatticePublicKey(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0:
             logger.info('Lattice Txn: State validation failed %s : Negative fee %s', self.txhash, self.fee)
@@ -552,7 +548,7 @@ class LatticePublicKey(Transaction):
             logger.info('balance: %s, fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
             return False
 
@@ -560,7 +556,7 @@ class LatticePublicKey(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.ots_key:
+            if txn.ots_key == self.ots_key:
                 logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
                 return False
 
@@ -700,7 +696,7 @@ class Vote(Transaction):
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from: bytes, blocknumber: int, headerhash: bytes, xmss: XMSS):
+    def create(blocknumber: int, headerhash: bytes, xmss: XMSS):
         transaction = Vote()
 
         transaction._data.vote.block_number = blocknumber
@@ -713,15 +709,14 @@ class Vote(Transaction):
     def _validate_custom(self):
         return True
 
-    def validate_extended(self, tx_state, sv_dict):
+    def validate_extended(self, tx_state, stake_validators_tracker):
 
         if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.ots_key)
             return False
 
-        if sv_dict[self.addr_from].slave_public_key != self.PK:
-            logger.warning('Stake validator doesnt own the Public key')
-            logger.warning('Expected public key %s', sv_dict[self.addr_from].slave_public_key)
+        if not stake_validators_tracker.contains_slave_pk(self.PK):
+            logger.warning('Slave Public Key not found')
             logger.warning('Found public key %s', self.PK)
             return False
 
@@ -781,7 +776,6 @@ class MessageTransaction(Transaction):
 
     def validate_extended(self, tx_state, transaction_pool) -> bool:
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -792,7 +786,7 @@ class MessageTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -800,7 +794,7 @@ class MessageTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.ots_key:
+            if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
@@ -902,7 +896,6 @@ class TokenTransaction(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -913,7 +906,7 @@ class TokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -921,7 +914,7 @@ class TokenTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.ots_key:
+            if txn.ots_key == self.ots_key:
                 logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
                             self.txhash)
                 return False
@@ -997,7 +990,6 @@ class TransferTokenTransaction(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0 or self.amount < 0:
             logger.info('TransferTokenTransaction State validation failed for %s because: ', self.txhash)
@@ -1010,7 +1002,7 @@ class TransferTokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
                         self.txhash)
             return False
@@ -1019,7 +1011,7 @@ class TransferTokenTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.ots_key:
+            if txn.ots_key == self.ots_key:
                 logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
                             self.txhash)
                 return False

@@ -880,17 +880,17 @@ class TestVote(TestCase):
         self.maxDiff = None
 
     def test_create(self):
-        tx = Vote.create(self.addr_from, self.blocknumber, self.headerhash, self.alice)
+        tx = Vote.create(self.blocknumber, self.headerhash, self.alice)
         self.assertIsInstance(tx, Vote)
 
     def test_to_json(self):
-        tx = Vote.create(self.addr_from, self.blocknumber, self.headerhash, self.alice)
+        tx = Vote.create(self.blocknumber, self.headerhash, self.alice)
         txjson = tx.to_json()
         print(txjson)
         self.assertEqual(json.loads(test_json_Vote), json.loads(txjson))
 
     def test_from_txdict(self):
-        tx = Vote.create(self.addr_from, self.blocknumber, self.headerhash, self.alice)
+        tx = Vote.create(self.blocknumber, self.headerhash, self.alice)
         tx.sign(self.alice)
         self.assertIsInstance(tx, Vote)
 
