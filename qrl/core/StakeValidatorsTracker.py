@@ -4,6 +4,7 @@
 
 from copy import deepcopy
 from google.protobuf.json_format import MessageToJson, Parse
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config, logger
 from qrl.core.StakeValidator import StakeValidator
@@ -20,11 +21,14 @@ class StakeValidatorsTracker:
         self._data = stakevalidator_protobuf
         self.sv_dict = dict()
         self.future_stake_addresses = dict()
+        self.slave_public_key_dict = dict()
         if not self._data:
             self._data = qrl_pb2.StakeValidatorsTracker()
         else:
             for key in self._data.sv_dict.keys():
                 self.sv_dict[str(key).encode()] = deepcopy(self._data.sv_dict[key])
+                str_slave_public_key = bin2hstr(self._data.sv_dict[key].slave_public_key)
+                self.slave_public_key_dict[str_slave_public_key] = str(key).encode()
             for key in self._data.future_stake_addresses.keys():
                 self.future_stake_addresses[str(key).encode()] = deepcopy(self._data.future_stake_addresses[key])
 
@@ -61,6 +65,10 @@ class StakeValidatorsTracker:
         sv = StakeValidator.create(balance, stake_txn)
 
         self.sv_dict[stake_txn.txfrom] = deepcopy(sv.pbdata)
+
+        str_slave_public_key = bin2hstr(self.sv_dict[stake_txn.txfrom].slave_public_key)
+        self.slave_public_key_dict[str_slave_public_key] = stake_txn.txfrom
+
         self._data.total_stake_amount += sv.balance
         self._data.expiry[stake_txn.activation_blocknumber + config.dev.blocks_per_epoch].addresses.extend([stake_txn.txfrom])
 
@@ -83,6 +91,8 @@ class StakeValidatorsTracker:
         if next_blocknumber in self._data.expiry:
             for sv_addr in self._data.expiry[next_blocknumber].addresses:
                 self._data.total_stake_amount -= self.sv_dict[sv_addr].balance
+                str_slave_public_key = bin2hstr(self.sv_dict[sv_addr].slave_public_key)
+                del self.slave_public_key_dict[str_slave_public_key]
                 del self.sv_dict[sv_addr]
             del self._data.expiry[next_blocknumber]
 
@@ -106,7 +116,7 @@ class StakeValidatorsTracker:
         self.sv_dict[stake_address] = deepcopy(sv.pbdata)
         return result
 
-    def get_stake_balance(self, stake_address: bytes)->int:
+    def get_stake_balance(self, stake_address: bytes) -> int:
         if stake_address not in self.sv_dict:
             logger.warning('Stake address %s not found in Stake Validators Tracker', stake_address)
             logger.warning('Stake validator lists %s', list(self.sv_dict.keys()))
@@ -114,11 +124,27 @@ class StakeValidatorsTracker:
 
         return self.sv_dict[stake_address].balance
 
+    def get_stake_balance_by_slave_pk(self, slave_public_key: bytes) -> int:
+        str_slave_public_key = bin2hstr(slave_public_key)
+        if str_slave_public_key not in self.slave_public_key_dict:
+            logger.warning('Slave public key not found %s', str_slave_public_key)
+            logger.warning('Available slave public key list %s', self.slave_public_key_dict.keys())
+            raise Exception
+        stake_validator_addr = self.slave_public_key_dict[str_slave_public_key]
+
+        return self.sv_dict[stake_validator_addr].balance
+
     def get_total_stake_amount(self):
         return self.total_stake_amount
 
     def increase_nonce(self, address):
         self.sv_dict[address].nonce += 1
+
+    def contains_slave_pk(self, slave_public_key):
+        str_slave_public_key = bin2hstr(slave_public_key)
+        if str_slave_public_key in self.slave_public_key_dict:
+            return True
+        return False
 
     @staticmethod
     def from_json(json_data):

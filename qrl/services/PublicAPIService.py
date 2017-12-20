@@ -60,8 +60,7 @@ class PublicAPIService(PublicAPIServicer):
                                          addr_to=request.address_to,
                                          amount=request.amount,
                                          fee=request.fee,
-                                         xmss_pk=request.xmss_pk,
-                                         xmss_ots_index=request.xmss_ots_index)
+                                         xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -84,8 +83,7 @@ class PublicAPIService(PublicAPIServicer):
                                     fee=request.fee,
                                     kyber_pk=request.kyber_pk,
                                     dilithium_pk=request.dilithium_pk,
-                                    xmss_pk=request.xmss_pk,
-                                    xmss_ots_index=request.xmss_ots_index)
+                                    xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 

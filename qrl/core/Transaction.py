@@ -2,10 +2,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+import sys
 from abc import ABCMeta, abstractmethod
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import sha2_256, getAddress, bin2hstr, str2bin
+from pyqrllib.pyqrllib import getAddress, bin2hstr
 
 from qrl.core import config, logger
 from qrl.crypto.hashchain import hashchain_reveal
@@ -43,20 +44,19 @@ class Transaction(object, metaclass=ABCMeta):
 
     @property
     def txfrom(self):
-        return self._data.addr_from
+        return getAddress('Q', self._data.public_key).encode()
 
+    # TODO: Combine txfrom and addr_from into one
     @property
-    def pubhash(self):
-        # FIXME: Review this. Leon?
-        return bytes(sha256(bytes(self.PK) + str(self.ots_key).encode()))
-
-    @property
-    def txhash(self):
-        return self._data.transaction_hash
+    def addr_from(self):
+        return getAddress('Q', self._data.public_key).encode()
 
     @property
     def ots_key(self):
-        return self._data.ots_key
+        try:
+            return int(bin2hstr(self._data.signature)[0:8], 16)
+        except ValueError:
+            raise ValueError('OTS Key Index: First 4 bytes of signature are invalid')
 
     @property
     def PK(self):
@@ -94,6 +94,32 @@ class Transaction(object, metaclass=ABCMeta):
         Parse(json_data, pbdata)
         return Transaction.from_pbdata(pbdata)
 
+    @staticmethod
+    def ots_key_reuse(state_addr, ots_key):
+        if state_addr is None:
+            logger.info('-->> state_addr None not possible')
+            return False
+
+        offset = ots_key // 8
+        relative = ots_key % 8
+        bitfield = state_addr.ots_bitfield[offset]
+        bit_value = (int.from_bytes(bitfield, byteorder=sys.byteorder) >> relative) & 1
+
+        if bit_value:
+            return True
+
+        return False
+
+    @staticmethod
+    def set_ots_key(address_txn, txfrom, ots_key):
+        offset = ots_key // 8
+        relative = ots_key % 8
+        bitfield = address_txn[txfrom]._data.ots_bitfield[offset]
+        address_txn[txfrom]._data.ots_bitfield[offset] = chr(
+                                                             int.from_bytes(bitfield, byteorder=sys.byteorder) |
+                                                             (1 << relative)
+                                                            ).encode()
+
     @abstractmethod
     def _get_hashable_bytes(self):
         """
@@ -101,13 +127,19 @@ class Transaction(object, metaclass=ABCMeta):
         :return: hashable bytes
         :rtype: bytes
         """
-        return bytes()
+        raise NotImplementedError
 
-    def calculate_txhash(self):
-        return bytes(sha2_256(self._get_hashable_bytes() + self.pubhash))
+    @property
+    def txhash(self) -> bytes:
+        tmptxhash = (
+                     bin2hstr(self._get_hashable_bytes()).encode() +
+                     self._data.public_key +
+                     self._data.signature
+                    )
+        return sha256(tmptxhash)
 
     def sign(self, xmss):
-        self._data.signature = xmss.SIGN(self.txhash)
+        self._data.signature = xmss.SIGN(self._get_hashable_bytes())
 
     @abstractmethod
     def _validate_custom(self) -> bool:
@@ -115,7 +147,7 @@ class Transaction(object, metaclass=ABCMeta):
         This is an extension point for derived classes validation
         If derived classes need additional field validation they should override this member
         """
-        return True
+        raise NotImplementedError
 
     def validate(self) -> bool:
         """
@@ -147,16 +179,12 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
-        # cryptographic checks
-        if self.txhash != self.calculate_txhash():
-            raise ValueError("Invalid transaction hash")
-
         # FIXME: Why is coinbase skipped?
         if not isinstance(self, CoinBase) and not isinstance(self, Vote) and \
            getAddress('Q', self.PK) != self.txfrom.decode():
             raise ValueError('Public key and address dont match')
 
-        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
+        if len(self.signature) == 0 or not XMSS.VERIFY(message=self._get_hashable_bytes(),
                                                        signature=self.signature,
                                                        pk=self.PK):
             raise ValueError("Invalid xmss signature")
@@ -165,7 +193,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def get_message_hash(self):
         # FIXME: refactor, review that things are not recalculated too often, cache, etc.
-        return self.calculate_txhash()
+        return self.txhash
 
     def to_json(self):
         # FIXME: Remove once we move completely to protobuf
@@ -200,25 +228,24 @@ class TransferTransaction(Transaction):
         :return: hashable bytes
         :rtype: bytes
         """
-        tmptxhash = self.txfrom + \
-            self.txto + \
-            str(self.amount).encode() + \
-            str(self.fee).encode()
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.txto +
+                     str(self.amount).encode() +
+                     str(self.fee).encode()
+                    )
+
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk, xmss_ots_index):
+    def create(addr_to: bytes, amount, fee, xmss_pk):
         transaction = TransferTransaction()
 
-        transaction._data.addr_from = bytes(addr_from)
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer.addr_to = addr_to
         transaction._data.transfer.amount = int(amount)  # FIXME: Review conversions for quantities
         transaction._data.transfer.fee = int(fee)  # FIXME: Review conversions for quantities
-
-        transaction._data.ots_key = xmss_ots_index
-        transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
@@ -230,7 +257,6 @@ class TransferTransaction(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.amount < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -241,7 +267,7 @@ class TransferTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.amount)
             return False
 
-        if self.pubhash in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -249,7 +275,7 @@ class TransferTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.pubhash:
+            if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
@@ -286,13 +312,15 @@ class StakeTransaction(Transaction):
         :rtype: bytes
         """
         # FIXME: Avoid all intermediate conversions
-        tmptxhash = bin2hstr(tuple(self.hash))
-        tmptxhash = str2bin(tmptxhash +
-                            bin2hstr(self.slave_public_key) +
-                            bin2hstr(sha2_256(bytes(self.activation_blocknumber))) +
-                            bin2hstr(sha2_256(bytes(self.subtype))))  # FIXME: stringify in standardized way
+        tmptxhash = bin2hstr(tuple(self.hash)).encode()
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     tmptxhash +
+                     self.slave_public_key +
+                     str(self.activation_blocknumber).encode()
+                    )  # FIXME: stringify in standardized way
         # FIXME: the order in the dict may affect hash
-        return bytes(tmptxhash)
+        return bytes(sha256(tmptxhash))
 
     @staticmethod
     def create(activation_blocknumber: int,
@@ -308,12 +336,10 @@ class StakeTransaction(Transaction):
 
         transaction = StakeTransaction()
 
-        transaction._data.addr_from = xmss.get_address()
         transaction._data.public_key = bytes(xmss.pk())
 
         # Stake specific
         transaction._data.stake.activation_blocknumber = activation_blocknumber
-
         transaction._data.stake.slavePK = slavePK
 
         if hashchain_terminator is None:
@@ -323,9 +349,6 @@ class StakeTransaction(Transaction):
         else:
             transaction._data.stake.hash = hashchain_terminator
 
-        # WARNING: These fields need to the calculated once all other fields are set
-        transaction._data.ots_key = xmss.get_index()
-        transaction._data.transaction_hash = transaction.calculate_txhash()
         return transaction
 
     def _validate_custom(self):
@@ -334,7 +357,7 @@ class StakeTransaction(Transaction):
     def validate_extended(self, tx_state):
         # TODO no need to transmit pubhash over the network
         # pubhash has to be calculated by the receiver
-        if self.pubhash in tx_state.pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.hash)
             return False
 
@@ -359,8 +382,11 @@ class DestakeTransaction(Transaction):
         :rtype: bytes
         """
         # FIXME: Avoid all intermediate conversions
-        tmptxhash = str2bin(bin2hstr(sha2_256(bytes(self.subtype))))
-        return bytes(tmptxhash)
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.pub
+                    )
+        return bytes(sha256(tmptxhash))
 
     @staticmethod
     def create(xmss):
@@ -371,22 +397,15 @@ class DestakeTransaction(Transaction):
         """
 
         transaction = DestakeTransaction()
-
-        transaction._data.addr_from = xmss.get_address()
         transaction._data.public_key = bytes(xmss.pk())
 
-        # WARNING: These fields need to the calculated once all other fields are set
-        transaction._data.ots_key = xmss.get_index()
-        transaction._data.transaction_hash = transaction.calculate_txhash()
         return transaction
 
     def _validate_custom(self):
         return True
 
     def validate_extended(self, tx_state):
-        state_pubhashes = tx_state.pubhashes
-
-        if self.pubhash in state_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected')
             return False
 
@@ -404,9 +423,6 @@ class CoinBase(Transaction):
         if protobuf_transaction is None:
             self._data.type = qrl_pb2.Transaction.COINBASE
 
-        # This attribute is not persistable
-        self.blockheader = None
-
     @property
     def txto(self):
         return self._data.coinbase.addr_to
@@ -415,6 +431,14 @@ class CoinBase(Transaction):
     def amount(self):
         return self._data.coinbase.amount
 
+    @property
+    def headerhash(self):
+        return self._data.coinbase.headerhash
+
+    @property
+    def block_number(self):
+        return self._data.coinbase.block_number
+
     def _get_hashable_bytes(self):
         """
         This method should return bytes that are to be hashed and represent the transaction
@@ -422,24 +446,25 @@ class CoinBase(Transaction):
         :rtype: bytes
         """
         # FIXME: Avoid all intermediate conversions
-        tmptxhash = bytes(self.blockheader.prev_blockheaderhash) + \
-            bytes(str(self.blockheader.block_number).encode()) + \
-            bytes(self.blockheader.headerhash)
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.txto +
+                     self.headerhash +
+                     str(self.block_number).encode() +
+                     str(self.amount).encode()
+                    )
         return bytes(sha256(tmptxhash))
 
     @staticmethod
     def create(blockheader, xmss):
         transaction = CoinBase()
-        transaction.blockheader = blockheader
 
-        transaction._data.addr_from = blockheader.stake_selector
         transaction._data.public_key = bytes(xmss.pk())
 
         transaction._data.coinbase.addr_to = blockheader.stake_selector
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
-
-        transaction._data.ots_key = xmss.get_index()
-        transaction._data.transaction_hash = transaction.calculate_txhash()
+        transaction._data.coinbase.block_number = blockheader.block_number
+        transaction._data.coinbase.headerhash = blockheader.headerhash
 
         return transaction
 
@@ -489,30 +514,30 @@ class LatticePublicKey(Transaction):
         :return: hashable bytes
         :rtype: bytes
         """
-        tmptxhash = self.kyber_pk + self.dilithium_pk
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.kyber_pk +
+                     self.dilithium_pk +
+                     str(self.fee).encode()
+                    )
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from, fee, kyber_pk, dilithium_pk, xmss_pk, xmss_ots_index):
+    def create(fee, kyber_pk, dilithium_pk, xmss_pk):
         transaction = LatticePublicKey()
 
         transaction._data.latticePK.fee = fee
 
-        transaction._data.addr_from = addr_from
         transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = kyber_pk
         transaction._data.latticePK.dilithium_pk = dilithium_pk
-
-        transaction._data.ots_key = xmss_ots_index
-        transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0:
             logger.info('Lattice Txn: State validation failed %s : Negative fee %s', self.txhash, self.fee)
@@ -523,7 +548,7 @@ class LatticePublicKey(Transaction):
             logger.info('balance: %s, fee: %s', tx_balance, self.fee)
             return False
 
-        if self.pubhash in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
             return False
 
@@ -531,7 +556,7 @@ class LatticePublicKey(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.pubhash:
+            if txn.ots_key == self.ots_key:
                 logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
                 return False
 
@@ -580,10 +605,13 @@ class DuplicateTransaction(Transaction):
         """
         # FIXME: Avoid all intermediate conversions
         # TODO: Review get_message_hash is too different/inconsistent
-        tmptxhash = bytes(self.prev_header_hash) + \
-            bytes(str(self.blocknumber).encode()) + \
-            bytes(self.headerhash) + \
-            bytes(self.coinbase.pubhash)
+        # FIXME: Update the tmptxhash
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.prev_header_hash +
+                     str(self.blocknumber).encode() +
+                     self.headerhash
+                    )
         # FIXME: Review. coinbase2?
 
         return bytes(sha256(tmptxhash))
@@ -623,13 +651,6 @@ class DuplicateTransaction(Transaction):
         self.headerhash = headerhash
         self.coinbase = coinbase
 
-        txhash = self.calculate_txhash()
-
-        if coinbase.txhash != txhash:
-            logger.info('Invalid Txhash')
-            logger.warning('Found: %s Expected: %s', coinbase.txhash, txhash)
-            return False
-
         if not coinbase.validate():
             return False
 
@@ -648,7 +669,7 @@ class Vote(Transaction):
 
     @property
     def addr_from(self):
-        return self._data.addr_from
+        return getAddress('Q', self._data.public_key).encode()
 
     @property
     def blocknumber(self):
@@ -665,38 +686,37 @@ class Vote(Transaction):
         :rtype: bytes
         """
 
-        tmptxhash = self.addr_from + \
-            bytes(str(self.blocknumber).encode()) + \
-            bytes(self.headerhash)
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.addr_from +
+                     str(self.blocknumber).encode() +
+                     bin2hstr(self.headerhash).encode()
+                    )
 
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(addr_from: bytes, blocknumber: int, headerhash: bytes, xmss: XMSS):
+    def create(blocknumber: int, headerhash: bytes, xmss: XMSS):
         transaction = Vote()
 
-        transaction._data.addr_from = addr_from
         transaction._data.vote.block_number = blocknumber
         transaction._data.vote.hash_header = headerhash
 
         transaction._data.public_key = bytes(xmss.pk())
-
-        transaction._data.ots_key = xmss.get_index()
-        transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
     def _validate_custom(self):
         return True
 
-    def validate_extended(self, tx_state, sv_dict):
-        if self.pubhash in tx_state.pubhashes:
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.pubhash)
+    def validate_extended(self, tx_state, stake_validators_tracker):
+
+        if self.ots_key_reuse(tx_state, self.ots_key):
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.ots_key)
             return False
 
-        if sv_dict[self.addr_from].slave_public_key != self.PK:
-            logger.warning('Stake validator doesnt own the Public key')
-            logger.warning('Expected public key %s', sv_dict[self.addr_from].slave_public_key)
+        if not stake_validators_tracker.contains_slave_pk(self.PK):
+            logger.warning('Slave Public Key not found')
             logger.warning('Found public key %s', self.PK)
             return False
 
@@ -712,7 +732,7 @@ class MessageTransaction(Transaction):
 
     @property
     def addr_from(self):
-        return self._data.addr_from
+        return getAddress('Q', self._data.public_key).encode()
 
     @property
     def message_hash(self):
@@ -729,7 +749,11 @@ class MessageTransaction(Transaction):
         :rtype: bytes
         """
 
-        tmptxhash = self.addr_from + self.message_hash
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.message_hash +
+                     str(self.fee).encode()
+                    )
 
         return bytes(sha256(tmptxhash))
 
@@ -737,14 +761,10 @@ class MessageTransaction(Transaction):
     def create(message_hash: bytes, fee: int, xmss: XMSS):
         transaction = MessageTransaction()
 
-        transaction._data.addr_from = xmss.get_address()
         transaction._data.message.message_hash = message_hash
         transaction._data.message.fee = fee
 
         transaction._data.public_key = bytes(xmss.pk())
-
-        transaction._data.ots_key = xmss.get_index()
-        transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
@@ -756,7 +776,6 @@ class MessageTransaction(Transaction):
 
     def validate_extended(self, tx_state, transaction_pool) -> bool:
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -767,7 +786,7 @@ class MessageTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if self.pubhash in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -775,7 +794,7 @@ class MessageTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.pubhash:
+            if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
@@ -822,11 +841,14 @@ class TokenTransaction(Transaction):
         :return: hashable bytes
         :rtype: bytes
         """
-        tmptxhash = self.symbol + \
-            self.name + \
-            self.owner + \
-            str(self.decimals).encode() + \
-            str(self.fee).encode()
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.symbol +
+                     self.name +
+                     self.owner +
+                     str(self.decimals).encode() +
+                     str(self.fee).encode()
+                    )
 
         for initial_balance in self._data.token.initial_balances:
             tmptxhash += initial_balance.address
@@ -842,11 +864,9 @@ class TokenTransaction(Transaction):
                decimals: int,
                initial_balances: list,
                fee: int,
-               xmss_pk,
-               xmss_ots_index):
+               xmss_pk):
         transaction = TokenTransaction()
 
-        transaction._data.addr_from = bytes(addr_from)
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.token.symbol = symbol
@@ -858,9 +878,6 @@ class TokenTransaction(Transaction):
             transaction._data.token.initial_balances.extend([initial_balance])
 
         transaction._data.token.fee = int(fee)
-
-        transaction._data.ots_key = xmss_ots_index
-        transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
@@ -879,7 +896,6 @@ class TokenTransaction(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -890,7 +906,7 @@ class TokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.pubhash in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -898,7 +914,7 @@ class TokenTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.pubhash:
+            if txn.ots_key == self.ots_key:
                 logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
                             self.txhash)
                 return False
@@ -938,10 +954,13 @@ class TransferTokenTransaction(Transaction):
         :return: hashable bytes
         :rtype: bytes
         """
-        tmptxhash = self.token_txhash + \
-            self.txto + \
-            str(self.amount).encode() + \
-            str(self.fee).encode()
+        tmptxhash = (
+                     str(self.subtype).encode() +
+                     self.token_txhash +
+                     self.txto +
+                     str(self.amount).encode() +
+                     str(self.fee).encode()
+                    )
 
         return bytes(sha256(tmptxhash))
 
@@ -951,20 +970,15 @@ class TransferTokenTransaction(Transaction):
                addr_to: bytes,
                amount: int,
                fee: int,
-               xmss_pk,
-               xmss_ots_index):
+               xmss_pk):
         transaction = TransferTokenTransaction()
 
-        transaction._data.addr_from = bytes(addr_from)
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer_token.token_txhash = token_txhash
         transaction._data.transfer_token.addr_to = addr_to
         transaction._data.transfer_token.amount = amount
         transaction._data.transfer_token.fee = int(fee)
-
-        transaction._data.ots_key = xmss_ots_index
-        transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
 
@@ -976,7 +990,6 @@ class TransferTokenTransaction(Transaction):
     # checks new tx validity based upon node statedb and node mempool.
     def validate_extended(self, tx_state, transaction_pool):
         tx_balance = tx_state.balance
-        tx_pubhashes = tx_state.pubhashes
 
         if self.fee < 0 or self.amount < 0:
             logger.info('TransferTokenTransaction State validation failed for %s because: ', self.txhash)
@@ -989,7 +1002,7 @@ class TransferTokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.pubhash in tx_pubhashes:
+        if self.ots_key_reuse(tx_state, self.ots_key):
             logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
                         self.txhash)
             return False
@@ -998,7 +1011,7 @@ class TransferTokenTransaction(Transaction):
             if txn.txhash == self.txhash:
                 continue
 
-            if txn.pubhash == self.pubhash:
+            if txn.ots_key == self.ots_key:
                 logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
                             self.txhash)
                 return False

@@ -7,7 +7,7 @@ from unittest import TestCase
 from mock import patch
 
 import qrl
-from qrl.core import logger
+from qrl.core import logger, config
 from qrl.core.Block import Block
 from qrl.core.Chain import Chain
 from qrl.core.State import State
@@ -52,7 +52,7 @@ class TestChain(TestCase):
                 address_state_dict[staking_address] = AddressState.create(address=staking_address,
                                                                           nonce=0,
                                                                           balance=100,
-                                                                          pubhashes=[],
+                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
                                                                           tokens=dict())
 
                 tmp_block1 = Block.create(staking_address=staking_address,
@@ -95,7 +95,7 @@ class TestChain(TestCase):
                     address_state_dict[staking_address] = AddressState.create(address=staking_address,
                                                                               nonce=0,
                                                                               balance=100,
-                                                                              pubhashes=[],
+                                                                              ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
                                                                               tokens=dict())
                     for i in range(10):
                         tmp_block1 = Block.create(staking_address=staking_address,

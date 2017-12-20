@@ -4,20 +4,14 @@
 
 import time
 from collections import defaultdict
-from functools import reduce
 from typing import Optional
 
-from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
 from qrl.core import logger, config, BufferedChain, ntp
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import StakeTransaction, DestakeTransaction, Vote
-from qrl.core.formulas import calc_seed
-from qrl.core.formulas import score
-from qrl.crypto.hashchain import hashchain
-from qrl.crypto.misc import sha256
+from qrl.core.Transaction import StakeTransaction, DestakeTransaction, Vote, Transaction
 from qrl.generated import qrl_pb2
 
 
@@ -127,128 +121,20 @@ class POS:
 
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def pre_pos_1(self, data=None):  # triggered after genesis for block 1..
-        logger.info('pre_pos_1')
+    def initialize_pos(self):
+        if self.buffered_chain.height == 0:
+            found = False
+            genesis_block = self.buffered_chain.get_block(0)
+            for raw_tx in genesis_block.transactions:
+                tx = Transaction.from_pbdata(raw_tx)
+                if tx.txfrom == self.buffered_chain.wallet.address_bundle[0].xmss.get_address():
+                    found = True
+            while found:
+                if self.create_vote_tx(0):
+                    break
+                time.sleep(2)
 
-        # are we a staker in the stake list?
-        genesis_block = self.buffered_chain.get_block(0)
-        found = False
-        for genesisBalance in genesis_block.genesis_balance:
-            if genesisBalance.address.encode() == self.buffered_chain.staking_address:
-                logger.info('Found in Genesis Address %s %s', genesisBalance.address.encode(), genesisBalance.balance)
-                found = True
-                break
-
-        if not found:
-            return
-
-        logger.info('mining address: %s in the genesis.stake_list', self.buffered_chain.staking_address)
-        xmss = self.buffered_chain.wallet.address_bundle[0].xmss
-        tmphc = hashchain(xmss.get_seed_private(), epoch=0)
-        self.buffered_chain.hash_chain[0] = tmphc.hashchain
-
-        slave_xmss = self.buffered_chain.get_slave_xmss(0)
-        if not slave_xmss:
-            logger.info('Waiting for SLAVE XMSS to be done')
-            reactor.callLater(5, self.pre_pos_1)
-            return
-
-        signing_xmss = self.buffered_chain.wallet.address_bundle[0].xmss
-        st = StakeTransaction.create(activation_blocknumber=1,
-                                     xmss=signing_xmss,
-                                     slavePK=slave_xmss.pk(),
-                                     hashchain_terminator=tmphc.hc_terminator)
-        st.sign(signing_xmss)
-
-        self.buffered_chain.tx_pool.add_tx_to_pool(st)
-
-        # send the stake tx to generate hashchain terminators for the staker addresses..
-        self.p2p_factory.broadcast_st(st)
-
-        vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
-                           blocknumber=0,
-                           headerhash=genesis_block.headerhash,
-                           xmss=slave_xmss)
-
-        vote.sign(slave_xmss)
-
-        self.buffered_chain.add_vote(vote)
-
-        # send the stake votes for genesis block
-        self.p2p_factory.broadcast_vote(vote)
-
-        logger.info('await delayed call to build staker list from genesis')
-        reactor.callLater(5, self.pre_pos_2, st)
-
-    def pre_pos_2(self, data=None):
-        logger.info('pre_pos_2')
-        if self.buffered_chain.height >= 1:
-            return
-        # assign hash terminators to addresses and generate a temporary stake list ordered by st.hash..
-
-        tmp_list = []
-        seed_list = []
-        genesis_block = self.buffered_chain.get_block(0)
-        total_genesis_stake_amount = 0
-        for tx in self.buffered_chain.tx_pool.transaction_pool:
-            tx.pbdata.nonce = 1
-            if tx.subtype == qrl_pb2.Transaction.STAKE:
-                for genesisBalance in genesis_block.genesis_balance:
-                    if tx.txfrom == genesisBalance.address.encode() and tx.activation_blocknumber == 1:
-                        tmp_list.append([tx.txfrom, tx.hash, 0, genesisBalance.balance, tx.slave_public_key])
-                        seed_list.append(tx.hash)
-                        # FIXME: This goes to stake validator list without verification, Security Risk
-                        self.buffered_chain._chain.pstate.stake_validators_tracker.add_sv(genesisBalance.balance, tx, 1)
-                        total_genesis_stake_amount += genesisBalance.balance
-
-        self.buffered_chain.epoch_seed = calc_seed(seed_list)
-
-        #  TODO : Needed to be reviewed later
-        self.buffered_chain.stake_list = sorted(tmp_list,
-                                                key=lambda staker: score(stake_address=staker[0],
-                                                                         reveal_one=bin2hstr(sha256(str(
-                                                                             reduce(lambda set1, set2: set1 + set2,
-                                                                                    tuple(staker[1]))).encode())),
-                                                                         balance=staker[3],
-                                                                         seed=self.buffered_chain.epoch_seed))
-
-        # self.buffered_chain.epoch_seed = format(self.buffered_chain.epoch_seed, 'x')  # FIXME: Why hex string?
-
-        logger.info('genesis stakers ready = %s / %s', len(self.buffered_chain.stake_list),
-                    config.dev.minimum_required_stakers)
-        logger.info('node address: %s', self.buffered_chain.staking_address)
-
-        # stake pool still not full..reloop..
-        if len(self.buffered_chain.stake_list) < config.dev.minimum_required_stakers:
-            self.p2p_factory.broadcast_st(data)
-            logger.info('waiting for stakers.. retry in 5s')
-            reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
-            return
-
-        voteMetadata = self.buffered_chain.get_consensus(0)
-        consensus_ratio = voteMetadata.total_stake_amount / total_genesis_stake_amount
-
-        if consensus_ratio < 0.51:
-            logger.info('Consensus lower than 51%%.. retry in 5s')
-            reactor.callID = reactor.callLater(5, self.pre_pos_2, data)
-            return
-
-        if self.buffered_chain.staking_address == self.buffered_chain.stake_list[0][0]:
-            logger.info('designated to create block 1: building block..')
-
-            tmphc = hashchain(self.buffered_chain.wallet.address_bundle[0].xmss.get_seed_private())
-
-            # create the genesis block 2 here..
-            reveal_hash = self.buffered_chain.select_hashchain(self.buffered_chain.staking_address,
-                                                               tmphc.hashchain,
-                                                               blocknumber=1)
-
-            b = self.buffered_chain.create_block(reveal_hash[-2])  # FIXME: This is incorrect, rewire
-            self.pre_block_logic(b)  # FIXME: Ignore return value?
-        else:
-            logger.info('await block creation by stake validator: %s', self.buffered_chain.stake_list[0][0])
-            self.last_bk_time = time.time()
-            self.restart_unsynced_logic()
+        reactor.callLater(1, self._handler_state_synced)
 
     def create_new_block(self, reveal_hash, last_block_number) -> Optional[Block]:
         logger.info('create_new_block #%s', (last_block_number + 1))
@@ -363,28 +249,20 @@ class POS:
         self.pos_callLater = reactor.callLater(delay,
                                                self.post_block_logic,
                                                blocknumber=blocknumber)
-        should_vote = False
-        if blocknumber > 1:
-            stake_list = self.buffered_chain.stake_list_get(blocknumber - 1)
-            if self.buffered_chain.staking_address in stake_list:
-                stake_validator = stake_list[self.buffered_chain.staking_address]
-                if stake_validator.is_active and not stake_validator.is_banned:
-                    should_vote = True
-        else:
-            genesis_block = self.buffered_chain.get_block(0)
-            for genesisBalance in genesis_block.genesis_balance:
-                if genesisBalance.address.encode() == self.buffered_chain.staking_address:
-                    should_vote = True
-                    break
-
-        if should_vote:
-            vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
-
-            self.vote_callLater = reactor.callLater(vote_delay,
-                                                    self.create_vote_tx,
-                                                    blocknumber=blocknumber - 1)
 
         self.pos_blocknum = blocknumber
+
+        stake_list = self.buffered_chain.stake_list_get(blocknumber - 1)
+        if self.buffered_chain.staking_address in stake_list:
+            stake_validator = stake_list[self.buffered_chain.staking_address]
+            if not (stake_validator.is_active and not stake_validator.is_banned):
+                return
+
+        vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
+
+        self.vote_callLater = reactor.callLater(vote_delay,
+                                                self.create_vote_tx,
+                                                blocknumber=blocknumber - 1)
 
     def create_next_block(self, blocknumber, activation_blocknumber) -> bool:
         if blocknumber - activation_blocknumber + 1 > config.dev.blocks_per_epoch:
@@ -489,8 +367,7 @@ class POS:
             logger.warning('Skipped Voting: Slave XMSS none, XMSS POOL might still be generating slave_xmss')
             return
 
-        vote = Vote.create(addr_from=self.buffered_chain.wallet.address_bundle[0].address,
-                           blocknumber=blocknumber,
+        vote = Vote.create(blocknumber=blocknumber,
                            headerhash=block.blockheader.headerhash,
                            xmss=signing_xmss)
 
@@ -502,7 +379,7 @@ class POS:
 
             stake_validators_tracker = self.buffered_chain.get_stake_validators_tracker(blocknumber)
 
-            if not (vote.validate() and vote.validate_extended(tx_state, stake_validators_tracker.sv_dict)):
+            if not (vote.validate() and vote.validate_extended(tx_state, stake_validators_tracker)):
                 logger.warning('Create Vote Txn failed due to validation failure')
                 return
 
@@ -511,6 +388,8 @@ class POS:
         self.buffered_chain.add_vote(vote)
 
         self.p2p_factory.broadcast_vote(vote)
+
+        return True
 
     def _create_stake_tx(self, curr_blocknumber):
         sv_dict = self.buffered_chain.stake_list_get(curr_blocknumber)

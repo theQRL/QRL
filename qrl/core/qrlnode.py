@@ -189,7 +189,6 @@ class QRLNode:
             raise LookupError("Source address is a Future Stake Validator, balance is locked")
 
         xmss_pk = xmss_from.pk()
-        xmss_ots_index = xmss_from.get_index()
 
         # TODO: Review this
         # Balance validation
@@ -203,8 +202,7 @@ class QRLNode:
                                  addr_to,
                                  amount,
                                  fee,
-                                 xmss_pk,
-                                 xmss_ots_index)
+                                 xmss_pk)
 
         tx.sign(xmss_from)
         self.submit_send_tx(tx)
@@ -216,33 +214,27 @@ class QRLNode:
                        addr_to: bytes,
                        amount: int,
                        fee: int,
-                       xmss_pk: bytes,
-                       xmss_ots_index: int) -> TransferTransaction:
+                       xmss_pk: bytes) -> TransferTransaction:
         balance = self.db_state.balance(addr_from)
         if amount + fee > balance:
             raise RuntimeError("Not enough funds in the source address")
 
-        return TransferTransaction.create(addr_from=addr_from,
-                                          addr_to=addr_to,
+        return TransferTransaction.create(addr_to=addr_to,
                                           amount=amount,
                                           fee=fee,
-                                          xmss_pk=xmss_pk,
-                                          xmss_ots_index=xmss_ots_index)
+                                          xmss_pk=xmss_pk)
 
     def create_lt(self,
                   addr_from: bytes,
                   fee: int,
                   kyber_pk: bytes,
                   dilithium_pk: bytes,
-                  xmss_pk: bytes,
-                  xmss_ots_index: int) -> LatticePublicKey:
+                  xmss_pk: bytes) -> LatticePublicKey:
 
-        return LatticePublicKey.create(addr_from=addr_from,
-                                       fee=fee,
+        return LatticePublicKey.create(fee=fee,
                                        kyber_pk=kyber_pk,
                                        dilithium_pk=dilithium_pk,
-                                       xmss_pk=xmss_pk,
-                                       xmss_ots_index=xmss_ots_index)
+                                       xmss_pk=xmss_pk)
 
     def create_ephemeral_channel(self,
                                  addr_from: bytes,
@@ -358,7 +350,7 @@ class QRLNode:
         address_state = qrl_pb2.AddressState(address=tmp_address_state.address,
                                              balance=tmp_address_state.balance,
                                              nonce=tmp_address_state.nonce,
-                                             pubhashes=tmp_address_state.pubhashes,
+                                             ots_bitfield=tmp_address_state.ots_bitfield,
                                              transaction_hashes=transaction_hashes)
 
         return address_state

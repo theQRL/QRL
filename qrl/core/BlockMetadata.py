@@ -42,7 +42,7 @@ class BlockMetadata(object):
         for vote_protobuf in self.block.vote:
             vote = Transaction.from_pbdata(vote_protobuf)
             if vote.headerhash == self.block.prev_headerhash:
-                self.voted_weight += prev_stake_validators_tracker.get_stake_balance(vote.txfrom)
+                self.voted_weight += prev_stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
 
     def set_voted(self):
         self.isVoted = True
@@ -70,6 +70,6 @@ class BlockMetadata(object):
             addr_state = pstate.get_address(addr)
 
             if self.address_state_dict[addr].balance == addr_state.balance and \
-                    self.address_state_dict[addr].pubhashes == addr_state.pubhashes and \
+                    self.address_state_dict[addr].ots_bitfield == addr_state.ots_bitfield and \
                     self.address_state_dict[addr].tokens == addr_state.tokens:
                 del self.address_state_dict[addr]

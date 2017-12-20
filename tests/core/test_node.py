@@ -64,6 +64,7 @@ class TestNode(TestCase):
         buffered_chain = Mock()
         buffered_chain.height = 0
         buffered_chain.get_block = MagicMock(return_value=GenesisBlock())
+        buffered_chain.stake_list_get = MagicMock(return_value=[])
 
         p2p_factory = Mock()
         sync_state = Mock()

@@ -24,6 +24,7 @@ from qrl.core.State import State
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
+from qrl.core import config
 from tests.misc.helper import qrladdress, get_alice_xmss, get_bob_xmss
 
 logger.initialize_default(force_console_output=True)
@@ -133,7 +134,7 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q' + sha256(b'address'),
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          pubhashes=[sha256(b'a'), sha256(b'b')],
+                                                                          ots_bitfield=[b'\x00']*config.dev.ots_bitfield,
                                                                           tokens=dict()))
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
@@ -163,7 +164,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
-        self.assertEqual([sha256(b'a'), sha256(b'b')], response.state.pubhashes)
+        self.assertEqual([b'\x00']*config.dev.ots_bitfield, response.state.ots_bitfield)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
 
     @pytest.mark.skip(reason="Temporarily skipping test")
@@ -197,7 +198,8 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=SOME_ADDR1,
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          pubhashes=[sha256(b'a'), sha256(b'b')]))
+                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
+                                                                          tokens=dict()))
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
         context = Mock(spec=ServicerContext)
@@ -223,12 +225,10 @@ class TestPublicAPI(TestCase):
 
         # Find a transaction
         db_state.address_used = MagicMock(return_value=False)
-        tx1 = TransferTransaction.create(addr_from=SOME_ADDR1,
-                                         addr_to=SOME_ADDR2,
+        tx1 = TransferTransaction.create(addr_to=SOME_ADDR2,
                                          amount=125,
                                          fee=19,
-                                         xmss_pk=sha256(b'pk'),
-                                         xmss_ots_index=13)
+                                         xmss_pk=sha256(b'pk'))
 
         buffered_chain.tx_pool.transaction_pool = [tx1]
 
@@ -277,12 +277,10 @@ class TestPublicAPI(TestCase):
         txs = []
         for i in range(1, 4):
             for j in range(1, 3):
-                txs.append(TransferTransaction.create(addr_from=qrladdress('source'),
-                                                      addr_to=qrladdress('dest'),
+                txs.append(TransferTransaction.create(addr_to=qrladdress('dest'),
                                                       amount=i * 100 + j,
                                                       fee=j,
-                                                      xmss_pk=get_alice_xmss().pk(),
-                                                      xmss_ots_index=i))
+                                                      xmss_pk=get_alice_xmss().pk()))
 
             blocks.append(Block.create(staking_address=qrladdress('staking_addr'),
                                        block_number=i,
@@ -296,12 +294,10 @@ class TestPublicAPI(TestCase):
 
         txpool = []
         for j in range(10, 15):
-            txpool.append(TransferTransaction.create(addr_from=qrladdress('source'),
-                                                     addr_to=qrladdress('dest'),
+            txpool.append(TransferTransaction.create(addr_to=qrladdress('dest'),
                                                      amount=1000 + j,
                                                      fee=j,
-                                                     xmss_pk=get_alice_xmss().pk(),
-                                                     xmss_ots_index=j))
+                                                     xmss_pk=get_alice_xmss().pk()))
 
         db_state = Mock(spec=State)
 
@@ -393,7 +389,7 @@ class TestPublicAPI(TestCase):
             return_value=AddressState.create(address=expected_address,
                                              nonce=1,
                                              balance=100,
-                                             pubhashes=[],
+                                             ots_bitfield=[b'0'] * config.dev.ots_bitfield,
                                              tokens=dict()))
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[])

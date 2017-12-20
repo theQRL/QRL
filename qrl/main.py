@@ -80,7 +80,7 @@ def start_legacy_services(buffered_chain: BufferedChain,
     qrlnode.connect_peers()
 
     pos.restart_monitor_bk(80)
-    reactor.callLater(20, pos.unsynced_logic)
+    reactor.callLater(1, pos.initialize_pos)
     reactor.run()
 
 
