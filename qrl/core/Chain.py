@@ -8,19 +8,13 @@ from qrl.core.Block import Block
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.AddressState import AddressState
 from qrl.core.Transaction import Transaction
-from qrl.core.Wallet import Wallet
 
 
 class Chain:
     def __init__(self, state):
         self.pstate = state  # FIXME: Is this really a parameter?
-        self.wallet = Wallet()  # FIXME: Why chain needs access to the wallet?
         self.blockchain = []  # FIXME: Everyone is touching this
         # FIXME: Remove completely and trust the db memcache for this
-
-    @property
-    def staking_address(self):
-        return self.wallet.address_bundle[0].xmss.get_address()
 
     @property
     def height(self):

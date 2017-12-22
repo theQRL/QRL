@@ -20,6 +20,7 @@ from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Transaction import CoinBase, Transaction, Vote
 from qrl.core.TransactionPool import TransactionPool
+from qrl.core.Wallet import Wallet
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -42,6 +43,8 @@ class BufferedChain:
         if self._chain.height > 0:
             self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
 
+        self.wallet = Wallet()  # FIXME: Why chain needs access to the wallet?
+
         private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
         self.hash_chain = dict()
@@ -62,11 +65,11 @@ class BufferedChain:
 
     @property
     def staking_address(self):
-        return self._chain.staking_address
+        return self.wallet.address_bundle[0].xmss.get_address()
 
     @property
     def wallet(self):
-        return self._chain.wallet
+        return self.wallet
 
     @property
     def transaction_pool(self):
@@ -211,6 +214,9 @@ class BufferedChain:
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
                 return False
 
+            slave_xmss = self.get_slave_xmss(block.block_number)
+            self.pstate.update_slave_xmss(slave_xmss)
+
             if block.stake_selector == self.staking_address:
                 logger.info('You won Block #%s!!!!!!!!!', block.block_number)
 
@@ -238,9 +244,6 @@ class BufferedChain:
             self._validate_tx_pool()
             return False
 
-        slave_xmss = self.get_slave_xmss(block.block_number)
-        self.pstate.update_slave_xmss(slave_xmss)
-
         self.tx_pool.remove_tx_in_block_from_pool(block)
 
         # FIXME: clean this up
@@ -258,12 +261,6 @@ class BufferedChain:
 
         self.epoch = block.epoch
         return True
-
-    def find_xmss(self, key_addr: bytes):
-        for addr in self.wallet.address_bundle:
-            if addr.address == key_addr:
-                return addr.xmss
-        return None
 
     def add_lattice_public_key(self, lattice_public_key_txn):
         self._chain.pstate.put_lattice_public_key(lattice_public_key_txn)
