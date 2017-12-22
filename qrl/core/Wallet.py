@@ -26,8 +26,8 @@ class Wallet:
         >>> Wallet().address_bundle is not None
         True
         """
-        config.create_path(config.user.wallet_path)
-        self.wallet_dat_filename = os.path.join(config.user.wallet_path, config.dev.wallet_dat_filename)
+        config.create_path(config.user.wallet_dir)
+        self.wallet_dat_filename = os.path.join(config.user.wallet_dir, config.dev.wallet_dat_filename)
 
         self.address_bundle = None
         self._read_wallet()

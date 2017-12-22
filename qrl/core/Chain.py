@@ -33,8 +33,7 @@ class Chain:
                   block: Block,
                   address_state_dict: Dict[bytes, AddressState],
                   stake_validators_tracker: StakeValidatorsTracker,
-                  next_seed,
-                  slave_xmss) -> bool:
+                  next_seed) -> bool:
         # TODO : minimum block validation in unsynced _state
         if block.block_number < self.height:
             logger.warning("Block already in the chain")
@@ -55,8 +54,7 @@ class Chain:
         self._commit(block=block,
                      address_state_dict=address_state_dict,
                      stake_validators_tracker=stake_validators_tracker,
-                     next_seed=next_seed,
-                     slave_xmss=slave_xmss)
+                     next_seed=next_seed)
 
         return True
 
@@ -64,9 +62,7 @@ class Chain:
                 block: Block,
                 address_state_dict: Dict[bytes, AddressState],
                 stake_validators_tracker: StakeValidatorsTracker,
-                next_seed,
-                slave_xmss,
-                ignore_save_wallet=False):
+                next_seed):
 
         # FIXME: Check the logig behind these operations
         self.blockchain.append(block)
@@ -92,12 +88,9 @@ class Chain:
         self.pstate.write_prev_stake_validators_tracker(batch)
         self.pstate.update_next_seed(next_seed, batch)
         self.pstate.update_state_version(block.block_number, batch)
-        self.pstate.update_slave_xmss(slave_xmss, batch)
         self.pstate.put_block(block, batch)
-        self.pstate.write_batch(batch)
 
-        if not ignore_save_wallet:
-            self.wallet.save_wallet()
+        self.pstate.write_batch(batch)
 
         logger.debug('#%s[%s]\nWinner Stake Selector: %s has been committed.',
                      block.block_number,

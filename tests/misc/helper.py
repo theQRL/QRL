@@ -37,18 +37,18 @@ def set_wallet_dir(wallet_name):
 @contextlib.contextmanager
 def set_data_dir(data_name):
     dst_dir = tempfile.mkdtemp()
-    prev_val = config.user.data_path
+    prev_val = config.user.data_dir
     try:
 
         test_path = os.path.dirname(os.path.abspath(__file__))
         src_dir = os.path.join(test_path, "..", "data", data_name)
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
-        config.user.data_path = dst_dir
+        config.user.data_dir = dst_dir
         yield
     finally:
         shutil.rmtree(dst_dir)
-        config.user.data_path = prev_val
+        config.user.data_dir = prev_val
 
 
 @contextlib.contextmanager
@@ -120,7 +120,7 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
 
 def destroy_state():
     try:
-        db_path = os.path.join(config.user.data_path, config.dev.db_name)
+        db_path = os.path.join(config.user.data_dir, config.dev.db_name)
         shutil.rmtree(db_path)
     except FileNotFoundError:
         pass

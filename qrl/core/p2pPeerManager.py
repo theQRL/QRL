@@ -31,7 +31,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._ping_timer = None
 
         self._peer_addresses = set()
-        self.peers_path = os.path.join(config.user.data_path,
+        self.peers_path = os.path.join(config.user.data_dir,
                                        config.dev.peers_filename)
 
         self._observable = Observable(self)
@@ -66,7 +66,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         logger.info('Creating peers.qrl')
         # Ensure the data path exists
-        config.create_path(config.user.data_path)
+        config.create_path(config.user.data_dir)
         self.update_peer_addresses(config.user.peer_list)
 
         logger.info('Known Peers: %s', self._peer_addresses)

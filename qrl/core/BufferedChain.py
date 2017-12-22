@@ -56,7 +56,7 @@ class BufferedChain:
         self.expected_headerhash = dict()
 
         # FIXME: Temporarily moving slave_xmss here
-        self.slave_xmss = dict()
+        self.slave_xmss_dict = dict()
         self.slave_xmsspool = None
         self._init_slave_xmsspool(0)
 
@@ -230,12 +230,16 @@ class BufferedChain:
         return True
 
     def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker, next_seed) -> bool:
-        slave_xmss = self.get_slave_xmss(block.block_number)
-
-        if not self._chain.add_block(block, address_state_dict, stake_validators_tracker, next_seed, slave_xmss):
+        if not self._chain.add_block(block,
+                                     address_state_dict,
+                                     stake_validators_tracker,
+                                     next_seed):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
             return False
+
+        slave_xmss = self.get_slave_xmss(block.block_number)
+        self.pstate.update_slave_xmss(slave_xmss)
 
         self.tx_pool.remove_tx_in_block_from_pool(block)
 
@@ -1136,10 +1140,8 @@ class BufferedChain:
                 activation_blocknumber = state_block_number
             slave_epoch = activation_blocknumber // config.dev.blocks_per_epoch
             self.hash_chain[slave_epoch] = hashchain(private_seed, slave_epoch).hashchain
-            data = self._chain.pstate.get_slave_xmss()
-            if data:
-                self.slave_xmss[slave_epoch] = XMSS(config.dev.slave_xmss_height, seed=data[1])
-                self.slave_xmss[slave_epoch].set_index(data[0])
+
+            self._load_slave_xmss_data(slave_epoch)
             return
 
         return self.genesis_loader(GenesisBlock())
@@ -1195,37 +1197,6 @@ class BufferedChain:
         if self.blocks:
             logger.error('Min block num %s', min(self.blocks))
             logger.error('Max block num %s', max(self.blocks))
-
-    #############################################
-    #############################################
-    #############################################
-    #############################################
-    #############################################
-    # Slave xmss    FIXME: Connected to staking
-
-    def _init_slave_xmsspool(self, starting_epoch):
-        baseseed = self.wallet.address_bundle[0].xmss.get_seed()
-        pool_size = 2
-        self.slave_xmsspool = XmssPool(baseseed,
-                                       config.dev.slave_xmss_height,
-                                       starting_epoch,
-                                       pool_size)
-
-    def get_slave_xmss(self, blocknumber):
-        epoch = self._get_mining_epoch(blocknumber)
-        if epoch not in self.slave_xmss:
-            if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
-                self._init_slave_xmsspool(epoch)
-                return None
-            if not self.slave_xmsspool.isAvailable():
-                return None
-
-            # Generate slave xmss
-            assert (epoch == self.slave_xmsspool.getCurrentIndex())  # Verify we are not skipping trees
-            tmp_xmss = self.slave_xmsspool.getNextTree()
-            self.slave_xmss[epoch] = XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
-
-        return self.slave_xmss[epoch]
 
     #############################################
     #############################################
@@ -1784,14 +1755,14 @@ class BufferedChain:
 
         return None
 
-    def _clean_mining_data(self, blocknumber):
+    def _clean_mining_data(self, block_number):
         """
         Removes the mining data from the memory.
-        :param blocknumber:
+        :param block_number:
         :return:
         """
 
-        prev_epoch = blocknumber // config.dev.blocks_per_epoch
+        prev_epoch = block_number // config.dev.blocks_per_epoch
         prev_prev_epoch = prev_epoch - 1
 
         if prev_prev_epoch in self._wallet_private_seeds:
@@ -1801,8 +1772,8 @@ class BufferedChain:
             del self.hash_chain[prev_prev_epoch]
 
         # FIXME: This should not be here
-        if prev_prev_epoch in self.slave_xmss:
-            del self.slave_xmss[prev_prev_epoch]
+        if prev_prev_epoch in self.slave_xmss_dict:
+            del self.slave_xmss_dict[prev_prev_epoch]
 
     def collect_ephemeral_message(self, msg_id):
         return self.pstate.get_ephemeral_metadata(msg_id)

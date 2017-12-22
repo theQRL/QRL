@@ -35,16 +35,12 @@ def parse_arguments():
                         help="Forcefully start Testnet in synced mode. [For developers only]")
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
-    parser.add_argument('--datapath', '-d', dest='data_path', default=config.user.data_path,
+    parser.add_argument('--datadir', '-d', dest='data_dir', default=config.user.data_dir,
                         help="Retrieve data from a different path")
-    parser.add_argument('--walletpath', '-w', dest='wallet_path', default=config.user.wallet_path,
-                        help="Retrieve wallet from a different path")
     parser.add_argument('--no-colors', dest='no_colors', action='store_true', default=False,
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
-    parser.add_argument("--get-wallets", dest="get_wallets", action='store_true', default=False,
-                        help="Returns wallet address and stops the node")
 
     return parser.parse_args()
 
@@ -68,13 +64,10 @@ def main():
     args = parse_arguments()
 
     logger.debug("=====================================================================================")
-    logger.info("Data Path: %s", args.data_path)
-    logger.info("Wallet Path: %s", args.wallet_path)
+    logger.info("Data Path: %s", args.data_dir)
 
-    config.user.data_path = args.data_path
-    config.user.wallet_path = args.wallet_path
-    config.create_path(config.user.data_path)
-    config.create_path(config.user.wallet_path)
+    config.user.data_dir = args.data_dir
+    config.create_path(config.user.data_dir)
 
     ntp.setDrift()
 
@@ -88,12 +81,6 @@ def main():
     set_logger(args, qrlnode.sync_state)
     logger.info('QRL blockchain ledger %s', config.dev.version)
     logger.info('mining/staking address %s', buffered_chain.staking_address)
-
-    if args.get_wallets:
-        tmp = qrlnode.addresses
-        if len(tmp) > 0:
-            print(tmp[0].decode())
-        return
 
     #######
     # NOTE: Keep assigned to a variable or might get collected

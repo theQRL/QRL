@@ -14,13 +14,13 @@ __author__ = 'pete'
 
 class DB:
     def __init__(self):
-        self.db_path = os.path.join(config.user.data_path, config.dev.db_name)
-        logger.info('DB path: %s', self.db_path)
+        self.db_dir = os.path.join(config.user.data_dir, config.dev.db_name)
+        logger.info('DB path: %s', self.db_dir)
 
-        os.makedirs(self.db_path, exist_ok=True)
+        os.makedirs(self.db_dir, exist_ok=True)
 
         # TODO: leveldb python module is not very active. Decouple and replace
-        self.db = leveldb.LevelDB(self.db_path)
+        self.db = leveldb.LevelDB(self.db_dir)
 
     def RangeIter(self, key_obj_start, key_obj_end):
         if not isinstance(key_obj_start, bytes):
