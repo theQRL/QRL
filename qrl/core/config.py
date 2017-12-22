@@ -40,11 +40,15 @@ class UserConfig(object):
         # must be less than ping_timeout
 
         self.qrl_dir = os.path.join(expanduser("~"), ".qrl")
+        self.qrlnode_dir = os.path.join(expanduser("~"), ".qrlnode")
 
-        self.data_path = os.path.join(self.qrl_dir, "data")
-        self.wallet_path = os.path.join(self.qrl_dir, "wallet")
-        self.config_path = os.path.join(self.qrl_dir, "config.yml")
-        self.log_path = os.path.join(self.qrl_dir, "qrl.log")
+        self.data_dir = os.path.join(self.qrlnode_dir, "data")
+        self.wallet_staking_dir = os.path.join(self.qrlnode_dir, "wallet")
+
+        self.config_path = os.path.join(self.qrlnode_dir, "config.yml")
+        self.log_path = os.path.join(self.qrlnode_dir, "qrl.log")
+
+        self.wallet_dir = os.path.join(self.qrl_dir)
 
         self.load_yaml(self.config_path)
 

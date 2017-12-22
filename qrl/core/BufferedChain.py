@@ -896,9 +896,6 @@ class BufferedChain:
         if not slave_xmss:
             return None  # FIXME: Not clear why the skip and return False
 
-        # FIXME: Why is it necessary to access the wallet here? Unexpected side effect?
-        self.wallet.save_slave(slave_xmss)
-
         return new_block
 
     def validate_block(self, block: Block) -> bool:
