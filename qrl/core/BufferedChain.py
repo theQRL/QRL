@@ -1619,6 +1619,9 @@ class BufferedChain:
             if blocknumber - 1 == self._chain.height or blocknumber <= 1:
                 return self._chain.pstate.stake_validators_tracker.sv_dict
 
+            if blocknumber - 1 not in self.blocks and blocknumber == self._chain.height:
+                return self._chain.pstate.prev_stake_validators_tracker.sv_dict
+
             return self.blocks[blocknumber - 1].stake_validators_tracker.sv_dict
         except KeyError:
             self.error_msg('stake_list_get', blocknumber)
