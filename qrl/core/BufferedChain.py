@@ -48,11 +48,10 @@ class BufferedChain:
 
         # FIXME: Wallet related. Remove
         self._wallet = Wallet()  # FIXME: Why BufferedChain needs access to the wallet?
-        private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-        self._wallet_private_seeds = {self.epoch: private_seed}
 
         # FIXME: PoS related. Remove
         self.hash_chain = dict()
+        private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
         self.stake_list = []
         self._vote_tracker = dict()  # Tracks votes, against blocknumber
@@ -254,7 +253,6 @@ class BufferedChain:
 
         if block_left == 1:
             private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-            self._wallet_private_seeds[block.epoch + 1] = private_seed
             self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
 
         self._clean_if_required(block.block_number)
@@ -865,7 +863,6 @@ class BufferedChain:
                     logger.info('Created new hash chain')
 
                     prev_private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-                    self._wallet_private_seeds[epoch] = prev_private_seed
                     self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
             stake_validators_tracker.update_sv(block.block_number)
@@ -1135,7 +1132,6 @@ class BufferedChain:
             self.epoch = state_block_number // config.dev.blocks_per_epoch
             self.epoch_seed = self._chain.pstate.get_next_seed()
             private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-            self._wallet_private_seeds = {self.epoch: private_seed}
             mining_address = self.wallet.address_bundle[0].address
             if mining_address in self._chain.pstate.stake_validators_tracker.sv_dict:
                 activation_blocknumber = self._chain.pstate.stake_validators_tracker.sv_dict[mining_address].activation_blocknumber
@@ -1767,9 +1763,6 @@ class BufferedChain:
 
         prev_epoch = block_number // config.dev.blocks_per_epoch
         prev_prev_epoch = prev_epoch - 1
-
-        if prev_prev_epoch in self._wallet_private_seeds:
-            del self._wallet_private_seeds[prev_prev_epoch]
 
         if prev_prev_epoch in self.hash_chain:
             del self.hash_chain[prev_prev_epoch]
