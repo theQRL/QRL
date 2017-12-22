@@ -21,19 +21,6 @@ message Timestamp
 ////////////////////////////
 ////////////////////////////
 
-// This service describes the P2P API
-service P2PAPI
-{
-    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
-    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
-
-    rpc GetBlock(GetBlockReq) returns (GetBlockResp);
-//    rpc PublishBlock(PublishBlockReq) returns (PublishBlockResp);
-
-    // A bidirectional streaming channel is used to avoid any firewalling/NAT issues.
-    rpc ObjectExchange(stream MsgObject) returns(stream MsgObject);
-}
-
 // This service describes the Public API used by clients (wallet/cli/etc)
 service PublicAPI
 {

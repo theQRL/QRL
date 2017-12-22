@@ -17,7 +17,6 @@ from qrl.core.EphemeralMessage import EphemeralMessage
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
-from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 
 
@@ -27,7 +26,7 @@ class P2PFactory(ServerFactory):
     def __init__(self,
                  buffered_chain: BufferedChain,
                  sync_state: SyncState,
-                 qrl_node: QRLNode):
+                 qrl_node):
 
         self.master_mr = MessageReceipt()
         self.pos = None
@@ -43,8 +42,8 @@ class P2PFactory(ServerFactory):
         self._txn_processor_running = False
 
         # Blocknumber for which bkmr is being tracked
-        self.bkmr_blocknumber = 0  # FIXME: Accessed by every p2pprotocol instance
-        self.bkmr_priorityq = queue.PriorityQueue()  # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_blocknumber = 0                               # FIXME: Accessed by every p2pprotocol instance
+        self.bkmr_priorityq = queue.PriorityQueue()             # FIXME: Accessed by every p2pprotocol instance
 
         # Scheduled and cancel the call, just to initialize with IDelayedCall
         self.bkmr_processor = reactor.callLater(1, lambda: None, pos=None)  # FIXME: Accessed by every p2pprotocol
@@ -60,12 +59,29 @@ class P2PFactory(ServerFactory):
     ###################################################
 
     @property
-    def connections(self):
-        return len(self._peer_connections)
-
-    @property
     def has_synced_peers(self):
         return len(self._synced_peers_protocol) > 0
+
+    def get_random_synced_peer(self):
+        return random.sample(self._synced_peers_protocol, 1)[0]
+
+    def set_peer_synced(self, conn_protocol, synced: bool):
+        if synced:
+            self._synced_peers_protocol.add(conn_protocol)
+        else:
+            self._synced_peers_protocol.discard(conn_protocol)
+
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+    ###################################################
+
+    @property
+    def connections(self):
+        return len(self._peer_connections)
 
     @property
     def synced(self):
@@ -74,9 +90,6 @@ class P2PFactory(ServerFactory):
     @property
     def reached_conn_limit(self):
         return len(self._peer_connections) >= config.user.max_peers_limit
-
-    def get_random_synced_peer(self):
-        return random.sample(self._synced_peers_protocol, 1)[0]
 
     def get_connected_peer_ips(self):
         # FIXME: Convert self._peer_connections to set
@@ -148,20 +161,6 @@ class P2PFactory(ServerFactory):
 
         self._last_requested_block_idx = block_index
         random_peer.send_fetch_block(block_index)
-
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-    ###################################################
-    # Encapsulating code that is node related
-
-    def set_peer_synced(self, conn_protocol, synced: bool):
-        if synced:
-            self._synced_peers_protocol.add(conn_protocol)
-        else:
-            self._synced_peers_protocol.discard(conn_protocol)
 
     ###################################################
     ###################################################
@@ -339,7 +338,11 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
     ###################################################
-    # Event handlers
+    # Event handlers / Comms related
+
+    def start_listening(self):
+        reactor.listenTCP(9000, self)
+
     # NOTE: No need to refactor, it is obsolete
     def clientConnectionLost(self, connector, reason):  # noqa
         logger.debug('connection lost: %s', reason)

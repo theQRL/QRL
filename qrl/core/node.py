@@ -55,6 +55,10 @@ class POS:
 
         self.epoch_diff = None
 
+    def start(self):
+        self.restart_monitor_bk(80)
+        reactor.callLater(20, self.initialize_pos)
+
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
         self.restart_unsynced_logic()
@@ -141,6 +145,15 @@ class POS:
         block_obj = self.buffered_chain.create_stake_block(reveal_hash, last_block_number)
         return block_obj
 
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+
     def restart_unsynced_logic(self, delay=0):
         logger.info('Restarting unsynced logic in %s seconds', delay)
         try:
@@ -181,6 +194,15 @@ class POS:
         self.update_node_state(ESyncState.syncing)
         logger.info('Initializing download from %s', self.buffered_chain.height + 1)
         self.p2p_factory.randomize_block_fetch()
+
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
 
     def pre_block_logic(self, block: Block) -> bool:
         # FIXME: Ensure that the chain is in memory
