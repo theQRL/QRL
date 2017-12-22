@@ -46,8 +46,9 @@ class TestPublicAPI(TestCase):
         buffered_chain.height = 0
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pos = p2p_factory.pos
 
         service = PublicAPIService(qrlnode)
         node_state = service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
@@ -69,8 +70,9 @@ class TestPublicAPI(TestCase):
         buffered_chain.height = 0
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pos = p2p_factory.pos
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
@@ -102,8 +104,9 @@ class TestPublicAPI(TestCase):
         buffered_chain.state = db_state
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pos = p2p_factory.pos
 
         service = PublicAPIService(qrlnode)
         stats = service.GetStats(request=qrl_pb2.GetStatsReq, context=None)
@@ -143,8 +146,8 @@ class TestPublicAPI(TestCase):
         buffered_chain = Mock(spec=BufferedChain)
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
@@ -181,8 +184,9 @@ class TestPublicAPI(TestCase):
         buffered_chain.tx_pool.transaction_pool = []
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pos = p2p_factory.pos
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
@@ -314,8 +318,9 @@ class TestPublicAPI(TestCase):
         buffered_chain._chain.blockchain = blocks
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pos = p2p_factory.pos
 
         service = PublicAPIService(qrlnode)
         context = Mock(spec=ServicerContext)
@@ -363,8 +368,8 @@ class TestPublicAPI(TestCase):
         buffered_chain._chain = Mock()
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_p2pfactory(p2p_factory)
         qrlnode.set_chain(buffered_chain)
+        qrlnode._p2pfactory = p2p_factory
 
         service = PublicAPIService(qrlnode)
         context = Mock(spec=ServicerContext)

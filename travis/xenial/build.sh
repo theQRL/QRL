@@ -9,9 +9,9 @@ sudo -E chmod -R a+rxw ${HOME}
 
 cd /travis
 
-sudo -H pip3 install -r requirements.txt
-sudo -H pip3 install -r test-requirements.txt
-sudo -H pip3 install setuptools
+sudo -H pip3 install -r requirements.txt | cat
+sudo -H pip3 install -r test-requirements.txt | cat
+sudo -H pip3 install setuptools | cat
 
 echo
 echo
@@ -32,7 +32,7 @@ if [ -n "${STYLECHECK:+1}" ]; then
     echo "                          STYLE CHECK"
     echo "****************************************************************"
     echo "****************************************************************"
-    sudo pip install -U pycodestyle flake8
+    sudo pip install -U pycodestyle flake8 | cat
     flake8
     pycodestyle
 fi
