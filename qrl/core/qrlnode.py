@@ -9,7 +9,8 @@ from typing import Optional, List
 from qrl.core import config, logger
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.StakeValidator import StakeValidator
-from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey
+from qrl.core.Transaction import TransferTransaction, Transaction, LatticePublicKey, MessageTransaction, \
+    TokenTransaction, TransferTokenTransaction
 from qrl.core.Block import Block
 from qrl.core.TokenList import TokenList
 from qrl.core.ESyncState import ESyncState
@@ -247,6 +248,52 @@ class QRLNode:
                                           fee=fee,
                                           xmss_pk=xmss_pk,
                                           xmss_ots_index=xmss_ots_index)
+
+    def create_unsigned_tx(self, transaction):
+        if transaction.type == qrl_pb2.Transaction.TRANSFER:
+            return TransferTransaction.create(transaction.addr_from,
+                                              transaction.Transfer.addr_to,
+                                              transaction.Transfer.amount,
+                                              transaction.Transfer.fee,
+                                              transaction.xmss_pk,
+                                              transaction.xmss_ots_index)
+
+        elif transaction.type == qrl_pb2.Transaction.LATTICE:
+            return LatticePublicKey.create(transaction.addr_from,
+                                           transaction.LatticePublicKey.kyber_pk,
+                                           transaction.LatticePublicKey.tesla_pk,
+                                           transaction.xmss_pk,
+                                           transaction.xmss_ots_index)
+
+        elif transaction.type == qrl_pb2.Transaction.MESSAGE:
+            return MessageTransaction.create(transaction.addr_from,
+                                             transaction.Message.message_hash,
+                                             transaction.Message.fee,
+                                             transaction.xmss_pk,
+                                             transaction.xmss_ots_index)
+
+        elif transaction.type == qrl_pb2.Transaction.TOKEN:
+            return TokenTransaction.create(transaction.addr_from,
+                                           transaction.Token.symbol,
+                                           transaction.Token.name,
+                                           transaction.Token.owner,
+                                           transaction.Token.decimals,
+                                           transaction.Token.initial_balances,
+                                           transaction.Token.fee,
+                                           transaction.xmss_pk,
+                                           transaction.xmss_ots_index)
+
+        elif transaction.type == qrl_pb2.Transaction.TRANSFERTOKEN:
+            return TransferTokenTransaction.create(transaction.addr_from,
+                                                   transaction.TransferToken.token_txhash,
+                                                   transaction.TransferToken.addr_to,
+                                                   transaction.TransferToken.amount,
+                                                   transaction.TransferToken.fee,
+                                                   transaction.xmss_pk,
+                                                   transaction.xmss_ots_index)
+
+        else:
+            return None
 
     def create_lt(self,
                   addr_from: bytes,

@@ -703,16 +703,16 @@ class MessageTransaction(Transaction):
         return bytes(sha256(tmptxhash))
 
     @staticmethod
-    def create(message_hash: bytes, fee: int, xmss: XMSS):
+    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk, xmss_ots_index):
         transaction = MessageTransaction()
 
-        transaction._data.addr_from = xmss.get_address().encode()
+        transaction._data.addr_from = addr_from
         transaction._data.message.message_hash = message_hash
         transaction._data.message.fee = fee
 
-        transaction._data.public_key = bytes(xmss.pk())
+        transaction._data.public_key = xmss_pk
 
-        transaction._data.ots_key = xmss.get_index()
+        transaction._data.ots_key = xmss_ots_index
         transaction._data.transaction_hash = transaction.calculate_txhash()
 
         return transaction
