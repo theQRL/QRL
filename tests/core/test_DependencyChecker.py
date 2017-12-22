@@ -11,7 +11,7 @@ from mock import mock, MagicMock
 from qrl.core import logger
 from qrl.core.DependencyChecker import DependencyChecker
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestDependencyChecker(TestCase):

@@ -10,7 +10,7 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.node import POS
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestNode(TestCase):

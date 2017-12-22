@@ -7,7 +7,7 @@ from unittest import TestCase
 from qrl.core import logger
 from qrl.core.formulas import calc_coeff, remaining_emission
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestFormulas(TestCase):
@@ -21,6 +21,6 @@ class TestFormulas(TestCase):
 
     def test_remaining_emission(self):
         # TODO: Verify value and required precision
-        print(remaining_emission(100, 2))
+        logger.info(remaining_emission(100, 2))
         self.assertEqual(remaining_emission(100, 2), Decimal('99.99999122'))
         # TODO: Test more values

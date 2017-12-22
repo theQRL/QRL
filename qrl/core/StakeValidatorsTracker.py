@@ -52,7 +52,6 @@ class StakeValidatorsTracker:
         return stake_validators_tracker
 
     def add_sv(self, balance, stake_txn: StakeTransaction, blocknumber):
-        logger.debug("Adding %d %s %s", blocknumber, stake_txn.txfrom, stake_txn)
         if stake_txn.activation_blocknumber > blocknumber:
             self._add_future_sv(balance, stake_txn)
         else:

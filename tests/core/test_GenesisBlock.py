@@ -7,7 +7,7 @@ from qrl.core import logger
 from qrl.core.GenesisBlock import GenesisBlock
 from tests.misc.helper import clean_genesis
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestGenesisBlock(TestCase):

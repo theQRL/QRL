@@ -20,7 +20,7 @@ from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from tests.misc.helper import set_wallet_dir, get_alice_xmss, mocked_genesis, get_random_xmss, get_token_transaction, destroy_state
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestBufferedChain(TestCase):
