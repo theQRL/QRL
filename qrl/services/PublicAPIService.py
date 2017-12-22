@@ -77,6 +77,15 @@ class PublicAPIService(PublicAPIServicer):
         answer.some_response = str(submitted)
         return answer
 
+    @grpc_exception_wrapper(qrl_pb2.UnsignedTransactionResp, StatusCode.UNKNOWN)
+    def GetUnsignedTransaction(self, request: qrl_pb2.UnsignedTransactionReq, context) -> qrl_pb2.UnsignedTransactionResp:
+        logger.debug("[PublicAPI] GetUnsignedTxn")
+        tx = self.qrlnode.create_unsigned_tx(request.transaction)
+        response = None
+        if tx:
+            response = tx.pbdata
+        return qrl_pb2.UnsignedTransactionResp(transaction=response)
+
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetLatticePublicKeyTxn")

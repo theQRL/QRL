@@ -159,6 +159,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.Empty.SerializeToString,
         response_deserializer=qrl__pb2.TokenDetailedList.FromString,
         )
+    self.GetUnsignedTransaction = channel.unary_unary(
+        '/qrl.PublicAPI/GetUnsignedTransaction',
+        request_serializer=qrl__pb2.UnsignedTransactionReq.SerializeToString,
+        response_deserializer=qrl__pb2.UnsignedTransactionResp.FromString,
+        )
 
 
 class PublicAPIServicer(object):
@@ -231,6 +236,12 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetUnsignedTransaction(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -288,6 +299,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetTokenDetailedList,
           request_deserializer=qrl__pb2.Empty.FromString,
           response_serializer=qrl__pb2.TokenDetailedList.SerializeToString,
+      ),
+      'GetUnsignedTransaction': grpc.unary_unary_rpc_method_handler(
+          servicer.GetUnsignedTransaction,
+          request_deserializer=qrl__pb2.UnsignedTransactionReq.FromString,
+          response_serializer=qrl__pb2.UnsignedTransactionResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
