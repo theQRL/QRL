@@ -202,7 +202,7 @@ class State:
     def get_slave_xmss(self):
         return self._db.get(b'slave_xmss')
 
-    def update_slave_xmss(self, slave_xmss, batch):
+    def update_slave_xmss(self, slave_xmss, batch = None):
         if slave_xmss is None:
             self._db.put(b'slave_xmss', None, batch)
         else:

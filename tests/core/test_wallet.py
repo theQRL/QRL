@@ -22,7 +22,7 @@ class TestWallet(TestCase):
         with set_wallet_dir("no_wallet"):
             wallet = Wallet()
             self.assertIsNotNone(wallet)
-            wallet_file_path = os.path.join(config.user.wallet_path, "wallet.qrl")
+            wallet_file_path = os.path.join(config.user.wallet_dir, "wallet.qrl")
             self.assertTrue(isfile(wallet_file_path))
 
     def test_getnewaddress(self):

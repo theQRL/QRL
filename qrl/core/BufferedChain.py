@@ -43,20 +43,19 @@ class BufferedChain:
         if self._chain.height > 0:
             self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
 
-        self.wallet = Wallet()  # FIXME: Why chain needs access to the wallet?
+        self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
+        self.expected_headerhash = dict()
 
+        # FIXME: Wallet related. Remove
+        self._wallet = Wallet()  # FIXME: Why BufferedChain needs access to the wallet?
         private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
         self._wallet_private_seeds = {self.epoch: private_seed}
+
+        # FIXME: PoS related. Remove
         self.hash_chain = dict()
         self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
-
-        self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
-
         self.stake_list = []
-
         self._vote_tracker = dict()  # Tracks votes, against blocknumber
-
-        self.expected_headerhash = dict()
 
         # FIXME: Temporarily moving slave_xmss here
         self.slave_xmss_dict = dict()
@@ -65,11 +64,19 @@ class BufferedChain:
 
     @property
     def staking_address(self):
+        # FIXME: PoS related. Remove
         return self.wallet.address_bundle[0].xmss.get_address()
 
     @property
     def wallet(self):
-        return self.wallet
+        # FIXME: PoS related. Remove
+        return self._wallet
+
+    def set_voted(self, block_number):
+        # FIXME: PoS related. Remove
+        if block_number in self.blocks:
+            block_metadata = self.blocks[block_number]
+            block_metadata.set_voted()
 
     @property
     def transaction_pool(self):
@@ -88,11 +95,6 @@ class BufferedChain:
     @property
     def pstate(self) -> State:
         return self._chain.pstate
-
-    def set_voted(self, block_number):
-        if block_number in self.blocks:
-            block_metadata = self.blocks[block_number]
-            block_metadata.set_voted()
 
     #########################################
     #########################################
@@ -272,6 +274,7 @@ class BufferedChain:
         return self._chain.pstate.get_token_metadata(token_txnhash)
 
     def add_vote(self, vote: Vote):
+        # FIXME: PoS related. Remove
         if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
             return
 
@@ -308,6 +311,7 @@ class BufferedChain:
         return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
 
     def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
+        # FIXME: PoS related. Remove
         if blocknumber not in self._vote_tracker:
             return None
 
@@ -493,6 +497,8 @@ class BufferedChain:
                 block: Block,
                 stake_validators_tracker: StakeValidatorsTracker,
                 address_txn: Dict[bytes, AddressState]) -> bool:
+
+        # FIXME: This method is massive
 
         if block.block_number > 0:
             if block.stake_selector not in stake_validators_tracker.sv_dict:

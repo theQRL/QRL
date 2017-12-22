@@ -21,17 +21,17 @@ from qrl.crypto.xmss import XMSS
 @contextlib.contextmanager
 def set_wallet_dir(wallet_name):
     dst_dir = tempfile.mkdtemp()
-    prev_val = config.user.wallet_path
+    prev_val = config.user.wallet_dir
     try:
         test_path = os.path.dirname(os.path.abspath(__file__))
         src_dir = os.path.join(test_path, "..", "data", wallet_name)
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
-        config.user.wallet_path = dst_dir
+        config.user.wallet_dir = dst_dir
         yield
     finally:
         shutil.rmtree(dst_dir)
-        config.user.wallet_path = prev_val
+        config.user.wallet_dir = prev_val
 
 
 @contextlib.contextmanager

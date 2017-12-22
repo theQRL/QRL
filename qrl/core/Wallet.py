@@ -60,7 +60,6 @@ class Wallet:
             return
 
         try:
-            logger.info('Retrieving wallet file')
             with open(self.wallet_dat_filename, "rb") as infile:
                 wallet_store = qrl_pb2.WalletStore()
                 wallet_store.ParseFromString(bytes(infile.read()))
