@@ -53,7 +53,6 @@ class TestChain(TestCase):
 
                 res = chain.add_block(tmp_block1,
                                       address_state_dict,
-                                      StakeValidatorsTracker(),
                                       b'101')
                 address_state_dict[staking_address].increase_nonce()
                 address_state_dict[staking_address].balance += tmp_block1.block_reward
@@ -96,7 +95,6 @@ class TestChain(TestCase):
 
                         res = chain.add_block(tmp_block1,
                                               address_state_dict,
-                                              StakeValidatorsTracker(),
                                               b'1001')
 
                         address_state_dict[staking_address].increase_nonce()

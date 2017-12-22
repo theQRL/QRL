@@ -14,7 +14,6 @@ class Chain:
     def __init__(self, state):
         self.pstate = state  # FIXME: Is this really a parameter?
         self.blockchain = []  # FIXME: Everyone is touching this
-        # FIXME: Remove completely and trust the db memcache for this
 
     @property
     def height(self):
@@ -26,7 +25,6 @@ class Chain:
     def add_block(self,
                   block: Block,
                   address_state_dict: Dict[bytes, AddressState],
-                  stake_validators_tracker: StakeValidatorsTracker,
                   next_seed) -> bool:
         # TODO : minimum block validation in unsynced _state
         if block.block_number < self.height:
@@ -47,7 +45,6 @@ class Chain:
 
         self._commit(block=block,
                      address_state_dict=address_state_dict,
-                     stake_validators_tracker=stake_validators_tracker,
                      next_seed=next_seed)
 
         return True
@@ -55,7 +52,6 @@ class Chain:
     def _commit(self,
                 block: Block,
                 address_state_dict: Dict[bytes, AddressState],
-                stake_validators_tracker: StakeValidatorsTracker,
                 next_seed):
 
         # FIXME: Check the logig behind these operations
@@ -64,8 +60,6 @@ class Chain:
         batch = self.pstate.get_batch()
 
         self.pstate.update_vote_metadata(block, batch)  # This has to be updated, before the pstate stake_validators
-
-        self.pstate.update_stake_validators(stake_validators_tracker)
 
         for address in address_state_dict:
             self.pstate._save_address_state(address_state_dict[address], batch)

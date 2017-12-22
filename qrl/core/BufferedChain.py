@@ -239,12 +239,12 @@ class BufferedChain:
     def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker, next_seed) -> bool:
         if not self._chain.add_block(block,
                                      address_state_dict,
-                                     stake_validators_tracker,
                                      next_seed):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
             return False
 
+        self.pstate.update_stake_validators(stake_validators_tracker)
         self.tx_pool.remove_tx_in_block_from_pool(block)
 
         # FIXME: clean this up
