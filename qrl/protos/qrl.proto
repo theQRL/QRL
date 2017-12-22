@@ -51,6 +51,8 @@ service PublicAPI
     rpc GetLatticePublicKeyTxn (LatticePublicKeyTxnReq) returns (TransferCoinsResp);
 
     rpc GetTokenDetailedList (Empty) returns (TokenDetailedList);
+
+    rpc GetUnsignedTransaction (UnsignedTransactionReq) returns (UnsignedTransactionResp);
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -166,6 +168,14 @@ message GetStakersReq {
 
 message GetStakersResp {
     repeated StakerData stakers = 1;
+}
+
+message UnsignedTransactionReq {
+    Transaction transaction = 1;
+}
+
+message UnsignedTransactionResp {
+    Transaction transaction = 1;
 }
 
 message TransferCoinsReq {
