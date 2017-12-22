@@ -8,7 +8,7 @@ from pyqrllib.pyqrllib import str2bin
 from qrl.core import logger
 from qrl.crypto.xmss import XMSS
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestXMSS(TestCase):

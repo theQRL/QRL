@@ -8,7 +8,7 @@ from qrl.core import logger, config
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestMessageReceipt(TestCase):

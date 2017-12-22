@@ -11,7 +11,7 @@ from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 test_json_Simple = """{
   "type": "TRANSFER",
@@ -843,7 +843,6 @@ class TestCoinBase(TestCase):
     def test_to_json(self):
         tx = CoinBase.create(self.mock_blockheader, self.alice)
         txjson = tx.to_json()
-        print(txjson)
         self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
 
     def test_from_txdict(self):
@@ -886,7 +885,6 @@ class TestVote(TestCase):
     def test_to_json(self):
         tx = Vote.create(self.blocknumber, self.headerhash, self.alice)
         txjson = tx.to_json()
-        print(txjson)
         self.assertEqual(json.loads(test_json_Vote), json.loads(txjson))
 
     def test_from_txdict(self):

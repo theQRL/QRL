@@ -355,13 +355,7 @@ class QRLNode:
         if not self.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        tmp_address_state = self.db_state.get_address(address)
-        transaction_hashes = self.db_state.get_address_tx_hashes(address)
-        address_state = qrl_pb2.AddressState(address=tmp_address_state.address,
-                                             balance=tmp_address_state.balance,
-                                             nonce=tmp_address_state.nonce,
-                                             ots_bitfield=tmp_address_state.ots_bitfield,
-                                             transaction_hashes=transaction_hashes)
+        address_state = self._buffered_chain.get_address_state(address)
 
         return address_state
 
@@ -391,12 +385,7 @@ class QRLNode:
         return self._buffered_chain.get_block(index)
 
     def get_blockidx_from_txhash(self, transaction_hash):
-        answer = self.db_state.get_tx_metadata(transaction_hash)
-        if answer is None:
-            return None
-        else:
-            _, block_index = answer
-        return block_index
+        return self._buffered_chain.get_blockidx_from_txhash(transaction_hash)
 
     def get_token_detailed_list(self):
         pbdata = self.db_state.get_token_list()

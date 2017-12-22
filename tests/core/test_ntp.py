@@ -8,7 +8,7 @@ import ntplib
 from qrl.core import logger, ntp
 from qrl.core.ntp import getNTP, get_ntp_response, setDrift, getTime
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestNTP(TestCase):

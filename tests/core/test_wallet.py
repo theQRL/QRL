@@ -11,7 +11,7 @@ from qrl.core import logger, config
 from qrl.core.Wallet import Wallet
 from tests.misc.helper import set_wallet_dir
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestWallet(TestCase):

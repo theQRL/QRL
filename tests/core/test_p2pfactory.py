@@ -7,7 +7,7 @@ from qrl.core import logger
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.p2pprotocol import P2PProtocol
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestP2PFactory(TestCase):

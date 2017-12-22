@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from copy import deepcopy
 from typing import List
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
@@ -397,13 +398,15 @@ class State:
     def update_vote_metadata(self, block, batch):
         if len(block.transactions) == 0:
             return
+        if block.block_number == 1:
+            self.prev_stake_validators_tracker = deepcopy(self.stake_validators_tracker)
 
-        total_stake_amount = self.stake_validators_tracker.get_total_stake_amount()
+        total_stake_amount = self.prev_stake_validators_tracker.get_total_stake_amount()
         voted_weight = 0
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.vote:
             vote = Transaction.from_pbdata(protobuf_txn)
-            voted_weight += self.stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
+            voted_weight += self.prev_stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
 
         self._db.put(b'vote_' + str(block.block_number).encode(),
                      [voted_weight,

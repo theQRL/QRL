@@ -13,6 +13,7 @@ from qrl.core import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
+from qrl.core.Chain import Chain
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.Transaction import TransferTransaction, StakeTransaction
@@ -27,7 +28,7 @@ from qrl.services.PublicAPIService import PublicAPIService
 from qrl.core import config
 from tests.misc.helper import qrladdress, get_alice_xmss, get_bob_xmss
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestPublicAPI(TestCase):
@@ -82,7 +83,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual('127.0.0.1', response.known_peers[0].ip)
         self.assertEqual('192.168.1.1', response.known_peers[1].ip)
 
-        print(response)
+        logger.info(response)
 
     def test_getStats(self):
         db_state = Mock(spec=State)
@@ -129,7 +130,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(1000, stats.coins_emitted)
         self.assertEqual(0, stats.coins_atstake)
 
-        print(stats)
+        logger.info(stats)
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
@@ -143,7 +144,8 @@ class TestPublicAPI(TestCase):
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
         p2p_factory = Mock(spec=P2PFactory)
-        buffered_chain = Mock(spec=BufferedChain)
+        chain = Chain(db_state)
+        buffered_chain = BufferedChain(chain)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_chain(buffered_chain)
@@ -362,10 +364,8 @@ class TestPublicAPI(TestCase):
         db_state.stake_validators_tracker.sv_dict = dict()
 
         p2p_factory = Mock(spec=P2PFactory)
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.tx_pool = Mock()
-        buffered_chain.get_block = Mock()
-        buffered_chain._chain = Mock()
+        chain = Chain(db_state)
+        buffered_chain = BufferedChain(chain)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_chain(buffered_chain)

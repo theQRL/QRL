@@ -43,7 +43,7 @@ if [ -n "${TEST:+1}" ]; then
     echo "                            TEST"
     echo "****************************************************************"
     echo "****************************************************************"
-    python3 setup.py test
+    python3 setup.py test 2>/dev/null
 fi
 
 if [ -n "${DEPLOY:+1}" ]; then

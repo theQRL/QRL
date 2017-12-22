@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from qrl.core import logger
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 # FIXME: These tests will soon be removed

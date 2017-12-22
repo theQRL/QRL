@@ -108,8 +108,12 @@ class PublicAPIService(PublicAPIServicer):
         if transaction is not None:
             answer.found = True
             block_index = self.qrlnode.get_blockidx_from_txhash(transaction.txhash)
-            block = self.qrlnode.get_block_from_index(block_index)
-            txextended = qrl_pb2.TransactionExtended(header=block.blockheader.pbdata,
+            blockheader = None
+            if block_index:
+                block = self.qrlnode.get_block_from_index(block_index)
+                blockheader = block.blockheader.pbdata
+
+            txextended = qrl_pb2.TransactionExtended(header=blockheader,
                                                      tx=transaction.pbdata)
             answer.transaction.CopyFrom(txextended)
             return answer

@@ -16,7 +16,7 @@ from qrl.core.AddressState import AddressState
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from tests.misc.helper import set_wallet_dir, get_alice_xmss
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestChain(TestCase):
@@ -121,5 +121,3 @@ class TestChain(TestCase):
                         self.assertEqual(i, chain.height)  # FIXME: wrong name, it is not height but max_index
 
                         self.assertTrue(res)
-
-                print(qrl.core.config.dev.disk_writes_after_x_blocks)

@@ -49,6 +49,10 @@ class AddressState(object):
     def ots_bitfield(self):
         return self._data.ots_bitfield
 
+    @property
+    def transaction_hashes(self):
+        return self._data.transaction_hashes
+
     @staticmethod
     def create(address: bytes, nonce: int, balance: int, ots_bitfield: list, tokens: dict):
         address_state = AddressState()

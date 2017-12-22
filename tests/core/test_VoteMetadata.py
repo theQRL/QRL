@@ -9,7 +9,7 @@ from qrl.core.Transaction import Vote
 from qrl.crypto.xmss import XMSS
 from tests.misc.helper import get_alice_xmss, get_random_xmss
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestVoteMetadata(TestCase):

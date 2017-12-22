@@ -9,7 +9,7 @@ from qrl.core.Transaction import TransferTokenTransaction
 from qrl.crypto.misc import sha256
 from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
-logger.initialize_default(force_console_output=True)
+logger.initialize_default()
 
 
 class TestState(TestCase):
