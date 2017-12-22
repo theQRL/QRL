@@ -49,9 +49,6 @@ service PublicAPI
 // This is a place holder for testing/instrumentation APIs
 service AdminAPI
 {
-    // FIXME: Use TLS and some signature scheme to validate the cli?
-    // At the moment, it will run locally
-    rpc GetLocalAddresses(GetLocalAddressesReq) returns (GetLocalAddressesResp);
 }
 
 ////////////////////////////
