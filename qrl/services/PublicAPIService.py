@@ -229,9 +229,7 @@ class PublicAPIService(PublicAPIServicer):
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS_UNCONFIRMED:
             result = []
             for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=quantity):
-                block_index = self.qrlnode.get_blockidx_from_txhash(tx.txhash)
-                block = self.qrlnode.get_block_from_index(block_index)
-                txextended = qrl_pb2.TransactionExtended(header=block.blockheader.pbdata,
+                txextended = qrl_pb2.TransactionExtended(header=None,
                                                          tx=tx.pbdata)
                 result.append(txextended)
             response.transactions_unconfirmed.extend(result)
