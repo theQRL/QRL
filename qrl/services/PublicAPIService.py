@@ -3,10 +3,11 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from grpc import StatusCode
 
-from qrl.core import logger
+from qrl.core import logger, config
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import grpc_exception_wrapper
@@ -75,17 +76,6 @@ class PublicAPIService(PublicAPIServicer):
         answer = qrl_pb2.PushTransactionResp()
         answer.some_response = str(submitted)
         return answer
-
-    @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
-    def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
-        logger.debug("[PublicAPI] GetLatticePublicKeyTxn")
-        tx = self.qrlnode.create_lt(addr_from=request.address_from,
-                                    fee=request.fee,
-                                    kyber_pk=request.kyber_pk,
-                                    dilithium_pk=request.dilithium_pk,
-                                    xmss_pk=request.xmss_pk)
-
-        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
     @grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
@@ -227,3 +217,26 @@ class PublicAPIService(PublicAPIServicer):
             response.transactions_unconfirmed.extend(result)
 
         return response
+
+    @grpc_exception_wrapper(qrl_pb2.PushTransactionResp, StatusCode.UNKNOWN)
+    def PushEphemeralMessage(self, request: qrl_pb2.PushEphemeralMessageReq, context) -> qrl_pb2.PushTransactionResp:
+        logger.debug("[PublicAPI] PushEphemeralMessageReq")
+        submitted = False
+
+        if config.user.accept_ephemeral:
+            encrypted_ephemeral_message = EncryptedEphemeralMessage(request.ephemeral_message)
+            submitted = self.qrlnode.broadcast_ephemeral_message(encrypted_ephemeral_message)
+
+        answer = qrl_pb2.PushTransactionResp()
+        answer.some_response = str(submitted)
+        return answer
+
+    @grpc_exception_wrapper(qrl_pb2.PushTransactionResp, StatusCode.UNKNOWN)
+    def CollectEphemeralMessage(self,
+                                request: qrl_pb2.CollectEphemeralMessageReq,
+                                context) -> qrl_pb2.CollectEphemeralMessageResp:
+        logger.debug("[PublicAPI] CollectEphemeralMessage")
+
+        ephemeral_metadata = self.qrlnode.collect_ephemeral_message(request.msg_id)
+        answer = qrl_pb2.CollectEphemeralMessageResp(ephemeral_metadata=ephemeral_metadata.pbdata)
+        return answer

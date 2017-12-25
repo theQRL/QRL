@@ -530,8 +530,8 @@ class LatticePublicKey(Transaction):
 
         transaction._data.public_key = xmss_pk
 
-        transaction._data.latticePK.kyber_pk = kyber_pk
-        transaction._data.latticePK.dilithium_pk = dilithium_pk
+        transaction._data.latticePK.kyber_pk = bytes(kyber_pk)
+        transaction._data.latticePK.dilithium_pk = bytes(dilithium_pk)
 
         return transaction
 

@@ -53,6 +53,10 @@ class AddressState(object):
     def transaction_hashes(self):
         return self._data.transaction_hashes
 
+    @property
+    def latticePK_list(self):
+        return self._data.latticePK_list
+
     @staticmethod
     def create(address: bytes, nonce: int, balance: int, ots_bitfield: list, tokens: dict):
         address_state = AddressState()
@@ -66,6 +70,12 @@ class AddressState(object):
             address_state.tokens[token_txhash] = tokens[token_txhash]
 
         return address_state
+
+    def add_lattice_pk(self, lattice_txn):
+        lattice_pk = qrl_pb2.LatticePK(dilithium_pk=lattice_txn.dilithium_pk,
+                                       kyber_pk=lattice_txn.kyber_pk)
+
+        self._data.latticePK_list.MergeFrom([lattice_pk])
 
     def increase_nonce(self):
         self._data.nonce += 1

@@ -387,14 +387,13 @@ class TestBufferedChain(TestCase):
                     chain = buffered_chain._chain
                     random_xmss1_state = chain.pstate._get_address_state(random_xmss1.get_address())
                     random_xmss2_state = chain.pstate._get_address_state(random_xmss2.get_address())
-                    lattice_state = chain.pstate.get_lattice_public_key(random_xmss1.get_address())
-                    lattice_public_key_state_txn = LatticePublicKey(lattice_state.lattice_keys[0])
+                    address_state = chain.pstate.get_address(random_xmss1.get_address())
 
                     self.assertEqual(random_xmss1_state.tokens[bin2hstr(token_transaction.txhash).encode()], 400000000)
                     self.assertEqual(random_xmss2_state.tokens[bin2hstr(token_transaction.txhash).encode()], 200000000)
-                    self.assertEqual(lattice_public_key_state_txn.kyber_pk, lattice_public_key_txn.kyber_pk)
-                    self.assertEqual(lattice_public_key_state_txn.dilithium_pk, lattice_public_key_txn.dilithium_pk)
-                    self.assertEqual(lattice_public_key_state_txn.txfrom, lattice_public_key_txn.txfrom)
+                    self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
+                    self.assertEqual(address_state.latticePK_list[0].dilithium_pk, lattice_public_key_txn.dilithium_pk)
+                    self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
                     # Need to move forward the time to align with block times
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block3.timestamp + config.dev.minimum_minting_delay

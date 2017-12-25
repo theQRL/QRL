@@ -13,12 +13,12 @@ from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.VoteTracker import VoteTracker
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Transaction import CoinBase, Transaction, Vote
-from qrl.core.EphemeralMessage import EphemeralMessage
 from qrl.core.TransactionPool import TransactionPool
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
@@ -264,14 +264,8 @@ class BufferedChain:
     def add_lattice_public_key(self, lattice_public_key_txn):
         self._chain.pstate.put_lattice_public_key(lattice_public_key_txn)
 
-    def get_lattice_public_key(self, address: bytes) -> list:
-        return self._chain.pstate.get_lattice_public_key(address)
-
-    def add_ephemeral_message(self, ephemeral_message: EphemeralMessage, operator_xmss_address):
-        self._chain.pstate.update_active_ephemeral_channel(ephemeral_message, operator_xmss_address)
-
-    def get_ephemeral_message_logs(self, address_from: bytes) -> bytes:
-        return self._chain.pstate.get_ephemeral_message_logs(address_from)
+    def add_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage):
+        self._chain.pstate.update_ephemeral(encrypted_ephemeral)
 
     def get_token_metadata(self, token_txnhash) -> TokenMetadata:
         return self._chain.pstate.get_token_metadata(token_txnhash)
@@ -755,6 +749,9 @@ class BufferedChain:
                               qrl_pb2.Transaction.TRANSFERTOKEN,
                               qrl_pb2.Transaction.LATTICE):
                 address_txn[tx.txfrom].balance -= tx.fee
+
+            if tx.subtype == qrl_pb2.Transaction.LATTICE:
+                address_txn[tx.txfrom].add_lattice_pk(tx)
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
                 for initial_balance in tx.initial_balances:
@@ -1809,3 +1806,6 @@ class BufferedChain:
         # FIXME: This should not be here
         if prev_prev_epoch in self.slave_xmss:
             del self.slave_xmss[prev_prev_epoch]
+
+    def collect_ephemeral_message(self, msg_id):
+        return self.pstate.get_ephemeral_metadata(msg_id)
