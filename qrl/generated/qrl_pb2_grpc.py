@@ -67,25 +67,15 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
         response_deserializer=qrl__pb2.PushTransactionResp.FromString,
         )
-    self.GetLatticePublicKeyTxn = channel.unary_unary(
-        '/qrl.PublicAPI/GetLatticePublicKeyTxn',
-        request_serializer=qrl__pb2.LatticePublicKeyTxnReq.SerializeToString,
-        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
-        )
-    self.PushEphemeralChannel = channel.unary_unary(
-        '/qrl.PublicAPI/PushEphemeralChannel',
-        request_serializer=qrl__pb2.EphemeralChannelReq.SerializeToString,
-        response_deserializer=qrl__pb2.PushTransactionResp.FromString,
-        )
     self.PushEphemeralMessage = channel.unary_unary(
         '/qrl.PublicAPI/PushEphemeralMessage',
-        request_serializer=qrl__pb2.EphemeralChannelReq.SerializeToString,
+        request_serializer=qrl__pb2.PushEphemeralMessageReq.SerializeToString,
         response_deserializer=qrl__pb2.PushTransactionResp.FromString,
         )
-    self.GetEphemeralMessageLogs = channel.unary_unary(
-        '/qrl.PublicAPI/GetEphemeralMessageLogs',
-        request_serializer=qrl__pb2.EphemeralChannelReq.SerializeToString,
-        response_deserializer=qrl__pb2.PushTransactionResp.FromString,
+    self.CollectEphemeralMessage = channel.unary_unary(
+        '/qrl.PublicAPI/CollectEphemeralMessage',
+        request_serializer=qrl__pb2.CollectEphemeralMessageReq.SerializeToString,
+        response_deserializer=qrl__pb2.CollectEphemeralMessageResp.FromString,
         )
     self.GetTokenDetailedList = channel.unary_unary(
         '/qrl.PublicAPI/GetTokenDetailedList',
@@ -160,26 +150,14 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetLatticePublicKeyTxn(self, request, context):
+  def PushEphemeralMessage(self, request, context):
     """------- Ephemeral API -------
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def PushEphemeralChannel(self, request, context):
-    # missing associated documentation comment in .proto file
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def PushEphemeralMessage(self, request, context):
-    # missing associated documentation comment in .proto file
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def GetEphemeralMessageLogs(self, request, context):
+  def CollectEphemeralMessage(self, request, context):
     """------------------------------
     """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -240,25 +218,15 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.PushTransactionReq.FromString,
           response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
       ),
-      'GetLatticePublicKeyTxn': grpc.unary_unary_rpc_method_handler(
-          servicer.GetLatticePublicKeyTxn,
-          request_deserializer=qrl__pb2.LatticePublicKeyTxnReq.FromString,
-          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
-      ),
-      'PushEphemeralChannel': grpc.unary_unary_rpc_method_handler(
-          servicer.PushEphemeralChannel,
-          request_deserializer=qrl__pb2.EphemeralChannelReq.FromString,
-          response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
-      ),
       'PushEphemeralMessage': grpc.unary_unary_rpc_method_handler(
           servicer.PushEphemeralMessage,
-          request_deserializer=qrl__pb2.EphemeralChannelReq.FromString,
+          request_deserializer=qrl__pb2.PushEphemeralMessageReq.FromString,
           response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
       ),
-      'GetEphemeralMessageLogs': grpc.unary_unary_rpc_method_handler(
-          servicer.GetEphemeralMessageLogs,
-          request_deserializer=qrl__pb2.EphemeralChannelReq.FromString,
-          response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
+      'CollectEphemeralMessage': grpc.unary_unary_rpc_method_handler(
+          servicer.CollectEphemeralMessage,
+          request_deserializer=qrl__pb2.CollectEphemeralMessageReq.FromString,
+          response_serializer=qrl__pb2.CollectEphemeralMessageResp.SerializeToString,
       ),
       'GetTokenDetailedList': grpc.unary_unary_rpc_method_handler(
           servicer.GetTokenDetailedList,

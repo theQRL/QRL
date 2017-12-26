@@ -283,7 +283,8 @@ class TestPublicAPI(TestCase):
         txs = []
         for i in range(1, 4):
             for j in range(1, 3):
-                txs.append(TransferTransaction.create(addr_to=qrladdress('dest'),
+                txs.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
+                                                      addr_to=qrladdress('dest'),
                                                       amount=i * 100 + j,
                                                       fee=j,
                                                       xmss_pk=get_alice_xmss().pk()))
@@ -300,7 +301,8 @@ class TestPublicAPI(TestCase):
 
         txpool = []
         for j in range(10, 15):
-            txpool.append(TransferTransaction.create(addr_to=qrladdress('dest'),
+            txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
+                                                     addr_to=qrladdress('dest'),
                                                      amount=1000 + j,
                                                      fee=j,
                                                      xmss_pk=get_alice_xmss().pk()))

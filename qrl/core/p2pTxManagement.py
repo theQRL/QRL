@@ -4,7 +4,7 @@ from twisted.internet import reactor
 
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
-from qrl.core.EphemeralMessage import EphemeralMessage
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 
 from qrl.core.messagereceipt import MessageReceipt
 
@@ -410,32 +410,25 @@ class P2PTxManagement(P2PBaseObserver):
 
     def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Receives Ephemeral Transaction
+        Receives Ephemeral Message
         :param message:
         :return:
         """
         try:
-            ephemeral_message = EphemeralMessage.from_json(message)
+            encrypted_ephemeral = EncryptedEphemeralMessage.from_json(message)
         except Exception as e:
             logger.error('ephemeral_message rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(ephemeral_message.get_message_hash(), self):
+        if not source.factory.master_mr.isRequested(encrypted_ephemeral.get_message_hash(), self):
             return
 
-        source.factory.register_and_broadcast('EPH',
-                                              ephemeral_message.get_message_hash(),
-                                              ephemeral_message.to_json())
+        if not encrypted_ephemeral.validate():
+            return
 
-        for addr in source.factory.buffered_chain.wallet.address_bundle:
-            lattice_public_keys = source.factory.buffered_chain.get_lattice_public_key(addr.address)
-            if not lattice_public_keys.lattice_keys:
-                continue
-            if ephemeral_message.verify(lattice_public_keys.lattice_keys, addr.address):
-                source.factory.buffered_chain.add_ephemeral_message(ephemeral_message, addr.address)
-                return
+        source.factory.buffered_chain.add_ephemeral_message(encrypted_ephemeral)
 
     def handle_lattice(self, source, message: qrllegacy_pb2.LegacyMessage):
         """

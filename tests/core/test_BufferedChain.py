@@ -114,7 +114,7 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    tmp_block = Block.create(staking_address=bytes(alice_xmss.get_address()),
+                    tmp_block = Block.create(staking_address=alice_xmss.get_address(),
                                              block_number=1,
                                              reveal_hash=h0,
                                              prevblock_headerhash=custom_genesis.headerhash,
@@ -283,7 +283,8 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    lattice_public_key_txn = LatticePublicKey.create(fee=1,
+                    lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
+                                                                     fee=1,
                                                                      kyber_pk=b'0a9b82c1204f',
                                                                      dilithium_pk=b'a4ec1a685df3',
                                                                      xmss_pk=random_xmss1.pk())
@@ -315,7 +316,8 @@ class TestBufferedChain(TestCase):
                     transfer_token2.sign(random_xmss2)
 
                     # Transfer Coin Transaction
-                    transfer_transaction = TransferTransaction.create(addr_to=random_xmss2.get_address(),
+                    transfer_transaction = TransferTransaction.create(addr_from=random_xmss1.get_address(),
+                                                                      addr_to=random_xmss2.get_address(),
                                                                       amount=10,
                                                                       fee=1,
                                                                       xmss_pk=random_xmss1.pk())
@@ -387,14 +389,13 @@ class TestBufferedChain(TestCase):
                     chain = buffered_chain._chain
                     random_xmss1_state = chain.pstate._get_address_state(random_xmss1.get_address())
                     random_xmss2_state = chain.pstate._get_address_state(random_xmss2.get_address())
-                    lattice_state = chain.pstate.get_lattice_public_key(random_xmss1.get_address())
-                    lattice_public_key_state_txn = LatticePublicKey(lattice_state.lattice_keys[0])
+                    address_state = chain.pstate.get_address(random_xmss1.get_address())
 
                     self.assertEqual(random_xmss1_state.tokens[bin2hstr(token_transaction.txhash).encode()], 400000000)
                     self.assertEqual(random_xmss2_state.tokens[bin2hstr(token_transaction.txhash).encode()], 200000000)
-                    self.assertEqual(lattice_public_key_state_txn.kyber_pk, lattice_public_key_txn.kyber_pk)
-                    self.assertEqual(lattice_public_key_state_txn.dilithium_pk, lattice_public_key_txn.dilithium_pk)
-                    self.assertEqual(lattice_public_key_state_txn.txfrom, lattice_public_key_txn.txfrom)
+                    self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
+                    self.assertEqual(address_state.latticePK_list[0].dilithium_pk, lattice_public_key_txn.dilithium_pk)
+                    self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
                     # Need to move forward the time to align with block times
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block3.timestamp + config.dev.minimum_minting_delay

@@ -23,6 +23,9 @@ class UserConfig(object):
         # Default configuration
         self.enable_auto_staking = True
 
+        # Ephemeral Configuration
+        self.accept_ephemeral = True
+
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['104.237.3.184',

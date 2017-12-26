@@ -53,7 +53,7 @@ message LegacyMessage {
         Transaction tkData = 16;
         Transaction ttData = 17;
         Transaction ltData = 18;
-        EphemeralMessage ephData = 19;
+        EncryptedEphemeralMessage ephData = 19;
         SYNCData syncData = 20;
     }
 }

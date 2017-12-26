@@ -39,10 +39,8 @@ service PublicAPI
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
     // ------- Ephemeral API -------
-    rpc GetLatticePublicKeyTxn (LatticePublicKeyTxnReq) returns (TransferCoinsResp);
-    rpc PushEphemeralChannel (EphemeralChannelReq) returns (PushTransactionResp);
-    rpc PushEphemeralMessage (EphemeralChannelReq) returns (PushTransactionResp);
-    rpc GetEphemeralMessageLogs (EphemeralChannelReq) returns (PushTransactionResp);
+    rpc PushEphemeralMessage (PushEphemeralMessageReq) returns (PushTransactionResp);
+    rpc CollectEphemeralMessage (CollectEphemeralMessageReq) returns (CollectEphemeralMessageResp);
     // ------------------------------
 
     rpc GetTokenDetailedList (Empty) returns (TokenDetailedList);
@@ -90,31 +88,6 @@ message GetBlockResp {
     NodeInfo node_info = 1;
     Block block = 2;
 }
-
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-
-message MsgObject {
-    oneof messageKind {
-        // Overlapping - objects used for 2-way exchanges
-        EphemeralMessage ephemeral = 1;
-        // P2PRequest request = 1;
-        // P2PResponse response = 2;
-    }
-}
-
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
-////////////////////////////
 
 message GetStatsReq { }
 message GetStatsResp {
@@ -188,37 +161,10 @@ message TransferCoinsReq {
     bytes xmss_pk = 5;                      // XMSS Public key
     uint64 xmss_ots_index = 6;              // XMSS One time signature index
 }
+
 message TransferCoinsResp {
     Transaction transaction_unsigned = 1;
 }
-
-message LatticePublicKeyTxnReq {
-    bytes address_from = 1;
-    uint64 fee = 2;
-    bytes kyber_pk = 3;
-    bytes dilithium_pk = 4;
-    bytes xmss_pk = 5;
-    uint64 xmss_ots_index = 6;
-}
-
-message EphemeralChannelReq {
-    bytes address_from = 1;
-    bytes address_to = 2;
-    uint64 ttl = 3;
-    uint64 active = 4;
-    bytes symmetric_key = 5;
-    bytes prf512 = 6;
-    bytes message = 7;
-}
-
-message EncryptedEphemeralMessage {
-    bytes aes256_symkey = 1;
-    bytes prf512_seed = 2;
-    bytes xmss_address = 3;
-    bytes xmss_pk = 4;
-    bytes xmss_signature = 5;
-}
-
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
@@ -304,6 +250,13 @@ message AddressState {
     repeated bytes ots_bitfield = 4;
     repeated bytes transaction_hashes = 5;
     map<string, uint64> tokens = 6;
+    repeated LatticePK latticePK_list = 7;
+}
+
+message LatticePK {
+    bytes txhash = 1;
+    bytes dilithium_pk = 2;
+    bytes kyber_pk = 3;
 }
 
 message StakerData {
@@ -396,28 +349,29 @@ message Transaction {
     }
 
     Type type = 1;
-
-    uint64 nonce = 2;
-    bytes public_key = 3;
-    bytes signature = 4;
+    bytes addr_from = 2;
+    uint64 fee = 3;
+    bytes public_key = 4;
+    bytes signature = 5;
+    uint64 nonce = 6;
+    bytes transaction_hash = 7;
 
     oneof transactionType {
-        Transfer transfer = 5;
-        Stake stake = 6;
-        CoinBase coinbase = 7;
-        LatticePublicKey latticePK = 8;
-        Duplicate duplicate = 9;
-        Vote vote = 10;
-        Message message = 11;
-        Token token = 12;
-        TransferToken transfer_token = 13;
+        Transfer transfer = 8;
+        Stake stake = 9;
+        CoinBase coinbase = 10;
+        LatticePublicKey latticePK = 11;
+        Duplicate duplicate = 12;
+        Vote vote = 13;
+        Message message = 14;
+        Token token = 15;
+        TransferToken transfer_token = 16;
     }
 
     //////////
     message Transfer {
         bytes addr_to = 1;
         uint64 amount = 2;
-        uint64 fee = 3;
     }
 
     message Stake {
@@ -437,9 +391,8 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        uint64 fee = 1;
-        bytes kyber_pk = 2;
-        bytes dilithium_pk = 3;
+        bytes kyber_pk = 1;
+        bytes dilithium_pk = 2;
     }
 
     message Duplicate {
@@ -458,7 +411,6 @@ message Transaction {
 
     message Message {
         bytes message_hash = 1;
-        uint64 fee=2;
     }
 
     message Token {
@@ -467,14 +419,12 @@ message Transaction {
         bytes owner = 3;
         uint64 decimals = 4;
         repeated AddressAmount initial_balances = 5;
-        uint64 fee = 6;
     }
 
     message TransferToken {
         bytes token_txhash = 1;
         bytes addr_to = 2;
         uint64 amount = 3;
-        uint64 fee = 4;
     }
 }
 
@@ -498,31 +448,50 @@ message TokenMetadata {
 ////////////////////////////
 ////////////////////////////
 ////////////////////////////
-message EphemeralMessage {
+
+message CollectEphemeralMessageReq {
     bytes msg_id = 1;
-    uint64 ttl = 2;
-    uint64 active = 3;
-    bytes message = 4;       // Encrypted String containing aes256_symkey, prf512_seed, xmss_address, signature
 }
 
-message MessageLog {         // Change name to EphemeralMessageLog
-    bytes message = 1;
-    uint64 ttl = 2;
-    bytes address_from = 3;
+message CollectEphemeralMessageResp {
+    EphemeralMetadata ephemeral_metadata = 1;
 }
 
-message EphemeralMetadata {
-    Transaction lattice_key_txn = 1;
-    bytes xmss_from = 2;
-    bytes xmss_to = 3;
-    bytes sender_expected_prf = 4;
-    bytes receiver_expected_prf = 5;
-    bytes aes256_symkey = 6;
-    repeated MessageLog message_logs = 7;
+message PushEphemeralMessageReq {
+    EncryptedEphemeralMessage ephemeral_message = 1;
+}
+
+message EncryptedEphemeralMessage {
+    bytes msg_id = 1;                       // b'NEW' or PRF
+    uint64 ttl = 2;                         // Expiry Timestamp in seconds
+    uint64 ttr = 3;                         // Time to relay
+    message Channel {
+        bytes enc_aes256_symkey = 4;        // aes256_symkey encrypted by kyber
+    }
+    Channel channel = 5;
+    uint64 nonce = 6;                       // nonce
+    bytes payload = 7;                      // JSON content, encrypted by aes256_symkey
+}
+
+message EphemeralChannelPayload {
+    bytes prf512_seed = 1;                  // PRF512 seed used for further communication after channel established
+    bytes dilithium_signature = 2;          // Sign hash of (msg_id, ttl, enc_aes256_symkey, prf512_seed, addr_from,
+                                            // data)
+    bytes addr_from = 3;                    // Sender address
+    bytes data = 4;                         // Could be anything, plain-text, binary, JSON etc.
+}
+
+message EphemeralMessagePayload {
+    bytes addr_from = 1;                    // Sender address
+    bytes data = 2;                         // Could be anything, plain-text, binary, JSON etc.
 }
 
 message LatticePublicKeys {
     repeated Transaction lattice_keys = 1;
+}
+
+message EphemeralMetadata {
+    repeated EncryptedEphemeralMessage encrypted_ephemeral_message_list = 2;
 }
 ////////////////////////////
 
