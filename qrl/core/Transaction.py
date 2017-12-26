@@ -118,10 +118,8 @@ class Transaction(object, metaclass=ABCMeta):
         offset = ots_key // 8
         relative = ots_key % 8
         bitfield = address_txn[txfrom]._data.ots_bitfield[offset]
-        address_txn[txfrom]._data.ots_bitfield[offset] = chr(
-                                                             int.from_bytes(bitfield, byteorder=sys.byteorder) |
-                                                             (1 << relative)
-                                                            ).encode()
+        bitnumber = (int.from_bytes(bitfield, byteorder=sys.byteorder) | int(str(1 << relative), 0))
+        address_txn[txfrom]._data.ots_bitfield[offset] = bytes(tuple((bitnumber,)))
 
     @abstractmethod
     def _get_hashable_bytes(self):
