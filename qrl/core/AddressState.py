@@ -72,7 +72,8 @@ class AddressState(object):
         return address_state
 
     def add_lattice_pk(self, lattice_txn):
-        lattice_pk = qrl_pb2.LatticePK(dilithium_pk=lattice_txn.dilithium_pk,
+        lattice_pk = qrl_pb2.LatticePK(txhash=lattice_txn.txhash,
+                                       dilithium_pk=lattice_txn.dilithium_pk,
                                        kyber_pk=lattice_txn.kyber_pk)
 
         self._data.latticePK_list.MergeFrom([lattice_pk])

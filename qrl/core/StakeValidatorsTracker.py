@@ -80,8 +80,13 @@ class StakeValidatorsTracker:
         self.future_stake_addresses[stake_txn.txfrom] = deepcopy(sv.pbdata)
         self._data.future_sv_dict[stake_txn.activation_blocknumber].stake_validators.extend([sv.pbdata])
 
+    # TODO (Cyyber): Merge this function with activate_sv
     def _activate_future_sv(self, sv):
         self.sv_dict[sv.address] = deepcopy(sv)
+
+        str_slave_public_key = bin2hstr(self.sv_dict[sv.address].slave_public_key)
+        self.slave_public_key_dict[str_slave_public_key] = sv.address
+
         self._data.total_stake_amount += sv.balance
         self._data.expiry[sv.activation_blocknumber + config.dev.blocks_per_epoch].addresses.extend([sv.address])
 

@@ -39,17 +39,20 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.type
 
     @property
+    def fee(self):
+        return self._data.fee
+
+    @property
     def nonce(self):
         return self._data.nonce
 
     @property
     def txfrom(self):
-        return getAddress('Q', self._data.public_key).encode()
+        return self._data.addr_from
 
-    # TODO: Combine txfrom and addr_from into one
     @property
     def addr_from(self):
-        return getAddress('Q', self._data.public_key).encode()
+        return self._data.addr_from
 
     @property
     def ots_key(self):
@@ -131,21 +134,25 @@ class Transaction(object, metaclass=ABCMeta):
 
     @property
     def txhash(self) -> bytes:
-        tmptxhash = (
-                     bin2hstr(self._get_hashable_bytes()).encode() +
-                     self._data.public_key +
-                     self._data.signature
-                    )
-        return sha256(tmptxhash)
+        return self._data.transaction_hash
 
     def sign(self, xmss):
-        self._data.signature = xmss.SIGN(self._get_hashable_bytes())
+        self._data.signature = xmss.SIGN(self.txhash)
 
     @abstractmethod
     def _validate_custom(self) -> bool:
         """
         This is an extension point for derived classes validation
         If derived classes need additional field validation they should override this member
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _set_txhash(self) -> bytes:
+        """
+        Derived classes must need to implement this, to set the value of
+        self.transaction_hash
+        :return:
         """
         raise NotImplementedError
 
@@ -184,7 +191,7 @@ class Transaction(object, metaclass=ABCMeta):
            getAddress('Q', self.PK) != self.txfrom.decode():
             raise ValueError('Public key and address dont match')
 
-        if len(self.signature) == 0 or not XMSS.VERIFY(message=self._get_hashable_bytes(),
+        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
                                                        signature=self.signature,
                                                        pk=self.PK):
             raise ValueError("Invalid xmss signature")
@@ -198,6 +205,16 @@ class Transaction(object, metaclass=ABCMeta):
     def to_json(self):
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data)
+
+    def _get_concatenated_fields(self):
+        return (
+                 str(self.subtype).encode() +
+                 self.addr_from +
+                 str(self.fee).encode() +
+                 self.PK +
+                 self.signature +
+                 str(self.nonce).encode()
+               )
 
 
 class TransferTransaction(Transaction):
@@ -218,10 +235,6 @@ class TransferTransaction(Transaction):
     def amount(self):
         return self._data.transfer.amount
 
-    @property
-    def fee(self):
-        return self._data.transfer.fee
-
     def _get_hashable_bytes(self):
         """
         This method should return bytes that are to be hashed and represent the transaction
@@ -237,21 +250,39 @@ class TransferTransaction(Transaction):
 
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              self._data.transfer.addr_to +
+                                              str(self._data.transfer.amount).encode()
+                                            )
+
     @staticmethod
-    def create(addr_to: bytes, amount, fee, xmss_pk):
+    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk):
         transaction = TransferTransaction()
 
+        transaction._data.addr_from = addr_from
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer.addr_to = addr_to
         transaction._data.transfer.amount = int(amount)  # FIXME: Review conversions for quantities
-        transaction._data.transfer.fee = int(fee)  # FIXME: Review conversions for quantities
+        transaction._data.fee = int(fee)  # FIXME: Review conversions for quantities
+
+        transaction._set_txhash()
 
         return transaction
 
     def _validate_custom(self):
         if self.amount <= 0:
             raise ValueError('[%s] Invalid amount = %d', bin2hstr(self.txhash), self.amount)
+
+        addr_expected = getAddress('Q', self.PK).encode()
+        if addr_expected != self.addr_from:
+            logger.warning('PK doesnt belong to the address')
+            logger.warning('Address from PK : %s', addr_expected)
+            logger.warning('Address found : %s', self.addr_from)
+            return False
+
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
@@ -322,6 +353,14 @@ class StakeTransaction(Transaction):
         # FIXME: the order in the dict may affect hash
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              str(self._data.stake.activation_blocknumber).encode() +
+                                              self._data.stake.slavePK +
+                                              self._data.stake.hash
+                                            )
+
     @staticmethod
     def create(activation_blocknumber: int,
                xmss: XMSS,
@@ -335,7 +374,7 @@ class StakeTransaction(Transaction):
         """
 
         transaction = StakeTransaction()
-
+        transaction._data.addr_from = bytes(xmss.get_address())
         transaction._data.public_key = bytes(xmss.pk())
 
         # Stake specific
@@ -349,9 +388,17 @@ class StakeTransaction(Transaction):
         else:
             transaction._data.stake.hash = hashchain_terminator
 
+        transaction._set_txhash()
         return transaction
 
     def _validate_custom(self):
+        addr_expected = getAddress('Q', self.PK).encode()
+        if addr_expected != self.addr_from:
+            logger.warning('PK doesnt belong to the address')
+            logger.warning('Address from PK : %s', addr_expected)
+            logger.warning('Address found : %s', self.addr_from)
+            return False
+
         return True
 
     def validate_extended(self, tx_state):
@@ -388,6 +435,11 @@ class DestakeTransaction(Transaction):
                     )
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields()
+                                            )
+
     @staticmethod
     def create(xmss):
         """
@@ -397,8 +449,9 @@ class DestakeTransaction(Transaction):
         """
 
         transaction = DestakeTransaction()
+        transaction._data.addr_from = xmss.get_address()
         transaction._data.public_key = bytes(xmss.pk())
-
+        transaction._set_txhash()
         return transaction
 
     def _validate_custom(self):
@@ -455,17 +508,28 @@ class CoinBase(Transaction):
                     )
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              self._data.coinbase.addr_to +
+                                              str(self._data.coinbase.amount).encode() +
+                                              str(self._data.coinbase.block_number).encode() +
+                                              self._data.coinbase.headerhash
+                                            )
+
     @staticmethod
     def create(blockheader, xmss):
         transaction = CoinBase()
 
+        transaction._data.addr_from = blockheader.stake_selector
+        transaction._data.fee = 0
         transaction._data.public_key = bytes(xmss.pk())
 
         transaction._data.coinbase.addr_to = blockheader.stake_selector
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
         transaction._data.coinbase.block_number = blockheader.block_number
         transaction._data.coinbase.headerhash = blockheader.headerhash
-
+        transaction._set_txhash()
         return transaction
 
     def _validate_custom(self):
@@ -497,10 +561,6 @@ class LatticePublicKey(Transaction):
             self._data.type = qrl_pb2.Transaction.LATTICE
 
     @property
-    def fee(self):
-        return self._data.latticePK.fee
-
-    @property
     def kyber_pk(self):
         return self._data.latticePK.kyber_pk
 
@@ -522,17 +582,25 @@ class LatticePublicKey(Transaction):
                     )
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              self._data.latticePK.kyber_pk +
+                                              self._data.latticePK.dilithium_pk
+                                            )
+
     @staticmethod
-    def create(fee, kyber_pk, dilithium_pk, xmss_pk):
+    def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk):
         transaction = LatticePublicKey()
 
-        transaction._data.latticePK.fee = fee
-
+        transaction._data.addr_from = addr_from
+        transaction._data.fee = fee
         transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = bytes(kyber_pk)
         transaction._data.latticePK.dilithium_pk = bytes(dilithium_pk)
 
+        transaction._set_txhash()
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.
@@ -668,10 +736,6 @@ class Vote(Transaction):
             self._data.type = qrl_pb2.Transaction.VOTE
 
     @property
-    def addr_from(self):
-        return getAddress('Q', self._data.public_key).encode()
-
-    @property
     def blocknumber(self):
         return self._data.vote.block_number
 
@@ -695,14 +759,23 @@ class Vote(Transaction):
 
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              str(self._data.vote.block_number).encode() +
+                                              self._data.vote.hash_header
+                                            )
+
     @staticmethod
-    def create(blocknumber: int, headerhash: bytes, xmss: XMSS):
+    def create(blocknumber: int, headerhash: bytes, xmss):
         transaction = Vote()
 
+        transaction._data.addr_from = xmss.get_address()
         transaction._data.vote.block_number = blocknumber
         transaction._data.vote.hash_header = headerhash
 
-        transaction._data.public_key = bytes(xmss.pk())
+        transaction._data.public_key = xmss.pk()
+        transaction._set_txhash()
 
         return transaction
 
@@ -731,16 +804,8 @@ class MessageTransaction(Transaction):
             self._data.type = qrl_pb2.Transaction.MESSAGE
 
     @property
-    def addr_from(self):
-        return getAddress('Q', self._data.public_key).encode()
-
-    @property
     def message_hash(self):
         return self._data.message.message_hash
-
-    @property
-    def fee(self):
-        return self._data.message.fee
 
     def _get_hashable_bytes(self):
         """
@@ -757,20 +822,33 @@ class MessageTransaction(Transaction):
 
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              self._data.message.message_hash
+                                            )
+
     @staticmethod
-    def create(message_hash: bytes, fee: int, xmss: XMSS):
+    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes):
         transaction = MessageTransaction()
 
+        transaction._data.addr_from = addr_from
         transaction._data.message.message_hash = message_hash
-        transaction._data.message.fee = fee
+        transaction._data.fee = fee
 
-        transaction._data.public_key = bytes(xmss.pk())
-
+        transaction._data.public_key = xmss_pk
+        transaction._set_txhash()
         return transaction
 
     def _validate_custom(self) -> bool:
         if len(self.message_hash) > 80:
             logger.warning('Message hash length more than 80, %s', len(self.message_hash))
+            return False
+        addr_expected = getAddress('Q', self.PK).encode()
+        if addr_expected != self.addr_from:
+            logger.warning('PK doesnt belong to the address')
+            logger.warning('Address from PK : %s', addr_expected)
+            logger.warning('Address found : %s', self.addr_from)
             return False
         return True
 
@@ -831,10 +909,6 @@ class TokenTransaction(Transaction):
     def initial_balances(self):
         return self._data.token.initial_balances
 
-    @property
-    def fee(self):
-        return self._data.token.fee
-
     def _get_hashable_bytes(self):
         """
         This method should return bytes that are to be hashed and represent the transaction
@@ -856,6 +930,21 @@ class TokenTransaction(Transaction):
 
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        tmptxhash = sha256(
+                            self._get_concatenated_fields() +
+                            self._data.token.symbol +
+                            self._data.token.name +
+                            self._data.token.owner +
+                            str(self._data.token.decimals).encode()
+                          )
+
+        for initial_balance in self._data.token.initial_balances:
+            tmptxhash += initial_balance.address
+            tmptxhash += str(initial_balance.amount).encode()
+
+        self._data.transaction_hash = sha256(tmptxhash)
+
     @staticmethod
     def create(addr_from: bytes,
                symbol: bytes,
@@ -867,6 +956,7 @@ class TokenTransaction(Transaction):
                xmss_pk):
         transaction = TokenTransaction()
 
+        transaction._data.addr_from = addr_from
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.token.symbol = symbol
@@ -877,13 +967,23 @@ class TokenTransaction(Transaction):
         for initial_balance in initial_balances:
             transaction._data.token.initial_balances.extend([initial_balance])
 
-        transaction._data.token.fee = int(fee)
+        transaction._data.fee = int(fee)
+
+        transaction._set_txhash()
 
         return transaction
 
     def _validate_custom(self):
         if self.fee <= 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+
+        addr_expected = getAddress('Q', self.PK).encode()
+        if addr_expected != self.addr_from:
+            logger.warning('PK doesnt belong to the address')
+            logger.warning('Address from PK : %s', addr_expected)
+            logger.warning('Address found : %s', self.addr_from)
+            return False
+
         for initial_balance in self._data.token.initial_balances:
             if initial_balance.amount <= 0:
                 raise ValueError('TokenTransaction [%s] Invalid Amount = %s for address %s',
@@ -944,10 +1044,6 @@ class TransferTokenTransaction(Transaction):
     def amount(self):
         return self._data.transfer_token.amount
 
-    @property
-    def fee(self):
-        return self._data.transfer_token.fee
-
     def _get_hashable_bytes(self):
         """
         This method should return bytes that are to be hashed and represent the transaction
@@ -964,6 +1060,13 @@ class TransferTokenTransaction(Transaction):
 
         return bytes(sha256(tmptxhash))
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self._get_concatenated_fields() +
+                                              self._data.transfer_token.addr_to +
+                                              str(self._data.transfer_token.amount).encode()
+                                            )
+
     @staticmethod
     def create(addr_from: bytes,
                token_txhash: bytes,
@@ -973,18 +1076,29 @@ class TransferTokenTransaction(Transaction):
                xmss_pk):
         transaction = TransferTokenTransaction()
 
+        transaction._data.addr_from = addr_from
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer_token.token_txhash = token_txhash
         transaction._data.transfer_token.addr_to = addr_to
         transaction._data.transfer_token.amount = amount
-        transaction._data.transfer_token.fee = int(fee)
+        transaction._data.fee = int(fee)
+
+        transaction._set_txhash()
 
         return transaction
 
     def _validate_custom(self):
         if self.fee <= 0:
             raise ValueError('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+
+        addr_expected = getAddress('Q', self.PK).encode()
+        if addr_expected != self.addr_from:
+            logger.warning('PK doesnt belong to the address')
+            logger.warning('Address from PK : %s', addr_expected)
+            logger.warning('Address found : %s', self.addr_from)
+            return False
+
         return True
 
     # checks new tx validity based upon node statedb and node mempool.

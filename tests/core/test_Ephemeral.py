@@ -87,7 +87,8 @@ class TestEphemeral(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    lattice_public_key_txn = LatticePublicKey.create(fee=1,
+                    lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
+                                                                     fee=1,
                                                                      kyber_pk=random_kyber1.getPK(),
                                                                      dilithium_pk=random_dilithium1.getPK(),
                                                                      xmss_pk=random_xmss1.pk())
@@ -111,7 +112,8 @@ class TestEphemeral(TestCase):
                     with mock.patch('qrl.core.ntp.getTime') as time_mock:
                         time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
 
-                        encrypted_eph_message = EncryptedEphemeralMessage.create_channel(ttl=time_mock.return_value,
+                        encrypted_eph_message = EncryptedEphemeralMessage.create_channel(msg_id=lattice_public_key_txn.txhash,
+                                                                                         ttl=time_mock.return_value,
                                                                                          ttr=0,
                                                                                          addr_from=random_xmss2.get_address(),
                                                                                          kyber_pk=random_kyber2.getPK(),
@@ -124,7 +126,7 @@ class TestEphemeral(TestCase):
                                                                                          nonce=1)
 
                         buffered_chain.add_ephemeral_message(encrypted_eph_message)
-                        eph_metadata = buffered_chain.collect_ephemeral_message(b'NEW')
+                        eph_metadata = buffered_chain.collect_ephemeral_message(lattice_public_key_txn.txhash)
 
                         # Decrypting Payload
 
@@ -140,6 +142,7 @@ class TestEphemeral(TestCase):
                         self.assertEqual(ephemeral_channel_payload.prf512_seed, b'10192')
                         self.assertEqual(ephemeral_channel_payload.data, b'Hello World How are you?')
 
+                        # TODO (cyyber): Add Ephemeral Testing code using Naive RNG
                         vote = Vote.create(blocknumber=1,
                                            headerhash=tmp_block1.headerhash,
                                            xmss=slave_xmss)

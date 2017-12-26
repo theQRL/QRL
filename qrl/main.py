@@ -31,6 +31,8 @@ class ContextFilter(logging.Filter):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='QRL node')
+    parser.add_argument('--force-sync', '-f', dest='force_sync', action='store_true', required=False, default=False,
+                        help="Forcefully start Testnet in synced mode. [For developers only]")
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
     parser.add_argument('--datapath', '-d', dest='data_path', default=config.user.data_path,
@@ -101,7 +103,7 @@ def main():
 
     qrlnode.start_listening()
     qrlnode.connect_peers()
-    qrlnode.start_pos()
+    qrlnode.start_pos(args.force_sync)
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()

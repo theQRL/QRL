@@ -8,7 +8,7 @@ from pyqrllib.dilithium import Dilithium
 
 from qrl.generated import qrl_pb2
 from qrl.crypto.aes import AES
-from qrl.crypto.random_number_generator import RNG
+from tests.misc.random_number_generator import RNG
 from qrl.core import ntp
 
 
@@ -62,12 +62,6 @@ class EncryptedEphemeralMessage(object):
             return False
         if ntp.getTime() > self.ttl:
             return False
-        if self.msg_id == b'NEW':
-            if len(self._data.channel.enc_aes256_symkey) == 0:
-                return False
-        elif self.msg_id != b'NEW':
-            if len(self._data.channel.enc_aes256_symkey):
-                return False
 
         return True
 
@@ -81,7 +75,8 @@ class EncryptedEphemeralMessage(object):
         return EncryptedEphemeralMessage(pbdata)
 
     @staticmethod
-    def create_channel(ttl: int,
+    def create_channel(msg_id: bytes,
+                       ttl: int,
                        ttr: int,
                        addr_from: bytes,
                        kyber_pk: bytes,
@@ -104,11 +99,11 @@ class EncryptedEphemeralMessage(object):
                                                         prf512_seed,
                                                         data)
 
-        ephemeral_data.dilithium_sign(b'NEW', ttl, ttr, enc_aes256_symkey, nonce, sender_dilithium)
+        ephemeral_data.dilithium_sign(msg_id, ttl, ttr, enc_aes256_symkey, nonce, sender_dilithium)
 
         encrypted_ephemeral_message = EncryptedEphemeralMessage()
 
-        encrypted_ephemeral_message._data.msg_id = b'NEW'
+        encrypted_ephemeral_message._data.msg_id = msg_id
         encrypted_ephemeral_message._data.ttl = ttl
         encrypted_ephemeral_message._data.ttr = ttr
         encrypted_ephemeral_message._data.channel.enc_aes256_symkey = enc_aes256_symkey

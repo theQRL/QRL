@@ -229,7 +229,8 @@ class QRLNode:
         if amount + fee > balance:
             raise RuntimeError("Not enough funds in the source address")
 
-        return TransferTransaction.create(addr_to=addr_to,
+        return TransferTransaction.create(addr_from=addr_from,
+                                          addr_to=addr_to,
                                           amount=amount,
                                           fee=fee,
                                           xmss_pk=xmss_pk)
@@ -407,14 +408,14 @@ class QRLNode:
         for peer_address in self.peer_addresses:
             self._p2pfactory.connect_peer(peer_address)
 
-    def start_pos(self):
+    def start_pos(self, force_sync=False):
         # FIXME: This seems an unexpected side effect. It should be refactored
         self._pos = POS(buffered_chain=self._buffered_chain,
                         p2p_factory=self._p2pfactory,
                         sync_state=self._sync_state,
                         time_provider=ntp)
 
-        self._pos.start()
+        self._pos.start(force_sync)
 
     def broadcast_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage) -> bool:
         if not encrypted_ephemeral.validate():

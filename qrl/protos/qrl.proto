@@ -254,8 +254,9 @@ message AddressState {
 }
 
 message LatticePK {
-    bytes dilithium_pk = 1;
-    bytes kyber_pk = 2;
+    bytes txhash = 1;
+    bytes dilithium_pk = 2;
+    bytes kyber_pk = 3;
 }
 
 message StakerData {
@@ -348,28 +349,29 @@ message Transaction {
     }
 
     Type type = 1;
-
-    uint64 nonce = 2;
-    bytes public_key = 3;
-    bytes signature = 4;
+    bytes addr_from = 2;
+    uint64 fee = 3;
+    bytes public_key = 4;
+    bytes signature = 5;
+    uint64 nonce = 6;
+    bytes transaction_hash = 7;
 
     oneof transactionType {
-        Transfer transfer = 5;
-        Stake stake = 6;
-        CoinBase coinbase = 7;
-        LatticePublicKey latticePK = 8;
-        Duplicate duplicate = 9;
-        Vote vote = 10;
-        Message message = 11;
-        Token token = 12;
-        TransferToken transfer_token = 13;
+        Transfer transfer = 8;
+        Stake stake = 9;
+        CoinBase coinbase = 10;
+        LatticePublicKey latticePK = 11;
+        Duplicate duplicate = 12;
+        Vote vote = 13;
+        Message message = 14;
+        Token token = 15;
+        TransferToken transfer_token = 16;
     }
 
     //////////
     message Transfer {
         bytes addr_to = 1;
         uint64 amount = 2;
-        uint64 fee = 3;
     }
 
     message Stake {
@@ -389,9 +391,8 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        uint64 fee = 1;
-        bytes kyber_pk = 2;
-        bytes dilithium_pk = 3;
+        bytes kyber_pk = 1;
+        bytes dilithium_pk = 2;
     }
 
     message Duplicate {
@@ -410,7 +411,6 @@ message Transaction {
 
     message Message {
         bytes message_hash = 1;
-        uint64 fee=2;
     }
 
     message Token {
@@ -419,14 +419,12 @@ message Transaction {
         bytes owner = 3;
         uint64 decimals = 4;
         repeated AddressAmount initial_balances = 5;
-        uint64 fee = 6;
     }
 
     message TransferToken {
         bytes token_txhash = 1;
         bytes addr_to = 2;
         uint64 amount = 3;
-        uint64 fee = 4;
     }
 }
 

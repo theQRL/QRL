@@ -114,7 +114,7 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    tmp_block = Block.create(staking_address=bytes(alice_xmss.get_address()),
+                    tmp_block = Block.create(staking_address=alice_xmss.get_address(),
                                              block_number=1,
                                              reveal_hash=h0,
                                              prevblock_headerhash=custom_genesis.headerhash,
@@ -283,7 +283,8 @@ class TestBufferedChain(TestCase):
                     sv = chain.pstate.stake_validators_tracker.sv_dict[staking_address]
                     self.assertEqual(0, sv.nonce)
 
-                    lattice_public_key_txn = LatticePublicKey.create(fee=1,
+                    lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
+                                                                     fee=1,
                                                                      kyber_pk=b'0a9b82c1204f',
                                                                      dilithium_pk=b'a4ec1a685df3',
                                                                      xmss_pk=random_xmss1.pk())
@@ -315,7 +316,8 @@ class TestBufferedChain(TestCase):
                     transfer_token2.sign(random_xmss2)
 
                     # Transfer Coin Transaction
-                    transfer_transaction = TransferTransaction.create(addr_to=random_xmss2.get_address(),
+                    transfer_transaction = TransferTransaction.create(addr_from=random_xmss1.get_address(),
+                                                                      addr_to=random_xmss2.get_address(),
                                                                       amount=10,
                                                                       fee=1,
                                                                       xmss_pk=random_xmss1.pk())

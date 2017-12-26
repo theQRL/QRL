@@ -55,9 +55,9 @@ class POS:
 
         self.epoch_diff = None
 
-    def start(self):
+    def start(self, force_sync):
         self.restart_monitor_bk(80)
-        reactor.callLater(20, self.initialize_pos)
+        reactor.callLater(20, self.initialize_pos, force_sync)
 
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
@@ -125,9 +125,9 @@ class POS:
 
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def initialize_pos(self):
+    def initialize_pos(self, force_sync):
+        found = False
         if self.buffered_chain.height == 0:
-            found = False
             genesis_block = self.buffered_chain.get_block(0)
             for raw_tx in genesis_block.transactions:
                 tx = Transaction.from_pbdata(raw_tx)
@@ -138,7 +138,10 @@ class POS:
                     break
                 time.sleep(2)
 
-        reactor.callLater(1, self._handler_state_synced)
+        if found:
+            reactor.callLater(1, self._handler_state_synced)
+        else:
+            reactor.callLater(1, self._handler_state_unsynced)
 
     def create_new_block(self, reveal_hash, last_block_number) -> Optional[Block]:
         logger.info('create_new_block #%s', (last_block_number + 1))
@@ -279,6 +282,8 @@ class POS:
             stake_validator = stake_list[self.buffered_chain.staking_address]
             if not (stake_validator.is_active and not stake_validator.is_banned):
                 return
+        else:
+            return
 
         vote_delay = max(0, delay - config.dev.vote_x_seconds_before_next_block)
 

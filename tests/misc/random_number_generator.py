@@ -1,15 +1,18 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import random
+from pyqrllib.pyqrllib import shake256
 
 
 class RNG(object):
-
+    """
+    A naive implementaiton of RNG
+    WARNING: Only for unit testing.
+    """
     @staticmethod
     def generate(prf_seed: bytes, seq: int) -> bytes:
-        random.seed(int(prf_seed))
+        prf = prf_seed
         for i in range(seq):
-            prf = random.random()
+            prf = shake256(32, prf)
 
-        return str(prf).encode()
+        return bytes(prf)

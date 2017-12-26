@@ -37,7 +37,7 @@ class TestVoteTracker(TestCase):
 
         vote_metadata = vote_tracker.get_consensus()
 
-        self.assertNotEquals(vote_metadata, None)
+        self.assertNotEqual(vote_metadata, None)
         self.assertIn(vote.addr_from, vote_metadata.stake_validator_vote)
         self.assertEqual(vote, vote_metadata.stake_validator_vote[vote.addr_from])
         self.assertEqual(stake_amount, vote_metadata.total_stake_amount)
@@ -70,7 +70,7 @@ class TestVoteTracker(TestCase):
 
         vote_metadata = vote_tracker.get_consensus()
 
-        self.assertNotEquals(vote_metadata, None)
+        self.assertNotEqual(vote_metadata, None)
 
         total_stake_amount = stake_amount1 + stake_amount2
         self.assertEqual(total_stake_amount, vote_metadata.total_stake_amount)
@@ -103,7 +103,7 @@ class TestVoteTracker(TestCase):
 
         vote_metadata = vote_tracker.get_consensus()
 
-        self.assertNotEquals(vote_metadata, None)
+        self.assertNotEqual(vote_metadata, None)
 
         self.assertEqual(stake_amount2, vote_metadata.total_stake_amount)
         self.assertNotEqual(vote_tracker.get_consensus_headerhash(), headerhash1)
