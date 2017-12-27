@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-import sys
 from abc import ABCMeta, abstractmethod
 
 from google.protobuf.json_format import MessageToJson, Parse
@@ -103,10 +102,10 @@ class Transaction(object, metaclass=ABCMeta):
             logger.info('-->> state_addr None not possible')
             return False
 
-        offset = ots_key // 8
+        offset = ots_key >> 3
         relative = ots_key % 8
-        bitfield = state_addr.ots_bitfield[offset]
-        bit_value = (int.from_bytes(bitfield, byteorder=sys.byteorder) >> relative) & 1
+        bitfield = bytearray(state_addr.ots_bitfield[offset])
+        bit_value = (bitfield[0] >> relative) & 1
 
         if bit_value:
             return True
@@ -114,12 +113,11 @@ class Transaction(object, metaclass=ABCMeta):
         return False
 
     @staticmethod
-    def set_ots_key(address_txn, txfrom, ots_key):
-        offset = ots_key // 8
+    def set_ots_key(state_addr, ots_key):
+        offset = ots_key >> 3
         relative = ots_key % 8
-        bitfield = address_txn[txfrom]._data.ots_bitfield[offset]
-        bitnumber = (int.from_bytes(bitfield, byteorder=sys.byteorder) | int(str(1 << relative), 0))
-        address_txn[txfrom]._data.ots_bitfield[offset] = bytes(tuple((bitnumber,)))
+        bitfield = bytearray(state_addr._data.ots_bitfield[offset])
+        state_addr._data.ots_bitfield[offset] = bytes([bitfield[0] | (1 << relative)])
 
     @abstractmethod
     def _get_hashable_bytes(self):

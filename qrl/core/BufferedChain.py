@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 from typing import Optional, Dict
 
-from pyqrllib.pyqrllib import bin2hstr, XmssPool
+from pyqrllib.pyqrllib import bin2hstr, XmssPool, getAddress
 
 from qrl.core import config, logger, State
 from qrl.core.AddressState import AddressState
@@ -532,9 +532,8 @@ class BufferedChain:
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
 
-            # TODO: To be fixed later
-            state_addr = self.get_stxn_state(block.block_number, tx.addr_from)
-            if tx.ots_key_reuse(state_addr, tx.ots_key):
+            addr_from_pk = getAddress('Q', tx.PK).encode()
+            if tx.ots_key_reuse(address_txn[addr_from_pk], tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.subtype)
                 return False
@@ -767,7 +766,7 @@ class BufferedChain:
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.COINBASE):
                 address_txn[tx.txto].balance += tx.amount
 
-            tx.set_ots_key(address_txn, tx.txfrom, tx.ots_key)
+            tx.set_ots_key(address_txn[addr_from_pk], tx.ots_key)
             address_txn[tx.txfrom].transaction_hashes.append(tx.txhash)
 
         return True
@@ -806,6 +805,10 @@ class BufferedChain:
             if tx.txfrom not in address_txn:
                 # FIXME: Access to chain buffer from here
                 address_txn[tx.txfrom] = self.get_stxn_state(block.block_number, tx.txfrom)
+
+            addr_from_pk = getAddress('Q', tx.PK).encode()
+            if addr_from_pk not in address_txn:
+                address_txn[addr_from_pk] = self.get_stxn_state(block.block_number, addr_from_pk)
 
             if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
                               qrl_pb2.Transaction.COINBASE,
@@ -1307,13 +1310,15 @@ class BufferedChain:
 
         while txnum < total_txn:
             tx = t_pool2[txnum]
-            state_addr = self.get_stxn_state(last_block_number + 1, tx.addr_from)
-            if tx.ots_key_reuse(state_addr, tx.ots_key):
+            if tx.txfrom not in address_txn:
+                address_txn[tx.txfrom] = self.get_stxn_state(last_block_number + 1, tx.txfrom)
+            addr_from_pk = getAddress('Q', tx.PK).encode()
+            if addr_from_pk not in address_txn:
+                address_txn[addr_from_pk] = self.get_stxn_state(last_block_number + 1, addr_from_pk)
+            if tx.ots_key_reuse(address_txn[addr_from_pk], tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
-            if tx.txfrom not in address_txn:
-                address_txn[tx.txfrom] = self.get_stxn_state(last_block_number + 1, tx.txfrom)
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
                 if tx.txfrom in stake_txn:
                     logger.debug("Txn dropped: %s address is a Stake Validator", tx.txfrom)
@@ -1599,7 +1604,7 @@ class BufferedChain:
                     address_txn[tx.txto] = self.get_stxn_state(last_block_number + 1, tx.txto)
                 address_txn[tx.txto].balance += tx.amount
 
-            tx.set_ots_key(address_txn, tx.txfrom, tx.ots_key)
+            tx.set_ots_key(address_txn[addr_from_pk], tx.ots_key)
             self.tx_pool.add_tx_to_pool(tx)
             tx_nonce[tx.txfrom] += 1
             tx._data.nonce = self.get_stxn_state(last_block_number + 1, tx.txfrom).nonce + tx_nonce[tx.txfrom]

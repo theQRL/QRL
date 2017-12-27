@@ -317,7 +317,7 @@ class POS:
             self.restart_post_block_logic(blocknumber, 5)
             return False
 
-        prev_sv_tracker = self.buffered_chain.get_stake_validators_tracker(blocknumber)
+        prev_sv_tracker = self.buffered_chain.get_stake_validators_tracker(blocknumber - 1)
 
         consensus_ratio = voteMetadata.total_stake_amount / prev_sv_tracker.get_total_stake_amount()
 
