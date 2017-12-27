@@ -66,6 +66,9 @@ class StakeValidator:
     def _hash_to_terminator(reveal_hash: bytes, times: int) -> bytes:
         return sha256_n(reveal_hash, times)
 
+    def ban(self):
+        self._data.is_banned = True
+
     @staticmethod
     def create(balance: int,
                stake_txn: StakeTransaction):

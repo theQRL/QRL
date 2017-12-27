@@ -63,7 +63,7 @@ class TestBufferedChain(TestCase):
                 buffered_chain._chain.get_block.assert_called()
                 self.assertIsNone(b0)
 
-                res = buffered_chain.genesis_loader(GenesisBlock())
+                res = buffered_chain.load_genesis(GenesisBlock())
                 self.assertTrue(res)
 
     def test_add_2(self):
@@ -93,7 +93,7 @@ class TestBufferedChain(TestCase):
 
                     custom_genesis.transactions.extend([stake_transaction.pbdata])
 
-                    res = buffered_chain.genesis_loader(custom_genesis)
+                    res = buffered_chain.load_genesis(custom_genesis)
                     self.assertTrue(res)
 
                     vote = Vote.create(blocknumber=0,
@@ -157,7 +157,7 @@ class TestBufferedChain(TestCase):
                     del custom_genesis.transactions[:]
                     custom_genesis.transactions.extend([stake_transaction.pbdata])
 
-                    res = buffered_chain.genesis_loader(GenesisBlock())
+                    res = buffered_chain.load_genesis(GenesisBlock())
                     self.assertTrue(res)
 
                     vote = Vote.create(blocknumber=0,
@@ -266,7 +266,7 @@ class TestBufferedChain(TestCase):
                     stake_transaction.sign(alice_xmss)
                     custom_genesis.transactions.extend([stake_transaction.pbdata])
 
-                    res = buffered_chain.genesis_loader(GenesisBlock())
+                    res = buffered_chain.load_genesis(GenesisBlock())
                     self.assertTrue(res)
 
                     vote = Vote.create(blocknumber=0,

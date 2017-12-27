@@ -4,9 +4,9 @@
 
 
 class ObservableEvent(object):
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, event_id):
+        self._event_id = event_id
 
     def func_name(self):
         # FIXME: Adaptation to align with legacy message, refactor
-        return self.id
+        return self._event_id

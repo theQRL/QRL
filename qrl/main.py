@@ -73,14 +73,13 @@ def main():
 
     logger.info('Initializing chain..')
     persistent_state = State()
-    buffered_chain = BufferedChain(Chain(state=persistent_state))
+    chain = Chain(state=persistent_state)
+    buffered_chain = BufferedChain(chain)
 
     qrlnode = QRLNode(db_state=persistent_state)
     qrlnode.set_chain(buffered_chain)
 
     set_logger(args, qrlnode.sync_state)
-    logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', buffered_chain.staking_address)
 
     #######
     # NOTE: Keep assigned to a variable or might get collected
@@ -91,6 +90,9 @@ def main():
     qrlnode.start_listening()
     qrlnode.connect_peers()
     qrlnode.start_pos(args.force_sync)
+
+    logger.info('QRL blockchain ledger %s', config.dev.version)
+    logger.info('mining/staking address %s', qrlnode._pos.staking_address)
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()

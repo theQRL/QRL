@@ -20,7 +20,6 @@ from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Transaction import CoinBase, Transaction, Vote
 from qrl.core.TransactionPool import TransactionPool
-from qrl.core.Wallet import Wallet
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -44,38 +43,12 @@ class BufferedChain:
             self.epoch = self._chain.blockchain[-1].block_number // config.dev.blocks_per_epoch
 
         self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
-        self.expected_headerhash = dict()
 
-        # FIXME: Wallet related. Remove
-        self._wallet = Wallet()  # FIXME: Why BufferedChain needs access to the wallet?
-
-        # FIXME: PoS related. Remove
-        self.hash_chain = dict()
-        private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-        self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
         self.stake_list = []
+
         self._vote_tracker = dict()  # Tracks votes, against blocknumber
 
-        # FIXME: Temporarily moving slave_xmss here
-        self.slave_xmss_dict = dict()
-        self.slave_xmsspool = None
-        self._init_slave_xmsspool(0)
-
-    @property
-    def staking_address(self):
-        # FIXME: PoS related. Remove
-        return self.wallet.address_bundle[0].xmss.get_address()
-
-    @property
-    def wallet(self):
-        # FIXME: PoS related. Remove
-        return self._wallet
-
-    def set_voted(self, block_number):
-        # FIXME: PoS related. Remove
-        if block_number in self.blocks:
-            block_metadata = self.blocks[block_number]
-            block_metadata.set_voted()
+        self.expected_headerhash = dict()
 
     @property
     def transaction_pool(self):
@@ -94,6 +67,11 @@ class BufferedChain:
     @property
     def pstate(self) -> State:
         return self._chain.pstate
+
+    def set_voted(self, block_number):
+        if block_number in self.blocks:
+            block_metadata = self.blocks[block_number]
+            block_metadata.set_voted()
 
     #########################################
     #########################################
@@ -167,11 +145,6 @@ class BufferedChain:
             return self.blocks[block_idx].block
         return self._chain.get_block(block_idx)
 
-    def get_vote_metadata(self, blocknumber: int):
-        if blocknumber in self.blocks:
-            return [self.blocks[blocknumber].voted_weight, self.blocks[blocknumber].total_stake_amount]
-        return self._chain.pstate.get_vote_metadata(blocknumber)
-
     def get_blockidx_from_txhash(self, transaction_hash) -> Optional[Transaction]:
         answer = self._chain.pstate.get_tx_metadata(transaction_hash)
         if answer is not None:
@@ -215,9 +188,6 @@ class BufferedChain:
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
                 return False
 
-            slave_xmss = self.get_slave_xmss(block.block_number)
-            self.pstate.update_slave_xmss(slave_xmss)
-
             if block.stake_selector == self.staking_address:
                 logger.info('You won Block #%s!!!!!!!!!', block.block_number)
 
@@ -237,14 +207,13 @@ class BufferedChain:
         return True
 
     def _add_block_mainchain(self, block, address_state_dict, stake_validators_tracker, next_seed) -> bool:
-        if not self._chain.add_block(block,
-                                     address_state_dict,
-                                     next_seed):
+        slave_xmss = self.get_slave_xmss(block.block_number)
+
+        if not self._chain.add_block(block, address_state_dict, stake_validators_tracker, next_seed, slave_xmss):
             logger.info("buff: Block {}. Add_block failed. Requesting again".format(block.block_number))
             self._validate_tx_pool()
             return False
 
-        self.pstate.update_stake_validators(stake_validators_tracker)
         self.tx_pool.remove_tx_in_block_from_pool(block)
 
         # FIXME: clean this up
@@ -253,6 +222,7 @@ class BufferedChain:
 
         if block_left == 1:
             private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+            self._wallet_private_seeds[block.epoch + 1] = private_seed
             self.hash_chain[block.epoch + 1] = hashchain(private_seed, epoch=block.epoch + 1).hashchain
 
         self._clean_if_required(block.block_number)
@@ -270,56 +240,6 @@ class BufferedChain:
 
     def get_token_metadata(self, token_txnhash) -> TokenMetadata:
         return self._chain.pstate.get_token_metadata(token_txnhash)
-
-    def add_vote(self, vote: Vote):
-        # FIXME: PoS related. Remove
-        if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
-            return
-
-        if (self.height != 0 and vote.blocknumber < self._chain.height) or vote.blocknumber > self.height:
-            return
-        stake_address = self._get_st_address(vote.PK, vote.blocknumber)
-        height = self.height
-        # FIXME: Temporary fix, need to add ST txn into genesis block
-        if height > 1:
-            stake_validators_tracker = self.get_stake_validators_tracker(height)
-
-            if stake_address not in stake_validators_tracker.sv_dict:
-                logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
-                return
-
-            if vote.blocknumber in self._vote_tracker:
-                if self._vote_tracker[vote.blocknumber].is_already_voted(vote):
-                    return
-
-            tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=vote.addr_from)
-
-            if not (vote.validate() and vote.validate_extended(tx_state=tx_state,
-                                                               stake_validators_tracker=stake_validators_tracker)):
-                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
-                return
-
-        if vote.blocknumber not in self._vote_tracker:
-            self._vote_tracker[vote.blocknumber] = VoteTracker()
-
-        stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
-        stake_balance = stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
-
-        # FIXME: There is a warning that stake_balance could be reference before assignment.
-        return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
-
-    def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
-        # FIXME: PoS related. Remove
-        if blocknumber not in self._vote_tracker:
-            return None
-
-        return self._vote_tracker[blocknumber].get_consensus()
-
-    def get_consensus_headerhash(self, blocknumber: int) -> Optional[bytes]:
-        if blocknumber not in self._vote_tracker:
-            return None
-
-        return self._vote_tracker[blocknumber].get_consensus_headerhash()
 
     def _validate_tx_pool(self):
         result = True
@@ -495,8 +415,6 @@ class BufferedChain:
                 block: Block,
                 stake_validators_tracker: StakeValidatorsTracker,
                 address_txn: Dict[bytes, AddressState]) -> bool:
-
-        # FIXME: This method is massive
 
         if block.block_number > 0:
             if block.stake_selector not in stake_validators_tracker.sv_dict:
@@ -863,6 +781,7 @@ class BufferedChain:
                     logger.info('Created new hash chain')
 
                     prev_private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+                    self._wallet_private_seeds[epoch] = prev_private_seed
                     self.hash_chain[epoch] = hashchain(prev_private_seed, epoch=epoch).hashchain
 
             stake_validators_tracker.update_sv(block.block_number)
@@ -899,6 +818,9 @@ class BufferedChain:
 
         if not slave_xmss:
             return None  # FIXME: Not clear why the skip and return False
+
+        # FIXME: Why is it necessary to access the wallet here? Unexpected side effect?
+        self.wallet.save_slave(slave_xmss)
 
         return new_block
 
@@ -1132,6 +1054,7 @@ class BufferedChain:
             self.epoch = state_block_number // config.dev.blocks_per_epoch
             self.epoch_seed = self._chain.pstate.get_next_seed()
             private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+            self._wallet_private_seeds = {self.epoch: private_seed}
             mining_address = self.wallet.address_bundle[0].address
             if mining_address in self._chain.pstate.stake_validators_tracker.sv_dict:
                 activation_blocknumber = self._chain.pstate.stake_validators_tracker.sv_dict[mining_address].activation_blocknumber
@@ -1139,8 +1062,10 @@ class BufferedChain:
                 activation_blocknumber = state_block_number
             slave_epoch = activation_blocknumber // config.dev.blocks_per_epoch
             self.hash_chain[slave_epoch] = hashchain(private_seed, slave_epoch).hashchain
-
-            self._load_slave_xmss_data(slave_epoch)
+            data = self._chain.pstate.get_slave_xmss()
+            if data:
+                self.slave_xmss[slave_epoch] = XMSS(config.dev.slave_xmss_height, seed=data[1])
+                self.slave_xmss[slave_epoch].set_index(data[0])
             return
 
         return self.genesis_loader(GenesisBlock())
@@ -1679,97 +1604,80 @@ class BufferedChain:
 
         return None
 
-    def get_stxn_state(self, blocknumber, addr) -> Optional[AddressState]:
-        try:
-            if self._chain.height == 0 and blocknumber == 0:
-                address_state = self._chain.pstate.get_address(addr)
-                return address_state
-
-            # FIXME: Simplify this - self.blocks[blocknumber - 1][1] is a StateBuffer
-            if blocknumber - 1 == self._chain.height or addr not in self.blocks[blocknumber - 1].address_state_dict:
-                address_state = self._chain.pstate.get_address(addr)
-                return address_state
-
-            if addr in self.blocks[blocknumber - 1].address_state_dict:
-                return copy.deepcopy(self.blocks[blocknumber - 1].address_state_dict[addr])  # FIXME: Why deepcopy?
-
-            return self._chain.pstate.get_address(addr)
-
-        except KeyError:
-            self.error_msg('get_stxn_state', blocknumber)
-        except Exception as e:
-            self.error_msg('get_stxn_state', blocknumber, e)
-
-        return None
-
-    def stake_list_get(self, blocknumber):
-        try:
-            # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 > self.height:
-                return None
-
-            # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height or blocknumber <= 1:
-                return self._chain.pstate.stake_validators_tracker.sv_dict
-
-            if blocknumber - 1 not in self.blocks and blocknumber == self._chain.height:
-                return self._chain.pstate.prev_stake_validators_tracker.sv_dict
-
-            return self.blocks[blocknumber - 1].stake_validators_tracker.sv_dict
-        except KeyError:
-            self.error_msg('stake_list_get', blocknumber)
-        except Exception as e:
-            self.error_msg('stake_list_get', blocknumber, e)
-
-        return None
-
-    def future_stake_addresses(self, blocknumber):
-        try:
-            # FIXME: Avoid +1/-1, assign a them to make things clear
-            if blocknumber - 1 == self._chain.height:
-                return self._chain.pstate.stake_validators_tracker.future_stake_addresses
-
-            return self.blocks[blocknumber - 1].stake_validators_tracker.future_stake_addresses
-        except KeyError:
-            self.error_msg('stake_list_get', blocknumber)
-        except Exception as e:
-            self.error_msg('stake_list_get', blocknumber, e)
-
-        return None
-
-    def get_stake_validators_tracker(self, block_idx: int) -> Optional[StakeValidatorsTracker]:
-        try:
-            # FIXME: Avoid +1/-1, assign a them to make things clear
-            if block_idx - 1 == self._chain.height or block_idx == 0:
-                return self._chain.pstate.stake_validators_tracker
-
-            if block_idx - 1 not in self.blocks and block_idx == self._chain.height:
-                return self._chain.pstate.prev_stake_validators_tracker
-
-            return self.blocks[block_idx - 1].stake_validators_tracker
-        except KeyError:
-            self.error_msg('get_stake_validators_tracker', block_idx)
-        except Exception as e:
-            self.error_msg('get_stake_validators_tracker', block_idx, e)
-
-        return None
-
-    def _clean_mining_data(self, block_number):
+    def _clean_mining_data(self, blocknumber):
         """
         Removes the mining data from the memory.
-        :param block_number:
+        :param blocknumber:
         :return:
         """
 
-        prev_epoch = block_number // config.dev.blocks_per_epoch
+        prev_epoch = blocknumber // config.dev.blocks_per_epoch
         prev_prev_epoch = prev_epoch - 1
+
+        if prev_prev_epoch in self._wallet_private_seeds:
+            del self._wallet_private_seeds[prev_prev_epoch]
 
         if prev_prev_epoch in self.hash_chain:
             del self.hash_chain[prev_prev_epoch]
 
         # FIXME: This should not be here
-        if prev_prev_epoch in self.slave_xmss_dict:
-            del self.slave_xmss_dict[prev_prev_epoch]
+        if prev_prev_epoch in self.slave_xmss:
+            del self.slave_xmss[prev_prev_epoch]
 
     def collect_ephemeral_message(self, msg_id):
         return self.pstate.get_ephemeral_metadata(msg_id)
+
+
+##################### VOTE RELATED
+    def get_vote_metadata(self, blocknumber: int):
+        if blocknumber in self.blocks:
+            return [self.blocks[blocknumber].voted_weight, self.blocks[blocknumber].total_stake_amount]
+        return self._chain.pstate.get_vote_metadata(blocknumber)
+
+    def add_vote(self, vote: Vote):
+        if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
+            return
+
+        if (self.height != 0 and vote.blocknumber < self._chain.height) or vote.blocknumber > self.height:
+            return
+        stake_address = self._get_st_address(vote.PK, vote.blocknumber)
+        height = self.height
+        # FIXME: Temporary fix, need to add ST txn into genesis block
+        if height > 1:
+            stake_validators_tracker = self.get_stake_validators_tracker(height)
+
+            if stake_address not in stake_validators_tracker.sv_dict:
+                logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
+                return
+
+            if vote.blocknumber in self._vote_tracker:
+                if self._vote_tracker[vote.blocknumber].is_already_voted(vote):
+                    return
+
+            tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=vote.addr_from)
+
+            if not (vote.validate() and vote.validate_extended(tx_state=tx_state,
+                                                               stake_validators_tracker=stake_validators_tracker)):
+                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
+                return
+
+        if vote.blocknumber not in self._vote_tracker:
+            self._vote_tracker[vote.blocknumber] = VoteTracker()
+
+        stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
+        stake_balance = stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
+
+        # FIXME: There is a warning that stake_balance could be reference before assignment.
+        return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
+
+    def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
+        if blocknumber not in self._vote_tracker:
+            return None
+
+        return self._vote_tracker[blocknumber].get_consensus()
+
+    def get_consensus_headerhash(self, blocknumber: int) -> Optional[bytes]:
+        if blocknumber not in self._vote_tracker:
+            return None
+
+        return self._vote_tracker[blocknumber].get_consensus_headerhash()

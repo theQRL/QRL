@@ -1,19 +1,40 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from typing import Optional, Dict
+from enum import Enum
+from typing import Optional, Dict, Callable
 
 from qrl.core import logger
 from qrl.core.Block import Block
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.AddressState import AddressState
 from qrl.core.Transaction import Transaction
+from qrl.core.notification.Observable import Observable
+from qrl.core.notification.ObservableEvent import ObservableEvent
+
+
+class ChainEvent(ObservableEvent):
+    def __init__(self, event_id, block: Block):
+        super().__init__(event_id)
+        self._block = block
+
+    @property
+    def block(self):
+        return self.block
 
 
 class Chain:
+    class EventType(Enum):
+        BLOCK_COMMIT = 1
+
     def __init__(self, state):
         self.pstate = state  # FIXME: Is this really a parameter?
         self.blockchain = []  # FIXME: Everyone is touching this
+
+        self._observable = Observable(self)
+
+    def register(self, message_type: EventType, func: Callable):
+        self._observable.register(message_type, func)
 
     @property
     def height(self):
@@ -43,20 +64,12 @@ class Chain:
 
         logger.debug('%s %s tx passed verification.', block.headerhash, len(block.transactions))
 
-        self._commit(block=block,
-                     address_state_dict=address_state_dict,
-                     next_seed=next_seed)
+        # COMMIT THE BLOCK
 
-        return True
-
-    def _commit(self,
-                block: Block,
-                address_state_dict: Dict[bytes, AddressState],
-                next_seed):
-
-        # FIXME: Check the logig behind these operations
+        # FIXME: Check the logic behind these operations
         self.blockchain.append(block)
 
+        # FIXME: Use a context manager for db get_batch
         batch = self.pstate.get_batch()
 
         self.pstate.update_vote_metadata(block, batch)  # This has to be updated, before the pstate stake_validators
@@ -64,10 +77,12 @@ class Chain:
         for address in address_state_dict:
             self.pstate._save_address_state(address_state_dict[address], batch)
 
+        self._observable.notify(ChainEvent(self.EventType.BLOCK_COMMIT, block))
+
         for dup_tx in block.duplicate_transactions:
             if dup_tx.coinbase1.txto in self.pstate.stake_validators_tracker.sv_dict:
                 # FIXME: Setting the property is invalid
-                self.pstate.stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto]._is_banned = True
+                self.pstate.stake_validators_tracker.sv_dict[dup_tx.coinbase1.txto].Ban()
 
         # This looks more like optimization/caching
         self.pstate.update_last_tx(block, batch)
@@ -130,21 +145,12 @@ class Chain:
         answer = self.pstate.get_tx_metadata(transaction_hash)
         if answer is None:
             return None
-        else:
-            _, block_index = answer
+
+        _, block_index = answer
         return block_index
 
     def get_last_block(self) -> Optional[Block]:
         if len(self.blockchain) == 0:
             return None
-        return self.blockchain[-1]
 
-    def search(self, query):
-        # FIXME: Refactor this. Prepare a look up in the DB
-        for block in self.blockchain:
-            for protobuf_tx in block.transactions:
-                tx = Transaction.from_pbdata(protobuf_tx)
-                if tx.txhash == query or tx.txfrom == query or tx.txto == query:
-                    logger.info('%s found in block %s', query, str(block.block_number))
-                    return tx
-        return None
+        return self.blockchain[-1]
