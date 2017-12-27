@@ -7,7 +7,8 @@ from unittest import TestCase
 
 from pyqrllib.pyqrllib import hstr2bin
 
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Wallet import Wallet
 from tests.misc.helper import set_wallet_dir
 

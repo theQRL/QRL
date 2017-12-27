@@ -4,7 +4,7 @@
 from decimal import Decimal
 from unittest import TestCase
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.formulas import calc_coeff, remaining_emission
 
 logger.initialize_default()

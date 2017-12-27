@@ -7,7 +7,8 @@ from typing import Optional, Dict
 
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import config, logger, State
+from qrl.core import config, State
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -626,7 +627,7 @@ class BufferedChain:
                         address_state = AddressState.create(address=tx.addr_from,
                                                             nonce=0,
                                                             balance=stake_balance,
-                                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
+                                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                                             tokens=dict())
                         address_txn[tx.addr_from] = address_state
                 continue
@@ -980,10 +981,9 @@ class BufferedChain:
             address_state = AddressState.create(address=genesis_address,
                                                 nonce=config.dev.default_nonce,
                                                 balance=genesis_balance.balance,
-                                                ots_bitfield=[b'\x00']*config.dev.ots_bitfield,
+                                                ots_bitfield=[b'\x00']*config.dev.ots_bitfield_size,
                                                 tokens=dict())
             self._chain.pstate._save_address_state(address_state)
-        ###########
 
         is_success = self.initialize_chain(genesis_block)
 
@@ -992,9 +992,6 @@ class BufferedChain:
 
         self._chain.blockchain.append(genesis_block)
 
-        self._chain.pstate.stake_validators_tracker.update_sv(0)
-        self._chain.pstate.prev_stake_validators_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
-        self.wallet.save_wallet()
         logger.info('{} blocks'.format(self.length))
         return self._chain.blockchain
 

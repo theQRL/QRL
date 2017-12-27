@@ -6,11 +6,11 @@ import logging
 
 from twisted.internet import reactor
 
-from qrl.core import logger_twisted
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
-from .core import logger, ntp, config
+from .core import config
+from qrl.core.misc import ntp, logger, logger_twisted
 from .core.Chain import Chain
 from .core.State import State
 
@@ -31,8 +31,6 @@ class ContextFilter(logging.Filter):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='QRL node')
-    parser.add_argument('--force-sync', '-f', dest='force_sync', action='store_true', required=False, default=False,
-                        help="Forcefully start Testnet in synced mode. [For developers only]")
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
     parser.add_argument('--datadir', '-d', dest='data_dir', default=config.user.data_dir,
@@ -89,10 +87,11 @@ def main():
 
     qrlnode.start_listening()
     qrlnode.connect_peers()
-    qrlnode.start_pos(args.force_sync)
+
+    qrlnode.start_pos()
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', qrlnode._pos.staking_address)
+    logger.info('mining/staking address %s', qrlnode.staking_address)
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()

@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from google.protobuf.json_format import MessageToJson, Parse
 
-from qrl.core import ntp
+from qrl.core.misc import ntp
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.generated import qrl_pb2
 

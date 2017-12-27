@@ -6,7 +6,8 @@ from unittest import TestCase
 import os
 from mock import Mock
 
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.State import State
 from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrlbase_pb2 import GetNodeInfoReq

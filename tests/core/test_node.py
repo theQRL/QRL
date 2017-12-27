@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from mock import Mock, MagicMock
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.node import POS

@@ -4,16 +4,13 @@
 from collections import OrderedDict
 from unittest import TestCase
 
-from mock import patch
-
-import qrl
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.Chain import Chain
 from qrl.core.State import State
 from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.AddressState import AddressState
-from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from tests.misc.helper import set_wallet_dir, get_alice_xmss
 
 logger.initialize_default()
@@ -38,7 +35,7 @@ class TestChain(TestCase):
                 address_state_dict[staking_address] = AddressState.create(address=staking_address,
                                                                           nonce=0,
                                                                           balance=100,
-                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
+                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                                                           tokens=dict())
 
                 tmp_block1 = Block.create(staking_address=staking_address,
@@ -71,35 +68,32 @@ class TestChain(TestCase):
                 alice_xmss = get_alice_xmss()
                 staking_address = alice_xmss.get_address()
 
-                with patch('qrl.core.config.dev.disk_writes_after_x_blocks'):
-                    qrl.core.config.dev.disk_writes_after_x_blocks = 4
+                prev = bytes()
+                address_state_dict = dict()
+                address_state_dict[staking_address] = AddressState.create(address=staking_address,
+                                                                          nonce=0,
+                                                                          balance=100,
+                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                                                          tokens=dict())
+                for i in range(10):
+                    tmp_block1 = Block.create(staking_address=staking_address,
+                                              block_number=i,
+                                              reveal_hash=bytes(),
+                                              prevblock_headerhash=prev,
+                                              transactions=[],
+                                              duplicate_transactions=OrderedDict(),
+                                              vote=VoteMetadata(),
+                                              signing_xmss=alice_xmss,
+                                              nonce=address_state_dict[staking_address].nonce + 1)
+                    prev = tmp_block1.headerhash
 
-                    prev = bytes()
-                    address_state_dict = dict()
-                    address_state_dict[staking_address] = AddressState.create(address=staking_address,
-                                                                              nonce=0,
-                                                                              balance=100,
-                                                                              ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
-                                                                              tokens=dict())
-                    for i in range(10):
-                        tmp_block1 = Block.create(staking_address=staking_address,
-                                                  block_number=i,
-                                                  reveal_hash=bytes(),
-                                                  prevblock_headerhash=prev,
-                                                  transactions=[],
-                                                  duplicate_transactions=OrderedDict(),
-                                                  vote=VoteMetadata(),
-                                                  signing_xmss=alice_xmss,
-                                                  nonce=address_state_dict[staking_address].nonce + 1)
-                        prev = tmp_block1.headerhash
+                    res = chain.add_block(tmp_block1,
+                                          address_state_dict,
+                                          b'1001')
 
-                        res = chain.add_block(tmp_block1,
-                                              address_state_dict,
-                                              b'1001')
+                    address_state_dict[staking_address].increase_nonce()
+                    address_state_dict[staking_address].balance += tmp_block1.block_reward
 
-                        address_state_dict[staking_address].increase_nonce()
-                        address_state_dict[staking_address].balance += tmp_block1.block_reward
+                    self.assertEqual(i, chain.height)  # FIXME: wrong name, it is not height but max_index
 
-                        self.assertEqual(i, chain.height)  # FIXME: wrong name, it is not height but max_index
-
-                        self.assertTrue(res)
+                    self.assertTrue(res)

@@ -4,7 +4,7 @@
 
 from typing import Callable
 
-from qrl.core import logger
+from qrl.core.misc import logger
 
 
 class Observable(object):

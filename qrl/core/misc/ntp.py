@@ -7,7 +7,7 @@ from time import time
 
 from ntplib import NTPClient
 
-from qrl.core import logger
+from qrl.core.misc import logger
 
 ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
 NTP_VERSION = 3

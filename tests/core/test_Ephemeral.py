@@ -9,7 +9,8 @@ from pyqrllib.dilithium import Dilithium
 
 from qrl.crypto.xmss import XMSS
 from qrl.crypto.misc import sha256
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage, EphemeralChannelPayload
 from qrl.crypto.aes import AES

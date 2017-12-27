@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.VoteTracker import VoteTracker
 from qrl.core.Transaction import Vote
 from qrl.crypto.xmss import XMSS

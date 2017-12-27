@@ -8,7 +8,8 @@ from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 
 from qrl.core.messagereceipt import MessageReceipt
 
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
 from qrl.generated import qrllegacy_pb2
@@ -43,6 +44,8 @@ class P2PTxManagement(P2PBaseObserver):
         mr_data = message.mrData
         msg_hash = mr_data.hash
 
+        # FIXME: Separate into respective message handlers
+
         if mr_data.type not in MessageReceipt.allowed_types:
             return
 
@@ -67,17 +70,16 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
-            block_chain_buffer = source.factory._buffered_chain
-
-            if not block_chain_buffer.verify_BK_hash(mr_data, source.connection_id):
-                if block_chain_buffer.is_duplicate_block(block_idx=mr_data.block_number,
-                                                         prev_headerhash=mr_data.prev_headerhash,
-                                                         stake_selector=mr_data.stake_selector):
+            # FIXME: Move to buffered chain
+            if not source.factory._buffered_chain.verify_BK_hash(mr_data, source.connection_id):
+                if source.factory._buffered_chain.is_duplicate_block(block_idx=mr_data.block_number,
+                                                                     prev_headerhash=mr_data.prev_headerhash,
+                                                                     stake_selector=mr_data.stake_selector):
                     source.factory.request_full_message(mr_data)
                 return
 
             blocknumber = mr_data.block_number
-            target_blocknumber = block_chain_buffer.bkmr_tracking_blocknumber(source.factory._ntp)
+            target_blocknumber = source.factory._buffered_chain.bkmr_tracking_blocknumber(source.factory._ntp)
             if target_blocknumber != source.factory.bkmr_blocknumber:
                 source.factory.bkmr_blocknumber = target_blocknumber
                 del source.factory.bkmr_priorityq
@@ -87,7 +89,7 @@ class P2PTxManagement(P2PBaseObserver):
                 source.factory.request_full_message(mr_data)
                 return
 
-            score = block_chain_buffer.score_BK_hash(mr_data)
+            score = source.factory._buffered_chain.score_BK_hash(mr_data)
             source.factory.bkmr_priorityq.put((score, msg_hash))
 
             if not source.factory.bkmr_processor.active():
@@ -158,9 +160,6 @@ class P2PTxManagement(P2PBaseObserver):
 
         if not source.factory.master_mr.isRequested(vote.get_message_hash(), source):
             return
-
-        if source.factory._buffered_chain.add_vote(vote):
-            source.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.VT, vote.get_message_hash(), vote.pbdata)
 
     def handle_message_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -383,28 +382,13 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(block.headerhash, source, block):
             return
 
-        block_chain_buffer = source.factory._buffered_chain
-
-        if block_chain_buffer.is_duplicate_block(block_idx=block.block_number,
-                                                 prev_headerhash=block.prev_headerhash,
-                                                 stake_selector=block.stake_selector):
+        if source.factory._buffered_chain.is_duplicate_block(block_idx=block.block_number,
+                                                             prev_headerhash=block.prev_headerhash,
+                                                             stake_selector=block.stake_selector):
             logger.info('Found duplicate block #%s by %s',
                         block.block_number,
                         block.stake_selector)
-            # FIXME : Commented for now, need to re-enable once DT txn has been fixed
-            '''
-            # coinbase_txn = CoinBase.from_pbdata(block.transactions[0])
-            #
-            # sv_dict = self.factory._buffered_chain.stake_list_get(block.block_number)
-            if coinbase_txn.validate_extended(sv_dict=sv_dict, blockheader=block.blockheader):
-                self.factory.master_mr.register_duplicate(block.headerhash)
-                block2 = block_chain_buffer.get_block_n(block.blocknumber)
 
-                duplicate_txn = DuplicateTransaction().create(block1=block, block2=block2)
-                if duplicate_txn.validate():
-                    self.factory._buffered_chain._chain.add_tx_to_duplicate_pool(duplicate_txn)
-                    self.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
-            '''
         source.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
         source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
 

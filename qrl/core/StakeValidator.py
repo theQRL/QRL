@@ -83,8 +83,6 @@ class StakeValidator:
             raise ValueError("terminator hash cannot be empty")
 
         stakevalidator._data.balance = balance
-        if balance < config.dev.minimum_staking_balance_required:
-            raise ValueError("balance should be at least {}".format(config.dev.minimum_staking_balance_required))
 
         stakevalidator._data.activation_blocknumber = stake_txn.activation_blocknumber
 

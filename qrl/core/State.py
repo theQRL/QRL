@@ -6,7 +6,8 @@ from typing import List
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
-from qrl.core import db, logger, config
+from qrl.core import config
+from qrl.core.misc import logger, db
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.AddressState import AddressState
 from qrl.core.TokenMetadata import TokenMetadata
@@ -370,7 +371,7 @@ class State:
             return AddressState.create(address=address,
                                        nonce=config.dev.default_nonce,
                                        balance=config.dev.default_account_balance,
-                                       ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
+                                       ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                        tokens=dict())
 
     def nonce(self, addr: bytes) -> int:

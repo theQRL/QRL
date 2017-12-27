@@ -8,7 +8,7 @@ if sys.version_info < (3, 5):
     print("This application requires at least Python 3.5")
     quit(1)
 
-from qrl.core.DependencyChecker import DependencyChecker  # noqa
+from qrl.core.misc.DependencyChecker import DependencyChecker  # noqa
 
 DependencyChecker.check()
 

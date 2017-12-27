@@ -8,7 +8,8 @@ import random
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from qrl.core import config, logger, ntp
+from qrl.core import config
+from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain

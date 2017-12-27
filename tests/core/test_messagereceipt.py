@@ -4,7 +4,8 @@
 from unittest import TestCase
 
 from pyqrllib.pyqrllib import str2bin
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 

@@ -1,6 +1,7 @@
 # coding=utf-8
 from pyqrllib.pyqrllib import sha2_256, str2bin
-from qrl.core import ntp, logger, config
+from qrl.core import config
+from qrl.core.misc import ntp, logger
 from qrl.core.formulas import block_reward_calc
 from qrl.generated import qrl_pb2
 from google.protobuf.json_format import MessageToJson, Parse

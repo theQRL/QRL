@@ -7,7 +7,8 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from mock import Mock, MagicMock, mock
 
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
 from qrl.core.Chain import Chain

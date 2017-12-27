@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from pyqrllib.pyqrllib import str2bin
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
 
 logger.initialize_default()

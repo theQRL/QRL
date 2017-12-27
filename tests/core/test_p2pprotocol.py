@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from qrl.core import logger
+from qrl.core.misc import logger
 
 logger.initialize_default()
 

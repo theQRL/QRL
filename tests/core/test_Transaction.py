@@ -4,9 +4,9 @@ import simplejson as json
 from mock import Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core.misc import logger
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.Transaction import Transaction, TransferTransaction, StakeTransaction, CoinBase, Vote, TokenTransaction, TransferTokenTransaction
-from qrl.core.misc import logger
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2

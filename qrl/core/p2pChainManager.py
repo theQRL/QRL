@@ -1,4 +1,4 @@
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
 from qrl.generated import qrllegacy_pb2

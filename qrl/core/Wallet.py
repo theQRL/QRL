@@ -7,12 +7,11 @@ from typing import List
 from pyqrllib.pyqrllib import mnemonic2bin
 
 from qrl.generated import qrl_pb2
-from qrl.core import config, logger
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
 
 import os
-
-import simplejson as json  # TODO: Left here for backward compatibility. Remove in next hard fork
 
 AddressBundle = namedtuple('AddressBundle', 'address xmss')
 

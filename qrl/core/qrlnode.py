@@ -8,7 +8,8 @@ from typing import Optional, List
 
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.node import POS, SyncState
-from qrl.core import config, ntp
+from qrl.core import config
+from qrl.core.misc import ntp
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
@@ -17,7 +18,7 @@ from qrl.core.StakeValidator import StakeValidator
 from qrl.core.State import State
 from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, Transaction
-from qrl.core.logger import logger
+from qrl.core.misc.logger import logger
 from qrl.core.p2pChainManager import P2PChainManager
 from qrl.core.p2pPeerManager import P2PPeerManager
 from qrl.core.p2pTxManagement import P2PTxManagement
@@ -42,6 +43,11 @@ class QRLNode:
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
         self._pos = None
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
 
     @property
     def version(self):
@@ -84,6 +90,12 @@ class QRLNode:
         if self._p2pfactory is None:
             return False
         return self._p2pfactory.pos.stake
+
+    @property
+    def staking_address(self):
+        if self._pos is None:
+            return b''
+        return self._pos.staking_address
 
     @property
     def epoch(self):
@@ -146,9 +158,33 @@ class QRLNode:
     def addresses(self) -> List[bytes]:
         return self._buffered_chain.wallet.addresses
 
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+
     # FIXME: REMOVE. This is temporary
     def set_chain(self, buffered_chain: BufferedChain):
         self._buffered_chain = buffered_chain
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+
+    def connect_peers(self):
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
+        for peer_address in self.peer_addresses:
+            self._p2pfactory.connect_peer(peer_address)
+
+    def start_pos(self):
+        # FIXME: This seems an unexpected side effect. It should be refactored
+        self._pos = POS(buffered_chain=self._buffered_chain,
+                        p2p_factory=self._p2pfactory,
+                        sync_state=self._sync_state,
+                        time_provider=ntp)
+
+        self._pos.start()
 
     def start_listening(self):
         self._p2pfactory = P2PFactory(buffered_chain=self._buffered_chain,
@@ -156,6 +192,11 @@ class QRLNode:
                                       qrl_node=self)  # FIXME: Try to avoid cycle references
 
         self._p2pfactory.start_listening()
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
 
     @staticmethod
     def get_dec_amount(str_amount_arg: str) -> Decimal:
@@ -171,6 +212,22 @@ class QRLNode:
         # FIXME: Refactored code. Review Decimal usage all over the code
         Decimal(amount_str)
         return True
+
+    @staticmethod
+    def address_is_valid(address: bytes) -> bool:
+        # TODO: Validate address format
+        if len(address) < 1:
+            return False
+
+        if address[0] != ord('Q'):
+            return False
+
+        return True
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
 
     def get_address_bundle(self, key_addr: bytes):
         for addr in self._buffered_chain.wallet.address_bundle:
@@ -266,17 +323,6 @@ class QRLNode:
             elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
                 subtype = qrllegacy_pb2.LegacyMessage.TT
             self._p2pfactory.broadcast_tx(tx, subtype=subtype)
-
-        return True
-
-    @staticmethod
-    def address_is_valid(address: bytes) -> bool:
-        # TODO: Validate address format
-        if len(address) < 1:
-            return False
-
-        if address[0] != ord('Q'):
-            return False
 
         return True
 
@@ -402,20 +448,6 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-
-    def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer_address in self.peer_addresses:
-            self._p2pfactory.connect_peer(peer_address)
-
-    def start_pos(self, force_sync=False):
-        # FIXME: This seems an unexpected side effect. It should be refactored
-        self._pos = POS(buffered_chain=self._buffered_chain,
-                        p2p_factory=self._p2pfactory,
-                        sync_state=self._sync_state,
-                        time_provider=ntp)
-
-        self._pos.start(force_sync)
 
     def broadcast_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage) -> bool:
         if not encrypted_ephemeral.validate():

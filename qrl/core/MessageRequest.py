@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core import logger
+from qrl.core.misc import logger
 
 
 class MessageRequest:

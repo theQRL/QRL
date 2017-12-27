@@ -9,7 +9,7 @@ from grpc import ServicerContext
 from mock import Mock, MagicMock
 from pyqrllib.pyqrllib import str2bin
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BufferedChain import BufferedChain
@@ -138,7 +138,7 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q' + sha256(b'address'),
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          ots_bitfield=[b'\x00']*config.dev.ots_bitfield,
+                                                                          ots_bitfield=[b'\x00']*config.dev.ots_bitfield_size,
                                                                           tokens=dict()))
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
@@ -169,7 +169,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
-        self.assertEqual([b'\x00']*config.dev.ots_bitfield, response.state.ots_bitfield)
+        self.assertEqual([b'\x00']*config.dev.ots_bitfield_size, response.state.ots_bitfield)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
 
     @pytest.mark.skip(reason="Temporarily skipping test")
@@ -204,7 +204,7 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=SOME_ADDR1,
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield,
+                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                                                           tokens=dict()))
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
@@ -396,7 +396,7 @@ class TestPublicAPI(TestCase):
             return_value=AddressState.create(address=expected_address,
                                              nonce=1,
                                              balance=100,
-                                             ots_bitfield=[b'0'] * config.dev.ots_bitfield,
+                                             ots_bitfield=[b'0'] * config.dev.ots_bitfield_size,
                                              tokens=dict()))
 
         db_state.get_address_tx_hashes = MagicMock(return_value=[])

@@ -9,7 +9,7 @@ from pyqrllib.dilithium import Dilithium
 from qrl.generated import qrl_pb2
 from qrl.crypto.aes import AES
 from tests.misc.random_number_generator import RNG
-from qrl.core import ntp
+from qrl.core.misc import ntp
 
 
 class EncryptedEphemeralMessage(object):

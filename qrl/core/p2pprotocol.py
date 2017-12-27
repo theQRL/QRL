@@ -7,7 +7,7 @@ from typing import Callable
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2
 

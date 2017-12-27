@@ -6,7 +6,8 @@ from copy import deepcopy
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import config, logger
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import StakeTransaction
 from qrl.generated import qrl_pb2

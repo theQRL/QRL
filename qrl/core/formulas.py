@@ -7,7 +7,8 @@ from math import log
 
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import config, logger
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.crypto.misc import sha256
 from decimal import Decimal
 

@@ -10,7 +10,8 @@ from pyqrllib.pyqrllib import bin2hstr, XmssPool
 from qrl.core.AddressState import AddressState
 from twisted.internet import reactor
 
-from qrl.core import logger, config, BufferedChain, ntp
+from qrl.core import config, BufferedChain
+from qrl.core.misc import ntp, logger
 from qrl.core.Block import Block
 from qrl.core.ESyncState import ESyncState
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
@@ -32,40 +33,40 @@ class ConsensusMechanism(object):
 
         self.buffered_chain = buffered_chain
 
-        #########
-        private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
-        self._wallet_private_seeds = {self.epoch: private_seed}
-        self.hash_chain = dict()
-        self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
+        # #########
+        # private_seed = self.wallet.address_bundle[0].xmss.get_seed_private()
+        # self._wallet_private_seeds = {self.epoch: private_seed}
+        # self.hash_chain = dict()
+        # self.hash_chain[self.epoch] = hashchain(private_seed).hashchain
         #########
 
         self.slave_xmss_dict = dict()
         self.slave_xmsspool = None
-        self._init_slave_xmsspool(0)
+        # self._init_slave_xmsspool(0)
 
-    def _init_slave_xmsspool(self, starting_epoch):
-        baseseed = self.wallet.address_bundle[0].xmss.get_seed()
-        pool_size = 2
-        self.slave_xmsspool = XmssPool(baseseed,
-                                       config.dev.slave_xmss_height,
-                                       starting_epoch,
-                                       pool_size)
-
-    def get_slave_xmss(self, blocknumber):
-        epoch = self._get_mining_epoch(blocknumber)
-        if epoch not in self.slave_xmss:
-            if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
-                self._init_slave_xmsspool(epoch)
-                return None
-            if not self.slave_xmsspool.isAvailable():
-                return None
-
-            # Generate slave xmss
-            assert (epoch == self.slave_xmsspool.getCurrentIndex())  # Verify we are not skipping trees
-            tmp_xmss = self.slave_xmsspool.getNextTree()
-            self.slave_xmss[epoch] = XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
-
-        return self.slave_xmss[epoch]
+    # def _init_slave_xmsspool(self, starting_epoch):
+    #     baseseed = self.wallet.address_bundle[0].xmss.get_seed()
+    #     pool_size = 2
+    #     self.slave_xmsspool = XmssPool(baseseed,
+    #                                    config.dev.slave_xmss_height,
+    #                                    starting_epoch,
+    #                                    pool_size)
+    #
+    # def get_slave_xmss(self, blocknumber):
+    #     epoch = self._get_mining_epoch(blocknumber)
+    #     if epoch not in self.slave_xmss:
+    #         if self.slave_xmsspool.getCurrentIndex() - epoch != 0:
+    #             self._init_slave_xmsspool(epoch)
+    #             return None
+    #         if not self.slave_xmsspool.isAvailable():
+    #             return None
+    #
+    #         # Generate slave xmss
+    #         assert (epoch == self.slave_xmsspool.getCurrentIndex())  # Verify we are not skipping trees
+    #         tmp_xmss = self.slave_xmsspool.getNextTree()
+    #         self.slave_xmss[epoch] = XMSS(tmp_xmss.getHeight(), _xmssfast=tmp_xmss)
+    #
+    #     return self.slave_xmss[epoch]
 
 
 class POS(ConsensusMechanism):
@@ -119,9 +120,9 @@ class POS(ConsensusMechanism):
     ##################################################3
     ##################################################3
 
-    def start(self, force_sync):
+    def start(self):
         self.restart_monitor_bk(80)
-        reactor.callLater(20, self.initialize_pos, force_sync)
+        reactor.callLater(20, self.initialize_pos)
 
     def _handler_state_unsynced(self):
         self.last_bk_time = time.time()
@@ -189,7 +190,7 @@ class POS(ConsensusMechanism):
 
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
-    def initialize_pos(self, force_sync):
+    def initialize_pos(self):
         found = False
         if self.buffered_chain.height == 0:
             genesis_block = self.buffered_chain.get_block(0)

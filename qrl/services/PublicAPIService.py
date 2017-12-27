@@ -3,7 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from grpc import StatusCode
 
-from qrl.core import logger, config
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode

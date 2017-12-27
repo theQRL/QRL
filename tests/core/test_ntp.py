@@ -5,8 +5,8 @@ from unittest import TestCase
 
 import ntplib
 
-from qrl.core import logger, ntp
-from qrl.core.ntp import getNTP, get_ntp_response, setDrift, getTime
+from qrl.core.misc import ntp, logger
+from qrl.core.misc.ntp import getNTP, get_ntp_response, setDrift, getTime
 
 logger.initialize_default()
 

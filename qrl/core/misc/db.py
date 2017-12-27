@@ -7,7 +7,8 @@ import leveldb
 import os
 import simplejson as json
 
-from qrl.core import config, logger
+from qrl.core import config
+from qrl.core.misc import logger
 
 __author__ = 'pete'
 

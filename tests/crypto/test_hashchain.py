@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.crypto.hashchain import hashchain, hashchain_reveal
 from qrl.crypto.misc import sha256, sha256_n
 

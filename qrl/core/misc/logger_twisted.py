@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from twisted.logger import LogLevel, globalLogPublisher
 
-from qrl.core import logger
+from qrl.core.misc import logger
 
 twisted_logger_mapping = {
     LogLevel.critical: logger.fatal,

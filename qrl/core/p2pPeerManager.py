@@ -10,7 +10,8 @@ import os
 
 from typing import Callable
 
-from qrl.core import config, logger
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
 from qrl.core.p2pObserver import P2PBaseObserver

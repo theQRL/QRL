@@ -4,7 +4,7 @@
 from enum import Enum
 from typing import Optional, Dict, Callable
 
-from qrl.core import logger
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
 from qrl.core.AddressState import AddressState
@@ -103,6 +103,7 @@ class Chain:
         return True
 
     def load_state(self) -> bool:
+        # FIXME: This is odd.. not sure it should even exist
         try:
             self.pstate.prev_stake_validators_tracker = StakeValidatorsTracker.from_json(self.pstate.get_prev_stake_validators_tracker())
             self.pstate.stake_validators_tracker = StakeValidatorsTracker.from_json(self.pstate.get_stake_validators_tracker())

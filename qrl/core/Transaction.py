@@ -8,7 +8,8 @@ from abc import ABCMeta, abstractmethod
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import getAddress, bin2hstr
 
-from qrl.core import config, logger
+from qrl.core import config
+from qrl.core.misc import logger
 from qrl.crypto.hashchain import hashchain_reveal
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
