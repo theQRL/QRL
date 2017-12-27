@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 from typing import Optional, Dict
 
-from pyqrllib.pyqrllib import bin2hstr, XmssPool
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config, logger, State
 from qrl.core.AddressState import AddressState
@@ -15,10 +15,8 @@ from qrl.core.Chain import Chain
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.VoteTracker import VoteTracker
-from qrl.core.VoteMetadata import VoteMetadata
 from qrl.core.TokenMetadata import TokenMetadata
-from qrl.core.Transaction import CoinBase, Transaction, Vote
+from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.TransactionPool import TransactionPool
 from qrl.crypto.hashchain import hashchain
 from qrl.crypto.misc import sha256
@@ -32,10 +30,7 @@ class BufferedChain:
     def __init__(self, chain: Chain):
         self._chain = chain
 
-        # [BlockBuffer, StateBuffer]
         self.blocks = dict()  # FIXME: Using a dict is very inefficient when index are a sequence
-
-        self._pending_blocks = dict()
 
         self.epoch = max(0, self._chain.height) // config.dev.blocks_per_epoch  # Main chain epoch
         self.epoch_seed = None
@@ -45,10 +40,6 @@ class BufferedChain:
         self.tx_pool = TransactionPool()  # FIXME: This is not stable, it should not be in chain
 
         self.stake_list = []
-
-        self._vote_tracker = dict()  # Tracks votes, against blocknumber
-
-        self.expected_headerhash = dict()
 
     @property
     def transaction_pool(self):
@@ -68,47 +59,12 @@ class BufferedChain:
     def pstate(self) -> State:
         return self._chain.pstate
 
-    def set_voted(self, block_number):
-        if block_number in self.blocks:
-            block_metadata = self.blocks[block_number]
-            block_metadata.set_voted()
-
     #########################################
     #########################################
     #########################################
     #########################################
     #########################################
     # Block handling
-
-    def add_pending_block(self, block) -> bool:
-        # FIXME: only used by POS (pre_block_logic) . Make obsolete
-        # TODO : minimum block validation in unsynced state
-        block_idx = block.block_number
-        self._pending_blocks[block_idx] = block
-        return True
-
-    def process_pending_blocks(self, block_expected_min: int):
-        # FIXME: Pending blocks are not really used my. Why this?
-
-        min_blocknum = min(self._pending_blocks.keys())
-        max_blocknum = max(self._pending_blocks.keys())
-
-        if len(self._pending_blocks) > 0 and min_blocknum == block_expected_min:
-            # Below code is to stop downloading, once we see that we reached to blocknumber that are in pending_blocks
-            # This could be exploited by sybil node, to send blocks in pending_blocks in order to disrupt downloading
-
-            # FIXME: both min/max. Two passes
-            logger.info('Processing pending blocks %s %s', min_blocknum, max_blocknum)
-
-            # FIXME: avoid iterating by using keys
-            for blocknum in range(min_blocknum, max_blocknum + 1):
-                self.add_block(self._pending_blocks[blocknum])
-
-            self._pending_blocks = dict()
-
-            return True
-
-        return False
 
     def get_address_state(self, address: bytes):
         address_state = None
@@ -169,7 +125,7 @@ class BufferedChain:
 
         return self._chain.get_transaction(transaction_hash)
 
-    def _move_to_mainchain(self) -> bool:
+    def _move_to_mainchain(self, stake_validators_tracker: StakeValidatorsTracker) -> bool:
         if len(self.blocks) == 0:
             return True
 
@@ -182,7 +138,6 @@ class BufferedChain:
             block = self.blocks[block_idx].block
             next_seed = self.blocks[block_idx].next_seed
             address_state_dict = self.blocks[block_idx].address_state_dict
-            stake_validators_tracker = self.blocks[block_idx].stake_validators_tracker
 
             if not self._add_block_mainchain(block, address_state_dict, stake_validators_tracker, next_seed):
                 logger.info('Block {0} adding to stable chain failed'.format(block.block_number))
@@ -198,11 +153,6 @@ class BufferedChain:
             self.epoch = int(block_idx // config.dev.blocks_per_epoch)
             self._clean_if_required(block_idx)
             del self.blocks[block_idx]
-            if block_idx in self._vote_tracker:
-                del self._vote_tracker[block_idx]
-
-            if block_idx in self.expected_headerhash:
-                del self.expected_headerhash[block_idx]
 
         return True
 
@@ -287,29 +237,14 @@ class BufferedChain:
             total += genesisBalance.balance
         return total
 
-    def check_expected_headerhash(self, blocknumber: int, headerhash: bytes) -> bool:
-        if blocknumber in self.expected_headerhash:
-            if headerhash != self.expected_headerhash[blocknumber]:
-                logger.warning('Consensus/Expected headerhash %s', self.expected_headerhash[blocknumber])
-                logger.warning('Headerhash found %s', headerhash)
-                return False
-
-        return True
-
     def add_block(self, block: Block) -> bool:
 
         # is there an older version available?
         old_block_metadata = None
         if block.block_number in self.blocks:
             old_block_metadata = self.blocks[block.block_number]
-            if old_block_metadata.isVoted:
-                return False
 
         if block.block_number < self._chain.height:
-            return False
-
-        if not self.check_expected_headerhash(block.block_number, block.headerhash):
-            logger.warning('Failed to Add block #%s', block.block_number)
             return False
 
         if not self.validate_block(block):  # This is here because of validators, etc
@@ -350,42 +285,16 @@ class BufferedChain:
         # Prepare Metadata inputs
 
         if self._chain.height + 1 == block.block_number:
-            prev_prev_sv_tracker = copy.deepcopy(self._chain.pstate.prev_stake_validators_tracker)
             prev_sv_tracker = copy.deepcopy(self._chain.pstate.stake_validators_tracker)
             address_state_dict = dict()
             hash_chain = None
             seed = self.epoch_seed
         else:
-            prev_prev_sv_tracker = self.get_stake_validators_tracker(block.block_number - 1)
             prev_block_metadata = self.blocks[block.block_number - 1]
             prev_sv_tracker = copy.deepcopy(prev_block_metadata.stake_validators_tracker)
             address_state_dict = copy.deepcopy(prev_block_metadata.address_state_dict)
             hash_chain = copy.deepcopy(prev_block_metadata.hash_chain)
             seed = prev_block_metadata.next_seed
-
-        for raw_vote in block.vote:
-            vote = Transaction.from_pbdata(raw_vote)
-            self.add_vote(vote)
-
-        voteMetadata = self.get_consensus(block.block_number - 1)
-        consensus_headerhash = self.get_consensus_headerhash(block.block_number - 1)
-        if block.block_number == 1:
-            total_stake_amount = self.get_genesis_total_stake()
-        else:
-            total_stake_amount = prev_prev_sv_tracker.get_total_stake_amount()
-        consensus_ratio = voteMetadata.total_stake_amount / total_stake_amount
-
-        if consensus_ratio < 0.51:
-            logger.warning('Block #%s Rejected, Consensus lower than 51%%..', block.block_number)
-            logger.warning('%s/%s', voteMetadata.total_stake_amount, total_stake_amount)
-            return False
-        elif consensus_headerhash != prev_block.headerhash:
-            logger.warning('Consensus headerhash doesnt match')
-            logger.warning('Consensus Previous Headerhash %s', consensus_headerhash)
-            logger.warning('Current Previous Headerhash %s', prev_block.headerhash)
-            logger.warning('Previous blocknumber #%s', prev_block.block_number)
-            # TODO: Fork Recovery Logic
-            return False
 
         if not self._state_add_block_buffer(block, prev_sv_tracker, address_state_dict):
             logger.warning('State_validate_block failed inside chainbuffer #%s', block.block_number)
@@ -399,9 +308,6 @@ class BufferedChain:
         block_metadata.stake_validators_tracker = prev_sv_tracker
         block_metadata.address_state_dict = address_state_dict
         block_metadata.update_stxn_state(self._chain.pstate)
-
-        if block.block_number > 0:  # FIXME: Temporarily 1, once sv added to Genesis Block, change it to 0
-            block_metadata.update_vote_metadata(prev_prev_sv_tracker)
 
         # add/replace if new option is better
         if old_block_metadata is None or block_metadata.sorting_key < old_block_metadata.sorting_key:
@@ -705,8 +611,6 @@ class BufferedChain:
 
         while starting_blocknumber in self.blocks:
             del self.blocks[starting_blocknumber]
-            if starting_blocknumber - 1 in self._vote_tracker:
-                del self._vote_tracker[starting_blocknumber - 1]
             starting_blocknumber += 1
 
     def load_address_state(self, block: Block,
@@ -792,6 +696,7 @@ class BufferedChain:
 
     def create_block(self,
                      reveal_hash: bytes,
+                     sv_dict: StakeValidatorsTracker,
                      last_block_number: int = -1) -> Optional[Block]:
 
         # FIXME: This can probably happen inside get_block, why two methods?
@@ -801,7 +706,6 @@ class BufferedChain:
             last_block = self.get_block(last_block_number)
 
         signing_xmss = self.get_slave_xmss(last_block.block_number + 1)
-        sv_dict = self.get_stake_validators_tracker(last_block.block_number + 1).sv_dict
         nonce = sv_dict[self.staking_address].nonce + 1
 
         new_block = Block.create(staking_address=self.staking_address,
@@ -810,7 +714,6 @@ class BufferedChain:
                                  prevblock_headerhash=last_block.headerhash,
                                  transactions=self.tx_pool.transaction_pool,
                                  duplicate_transactions=self.tx_pool.duplicate_tx_pool,
-                                 vote=self._vote_tracker[last_block.block_number].get_consensus(),
                                  signing_xmss=signing_xmss,
                                  nonce=nonce)
 
@@ -824,7 +727,7 @@ class BufferedChain:
 
         return new_block
 
-    def validate_block(self, block: Block) -> bool:
+    def validate_block(self, block: Block, stake_validators_tracker: StakeValidatorsTracker) -> bool:
         """
         Checks validity of a new block
         """
@@ -864,7 +767,6 @@ class BufferedChain:
                 logger.info('fee_reward: %s', block.blockheader.fee_reward)
                 return False
 
-            stake_validators_tracker = self.get_stake_validators_tracker(block.block_number)
             if coinbase_tx.txto not in stake_validators_tracker.sv_dict:
                 logger.warning('Stake selector not in stake_list for this epoch..')
                 return False
@@ -931,14 +833,15 @@ class BufferedChain:
 
         return last_block.block_number
 
-    def verify_BK_hash(self, mr_data: qrllegacy_pb2.MRData, conn_identity) -> bool:
+    def verify_BK_hash(self,
+                       mr_data: qrllegacy_pb2.MRData,
+                       conn_identity,
+                       stake_validators_tracker: StakeValidatorsTracker) -> bool:
         slave_public_key = mr_data.stake_selector
         prev_headerhash = mr_data.prev_headerhash
 
         if mr_data.block_number <= self._chain.height:
             return False
-
-        stake_validators_tracker = self.get_stake_validators_tracker(mr_data.block_number)
 
         if not stake_validators_tracker:
             return False
@@ -1095,22 +998,6 @@ class BufferedChain:
         logger.info('{} blocks'.format(self.length))
         return self._chain.blockchain
 
-    #############################################
-    #############################################
-    #############################################
-    #############################################
-    #############################################
-    # Miscellaneous FIXME: Find a right location for this
-
-    def search(self, query):
-        # FIXME: Refactor this. Prepare a look up in the DB
-        for tx in self.tx_pool.transaction_pool:
-            if tx.txhash == query or tx.txfrom == query or tx.txto == query:
-                logger.info('%s found in transaction pool..', query)
-                return tx
-
-        return self._chain.search(query)
-
     def error_msg(self, func_name, blocknum, exception=None):
         if exception:
             logger.error(func_name + ' Unknown exception at blocknum: %s', blocknum)
@@ -1172,7 +1059,7 @@ class BufferedChain:
     #############################################
     # Related to staking
 
-    def create_stake_block(self, reveal_hash, last_block_number) -> Optional[Block]:
+    def create_stake_block(self, reveal_hash, last_block_number, stake_validators_tracker) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
 
@@ -1185,7 +1072,6 @@ class BufferedChain:
         tx_nonce = defaultdict(int)
         total_txn = len(t_pool2)
         txnum = 0
-        stake_validators_tracker = self.get_stake_validators_tracker(last_block_number + 1)
         # FIX ME : Temporary fix, to include only either ST txn or Other txn for an address
         stake_txn = set()
         transfercoin_txn = set()
@@ -1626,58 +1512,3 @@ class BufferedChain:
 
     def collect_ephemeral_message(self, msg_id):
         return self.pstate.get_ephemeral_metadata(msg_id)
-
-
-##################### VOTE RELATED
-    def get_vote_metadata(self, blocknumber: int):
-        if blocknumber in self.blocks:
-            return [self.blocks[blocknumber].voted_weight, self.blocks[blocknumber].total_stake_amount]
-        return self._chain.pstate.get_vote_metadata(blocknumber)
-
-    def add_vote(self, vote: Vote):
-        if len(self._chain.blockchain) == 1 and vote.blocknumber != self.height:
-            return
-
-        if (self.height != 0 and vote.blocknumber < self._chain.height) or vote.blocknumber > self.height:
-            return
-        stake_address = self._get_st_address(vote.PK, vote.blocknumber)
-        height = self.height
-        # FIXME: Temporary fix, need to add ST txn into genesis block
-        if height > 1:
-            stake_validators_tracker = self.get_stake_validators_tracker(height)
-
-            if stake_address not in stake_validators_tracker.sv_dict:
-                logger.debug('Dropping Vote Txn, as %s not found in Stake Validator list', vote.addr_from)
-                return
-
-            if vote.blocknumber in self._vote_tracker:
-                if self._vote_tracker[vote.blocknumber].is_already_voted(vote):
-                    return
-
-            tx_state = self.get_stxn_state(blocknumber=self.height + 1, addr=vote.addr_from)
-
-            if not (vote.validate() and vote.validate_extended(tx_state=tx_state,
-                                                               stake_validators_tracker=stake_validators_tracker)):
-                logger.warning('>>>Vote %s invalid state validation failed..', bin2hstr(tuple(vote.txhash)))
-                return
-
-        if vote.blocknumber not in self._vote_tracker:
-            self._vote_tracker[vote.blocknumber] = VoteTracker()
-
-        stake_validators_tracker = self.get_stake_validators_tracker(vote.blocknumber)
-        stake_balance = stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
-
-        # FIXME: There is a warning that stake_balance could be reference before assignment.
-        return self._vote_tracker[vote.blocknumber].add_vote(vote, stake_balance)
-
-    def get_consensus(self, blocknumber: int) -> Optional[VoteMetadata]:
-        if blocknumber not in self._vote_tracker:
-            return None
-
-        return self._vote_tracker[blocknumber].get_consensus()
-
-    def get_consensus_headerhash(self, blocknumber: int) -> Optional[bytes]:
-        if blocknumber not in self._vote_tracker:
-            return None
-
-        return self._vote_tracker[blocknumber].get_consensus_headerhash()
