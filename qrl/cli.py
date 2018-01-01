@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import json
 
 import click
 import grpc
@@ -15,13 +16,15 @@ ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
 
 class CLIContext(object):
 
-    def __init__(self, remote, host, port_public, port_admin, wallet_dir):
+    def __init__(self, remote, host, port_public, port_admin, wallet_dir, machine_readable):
         self.remote = remote
         self.host = host
         self.port_public = port_public
         self.port_admin = port_admin
 
         self.wallet_dir = os.path.abspath(wallet_dir)
+
+        self.machine_readable = machine_readable
 
         self.channel_public = grpc.insecure_channel(self.node_public_address)
         self.channel_admin = grpc.insecure_channel(self.node_admin_address)
@@ -45,23 +48,62 @@ def _admin_get_local_addresses(ctx):
         return []
 
 
+def _json_success(msg):
+    o = {
+        "state": "success",
+        "details": msg
+    }
+    return json.dumps(o)
+
+
+def _json_error(msg):
+    o = {
+        "state": "error",
+        "details": msg
+    }
+    return json.dumps(o)
+
+
+def _json_or_human_wrapper(ctx, json_template, msg):
+    if ctx.obj.machine_readable:
+        click.echo(json_template(msg))
+    else:
+        click.echo(msg)
+
+
 def _print_addresses(ctx, addresses, source_description):
     if len(addresses) == 0:
-        click.echo('No wallet found at {}'.format(source_description))
+        msg = 'No wallet found at {}'.format(source_description)
+        _json_or_human_wrapper(ctx, _json_error, msg)
         return
 
-    click.echo('Wallet at          : {}'.format(source_description))
-    click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
-    click.echo('-' * 95)
+    output = {
+        "location": source_description,
+        "addresses": [],
+    }
 
     for pos, addr in enumerate(addresses):
+        address = {
+            "address": addr.decode()
+        }
         try:
             balance = _public_get_address_balance(ctx, addr)
             # TODO standardize quanta/shor conversion
             balance /= 1e8
-            click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
+            address["balance"] = balance
         except Exception as e:
-            click.echo('{:<8}{:<75}?'.format(pos, addr.decode()))
+            address["balance"] = "?"
+
+        output["addresses"].append(address)
+
+    if ctx.obj.machine_readable:
+        click.echo(_json_success(output))
+    else:
+        click.echo('Wallet at          : {}'.format(source_description))
+        click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
+        click.echo('-' * 95)
+        for pos, a in enumerate(output["addresses"]):
+            click.echo('{:<8}{:<75}{}'.format(pos, a["address"], a["balance"]))
 
 
 def _public_get_address_balance(ctx, address):
@@ -73,21 +115,27 @@ def _public_get_address_balance(ctx, address):
 
 def _select_wallet(ctx, src):
     try:
+        config.user.wallet_path = ctx.obj.wallet_dir
+        wallet = Wallet(valid_or_create=False)
+        addresses = [a.address for a in wallet.address_bundle]
+        if not addresses:
+            _json_or_human_wrapper(ctx, _json_error, 'This command requires a local wallet')
+            return
+
         if src.isdigit():
-            src_idx = int(src)
-            config.user.wallet_path = ctx.obj.wallet_dir
-            wallet = Wallet(valid_or_create=False)
-            addresses = [a.address for a in wallet.address_bundle]
-            if not addresses:
-                click.echo('This command is requires a local wallet')
-                return
-
-            if 0 <= src_idx < len(addresses):
+            try:
                 # FIXME: This should only return pk and index
-                ab = wallet.address_bundle[src_idx]
+                ab = wallet.address_bundle[int(src)]
                 return ab.address, ab.xmss
+            except IndexError:
+                _json_or_human_wrapper(ctx, _json_error, 'Wallet index not found')
+                quit(1)
 
-            click.echo('Wallet index not found', color='yellow')
+        elif src.startswith('Q'):
+            for i, addr in enumerate(wallet.addresses):
+                if src.encode() == addr:
+                    return wallet.address_bundle[i].address, wallet.address_bundle[i].xmss
+            click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
         return src.encode(), None
@@ -103,12 +151,13 @@ def _select_wallet(ctx, src):
 
 @click.group()
 @click.option('--remote', '-r', default=False, is_flag=True, help='connect to remote node')
+@click.option('--machine_readable', '-m', default=False, is_flag=True, help='output in machine readable JSON whenever possible')
 @click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
 @click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
 @click.option('--port_adm', default=9008, help='remote port number (admin api)  [9009]* will change')
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
 @click.pass_context
-def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
+def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir, machine_readable):
     """
     QRL Command Line Interface
     """
@@ -116,7 +165,8 @@ def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
                          host=host,
                          port_public=port_pub,
                          port_admin=port_adm,
-                         wallet_dir=wallet_dir)
+                         wallet_dir=wallet_dir,
+                         machine_readable=machine_readable)
 
 
 @qrl.command()
@@ -142,7 +192,7 @@ def wallet_gen(ctx):
     Generates a new wallet with one address
     """
     if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for remote wallets')
         return
 
     config.user.wallet_path = ctx.obj.wallet_dir
@@ -159,7 +209,7 @@ def wallet_add(ctx):
     Adds an address or generates a new wallet (working directory)
     """
     if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for remote wallets')
         return
 
     config.user.wallet_path = ctx.obj.wallet_dir
@@ -222,7 +272,7 @@ def wallet_secret(ctx, wallet_idx):
     Provides the mnemonic/hexseed of the given address index
     """
     if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for remote wallets')
         return
 
     config.user.wallet_path = ctx.obj.wallet_dir
@@ -231,10 +281,17 @@ def wallet_secret(ctx, wallet_idx):
 
     if 0 <= wallet_idx < len(wallet.address_bundle):
         addr_bundle = wallet.address_bundle[wallet_idx]
-        click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
-        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
+        output = {
+            "address": addr_bundle.address.decode(),
+            "mnemonic": addr_bundle.xmss.get_mnemonic()
+        }
+        if ctx.obj.machine_readable:
+            click.echo(_json_success(output))
+        else:
+            click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
+            click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
     else:
-        click.echo('Wallet index not found', color='yellow')
+        _json_or_human_wrapper(ctx, _json_error, 'Wallet index not found')
 
 
 @qrl.command()
@@ -262,7 +319,7 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
         amount_shor = int(amount * 1.e8)
         fee_shor = int(fee * 1.e8)
     except Exception as e:
-        click.echo("Error validating arguments")
+        _json_or_human_wrapper(ctx, _json_error, "Error validating arguments")
         quit(1)
 
     channel = grpc.insecure_channel(ctx.obj.node_public_address)
@@ -278,14 +335,15 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
     try:
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
     except grpc.RpcError as e:
-        click.echo(e.details())
+        _json_or_human_wrapper(ctx, _json_error, e.details())
         quit(1)
     except Exception as e:
-        click.echo("Unhandled error: {}".format(str(e)))
+        _json_or_human_wrapper(ctx, _json_error, "Unhandled error: {}".format(str(e)))
         quit(1)
 
     txblob = bin2hstr(transferCoinsResp.transaction_unsigned.SerializeToString())
-    print(txblob)
+
+    _json_or_human_wrapper(ctx, _json_success, txblob)
 
 
 @qrl.command()
@@ -305,7 +363,8 @@ def tx_sign(ctx, src, txblob):
     tx.sign(address_xmss)
 
     txblob = bin2hstr(tx.pbdata.SerializeToString())
-    print(txblob)
+
+    _json_or_human_wrapper(ctx, _json_success, txblob)
 
 
 @qrl.command()
@@ -322,12 +381,13 @@ def tx_inspect(ctx, txblob):
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
     except Exception as e:
-        click.echo("tx blob is not valid")
+        _json_or_human_wrapper(ctx, _json_error, "tx blob is not valid")
         quit(1)
 
     tmp_json = tx.to_json()
     # FIXME: binary fields are represented in base64. Improve output
-    print(tmp_json)
+
+    _json_or_human_wrapper(ctx, _json_success, json.loads(tmp_json))
 
 
 @qrl.command()
@@ -341,21 +401,29 @@ def tx_push(ctx, txblob):
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
     except Exception as e:
-        click.echo("tx blob is not valid")
+        _json_or_human_wrapper(ctx, _json_error, "tx blob is not valid")
         quit(1)
 
-    tmp_json = tx.to_json()
     # FIXME: binary fields are represented in base64. Improve output
-    print(tmp_json)
+    if not ctx.obj.machine_readable:
+        tmp_json = tx.to_json()
+        print(tmp_json)
+
     if (len(tx.signature) == 0):
-        click.echo('Signature missing')
+        output = {
+            "tx": json.loads(tx.to_json()),
+            "message": 'Signature missing'
+        }
+
+        _json_or_human_wrapper(ctx, _json_error, output)
         quit(1)
 
     channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
     pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
-    print(pushTransactionResp.some_response)
+
+    _json_or_human_wrapper(ctx, _json_success, pushTransactionResp.some_response)
 
 
 @qrl.command()
@@ -369,13 +437,13 @@ def tx_transfer(ctx, src, dst, amount, fee):
     Transfer coins from src to dst
     """
     if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for local wallets')
         return
 
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
+            _json_or_human_wrapper(ctx, _json_error, "A local wallet is required to sign the transaction")
             quit(1)
 
         address_src_pk = src_xmss.pk()
@@ -385,7 +453,7 @@ def tx_transfer(ctx, src, dst, amount, fee):
         amount_shor = int(amount * 1.e8)
         fee_shor = int(fee * 1.e8)
     except Exception as e:
-        click.echo("Error validating arguments")
+        _json_or_human_wrapper(ctx, _json_error, "Error validating arguments")
         quit(1)
 
     try:
@@ -406,9 +474,9 @@ def tx_transfer(ctx, src, dst, amount, fee):
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        _json_or_human_wrapper(ctx, _json_success, pushTransactionResp.some_response)
     except Exception as e:
-        print("Error {}".format(str(e)))
+        _json_or_human_wrapper(ctx, _json_error, "Error {}".format(str(e)))
 
 
 @qrl.command()
@@ -426,7 +494,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
     """
 
     if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for local wallets')
         return
 
     initial_balances = []
@@ -441,7 +509,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
+            _json_or_human_wrapper(ctx, _json_error, "A local wallet is required to sign the transaction")
             quit(1)
 
         address_src_pk = src_xmss.pk()
@@ -451,7 +519,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e8)
     except KeyboardInterrupt as e:
-        click.echo("Error validating arguments")
+        _json_or_human_wrapper(ctx, _json_error, "Error validating arguments")
         quit(1)
 
     try:
@@ -473,9 +541,9 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        _json_or_human_wrapper(ctx, _json_success, pushTransactionResp.some_response)
     except Exception as e:
-        print("Error {}".format(str(e)))
+        _json_or_human_wrapper(ctx, _json_error, "Error {}".format(str(e)))
 
 
 @qrl.command()
@@ -493,13 +561,13 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
     """
 
     if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for local wallets')
         return
 
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
+            _json_or_human_wrapper(ctx, _json_error, "A local wallet is required to sign the transaction")
             quit(1)
 
         address_src_pk = src_xmss.pk()
@@ -511,7 +579,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
         amount = int(amount * (10**int(decimals)))
         fee_shor = int(fee * 1.e8)
     except KeyboardInterrupt as e:
-        click.echo("Error validating arguments")
+        _json_or_human_wrapper(ctx, _json_error, "Error validating arguments")
         quit(1)
 
     try:
@@ -530,9 +598,9 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        _json_or_human_wrapper(ctx, _json_success, pushTransactionResp.some_response)
     except Exception as e:
-        print("Error {}".format(str(e)))
+        _json_or_human_wrapper(ctx, _json_error, "Error {}".format(str(e)))
 
 
 @qrl.command()
@@ -544,7 +612,7 @@ def token_list(ctx, owner):
     """
 
     if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
+        _json_or_human_wrapper(ctx, _json_error, 'This command is unsupported for local wallets')
         return
 
     try:
@@ -554,11 +622,18 @@ def token_list(ctx, owner):
         addressStateReq = qrl_pb2.GetAddressStateReq(address=owner.encode())
         addressStateResp = stub.GetAddressState(addressStateReq, timeout=5)
 
+        output = {}
         for token_hash in addressStateResp.state.tokens:
-            click.echo('Hash: %s' % (token_hash, ))
-            click.echo('Balance: %s' % (addressStateResp.state.tokens[token_hash], ))
+            output[token_hash] = {"balance": addressStateResp.state.tokens[token_hash]}
+
+        if ctx.obj.machine_readable:
+            _json_or_human_wrapper(ctx, _json_success, output)
+        else:
+            for h in output:
+                click.echo('Hash: %s' % (h,))
+                click.echo('Balance: %s' % (output[h]["balance"],))
     except Exception as e:
-        print("Error {}".format(str(e)))
+        _json_or_human_wrapper(ctx, _json_error, "Error {}".format(str(e)))
 
 
 # FIXME: Enable back
