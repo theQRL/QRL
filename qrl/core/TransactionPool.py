@@ -3,11 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from collections import OrderedDict
-from typing import Union
 
 from qrl.core import config
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction, DuplicateTransaction, StakeTransaction, DestakeTransaction
+from qrl.core.Transaction import Transaction
 
 
 class TransactionPool:
@@ -18,12 +17,6 @@ class TransactionPool:
         self.pending_tx_pool_hash = []
         self.transaction_pool = []  # FIXME: Everyone is touching this
 
-    def add_tx_to_duplicate_pool(self, duplicate_txn: DuplicateTransaction):
-        if len(self.duplicate_tx_pool) >= config.dev.transaction_pool_size:
-            self.duplicate_tx_pool.popitem(last=False)
-
-        self.duplicate_tx_pool[duplicate_txn.get_message_hash()] = duplicate_txn
-
     def update_pending_tx_pool(self, tx, peer):
         if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
             del self.pending_tx_pool[0]
@@ -33,10 +26,10 @@ class TransactionPool:
         self.pending_tx_pool.append([tx, peer])
         self.pending_tx_pool_hash.append(tx.txhash)
 
-    def add_tx_to_pool(self, tx_class_obj: Union[StakeTransaction, DestakeTransaction]):
+    def add_tx_to_pool(self, tx_class_obj):
         self.transaction_pool.append(tx_class_obj)
 
-    def remove_tx_from_pool(self, tx_class_obj: Union[StakeTransaction, DestakeTransaction]):
+    def remove_tx_from_pool(self, tx_class_obj):
         self.transaction_pool.remove(tx_class_obj)
 
     def remove_tx_in_block_from_pool(self, block_obj: Block):

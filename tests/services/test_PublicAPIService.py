@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from collections import OrderedDict
 from unittest import TestCase
 
 import pytest
@@ -10,14 +9,11 @@ from mock import Mock, MagicMock
 from pyqrllib.pyqrllib import str2bin
 
 from qrl.core.misc import logger
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.AddressState import AddressState
+from qrl.core.ChainManager import ChainManager
 from qrl.core.Block import Block
-from qrl.core.BufferedChain import BufferedChain
-from qrl.core.Chain import Chain
-from qrl.core.StakeValidator import StakeValidator
-from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.Transaction import TransferTransaction, StakeTransaction
-from qrl.core.VoteMetadata import VoteMetadata
+from qrl.core.Transaction import TransferTransaction
 from qrl.core.node import SyncState
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
@@ -40,16 +36,15 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
-        p2p_factory.pos = Mock()
-        p2p_factory.pos.stake = False
+        p2p_factory.pow = Mock()
 
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = 0
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.height = 0
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
+        qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
-        qrlnode._pos = p2p_factory.pos
+        qrlnode._pow = p2p_factory.pow
 
         service = PublicAPIService(qrlnode)
         node_state = service.GetNodeState(request=qrl_pb2.GetNodeStateReq, context=None)
@@ -64,16 +59,15 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
-        p2p_factory.pos = Mock()
-        p2p_factory.pos.stake = False
+        p2p_factory.pow = Mock()
 
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = 0
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.height = 0
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
+        qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
-        qrlnode._pos = p2p_factory.pos
+        qrlnode._pow = p2p_factory.pow
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
@@ -87,40 +81,35 @@ class TestPublicAPI(TestCase):
 
     def test_getStats(self):
         db_state = Mock(spec=State)
-        db_state.stake_validators_tracker = StakeValidatorsTracker()
         db_state.total_coin_supply = MagicMock(return_value=1000)
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.connections = 23
-        p2p_factory.pos = Mock()
-        p2p_factory.pos.stake = False
+        p2p_factory.pow = Mock()
 
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.height = 0
-        buffered_chain._chain = Mock()
-        buffered_chain._chain.blockchain = []
-
-        buffered_chain.get_block = MagicMock(return_value=None)
-        buffered_chain.state = db_state
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.height = 0
+        chain_manager.get_last_block = MagicMock(return_value=GenesisBlock())
+        chain_manager.get_block_by_number = MagicMock(return_value=None)
+        chain_manager.state = db_state
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
+        qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
-        qrlnode._pos = p2p_factory.pos
+        qrlnode._pow = p2p_factory.pow
 
         service = PublicAPIService(qrlnode)
         stats = service.GetStats(request=qrl_pb2.GetStatsReq, context=None)
 
         # self.assertEqual(__version__, stats.node_info.version)  # FIXME
+
         self.assertEqual(qrl_pb2.NodeInfo.UNSYNCED, stats.node_info.state)
         self.assertEqual(23, stats.node_info.num_connections)
         # self.assertEqual("testnet", stats.node_info.network_id)  # FIXME
 
         self.assertEqual(0, stats.epoch)
         self.assertEqual(0, stats.uptime_network)
-
-        self.assertEqual(0, stats.stakers_count)
 
         self.assertEqual(0, stats.block_last_reward)
         self.assertEqual(0, stats.block_time_mean)
@@ -141,14 +130,11 @@ class TestPublicAPI(TestCase):
                                                                           ots_bitfield=[b'\x00']*config.dev.ots_bitfield_size,
                                                                           tokens=dict()))
 
-        db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
-
         p2p_factory = Mock(spec=P2PFactory)
-        chain = Chain(db_state)
-        buffered_chain = BufferedChain(chain)
+        chain_manager = ChainManager(db_state)
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
+        qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
@@ -162,7 +148,7 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
-        request.address = b'Q' + sha256(b'address')
+        request.address = get_alice_xmss().get_address()
         response = service.GetAddressState(request=request, context=context)
         context.set_code.assert_not_called()
 
@@ -170,7 +156,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
         self.assertEqual([b'\x00']*config.dev.ots_bitfield_size, response.state.ots_bitfield)
-        self.assertEqual([sha256(b'0'), sha256(b'1')], response.state.transaction_hashes)
+        self.assertEqual([], response.state.transaction_hashes)
 
     @pytest.mark.skip(reason="Temporarily skipping test")
     def test_getObject(self):
@@ -181,14 +167,14 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
 
         p2p_factory = Mock(spec=P2PFactory)
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.tx_pool = Mock()
-        buffered_chain.tx_pool.transaction_pool = []
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.tx_pool = Mock()
+        chain_manager.tx_pool.transaction_pool = []
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
+        qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
-        qrlnode._pos = p2p_factory.pos
+        qrlnode._pow = p2p_factory.pow
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
@@ -236,7 +222,7 @@ class TestPublicAPI(TestCase):
                                          fee=19,
                                          xmss_pk=sha256(b'pk'))
 
-        buffered_chain.tx_pool.transaction_pool = [tx1]
+        chain_manager.tx_pool.transaction_pool = [tx1]
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
@@ -257,14 +243,11 @@ class TestPublicAPI(TestCase):
         self.assertEqual(19, response.transaction.transfer.fee)
 
         # Find a block
-        buffered_chain.get_block = MagicMock(
-            return_value=Block.create(staking_address=qrladdress('staking_addr'),
+        chain_manager.get_block = MagicMock(
+            return_value=Block.create(mining_nonce=10,
                                       block_number=1,
-                                      reveal_hash=sha256(b'reveal'),
                                       prevblock_headerhash=sha256(b'reveal'),
                                       transactions=[],
-                                      duplicate_transactions=OrderedDict(),
-                                      vote=VoteMetadata(),
                                       signing_xmss=get_alice_xmss(),
                                       nonce=1))
 
@@ -289,13 +272,10 @@ class TestPublicAPI(TestCase):
                                                       fee=j,
                                                       xmss_pk=get_alice_xmss().pk()))
 
-            blocks.append(Block.create(staking_address=qrladdress('staking_addr'),
+            blocks.append(Block.create(mining_nonce=10,
                                        block_number=i,
-                                       reveal_hash=sha256(b'reveal'),
                                        prevblock_headerhash=sha256(b'reveal'),
                                        transactions=txs,
-                                       duplicate_transactions=OrderedDict(),
-                                       vote=VoteMetadata(),
                                        signing_xmss=get_alice_xmss(),
                                        nonce=i))
 
@@ -310,21 +290,18 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
 
         p2p_factory = Mock(spec=P2PFactory)
-        buffered_chain = Mock(spec=BufferedChain)
-        buffered_chain.tx_pool = Mock()
-        buffered_chain.tx_pool.transaction_pool = txpool
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.tx_pool = Mock()
+        chain_manager.tx_pool.transaction_pool = txpool
 
-        buffered_chain.get_block = Mock()
-        buffered_chain.get_block.side_effect = blocks
-        buffered_chain.height = len(blocks)
-
-        buffered_chain._chain = Mock()
-        buffered_chain._chain.blockchain = blocks
+        chain_manager.get_block = Mock()
+        chain_manager.get_block.side_effect = blocks
+        chain_manager.height = len(blocks)
 
         qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
+        qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
-        qrlnode._pos = p2p_factory.pos
+        qrlnode._pow = p2p_factory.pow
 
         service = PublicAPIService(qrlnode)
         context = Mock(spec=ServicerContext)
@@ -359,57 +336,3 @@ class TestPublicAPI(TestCase):
         self.assertEqual(1013, response.transactions_unconfirmed[0].transfer.amount)
         self.assertEqual(1012, response.transactions_unconfirmed[1].transfer.amount)
         self.assertEqual(1011, response.transactions_unconfirmed[2].transfer.amount)
-
-    def test_getStakers(self):
-        db_state = Mock(spec=State)
-        db_state.stake_validators_tracker = Mock(spec=StakeValidatorsTracker)
-        db_state.stake_validators_tracker.sv_dict = dict()
-
-        p2p_factory = Mock(spec=P2PFactory)
-        chain = Chain(db_state)
-        buffered_chain = BufferedChain(chain)
-
-        qrlnode = QRLNode(db_state)
-        qrlnode.set_chain(buffered_chain)
-        qrlnode._p2pfactory = p2p_factory
-
-        service = PublicAPIService(qrlnode)
-        context = Mock(spec=ServicerContext)
-
-        request = qrl_pb2.GetStakersReq(filter=qrl_pb2.GetStakersReq.CURRENT,
-                                        offset=0,
-                                        quantity=3)
-
-        response = service.GetStakers(request=request, context=context)
-        context.set_code.assert_not_called()
-        context.set_details.assert_not_called()
-        self.assertEqual(0, len(response.stakers))
-
-        # Add a few validators
-        stake_tx = StakeTransaction.create(1,
-                                           get_alice_xmss(),
-                                           get_bob_xmss().pk(),
-                                           sha256(b'terminator'))
-
-        expected_address = get_alice_xmss().get_address()
-        db_state.get_address = MagicMock(
-            return_value=AddressState.create(address=expected_address,
-                                             nonce=1,
-                                             balance=100,
-                                             ots_bitfield=[b'0'] * config.dev.ots_bitfield_size,
-                                             tokens=dict()))
-
-        db_state.get_address_tx_hashes = MagicMock(return_value=[])
-
-        validator1 = StakeValidator.create(100, stake_tx)
-
-        db_state.stake_validators_tracker.sv_dict[validator1.address] = validator1
-        request = qrl_pb2.GetStakersReq(filter=qrl_pb2.GetStakersReq.CURRENT,
-                                        offset=0,
-                                        quantity=3)
-
-        response = service.GetStakers(request=request, context=context)
-        context.set_code.assert_not_called()
-        context.set_details.assert_not_called()
-        self.assertEqual(1, len(response.stakers))
-        self.assertEqual(expected_address, response.stakers[0].address_state.address)

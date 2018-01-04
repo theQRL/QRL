@@ -59,19 +59,19 @@ class BlockHeader(object):
         return self._data.merkle_root
 
     @property
-    def reveal_hash(self):
-        return self._data.hash_reveal
+    def PK(self):
+        return self._data.PK
 
     @property
-    def stake_selector(self):
-        return self._data.stake_selector
+    def mining_nonce(self):
+        return self._data.mining_nonce
 
     @staticmethod
-    def create(staking_address: bytes,
-               blocknumber: int,
+    def create(blocknumber: int,
+               mining_nonce: int,
+               PK: bytes,
                prev_blockheaderhash: bytes,
                hashedtransactions: bytes,
-               reveal_hash: bytes,
                fee_reward: int):
         """
         Create a block header based on the parameters
@@ -96,14 +96,13 @@ class BlockHeader(object):
 
         bh._data.hash_header_prev = prev_blockheaderhash
         bh._data.merkle_root = hashedtransactions
-        bh._data.hash_reveal = reveal_hash
+        bh._data.mining_nonce = mining_nonce
+        bh._data.PK = PK
         bh._data.reward_fee = fee_reward
 
-        bh._data.stake_selector = b''
         bh._data.reward_block = 0
 
         if bh._data.block_number != 0:
-            bh._data.stake_selector = staking_address
             bh._data.reward_block = bh.block_reward_calc()
 
         bh._data.hash_header = bh.generate_headerhash()
@@ -112,7 +111,7 @@ class BlockHeader(object):
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix
-        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}".format(self.stake_selector,
+        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}".format(self.PK,
                                                     self.epoch,
                                                     self.block_reward,
                                                     self.fee_reward,
@@ -120,7 +119,7 @@ class BlockHeader(object):
                                                     self.block_number,
                                                     self.prev_blockheaderhash,
                                                     self.tx_merkle_root,
-                                                    self.reveal_hash)
+                                                    self.mining_nonce)
         return bytes(sha2_256(str2bin(data)))
 
     def block_reward_calc(self):
@@ -161,26 +160,7 @@ class BlockHeader(object):
             logger.warning('must be greater than %s', last_header.timestamp)
             return False
 
-        if last_header.timestamp + config.dev.minimum_minting_delay > self.timestamp:
-            logger.warning('BLOCK created without waiting for minimum minting delay')
-            logger.warning('prev_block timestamp %s ', last_header.timestamp)
-            logger.warning('current_block timestamp %s ', self.timestamp)
-            return False
-
         return True
-
-    def validate_block_timestamp(self, last_block_timestamp):
-        # TODO: Add minimum minting delay
-        if last_block_timestamp >= self.timestamp:
-            return False
-
-        curr_time = ntp.getTime()
-        if curr_time == 0:
-            return False
-
-        max_block_number = int((curr_time - last_block_timestamp) / config.dev.block_creation_seconds)
-        if self.block_number > max_block_number:
-            return False
 
     @staticmethod
     def from_json(json_data):

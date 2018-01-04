@@ -8,7 +8,6 @@ from google.protobuf.json_format import MessageToJson, Parse
 from qrl.core import config
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.BlockHeader import BlockHeader
-from qrl.core.VoteMetadata import VoteMetadata
 from qrl.crypto.misc import sha256, merkle_tx_hash
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
@@ -48,32 +47,16 @@ class Block(object):
         return self.blockheader.prev_blockheaderhash
 
     @property
-    def vote(self):
-        return self._data.vote
-
-    @property
     def transactions(self):
         return self._data.transactions
 
     @property
-    def duplicate_transactions(self):
-        return self._data.dup_transactions
+    def mining_nonce(self):
+        return self.blockheader.mining_nonce
 
     @property
-    def state(self):
-        return self._data.state
-
-    @property
-    def stake_list(self):
-        return self._data.stake_list
-
-    @property
-    def stake_selector(self):
-        return self.blockheader.stake_selector
-
-    @property
-    def reveal_hash(self):
-        return self.blockheader.reveal_hash
+    def PK(self):
+        return self.blockheader.PK
 
     @property
     def block_reward(self):
@@ -94,13 +77,10 @@ class Block(object):
         return MessageToJson(self._data)
 
     @staticmethod
-    def create(staking_address: bytes,
+    def create(mining_nonce: int,
                block_number: int,
-               reveal_hash: bytes,
                prevblock_headerhash: bytes,
                transactions: list,
-               duplicate_transactions: OrderedDict,
-               vote: VoteMetadata,
                signing_xmss: XMSS,
                nonce: int):
 
@@ -112,8 +92,7 @@ class Block(object):
         fee_reward = 0
 
         for tx in transactions:
-            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
-                fee_reward += tx.fee
+            fee_reward += tx.fee
             hashedtransactions.append(tx.txhash)
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
@@ -122,15 +101,9 @@ class Block(object):
 
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
-        for tx in duplicate_transactions.values():  # TODO: Add merkle hash for dup txn
-            block._data.duplicate_transactions.extend([tx.pbdata])
-
-        for staker in vote.stake_validator_vote:  # TODO: Add merkle hash for vote
-            block._data.vote.extend([vote.stake_validator_vote[staker].pbdata])
-
-        tmp_blockheader = BlockHeader.create(staking_address=staking_address,
-                                             blocknumber=block_number,
-                                             reveal_hash=reveal_hash,
+        tmp_blockheader = BlockHeader.create(blocknumber=block_number,
+                                             mining_nonce=mining_nonce,
+                                             PK=signing_xmss.pk(),
                                              prev_blockheaderhash=prevblock_headerhash,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)

@@ -1,7 +1,7 @@
 from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
-from qrl.generated import qrllegacy_pb2
+from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
 class P2PChainManager(P2PBaseObserver):
@@ -11,6 +11,7 @@ class P2PChainManager(P2PBaseObserver):
     def new_channel(self, channel):
         channel.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
         channel.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
+        channel.register(qrllegacy_pb2.LegacyMessage.BH, self.handle_block_height)
 
     def handle_fetch_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
         """
@@ -50,3 +51,25 @@ class P2PChainManager(P2PBaseObserver):
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', source.peer_ip)
             logger.exception(e)
+
+    def handle_block_height(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Sends / Receives Blockheight
+        :param source:
+        :param message:
+        :return:
+        """
+        if message.bhData.block_number == 0:
+            block = source.factory.get_last_block()
+            logger.info('?????????? %s %s', block.block_number, block.headerhash)
+            if block.block_number == 0:
+                return
+            bhdata = qrl_pb2.BlockHeightData(block_number=block.block_number,
+                                             block_headerhash=block.headerhash)
+            msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.BH,
+                                              bhData=bhdata)
+            source.send(msg)
+        else:
+            source.factory.update_peer_blockheight(source.connection_id,
+                                                   message.bhData.block_number,
+                                                   message.bhData.block_headerhash)

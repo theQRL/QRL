@@ -5,7 +5,6 @@ from grpc import StatusCode
 
 from qrl.core import config
 from qrl.core.misc import logger
-from qrl.core.StakeValidator import StakeValidator
 from qrl.core.Transaction import Transaction
 from qrl.core.qrlnode import QRLNode
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
@@ -40,20 +39,18 @@ class PublicAPIService(PublicAPIServicer):
 
         response.epoch = self.qrlnode.epoch
         response.uptime_network = self.qrlnode.uptime_network
-        response.stakers_count = self.qrlnode.stakers_count
         response.block_last_reward = self.qrlnode.block_last_reward
         response.block_time_mean = self.qrlnode.block_time_mean
         response.block_time_sd = self.qrlnode.block_time_sd
         response.coins_total_supply = self.qrlnode.coin_supply_max
         response.coins_emitted = self.qrlnode.coin_supply
-        response.coins_atstake = self.qrlnode.coin_atstake
 
         return response
 
     @grpc_exception_wrapper(qrl_pb2.GetAddressStateResp, StatusCode.UNKNOWN)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
         address_state = self.qrlnode.get_address_state(request.address)
-        return qrl_pb2.GetAddressStateResp(state=address_state)
+        return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
 
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
@@ -142,29 +139,6 @@ class PublicAPIService(PublicAPIServicer):
 
         return token_detailed_list
 
-    def _stake_validator_to_staker_data(self, stake_validator: StakeValidator) -> qrl_pb2.StakerData:
-        answer = qrl_pb2.StakerData()
-        answer.address_state.CopyFrom(self.qrlnode.get_address_state(stake_validator.address))
-        answer.terminator_hash = stake_validator.terminator_hash
-        return answer
-
-    @grpc_exception_wrapper(qrl_pb2.GetStakersResp, StatusCode.UNKNOWN)
-    def GetStakers(self, request: qrl_pb2.GetStakersReq, context) -> qrl_pb2.GetStakersResp:
-        logger.debug("[PublicAPI] GetStakers")
-        response = qrl_pb2.GetStakersResp()
-        quantity = min(request.quantity, self.MAX_REQUEST_QUANTITY)
-
-        if request.filter == qrl_pb2.GetStakersReq.CURRENT:
-            sv_list = self.qrlnode.get_current_stakers(offset=request.offset, count=quantity)
-        elif request.filter == qrl_pb2.GetStakersReq.NEXT:
-            sv_list = self.qrlnode.get_next_stakers(offset=request.offset, count=quantity)
-        else:
-            raise NotImplementedError("filter value is not supported")
-
-        sv_data = [self._stake_validator_to_staker_data(sv) for sv in sv_list]
-        response.stakers.extend(sv_data)
-        return response
-
     @grpc_exception_wrapper(qrl_pb2.GetLatestDataResp, StatusCode.UNKNOWN)
     def GetLatestData(self, request: qrl_pb2.GetLatestDataReq, context) -> qrl_pb2.GetLatestDataResp:
         logger.debug("[PublicAPI] GetLatestData")
@@ -179,20 +153,9 @@ class PublicAPIService(PublicAPIServicer):
                 transaction_count = qrl_pb2.TransactionCount()
                 for tx in blk.transactions:
                     transaction_count.count[tx.type] += 1
-                for tx in blk.vote:
-                    transaction_count.count[tx.type] += 1
-                for tx in blk.duplicate_transactions:
-                    transaction_count.count[tx.type] += 1
-
-                voted_weight = 0
-                total_stake_weight = 0
-                if blk.block_number > 0:
-                    voted_weight, total_stake_weight = self.qrlnode.get_vote_metadata(blk.block_number)
 
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
-                                                          transaction_count=transaction_count,
-                                                          voted_weight=voted_weight,
-                                                          total_stake_weight=total_stake_weight))
+                                                          transaction_count=transaction_count))
             response.blockheaders.extend(result)
 
         if all_requested or request.filter == qrl_pb2.GetLatestDataReq.TRANSACTIONS:

@@ -46,9 +46,5 @@ class GenesisBlock(Block, metaclass=Singleton):
         return self._data.transactions
 
     @property
-    def duplicate_transactions(self):
-        return self._data.dup_transactions
-
-    @property
     def genesis_balance(self):
         return self._data.genesis_balance

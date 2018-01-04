@@ -5,6 +5,7 @@
 from copy import deepcopy
 from collections import defaultdict
 
+from qrl.core import config
 from qrl.generated import qrl_pb2
 
 
@@ -80,3 +81,28 @@ class AddressState(object):
 
     def increase_nonce(self):
         self._data.nonce += 1
+
+    @staticmethod
+    def get_default(address):
+        address_state = AddressState.create(address=address,
+                                            nonce=config.dev.default_nonce,
+                                            balance=0,
+                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                            tokens=dict())
+        return address_state
+
+    @staticmethod
+    def address_is_valid(address: bytes) -> bool:
+        if len(address) != 73:
+            return False
+
+        if address[0] != ord('Q'):
+            return False
+
+        hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+
+        for index in range(1, len(address)):
+            if chr(address[index]) not in hex_chars:
+                return False
+
+        return True

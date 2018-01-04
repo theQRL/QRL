@@ -8,7 +8,7 @@ from mock import Mock, MagicMock
 from qrl.core.misc import logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.node import POS
+from qrl.core.node import POW
 
 logger.initialize_default()
 
@@ -18,12 +18,12 @@ class TestNode(TestCase):
         super(TestNode, self).__init__(*args, **kwargs)
 
     def test_create(self):
-        buffered_chain = Mock()
+        chain_manager = Mock()
         p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
-        node = POS(buffered_chain=buffered_chain,
+        node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
@@ -31,12 +31,12 @@ class TestNode(TestCase):
         self.assertIsNotNone(node)
 
     def test_sync_state_change_unsynced(self):
-        buffered_chain = Mock()
+        chain_manager = Mock()
         p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
-        node = POS(buffered_chain=buffered_chain,
+        node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
@@ -46,12 +46,12 @@ class TestNode(TestCase):
         # FIXME: Add more asserts
 
     def test_sync_state_change_syncing(self):
-        buffered_chain = Mock()
+        chain_manager = Mock()
         p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
-        node = POS(buffered_chain=buffered_chain,
+        node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
@@ -61,16 +61,15 @@ class TestNode(TestCase):
         # FIXME: Add more asserts
 
     def test_sync_state_change_synced(self):
-        buffered_chain = Mock()
-        buffered_chain.height = 0
-        buffered_chain.get_block = MagicMock(return_value=GenesisBlock())
-        buffered_chain.stake_list_get = MagicMock(return_value=[])
+        chain_manager = Mock()
+        chain_manager.height = 0
+        chain_manager.get_block = MagicMock(return_value=GenesisBlock())
 
         p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
-        node = POS(buffered_chain=buffered_chain,
+        node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)
@@ -80,12 +79,12 @@ class TestNode(TestCase):
         # FIXME: Add more asserts
 
     def test_sync_state_change_forked(self):
-        buffered_chain = Mock()
+        chain_manager = Mock()
         p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
 
-        node = POS(buffered_chain=buffered_chain,
+        node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider)

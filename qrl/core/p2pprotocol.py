@@ -20,7 +20,7 @@ class P2PProtocol(Protocol):
         # Need to use composition instead of inheritance here
         self._observable = P2PObservable(self)
         self.peer_manager = None
-        self.chain_manager = None
+        self.p2pchain_manager = None
         self.tx_manager = None
 
     @property
@@ -46,12 +46,12 @@ class P2PProtocol(Protocol):
         if self.factory.add_connection(self):
 
             self.peer_manager = self.factory._qrl_node.peer_manager
-            self.chain_manager = self.factory._qrl_node.chain_manager
+            self.p2pchain_manager = self.factory._qrl_node.p2pchain_manager
             self.tx_manager = self.factory._qrl_node.tx_manager
 
             # Inform about new channel
             self.peer_manager.new_channel(self)
-            self.chain_manager.new_channel(self)
+            self.p2pchain_manager.new_channel(self)
             self.tx_manager.new_channel(self)
 
             self.send_peer_list()

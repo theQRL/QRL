@@ -1,6 +1,4 @@
-from queue import PriorityQueue
 from pyqrllib.pyqrllib import bin2hstr
-from twisted.internet import reactor
 
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Transaction import Transaction
@@ -25,10 +23,6 @@ class P2PTxManagement(P2PBaseObserver):
 
         channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
-        channel.register(qrllegacy_pb2.LegacyMessage.ST, self.handle_stake)
-        channel.register(qrllegacy_pb2.LegacyMessage.DST, self.handle_destake)
-        channel.register(qrllegacy_pb2.LegacyMessage.DT, self.handle_duplicate)
-        channel.register(qrllegacy_pb2.LegacyMessage.VT, self.handle_vote)
         channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
         channel.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
 
@@ -53,7 +47,7 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
-            if len(source.factory._buffered_chain.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
+            if len(source.factory._chain_manager.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
@@ -67,34 +61,6 @@ class P2PTxManagement(P2PBaseObserver):
         source.factory.master_mr.add_peer(msg_hash, mr_data.type, source, mr_data)
 
         if source.factory.master_mr.is_callLater_active(msg_hash):  # Ignore if already requested
-            return
-
-        if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
-            # FIXME: Move to buffered chain
-            if not source.factory._buffered_chain.verify_BK_hash(mr_data, source.connection_id):
-                if source.factory._buffered_chain.is_duplicate_block(block_idx=mr_data.block_number,
-                                                                     prev_headerhash=mr_data.prev_headerhash,
-                                                                     stake_selector=mr_data.stake_selector):
-                    source.factory.request_full_message(mr_data)
-                return
-
-            blocknumber = mr_data.block_number
-            target_blocknumber = source.factory._buffered_chain.bkmr_tracking_blocknumber(source.factory._ntp)
-            if target_blocknumber != source.factory.bkmr_blocknumber:
-                source.factory.bkmr_blocknumber = target_blocknumber
-                del source.factory.bkmr_priorityq
-                source.factory.bkmr_priorityq = PriorityQueue()
-
-            if blocknumber != target_blocknumber or blocknumber == 1:
-                source.factory.request_full_message(mr_data)
-                return
-
-            score = source.factory._buffered_chain.score_BK_hash(mr_data)
-            source.factory.bkmr_priorityq.put((score, msg_hash))
-
-            if not source.factory.bkmr_processor.active():
-                source.factory.bkmr_processor = reactor.callLater(1, source.factory.select_best_bkmr)
-
             return
 
         source.factory.request_full_message(mr_data)
@@ -118,13 +84,12 @@ class P2PTxManagement(P2PBaseObserver):
         if not tx.validate():
             return False
 
-        buffered_chain = factory._buffered_chain
+        chain_manager = factory._chain_manager
 
-        tx_state = buffered_chain.get_stxn_state(blocknumber=buffered_chain.height,
-                                                 addr=tx.txfrom)
+        tx_state = chain_manager.state.get_stxn_state(addr=tx.txfrom)
 
         is_valid_state = tx.validate_extended(tx_state=tx_state,
-                                              transaction_pool=buffered_chain.tx_pool.transaction_pool)
+                                              transaction_pool=chain_manager.tx_pool.transaction_pool)
         return is_valid_state
 
     def handle_tx(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -141,25 +106,6 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         self.process(source.factory, tx)
-
-    def handle_vote(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Vote Transaction
-        This function processes whenever a Transaction having
-        subtype VOTE is received.
-        :return:
-        """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.VT)
-        try:
-            vote = Transaction.from_pbdata(message.vtData)
-        except Exception as e:
-            logger.error('Vote Txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if not source.factory.master_mr.isRequested(vote.get_message_hash(), source):
-            return
 
     def handle_message_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -233,133 +179,6 @@ class P2PTxManagement(P2PBaseObserver):
 
         self.process(source.factory, tx)
 
-    def handle_stake(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Stake Transaction
-        This function processes whenever a Transaction having
-        subtype ST is received.
-        :return:
-        """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.ST)
-        try:
-            st = Transaction.from_pbdata(message.stData)
-        except Exception as e:
-            logger.error('st rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if not source.factory.master_mr.isRequested(st.get_message_hash(), source):
-            return
-
-        if len(source.factory._buffered_chain._chain.blockchain) == 1 and \
-                st.activation_blocknumber > source.factory.chain_height + config.dev.blocks_per_epoch:
-            return
-
-        height = source.factory.chain_height + 1
-        stake_validators_tracker = source.factory._buffered_chain.get_stake_validators_tracker(height)
-
-        if st.txfrom in stake_validators_tracker.future_stake_addresses:
-            logger.debug('P2P dropping st as staker is already in future_stake_address %s', st.txfrom)
-            return
-
-        if st.txfrom in stake_validators_tracker.sv_dict:
-            expiry = stake_validators_tracker.sv_dict[st.txfrom].activation_blocknumber + config.dev.blocks_per_epoch
-            if st.activation_blocknumber < expiry:
-                logger.debug('P2P dropping st txn as it is already active for the given range %s', st.txfrom)
-                return
-
-        if st.activation_blocknumber > height + config.dev.blocks_per_epoch:
-            logger.debug('P2P dropping st as activation_blocknumber beyond limit')
-            return False
-
-        for t in source.factory._buffered_chain.tx_pool.transaction_pool:
-            if st.get_message_hash() == t.get_message_hash():
-                return
-
-        tx_state = source.factory._buffered_chain.get_stxn_state(
-            blocknumber=source.factory.chain_height + 1,
-            addr=st.txfrom)
-        if st.validate() and st.validate_extended(tx_state=tx_state):
-            source.factory._buffered_chain.tx_pool.add_tx_to_pool(st)
-        else:
-            logger.warning('>>>ST %s invalid state validation failed..', bin2hstr(tuple(st.hash)))
-            return
-
-        source.factory.register_and_broadcast(qrllegacy_pb2.LegacyMessage.ST, st.get_message_hash(), st.pbdata)
-
-    def handle_destake(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Destake Transaction
-        This function processes whenever a Transaction having
-        subtype DESTAKE is received.
-        :return:
-        """
-        try:
-            destake_txn = Transaction.from_json(message)
-        except Exception as e:
-            logger.error('de stake rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if not source.factory.master_mr.isRequested(destake_txn.get_message_hash(), source):
-            return
-
-        for t in source.factory._buffered_chain.tx_pool.transaction_pool:
-            if destake_txn.get_message_hash() == t.get_message_hash():
-                return
-
-        txfrom = destake_txn.txfrom
-        height = source.factory.chain_height + 1
-        stake_validators_tracker = source.factory._buffered_chain.get_stake_validators_tracker(height)
-
-        if not (
-                txfrom in stake_validators_tracker.sv_dict or txfrom in stake_validators_tracker.future_stake_addresses):
-            logger.debug('P2P Dropping destake txn as %s not found in stake validator list', txfrom)
-            return
-
-        tx_state = source.factory._buffered_chain.get_stxn_state(
-            blocknumber=height,
-            addr=txfrom)
-        if destake_txn.validate() and destake_txn.validate_extended(tx_state=tx_state):
-            source.factory._buffered_chain.tx_pool.add_tx_to_pool(destake_txn)
-        else:
-            logger.debug('>>>Destake %s invalid state validation failed..', txfrom)
-            return
-
-        source.factory.register_and_broadcast('DST', destake_txn.get_message_hash(), destake_txn.to_json())
-
-    def handle_duplicate(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Duplicate Transaction
-        This function processes whenever a Transaction having
-        subtype DT is received.
-        :return:
-        """
-        try:
-            duplicate_txn = Transaction.from_json(message)
-        except Exception as e:
-            logger.error('DT rejected')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if not source.factory.master_mr.isRequested(duplicate_txn.get_message_hash(), source):
-            return
-
-        if duplicate_txn.get_message_hash() in source.factory._buffered_chain.tx_pool.duplicate_tx_pool:
-            return
-
-        # TODO: State validate for duplicate_txn is pending
-        if duplicate_txn.validate():
-            source.factory._buffered_chain.tx_pool.add_tx_to_duplicate_pool(duplicate_txn)
-        else:
-            logger.debug('>>>Invalid DT txn %s', bin2hstr(duplicate_txn.get_message_hash()))
-            return
-
-        source.factory.register_and_broadcast('DT', duplicate_txn.get_message_hash(), duplicate_txn.to_json())
-
     def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
         """
         Block
@@ -377,19 +196,12 @@ class P2PTxManagement(P2PBaseObserver):
         logger.info('>>>Received block from %s %s %s',
                     source.connection_id,
                     block.block_number,
-                    block.stake_selector)
+                    bin2hstr(block.headerhash))
 
         if not source.factory.master_mr.isRequested(block.headerhash, source, block):
             return
 
-        if source.factory._buffered_chain.is_duplicate_block(block_idx=block.block_number,
-                                                             prev_headerhash=block.prev_headerhash,
-                                                             stake_selector=block.stake_selector):
-            logger.info('Found duplicate block #%s by %s',
-                        block.block_number,
-                        block.stake_selector)
-
-        source.factory.pos.pre_block_logic(block)  # FIXME: Ignores return value
+        source.factory.pow.pre_block_logic(block)  # FIXME: Ignores return value
         source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
 
     def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):

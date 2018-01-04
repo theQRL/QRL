@@ -1,20 +1,21 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from copy import deepcopy
-from typing import List
+from typing import Optional, List
 
+from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
+from qrl.core.BlockMetadata import BlockMetadata
+from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.Block import Block
 from qrl.core.misc import logger, db
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
-from qrl.core.AddressState import AddressState
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.TokenList import TokenList
-from qrl.core.StakeValidatorsTracker import StakeValidatorsTracker
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
-from qrl.core.EphemeralMetadata import EphemeralMetadata
+from qrl.core.EphemeralMetadata import EphemeralMetadata, EncryptedEphemeralMessage
+from qrl.core.AddressState import AddressState
 from qrl.generated import qrl_pb2
 
 
@@ -26,10 +27,6 @@ class State:
     def __init__(self):
         self._db = db.DB()  # generate db object here
 
-        # FIXME: Move to BufferedChain
-        self.prev_stake_validators_tracker = StakeValidatorsTracker()
-        self.stake_validators_tracker = StakeValidatorsTracker()
-
     def __enter__(self):
         return self
 
@@ -38,21 +35,98 @@ class State:
             del self._db
             self._db = None
 
-    def put_epoch_seed(self, epoch_seed):
-        try:
-            self._db.put('epoch_seed', epoch_seed)
-        except Exception as e:
-            # FIXME: Review
-            logger.exception(e)
-            return False
+    def put_block(self, block, batch):
+        self._db.put_raw(bin2hstr(block.headerhash).encode(), block.to_json().encode(), batch)
 
-    def get_epoch_seed(self):
+    def get_block(self, header_hash: bytes) -> Optional[Block]:
         try:
-            return self._db.get('epoch_seed')
+            json_data = self._db.get_raw(bin2hstr(header_hash).encode())
+            return Block.from_json(json_data)
+        except KeyError:
+            logger.debug('[get_block] Block header_hash %s not found', bin2hstr(header_hash).encode())
         except Exception as e:
-            # FIXME: Review
-            logger.warning("get_epoch_seed: %s %s", type(e), e)
-            return False
+            logger.error('[get_block] %s', e)
+
+        return None
+
+    def put_block_metadata(self, headerhash, block_metadata, batch):
+        self._db.put_raw(b'metadata_'+bin2hstr(headerhash).encode(), block_metadata.to_json(), batch)
+
+    def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
+        try:
+            json_data = self._db.get_raw(b'metadata_'+bin2hstr(header_hash).encode())
+            return BlockMetadata.from_json(json_data)
+        except KeyError:
+            logger.debug('[get_block_metadata] Block header_hash %s not found',
+                         b'metadata_'+bin2hstr(header_hash).encode())
+        except Exception as e:
+            logger.error('[get_block_metadata] %s', e)
+
+        return None
+
+    def put_block_number_mapping(self, block_number, block_number_mapping, batch):
+        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping).encode(), batch)
+
+    def get_block_number_mapping(self, block_number: bytes) -> Optional[qrl_pb2.BlockNumberMapping]:
+        try:
+            json_data = self._db.get_raw(str(block_number).encode())
+            block_number_mapping = qrl_pb2.BlockNumberMapping()
+            return Parse(json_data, block_number_mapping)
+        except KeyError:
+            logger.debug('[get_block_number_mapping] Block #%s not found', block_number)
+        except Exception as e:
+            logger.error('[get_block_number_mapping] %s', e)
+
+        return None
+
+    def get_block_by_number(self, block_number) -> Optional[Block]:
+        block_number_mapping = self.get_block_number_mapping(block_number)
+        if not block_number_mapping:
+            return None
+        return self.get_block(block_number_mapping.headerhash)
+
+    def get_state(self, header_hash):
+        block = self.get_block(header_hash)
+
+        if not block:  # Triggers when parent block not found so child block is Orphan
+            return dict()
+
+        if block.block_number == 0:
+            addresses_state = dict()
+            for genesis_balance in GenesisBlock().genesis_balance:
+                bytes_addr = genesis_balance.address.encode()
+                addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+                addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+            return addresses_state
+
+        addresses_state = self.get_state(block.prev_headerhash)
+
+        if not addresses_state:  # Triggers when parent block not found so child block is Orphan
+            return dict()
+
+        for tx_pbdata in block.transactions:
+            tx = Transaction.from_pbdata(tx_pbdata)
+            if tx.txfrom not in addresses_state:
+                addresses_state[tx.txfrom] = AddressState.get_default(tx.txfrom)
+
+            if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
+                              qrl_pb2.Transaction.TRANSFERTOKEN,
+                              qrl_pb2.Transaction.COINBASE):
+                if tx.txto not in addresses_state:
+                    addresses_state[tx.txto] = AddressState.get_default(tx.txto)
+
+            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+                for initial_balance in tx.initial_balances:
+                    if initial_balance not in addresses_state:
+                        addresses_state[initial_balance.address] = AddressState.get_default(initial_balance.address)
+
+            tx.apply_on_state(addresses_state)
+
+        return addresses_state
+
+    def update_state(self, addresses_state):
+        for address in addresses_state:
+            self._save_address_state(addresses_state[address])
 
     def get_ephemeral_metadata(self, msg_id: bytes):
         try:
@@ -72,16 +146,6 @@ class State:
 
         self._db.put_raw(b'ephemeral_' + encrypted_ephemeral.msg_id, ephemeral_metadata.to_json().encode())
 
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-
-    def uptodate(self, height):  # check state db marker to current blockheight.
-        # FIXME: Remove
-        return height == self._blockheight()
-
     def _blockheight(self):
         # FIXME: Remove
         return self._db.get('blockheight')
@@ -89,12 +153,6 @@ class State:
     def _set_blockheight(self, height):
         # FIXME: Remove
         return self._db.put('blockheight', height)
-
-    #########################################
-    #########################################
-    #########################################
-    #########################################
-    #########################################
 
     def update_last_tx(self, block, batch):
         if len(block.transactions) == 0:
@@ -172,48 +230,11 @@ class State:
         self._db.put_raw(b'token_' + token.txhash,
                          token_metadata.to_json().encode())
 
-    def update_stake_validators(self, stake_validators_tracker: StakeValidatorsTracker):
-        self.prev_stake_validators_tracker = self.stake_validators_tracker
-        self.stake_validators_tracker = stake_validators_tracker
-
-    def get_stake_validators_tracker(self):
-        return self._db.get_raw(b'stake_validators_tracker')
-
-    def write_stake_validators_tracker(self, batch):
-        self._db.put_raw(b'stake_validators_tracker', self.stake_validators_tracker.to_json().encode(), batch)
-
-    def get_prev_stake_validators_tracker(self):
-        return self._db.get_raw(b'prev_stake_validators_tracker')
-
-    def write_prev_stake_validators_tracker(self, batch):
-        self._db.put_raw(b'prev_stake_validators_tracker', self.prev_stake_validators_tracker.to_json().encode(), batch)
-
-    def get_next_seed(self):
-        return self._db.get_raw(b'next_seed')
-
-    def update_next_seed(self, next_seed, batch):
-        self._db.put_raw(b'next_seed', next_seed, batch)
-
     def get_state_version(self):
         return self._db.get(b'state_version')
 
     def update_state_version(self, block_number, batch):
         self._db.put(b'state_version', block_number, batch)
-
-    def get_slave_xmss(self):
-        return self._db.get(b'slave_xmss')
-
-    def update_slave_xmss(self, slave_xmss, batch = None):
-        if slave_xmss is None:
-            self._db.put(b'slave_xmss', None, batch)
-        else:
-            self._db.put(b'slave_xmss', [slave_xmss.get_index(), slave_xmss.get_seed()], batch)
-
-    def get_block(self, block_number):
-        return self._db.get_raw(str(block_number).encode())
-
-    def put_block(self, block, batch):
-        self._db.put_raw(str(block.block_number).encode(), block.to_json().encode(), batch)
 
     def get_address_tx_hashes(self, addr: bytes) -> List[bytes]:
         try:
@@ -320,29 +341,6 @@ class State:
         txn_json, block_number, _ = tx_metadata
         return Transaction.from_json(txn_json), block_number
 
-    def update_vote_metadata(self, block, batch):
-        if len(block.transactions) == 0:
-            return
-        if block.block_number == 1:
-            self.prev_stake_validators_tracker = deepcopy(self.stake_validators_tracker)
-
-        total_stake_amount = self.prev_stake_validators_tracker.get_total_stake_amount()
-        voted_weight = 0
-        # FIXME: Inconsistency in the keys/types
-        for protobuf_txn in block.vote:
-            vote = Transaction.from_pbdata(protobuf_txn)
-            voted_weight += self.prev_stake_validators_tracker.get_stake_balance_by_slave_pk(vote.PK)
-
-        self._db.put(b'vote_' + str(block.block_number).encode(),
-                     [voted_weight,
-                      total_stake_amount], batch)
-
-    def get_vote_metadata(self, blocknumber: int):
-        try:
-            return self._db.get(b'vote_' + str(blocknumber).encode())
-        except Exception:
-            return None
-
     #########################################
     #########################################
     #########################################
@@ -406,12 +404,6 @@ class State:
 
     def write_batch(self, batch):
         self._db.write_batch(batch)
-
-    def zero_all_addresses(self):
-        for k, v in self._db.RangeIter(b'Q', b'Qz'):
-            self._db.delete(k)
-        logger.info('Reset Finished')
-        self._set_blockheight(0)
 
     #########################################
     #########################################

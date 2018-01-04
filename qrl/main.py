@@ -6,12 +6,12 @@ import logging
 
 from twisted.internet import reactor
 
-from qrl.core.BufferedChain import BufferedChain
+from qrl.core.ChainManager import ChainManager
 from qrl.core.qrlnode import QRLNode
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.services.services import start_services
 from .core import config
 from qrl.core.misc import ntp, logger, logger_twisted
-from .core.Chain import Chain
 from .core.State import State
 
 LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
@@ -71,11 +71,11 @@ def main():
 
     logger.info('Initializing chain..')
     persistent_state = State()
-    chain = Chain(state=persistent_state)
-    buffered_chain = BufferedChain(chain)
+    chain_manager = ChainManager(state=persistent_state)
+    chain_manager.load(GenesisBlock())
 
     qrlnode = QRLNode(db_state=persistent_state)
-    qrlnode.set_chain(buffered_chain)
+    qrlnode.set_chain(chain_manager)
 
     set_logger(args, qrlnode.sync_state)
 
@@ -83,15 +83,13 @@ def main():
     # NOTE: Keep assigned to a variable or might get collected
     admin_service, grpc_service = start_services(qrlnode)
 
-    buffered_chain.load()
-
     qrlnode.start_listening()
     qrlnode.connect_peers()
 
-    qrlnode.start_pos()
+    qrlnode.start_pow()
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', qrlnode.staking_address)
+    logger.info('mining/staking address %s', config.user.reward_address)
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()

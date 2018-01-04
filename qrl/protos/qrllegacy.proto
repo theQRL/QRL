@@ -19,6 +19,7 @@ message LegacyMessage {
         BK = 5;         // Block
         FB = 6;         // Fetch request for block
         PB = 7;         // Push Block
+        BH = 8;         // Block Height
 
         ST = 9;         // Stake Transaction
         DST = 10;       // Destake Transaction
@@ -44,17 +45,18 @@ message LegacyMessage {
         Block block = 7;
         FBData fbData = 8;
         PBData pbData = 9;
-        Transaction stData = 10;
-        Transaction dstData = 11;
-        Transaction dtData = 12;
-        Transaction txData = 13;
-        Transaction vtData = 14;
-        Transaction mtData = 15;
-        Transaction tkData = 16;
-        Transaction ttData = 17;
-        Transaction ltData = 18;
-        EncryptedEphemeralMessage ephData = 19;
-        SYNCData syncData = 20;
+        BlockHeightData bhData = 10;
+        Transaction stData = 11;
+        Transaction dstData = 12;
+        Transaction dtData = 13;
+        Transaction txData = 14;
+        Transaction vtData = 15;
+        Transaction mtData = 16;
+        Transaction tkData = 17;
+        Transaction ttData = 18;
+        Transaction ltData = 19;
+        EncryptedEphemeralMessage ephData = 20;
+        SYNCData syncData = 21;
     }
 }
 

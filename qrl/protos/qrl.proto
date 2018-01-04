@@ -269,8 +269,8 @@ message AddressAmount {
 message BlockHeader {
     // Header
     uint64 block_number = 1;
-    uint64 epoch = 2;
-    Timestamp timestamp = 3; // FIXME: Temporary
+    uint64 epoch = 2;  // TODO : Discuss as its not Required
+    Timestamp timestamp = 3;  // FIXME: Temporary
 
     bytes hash_header = 4;
     bytes hash_header_prev = 5;
@@ -279,8 +279,8 @@ message BlockHeader {
     uint64 reward_fee = 7;
 
     bytes merkle_root = 8;
-    bytes hash_reveal = 9;
-    bytes stake_selector = 10;
+    uint32 mining_nonce = 9;
+    bytes PK = 10;
 }
 
 message BlockHeaderExtended {
@@ -302,11 +302,9 @@ message TransactionExtended {
 message Block {
     BlockHeader header = 1;
     repeated Transaction transactions = 2;
-    repeated Transaction dup_transactions = 3;          // TODO: Review this
-    repeated Transaction vote = 4;
 
     // This is only applicable to genesis blocks
-    repeated GenesisBalance genesis_balance = 5;
+    repeated GenesisBalance genesis_balance = 3;
 }
 
 message BlockExtended {
@@ -323,11 +321,6 @@ message GenesisBalance
 
 message BlockMetaDataList {
     repeated BlockMetaData block_number_hashes = 1;
-}
-
-message BlockMetaData {
-    uint64 block_number = 1;
-    bytes hash_header = 2;
 }
 
 message Transaction {
@@ -355,29 +348,17 @@ message Transaction {
 
     oneof transactionType {
         Transfer transfer = 8;
-        Stake stake = 9;
-        CoinBase coinbase = 10;
-        LatticePublicKey latticePK = 11;
-        Duplicate duplicate = 12;
-        Vote vote = 13;
-        Message message = 14;
-        Token token = 15;
-        TransferToken transfer_token = 16;
+        CoinBase coinbase = 9;
+        LatticePublicKey latticePK = 10;
+        Message message = 11;
+        Token token = 12;
+        TransferToken transfer_token = 13;
     }
 
     //////////
     message Transfer {
         bytes addr_to = 1;
         uint64 amount = 2;
-    }
-
-    message Stake {
-        uint64 activation_blocknumber = 1;
-        bytes slavePK = 2;
-        bytes hash = 3;
-    }
-
-    message Destake {
     }
 
     message CoinBase {
@@ -390,20 +371,6 @@ message Transaction {
     message LatticePublicKey {
         bytes kyber_pk = 1;
         bytes dilithium_pk = 2;
-    }
-
-    message Duplicate {
-        uint64 block_number = 1;
-        uint64 prev_header_hash = 2;
-        bytes coinbase1_hhash = 3;
-        bytes coinbase2_hhash = 4;
-        Transaction coinbase1 = 5;
-        Transaction coinbase2 = 6;
-    }
-
-    message Vote {
-        uint64 block_number = 1;
-        bytes hash_header = 2;
     }
 
     message Message {
@@ -517,4 +484,20 @@ message StakeValidatorsTracker {
     map<uint64, AddressList> expiry = 3;
     map<uint64, StakeValidatorsList> future_sv_dict = 4;
     uint64 total_stake_amount = 5;
+}
+
+message BlockHeightData {
+    uint64 block_number = 1;
+    bytes block_headerhash = 2;
+}
+
+message BlockMetaData {
+    bool is_orphan = 1;
+    uint64 cumulative_difficulty = 2;
+    repeated bytes child_headerhashes = 3;
+}
+
+message BlockNumberMapping {
+    bytes headerhash = 1;
+    bytes prev_headerhash = 2;
 }

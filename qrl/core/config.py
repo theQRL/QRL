@@ -21,7 +21,9 @@ class UserConfig(object):
         UserConfig.__instance = self
 
         # Default configuration
-        self.enable_auto_staking = True
+        self.mining_enabled = True
+        self.mining_thread_count = 2  # TODO: -1 to auto detect thread count based on CPU/GPU num. of processors
+        self.reward_address = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6'
 
         # Ephemeral Configuration
         self.accept_ephemeral = True
@@ -106,14 +108,14 @@ class DevConfig(object):
         self.timestamp_error = 5  # Error in second
 
         self.blocks_per_epoch = 100
-        self.xmss_tree_height = 10
+        self.xmss_tree_height = 12
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.slave_xmss_height += self.slave_xmss_height % 2
 
         self.ots_bitfield_size = ceil((2 ** self.xmss_tree_height) / 8)
 
         self.default_nonce = 0
-        self.default_account_balance = 100 * (10 ** 8)
+        self.default_account_balance = 100 * (10 ** 9)
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
 
