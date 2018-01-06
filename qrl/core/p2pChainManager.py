@@ -61,7 +61,6 @@ class P2PChainManager(P2PBaseObserver):
         """
         if message.bhData.block_number == 0:
             block = source.factory.get_last_block()
-            logger.info('?????????? %s %s', block.block_number, block.headerhash)
             if block.block_number == 0:
                 return
             bhdata = qrl_pb2.BlockHeightData(block_number=block.block_number,

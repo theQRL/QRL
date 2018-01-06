@@ -18,8 +18,12 @@ class BlockMetadata(object):
         return self._data.is_orphan
 
     @property
+    def block_difficulty(self):
+        return tuple(self._data.block_difficulty)
+
+    @property
     def cumulative_difficulty(self):
-        return self._data.cumulative_difficulty
+        return tuple(self._data.cumulative_difficulty)
 
     @property
     def child_headerhashes(self):
@@ -28,16 +32,20 @@ class BlockMetadata(object):
     def set_orphan(self, value):
         self._data.is_orphan = value
 
+    def set_block_difficulty(self, value):
+        self._data.block_difficulty = bytes(value)
+
     def set_cumulative_difficulty(self, value):
-        self._data.cumulative_difficulty = value
+        self._data.cumulative_difficulty = bytes(value)
 
     def add_child_headerhash(self, child_headerhash: bytes):
         self._data.child_headerhashes.append(child_headerhash)
 
     @staticmethod
-    def create(is_orphan=True, cumulative_difficulty=0, child_headerhashes=None):
+    def create(is_orphan=True, block_difficulty=b'\x00'*32, cumulative_difficulty=b'\x00'*32, child_headerhashes=None):
         block_meta_data = BlockMetadata()
         block_meta_data._data.is_orphan = is_orphan
+        block_meta_data._data.block_difficulty = block_difficulty
         block_meta_data._data.cumulative_difficulty = cumulative_difficulty
 
         if child_headerhashes:

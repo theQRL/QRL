@@ -118,6 +118,7 @@ class DevConfig(object):
         self.default_account_balance = 100 * (10 ** 9)
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
+        self.genesis_difficulty = 5000
 
         # Directories and files
         self.db_name = 'state'

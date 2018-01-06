@@ -66,6 +66,18 @@ class BlockHeader(object):
     def mining_nonce(self):
         return self._data.mining_nonce
 
+    @property
+    def mining_hash(self):
+        data = "{0}{1}{2}{3}{4}{5}{6}{7}".format(self.PK,
+                                                 self.epoch,
+                                                 self.block_reward,
+                                                 self.fee_reward,
+                                                 self.timestamp,
+                                                 self.block_number,
+                                                 self.prev_blockheaderhash,
+                                                 self.tx_merkle_root)
+        return bytes(sha2_256(str2bin(data)))
+
     @staticmethod
     def create(blocknumber: int,
                mining_nonce: int,
@@ -105,9 +117,11 @@ class BlockHeader(object):
         if bh._data.block_number != 0:
             bh._data.reward_block = bh.block_reward_calc()
 
-        bh._data.hash_header = bh.generate_headerhash()
-
         return bh
+
+    def set_mining_nonce(self, value):
+        self._data.mining_nonce = value
+        self._data.hash_header = self.generate_headerhash()
 
     def generate_headerhash(self):
         # FIXME: This is using strings... fix

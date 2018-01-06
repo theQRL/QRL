@@ -108,7 +108,7 @@ class TestChainManager(TestCase):
                                transactions=[],
                                signing_xmss=alice_xmss,
                                nonce=1)
-
+        block_1.set_mining_nonce(10)
         result = chain_manager.add_block(block_1)
         self.assertTrue(result)
         self.assertEqual(chain_manager.last_block, block_1)
@@ -122,12 +122,15 @@ class TestChainManager(TestCase):
                              signing_xmss=bob_xmss,
                              nonce=1)
 
+        block.set_mining_nonce(15)
+
         block_2 = Block.create(mining_nonce=15,
                                block_number=2,
                                prevblock_headerhash=block.headerhash,
                                transactions=[],
                                signing_xmss=bob_xmss,
                                nonce=2)
+        block_2.set_mining_nonce(15)
 
         result = chain_manager.add_block(block_2)
         self.assertFalse(result)

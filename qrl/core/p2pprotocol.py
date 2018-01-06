@@ -58,9 +58,9 @@ class P2PProtocol(Protocol):
             self.send_version_request()
 
     def connectionLost(self, reason=connectionDone):
-        logger.info('%s disconnected. remainder connected: %d',
-                    self.peer_ip,
-                    self.factory.connections)
+        logger.debug('%s disconnected. remainder connected: %d',
+                     self.peer_ip,
+                     self.factory.connections)
 
         self.factory.remove_connection(self)
 
@@ -157,7 +157,7 @@ class P2PProtocol(Protocol):
         """
         peer_ips = self.factory.get_connected_peer_ips()
 
-        logger.info('<<< Sending connected peers to %s [%s]', self.peer_ip, peer_ips)
+        logger.debug('<<< Sending connected peers to %s [%s]', self.peer_ip, peer_ips)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
                                           plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))

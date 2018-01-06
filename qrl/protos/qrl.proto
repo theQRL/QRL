@@ -493,8 +493,9 @@ message BlockHeightData {
 
 message BlockMetaData {
     bool is_orphan = 1;
-    uint64 cumulative_difficulty = 2;
-    repeated bytes child_headerhashes = 3;
+    bytes block_difficulty = 2;
+    bytes cumulative_difficulty = 3;
+    repeated bytes child_headerhashes = 4;
 }
 
 message BlockNumberMapping {

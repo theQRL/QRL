@@ -66,11 +66,18 @@ class Block(object):
     def timestamp(self):
         return self.blockheader.timestamp
 
+    @property
+    def mining_hash(self):
+        return self.blockheader.mining_hash
+
     @staticmethod
     def from_json(json_data):
         pbdata = qrl_pb2.Block()
         Parse(json_data, pbdata)
         return Block(pbdata)
+
+    def set_mining_nonce(self, mining_nonce):
+        self.blockheader.set_mining_nonce(mining_nonce)
 
     def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf

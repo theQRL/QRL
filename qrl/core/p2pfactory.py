@@ -357,11 +357,11 @@ class P2PFactory(ServerFactory):
         self._peer_connections.append(conn_protocol)
 
         if conn_protocol.peer_ip not in peer_list:
-            logger.info('Adding to peer_list')
+            logger.debug('Adding to peer_list')
             peer_list.add(conn_protocol.peer_ip)
             self._qrl_node.peer_manager.update_peer_addresses(peer_list)
 
-        logger.info('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
+        logger.debug('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
 
         return True
 
