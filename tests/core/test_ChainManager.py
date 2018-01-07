@@ -141,3 +141,10 @@ class TestChainManager(TestCase):
 
         self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
         self.assertEqual(chain_manager.last_block.headerhash, block_2.headerhash)
+
+    def test_diff(self):
+        from pyqryptonight.pyqryptonight import StringToUInt256
+        diff = StringToUInt256("2")
+        new_diff, target = Miner.calc_difficulty(120, 0, diff)
+        new_diff, target = Miner.calc_difficulty(120, 0, new_diff)
+        pass

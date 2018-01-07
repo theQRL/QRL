@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import decimal
 import time
 from decimal import Decimal
 from typing import Optional, List
@@ -290,25 +289,28 @@ class QRLNode:
         # TODO: Search tx hash
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
-
-        return self._chain_manager.get_transaction(query_hash)
+        result = self.db_state.get_tx_metadata(query_hash)
+        if result:
+            return result[0]
+        return None
 
     def get_block_from_hash(self, query_hash: bytes) -> Optional[Block]:
         """
         This method returns an object that matches the query hash
         """
-        # FIXME: At some point, all objects in DB will indexed by a hash
-        return None
+        return self.db_state.get_block(query_hash)
 
     def get_block_from_index(self, index: int) -> Block:
         """
         This method returns an object that matches the query hash
         """
-        # FIXME: At some point, all objects in DB will indexed by a hash
-        return self._chain_manager.get_block(index)
+        return self.db_state.get_block_by_number(index)
 
     def get_blockidx_from_txhash(self, transaction_hash):
-        return self._chain_manager.get_blockidx_from_txhash(transaction_hash)
+        result = self.db_state.get_tx_metadata(transaction_hash)
+        if result:
+            return result[1]
+        return None
 
     def get_token_detailed_list(self):
         pbdata = self.db_state.get_token_list()
@@ -325,7 +327,7 @@ class QRLNode:
         end = self.block_height - offset
         start = max(0, end - count - offset)
         for blk_idx in range(start, end + 1):
-            answer.append(self._chain_manager.get_block(blk_idx))
+            answer.append(self._chain_manager.get_block_by_number(blk_idx))
 
         return answer
 

@@ -86,7 +86,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'Rescue Party'
+        self.genesis_prev_headerhash = b'PoW'
 
         ################################################################
         # Warning: Don't change following configuration.               #

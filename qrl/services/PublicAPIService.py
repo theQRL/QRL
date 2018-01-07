@@ -6,6 +6,7 @@ from grpc import StatusCode
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Transaction import Transaction
+from qrl.core.AddressState import AddressState
 from qrl.core.qrlnode import QRLNode
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.generated import qrl_pb2
@@ -84,7 +85,7 @@ class PublicAPIService(PublicAPIServicer):
         # FIXME: We need a unified way to access and validate data.
         query = bytes(request.query)  # query will be as a string, if Q is detected convert, etc.
 
-        if self.qrlnode.address_is_valid(query):
+        if AddressState.address_is_valid(query):
             if self.qrlnode.get_address_is_used(query):
                 address_state = self.qrlnode.get_address_state(query)
                 if address_state is not None:
