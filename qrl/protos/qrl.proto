@@ -48,6 +48,10 @@ service PublicAPI
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
+    rpc GetTokenTxn (TokenTxnReq) returns (TransferCoinsResp);
+
+    rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp);
+
     rpc GetLatticePublicKeyTxn (LatticePublicKeyTxnReq) returns (TransferCoinsResp);
 
     rpc GetTokenDetailedList (Empty) returns (TokenDetailedList);
@@ -186,6 +190,7 @@ message TransferCoinsReq {
     bytes xmss_pk = 5;                      // XMSS Public key
     uint64 xmss_ots_index = 6;              // XMSS One time signature index
 }
+
 message TransferCoinsResp {
     Transaction transaction_unsigned = 1;
 }
@@ -196,6 +201,28 @@ message LatticePublicKeyTxnReq {
     bytes tesla_pk = 3;
     bytes xmss_pk = 4;
     uint64 xmss_ots_index = 5;
+}
+
+message TokenTxnReq {
+    bytes address_from = 1;
+    bytes symbol = 2;
+    bytes name = 3;
+    bytes owner = 4;
+    uint64 decimals = 5;
+    repeated AddressAmount initial_balances = 6;
+    uint64 fee = 7;
+    bytes xmss_pk = 8;
+    uint64 xmss_ots_index = 9;
+}
+
+message TransferTokenTxnReq {
+    bytes address_from = 1;
+    bytes address_to = 2;
+    bytes token_txhash = 3;
+    uint64 amount = 4;
+    uint64 fee = 5;
+    bytes xmss_pk = 6;
+    uint64 xmss_ots_index = 7;
 }
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }

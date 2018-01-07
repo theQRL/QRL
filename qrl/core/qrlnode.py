@@ -295,6 +295,42 @@ class QRLNode:
         else:
             return None
 
+    @staticmethod
+    def create_token_txn(addr_from: bytes,
+                         symbol: bytes,
+                         name: bytes,
+                         owner: bytes,
+                         decimals: int,
+                         initial_balances,
+                         fee: int,
+                         xmss_pk: bytes,
+                         xmss_ots_index: int):
+        return TokenTransaction.create(addr_from,
+                                       symbol,
+                                       name,
+                                       owner,
+                                       decimals,
+                                       initial_balances,
+                                       fee,
+                                       xmss_pk,
+                                       xmss_ots_index)
+
+    @staticmethod
+    def create_transfer_token_txn(addr_from: bytes,
+                                  addr_to: bytes,
+                                  token_txhash: bytes,
+                                  amount: int,
+                                  fee: int,
+                                  xmss_pk: bytes,
+                                  xmss_ots_index: int):
+        return TokenTransaction.create(addr_from,
+                                       token_txhash,
+                                       addr_to,
+                                       amount,
+                                       fee,
+                                       xmss_pk,
+                                       xmss_ots_index)
+
     def create_lt(self,
                   addr_from: bytes,
                   kyber_pk: bytes,
