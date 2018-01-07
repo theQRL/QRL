@@ -323,13 +323,13 @@ class QRLNode:
                                   fee: int,
                                   xmss_pk: bytes,
                                   xmss_ots_index: int):
-        return TokenTransaction.create(addr_from,
-                                       token_txhash,
-                                       addr_to,
-                                       amount,
-                                       fee,
-                                       xmss_pk,
-                                       xmss_ots_index)
+        return TransferTokenTransaction.create(addr_from,
+                                               token_txhash,
+                                               addr_to,
+                                               amount,
+                                               fee,
+                                               xmss_pk,
+                                               xmss_ots_index)
 
     def create_lt(self,
                   addr_from: bytes,
