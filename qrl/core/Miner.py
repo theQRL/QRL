@@ -6,7 +6,7 @@ from typing import Optional
 import copy
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256
+from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString
 
 from qrl.core import config
 from qrl.core.misc import logger
@@ -56,7 +56,6 @@ class Miner:
                                               signing_xmss=self.mining_xmss)
 
         input_bytes, nonce_offset = self.get_mining_data(self.mining_block)
-        logger.info('Starting Miner at \ninput_bytes : %s \ncurrent_Target : %s', input_bytes, current_target)
         self.custom_qminer.setInput(input=input_bytes,
                                     nonceOffset=nonce_offset,
                                     target=current_target)
@@ -64,8 +63,7 @@ class Miner:
 
     def mined(self, nonce):
         self.mining_block.set_mining_nonce(nonce)
-        logger.info('Mined Block %s', self.mining_block.block_number)
-        logger.info('Mining Nonce %s %s', nonce, StringToUInt256(str(nonce))[-4:])
+        logger.info('Mined Block #%s nonce: %s', self.mining_block.block_number, StringToUInt256(str(nonce))[-4:])
         self.pre_block_logic(self.mining_block)
 
     def cancel(self):
@@ -193,6 +191,7 @@ class Miner:
         current_difficulty = ph.getDifficulty(timestamp=timestamp,
                                               parent_timestamp=parent_timestamp,
                                               parent_difficulty=parent_difficulty)
-
+        if int(UInt256ToString(current_difficulty)) == 0:
+            current_difficulty = StringToUInt256("2")
         current_target = ph.getBoundary(current_difficulty)
         return current_difficulty, current_target

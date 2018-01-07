@@ -41,20 +41,16 @@ class ChainManager:
         block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=genesis_block.headerhash,
                                                           prev_headerhash=genesis_block.prev_headerhash)
         self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
-        self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
-        ph = PoWHelper()
+        parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-        # TODO (cyyber): Code duplicated, need to improve
-        # For genesis block, configuration will provide current_difficulty, so no recalculation of current
-        # difficulty required.
-        self.current_target = ph.getBoundary(self.current_difficulty)
-        block_difficulty = self.current_target
-
+        self.current_difficulty, self.current_target = Miner.calc_difficulty(genesis_block.timestamp,
+                                                                             genesis_block.timestamp-60,
+                                                                             parent_difficulty)
         block_metadata = BlockMetadata.create()
 
         block_metadata.set_orphan(False)
-        block_metadata.set_block_difficulty(block_difficulty)
-        block_metadata.set_cumulative_difficulty(block_difficulty)
+        block_metadata.set_block_difficulty(self.current_difficulty)
+        block_metadata.set_cumulative_difficulty(self.current_difficulty)
 
         self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
 
@@ -70,10 +66,9 @@ class ChainManager:
         parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
 
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
-        logger.info('input_bytes: %s\nmining_nonce: %s\nblock_diff: %s', input_bytes,
-                                                        block.mining_nonce,
-                                                        parent_metadata.block_difficulty)
-        if not self.miner.custom_qminer.verifyInput(input_bytes, parent_metadata.block_difficulty):
+        ph = PoWHelper()
+        target = ph.getBoundary(parent_metadata.block_difficulty)
+        if not self.miner.custom_qminer.verifyInput(input_bytes, target):
             logger.warning("PoW verification failed")
             return False
 
@@ -201,7 +196,7 @@ class ChainManager:
             parent_block = self.state.get_block(parent_headerhash)
             parent_block_difficulty = parent_metadata.block_difficulty
             parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
-            _, block_difficulty = Miner.calc_difficulty(block_timestamp, parent_block.timestamp, parent_block_difficulty)
+            block_difficulty, _ = Miner.calc_difficulty(block_timestamp, parent_block.timestamp, parent_block_difficulty)
             block_cumulative_difficulty = StringToUInt256(str(
                                                           int(UInt256ToString(block_difficulty)) +
                                                           int(UInt256ToString(parent_cumulative_difficulty))))
@@ -214,7 +209,6 @@ class ChainManager:
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)
         parent_metadata.add_child_headerhash(headerhash)
-
         self.state.put_block_metadata(parent_headerhash, parent_metadata, batch)
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
