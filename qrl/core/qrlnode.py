@@ -277,7 +277,7 @@ class QRLNode:
         if not AddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        address_state = self._chain_manager.state.get_address(address)
+        address_state = self.db_state.get_address(address)
 
         return address_state
 

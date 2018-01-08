@@ -10,7 +10,7 @@ grpcio-tools>=1.6.3
 service_identity
 protobuf
 pyopenssl>=17.3.0
-pyqrllib>=0.2.9
+pyqrllib>=0.4.1
 six>=1.9
 click==6.7
 pycrypto

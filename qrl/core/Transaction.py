@@ -301,6 +301,7 @@ class TransferTransaction(Transaction):
         addresses_state[self.txfrom].nonce.increase_nonce()
         addresses_state[self.txto].balance += self.amount
         addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+        addresses_state[self.txto].transaction_hashes.append(self.txhash)
         self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
 
 
@@ -369,6 +370,7 @@ class CoinBase(Transaction):
         addresses_state[self.txto].balance += self.amount
         addresses_state[self.txto].increase_nonce()
         addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+        addresses_state[self.txto].transaction_hashes.append(self.txhash)
         self.set_ots_key(addresses_state[self.txto], self.ots_key)
 
 
@@ -662,6 +664,8 @@ class TokenTransaction(Transaction):
     def apply_on_state(self, addresses_state):
         for initial_balance in self.initial_balances:
             addresses_state[initial_balance.address].tokens[bin2hstr(self.txhash).encode()] += initial_balance.amount
+            addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
+        addresses_state[self.owner].transaction_hashes.append(self.txhash)
         addresses_state[self.txfrom].balance -= self.fee
         addresses_state[self.txfrom].increase_nonce()
         addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
@@ -770,8 +774,10 @@ class TransferTokenTransaction(Transaction):
         addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] -= self.amount
         if addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] == 0:
             del addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()]
+        addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
         addresses_state[self.txfrom].balance -= self.fee
         addresses_state[self.txfrom].increase_nonce()
+        addresses_state[self.txto].transaction_hashes.append(self.txhash)
         addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
         self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
 

@@ -69,8 +69,7 @@ class ChainManager:
         diff, target = self.miner.calc_difficulty(block.timestamp,
                                                   parent_block.timestamp,
                                                   parent_metadata.block_difficulty)
-        #logger.info('input_bytes %s', input_bytes)
-        #logger.info('mining_target %s', target)
+
         if not self.miner.custom_qminer.verifyInput(input_bytes, target):
             logger.warning("PoW verification failed")
             return False
@@ -175,7 +174,7 @@ class ChainManager:
             block = self.state.get_block(child_headerhash)
             if not block:
                 continue
-            if not self._add_block(block, True, batch):
+            if not self._add_block(block, True, batch, mining_enabled):
                 self._prune([block.headerhash], batch=batch)
                 continue
             block_metadata = self.state.get_block_metadata(child_headerhash)
