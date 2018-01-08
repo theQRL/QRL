@@ -61,13 +61,19 @@ class Miner:
         self.custom_qminer.setInput(input=input_bytes,
                                     nonceOffset=nonce_offset,
                                     target=current_target)
-        self.debug_target = current_target
+        logger.debug('=================START====================')
+        logger.debug('Mine #%s', self.mining_block.block_number)
+        logger.debug('block.timestamp %s', self.mining_block.timestamp)
+        logger.debug('parent_block.timestamp %s', parent_block.timestamp)
+        logger.debug('parent_block.difficulty %s', parent_difficulty)
+        logger.debug('input_bytes %s', input_bytes)
+        logger.debug('diff : %s | target : %s', current_difficulty, current_target)
+        logger.debug('===================END====================')
         self.custom_qminer.start(thread_count=thread_count)
 
     def mined(self, nonce):
         self.mining_block.set_mining_nonce(nonce)
         logger.info('Block #%s nonce: %s', self.mining_block.block_number, StringToUInt256(str(nonce))[-4:])
-        logger.info('>>>>Mining_target %s', self.debug_target)
         self.pre_block_logic(self.mining_block)
 
     def cancel(self):

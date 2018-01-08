@@ -69,9 +69,17 @@ class ChainManager:
         diff, target = self.miner.calc_difficulty(block.timestamp,
                                                   parent_block.timestamp,
                                                   parent_metadata.block_difficulty)
-
+        logger.debug('-----------------START--------------------')
+        logger.debug('Validate #%s', block.block_number)
+        logger.debug('block.timestamp %s', block.timestamp)
+        logger.debug('parent_block.timestamp %s', parent_block.timestamp)
+        logger.debug('parent_block.difficulty %s', parent_metadata.block_difficulty)
+        logger.debug('input_bytes %s', input_bytes)
+        logger.debug('diff : %s | target : %s', diff, target)
+        logger.debug('-------------------END--------------------')
         if not self.miner.custom_qminer.verifyInput(input_bytes, target):
             logger.warning("PoW verification failed")
+            logger.debug('%s', block.to_json())
             return False
 
         if coinbase_tx.subtype != qrl_pb2.Transaction.COINBASE:
@@ -136,7 +144,7 @@ class ChainManager:
         if (not ignore_duplicate) and self.state.get_block(block.headerhash):  # Duplicate block check
             return False
 
-        address_txn = self.state.get_state(block.prev_headerhash)
+        address_txn = self.state.get_state(block.prev_headerhash, dict())
 
         if not address_txn:
             self.state.put_block(block, batch)
@@ -238,7 +246,7 @@ class ChainManager:
         return self.state.get_block_by_number(block_number)
 
     def get_state(self, headerhash):
-        return self.state.get_state(headerhash)
+        return self.state.get_state(headerhash, dict())
 
     def mine_next(self, parent_block, address_txn):
         parent_metadata = self.state.get_block_metadata(parent_block.headerhash)

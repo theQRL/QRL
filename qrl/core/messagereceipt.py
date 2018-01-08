@@ -48,10 +48,6 @@ class MessageReceipt(object):
 
     # TODO: Use enumerations instead of strings to reduce data size
     allowed_types = [LegacyMessage.TX,
-                     LegacyMessage.ST,
-                     LegacyMessage.DST,
-                     LegacyMessage.DT,
-                     LegacyMessage.VT,
                      LegacyMessage.LT,
                      LegacyMessage.EPH,
                      LegacyMessage.BK,
@@ -74,13 +70,7 @@ class MessageReceipt(object):
         qrllegacy_pb2.LegacyMessage.PB: 'pbData',
 
         ############################
-        qrllegacy_pb2.LegacyMessage.ST: 'stData',
-        qrllegacy_pb2.LegacyMessage.DST: 'dstData',
-        qrllegacy_pb2.LegacyMessage.DT: 'dtData',
-
-        ############################
         qrllegacy_pb2.LegacyMessage.TX: 'txData',
-        qrllegacy_pb2.LegacyMessage.VT: 'vtData',
         qrllegacy_pb2.LegacyMessage.MT: 'mtData',
         qrllegacy_pb2.LegacyMessage.TK: 'tkData',
         qrllegacy_pb2.LegacyMessage.TT: 'ttData',
