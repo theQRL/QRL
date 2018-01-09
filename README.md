@@ -32,7 +32,7 @@ Ensure your apt sources are up to date and install dependencies
 
 ```bash
 sudo apt-get update
-sudo apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev
+sudo apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
 ```
 
 To get the source and start the node, use the following:
@@ -53,7 +53,7 @@ The following lines show `[sudo]` as optional. Adjust accordingly.
 echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
 [sudo] apt-get update
 [sudo] apt-get -t jessie-backports install cmake swig3.0
-[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev
+[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
 [sudo] pip3 install -U setuptools pip
 ```
 
@@ -71,7 +71,7 @@ Now install some dependencies
 
 ```bash
 brew update
-brew install cmake python3 swig boost
+brew install cmake python3 swig boost hwloc
 ```
 
 To get the source and start the node, use the following:
@@ -108,7 +108,7 @@ The following lines show `[sudo]` as optional. Adjust accordingly.
 echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
 [sudo] apt-get update
 [sudo] apt-get -t jessie-backports install cmake swig3.0
-[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential pkg-config libssl-dev libffi-dev
+[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
 [sudo] pip3 install -U setuptools pip
 ```
 
