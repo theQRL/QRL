@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import Optional
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import PoWHelper, StringToUInt256, UInt256ToString
+from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
 
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.AddressState import AddressState
