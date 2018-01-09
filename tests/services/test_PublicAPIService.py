@@ -22,7 +22,7 @@ from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
 from qrl.core import config
-from tests.misc.helper import qrladdress, get_alice_xmss, get_bob_xmss
+from tests.misc.helper import qrladdress, get_alice_xmss
 
 logger.initialize_default()
 

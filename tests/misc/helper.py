@@ -51,6 +51,13 @@ def set_data_dir(data_name):
         config.user.data_dir = prev_val
 
 
+def read_data_file(filename):
+    test_path = os.path.dirname(os.path.abspath(__file__))
+    src_file = os.path.join(test_path, "..", "data", filename)
+    with open(src_file, 'r') as f:
+        return f.read()
+
+
 @contextlib.contextmanager
 def mocked_genesis():
     custom_genesis_block = deepcopy(GenesisBlock())
