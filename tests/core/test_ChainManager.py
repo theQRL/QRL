@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import threading
 from unittest import TestCase
 
 from mock import Mock
@@ -145,14 +146,30 @@ class TestChainManager(TestCase):
     def test_diff(self):
         from pyqryptonight.pyqryptonight import Qryptominer
         from time import sleep
+
         class CustomQMiner(Qryptominer):
             def __init__(self):
                 Qryptominer.__init__(self)
+                self._solution_lock = threading.Lock()
                 self.nonce = None
+
+            def start(self, threads):
+                self.cancel()
+                try:
+                    self._solution_lock.release()
+                except RuntimeError:
+                    pass
+                self._solution_lock.acquire(blocking=False)
+                super().start(threads)
+
+            def wait_for_solution(self):
+                self._solution_lock.acquire(blocking=True)
+                self._solution_lock.release()
 
             def solutionEvent(self, nonce):
                 print('Solution Found %s', nonce)
                 self.nonce = nonce
+                self._solution_lock.release()
 
         block_timestamp = 1515443508
         parent_block_timestamp = 1515443508
@@ -197,8 +214,7 @@ class TestChainManager(TestCase):
                                nonceOffset=0,
                                target=new_target)
         custom_qminer.start(2)
-        while not custom_qminer.nonce:
-            print(custom_qminer.nonce)
-            sleep(1)
+        custom_qminer.wait_for_solution()
+
         print(custom_qminer.nonce)
         self.assertTrue(custom_qminer.verifyInput(input_bytes, new_target))
