@@ -13,7 +13,6 @@ from qrl.services.grpcHelper import grpc_exception_wrapper
 from pyqrllib.pyqrllib import hstr2bin
 
 
-
 class PublicAPIService(PublicAPIServicer):
     MAX_REQUEST_QUANTITY = 100
 
