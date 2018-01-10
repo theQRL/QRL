@@ -10,6 +10,7 @@ from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import grpc_exception_wrapper
+from pyqrllib.pyqrllib import hstr2bin
 
 
 class PublicAPIService(PublicAPIServicer):
@@ -115,9 +116,10 @@ class PublicAPIService(PublicAPIServicer):
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetTransferTokenTxn(self, request: qrl_pb2.TransferTokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetTransferTokenTxn")
+        bin_token_txhash = bytes(hstr2bin(request.token_txhash.decode()))
         tx = self.qrlnode.create_transfer_token_txn(addr_from=request.address_from,
                                                     addr_to=request.address_to,
-                                                    token_txhash=request.token_txhash,
+                                                    token_txhash=bin_token_txhash,
                                                     amount=request.amount,
                                                     fee=request.fee,
                                                     xmss_pk=request.xmss_pk,
