@@ -6,6 +6,11 @@ python: 3.5
 cache:
   timeout: 600
 
+notifications:
+  webhooks:
+    urls:
+      - secure: "A/Ai9L2s3B5L3DEMhwrKGFTJmTOIldUTNDGCrKgcZhIDBE+uXXqXwy2VpSKaWG0jnPl56x4aBqeSkMR65QqMm35ArNGQVO7oN2aXOR8wwb+TGgt1rQXx+I90Q0swVRPgRUY+kHsCTHMT+dnsFLR+K68Yo0IL+hIEYtQB/9ns2Jz1gl4ssoQPQ7+ODXIWqc1VQCtpEgF1OxyZLWPTbzIrIrjSLsSHipyBiShHCZDvju9uip8fw4/LggQktTmbBg8ftdzfZO0l3xUN4kWul8iidXT3d9G+GHx9wXdkiQLKZY5/TdplLjbdHvjAI0XpnOqQpolYon46Q98ktzZr+Su9Pyg2H9J5m5o7QGYt6+U7QmXkA3oxJSXBbmf8JhLIeC1w6u6KK15PZAjPDAm7cRM6lISA/+6LoCTe4AHem70fNl0MaSHmATQK5Gku3kBtPIH8I52eWknFtWDYdM6rxNZAW2KFt6A8hSRte4zYcH1fBZnpu8u97+Upul+ao9IKFJrlovxrV/424LMmuhurBltsXAOu0Dy2KVBSdXI6L9cvfLL+xiTTbxyoc1VB6xURsJvTISpYilc9vzlYKveAgLae0zpahrsAtNkkHLe2gDicr4MZrx8XYLjleYOm9aLiMaxLPXsbNBEvI1LMA6eZRVUevbuC0ltftWu08OfvlkuYun8="
+
 jobs:
   include:
     - stage: build+test
