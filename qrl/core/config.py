@@ -28,6 +28,9 @@ class UserConfig(object):
         # Ephemeral Configuration
         self.accept_ephemeral = True
 
+        # Cache Size
+        self.lru_state_cache_size = 5
+
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['45.76.139.109',
@@ -95,6 +98,7 @@ class DevConfig(object):
 
         self.public_ip = None
         self.reorg_limit = 2
+        self.cache_frequency = 100
 
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message

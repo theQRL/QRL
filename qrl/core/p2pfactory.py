@@ -7,6 +7,8 @@ import random
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
+from pyqrllib.pyqrllib import bin2hstr
+
 from qrl.core import config
 from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
@@ -132,7 +134,7 @@ class P2PFactory(ServerFactory):
 
     def block_received(self, block: Block):
         self.pow.last_pb_time = time.time()
-        logger.info('>>> Received Block #%d', block.block_number)
+        logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))
 
         if block.block_number != self._last_requested_block_idx:
             logger.warning('Did not match %s', self._last_requested_block_idx)

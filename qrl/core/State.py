@@ -7,6 +7,7 @@ from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
+from qrl.core.cache.LRU import LRUStateCache
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Block import Block
@@ -26,6 +27,7 @@ class State:
 
     def __init__(self):
         self._db = db.DB()  # generate db object here
+        self.state_cache = LRUStateCache(config.user.lru_state_cache_size, self._db)
 
     def __enter__(self):
         return self
@@ -85,14 +87,29 @@ class State:
             return None
         return self.get_block(block_number_mapping.headerhash)
 
-    def get_state(self, header_hash, addresses_state, state_block_number=-1):
+    def get_state(self, header_hash):
+        tmp_header_hash = header_hash
+        parent_headerhash = None
         while True:
+            addresses_state = self.state_cache.get(header_hash)
+            if addresses_state:
+                parent_headerhash = header_hash
+                break
+            block = self.get_block(header_hash)
+            if not block:
+                return addresses_state
+            if block.block_number == 0:
+                break
+            header_hash = block.prev_headerhash
+
+        header_hash = tmp_header_hash
+        while True:
+            if parent_headerhash == header_hash:
+                return addresses_state
+
             block = self.get_block(header_hash)
 
             if not block:
-                return addresses_state
-
-            if block.block_number == state_block_number:
                 return addresses_state
 
             if block.block_number == 0:
@@ -123,9 +140,12 @@ class State:
 
             header_hash = block.prev_headerhash
 
-    def update_state(self, addresses_state):
+    def update_state(self, addresses_state, block_number, headerhash):
         for address in addresses_state:
             self._save_address_state(addresses_state[address])
+
+        if block_number % config.dev.cache_frequency == 0:
+            self.state_cache.set(headerhash, addresses_state)
 
     def get_ephemeral_metadata(self, msg_id: bytes):
         try:
