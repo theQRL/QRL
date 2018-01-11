@@ -137,22 +137,30 @@ class ChainManager:
 
         return True
 
-    def _add_block(self, block, ignore_duplicate=False, batch=None, mining_enabled=config.user.mining_enabled) -> bool:
+    def _pre_check(self, block, ignore_duplicate):
         if block.block_number < 1:
             return False
 
         if (not ignore_duplicate) and self.state.get_block(block.headerhash):  # Duplicate block check
             return False
 
-        address_txn = self.state.get_state(block.prev_headerhash, dict())
+        return True
+
+    def _try_orphan_add_block(self, block, batch):
+        address_txn = self.state.get_state(block.prev_headerhash)
 
         if not address_txn:
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
-            return False
+            return True
+
+        return False
+
+    def _try_main_add_block(self, block, batch=None, mining_enabled=config.user.mining_enabled) -> bool:
+        address_txn = self.state.get_state(block.prev_headerhash)
 
         if self.validate_block(block, address_txn, self.state):
-            self.state.update_state(address_txn)
+            self.state.update_state(address_txn, block.block_number, block.headerhash)
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
             if block.block_number > self.last_block.block_number:
@@ -163,6 +171,19 @@ class ChainManager:
                     self.mine_next(block, address_txn)
             # TODO: Also add total_difficulty check
             return True
+
+        return False
+
+    def _add_block(self, block, ignore_duplicate=False, batch=None, mining_enabled=config.user.mining_enabled):
+        if not self._pre_check(block, ignore_duplicate):
+            return False
+
+        if self._try_orphan_add_block(block, batch):
+            return True
+
+        if self._try_main_add_block(block, batch, mining_enabled):
+            return True
+
         return False
 
     def add_block(self, block: Block, mining_enabled=config.user.mining_enabled) -> bool:
@@ -246,7 +267,7 @@ class ChainManager:
         return self.state.get_block_by_number(block_number)
 
     def get_state(self, headerhash):
-        return self.state.get_state(headerhash, dict())
+        return self.state.get_state(headerhash)
 
     def mine_next(self, parent_block, address_txn):
         parent_metadata = self.state.get_block_metadata(parent_block.headerhash)

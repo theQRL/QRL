@@ -19,7 +19,6 @@ class CustomQMiner(Qryptominer):
     def __init__(self, callback):
         Qryptominer.__init__(self)
         self.callback_fn = callback
-        self.callLater_fn = None
 
     def solutionEvent(self, nonce):
         logger.debug('Solution Found %s', nonce)
@@ -27,7 +26,7 @@ class CustomQMiner(Qryptominer):
             self.callLater_fn.cancel()
         except Exception:
             pass
-        self.callLater_fn = reactor.callLater(0, self.callback_fn, nonce)
+        self.callback_fn(nonce)
 
 
 class Miner:
@@ -48,7 +47,7 @@ class Miner:
                      parent_block,
                      parent_difficulty,
                      thread_count=config.user.mining_thread_count):
-
+        self.cancel()
         self.mining_block = self.create_block(last_block=parent_block,
                                               mining_nonce=0,
                                               tx_pool=tx_pool,
@@ -74,7 +73,8 @@ class Miner:
     def mined(self, nonce):
         self.mining_block.set_mining_nonce(nonce)
         logger.info('Block #%s nonce: %s', self.mining_block.block_number, StringToUInt256(str(nonce))[-4:])
-        self.pre_block_logic(self.mining_block)
+        cloned_block = copy.deepcopy(self.mining_block)
+        reactor.callLater(0, self.pre_block_logic, cloned_block)
 
     def cancel(self):
         self.custom_qminer.cancel()

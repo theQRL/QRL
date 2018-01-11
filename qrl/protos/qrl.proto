@@ -502,3 +502,7 @@ message BlockNumberMapping {
     bytes headerhash = 1;
     bytes prev_headerhash = 2;
 }
+
+message LRUStateCache {
+
+}
