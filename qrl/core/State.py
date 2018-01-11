@@ -140,46 +140,6 @@ class State:
 
             header_hash = block.prev_headerhash
 
-    '''
-    def get_state(self, header_hash, addresses_state, state_block_number=-1):
-        while True:
-            block = self.get_block(header_hash)
-
-            if not block:
-                return None
-
-            if block.block_number == state_block_number:
-                return addresses_state
-
-            if block.block_number == 0:
-                for genesis_balance in GenesisBlock().genesis_balance:
-                    bytes_addr = genesis_balance.address.encode()
-                    addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
-                    addresses_state[bytes_addr]._data.balance = genesis_balance.balance
-                return addresses_state
-
-            for tx_pbdata in block.transactions:
-                tx = Transaction.from_pbdata(tx_pbdata)
-                if tx.txfrom not in addresses_state:
-                    addresses_state[tx.txfrom] = AddressState.get_default(tx.txfrom)
-
-                if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
-                                  qrl_pb2.Transaction.TRANSFERTOKEN,
-                                  qrl_pb2.Transaction.COINBASE):
-                    if tx.txto not in addresses_state:
-                        addresses_state[tx.txto] = AddressState.get_default(tx.txto)
-
-                if tx.subtype == qrl_pb2.Transaction.TOKEN:
-                    addresses_state[tx.owner] = AddressState.get_default(tx.owner)
-                    for initial_balance in tx.initial_balances:
-                        if initial_balance not in addresses_state:
-                            addresses_state[initial_balance.address] = AddressState.get_default(initial_balance.address)
-
-                tx.apply_on_state(addresses_state)
-
-            header_hash = block.prev_headerhash
-    '''
-
     def update_state(self, addresses_state, block_number, headerhash):
         for address in addresses_state:
             self._save_address_state(addresses_state[address])
