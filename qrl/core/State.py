@@ -165,13 +165,18 @@ class State:
 
         self._db.put_raw(b'ephemeral_' + encrypted_ephemeral.msg_id, ephemeral_metadata.to_json().encode())
 
-    def _blockheight(self):
-        # FIXME: Remove
-        return self._db.get('blockheight')
+    def get_mainchain_height(self) -> int:
+        try:
+            return self._db.get('blockheight')
+        except KeyError:
+            pass
+        except Exception as e:
+            logger.error('get_blockheight Exception %s', e)
 
-    def _set_blockheight(self, height):
-        # FIXME: Remove
-        return self._db.put('blockheight', height)
+        return -1
+
+    def update_mainchain_height(self, height, batch):
+        self._db.put('blockheight', height, batch)
 
     def update_last_tx(self, block, batch):
         if len(block.transactions) == 0:

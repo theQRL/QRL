@@ -23,7 +23,7 @@ class ChainManager:
         self.tx_pool = TransactionPool()  # TODO: Move to some pool manager
         self.last_block = GenesisBlock()
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
-        self.current_target = None
+        self.current_target = None  # TODO: Not needed, replace all reference to local variable
         self.miner = None
 
     @property
@@ -37,22 +37,28 @@ class ChainManager:
         return self.last_block
 
     def load(self, genesis_block):
-        self.state.put_block(genesis_block, None)
-        block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=genesis_block.headerhash,
-                                                          prev_headerhash=genesis_block.prev_headerhash)
-        self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
-        parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
+        height = self.state.get_mainchain_height()
 
-        self.current_difficulty, self.current_target = Miner.calc_difficulty(genesis_block.timestamp,
-                                                                             genesis_block.timestamp-60,
-                                                                             parent_difficulty)
-        block_metadata = BlockMetadata.create()
+        if height == -1:
+            self.state.put_block(genesis_block, None)
+            block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=genesis_block.headerhash,
+                                                              prev_headerhash=genesis_block.prev_headerhash)
+            self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
+            parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-        block_metadata.set_orphan(False)
-        block_metadata.set_block_difficulty(self.current_difficulty)
-        block_metadata.set_cumulative_difficulty(self.current_difficulty)
+            self.current_difficulty, self.current_target = Miner.calc_difficulty(genesis_block.timestamp,
+                                                                                 genesis_block.timestamp-60,
+                                                                                 parent_difficulty)
+            block_metadata = BlockMetadata.create()
 
-        self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
+            block_metadata.set_orphan(False)
+            block_metadata.set_block_difficulty(self.current_difficulty)
+            block_metadata.set_cumulative_difficulty(self.current_difficulty)
+
+            self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
+        else:
+            self.last_block = self.get_block_by_number(height)
+            self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
 
     def validate_block(self, block, address_txn, state) -> bool:
         len_transactions = len(block.transactions)
@@ -169,6 +175,7 @@ class ChainManager:
                 self.state.update_tx_metadata(block, batch)
                 if mining_enabled:
                     self.mine_next(block, address_txn)
+                self.state.update_mainchain_height(block.block_number, batch)
             # TODO: Also add total_difficulty check
             return True
 
