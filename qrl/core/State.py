@@ -26,7 +26,7 @@ class StateLoader:
         self._db = db
         self.state_code = state_code
         if state_code != b'current_':
-            json_data = self._db.get(self.state_code)
+            json_data = self._db.get_raw(self.state_code)
             self._block_number = Block.from_json(json_data).block_number
         self._data = qrl_pb2.StateLoader()
         try:
@@ -73,6 +73,19 @@ class StateLoader:
             self._db.put_raw(address, address_state, batch)
         self.destroy(batch)
 
+    def commit(self, state_loader, batch=None):
+        # TODO (cyyber): Optimization, instead of moving from current to headerhash,
+        # blocknumber could be used in state_code, and current could point to cache of
+        # latest blocknumber
+        for address in self._data.addresses:
+            data = self._db.get_raw(self.state_code+address)
+            if data==None:
+                logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
+            self._db.put_raw(state_loader.state_code+address, data, batch)
+            self._db.delete(self.state_code+address, batch)
+        self._data = qrl_pb2.StateLoader()
+        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+
 
 class StateObjects:
 
@@ -85,7 +98,7 @@ class StateObjects:
         try:
             json_data = self._db.get_raw(b'state_objects')
             Parse(json_data, self._data)
-            for state_code in self._data.state_codes:
+            for state_code in self._data.state_loaders:
                 state_loader = StateLoader(state_code=state_code,
                                            db=db)
                 self._state_loaders.append(state_loader)
@@ -115,15 +128,16 @@ class StateObjects:
 
     def push(self, addresses_state: dict, headerhash: bytes, batch=None):
         state_loader = StateLoader(state_code=bin2hstr(headerhash).encode(), db=self._db)
-        state_loader.put_addresses_state(addresses_state)
+        self._current_state.commit(state_loader)
+        # state_loader.put_addresses_state(addresses_state)
 
         self._data.state_loaders.append(state_loader.state_code)
         self._state_loaders.append(state_loader)
 
-        if len(self._state_loaders) > config.dev.max_state_limit:
+        if len(self._state_loaders) > config.user.max_state_limit:
             state_loader = self._state_loaders[0]
             del self._state_loaders[0]
-            del self._data.state_codes[0]
+            del self._data.state_loaders[0]
             state_loader.update_main()
 
         self._db.put_raw(b'state_objects', MessageToJson(self._data).encode(), batch)
@@ -329,11 +343,11 @@ class State:
         if block_number % config.dev.cache_frequency == 0:
             self.state_cache.set(headerhash, addresses_state)
 
-        if block_number % config.dev.cache_frequency == 0:
-            self.state_objects.push(addresses_state, headerhash)
-
         self.state_objects.destroy_fork_states(block_number, headerhash)
         self.state_objects.update_current_state(addresses_state)
+
+        if block_number % config.dev.cache_frequency == 0:
+            self.state_objects.push(addresses_state, headerhash)
 
     def get_ephemeral_metadata(self, msg_id: bytes):
         try:
@@ -560,13 +574,14 @@ class State:
     #########################################
 
     def _get_address_state(self, address: bytes) -> AddressState:
-        data = self._db.get_raw(address)
-        if data is None:
+        try:
+            data = self._db.get_raw(address)
+            pbdata = qrl_pb2.AddressState()
+            pbdata.ParseFromString(bytes(data))
+            address_state = AddressState(pbdata)
+            return address_state
+        except KeyError:
             return AddressState.get_default(address)
-        pbdata = qrl_pb2.AddressState()
-        pbdata.ParseFromString(bytes(data))
-        address_state = AddressState(pbdata)
-        return address_state
 
     def _save_address_state(self, address_state: AddressState, batch=None):
         data = address_state.pbdata.SerializeToString()
