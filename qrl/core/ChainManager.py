@@ -6,7 +6,6 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
 
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.AddressState import AddressState
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.Miner import Miner
 from qrl.core.misc import logger, ntp
@@ -32,6 +31,7 @@ class ChainManager:
 
     def set_miner(self, miner):
         self.miner = miner
+        self.miner.set_state(self.state)
 
     def get_last_block(self) -> Block:
         return self.last_block
@@ -157,21 +157,21 @@ class ChainManager:
         if self.validate_block(block, address_txn, self.state):
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
+
             last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
             new_block_metadata = self.state.get_block_metadata(block.headerhash)
             last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
             new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
-            #if block.block_number > self.last_block.block_number:
+
             if new_block_difficulty > last_block_difficulty:
-                # TODO : Update all state cache with new chain
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
                 self.update_mainchain(block, batch)
                 self.state.update_tx_metadata(block, batch)
                 if mining_enabled:
-                    self.mine_next(block, address_txn)
+                    self.mine_next(block)
                 self.state.update_mainchain_height(block.block_number, batch)
-            # TODO: Also add total_difficulty check
+
             return True
 
         return False
@@ -271,7 +271,7 @@ class ChainManager:
     def get_state(self, headerhash):
         return self.state.get_state(headerhash, set())
 
-    def mine_next(self, parent_block, address_txn):
+    def mine_next(self, parent_block):
         parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
         logger.info('Mining Block #%s', self.last_block.block_number+1)
-        self.miner.start_mining(address_txn, self.tx_pool, parent_block, parent_metadata.block_difficulty)
+        self.miner.start_mining(self.tx_pool, parent_block, parent_metadata.block_difficulty)

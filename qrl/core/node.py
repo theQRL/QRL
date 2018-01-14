@@ -73,7 +73,7 @@ class POW(ConsensusMechanism):
     def _handler_state_synced(self):
         self.last_pow_cycle = time.time()
         last_block = self.chain_manager.last_block
-        self.chain_manager.mine_next(last_block, self.chain_manager.get_state(last_block.headerhash))
+        self.chain_manager.mine_next(last_block)
 
     def _handler_state_forked(self):
         pass
