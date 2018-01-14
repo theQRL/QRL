@@ -229,12 +229,13 @@ class ChainManager:
             parent_metadata = BlockMetadata.create()
         else:
             parent_block = self.state.get_block(parent_headerhash)
-            parent_block_difficulty = parent_metadata.block_difficulty
-            parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
-            block_difficulty, _ = Miner.calc_difficulty(block_timestamp, parent_block.timestamp, parent_block_difficulty)
-            block_cumulative_difficulty = StringToUInt256(str(
-                                                          int(UInt256ToString(block_difficulty)) +
-                                                          int(UInt256ToString(parent_cumulative_difficulty))))
+            if parent_block:
+                parent_block_difficulty = parent_metadata.block_difficulty
+                parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
+                block_difficulty, _ = Miner.calc_difficulty(block_timestamp, parent_block.timestamp, parent_block_difficulty)
+                block_cumulative_difficulty = StringToUInt256(str(
+                                                              int(UInt256ToString(block_difficulty)) +
+                                                              int(UInt256ToString(parent_cumulative_difficulty))))
 
         block_metadata = self.state.get_block_metadata(headerhash)
         if not block_metadata:
