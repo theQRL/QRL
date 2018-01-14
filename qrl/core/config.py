@@ -30,7 +30,7 @@ class UserConfig(object):
 
         # Cache Size
         self.lru_state_cache_size = 10
-
+        self.max_state_limit = 10
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['45.76.139.109',

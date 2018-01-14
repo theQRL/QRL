@@ -109,7 +109,7 @@ class StateObjects:
         self._data.state_loaders.append(state_loader.state_code)
         self._state_loaders.append(state_loader)
 
-        if len(self._state_loaders) > 5:
+        if len(self._state_loaders) > config.dev.max_state_limit:
             state_loader = self._state_loaders[0]
             del self._state_loaders[0]
             state_loader.update_main()
