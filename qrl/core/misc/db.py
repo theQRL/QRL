@@ -58,8 +58,11 @@ class DB:
         except Exception as e:
             logger.exception(e)
 
-    def delete(self, key_obj):
-        self.db.Delete(key_obj)
+    def delete(self, key_obj, batch):
+        if batch:
+            batch.Delete(key_obj)
+        else:
+            self.db.Delete(key_obj)
 
     def put_raw(self, key, value, batch=None):
         if batch:

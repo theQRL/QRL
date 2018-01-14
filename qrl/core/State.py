@@ -20,6 +20,118 @@ from qrl.core.AddressState import AddressState
 from qrl.generated import qrl_pb2
 
 
+class StateLoader:
+
+    def __init__(self, state_code, db: db.DB, pbdata=None):
+        self._db = db
+        self.state_code = state_code
+        self._data = pbdata
+        if not pbdata:
+            self._data = qrl_pb2.StateLoader()
+
+    def get_address(self, address: bytes) -> Optional[AddressState]:
+        modified_address = self.state_code + address
+        try:
+            data = self._db.get_raw(modified_address)
+            if data is None:
+                raise KeyError("{} not found modified address".format(modified_address))
+            pbdata = qrl_pb2.AddressState()
+            pbdata.ParseFromString(bytes(data))
+            address_state = AddressState(pbdata)
+            return address_state
+        except KeyError:
+            return None
+
+    def put_addresses_state(self, addresses_state: dict, batch=None):
+        for address in addresses_state:
+            address_state = addresses_state[address]
+            data = address_state.pbdata.SerializeToString()
+            self._db.put_raw(self.state_code + address_state.address, data, batch)
+            if address not in self._data.addresses:
+                self._data.addresses.append(address)
+
+        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+
+    def destroy(self, batch=None):
+        for address in self._data.addresses:
+            self._db.delete(self.state_code+address, batch)
+
+    def update_main(self, batch=None):
+        for address in self._data.addresses:
+            address_state = self._db.get(self.state_code+address)
+            self._db.put_raw(address, address_state, batch)
+        self.destroy(batch)
+
+
+class StateObjects:
+
+    def __init__(self, db, pbdata=None):
+        self._db = db
+        self._data = pbdata
+        self._state_loaders = []
+        self._current_state = StateLoader(state_code=b'current_',
+                                          db=db)
+        if not pbdata:
+            self._data = qrl_pb2.StateObjects()
+        else:
+            for state_code in self._data.state_codes:
+                pbdata = self._db.get_raw(state_code)
+                state_loader = StateLoader(state_code=state_code,
+                                           db=db,
+                                           pbdata=pbdata)
+                self._state_loaders.append(state_loader)
+
+    @property
+    def state_loaders(self):
+        return self._state_loaders
+
+    def get_address(self, address):
+        address_state = self._current_state.get_address(address)
+        if address_state:
+            return address_state
+
+        for state_loader in self._state_loaders[-1::-1]:
+            address_state = state_loader.get_address(address)
+            if address_state:
+                return address_state
+        return None
+
+    def get(self, state_code):
+        for state_obj in self._state_loaders:
+            if state_obj.state_code == state_code:
+                return state_obj
+        return None
+
+    def push(self, addresses_state: dict, headerhash: bytes):
+        state_loader = StateLoader(state_code=bin2hstr(headerhash).encode(), db=self._db)
+        state_loader.put_addresses_state(addresses_state)
+
+        self._data.state_loaders.append(state_loader.state_code)
+        self._state_loaders.append(state_loader)
+
+        if len(self._state_loaders) > 5:
+            state_loader = self._state_loaders[0]
+            del self._state_loaders[0]
+            state_loader.update_main()
+
+    def update_current_state(self, addresses_state: dict):
+        self._current_state.put_addresses_state(addresses_state)
+
+    def contains(self, headerhash: bytes) -> bool:
+        for state_obj in self._state_loaders:
+            if state_obj.state_code == headerhash:
+                return True
+        return False
+
+    def get_state_loader_by_index(self, index) -> StateLoader:
+        if index >= len(self._state_loaders):
+            logger.warning('Index is not in range')
+            logger.warning('Index: %s, Len of State_loaders: %s', index, len(self._state_loaders))
+            raise Exception
+
+        return self._state_loaders[index]
+
+
 class State:
     # FIXME: Rename to PersistentState
     # FIXME: Move blockchain caching/storage over here
@@ -28,6 +140,7 @@ class State:
     def __init__(self):
         self._db = db.DB()  # generate db object here
         self.state_cache = LRUStateCache(config.user.lru_state_cache_size, self._db)
+        self.state_objects = StateObjects(self._db)
 
     def __enter__(self):
         return self
@@ -87,20 +200,61 @@ class State:
             return None
         return self.get_block(block_number_mapping.headerhash)
 
-    def get_state(self, header_hash):
+    @staticmethod
+    def prepare_address_list(block) -> set:
+        addresses = set()
+        for proto_tx in block.transactions:
+            tx = Transaction.from_pbdata(proto_tx)
+            tx.set_effected_address(addresses)
+
+        return addresses
+
+    def set_addresses_state(self, addresses_state: dict, state_code: bytes):
+        index = -1
+        found = False
+        for state_object in self.state_objects.state_loaders:
+            index += 1
+            if state_object.state_code == state_code:
+                found = True
+                break
+
+        if not found:
+            logger.warning('State Code not found %s', state_code)
+            return None
+
+        for address in addresses_state:
+            for state_obj_index in range(index, -1, -1):
+                state_object = self.state_objects.get_state_loader_by_index(state_obj_index)
+                addresses_state[address] = state_object.get_address(address)
+                if addresses_state[address]:
+                    break
+            if not addresses_state[address]:
+                addresses_state[address] = self.get_address(address)
+
+    def get_state(self, header_hash, addresses_set):
+        str_headerhash = bin2hstr(header_hash).encode()
         tmp_header_hash = header_hash
         parent_headerhash = None
+
+        addresses_state = dict()
+        for address in addresses_set:
+            addresses_state[address] = None
+
         while True:
-            addresses_state = self.state_cache.get(header_hash)
-            if addresses_state:
+            if self.state_objects.contains(str_headerhash):
                 parent_headerhash = header_hash
+                self.set_addresses_state(addresses_state, str_headerhash)
                 break
             block = self.get_block(header_hash)
             if not block:
-                return addresses_state
+                return None
             if block.block_number == 0:
                 break
             header_hash = block.prev_headerhash
+
+        for address in addresses_state:
+            if not addresses_state[address]:
+                addresses_state[address] = AddressState.get_default(address)
 
         header_hash = tmp_header_hash
         while True:
@@ -115,37 +269,29 @@ class State:
             if block.block_number == 0:
                 for genesis_balance in GenesisBlock().genesis_balance:
                     bytes_addr = genesis_balance.address.encode()
-                    addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+                    if bytes_addr not in addresses_state:
+                        addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                     addresses_state[bytes_addr]._data.balance = genesis_balance.balance
                 return addresses_state
 
             for tx_pbdata in block.transactions:
                 tx = Transaction.from_pbdata(tx_pbdata)
-                if tx.txfrom not in addresses_state:
-                    addresses_state[tx.txfrom] = AddressState.get_default(tx.txfrom)
-
-                if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
-                                  qrl_pb2.Transaction.TRANSFERTOKEN,
-                                  qrl_pb2.Transaction.COINBASE):
-                    if tx.txto not in addresses_state:
-                        addresses_state[tx.txto] = AddressState.get_default(tx.txto)
-
-                if tx.subtype == qrl_pb2.Transaction.TOKEN:
-                    addresses_state[tx.owner] = AddressState.get_default(tx.owner)
-                    for initial_balance in tx.initial_balances:
-                        if initial_balance not in addresses_state:
-                            addresses_state[initial_balance.address] = AddressState.get_default(initial_balance.address)
-
                 tx.apply_on_state(addresses_state)
 
             header_hash = block.prev_headerhash
 
-    def update_state(self, addresses_state, block_number, headerhash):
+    def update_state(self, addresses_state):
         for address in addresses_state:
             self._save_address_state(addresses_state[address])
 
+    def update_mainchain_state(self, addresses_state, block_number, headerhash):
         if block_number % config.dev.cache_frequency == 0:
             self.state_cache.set(headerhash, addresses_state)
+
+        if block_number % config.dev.cache_frequency == 0:
+            self.state_objects.push(addresses_state, headerhash)
+
+        self.state_objects.update_current_state(addresses_state)
 
     def get_ephemeral_metadata(self, msg_id: bytes):
         try:
@@ -387,7 +533,15 @@ class State:
     def get_address(self, address: bytes) -> AddressState:
         # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
         try:
-            return self._get_address_state(address)
+            address_state = self.state_objects.get_address(address)
+            if not address_state:
+                return AddressState.create(address=address,
+                                           nonce=config.dev.default_nonce,
+                                           balance=config.dev.default_account_balance,
+                                           ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                           tokens=dict())
+            return address_state
+            # return self._get_address_state(address)
         except KeyError:
             # FIXME: Check all cases where address is not found
             return AddressState.create(address=address,
