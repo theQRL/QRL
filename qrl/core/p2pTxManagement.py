@@ -202,7 +202,7 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         source.factory.pow.pre_block_logic(block)  # FIXME: Ignores return value
-        source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message)
+        source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message.block)
 
     def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
