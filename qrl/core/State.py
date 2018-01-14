@@ -229,7 +229,7 @@ class State:
                 if addresses_state[address]:
                     break
             if not addresses_state[address]:
-                addresses_state[address] = self.get_address(address)
+                addresses_state[address] = self._get_address_state(address)
 
     def get_state(self, header_hash, addresses_set):
         str_headerhash = bin2hstr(header_hash).encode()
@@ -520,7 +520,7 @@ class State:
     def _get_address_state(self, address: bytes) -> AddressState:
         data = self._db.get_raw(address)
         if data is None:
-            raise KeyError("{} not found".format(address))
+            return AddressState.get_default(address)
         pbdata = qrl_pb2.AddressState()
         pbdata.ParseFromString(bytes(data))
         address_state = AddressState(pbdata)
