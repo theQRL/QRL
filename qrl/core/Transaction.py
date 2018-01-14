@@ -153,6 +153,15 @@ class Transaction(object, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def set_effected_address(self, addresses_set: set):
+        """
+        Set all addresses which are being effected by the transaction
+        :param addresses_set:
+        :return:
+        """
+        raise NotImplementedError
+
     def validate(self) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
@@ -297,12 +306,18 @@ class TransferTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
-        addresses_state[self.txfrom].balance -= (self.amount + self.fee)
-        addresses_state[self.txfrom].nonce.increase_nonce()
-        addresses_state[self.txto].balance += self.amount
-        addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-        addresses_state[self.txto].transaction_hashes.append(self.txhash)
-        self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].balance -= (self.amount + self.fee)
+            addresses_state[self.txfrom].nonce.increase_nonce()
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+        if self.txto in addresses_state:
+            addresses_state[self.txto].balance += self.amount
+            addresses_state[self.txto].transaction_hashes.append(self.txhash)
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
+        addresses_set.add(self.txto)
 
 
 class CoinBase(Transaction):
@@ -367,11 +382,17 @@ class CoinBase(Transaction):
         return self.validate()
 
     def apply_on_state(self, addresses_state):
-        addresses_state[self.txto].balance += self.amount
-        addresses_state[self.txto].increase_nonce()
-        addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-        addresses_state[self.txto].transaction_hashes.append(self.txhash)
-        self.set_ots_key(addresses_state[self.txto], self.ots_key)
+        if self.txto in addresses_state:
+            addresses_state[self.txto].balance += self.amount
+            addresses_state[self.txto].increase_nonce()
+            addresses_state[self.txto].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txto], self.ots_key)
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
+        addresses_set.add(self.txto)
 
 
 class LatticePublicKey(Transaction):
@@ -446,11 +467,15 @@ class LatticePublicKey(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
-        addresses_state[self.txfrom].balance -= self.fee
-        addresses_state[self.txfrom].add_lattice_pk(self)
-        addresses_state[self.txfrom].increase_nonce()
-        addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-        self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].balance -= self.fee
+            addresses_state[self.txfrom].add_lattice_pk(self)
+            addresses_state[self.txfrom].increase_nonce()
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
 
 
 class MessageTransaction(Transaction):
@@ -521,10 +546,14 @@ class MessageTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
-        addresses_state[self.txfrom].balance -= self.fee
-        addresses_state[self.txfrom].increase_nonce()
-        addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-        self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].balance -= self.fee
+            addresses_state[self.txfrom].increase_nonce()
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
 
 
 class TokenTransaction(Transaction):
@@ -663,13 +692,22 @@ class TokenTransaction(Transaction):
 
     def apply_on_state(self, addresses_state):
         for initial_balance in self.initial_balances:
-            addresses_state[initial_balance.address].tokens[bin2hstr(self.txhash).encode()] += initial_balance.amount
-            addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
-        addresses_state[self.owner].transaction_hashes.append(self.txhash)
-        addresses_state[self.txfrom].balance -= self.fee
-        addresses_state[self.txfrom].increase_nonce()
-        addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-        self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+            if initial_balance.address in addresses_state:
+                addresses_state[initial_balance.address].tokens[bin2hstr(self.txhash).encode()] += initial_balance.amount
+                addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
+        if self.owner in addresses_state:
+            addresses_state[self.owner].transaction_hashes.append(self.txhash)
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].balance -= self.fee
+            addresses_state[self.txfrom].increase_nonce()
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
+        addresses_set.add(self.owner)
+        for initial_balance in self.initial_balances:
+            addresses_set.add(initial_balance.address)
 
 
 class TransferTokenTransaction(Transaction):
@@ -771,15 +809,22 @@ class TransferTokenTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
-        addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] -= self.amount
-        if addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] == 0:
-            del addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()]
-        addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
-        addresses_state[self.txfrom].balance -= self.fee
-        addresses_state[self.txfrom].increase_nonce()
-        addresses_state[self.txto].transaction_hashes.append(self.txhash)
-        addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-        self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] -= self.amount
+            if addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] == 0:
+                del addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()]
+            addresses_state[self.txfrom].balance -= self.fee
+            addresses_state[self.txfrom].increase_nonce()
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+        if self.txto in addresses_state:
+            addresses_state[self.txto].transaction_hashes.append(self.txhash)
+            addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
+        addresses_set.add(self.txto)
 
 
 TYPEMAP = {

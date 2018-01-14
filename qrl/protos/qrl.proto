@@ -503,6 +503,14 @@ message BlockNumberMapping {
     bytes prev_headerhash = 2;
 }
 
+message StateLoader {
+    repeated bytes addresses = 1;
+}
+
+message StateObjects {
+    repeated bytes state_loaders = 1;
+}
+
 message LRUStateCache {
 
 }

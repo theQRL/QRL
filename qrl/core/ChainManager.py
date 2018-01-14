@@ -6,7 +6,6 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
 
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.AddressState import AddressState
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.Miner import Miner
 from qrl.core.misc import logger, ntp
@@ -32,6 +31,7 @@ class ChainManager:
 
     def set_miner(self, miner):
         self.miner = miner
+        self.miner.set_state(self.state)
 
     def get_last_block(self) -> Block:
         return self.last_block
@@ -94,7 +94,6 @@ class ChainManager:
         if not coinbase_tx.validate():
             return False
 
-        address_txn[coinbase_tx.txto] = AddressState.get_default(coinbase_tx.txto)
         coinbase_tx.apply_on_state(address_txn)
 
         if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txfrom], block.blockheader):
@@ -110,18 +109,6 @@ class ChainManager:
 
             if not tx.validate():   # TODO: Move this validation, before adding txn to pool
                 return False
-
-            if tx.addr_from not in address_txn:
-                address_txn[tx.txfrom] = AddressState.get_default(tx.addr_from)
-
-            if tx.subtype in (qrl_pb2.Transaction.TRANSFER, qrl_pb2.Transaction.TRANSFERTOKEN):
-                if tx.txto not in address_txn:
-                    address_txn[tx.txto] = AddressState.get_default(tx.txto)
-
-            if tx.subtype == qrl_pb2.Transaction.TOKEN:
-                for initial_balance in tx.initial_balances:
-                    if initial_balance not in address_txn:
-                        address_txn[initial_balance.address] = AddressState.get_default(initial_balance.address)
 
             if not tx.validate_extended(address_txn[tx.txfrom], self.tx_pool.transaction_pool):
                 return False
@@ -153,7 +140,8 @@ class ChainManager:
         return True
 
     def _try_orphan_add_block(self, block, batch):
-        address_txn = self.state.get_state(block.prev_headerhash)
+        address_set = self.state.prepare_address_list(block)
+        address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
         if not address_txn:
             self.state.put_block(block, batch)
@@ -162,21 +150,28 @@ class ChainManager:
 
         return False
 
-    def _try_main_add_block(self, block, batch=None, mining_enabled=config.user.mining_enabled) -> bool:
-        address_txn = self.state.get_state(block.prev_headerhash)
+    def _try_branch_add_block(self, block, batch=None, mining_enabled=config.user.mining_enabled) -> bool:
+        address_set = self.state.prepare_address_list(block)  # Prepare list for current block
+        address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
         if self.validate_block(block, address_txn, self.state):
-            self.state.update_state(address_txn, block.block_number, block.headerhash)
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
-            if block.block_number > self.last_block.block_number:
+
+            last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
+            new_block_metadata = self.state.get_block_metadata(block.headerhash)
+            last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
+            new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
+
+            if new_block_difficulty > last_block_difficulty:
+                self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
                 self.update_mainchain(block, batch)
                 self.state.update_tx_metadata(block, batch)
                 if mining_enabled:
-                    self.mine_next(block, address_txn)
+                    self.mine_next(block)
                 self.state.update_mainchain_height(block.block_number, batch)
-            # TODO: Also add total_difficulty check
+
             return True
 
         return False
@@ -188,7 +183,7 @@ class ChainManager:
         if self._try_orphan_add_block(block, batch):
             return True
 
-        if self._try_main_add_block(block, batch, mining_enabled):
+        if self._try_branch_add_block(block, batch, mining_enabled):
             return True
 
         return False
@@ -274,9 +269,9 @@ class ChainManager:
         return self.state.get_block_by_number(block_number)
 
     def get_state(self, headerhash):
-        return self.state.get_state(headerhash)
+        return self.state.get_state(headerhash, set())
 
-    def mine_next(self, parent_block, address_txn):
+    def mine_next(self, parent_block):
         parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
         logger.info('Mining Block #%s', self.last_block.block_number+1)
-        self.miner.start_mining(address_txn, self.tx_pool, parent_block, parent_metadata.block_difficulty)
+        self.miner.start_mining(self.tx_pool, parent_block, parent_metadata.block_difficulty)

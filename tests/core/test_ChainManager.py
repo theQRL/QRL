@@ -33,17 +33,18 @@ class TestChainManager(TestCase):
         """
         destroy_state()
         state = State()
-        miner = Miner(Mock(), Mock())
+        alice_xmss = get_alice_xmss()
+        bob_xmss = get_bob_xmss()
+        alice_miner = Miner(Mock(), alice_xmss)
+        bob_miner = Miner(Mock(), bob_xmss)
 
         genesis_block = GenesisBlock()
         chain_manager = ChainManager(state)
         chain_manager.load(genesis_block)
-        chain_manager.set_miner(miner)
+        chain_manager.set_miner(alice_miner)
 
         block = state.get_block(genesis_block.headerhash)
         self.assertIsNotNone(block)
-
-        alice_xmss = get_alice_xmss()
 
         block_1 = Block.create(mining_nonce=10,
                                block_number=1,
@@ -51,12 +52,10 @@ class TestChainManager(TestCase):
                                transactions=[],
                                signing_xmss=alice_xmss,
                                nonce=1)
-
+        block_1.set_mining_nonce(10)
         result = chain_manager.add_block(block_1)
         self.assertTrue(result)
         self.assertEqual(chain_manager.last_block, block_1)
-
-        bob_xmss = get_bob_xmss()
 
         block = Block.create(mining_nonce=15,
                              block_number=1,
@@ -64,7 +63,8 @@ class TestChainManager(TestCase):
                              transactions=[],
                              signing_xmss=bob_xmss,
                              nonce=1)
-
+        block.set_mining_nonce(15)
+        chain_manager.set_miner(bob_miner)
         result = chain_manager.add_block(block)
         self.assertTrue(result)
         self.assertEqual(chain_manager.last_block, block_1)
@@ -78,7 +78,7 @@ class TestChainManager(TestCase):
                                transactions=[],
                                signing_xmss=bob_xmss,
                                nonce=2)
-
+        block_2.set_mining_nonce(20)
         result = chain_manager.add_block(block_2)
 
         self.assertTrue(result)
