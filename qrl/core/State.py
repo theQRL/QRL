@@ -22,12 +22,23 @@ from qrl.generated import qrl_pb2
 
 class StateLoader:
 
-    def __init__(self, state_code, db: db.DB, pbdata=None):
+    def __init__(self, state_code, db: db.DB):
         self._db = db
         self.state_code = state_code
-        self._data = pbdata
-        if not pbdata:
-            self._data = qrl_pb2.StateLoader()
+        if state_code != b'current_':
+            json_data = self._db.get(self.state_code)
+            self._block_number = Block.from_json(json_data).block_number
+        self._data = qrl_pb2.StateLoader()
+        try:
+            json_data = self._db.get_raw(b'state' + self.state_code)
+            if json_data:
+                Parse(json_data, self._data)
+        except KeyError:
+            pass
+
+    @property
+    def block_number(self):
+        return self._block_number
 
     def get_address(self, address: bytes) -> Optional[AddressState]:
         modified_address = self.state_code + address
@@ -65,21 +76,21 @@ class StateLoader:
 
 class StateObjects:
 
-    def __init__(self, db, pbdata=None):
+    def __init__(self, db):
         self._db = db
-        self._data = pbdata
         self._state_loaders = []
         self._current_state = StateLoader(state_code=b'current_',
                                           db=db)
-        if not pbdata:
-            self._data = qrl_pb2.StateObjects()
-        else:
+        self._data = qrl_pb2.StateObjects()
+        try:
+            json_data = self._db.get_raw(b'state_objects')
+            Parse(json_data, self._data)
             for state_code in self._data.state_codes:
-                pbdata = self._db.get_raw(state_code)
                 state_loader = StateLoader(state_code=state_code,
-                                           db=db,
-                                           pbdata=pbdata)
+                                           db=db)
                 self._state_loaders.append(state_loader)
+        except KeyError:
+            pass
 
     @property
     def state_loaders(self):
@@ -102,7 +113,7 @@ class StateObjects:
                 return state_obj
         return None
 
-    def push(self, addresses_state: dict, headerhash: bytes):
+    def push(self, addresses_state: dict, headerhash: bytes, batch=None):
         state_loader = StateLoader(state_code=bin2hstr(headerhash).encode(), db=self._db)
         state_loader.put_addresses_state(addresses_state)
 
@@ -112,7 +123,10 @@ class StateObjects:
         if len(self._state_loaders) > config.dev.max_state_limit:
             state_loader = self._state_loaders[0]
             del self._state_loaders[0]
+            del self._data.state_codes[0]
             state_loader.update_main()
+
+        self._db.put_raw(b'state_objects', MessageToJson(self._data).encode(), batch)
 
     def update_current_state(self, addresses_state: dict):
         self._current_state.put_addresses_state(addresses_state)
@@ -130,6 +144,33 @@ class StateObjects:
             raise Exception
 
         return self._state_loaders[index]
+
+    def destroy_state_loader(self, index):
+        self._state_loaders[index].destroy()
+        del self._state_loaders[index]
+
+    def destroy_fork_states(self, block_number, headerhash):
+        """
+        Removes all the cache state, which are created further,
+        the current blocknumber.
+        Usually done when a new branch found as main branch.
+        :param block_number:
+        :param headerhash:
+        :return:
+        """
+        str_headerhash = bin2hstr(headerhash).encode()
+        for index in range(len(self._state_loaders)):
+            state_loader = self._state_loaders[index]
+            if state_loader.block_number > block_number:
+                self.destroy_state_loader(index)
+                index -= 1
+                continue
+
+            if state_loader.block_number == block_number:
+                if state_loader.state_code != str_headerhash:
+                    self.destroy_state_loader(index)
+                    index -= 1
+                    continue
 
 
 class State:
@@ -291,6 +332,7 @@ class State:
         if block_number % config.dev.cache_frequency == 0:
             self.state_objects.push(addresses_state, headerhash)
 
+        self.state_objects.destroy_fork_states(block_number, headerhash)
         self.state_objects.update_current_state(addresses_state)
 
     def get_ephemeral_metadata(self, msg_id: bytes):
