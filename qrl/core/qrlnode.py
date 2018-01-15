@@ -21,7 +21,7 @@ from qrl.core.p2pChainManager import P2PChainManager
 from qrl.core.ChainManager import ChainManager
 from qrl.core.p2pPeerManager import P2PPeerManager
 from qrl.core.p2pTxManagement import P2PTxManagement
-from qrl.generated import qrl_pb2, qrllegacy_pb2
+from qrl.generated import qrl_pb2
 
 
 class QRLNode:
