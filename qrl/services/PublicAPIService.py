@@ -12,6 +12,7 @@ from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import grpc_exception_wrapper
+from pyqrllib.pyqrllib import hstr2bin
 
 
 class PublicAPIService(PublicAPIServicer):
@@ -75,6 +76,33 @@ class PublicAPIService(PublicAPIServicer):
         answer = qrl_pb2.PushTransactionResp()
         answer.some_response = str(submitted)
         return answer
+
+    @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
+    def GetTokenTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetTokenTxn")
+        tx = self.qrlnode.create_token_txn(addr_from=request.address_from,
+                                           symbol=request.symbol,
+                                           name=request.name,
+                                           owner=request.owner,
+                                           decimals=request.decimals,
+                                           initial_balances=request.initial_balances,
+                                           fee=request.fee,
+                                           xmss_pk=request.xmss_pk)
+
+        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+
+    @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
+    def GetTransferTokenTxn(self, request: qrl_pb2.TransferTokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetTransferTokenTxn")
+        bin_token_txhash = bytes(hstr2bin(request.token_txhash.decode()))
+        tx = self.qrlnode.create_transfer_token_txn(addr_from=request.address_from,
+                                                    addr_to=request.address_to,
+                                                    token_txhash=bin_token_txhash,
+                                                    amount=request.amount,
+                                                    fee=request.fee,
+                                                    xmss_pk=request.xmss_pk)
+
+        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
     @grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
@@ -165,7 +193,7 @@ class PublicAPIService(PublicAPIServicer):
                 # FIXME: Improve this once we have a proper database schema
                 block_index = self.qrlnode.get_blockidx_from_txhash(tx.txhash)
                 block = self.qrlnode.get_block_from_index(block_index)
-                txextended = qrl_pb2.TransactionExtended(header=block.blockheader.pbdata,
+                txextended = qrl_pb2.TransactionExtended(header=None,
                                                          tx=tx.pbdata)
                 result.append(txextended)
 
