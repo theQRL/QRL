@@ -36,6 +36,10 @@ service PublicAPI
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
+    rpc GetTokenTxn (TokenTxnReq) returns (TransferCoinsResp);
+
+    rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp);
+
     // ------- Ephemeral API -------
     rpc PushEphemeralMessage (PushEphemeralMessageReq) returns (PushTransactionResp);
     rpc CollectEphemeralMessage (CollectEphemeralMessageReq) returns (CollectEphemeralMessageResp);
@@ -147,6 +151,26 @@ message TransferCoinsResp {
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
     string some_response = 1;
+}
+
+message TokenTxnReq {
+    bytes address_from = 1;
+    bytes symbol = 2;
+    bytes name = 3;
+    bytes owner = 4;
+    uint64 decimals = 5;
+    repeated AddressAmount initial_balances = 6;
+    uint64 fee = 7;
+    bytes xmss_pk = 8;
+}
+
+message TransferTokenTxnReq {
+    bytes address_from = 1;
+    bytes address_to = 2;
+    bytes token_txhash = 3;
+    uint64 amount = 4;
+    uint64 fee = 5;
+    bytes xmss_pk = 6;
 }
 
 ////////////////////////////

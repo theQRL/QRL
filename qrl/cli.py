@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# coding=utf-8
-# Distributed under the MIT software license, see the accompanying
-# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
 
 import click
@@ -76,21 +73,27 @@ def _public_get_address_balance(ctx, address):
 
 def _select_wallet(ctx, src):
     try:
+        config.user.wallet_path = ctx.obj.wallet_dir
+        wallet = Wallet(valid_or_create=False)
+        addresses = [a.address for a in wallet.address_bundle]
+        if not addresses:
+            click.echo('This command requires a local wallet')
+            return
+
         if src.isdigit():
-            src_idx = int(src)
-            config.user.wallet_path = ctx.obj.wallet_dir
-            wallet = Wallet(valid_or_create=False)
-            addresses = [a.address for a in wallet.address_bundle]
-            if not addresses:
-                click.echo('This command is requires a local wallet')
-                return
-
-            if 0 <= src_idx < len(addresses):
+            try:
                 # FIXME: This should only return pk and index
-                ab = wallet.address_bundle[src_idx]
+                ab = wallet.address_bundle[int(src)]
                 return ab.address, ab.xmss
+            except IndexError:
+                click.echo('Wallet index not found', color='yellow')
+                quit(1)
 
-            click.echo('Wallet index not found', color='yellow')
+        elif src.startswith('Q'):
+            for i, addr in enumerate(wallet.addresses):
+                if src.encode() == addr:
+                    return wallet.address_bundle[i].address, wallet.address_bundle[i].xmss
+            click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
         return src.encode(), None
@@ -404,7 +407,7 @@ def tx_transfer(ctx, src, dst, amount, fee):
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
         tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
-        tx.sign(src_xmss.xmss)
+        tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
@@ -449,10 +452,11 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk()
         src_xmss.set_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.get_index()
         address_owner = owner.encode()
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e8)
-    except Exception as e:
+    except KeyboardInterrupt as e:
         click.echo("Error validating arguments")
         quit(1)
 
@@ -467,7 +471,8 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
                                      decimals=decimals,
                                      initial_balances=initial_balances,
                                      fee=fee_shor,
-                                     xmss_pk=address_src_pk)
+                                     xmss_pk=address_src_pk,
+                                     xmss_ots_index=address_src_otsidx)
 
         tx.sign(src_xmss)
 
@@ -505,7 +510,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
 
         address_src_pk = src_xmss.pk()
         src_xmss.set_index(int(ots_key_index))
-
+        address_src_otsidx = src_xmss.get_index()
         address_dst = dst.encode()
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
@@ -524,7 +529,8 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
                                              addr_to=address_dst,
                                              amount=amount,
                                              fee=fee_shor,
-                                             xmss_pk=address_src_pk)
+                                             xmss_pk=address_src_pk,
+                                             xmss_ots_index=address_src_otsidx)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)

@@ -15,7 +15,7 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
 from qrl.core.AddressState import AddressState
 from qrl.core.TokenList import TokenList
-from qrl.core.Transaction import TransferTransaction, Transaction
+from qrl.core.Transaction import TransferTransaction, Transaction, TransferTokenTransaction, TokenTransaction
 from qrl.core.misc.logger import logger
 from qrl.core.p2pChainManager import P2PChainManager
 from qrl.core.ChainManager import ChainManager
@@ -215,6 +215,38 @@ class QRLNode:
         tx.sign(xmss_from)
         self.submit_send_tx(tx)
         return tx
+
+    @staticmethod
+    def create_token_txn(addr_from: bytes,
+                         symbol: bytes,
+                         name: bytes,
+                         owner: bytes,
+                         decimals: int,
+                         initial_balances,
+                         fee: int,
+                         xmss_pk: bytes):
+        return TokenTransaction.create(addr_from,
+                                       symbol,
+                                       name,
+                                       owner,
+                                       decimals,
+                                       initial_balances,
+                                       fee,
+                                       xmss_pk)
+
+    @staticmethod
+    def create_transfer_token_txn(addr_from: bytes,
+                                  addr_to: bytes,
+                                  token_txhash: bytes,
+                                  amount: int,
+                                  fee: int,
+                                  xmss_pk: bytes):
+        return TransferTokenTransaction.create(addr_from,
+                                               token_txhash,
+                                               addr_to,
+                                               amount,
+                                               fee,
+                                               xmss_pk)
 
     # FIXME: Rename this appropriately
     def create_send_tx(self,
