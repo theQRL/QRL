@@ -141,7 +141,6 @@ message TransferCoinsReq {
     uint64 amount = 3;                      // Amount. It should be expressed in Shor
     uint64 fee = 4;                         // Fee. It should be expressed in Shor
     bytes xmss_pk = 5;                      // XMSS Public key
-    uint64 xmss_ots_index = 6;              // XMSS One time signature index
 }
 
 message TransferCoinsResp {
