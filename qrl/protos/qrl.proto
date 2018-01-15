@@ -33,8 +33,6 @@ service PublicAPI
 
     rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp);
 
-    rpc GetStakers(GetStakersReq) returns (GetStakersResp);
-
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
@@ -92,14 +90,12 @@ message GetStatsResp {
     uint64 epoch = 2;                       // Current epoch
     uint64 uptime_network = 3;              // Indicates uptime in seconds
 
-    uint64 stakers_count = 4;               // Number of active stakers
-    uint64 block_last_reward = 5;
-    uint64 block_time_mean = 6;
-    uint64 block_time_sd = 7;
+    uint64 block_last_reward = 4;
+    uint64 block_time_mean = 5;
+    uint64 block_time_sd = 6;
 
-    uint64 coins_total_supply = 8;
-    uint64 coins_emitted = 9;
-    uint64 coins_atstake = 10;
+    uint64 coins_total_supply = 7;
+    uint64 coins_emitted = 8;
 }
 
 message GetAddressStateReq {   bytes address = 1; }
@@ -133,21 +129,6 @@ message GetLatestDataResp {
     repeated BlockHeaderExtended blockheaders = 1;
     repeated TransactionExtended transactions = 2;
     repeated TransactionExtended transactions_unconfirmed = 3;
-}
-
-message GetStakersReq {
-    enum Filter {
-        CURRENT = 0;
-        NEXT = 1;
-    }
-
-    Filter filter = 1;                      // Indicates which group of stakers (current / next)
-    uint32 offset = 2;                      // Offset in the staker list
-    uint32 quantity = 3;                    // Number of stakers to retrive. Capped at 100
-}
-
-message GetStakersResp {
-    repeated StakerData stakers = 1;
 }
 
 message TransferCoinsReq {
@@ -218,8 +199,7 @@ message NodeInfo
     uint64 uptime = 5;               // Uptime in seconds
     uint64 block_height = 6;
     bytes  block_last_hash = 7;
-    bool   stake_enabled = 8;
-    string network_id = 9;
+    string network_id = 8;
 }
 
 message WalletStore {
@@ -256,11 +236,6 @@ message LatticePK {
     bytes kyber_pk = 3;
 }
 
-message StakerData {
-    AddressState address_state = 1;
-    bytes terminator_hash = 2;
-}
-
 message AddressAmount {
     bytes address = 1;
     uint64 amount = 2;
@@ -286,8 +261,6 @@ message BlockHeader {
 message BlockHeaderExtended {
     BlockHeader header = 1;
     TransactionCount transaction_count = 2;
-    uint64 voted_weight = 3;
-    uint64 total_stake_weight = 4;
 }
 
 message TransactionCount {
@@ -307,12 +280,6 @@ message Block {
     repeated GenesisBalance genesis_balance = 3;
 }
 
-message BlockExtended {
-    Block block = 1;
-    uint64 voted_weight = 2;
-    uint64 total_stake_weight = 3;
-}
-
 message GenesisBalance
 {
     string address = 1;                     // Address is string only here to increase visibility
@@ -327,15 +294,11 @@ message Transaction {
     enum Type {
         UNKNOWN = 0;
         TRANSFER = 1;
-        STAKE = 2;
-        DESTAKE = 3;
-        COINBASE = 4;
-        LATTICE = 5;
-        DUPLICATE = 6;
-        VOTE = 7;
-        MESSAGE = 8;
-        TOKEN = 9;
-        TRANSFERTOKEN = 10;
+        COINBASE = 2;
+        LATTICE = 3;
+        MESSAGE = 4;
+        TOKEN = 5;
+        TRANSFERTOKEN = 6;
     }
 
     Type type = 1;
@@ -459,31 +422,8 @@ message EphemeralMetadata {
 }
 ////////////////////////////
 
-message StakeValidator {
-    bytes address = 1;
-    bytes slave_public_key = 2;
-    bytes terminator_hash = 3;
-    uint64 balance = 4;
-    uint64 activation_blocknumber = 5;
-    uint64 nonce = 6;
-    bool is_banned = 7;
-    bool is_active = 8;
-}
-
-message StakeValidatorsList {
-    repeated StakeValidator stake_validators = 1;
-}
-
 message AddressList {
     repeated bytes addresses = 1;
-}
-
-message StakeValidatorsTracker {
-    map<string, StakeValidator> sv_dict = 1;
-    map<string, StakeValidator> future_stake_addresses = 2;
-    map<uint64, AddressList> expiry = 3;
-    map<uint64, StakeValidatorsList> future_sv_dict = 4;
-    uint64 total_stake_amount = 5;
 }
 
 message BlockHeightData {
