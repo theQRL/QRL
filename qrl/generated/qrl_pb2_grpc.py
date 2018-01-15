@@ -52,11 +52,6 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetLatestDataReq.SerializeToString,
         response_deserializer=qrl__pb2.GetLatestDataResp.FromString,
         )
-    self.GetStakers = channel.unary_unary(
-        '/qrl.PublicAPI/GetStakers',
-        request_serializer=qrl__pb2.GetStakersReq.SerializeToString,
-        response_deserializer=qrl__pb2.GetStakersResp.FromString,
-        )
     self.TransferCoins = channel.unary_unary(
         '/qrl.PublicAPI/TransferCoins',
         request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
@@ -132,12 +127,6 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetStakers(self, request, context):
-    # missing associated documentation comment in .proto file
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
   def TransferCoins(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -202,11 +191,6 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetLatestData,
           request_deserializer=qrl__pb2.GetLatestDataReq.FromString,
           response_serializer=qrl__pb2.GetLatestDataResp.SerializeToString,
-      ),
-      'GetStakers': grpc.unary_unary_rpc_method_handler(
-          servicer.GetStakers,
-          request_deserializer=qrl__pb2.GetStakersReq.FromString,
-          response_serializer=qrl__pb2.GetStakersResp.SerializeToString,
       ),
       'TransferCoins': grpc.unary_unary_rpc_method_handler(
           servicer.TransferCoins,
