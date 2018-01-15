@@ -21,7 +21,7 @@ from qrl.core.p2pChainManager import P2PChainManager
 from qrl.core.ChainManager import ChainManager
 from qrl.core.p2pPeerManager import P2PPeerManager
 from qrl.core.p2pTxManagement import P2PTxManagement
-from qrl.generated import qrl_pb2, qrllegacy_pb2
+from qrl.generated import qrl_pb2
 
 
 class QRLNode:
@@ -278,8 +278,7 @@ class QRLNode:
                             qrl_pb2.Transaction.TRANSFERTOKEN):
             tx.validate_or_raise()
 
-            block_number = self._chain_manager.height + 1
-            tx_state = self._chain_manager.get_stxn_state(block_number, tx.txfrom)
+            tx_state = self._chain_manager.get_address(tx.txfrom)
 
             if not tx.validate_extended(tx_state=tx_state,
                                         transaction_pool=self._chain_manager.tx_pool.transaction_pool):
@@ -287,15 +286,8 @@ class QRLNode:
 
             self._chain_manager.tx_pool.add_tx_to_pool(tx)
             self._chain_manager.wallet.save_wallet()
-            # FIXME: Optimization Required
-            subtype = qrllegacy_pb2.LegacyMessage.TX
-            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
-                subtype = qrllegacy_pb2.LegacyMessage.MT
-            elif tx.subtype == qrl_pb2.Transaction.TOKEN:
-                subtype = qrllegacy_pb2.LegacyMessage.TK
-            elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                subtype = qrllegacy_pb2.LegacyMessage.TT
-            self._p2pfactory.broadcast_tx(tx, subtype=subtype)
+
+            self._p2pfactory.broadcast_tx(tx)
 
         return True
 

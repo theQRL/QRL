@@ -276,3 +276,6 @@ class ChainManager:
         parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
         logger.info('Mining Block #%s', self.last_block.block_number+1)
         self.miner.start_mining(self.tx_pool, parent_block, parent_metadata.block_difficulty)
+
+    def get_address(self, address):
+        return self.state.get_address(address)

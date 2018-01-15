@@ -47,7 +47,7 @@ class TestChainManager(TestCase):
                 self.assertIsNotNone(block)
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                    time_mock.return_value = 1615270948 # Very high to get an easy difficulty
+                    time_mock.return_value = 1615270948     # Very high to get an easy difficulty
 
                     block_1 = Block.create(mining_nonce=10,
                                            block_number=1,
@@ -113,7 +113,7 @@ class TestChainManager(TestCase):
                 alice_xmss = get_alice_xmss()
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                    time_mock.return_value = 1615270948 # Very high to get an easy difficulty
+                    time_mock.return_value = 1615270948     # Very high to get an easy difficulty
                     block_1 = Block.create(mining_nonce=10,
                                            block_number=1,
                                            prevblock_headerhash=genesis_block.headerhash,
@@ -129,7 +129,7 @@ class TestChainManager(TestCase):
                 bob_xmss = get_bob_xmss()
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                    time_mock.return_value = 1715270948 # Very high to get an easy difficulty
+                    time_mock.return_value = 1715270948     # Very high to get an easy difficulty
                     block = Block.create(mining_nonce=15,
                                          block_number=1,
                                          prevblock_headerhash=genesis_block.headerhash,
@@ -140,7 +140,7 @@ class TestChainManager(TestCase):
                     block.set_mining_nonce(15)
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                    time_mock.return_value = 1815270948 # Very high to get an easy difficulty
+                    time_mock.return_value = 1815270948     # Very high to get an easy difficulty
                     block_2 = Block.create(mining_nonce=15,
                                            block_number=2,
                                            prevblock_headerhash=block.headerhash,
