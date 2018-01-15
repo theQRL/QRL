@@ -79,7 +79,7 @@ class StateLoader:
         # latest blocknumber
         for address in self._data.addresses:
             data = self._db.get_raw(self.state_code+address)
-            if data==None:
+            if data is None:
                 logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
             self._db.put_raw(state_loader.state_code+address, data, batch)
             self._db.delete(self.state_code+address, batch)

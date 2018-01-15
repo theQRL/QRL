@@ -1,18 +1,18 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import copy
 from collections import defaultdict
 from typing import Optional
-import copy
-from twisted.internet import reactor
+
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString
+from twisted.internet import reactor
 
 from qrl.core import config
-from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
-from qrl.core.State import State
+from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 
 
