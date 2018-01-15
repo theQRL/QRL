@@ -21,4 +21,4 @@ class TestGenesisBlock(TestCase):
             self.assertIsNotNone(gb)
             self.assertEqual(0, gb.block_number)
             self.assertEqual(b'QuantumBoosterTestnet', gb.prev_headerhash)
-            self.assertEqual(2, len(gb.genesis_balance))
+            self.assertEqual(1, len(gb.genesis_balance))

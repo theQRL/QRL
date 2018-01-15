@@ -10,7 +10,7 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Miner import Miner
 from qrl.core.State import State
-from tests.misc.helper import destroy_state, get_alice_xmss, get_bob_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
 
 
 class TestChainManager(TestCase):
@@ -18,125 +18,125 @@ class TestChainManager(TestCase):
         super(TestChainManager, self).__init__(*args, **kwargs)
 
     def test_load(self):
-        destroy_state()
-        state = State()
-        genesis_block = GenesisBlock()
-        chain_manager = ChainManager(state)
-        chain_manager.load(genesis_block)
-        block = state.get_block(GenesisBlock().headerhash)
-        self.assertIsNotNone(block)
+        with set_data_dir('no_data'):
+            with State() as state:
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                chain_manager.load(genesis_block)
+                block = state.get_block(GenesisBlock().headerhash)
+                self.assertIsNotNone(block)
 
     def test_add_block(self):
         """
         Testing add_block, with fork logic
         :return:
         """
-        destroy_state()
-        state = State()
-        alice_xmss = get_alice_xmss()
-        bob_xmss = get_bob_xmss()
-        alice_miner = Miner(Mock(), alice_xmss)
-        bob_miner = Miner(Mock(), bob_xmss)
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                bob_xmss = get_bob_xmss()
+                alice_miner = Miner(Mock(), alice_xmss)
+                bob_miner = Miner(Mock(), bob_xmss)
 
-        genesis_block = GenesisBlock()
-        chain_manager = ChainManager(state)
-        chain_manager.load(genesis_block)
-        chain_manager.set_miner(alice_miner)
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                chain_manager.load(genesis_block)
+                chain_manager.set_miner(alice_miner)
 
-        block = state.get_block(genesis_block.headerhash)
-        self.assertIsNotNone(block)
+                block = state.get_block(genesis_block.headerhash)
+                self.assertIsNotNone(block)
 
-        block_1 = Block.create(mining_nonce=10,
-                               block_number=1,
-                               prevblock_headerhash=genesis_block.headerhash,
-                               transactions=[],
-                               signing_xmss=alice_xmss,
-                               nonce=1)
-        block_1.set_mining_nonce(10)
-        result = chain_manager.add_block(block_1)
-        self.assertTrue(result)
-        self.assertEqual(chain_manager.last_block, block_1)
+                block_1 = Block.create(mining_nonce=10,
+                                       block_number=1,
+                                       prevblock_headerhash=genesis_block.headerhash,
+                                       transactions=[],
+                                       signing_xmss=alice_xmss,
+                                       nonce=1)
+                block_1.set_mining_nonce(10)
+                result = chain_manager.add_block(block_1)
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
 
-        block = Block.create(mining_nonce=15,
-                             block_number=1,
-                             prevblock_headerhash=genesis_block.headerhash,
-                             transactions=[],
-                             signing_xmss=bob_xmss,
-                             nonce=1)
-        block.set_mining_nonce(15)
-        chain_manager.set_miner(bob_miner)
-        result = chain_manager.add_block(block)
-        self.assertTrue(result)
-        self.assertEqual(chain_manager.last_block, block_1)
+                block = Block.create(mining_nonce=15,
+                                     block_number=1,
+                                     prevblock_headerhash=genesis_block.headerhash,
+                                     transactions=[],
+                                     signing_xmss=bob_xmss,
+                                     nonce=1)
+                block.set_mining_nonce(15)
+                chain_manager.set_miner(bob_miner)
+                result = chain_manager.add_block(block)
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
 
-        block = state.get_block(block.headerhash)
-        self.assertIsNotNone(block)
+                block = state.get_block(block.headerhash)
+                self.assertIsNotNone(block)
 
-        block_2 = Block.create(mining_nonce=15,
-                               block_number=2,
-                               prevblock_headerhash=block.headerhash,
-                               transactions=[],
-                               signing_xmss=bob_xmss,
-                               nonce=2)
-        block_2.set_mining_nonce(20)
-        result = chain_manager.add_block(block_2)
+                block_2 = Block.create(mining_nonce=15,
+                                       block_number=2,
+                                       prevblock_headerhash=block.headerhash,
+                                       transactions=[],
+                                       signing_xmss=bob_xmss,
+                                       nonce=2)
+                block_2.set_mining_nonce(20)
+                result = chain_manager.add_block(block_2)
 
-        self.assertTrue(result)
-        self.assertEqual(chain_manager.last_block, block_2)
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_2)
 
     def test_orphan_block(self):
         """
         Testing add_block logic in case of orphan_blocks
         :return:
         """
-        destroy_state()
-        state = State()
-        miner = Mock()
-        genesis_block = GenesisBlock()
-        chain_manager = ChainManager(state)
-        chain_manager.load(genesis_block)
-        chain_manager.set_miner(miner)
+        with set_data_dir('no_data'):
+            with State() as state:              # FIXME: Move state to temporary directory
+                miner = Mock()
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                chain_manager.load(genesis_block)
+                chain_manager.set_miner(miner)
 
-        block = state.get_block(genesis_block.headerhash)
-        self.assertIsNotNone(block)
-        alice_xmss = get_alice_xmss()
+                block = state.get_block(genesis_block.headerhash)
+                self.assertIsNotNone(block)
+                alice_xmss = get_alice_xmss()
 
-        block_1 = Block.create(mining_nonce=10,
-                               block_number=1,
-                               prevblock_headerhash=genesis_block.headerhash,
-                               transactions=[],
-                               signing_xmss=alice_xmss,
-                               nonce=1)
-        block_1.set_mining_nonce(10)
-        result = chain_manager.add_block(block_1)
-        self.assertTrue(result)
-        self.assertEqual(chain_manager.last_block, block_1)
+                block_1 = Block.create(mining_nonce=10,
+                                       block_number=1,
+                                       prevblock_headerhash=genesis_block.headerhash,
+                                       transactions=[],
+                                       signing_xmss=alice_xmss,
+                                       nonce=1)
+                block_1.set_mining_nonce(10)
+                result = chain_manager.add_block(block_1)
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
 
-        bob_xmss = get_bob_xmss()
+                bob_xmss = get_bob_xmss()
 
-        block = Block.create(mining_nonce=15,
-                             block_number=1,
-                             prevblock_headerhash=genesis_block.headerhash,
-                             transactions=[],
-                             signing_xmss=bob_xmss,
-                             nonce=1)
+                block = Block.create(mining_nonce=15,
+                                     block_number=1,
+                                     prevblock_headerhash=genesis_block.headerhash,
+                                     transactions=[],
+                                     signing_xmss=bob_xmss,
+                                     nonce=1)
 
-        block.set_mining_nonce(15)
+                block.set_mining_nonce(15)
 
-        block_2 = Block.create(mining_nonce=15,
-                               block_number=2,
-                               prevblock_headerhash=block.headerhash,
-                               transactions=[],
-                               signing_xmss=bob_xmss,
-                               nonce=2)
-        block_2.set_mining_nonce(15)
+                block_2 = Block.create(mining_nonce=15,
+                                       block_number=2,
+                                       prevblock_headerhash=block.headerhash,
+                                       transactions=[],
+                                       signing_xmss=bob_xmss,
+                                       nonce=2)
+                block_2.set_mining_nonce(15)
 
-        result = chain_manager.add_block(block_2)
-        self.assertFalse(result)
-        result = chain_manager.add_block(block)
-        self.assertTrue(result)
-        block = state.get_block(block.headerhash)
-        self.assertIsNotNone(block)
+                result = chain_manager.add_block(block_2)
+                self.assertFalse(result)
+                result = chain_manager.add_block(block)
+                self.assertTrue(result)
+                block = state.get_block(block.headerhash)
+                self.assertIsNotNone(block)
 
-        self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
-        self.assertEqual(chain_manager.last_block.headerhash, block_2.headerhash)
+                self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
+                self.assertEqual(chain_manager.last_block.headerhash, block_2.headerhash)
