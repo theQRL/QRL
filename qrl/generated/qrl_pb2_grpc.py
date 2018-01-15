@@ -62,6 +62,16 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
         response_deserializer=qrl__pb2.PushTransactionResp.FromString,
         )
+    self.GetTokenTxn = channel.unary_unary(
+        '/qrl.PublicAPI/GetTokenTxn',
+        request_serializer=qrl__pb2.TokenTxnReq.SerializeToString,
+        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
+        )
+    self.GetTransferTokenTxn = channel.unary_unary(
+        '/qrl.PublicAPI/GetTransferTokenTxn',
+        request_serializer=qrl__pb2.TransferTokenTxnReq.SerializeToString,
+        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
+        )
     self.PushEphemeralMessage = channel.unary_unary(
         '/qrl.PublicAPI/PushEphemeralMessage',
         request_serializer=qrl__pb2.PushEphemeralMessageReq.SerializeToString,
@@ -139,6 +149,18 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetTokenTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetTransferTokenTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def PushEphemeralMessage(self, request, context):
     """------- Ephemeral API -------
     """
@@ -201,6 +223,16 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.PushTransaction,
           request_deserializer=qrl__pb2.PushTransactionReq.FromString,
           response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
+      ),
+      'GetTokenTxn': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTokenTxn,
+          request_deserializer=qrl__pb2.TokenTxnReq.FromString,
+          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
+      ),
+      'GetTransferTokenTxn': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTransferTokenTxn,
+          request_deserializer=qrl__pb2.TransferTokenTxnReq.FromString,
+          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
       'PushEphemeralMessage': grpc.unary_unary_rpc_method_handler(
           servicer.PushEphemeralMessage,
