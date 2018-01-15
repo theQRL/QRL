@@ -23,6 +23,7 @@ from tests.misc.random_number_generator import RNG
 from tests.misc.aes import AES
 from tests.misc.EphemeralPayload import EphemeralMessagePayload, EphemeralChannelPayload
 
+
 @contextlib.contextmanager
 def set_wallet_dir(wallet_name):
     dst_dir = tempfile.mkdtemp()
@@ -150,7 +151,6 @@ def create_ephemeral_channel(msg_id: bytes,
                              prf512_seed: bytes,
                              data: bytes,
                              nonce: int):
-
     sender_kyber = Kyber(kyber_pk, kyber_sk)
     sender_kyber.kem_encode(receiver_kyber_pk)
     enc_aes256_symkey = bytes(sender_kyber.getCypherText())
@@ -186,7 +186,6 @@ def create_ephemeral_message(ttl: int,
                              seq: int,
                              data: bytes,
                              nonce: int):
-
     sender_kyber = Kyber(kyber_pk, kyber_sk)
     sender_kyber.kem_encode(receiver_kyber_pk)
 
