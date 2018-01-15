@@ -15,7 +15,8 @@ from qrl.core.misc import logger, db
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.TokenList import TokenList
-from qrl.core.EphemeralMetadata import EphemeralMetadata, EncryptedEphemeralMessage
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from qrl.core.EphemeralMetadata import EphemeralMetadata
 from qrl.core.AddressState import AddressState
 from qrl.generated import qrl_pb2
 

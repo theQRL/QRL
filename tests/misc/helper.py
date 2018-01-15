@@ -9,6 +9,8 @@ import os
 from copy import deepcopy
 
 from mock import mock
+from pyqrllib.kyber import Kyber
+from pyqrllib.dilithium import Dilithium
 
 from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
@@ -16,7 +18,10 @@ from qrl.core.Transaction import TokenTransaction
 from qrl.generated import qrl_pb2
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from tests.misc.random_number_generator import RNG
+from tests.misc.aes import AES
+from tests.misc.EphemeralPayload import EphemeralMessagePayload, EphemeralChannelPayload
 
 @contextlib.contextmanager
 def set_wallet_dir(wallet_name):
@@ -131,3 +136,71 @@ def destroy_state():
         shutil.rmtree(db_path)
     except FileNotFoundError:
         pass
+
+
+def create_ephemeral_channel(msg_id: bytes,
+                             ttl: int,
+                             ttr: int,
+                             addr_from: bytes,
+                             kyber_pk: bytes,
+                             kyber_sk: bytes,
+                             receiver_kyber_pk: bytes,
+                             dilithium_pk: bytes,
+                             dilithium_sk: bytes,
+                             prf512_seed: bytes,
+                             data: bytes,
+                             nonce: int):
+
+    sender_kyber = Kyber(kyber_pk, kyber_sk)
+    sender_kyber.kem_encode(receiver_kyber_pk)
+    enc_aes256_symkey = bytes(sender_kyber.getCypherText())
+    aes256_symkey = sender_kyber.getMyKey()
+    aes = AES(bytes(aes256_symkey))
+    sender_dilithium = Dilithium(dilithium_pk, dilithium_sk)
+
+    ephemeral_data = EphemeralChannelPayload.create(addr_from,
+                                                    prf512_seed,
+                                                    data)
+
+    ephemeral_data.dilithium_sign(msg_id, ttl, ttr, enc_aes256_symkey, nonce, sender_dilithium)
+
+    encrypted_ephemeral_message = EncryptedEphemeralMessage()
+
+    encrypted_ephemeral_message._data.msg_id = msg_id
+    encrypted_ephemeral_message._data.ttl = ttl
+    encrypted_ephemeral_message._data.ttr = ttr
+    encrypted_ephemeral_message._data.channel.enc_aes256_symkey = enc_aes256_symkey
+    encrypted_ephemeral_message._data.nonce = nonce
+    encrypted_ephemeral_message._data.payload = aes.encrypt(ephemeral_data.to_json().encode())
+
+    return encrypted_ephemeral_message
+
+
+def create_ephemeral_message(ttl: int,
+                             ttr: int,
+                             addr_from: bytes,
+                             kyber_pk: bytes,
+                             kyber_sk: bytes,
+                             receiver_kyber_pk: bytes,
+                             prf512_seed: bytes,
+                             seq: int,
+                             data: bytes,
+                             nonce: int):
+
+    sender_kyber = Kyber(kyber_pk, kyber_sk)
+    sender_kyber.kem_encode(receiver_kyber_pk)
+
+    aes256_symkey = sender_kyber.getMyKey()
+    aes = AES(aes256_symkey)
+
+    ephemeral_data = EphemeralMessagePayload.create(addr_from, data)
+
+    encrypted_ephemeral_message = EncryptedEphemeralMessage()
+
+    encrypted_ephemeral_message._data.msg_id = RNG.generate(prf512_seed, seq)
+    encrypted_ephemeral_message._data.ttl = ttl
+    encrypted_ephemeral_message._data.ttr = ttr
+    encrypted_ephemeral_message._data.nonce = nonce
+    encrypted_ephemeral_message._data.payload = aes.encrypt(ephemeral_data.to_json())
+
+    return encrypted_ephemeral_message

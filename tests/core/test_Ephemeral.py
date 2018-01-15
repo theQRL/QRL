@@ -12,13 +12,14 @@ from qrl.core.misc import logger
 from qrl.core.ChainManager import ChainManager
 from qrl.core.Miner import Miner
 from qrl.core.Block import Block
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage, EphemeralChannelPayload
-from qrl.crypto.aes import AES
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import LatticePublicKey
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, set_data_dir
+from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel, \
+                              set_data_dir
+from tests.misc.EphemeralPayload import EphemeralChannelPayload
+from tests.misc.aes import AES
 
 logger.initialize_default()
 
@@ -57,6 +58,7 @@ class TestEphemeral(TestCase):
                                                                                       balance=65000000000000000)])
                         custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=random_xmss2.get_address(),
                                                                                       balance=65000000000000000)])
+
                         chain_manager.load(custom_genesis)
                         lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
                                                                          fee=1,
@@ -80,18 +82,18 @@ class TestEphemeral(TestCase):
                         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                             time_mock.return_value = tmp_block1.timestamp + config.dev.minimum_minting_delay
 
-                            encrypted_eph_message = EncryptedEphemeralMessage.create_channel(msg_id=lattice_public_key_txn.txhash,
-                                                                                             ttl=time_mock.return_value,
-                                                                                             ttr=0,
-                                                                                             addr_from=random_xmss2.get_address(),
-                                                                                             kyber_pk=random_kyber2.getPK(),
-                                                                                             kyber_sk=random_kyber2.getSK(),
-                                                                                             receiver_kyber_pk=random_kyber1.getPK(),
-                                                                                             dilithium_pk=random_dilithium2.getPK(),
-                                                                                             dilithium_sk=random_dilithium2.getSK(),
-                                                                                             prf512_seed=prf512_seed,
-                                                                                             data=message,
-                                                                                             nonce=1)
+                            encrypted_eph_message = create_ephemeral_channel(msg_id=lattice_public_key_txn.txhash,
+                                                                             ttl=time_mock.return_value,
+                                                                             ttr=0,
+                                                                             addr_from=random_xmss2.get_address(),
+                                                                             kyber_pk=random_kyber2.getPK(),
+                                                                             kyber_sk=random_kyber2.getSK(),
+                                                                             receiver_kyber_pk=random_kyber1.getPK(),
+                                                                             dilithium_pk=random_dilithium2.getPK(),
+                                                                             dilithium_sk=random_dilithium2.getSK(),
+                                                                             prf512_seed=prf512_seed,
+                                                                             data=message,
+                                                                             nonce=1)
 
                             chain_manager.state.update_ephemeral(encrypted_eph_message)
                             eph_metadata = chain_manager.state.get_ephemeral_metadata(lattice_public_key_txn.txhash)

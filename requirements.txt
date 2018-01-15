@@ -14,4 +14,3 @@ pyqrllib>=0.4.1
 pyqryptonight>=0.1.1
 six>=1.9
 click==6.7
-pycrypto
