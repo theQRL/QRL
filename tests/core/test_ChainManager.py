@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import Mock
+from mock import Mock, mock
 
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
@@ -46,40 +46,49 @@ class TestChainManager(TestCase):
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
 
-                block_1 = Block.create(mining_nonce=10,
-                                       block_number=1,
-                                       prevblock_headerhash=genesis_block.headerhash,
-                                       transactions=[],
-                                       signing_xmss=alice_xmss,
-                                       nonce=1)
-                block_1.set_mining_nonce(10)
-                result = chain_manager.add_block(block_1)
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1615270948 # Very high to get an easy difficulty
+
+                    block_1 = Block.create(mining_nonce=10,
+                                           block_number=1,
+                                           prevblock_headerhash=genesis_block.headerhash,
+                                           transactions=[],
+                                           signing_xmss=alice_xmss,
+                                           nonce=1)
+                    block_1.set_mining_nonce(10)
+                    result = chain_manager.add_block(block_1)
+
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
-                block = Block.create(mining_nonce=15,
-                                     block_number=1,
-                                     prevblock_headerhash=genesis_block.headerhash,
-                                     transactions=[],
-                                     signing_xmss=bob_xmss,
-                                     nonce=1)
-                block.set_mining_nonce(15)
-                chain_manager.set_miner(bob_miner)
-                result = chain_manager.add_block(block)
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1715270948     # Very high to get an easy difficulty
+                    block = Block.create(mining_nonce=15,
+                                         block_number=1,
+                                         prevblock_headerhash=genesis_block.headerhash,
+                                         transactions=[],
+                                         signing_xmss=bob_xmss,
+                                         nonce=1)
+                    block.set_mining_nonce(15)
+                    chain_manager.set_miner(bob_miner)
+                    result = chain_manager.add_block(block)
+
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
                 block = state.get_block(block.headerhash)
                 self.assertIsNotNone(block)
 
-                block_2 = Block.create(mining_nonce=15,
-                                       block_number=2,
-                                       prevblock_headerhash=block.headerhash,
-                                       transactions=[],
-                                       signing_xmss=bob_xmss,
-                                       nonce=2)
-                block_2.set_mining_nonce(20)
-                result = chain_manager.add_block(block_2)
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1815270948     # Very high to get an easy difficulty
+                    block_2 = Block.create(mining_nonce=15,
+                                           block_number=2,
+                                           prevblock_headerhash=block.headerhash,
+                                           transactions=[],
+                                           signing_xmss=bob_xmss,
+                                           nonce=2)
+                    block_2.set_mining_nonce(21)
+                    result = chain_manager.add_block(block_2)
 
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_2)
@@ -91,50 +100,62 @@ class TestChainManager(TestCase):
         """
         with set_data_dir('no_data'):
             with State() as state:              # FIXME: Move state to temporary directory
-                miner = Mock()
+                alice_xmss = get_alice_xmss()
+                alice_miner = Miner(Mock(), alice_xmss)
+
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
                 chain_manager.load(genesis_block)
-                chain_manager.set_miner(miner)
+                chain_manager.set_miner(alice_miner)
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
                 alice_xmss = get_alice_xmss()
 
-                block_1 = Block.create(mining_nonce=10,
-                                       block_number=1,
-                                       prevblock_headerhash=genesis_block.headerhash,
-                                       transactions=[],
-                                       signing_xmss=alice_xmss,
-                                       nonce=1)
-                block_1.set_mining_nonce(10)
-                result = chain_manager.add_block(block_1)
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1615270948 # Very high to get an easy difficulty
+                    block_1 = Block.create(mining_nonce=10,
+                                           block_number=1,
+                                           prevblock_headerhash=genesis_block.headerhash,
+                                           transactions=[],
+                                           signing_xmss=alice_xmss,
+                                           nonce=1)
+                    block_1.set_mining_nonce(10)
+                    result = chain_manager.add_block(block_1)
+
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
                 bob_xmss = get_bob_xmss()
 
-                block = Block.create(mining_nonce=15,
-                                     block_number=1,
-                                     prevblock_headerhash=genesis_block.headerhash,
-                                     transactions=[],
-                                     signing_xmss=bob_xmss,
-                                     nonce=1)
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1715270948 # Very high to get an easy difficulty
+                    block = Block.create(mining_nonce=15,
+                                         block_number=1,
+                                         prevblock_headerhash=genesis_block.headerhash,
+                                         transactions=[],
+                                         signing_xmss=bob_xmss,
+                                         nonce=1)
 
-                block.set_mining_nonce(15)
+                    block.set_mining_nonce(15)
 
-                block_2 = Block.create(mining_nonce=15,
-                                       block_number=2,
-                                       prevblock_headerhash=block.headerhash,
-                                       transactions=[],
-                                       signing_xmss=bob_xmss,
-                                       nonce=2)
-                block_2.set_mining_nonce(15)
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1815270948 # Very high to get an easy difficulty
+                    block_2 = Block.create(mining_nonce=15,
+                                           block_number=2,
+                                           prevblock_headerhash=block.headerhash,
+                                           transactions=[],
+                                           signing_xmss=bob_xmss,
+                                           nonce=2)
+                    block_2.set_mining_nonce(15)
 
                 result = chain_manager.add_block(block_2)
-                self.assertFalse(result)
+
+                self.assertTrue(result)
+
                 result = chain_manager.add_block(block)
                 self.assertTrue(result)
+
                 block = state.get_block(block.headerhash)
                 self.assertIsNotNone(block)
 
