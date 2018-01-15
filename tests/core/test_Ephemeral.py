@@ -54,12 +54,11 @@ class TestEphemeral(TestCase):
                     prf512_seed = b'10192'
 
                     with mocked_genesis() as custom_genesis:
-                        custom_genesis.genesis_balance.extend(
-                            [qrl_pb2.GenesisBalance(address=random_xmss1.get_address(),
-                                                    balance=65000000000000000)])
-                        custom_genesis.genesis_balance.extend(
-                            [qrl_pb2.GenesisBalance(address=random_xmss2.get_address(),
-                                                    balance=65000000000000000)])
+                        custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=random_xmss1.get_address(),
+                                                                                      balance=65000000000000000)])
+                        custom_genesis.genesis_balance.extend([qrl_pb2.GenesisBalance(address=random_xmss2.get_address(),
+                                                                                      balance=65000000000000000)])
+
                         chain_manager.load(custom_genesis)
                         lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
                                                                          fee=1,
@@ -142,8 +141,7 @@ class TestEphemeral(TestCase):
                         address_state = chain_manager.state.get_address(random_xmss1.get_address())
 
                         self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
-                        self.assertEqual(address_state.latticePK_list[0].dilithium_pk,
-                                         lattice_public_key_txn.dilithium_pk)
+                        self.assertEqual(address_state.latticePK_list[0].dilithium_pk, lattice_public_key_txn.dilithium_pk)
                         self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
                         # Need to move forward the time to align with block times
                         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:

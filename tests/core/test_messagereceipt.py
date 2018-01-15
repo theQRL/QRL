@@ -20,10 +20,6 @@ class TestMessageReceipt(TestCase):
         mr = MessageReceipt()
         self.assertIsNotNone(mr)
         self.assertEqual(mr.allowed_types, [LegacyMessage.TX,
-                                            LegacyMessage.ST,
-                                            LegacyMessage.DST,
-                                            LegacyMessage.DT,
-                                            LegacyMessage.VT,
                                             LegacyMessage.LT,
                                             LegacyMessage.EPH,
                                             LegacyMessage.BK,
