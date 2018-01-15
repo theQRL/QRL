@@ -14,7 +14,7 @@ from qrl.core.AddressState import AddressState
 from qrl.core.ChainManager import ChainManager
 from qrl.core.Block import Block
 from qrl.core.Transaction import TransferTransaction
-from qrl.core.node import SyncState
+from qrl.core.node import SyncState, POW
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
 from qrl.core.State import State
@@ -117,7 +117,6 @@ class TestPublicAPI(TestCase):
 
         self.assertEqual(105000000, stats.coins_total_supply)
         self.assertEqual(1000, stats.coins_emitted)
-        self.assertEqual(0, stats.coins_atstake)
 
         logger.info(stats)
 
@@ -127,7 +126,8 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q' + sha256(b'address'),
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          ots_bitfield=[b'\x00']*config.dev.ots_bitfield_size,
+                                                                          ots_bitfield=[
+                                                                                           b'\x00'] * config.dev.ots_bitfield_size,
                                                                           tokens=dict()))
 
         p2p_factory = Mock(spec=P2PFactory)
@@ -155,7 +155,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
-        self.assertEqual([b'\x00']*config.dev.ots_bitfield_size, response.state.ots_bitfield)
+        self.assertEqual([b'\x00'] * config.dev.ots_bitfield_size, response.state.ots_bitfield)
         self.assertEqual([], response.state.transaction_hashes)
 
     @pytest.mark.skip(reason="Temporarily skipping test")
@@ -167,6 +167,8 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
 
         p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
         chain_manager = Mock(spec=ChainManager)
         chain_manager.tx_pool = Mock()
         chain_manager.tx_pool.transaction_pool = []
@@ -190,7 +192,8 @@ class TestPublicAPI(TestCase):
         db_state.get_address = MagicMock(return_value=AddressState.create(address=SOME_ADDR1,
                                                                           nonce=25,
                                                                           balance=10,
-                                                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                                                          ots_bitfield=[
+                                                                                           b'\x00'] * config.dev.ots_bitfield_size,
                                                                           tokens=dict()))
         db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
 
@@ -290,6 +293,8 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
 
         p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
         chain_manager = Mock(spec=ChainManager)
         chain_manager.tx_pool = Mock()
         chain_manager.tx_pool.transaction_pool = txpool
