@@ -590,23 +590,14 @@ class State:
 
     def get_address(self, address: bytes) -> AddressState:
         # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
-        try:
-            address_state = self.state_objects.get_address(address)
-            if not address_state:
-                return AddressState.create(address=address,
-                                           nonce=config.dev.default_nonce,
-                                           balance=config.dev.default_account_balance,
-                                           ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                           tokens=dict())
-            return address_state
-            # return self._get_address_state(address)
-        except KeyError:
-            # FIXME: Check all cases where address is not found
+        address_state = self.state_objects.get_address(address)
+        if not address_state:
             return AddressState.create(address=address,
                                        nonce=config.dev.default_nonce,
                                        balance=config.dev.default_account_balance,
                                        ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                        tokens=dict())
+        return address_state
 
     def nonce(self, addr: bytes) -> int:
         return self.get_address(addr).nonce
