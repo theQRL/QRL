@@ -285,7 +285,6 @@ class QRLNode:
                 raise ValueError("The transaction failed validation (blockchain state)")
 
             self._chain_manager.tx_pool.add_tx_to_pool(tx)
-            self._chain_manager.wallet.save_wallet()
 
             self._p2pfactory.broadcast_tx(tx)
 
