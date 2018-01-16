@@ -61,14 +61,17 @@ class P2PChainManager(P2PBaseObserver):
         """
         if message.bhData.block_number == 0:
             block = source.factory.get_last_block()
+            cumulative_difficulty = source.factory.get_cumulative_difficulty()
             if block.block_number == 0:
                 return
             bhdata = qrl_pb2.BlockHeightData(block_number=block.block_number,
-                                             block_headerhash=block.headerhash)
+                                             block_headerhash=block.headerhash,
+                                             cumulative_difficulty=bytes(cumulative_difficulty))
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.BH,
                                               bhData=bhdata)
             source.send(msg)
         else:
             source.factory.update_peer_blockheight(source.connection_id,
                                                    message.bhData.block_number,
-                                                   message.bhData.block_headerhash)
+                                                   message.bhData.block_headerhash,
+                                                   message.bhData.cumulative_difficulty)

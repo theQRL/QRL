@@ -8,6 +8,7 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
 from pyqrllib.pyqrllib import bin2hstr
+from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
 from qrl.core.misc import ntp, logger
@@ -57,13 +58,13 @@ class P2PFactory(ServerFactory):
         return len(self._synced_peers_protocol) > 0
 
     def get_random_peer(self):
-        max_blockheight = 0
+        max_cumulative_difficulty = 0
         for connection_id in self.peer_blockheight:
-            max_blockheight = max(max_blockheight, self.peer_blockheight[connection_id][0])
+            max_cumulative_difficulty = max(max_cumulative_difficulty, self.peer_blockheight[connection_id][2])
 
         connection_ids = []
         for connection_id in self.peer_blockheight:
-            if self.peer_blockheight[connection_id][0] == max_blockheight:
+            if self.peer_blockheight[connection_id][2] == max_cumulative_difficulty:
                 connection_ids.append(connection_id)
 
         selected_peer_connections = []
@@ -71,13 +72,13 @@ class P2PFactory(ServerFactory):
             for peer_conn in self._peer_connections:
                 if peer_conn.connection_id == connection_id:
                     selected_peer_connections.append(peer_conn)
-        if len(selected_peer_connections) == 0 or max_blockheight == 0:
+        if len(selected_peer_connections) == 0 or max_cumulative_difficulty == 0:
             return None
 
         return random.sample(selected_peer_connections, 1)[0]
 
-    def update_peer_blockheight(self, connection_id, block_number, headerhash):
-        self.peer_blockheight[connection_id] = [block_number, headerhash]
+    def update_peer_blockheight(self, connection_id, block_number, headerhash, cumulative_difficulty):
+        self.peer_blockheight[connection_id] = [block_number, headerhash, int(UInt256ToString(cumulative_difficulty))]
 
     def request_peer_blockheight(self):
         for peer in self._peer_connections:
@@ -128,6 +129,9 @@ class P2PFactory(ServerFactory):
 
     def get_last_block(self):
         return self._chain_manager.get_last_block()
+
+    def get_cumulative_difficulty(self):
+        return self._chain_manager.get_cumulative_difficulty()
 
     def get_block(self, block_number):
         return self._chain_manager.get_block_by_number(block_number)
