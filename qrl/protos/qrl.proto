@@ -452,6 +452,7 @@ message AddressList {
 message BlockHeightData {
     uint64 block_number = 1;
     bytes block_headerhash = 2;
+    bytes cumulative_difficulty = 3;
 }
 
 message BlockMetaData {

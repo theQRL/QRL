@@ -36,6 +36,10 @@ class ChainManager:
     def get_last_block(self) -> Block:
         return self.last_block
 
+    def get_cumulative_difficulty(self):
+        last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
+        return last_block_metadata.cumulative_difficulty
+
     def load(self, genesis_block):
         height = self.state.get_mainchain_height()
 
