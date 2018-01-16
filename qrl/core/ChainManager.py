@@ -64,7 +64,33 @@ class ChainManager:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
 
-    def validate_block(self, block, address_txn, state) -> bool:
+    def validate_mining_nonce(self, block, enable_logging=False):
+        parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
+        parent_block = self.state.get_block(block.prev_headerhash)
+        input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
+        diff, target = self.miner.calc_difficulty(block.timestamp,
+                                                  parent_block.timestamp,
+                                                  parent_metadata.block_difficulty)
+        if enable_logging:
+            logger.debug('-----------------START--------------------')
+            logger.debug('Validate #%s', block.block_number)
+            logger.debug('block.timestamp %s', block.timestamp)
+            logger.debug('parent_block.timestamp %s', parent_block.timestamp)
+            logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
+            logger.debug('input_bytes %s', UInt256ToString(input_bytes))
+            logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
+            logger.debug('-------------------END--------------------')
+
+        if not self.miner.custom_qminer.verifyInput(input_bytes, target):
+            if enable_logging:
+                logger.warning("PoW verification failed")
+                logger.warning("{}".format(self.miner.calc_hash(input_bytes)))
+                logger.debug('%s', block.to_json())
+            return False
+
+        return True
+
+    def validate_block(self, block, address_txn) -> bool:
         len_transactions = len(block.transactions)
 
         if len_transactions < 1:
@@ -73,23 +99,7 @@ class ChainManager:
         coinbase_tx = Transaction.from_pbdata(block.transactions[0])
         coinbase_tx.validate()
 
-        parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
-        parent_block = self.state.get_block(block.prev_headerhash)
-        input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
-        diff, target = self.miner.calc_difficulty(block.timestamp,
-                                                  parent_block.timestamp,
-                                                  parent_metadata.block_difficulty)
-        logger.debug('-----------------START--------------------')
-        logger.debug('Validate #%s', block.block_number)
-        logger.debug('block.timestamp %s', block.timestamp)
-        logger.debug('parent_block.timestamp %s', parent_block.timestamp)
-        logger.debug('parent_block.difficulty %s', parent_metadata.block_difficulty)
-        logger.debug('input_bytes %s', input_bytes)
-        logger.debug('diff : %s | target : %s', diff, target)
-        logger.debug('-------------------END--------------------')
-        if not self.miner.custom_qminer.verifyInput(input_bytes, target):
-            logger.warning("PoW verification failed")
-            logger.debug('%s', block.to_json())
+        if not self.validate_mining_nonce(block):
             return False
 
         if coinbase_tx.subtype != qrl_pb2.Transaction.COINBASE:
@@ -158,7 +168,7 @@ class ChainManager:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
         address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
-        if self.validate_block(block, address_txn, self.state):
+        if self.validate_block(block, address_txn):
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
 
