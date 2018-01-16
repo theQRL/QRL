@@ -263,6 +263,11 @@ class State:
             tx = Transaction.from_pbdata(proto_tx)
             tx.set_effected_address(addresses)
 
+        for genesis_balance in GenesisBlock().genesis_balance:
+            bytes_addr = genesis_balance.address.encode()
+            if bytes_addr not in addresses:
+                addresses.add(bytes_addr)
+
         return addresses
 
     def set_addresses_state(self, addresses_state: dict, state_code: bytes):
@@ -308,33 +313,35 @@ class State:
                 break
             header_hash = block.prev_headerhash
 
+        for genesis_balance in GenesisBlock().genesis_balance:
+            bytes_addr = genesis_balance.address.encode()
+            if not addresses_state[bytes_addr]:
+                addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+            addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+
         for address in addresses_state:
             if not addresses_state[address]:
                 addresses_state[address] = AddressState.get_default(address)
 
         header_hash = tmp_header_hash
+        hash_path = []
         while True:
             if parent_headerhash == header_hash:
-                return addresses_state
-
+                break
             block = self.get_block(header_hash)
-
             if not block:
-                return addresses_state
+                break
+            hash_path.append(header_hash)
+            header_hash = block.prev_headerhash
 
-            if block.block_number == 0:
-                for genesis_balance in GenesisBlock().genesis_balance:
-                    bytes_addr = genesis_balance.address.encode()
-                    if bytes_addr not in addresses_state:
-                        addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
-                    addresses_state[bytes_addr]._data.balance = genesis_balance.balance
-                return addresses_state
+        for header_hash in hash_path[-1::-1]:
+            block = self.get_block(header_hash)
 
             for tx_pbdata in block.transactions:
                 tx = Transaction.from_pbdata(tx_pbdata)
                 tx.apply_on_state(addresses_state)
 
-            header_hash = block.prev_headerhash
+        return addresses_state
 
     def update_state(self, addresses_state):
         for address in addresses_state:
