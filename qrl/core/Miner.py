@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString
+from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString, Qryptonight
 from twisted.internet import reactor
 
 from qrl.core import config
@@ -67,9 +67,9 @@ class Miner:
         logger.debug('Mine #%s', self.mining_block.block_number)
         logger.debug('block.timestamp %s', self.mining_block.timestamp)
         logger.debug('parent_block.timestamp %s', parent_block.timestamp)
-        logger.debug('parent_block.difficulty %s', parent_difficulty)
-        logger.debug('input_bytes %s', input_bytes)
-        logger.debug('diff : %s | target : %s', current_difficulty, current_target)
+        logger.debug('parent_block.difficulty %s', UInt256ToString(parent_difficulty))
+        logger.debug('input_bytes %s', UInt256ToString(input_bytes))
+        logger.debug('diff : %s | target : %s', UInt256ToString(current_difficulty), current_target)
         logger.debug('===================END====================')
         self.custom_qminer.start(thread_count=thread_count)
 
@@ -211,7 +211,10 @@ class Miner:
         current_difficulty = ph.getDifficulty(timestamp=timestamp,
                                               parent_timestamp=parent_timestamp,
                                               parent_difficulty=parent_difficulty)
-        if int(UInt256ToString(current_difficulty)) <= 1:
-            current_difficulty = StringToUInt256("2")
         current_target = ph.getBoundary(current_difficulty)
         return current_difficulty, current_target
+
+    @staticmethod
+    def calc_hash(input_bytes):
+        qn = Qryptonight()
+        return qn.hash(input_bytes)

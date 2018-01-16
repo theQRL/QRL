@@ -111,7 +111,7 @@ class BlockHeader(object):
 
         bh._data.hash_header_prev = prev_blockheaderhash
         bh._data.merkle_root = hashedtransactions
-        bh._data.mining_nonce = mining_nonce
+        bh.set_mining_nonce(mining_nonce)
         bh._data.PK = PK
         bh._data.reward_fee = fee_reward
 
