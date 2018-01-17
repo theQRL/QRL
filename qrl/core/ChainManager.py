@@ -181,10 +181,11 @@ class ChainManager:
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
                 self.update_mainchain(block, batch)
-                if mining_enabled:
-                    self.mine_next(block)
+                self.tx_pool.remove_tx_in_block_from_pool(block)
                 self.state.update_mainchain_height(block.block_number, batch)
 
+                if mining_enabled:
+                    self.mine_next(block)
             return True
 
         return False

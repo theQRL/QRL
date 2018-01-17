@@ -308,7 +308,7 @@ class TransferTransaction(Transaction):
     def apply_on_state(self, addresses_state):
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= (self.amount + self.fee)
-            addresses_state[self.txfrom].nonce.increase_nonce()
+            addresses_state[self.txfrom].increase_nonce()
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
             self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
         if self.txto in addresses_state:

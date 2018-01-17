@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import copy
-from collections import defaultdict
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -10,7 +9,6 @@ from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256,
 from twisted.internet import reactor
 
 from qrl.core import config
-from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
@@ -92,7 +90,6 @@ class Miner:
         ######
 
         # recreate the transaction pool as in the tx_hash_list, ordered by txhash..
-        tx_nonce = defaultdict(int)
         total_txn = len(t_pool2)
         txnum = 0
         addresses_set = set()
@@ -105,15 +102,16 @@ class Miner:
         for address in addresses_set:
             addresses_state[address] = self.state.get_address(address)
 
+        txnum = 0
         while txnum < total_txn:
             tx = t_pool2[txnum]
-            if tx.ots_key_reuse(addresses_state, tx.ots_key):
+            if tx.ots_key_reuse(addresses_state[tx.txfrom], tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
 
             if tx.subtype == qrl_pb2.Transaction.TRANSFER:
-                if addresses_state[tx.txfrom].balance < tx.amount:
+                if addresses_state[tx.txfrom].balance < tx.amount + tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s', addresses_state[tx.txfrom].balance,
@@ -131,11 +129,6 @@ class Miner:
                     continue
 
             if tx.subtype == qrl_pb2.Transaction.TOKEN:
-                if tx.owner not in addresses_state:
-                    addresses_state[tx.owner] = AddressState.get_default(tx.owner)
-                for initial_balance in tx.initial_balances:
-                    if initial_balance.address not in addresses_state:
-                        addresses_state[initial_balance.address] = AddressState.get_default(initial_balance.address)
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)
@@ -188,20 +181,19 @@ class Miner:
             tx.apply_on_state(addresses_state)
 
             tx_pool.add_tx_to_pool(tx)
-            tx_nonce[tx.txfrom] += 1
-            tx._data.nonce = addresses_state[tx.txfrom].nonce + tx_nonce[tx.txfrom]
+            tx._data.nonce = addresses_state[tx.txfrom].nonce
             txnum += 1
+
+        coinbase_nonce = self.state.get_address(signing_xmss.get_address()).nonce
+        if signing_xmss.get_address() in addresses_state:
+            coinbase_nonce = addresses_state[signing_xmss.get_address()].nonce + 1
 
         block = Block.create(mining_nonce=mining_nonce,
                              block_number=last_block.block_number + 1,
                              prevblock_headerhash=last_block.headerhash,
-                             transactions=[],
+                             transactions=t_pool2,
                              signing_xmss=signing_xmss,
-                             nonce=2)
-
-        # reset the pool back
-        # FIXME: Reset pool from here?
-        tx_pool.transaction_pool = copy.deepcopy(t_pool2)
+                             nonce=coinbase_nonce)
 
         return block
 
