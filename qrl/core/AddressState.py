@@ -86,7 +86,7 @@ class AddressState(object):
     def get_default(address):
         address_state = AddressState.create(address=address,
                                             nonce=config.dev.default_nonce,
-                                            balance=0,
+                                            balance=config.dev.default_account_balance,
                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                             tokens=dict())
         return address_state
