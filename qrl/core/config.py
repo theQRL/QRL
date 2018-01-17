@@ -104,9 +104,6 @@ class DevConfig(object):
         self.message_receipt_timeout = 10  # request timeout for full message
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
 
-        self.blocks_per_chain_file = 1000
-        self.chain_read_buffer_size = 1024
-
         self.transaction_pool_size = 1000
         self.max_coin_supply = 105000000
         self.timestamp_error = 5  # Error in second

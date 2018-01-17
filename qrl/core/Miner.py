@@ -21,10 +21,6 @@ class CustomQMiner(Qryptominer):
 
     def solutionEvent(self, nonce):
         logger.debug('Solution Found %s', nonce)
-        try:
-            self.callLater_fn.cancel()
-        except Exception:
-            pass
         self.callback_fn(nonce)
 
 
