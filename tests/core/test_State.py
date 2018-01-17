@@ -6,7 +6,6 @@ from unittest import TestCase
 from qrl.core.misc import logger
 from qrl.core.State import State
 from qrl.core.Transaction import TransferTokenTransaction
-from qrl.crypto.misc import sha256
 from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
 logger.initialize_default()

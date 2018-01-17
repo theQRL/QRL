@@ -124,7 +124,6 @@ class PublicAPIService(PublicAPIServicer):
         transaction, block_number = self.qrlnode.get_transaction(query)
         if transaction is not None:
             answer.found = True
-            #block_index = self.qrlnode.get_blockidx_from_txhash(transaction.txhash)
             blockheader = None
             if block_number is not None:
                 block = self.qrlnode.get_block_from_index(block_number)
