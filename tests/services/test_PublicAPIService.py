@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-import pytest
 from grpc import ServicerContext
 from mock import Mock, MagicMock
 from pyqrllib.pyqrllib import str2bin
@@ -122,13 +121,12 @@ class TestPublicAPI(TestCase):
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
-
-        db_state.get_address = MagicMock(return_value=
-                                         AddressState.create(address=b'Q' + sha256(b'address'),
-                                                             nonce=25,
-                                                             balance=10,
-                                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                                             tokens=dict()))
+        address_state = AddressState.create(address=b'Q' + sha256(b'address'),
+                                            nonce=25,
+                                            balance=10,
+                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                            tokens=dict())
+        db_state.get_address = MagicMock(return_value=address_state)
 
         p2p_factory = Mock(spec=P2PFactory)
         chain_manager = ChainManager(db_state)

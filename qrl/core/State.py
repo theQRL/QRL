@@ -1,10 +1,10 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from typing import Optional, List
+from typing import Optional
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.cache.LRU import LRUStateCache

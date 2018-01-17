@@ -15,7 +15,7 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
 from qrl.core.AddressState import AddressState
 from qrl.core.TokenList import TokenList
-from qrl.core.Transaction import TransferTransaction, Transaction, TransferTokenTransaction, TokenTransaction
+from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction
 from qrl.core.misc.logger import logger
 from qrl.core.p2pChainManager import P2PChainManager
 from qrl.core.ChainManager import ChainManager
