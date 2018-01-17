@@ -52,9 +52,8 @@ class DB:
         try:
             # FIXME: This is a massive bottleneck as start up.
             return json.loads(value_obj.decode())['value']
-        except KeyError as e:
-            logger.error("Key not found %s", key_obj)
-            logger.exception(e)
+        except KeyError:
+            logger.debug("Key not found %s", key_obj)
         except Exception as e:
             logger.exception(e)
 
