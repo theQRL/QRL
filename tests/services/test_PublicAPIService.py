@@ -123,12 +123,12 @@ class TestPublicAPI(TestCase):
     def test_getAddressState(self):
         db_state = Mock(spec=State)
 
-        db_state.get_address = MagicMock(return_value=AddressState.create(address=b'Q' + sha256(b'address'),
-                                                                          nonce=25,
-                                                                          balance=10,
-                                                                          ots_bitfield=[
-                                                                                           b'\x00'] * config.dev.ots_bitfield_size,
-                                                                          tokens=dict()))
+        db_state.get_address = MagicMock(return_value=
+                                         AddressState.create(address=b'Q' + sha256(b'address'),
+                                                             nonce=25,
+                                                             balance=10,
+                                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                                             tokens=dict()))
 
         p2p_factory = Mock(spec=P2PFactory)
         chain_manager = ChainManager(db_state)
@@ -269,7 +269,6 @@ class TestPublicAPI(TestCase):
         self.assertIsNotNone(response.block)
         self.assertEqual(1, response.block.header.block_number)
 
-    @pytest.mark.skip(reason="Temporarily skipping test")
     def test_getLatestData(self):
         blocks = []
         txs = []
@@ -297,20 +296,23 @@ class TestPublicAPI(TestCase):
                                                      xmss_pk=get_alice_xmss().pk()))
 
         db_state = Mock(spec=State)
+        db_state.get_tx_metadata = MagicMock(return_value=None)
+        db_state.get_last_txs = MagicMock(return_value=txs)
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.pow = Mock(spec=POW)
 
         chain_manager = Mock(spec=ChainManager)
+        chain_manager.get_block_by_number = Mock()
+        chain_manager.get_block_by_number.side_effect = blocks
         chain_manager.tx_pool = Mock()
         chain_manager.tx_pool.transaction_pool = txpool
-
-        chain_manager.get_block = Mock()
-        chain_manager.get_block.side_effect = blocks
         chain_manager.height = len(blocks)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_chain(chain_manager)
+        qrlnode.get_block_from_index = MagicMock(return_value=None)
+
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
 
@@ -331,19 +333,19 @@ class TestPublicAPI(TestCase):
         self.assertEqual(1, response.blockheaders[0].header.block_number)
         self.assertEqual(2, response.blockheaders[1].header.block_number)
 
-        # Verify transactions
-        self.assertEqual(3, len(response.transactions))
-        self.assertEqual(1, response.transactions[0].transfer.fee)
-        self.assertEqual(2, response.transactions[1].transfer.fee)
-        self.assertEqual(1, response.transactions[2].transfer.fee)
-
-        # 302 should have been skipped
-        self.assertEqual(301, response.transactions[0].transfer.amount)
-        self.assertEqual(202, response.transactions[1].transfer.amount)
-        self.assertEqual(201, response.transactions[2].transfer.amount)
-
         # Verify transactions_unconfirmed
         self.assertEqual(3, len(response.transactions_unconfirmed))
-        self.assertEqual(1013, response.transactions_unconfirmed[0].transfer.amount)
-        self.assertEqual(1012, response.transactions_unconfirmed[1].transfer.amount)
-        self.assertEqual(1011, response.transactions_unconfirmed[2].transfer.amount)
+        # TODO: Verify expected order
+        self.assertEqual(1011, response.transactions_unconfirmed[0].tx.transfer.amount)
+        self.assertEqual(1012, response.transactions_unconfirmed[1].tx.transfer.amount)
+        self.assertEqual(1013, response.transactions_unconfirmed[2].tx.transfer.amount)
+
+        # Verify transactions
+        self.assertEqual(3, len(response.transactions))
+        self.assertEqual(2, response.transactions[0].tx.fee)
+        self.assertEqual(1, response.transactions[1].tx.fee)
+        self.assertEqual(2, response.transactions[2].tx.fee)
+
+        self.assertEqual(102, response.transactions[0].tx.transfer.amount)
+        self.assertEqual(201, response.transactions[1].tx.transfer.amount)
+        self.assertEqual(202, response.transactions[2].tx.transfer.amount)
