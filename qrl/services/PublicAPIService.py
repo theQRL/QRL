@@ -141,12 +141,6 @@ class PublicAPIService(PublicAPIServicer):
             answer.block.CopyFrom(block.pbdata)
             return answer
 
-        block = self.qrlnode.get_block_from_hash(query)
-        if block is not None:
-            answer.found = True
-            answer.block.CopyFrom(block.pbdata)
-            return answer
-
         # NOTE: This is temporary, indexes are accepted for blocks
         try:
             query_str = query.decode()

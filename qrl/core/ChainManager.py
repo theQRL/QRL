@@ -181,7 +181,6 @@ class ChainManager:
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
                 self.update_mainchain(block, batch)
-                self.state.update_tx_metadata(block, batch)
                 if mining_enabled:
                     self.mine_next(block)
                 self.state.update_mainchain_height(block.block_number, batch)

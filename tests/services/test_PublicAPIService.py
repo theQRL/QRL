@@ -158,13 +158,14 @@ class TestPublicAPI(TestCase):
         self.assertEqual([b'\x00'] * config.dev.ots_bitfield_size, response.state.ots_bitfield)
         self.assertEqual([], response.state.transaction_hashes)
 
-    @pytest.mark.skip(reason="Temporarily skipping test")
     def test_getObject(self):
         SOME_ODD_HASH = sha256(b'this should not be found')
-        SOME_ADDR1 = b'Q' + sha256(b'address1')
-        SOME_ADDR2 = b'Q' + sha256(b'address2')
+        SOME_ADDR1 = b'Q6dcadae42bc451f3bc8b243c8654bcd588fff443b141a9ad2fcdbbd712ba038a0a2a83b1'
+        SOME_ADDR2 = b'Q14542ca43bc801effbc398ed6703924f7287f13d3c3d6c0c6d9d5a41c246d7cc08f71c85'
 
         db_state = Mock(spec=State)
+        db_state.get_tx_metadata = MagicMock(return_value=None)
+        db_state.get_block = MagicMock(return_value=None)
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.pow = Mock(spec=POW)
@@ -181,6 +182,7 @@ class TestPublicAPI(TestCase):
 
         service = PublicAPIService(qrlnode)
 
+        # First try an empty request
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
         response = service.GetObject(request=request, context=context)
@@ -188,21 +190,24 @@ class TestPublicAPI(TestCase):
         context.set_details.assert_not_called()
         self.assertFalse(response.found)
 
-        # Find an address
-        db_state.get_address = MagicMock(return_value=AddressState.create(address=SOME_ADDR1,
-                                                                          nonce=25,
-                                                                          balance=10,
-                                                                          ots_bitfield=[
-                                                                                           b'\x00'] * config.dev.ots_bitfield_size,
-                                                                          tokens=dict()))
-        db_state.get_address_tx_hashes = MagicMock(return_value=[sha256(b'0'), sha256(b'1')])
-
+        # Some odd address
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
         request.query = SOME_ODD_HASH
         response = service.GetObject(request=request, context=context)
         context.set_code.assert_not_called()
         self.assertFalse(response.found)
+
+        # Find an address
+        addr1_state = AddressState.create(address=SOME_ADDR1,
+                                          nonce=25,
+                                          balance=10,
+                                          ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                          tokens=dict())
+        addr1_state.transaction_hashes.append(sha256(b'0'))
+        addr1_state.transaction_hashes.append(sha256(b'1'))
+
+        db_state.get_address = MagicMock(return_value=addr1_state.pbdata)
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
@@ -215,15 +220,16 @@ class TestPublicAPI(TestCase):
         self.assertEqual(SOME_ADDR1, response.address_state.address)
         self.assertEqual(25, response.address_state.nonce)
         self.assertEqual(10, response.address_state.balance)
-        self.assertEqual([sha256(b'a'), sha256(b'b')], response.address_state.pubhashes)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.address_state.transaction_hashes)
 
         # Find a transaction
         db_state.address_used = MagicMock(return_value=False)
-        tx1 = TransferTransaction.create(addr_to=SOME_ADDR2,
-                                         amount=125,
-                                         fee=19,
-                                         xmss_pk=sha256(b'pk'))
+        tx1 = TransferTransaction.create(
+            addr_from=SOME_ADDR1,
+            addr_to=SOME_ADDR2,
+            amount=125,
+            fee=19,
+            xmss_pk=sha256(b'pk'))
 
         chain_manager.tx_pool.transaction_pool = [tx1]
 

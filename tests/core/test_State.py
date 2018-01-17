@@ -70,21 +70,6 @@ class TestState(TestCase):
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
 
-    def test_addr_tx_hashes(self):
-        with set_data_dir('no_data'):
-            with State() as state:
-                alice_xmss = get_alice_xmss()
-                alice_address = alice_xmss.get_address()
-                some_hash1 = sha256(b'some_hash1')
-                some_hash2 = sha256(b'some_hash2')
-
-                state.update_address_tx_hashes(alice_address, some_hash1)
-                state.update_address_tx_hashes(alice_address, some_hash2)
-                result = state.get_address_tx_hashes(alice_address)
-
-                self.assertEqual(some_hash1, result[0])
-                self.assertEqual(some_hash2, result[1])
-
     def test_create_token_metadata(self):
         with set_data_dir('no_data'):
             with State() as state:
