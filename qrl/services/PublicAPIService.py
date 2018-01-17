@@ -121,13 +121,13 @@ class PublicAPIService(PublicAPIServicer):
                     answer.address_state.CopyFrom(address_state)
                     return answer
 
-        transaction = self.qrlnode.get_transaction(query)
+        transaction, block_number = self.qrlnode.get_transaction(query)
         if transaction is not None:
             answer.found = True
-            block_index = self.qrlnode.get_blockidx_from_txhash(transaction.txhash)
+            #block_index = self.qrlnode.get_blockidx_from_txhash(transaction.txhash)
             blockheader = None
-            if block_index:
-                block = self.qrlnode.get_block_from_index(block_index)
+            if block_number is not None:
+                block = self.qrlnode.get_block_from_index(block_number)
                 blockheader = block.blockheader.pbdata
 
             txextended = qrl_pb2.TransactionExtended(header=blockheader,
