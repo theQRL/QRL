@@ -85,7 +85,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block1, False):
                                 tmp_block1.set_mining_nonce(tmp_block1.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block1)
+                            res = chain_manager.add_block(block=tmp_block1, mining_enabled=False)
                             self.assertTrue(res)
 
                             # Need to move forward the time to align with block times
@@ -134,7 +134,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block2, False):
                                 tmp_block2.set_mining_nonce(tmp_block2.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block2)
+                            res = chain_manager.add_block(block=tmp_block2, mining_enabled=False)
                             self.assertTrue(res)
 
                             # Need to move forward the time to align with block times
@@ -151,14 +151,8 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block3, False):
                                 tmp_block3.set_mining_nonce(tmp_block3.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block3)
+                            res = chain_manager.add_block(block=tmp_block3, mining_enabled=False)
                             self.assertTrue(res)
-
-                            address_state = chain_manager.state.get_address(random_xmss1.get_address())
-
-                            self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
-                            self.assertEqual(address_state.latticePK_list[0].dilithium_pk, lattice_public_key_txn.dilithium_pk)
-                            self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
 
                             time_mock.return_value += config.dev.minimum_minting_delay
 
@@ -173,9 +167,16 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block4, False):
                                 tmp_block4.set_mining_nonce(tmp_block4.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block4)
+                            res = chain_manager.add_block(block=tmp_block4, mining_enabled=False)
                             self.assertTrue(res)
 
-                            random_xmss1_state = chain_manager.state._get_address_state(random_xmss1.get_address())
+                            address_state = chain_manager.get_address(random_xmss1.get_address())
+
+                            self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
+                            self.assertEqual(address_state.latticePK_list[0].dilithium_pk,
+                                             lattice_public_key_txn.dilithium_pk)
+                            self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
+
+                            random_xmss1_state = chain_manager.get_address(random_xmss1.get_address())
 
                             self.assertEqual(64999999999999999, random_xmss1_state.balance)
