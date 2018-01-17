@@ -494,8 +494,7 @@ class State:
         if len(block.transactions) == 0:
             return
 
-        token_list = []
-
+        # TODO (cyyber): Move To State Cache, instead of writing directly
         # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
@@ -509,39 +508,14 @@ class State:
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
 
-                if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
-                                   qrl_pb2.Transaction.MESSAGE,
-                                   qrl_pb2.Transaction.TOKEN,
-                                   qrl_pb2.Transaction.TRANSFERTOKEN):
-                    # FIXME: Being updated without batch, need to fix,
-                    # as its making get request, and batch get not possible
-                    # Thus cache is required to have only 1 time get
-                    self.update_address_tx_hashes(txn.txfrom, txn.txhash)
-
-                if txn.subtype == qrl_pb2.Transaction.TOKEN:
-                    self.update_address_tx_hashes(txn.owner, txn.txhash)
-                    for initial_balance in txn.initial_balances:
-                        if initial_balance.address == txn.owner:
-                            continue
-                        self.update_address_tx_hashes(initial_balance.address, txn.txhash)
-
-                if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
-                                   qrl_pb2.Transaction.COINBASE,
-                                   qrl_pb2.Transaction.TRANSFERTOKEN):
-                    # FIXME: Being updated without batch, need to fix,
-                    if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                        self.update_token_metadata(txn)
-                    self.update_address_tx_hashes(txn.txto, txn.txhash)
-                    self.increase_txn_count(txn.txto)
-
                 if txn.subtype == qrl_pb2.Transaction.TOKEN:
                     self.create_token_metadata(txn)
-                    token_list.append(txn.txhash)
 
                 self.increase_txn_count(txn.txfrom)
 
-        if token_list:
-            self.update_token_list(token_list, batch)
+        # Disabled as complete token list over the network is not required
+        # if token_list:
+        #    self.update_token_list(token_list, batch)
 
     def get_tx_metadata(self, txhash: bytes):
         try:
