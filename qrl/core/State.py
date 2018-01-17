@@ -428,15 +428,6 @@ class State:
     #########################################
     #########################################
 
-    def update_address_tx_hashes(self, addr: bytes, new_txhash: bytes):
-        txhash = self.get_address_tx_hashes(addr)
-        txhash.append(new_txhash)
-
-        # FIXME:  Json does not support bytes directly | Temporary workaround
-        tmp_hashes = [bin2hstr(item) for item in txhash]
-
-        self._db.put(b'txn_' + addr, tmp_hashes)
-
     def get_token_list(self):
         try:
             return self._db.get_raw(b'token_list')
@@ -469,19 +460,6 @@ class State:
 
     def update_state_version(self, block_number, batch):
         self._db.put(b'state_version', block_number, batch)
-
-    def get_address_tx_hashes(self, addr: bytes) -> List[bytes]:
-        try:
-            tx_hashes = self._db.get(b'txn_' + addr)
-        except KeyError:
-            tx_hashes = []
-        except Exception as e:
-            logger.exception(e)
-            tx_hashes = []
-
-        tx_hashes = [bytes(hstr2bin(item)) for item in tx_hashes]
-
-        return tx_hashes
 
     #########################################
     #########################################
