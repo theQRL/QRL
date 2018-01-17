@@ -515,6 +515,7 @@ class State:
 
                 self.increase_txn_count(txn.txfrom)
 
+        self.update_last_tx(block, batch)
         # Disabled as complete token list over the network is not required
         # if token_list:
         #    self.update_token_list(token_list, batch)
