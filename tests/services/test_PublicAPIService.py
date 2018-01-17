@@ -326,9 +326,10 @@ class TestPublicAPI(TestCase):
         context.set_details.assert_not_called()
 
         # Verify blockheaders
-        self.assertEqual(2, len(response.blockheaders))
+        self.assertEqual(3, len(response.blockheaders))
         self.assertEqual(1, response.blockheaders[0].header.block_number)
         self.assertEqual(2, response.blockheaders[1].header.block_number)
+        self.assertEqual(3, response.blockheaders[2].header.block_number)
 
         # Verify transactions_unconfirmed
         self.assertEqual(3, len(response.transactions_unconfirmed))
