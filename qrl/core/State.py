@@ -507,7 +507,9 @@ class State:
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
-
+                # FIXME: Being updated without batch, need to fix,
+                if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                    self.update_token_metadata(txn)
                 if txn.subtype == qrl_pb2.Transaction.TOKEN:
                     self.create_token_metadata(txn)
 
