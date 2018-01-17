@@ -183,6 +183,7 @@ class ChainManager:
                 self.update_mainchain(block, batch)
                 self.tx_pool.remove_tx_in_block_from_pool(block)
                 self.state.update_mainchain_height(block.block_number, batch)
+                self.state.update_tx_metadata(block, batch)
 
                 if mining_enabled:
                     self.mine_next(block)

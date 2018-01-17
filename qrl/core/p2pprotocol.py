@@ -125,6 +125,7 @@ class P2PProtocol(Protocol):
                 # Buffer is still incomplete as it doesn't have message
                 if chunk_size_raw[0] == 0xff:
                     # FIXME: Remove this. Workaround for old protocol
+                    logger.debug('_parse_buffer forcefully disconnecting %s', self.connection_id)
                     self.loseConnection()
                 return
 
