@@ -292,3 +292,10 @@ class ChainManager:
 
     def get_address(self, address):
         return self.state.get_address(address)
+
+    def get_transaction(self, transaction_hash) -> list:
+        for tx in self.tx_pool.transaction_pool:
+            if tx.txhash == transaction_hash:
+                return [tx, None]
+
+        return self.state.get_tx_metadata(transaction_hash)

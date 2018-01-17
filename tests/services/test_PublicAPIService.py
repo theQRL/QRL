@@ -170,9 +170,7 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.pow = Mock(spec=POW)
 
-        chain_manager = Mock(spec=ChainManager)
-        chain_manager.tx_pool = Mock()
-        chain_manager.tx_pool.transaction_pool = []
+        chain_manager = ChainManager(db_state)
 
         qrlnode = QRLNode(db_state)
         qrlnode.set_chain(chain_manager)
@@ -240,19 +238,18 @@ class TestPublicAPI(TestCase):
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
         self.assertIsNotNone(response.transaction)
-        self.assertEqual(qrl_pb2.Transaction.TRANSFER, response.transaction.type)
-        self.assertEqual(SOME_ADDR1, response.transaction.addr_from)
-        self.assertEqual(sha256(b'pk'), response.transaction.public_key)
-        self.assertEqual(tx1.txhash, response.transaction.transaction_hash)
-        self.assertEqual(13, response.transaction.ots_key)
-        self.assertEqual(b'', response.transaction.signature)
+        self.assertEqual(qrl_pb2.Transaction.TRANSFER, response.transaction.tx.type)
+        self.assertEqual(SOME_ADDR1, response.transaction.tx.addr_from)
+        self.assertEqual(sha256(b'pk'), response.transaction.tx.public_key)
+        self.assertEqual(tx1.txhash, response.transaction.tx.transaction_hash)
+        self.assertEqual(b'', response.transaction.tx.signature)
 
-        self.assertEqual(SOME_ADDR2, response.transaction.transfer.addr_to)
-        self.assertEqual(125, response.transaction.transfer.amount)
-        self.assertEqual(19, response.transaction.transfer.fee)
+        self.assertEqual(SOME_ADDR2, response.transaction.tx.transfer.addr_to)
+        self.assertEqual(125, response.transaction.tx.transfer.amount)
+        self.assertEqual(19, response.transaction.tx.fee)
 
         # Find a block
-        chain_manager.get_block = MagicMock(
+        db_state.get_block_by_number = MagicMock(
             return_value=Block.create(mining_nonce=10,
                                       block_number=1,
                                       prevblock_headerhash=sha256(b'reveal'),

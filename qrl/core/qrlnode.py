@@ -304,7 +304,7 @@ class QRLNode:
 
         return address_state
 
-    def get_transaction(self, query_hash: bytes) -> Optional[Transaction]:
+    def get_transaction(self, query_hash: bytes):
         """
         This method returns an object that matches the query hash
         """
@@ -312,10 +312,10 @@ class QRLNode:
         # TODO: Search tx hash
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
-        result = self.db_state.get_tx_metadata(query_hash)
+        result = self._chain_manager.get_transaction(query_hash)
         if result:
-            return result[0]
-        return None
+            return result[0], result[1]
+        return None, None
 
     def get_block_from_hash(self, query_hash: bytes) -> Optional[Block]:
         """
