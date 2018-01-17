@@ -376,6 +376,9 @@ class CoinBase(Transaction):
 
     # noinspection PyBroadException
     def validate_extended(self, sv_dict, blockheader):
+        if self.addr_from != b'Q999999999999999999999999999999999999999999999999999999999999999999999999':
+            return False
+
         if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.txto)):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.txto)
             return False
@@ -388,6 +391,7 @@ class CoinBase(Transaction):
             addresses_state[self.txto].transaction_hashes.append(self.txhash)
             self.set_ots_key(addresses_state[self.txto], self.ots_key)
         if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].balance -= self.amount
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
     def set_effected_address(self, addresses_set: set):
