@@ -81,7 +81,7 @@ class ChainManager:
             logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
             logger.debug('-------------------END--------------------')
 
-        if not self.miner.custom_qminer.verifyInput(input_bytes, target):
+        if not self.miner.verifyInput(input_bytes, target):
             if enable_logging:
                 logger.warning("PoW verification failed")
                 logger.warning("{}".format(self.miner.calc_hash(input_bytes)))
