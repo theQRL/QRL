@@ -179,7 +179,7 @@ class POW(ConsensusMechanism):
 
     def pre_block_logic(self, block: Block):
         with self._miner_lock:
-            if self.chain_manager.add_block(block):
+            if not self.chain_manager.add_block(block):
                 logger.info('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
                 return
 
