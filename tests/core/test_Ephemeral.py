@@ -39,10 +39,10 @@ class TestEphemeral(TestCase):
                 with set_wallet_dir("test_wallet"):
                     alice_xmss = get_alice_xmss()
                     miner = Miner(pre_block_logic=Mock(),
-                                  mining_xmss=alice_xmss)
+                                  mining_xmss=alice_xmss,
+                                  state=state)
 
                     chain_manager = ChainManager(state)
-                    chain_manager.set_miner(miner)
 
                     alice_xmss = get_alice_xmss()
                     slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
@@ -85,7 +85,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block1, False):
                                 tmp_block1.set_mining_nonce(tmp_block1.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block1, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block1)
                             self.assertTrue(res)
 
                             # Need to move forward the time to align with block times
@@ -134,7 +134,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block2, False):
                                 tmp_block2.set_mining_nonce(tmp_block2.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block2, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block2)
                             self.assertTrue(res)
 
                             # Need to move forward the time to align with block times
@@ -151,7 +151,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block3, False):
                                 tmp_block3.set_mining_nonce(tmp_block3.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block3, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block3)
                             self.assertTrue(res)
 
                             time_mock.return_value += config.dev.minimum_minting_delay
@@ -167,7 +167,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block4, False):
                                 tmp_block4.set_mining_nonce(tmp_block4.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block4, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block4)
                             self.assertTrue(res)
 
                             address_state = chain_manager.get_address(random_xmss1.get_address())

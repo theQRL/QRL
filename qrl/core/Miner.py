@@ -14,54 +14,77 @@ from qrl.generated import qrl_pb2
 
 
 class Miner(Qryptominer):
-    def __init__(self, pre_block_logic, mining_xmss):
+    def __init__(self, pre_block_logic, mining_xmss, state):
         super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
-        self.mining_block = None
-        self.mining_xmss = mining_xmss
-        self.state = None
-
-    def set_state(self, state):
+        self._mining_block = None
+        self._mining_xmss = mining_xmss
         self.state = state
 
-    def get_mining_data(self, block):
+    @staticmethod
+    def _get_mining_data(block):
         input_bytes = [0x00, 0x00, 0x00, 0x00] + list(block.mining_hash)
         nonce_offset = 0
         return input_bytes, nonce_offset
+
+    @staticmethod
+    def calc_difficulty(timestamp, parent_timestamp, parent_difficulty):
+        ph = PoWHelper()
+        current_difficulty = ph.getDifficulty(timestamp=timestamp,
+                                              parent_timestamp=parent_timestamp,
+                                              parent_difficulty=parent_difficulty)
+        current_target = ph.getBoundary(current_difficulty)
+        return current_difficulty, current_target
+
+    @staticmethod
+    def calc_hash(input_bytes):
+        qn = Qryptonight()
+        return qn.hash(input_bytes)
 
     def start_mining(self,
                      tx_pool,
                      parent_block,
                      parent_difficulty,
                      thread_count=config.user.mining_thread_count):
-        self.cancel()
-        self.mining_block = self.create_block(last_block=parent_block,
-                                              mining_nonce=0,
-                                              tx_pool=tx_pool,
-                                              signing_xmss=self.mining_xmss)
-        current_difficulty, current_target = self.calc_difficulty(self.mining_block.timestamp,
-                                                                  parent_block.timestamp,
-                                                                  parent_difficulty)
-        input_bytes, nonce_offset = self.get_mining_data(self.mining_block)
-        self.setInput(input=input_bytes,
-                      nonceOffset=nonce_offset,
-                      target=current_target)
-        logger.debug('=================START====================')
-        logger.debug('Mine #%s', self.mining_block.block_number)
-        logger.debug('block.timestamp %s', self.mining_block.timestamp)
-        logger.debug('parent_block.timestamp %s', parent_block.timestamp)
-        logger.debug('parent_block.difficulty %s', UInt256ToString(parent_difficulty))
-        logger.debug('input_bytes %s', UInt256ToString(input_bytes))
-        logger.debug('diff : %s | target : %s', UInt256ToString(current_difficulty), current_target)
-        logger.debug('===================END====================')
-        self.start(thread_count=thread_count)
+        try:
+            self.cancel()
+            self._mining_block = self.create_block(last_block=parent_block,
+                                                   mining_nonce=0,
+                                                   tx_pool=tx_pool,
+                                                   signing_xmss=self._mining_xmss)
+
+            current_difficulty, current_target = self.calc_difficulty(self._mining_block.timestamp,
+                                                                      parent_block.timestamp,
+                                                                      parent_difficulty)
+
+            input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
+            self.setInput(input=input_bytes,
+                          nonceOffset=nonce_offset,
+                          target=current_target)
+            logger.debug('=================START====================')
+            logger.debug('Mine #%s', self._mining_block.block_number)
+            logger.debug('block.timestamp %s', self._mining_block.timestamp)
+            logger.debug('parent_block.timestamp %s', parent_block.timestamp)
+            logger.debug('parent_block.difficulty %s', UInt256ToString(parent_difficulty))
+            logger.debug('input_bytes %s', UInt256ToString(input_bytes))
+            logger.debug('diff : %s | target : %s', UInt256ToString(current_difficulty), current_target)
+            logger.debug('===================END====================')
+            self.start(thread_count=thread_count)
+        except Exception as e:
+            logger.warning("Exception in start_mining")
+            logger.exception(e)
 
     def solutionEvent(self, nonce):
-        logger.debug('Solution Found %s', nonce)
-        self.mining_block.set_mining_nonce(nonce)
-        logger.info('Block #%s nonce: %s', self.mining_block.block_number, StringToUInt256(str(nonce))[-4:])
-        cloned_block = copy.deepcopy(self.mining_block)
-        self.pre_block_logic(cloned_block)
+        # NOTE: This function usually runs in the context of a C++ thread
+        try:
+            logger.debug('Solution Found %s', nonce)
+            self._mining_block.set_mining_nonce(nonce)
+            logger.info('Block #%s nonce: %s', self._mining_block.block_number, StringToUInt256(str(nonce))[-4:])
+            cloned_block = copy.deepcopy(self._mining_block)
+            self.pre_block_logic(cloned_block)
+        except Exception as e:
+            logger.warning("Exception in solutionEvent")
+            logger.exception(e)
 
     def create_block(self, last_block, mining_nonce, tx_pool, signing_xmss) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
@@ -179,17 +202,3 @@ class Miner(Qryptominer):
                              nonce=coinbase_nonce)
 
         return block
-
-    @staticmethod
-    def calc_difficulty(timestamp, parent_timestamp, parent_difficulty):
-        ph = PoWHelper()
-        current_difficulty = ph.getDifficulty(timestamp=timestamp,
-                                              parent_timestamp=parent_timestamp,
-                                              parent_difficulty=parent_difficulty)
-        current_target = ph.getBoundary(current_difficulty)
-        return current_difficulty, current_target
-
-    @staticmethod
-    def calc_hash(input_bytes):
-        qn = Qryptonight()
-        return qn.hash(input_bytes)

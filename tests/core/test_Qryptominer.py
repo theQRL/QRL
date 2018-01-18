@@ -4,7 +4,7 @@
 import threading
 from unittest import TestCase
 
-from pyqryptonight.pyqryptonight import Qryptominer
+from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper
 
 from qrl.core.Block import Block
 from qrl.core.Miner import Miner
@@ -70,4 +70,4 @@ class TestQryptominer(TestCase):
         custom_qminer.wait_for_solution()
 
         print(custom_qminer.nonce)
-        self.assertTrue(custom_qminer.verifyInput(input_bytes, new_target))
+        self.assertTrue(PoWHelper.verifyInput(input_bytes, new_target))

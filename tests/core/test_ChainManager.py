@@ -35,13 +35,12 @@ class TestChainManager(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
-                alice_miner = Miner(Mock(), alice_xmss)
-                bob_miner = Miner(Mock(), bob_xmss)
+                alice_miner = Miner(Mock(), alice_xmss, state)
+                bob_miner = Miner(Mock(), bob_xmss, state)
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
                 chain_manager.load(genesis_block)
-                chain_manager.set_miner(alice_miner)
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
@@ -70,7 +69,6 @@ class TestChainManager(TestCase):
                                          signing_xmss=bob_xmss,
                                          nonce=1)
                     block.set_mining_nonce(15)
-                    chain_manager.set_miner(bob_miner)
                     result = chain_manager.add_block(block)
 
                 self.assertTrue(result)
@@ -101,12 +99,11 @@ class TestChainManager(TestCase):
         with set_data_dir('no_data'):
             with State() as state:              # FIXME: Move state to temporary directory
                 alice_xmss = get_alice_xmss()
-                alice_miner = Miner(Mock(), alice_xmss)
+                alice_miner = Miner(Mock(), alice_xmss, state)
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
                 chain_manager.load(genesis_block)
-                chain_manager.set_miner(alice_miner)
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)

@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import threading
 import time
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import bin2hstr
@@ -34,15 +35,16 @@ class POW(ConsensusMechanism):
                  time_provider):
 
         super().__init__(chain_manager)
+        self.sync_state = sync_state
+        self.time_provider = time_provider
+
         self.mining_xmss = Wallet.get_new_address(config.dev.xmss_tree_height).xmss
-        self.miner = Miner(self.pre_block_logic, self.mining_xmss)
-        self.chain_manager.set_miner(self.miner)
+        self.miner = Miner(self.pre_block_logic, self.mining_xmss, self.chain_manager.state)
 
         self.p2p_factory = p2p_factory  # FIXME: Decouple from p2pFactory. Comms vs node logic
         self.p2p_factory.pow = self  # FIXME: Temporary hack to keep things working while refactoring
 
-        self.sync_state = sync_state
-        self.time_provider = time_provider
+        self._miner_lock = threading.Lock()
 
         ########
 
@@ -73,7 +75,7 @@ class POW(ConsensusMechanism):
     def _handler_state_synced(self):
         self.last_pow_cycle = time.time()
         last_block = self.chain_manager.last_block
-        self.chain_manager.mine_next(last_block)
+        self.mine_next(last_block)
 
     def _handler_state_forked(self):
         pass
@@ -175,23 +177,28 @@ class POW(ConsensusMechanism):
     ##############################################
     ##############################################
 
-    def pre_block_logic(self, block: Block) -> bool:
-        # FIXME: Ensure that the chain is in memory
+    def pre_block_logic(self, block: Block):
+        with self._miner_lock:
+            if self.chain_manager.add_block(block):
+                logger.info('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
+                return
 
-        if not self.chain_manager.add_block(block):
-            logger.info('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
-            return False
+            if not self.chain_manager.main_switched:                # FIXME: Check with Cyyber
+                self.mine_next(block)
 
+            reactor.callLater(0, self.broadcast_block, block)
+
+    def broadcast_block(self, block):
         if self.sync_state.state == ESyncState.synced:
             self.p2p_factory.broadcast_block(block)
-
-        return True
-
-    def create_next_block(self, block) -> bool:
-        return self.pre_block_logic(block)  # broadcast this block
 
     def isSynced(self, block_timestamp) -> bool:
         if block_timestamp + config.dev.minimum_minting_delay > ntp.getTime():
             self.update_node_state(ESyncState.synced)
             return True
         return False
+
+    def mine_next(self, parent_block):
+        parent_metadata = self.chain_manager.state.get_block_metadata(parent_block.headerhash)
+        logger.info('Mining Block #%s', parent_block.block_number + 1)
+        self.miner.start_mining(self.chain_manager.tx_pool, parent_block, parent_metadata.block_difficulty)
