@@ -109,7 +109,7 @@ class Miner(Qryptominer):
             addresses_state[address] = self.state.get_address(address)
 
         block_size = qrl_pb2.Block().ByteSize()
-        block_size_limit = config.dev.block_size_limit
+        block_size_limit = self.state.get_block_size_limit(last_block)
         txnum = 0
         while txnum < total_txn:
             tx = t_pool2[txnum]

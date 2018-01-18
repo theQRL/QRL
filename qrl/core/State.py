@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import Optional
+from statistics import median
 
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr
@@ -205,6 +206,17 @@ class State:
         if self._db is not None:
             del self._db
             self._db = None
+
+    def get_block_size_limit(self, block):
+        block_size_list = []
+        for i in range(0, 10):
+            block = self.get_block(block.prev_headerhash)
+            if not block:
+                return None
+            block_size_list.append(block.size)
+            if block.block_number == 0:
+                break
+        return max(config.dev.block_min_size_limit, config.dev.size_multiplier * median(block_size_list))
 
     def put_block(self, block, batch):
         self._db.put_raw(bin2hstr(block.headerhash).encode(), block.to_json().encode(), batch)

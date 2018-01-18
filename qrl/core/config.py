@@ -129,10 +129,11 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
 
         # ======================================
-        #       SIZE  LIMITATION (in bytes)
+        #       BLOCK SIZE CONTROLLER
         # ======================================
-        self.block_size_limit = 1024 * 1024         # 1 MB
-        self.transaction_size_limit = 1024 * 50     # 50 KB
+        self.number_of_blocks_analyze = 10
+        self.size_multiplier = 1.1
+        self.block_min_size_limit = 1024 * 1024         # 1 MB - Initial Block Size Limit
 
     @staticmethod
     def getInstance():
