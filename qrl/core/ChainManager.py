@@ -159,10 +159,9 @@ class ChainManager:
         return True
 
     def _try_orphan_add_block(self, block, batch):
-        address_set = self.state.prepare_address_list(block)
-        address_txn = self.state.get_state(block.prev_headerhash, address_set)
+        prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
 
-        if not address_txn:
+        if prev_block_metadata is None or prev_block_metadata.is_orphan:
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
             return True
