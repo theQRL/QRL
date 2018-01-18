@@ -6,7 +6,6 @@ from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString, Qryptonight
-from twisted.internet import reactor
 
 from qrl.core import config
 from qrl.core.Block import Block
@@ -14,19 +13,9 @@ from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 
 
-class CustomQMiner(Qryptominer):
-    def __init__(self, callback):
-        Qryptominer.__init__(self)
-        self.callback_fn = callback
-
-    def solutionEvent(self, nonce):
-        logger.debug('Solution Found %s', nonce)
-        self.callback_fn(nonce)
-
-
-class Miner:
+class Miner(Qryptominer):
     def __init__(self, pre_block_logic, mining_xmss):
-        self.custom_qminer = CustomQMiner(self.mined)
+        super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
         self.mining_block = None
         self.mining_xmss = mining_xmss
@@ -54,9 +43,9 @@ class Miner:
                                                                   parent_block.timestamp,
                                                                   parent_difficulty)
         input_bytes, nonce_offset = self.get_mining_data(self.mining_block)
-        self.custom_qminer.setInput(input=input_bytes,
-                                    nonceOffset=nonce_offset,
-                                    target=current_target)
+        self.setInput(input=input_bytes,
+                      nonceOffset=nonce_offset,
+                      target=current_target)
         logger.debug('=================START====================')
         logger.debug('Mine #%s', self.mining_block.block_number)
         logger.debug('block.timestamp %s', self.mining_block.timestamp)
@@ -65,16 +54,14 @@ class Miner:
         logger.debug('input_bytes %s', UInt256ToString(input_bytes))
         logger.debug('diff : %s | target : %s', UInt256ToString(current_difficulty), current_target)
         logger.debug('===================END====================')
-        self.custom_qminer.start(thread_count=thread_count)
+        self.start(thread_count=thread_count)
 
-    def mined(self, nonce):
+    def solutionEvent(self, nonce):
+        logger.debug('Solution Found %s', nonce)
         self.mining_block.set_mining_nonce(nonce)
         logger.info('Block #%s nonce: %s', self.mining_block.block_number, StringToUInt256(str(nonce))[-4:])
         cloned_block = copy.deepcopy(self.mining_block)
-        reactor.callLater(0, self.pre_block_logic, cloned_block)
-
-    def cancel(self):
-        self.custom_qminer.cancel()
+        self.pre_block_logic(cloned_block)
 
     def create_block(self, last_block, mining_nonce, tx_pool, signing_xmss) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
