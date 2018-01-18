@@ -123,10 +123,6 @@ class P2PProtocol(Protocol):
             # FIXME: There is no limitation on the buffer size or timeout
             if len(self._buffer) < chunk_size:
                 # Buffer is still incomplete as it doesn't have message
-                if chunk_size_raw[0] == 0xff:
-                    # FIXME: Remove this. Workaround for old protocol
-                    logger.debug('_parse_buffer forcefully disconnecting %s', self.connection_id)
-                    self.loseConnection()
                 return
 
             try:
