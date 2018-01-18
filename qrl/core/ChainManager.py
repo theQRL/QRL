@@ -169,7 +169,7 @@ class ChainManager:
 
         return False
 
-    def _try_branch_add_block(self, block, batch=None, mining_enabled=config.user.mining_enabled) -> bool:
+    def _try_branch_add_block(self, block, batch=None) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
         address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
@@ -197,14 +197,14 @@ class ChainManager:
 
         return False
 
-    def _add_block(self, block, ignore_duplicate=False, batch=None, mining_enabled=config.user.mining_enabled):
+    def _add_block(self, block, ignore_duplicate=False, batch=None):
         if not self._pre_check(block, ignore_duplicate):
             return False
 
         if self._try_orphan_add_block(block, batch):
             return True
 
-        if self._try_branch_add_block(block, batch, mining_enabled):
+        if self._try_branch_add_block(block, batch):
             return True
 
         return False
