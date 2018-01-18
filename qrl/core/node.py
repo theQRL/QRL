@@ -183,7 +183,7 @@ class POW(ConsensusMechanism):
                 logger.info('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
                 return
 
-            if not self.chain_manager.main_switched:                # FIXME: Check with Cyyber
+            if self.chain_manager.trigger_miner:                # FIXME: Check with Cyyber
                 self.mine_next(block)
 
             reactor.callLater(0, self.broadcast_block, block)

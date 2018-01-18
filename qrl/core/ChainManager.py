@@ -23,7 +23,7 @@ class ChainManager:
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
         self.current_target = None  # TODO: Not needed, replace all reference to local variable
 
-        self.main_switched = False
+        self.trigger_miner = False
 
     @property
     def height(self):
@@ -182,8 +182,7 @@ class ChainManager:
             last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
             new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
 
-            self.main_switched = True
-
+            self.trigger_miner = False
             if new_block_difficulty > last_block_difficulty:
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
@@ -192,7 +191,8 @@ class ChainManager:
                 self.state.update_mainchain_height(block.block_number, batch)
                 self.state.update_tx_metadata(block, batch)
 
-                self.main_switched = False
+                self.trigger_miner = True
+
             return True
 
         return False

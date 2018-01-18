@@ -38,10 +38,6 @@ class TestEphemeral(TestCase):
             with State() as state:
                 with set_wallet_dir("test_wallet"):
                     alice_xmss = get_alice_xmss()
-                    miner = Miner(pre_block_logic=Mock(),
-                                  mining_xmss=alice_xmss,
-                                  state=state)
-
                     chain_manager = ChainManager(state)
 
                     alice_xmss = get_alice_xmss()

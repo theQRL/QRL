@@ -35,8 +35,6 @@ class TestChainManager(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
-                alice_miner = Miner(Mock(), alice_xmss, state)
-                bob_miner = Miner(Mock(), bob_xmss, state)
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
@@ -99,7 +97,6 @@ class TestChainManager(TestCase):
         with set_data_dir('no_data'):
             with State() as state:              # FIXME: Move state to temporary directory
                 alice_xmss = get_alice_xmss()
-                alice_miner = Miner(Mock(), alice_xmss, state)
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
