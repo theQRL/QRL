@@ -209,7 +209,7 @@ class State:
 
     def get_block_size_limit(self, block):
         block_size_list = []
-        for i in range(0, 10):
+        for _ in range(0, 10):
             block = self.get_block(block.prev_headerhash)
             if not block:
                 return None
