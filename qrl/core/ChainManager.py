@@ -166,6 +166,8 @@ class ChainManager:
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
             return True
 
+        self.trigger_miner = False
+
         return False
 
     def _try_branch_add_block(self, block, batch=None) -> bool:
@@ -197,6 +199,11 @@ class ChainManager:
         return False
 
     def _add_block(self, block, ignore_duplicate=False, batch=None):
+        block_size_limit = self.state.get_block_size_limit(block)
+        if block_size_limit and block.size > block_size_limit:
+            logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
+            return False
+
         if not self._pre_check(block, ignore_duplicate):
             return False
 
@@ -209,11 +216,6 @@ class ChainManager:
         return False
 
     def add_block(self, block: Block) -> bool:
-        # FIXME: Ensure that the chain is in memory
-        if block.size > config.dev.block_size_limit:
-            logger.info('Block Size greater than threshold limit %s > %s', block.size, config.dev.block_size_limit)
-            return False
-
         batch = None
         if self._add_block(block, batch=batch):
             self.update_child_metadata(block.headerhash, batch)
@@ -289,9 +291,6 @@ class ChainManager:
             self.state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
             block = self.state.get_block(block.prev_headerhash)
             block_number_mapping = self.state.get_block_number_mapping(block.block_number)
-
-    def get_block_by_headerhash(self, headerhash) -> Optional[Block]:
-        return self.state.get_block_by_headerhash(headerhash)
 
     def get_block_by_number(self, block_number) -> Optional[Block]:
         return self.state.get_block_by_number(block_number)
