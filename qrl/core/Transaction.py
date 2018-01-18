@@ -25,6 +25,10 @@ class Transaction(object, metaclass=ABCMeta):
             self._data = qrl_pb2.Transaction()
 
     @property
+    def size(self):
+        return self._data.ByteSize()
+
+    @property
     def pbdata(self):
         """
         Returns a protobuf object that contains persistable data representing this object

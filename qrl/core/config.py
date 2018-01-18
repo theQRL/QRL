@@ -128,6 +128,12 @@ class DevConfig(object):
         self.wallet_dat_filename = 'wallet.qrl'
         self.slave_dat_filename = 'slave.qrl'
 
+        # ======================================
+        #       SIZE  LIMITATION (in bytes)
+        # ======================================
+        self.block_size_limit = 1024 * 1024         # 1 MB
+        self.transaction_size_limit = 1024 * 50     # 50 KB
+
     @staticmethod
     def getInstance():
         if DevConfig.__instance is None:

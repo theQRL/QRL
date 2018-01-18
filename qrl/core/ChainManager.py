@@ -210,6 +210,10 @@ class ChainManager:
 
     def add_block(self, block: Block) -> bool:
         # FIXME: Ensure that the chain is in memory
+        if block.size > config.dev.block_size_limit:
+            logger.info('Block Size greater than threshold limit %s > %s', block.size, config.dev.block_size_limit)
+            return False
+
         batch = None
         if self._add_block(block, batch=batch):
             self.update_child_metadata(block.headerhash, batch)
