@@ -3,12 +3,11 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import Mock, mock
+from mock import mock
 
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Miner import Miner
 from qrl.core.State import State
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
 

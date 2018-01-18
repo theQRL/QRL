@@ -2,24 +2,24 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
-from mock import Mock, mock
-from pyqrllib.kyber import Kyber
-from pyqrllib.dilithium import Dilithium
 
-from qrl.crypto.xmss import XMSS
+from mock import mock
+from pyqrllib.dilithium import Dilithium
+from pyqrllib.kyber import Kyber
+
 from qrl.core import config
-from qrl.core.misc import logger
-from qrl.core.ChainManager import ChainManager
-from qrl.core.Miner import Miner
 from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import LatticePublicKey
+from qrl.core.misc import logger
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel, \
-                              set_data_dir
 from tests.misc.EphemeralPayload import EphemeralChannelPayload
 from tests.misc.aes import AES
+from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel
+from tests.misc.helper import set_data_dir
 
 logger.initialize_default()
 
