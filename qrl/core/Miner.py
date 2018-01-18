@@ -108,9 +108,15 @@ class Miner(Qryptominer):
         for address in addresses_set:
             addresses_state[address] = self.state.get_address(address)
 
+        block_size = qrl_pb2.Block().ByteSize()
+        block_size_limit = config.dev.block_size_limit
         txnum = 0
         while txnum < total_txn:
             tx = t_pool2[txnum]
+            # Skip Transactions for later, which doesn't fit into block
+            if block_size + tx.size > block_size_limit:
+                txnum += 1
+                continue
             if tx.ots_key_reuse(addresses_state[tx.txfrom], tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1

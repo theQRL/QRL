@@ -20,6 +20,10 @@ class Block(object):
         self.blockheader = BlockHeader(self._data.header)
 
     @property
+    def size(self):
+        return self._data.ByteSize()
+
+    @property
     def pbdata(self):
         """
         Returns a protobuf object that contains persistable data representing this object
