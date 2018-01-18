@@ -3,11 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import Optional
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
+from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper
 
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.BlockMetadata import BlockMetadata
-from qrl.core.Miner import Miner
 from qrl.core.misc import logger, ntp
 from qrl.core import config
 from qrl.core.Block import Block
@@ -23,15 +22,12 @@ class ChainManager:
         self.last_block = GenesisBlock()
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
         self.current_target = None  # TODO: Not needed, replace all reference to local variable
-        self.miner = None
+
+        self.trigger_miner = False
 
     @property
     def height(self):
         return self.last_block.block_number
-
-    def set_miner(self, miner):
-        self.miner = miner
-        self.miner.set_state(self.state)
 
     def get_last_block(self) -> Block:
         return self.last_block
@@ -39,6 +35,15 @@ class ChainManager:
     def get_cumulative_difficulty(self):
         last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
         return last_block_metadata.cumulative_difficulty
+
+    @staticmethod
+    def calc_difficulty(timestamp, parent_timestamp, parent_difficulty):
+        ph = PoWHelper()
+        current_difficulty = ph.getDifficulty(timestamp=timestamp,
+                                              parent_timestamp=parent_timestamp,
+                                              parent_difficulty=parent_difficulty)
+        current_target = ph.getBoundary(current_difficulty)
+        return current_difficulty, current_target
 
     def load(self, genesis_block):
         height = self.state.get_mainchain_height()
@@ -50,9 +55,9 @@ class ChainManager:
             self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
             parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-            self.current_difficulty, self.current_target = Miner.calc_difficulty(genesis_block.timestamp,
-                                                                                 genesis_block.timestamp-60,
-                                                                                 parent_difficulty)
+            self.current_difficulty, self.current_target = self.calc_difficulty(genesis_block.timestamp,
+                                                                                genesis_block.timestamp - 60,
+                                                                                parent_difficulty)
             block_metadata = BlockMetadata.create()
 
             block_metadata.set_orphan(False)
@@ -68,9 +73,9 @@ class ChainManager:
         parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
         parent_block = self.state.get_block(block.prev_headerhash)
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
-        diff, target = self.miner.calc_difficulty(block.timestamp,
-                                                  parent_block.timestamp,
-                                                  parent_metadata.block_difficulty)
+        diff, target = self.calc_difficulty(block.timestamp,
+                                            parent_block.timestamp,
+                                            parent_metadata.block_difficulty)
         if enable_logging:
             logger.debug('-----------------START--------------------')
             logger.debug('Validate #%s', block.block_number)
@@ -81,7 +86,7 @@ class ChainManager:
             logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
             logger.debug('-------------------END--------------------')
 
-        if not self.miner.verifyInput(input_bytes, target):
+        if not PoWHelper.verifyInput(input_bytes, target):
             if enable_logging:
                 logger.warning("PoW verification failed")
                 logger.warning("{}".format(self.miner.calc_hash(input_bytes)))
@@ -121,7 +126,7 @@ class ChainManager:
             if tx.subtype == qrl_pb2.Transaction.COINBASE:
                 return False
 
-            if not tx.validate():   # TODO: Move this validation, before adding txn to pool
+            if not tx.validate():  # TODO: Move this validation, before adding txn to pool
                 return False
 
             if not tx.validate_extended(address_txn[tx.txfrom], self.tx_pool.transaction_pool):
@@ -164,7 +169,7 @@ class ChainManager:
 
         return False
 
-    def _try_branch_add_block(self, block, batch=None, mining_enabled=config.user.mining_enabled) -> bool:
+    def _try_branch_add_block(self, block, batch=None) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
         address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
@@ -177,6 +182,7 @@ class ChainManager:
             last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
             new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
 
+            self.trigger_miner = False
             if new_block_difficulty > last_block_difficulty:
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
@@ -185,32 +191,33 @@ class ChainManager:
                 self.state.update_mainchain_height(block.block_number, batch)
                 self.state.update_tx_metadata(block, batch)
 
-                if mining_enabled:
-                    self.mine_next(block)
+                self.trigger_miner = True
+
             return True
 
         return False
 
-    def _add_block(self, block, ignore_duplicate=False, batch=None, mining_enabled=config.user.mining_enabled):
+    def _add_block(self, block, ignore_duplicate=False, batch=None):
         if not self._pre_check(block, ignore_duplicate):
             return False
 
         if self._try_orphan_add_block(block, batch):
             return True
 
-        if self._try_branch_add_block(block, batch, mining_enabled):
+        if self._try_branch_add_block(block, batch):
             return True
 
         return False
 
-    def add_block(self, block: Block, mining_enabled=config.user.mining_enabled) -> bool:
+    def add_block(self, block: Block) -> bool:
+        # FIXME: Ensure that the chain is in memory
         batch = None
-        if self._add_block(block, batch=batch, mining_enabled=mining_enabled):
-            self.update_child_metadata(block.headerhash, batch, mining_enabled)
+        if self._add_block(block, batch=batch):
+            self.update_child_metadata(block.headerhash, batch)
             return True
         return False
 
-    def update_child_metadata(self, headerhash, batch, mining_enabled):
+    def update_child_metadata(self, headerhash, batch):
         block_metadata = self.state.get_block_metadata(headerhash)
 
         childs = list(block_metadata.child_headerhashes)
@@ -220,7 +227,7 @@ class ChainManager:
             block = self.state.get_block(child_headerhash)
             if not block:
                 continue
-            if not self._add_block(block, True, batch, mining_enabled):
+            if not self._add_block(block, True, batch):
                 self._prune([block.headerhash], batch=batch)
                 continue
             block_metadata = self.state.get_block_metadata(child_headerhash)
@@ -247,10 +254,14 @@ class ChainManager:
             if parent_block:
                 parent_block_difficulty = parent_metadata.block_difficulty
                 parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
-                block_difficulty, _ = Miner.calc_difficulty(block_timestamp, parent_block.timestamp, parent_block_difficulty)
+
+                block_difficulty, _ = self.calc_difficulty(block_timestamp,
+                                                           parent_block.timestamp,
+                                                           parent_block_difficulty)
+
                 block_cumulative_difficulty = StringToUInt256(str(
-                                                              int(UInt256ToString(block_difficulty)) +
-                                                              int(UInt256ToString(parent_cumulative_difficulty))))
+                    int(UInt256ToString(block_difficulty)) +
+                    int(UInt256ToString(parent_cumulative_difficulty))))
 
         block_metadata = self.state.get_block_metadata(headerhash)
         if not block_metadata:
@@ -265,11 +276,9 @@ class ChainManager:
 
     def update_mainchain(self, block, batch):
         current_time = int(ntp.getTime())
-        self.current_difficulty, self.current_target = Miner.calc_difficulty(current_time,
-                                                                             block.timestamp,
-                                                                             self.current_difficulty)
-        self.miner.debug_diff = self.current_difficulty
-        self.miner.debug_targ = self.current_target
+        self.current_difficulty, self.current_target = self.calc_difficulty(current_time,
+                                                                            block.timestamp,
+                                                                            self.current_difficulty)
         block_number_mapping = None
         while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
             block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
@@ -286,11 +295,6 @@ class ChainManager:
 
     def get_state(self, headerhash):
         return self.state.get_state(headerhash, set())
-
-    def mine_next(self, parent_block):
-        parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
-        logger.info('Mining Block #%s', self.last_block.block_number+1)
-        self.miner.start_mining(self.tx_pool, parent_block, parent_metadata.block_difficulty)
 
     def get_address(self, address):
         return self.state.get_address(address)

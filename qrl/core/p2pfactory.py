@@ -148,7 +148,7 @@ class P2PFactory(ServerFactory):
 
         # FIXME: This check should not be necessary
         if block.block_number > self.chain_height:
-            if not self._chain_manager.add_block(block, mining_enabled=False):
+            if not self._chain_manager.add_block(block):
                 logger.warning('Failed to Add Block')
                 return
 

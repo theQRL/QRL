@@ -2,24 +2,24 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
-from mock import Mock, mock
-from pyqrllib.kyber import Kyber
-from pyqrllib.dilithium import Dilithium
 
-from qrl.crypto.xmss import XMSS
+from mock import mock
+from pyqrllib.dilithium import Dilithium
+from pyqrllib.kyber import Kyber
+
 from qrl.core import config
-from qrl.core.misc import logger
-from qrl.core.ChainManager import ChainManager
-from qrl.core.Miner import Miner
 from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import LatticePublicKey
+from qrl.core.misc import logger
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel, \
-                              set_data_dir
 from tests.misc.EphemeralPayload import EphemeralChannelPayload
 from tests.misc.aes import AES
+from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel
+from tests.misc.helper import set_data_dir
 
 logger.initialize_default()
 
@@ -38,11 +38,7 @@ class TestEphemeral(TestCase):
             with State() as state:
                 with set_wallet_dir("test_wallet"):
                     alice_xmss = get_alice_xmss()
-                    miner = Miner(pre_block_logic=Mock(),
-                                  mining_xmss=alice_xmss)
-
                     chain_manager = ChainManager(state)
-                    chain_manager.set_miner(miner)
 
                     alice_xmss = get_alice_xmss()
                     slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
@@ -85,7 +81,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block1, False):
                                 tmp_block1.set_mining_nonce(tmp_block1.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block1, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block1)
                             self.assertTrue(res)
 
                             # Need to move forward the time to align with block times
@@ -134,7 +130,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block2, False):
                                 tmp_block2.set_mining_nonce(tmp_block2.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block2, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block2)
                             self.assertTrue(res)
 
                             # Need to move forward the time to align with block times
@@ -151,7 +147,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block3, False):
                                 tmp_block3.set_mining_nonce(tmp_block3.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block3, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block3)
                             self.assertTrue(res)
 
                             time_mock.return_value += config.dev.minimum_minting_delay
@@ -167,7 +163,7 @@ class TestEphemeral(TestCase):
                             while not chain_manager.validate_mining_nonce(tmp_block4, False):
                                 tmp_block4.set_mining_nonce(tmp_block4.mining_nonce+1)
 
-                            res = chain_manager.add_block(block=tmp_block4, mining_enabled=False)
+                            res = chain_manager.add_block(block=tmp_block4)
                             self.assertTrue(res)
 
                             address_state = chain_manager.get_address(random_xmss1.get_address())

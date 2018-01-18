@@ -4,6 +4,7 @@
 from unittest import TestCase
 
 from mock import Mock, MagicMock
+from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core.misc import logger
 from qrl.core.ESyncState import ESyncState
@@ -64,9 +65,21 @@ class TestNode(TestCase):
         chain_manager = Mock()
         chain_manager.height = 0
         chain_manager.get_block = MagicMock(return_value=GenesisBlock())
+        chain_manager.last_block = GenesisBlock()
+        chain_manager.tx_pool = Mock()
+        chain_manager.tx_pool.transaction_pool = []
+
+        get_block_metadata_response = Mock()
+        get_block_metadata_response.block_difficulty = StringToUInt256('2')
+        chain_manager.state.get_block_metadata = MagicMock(return_value=get_block_metadata_response)
 
         p2p_factory = Mock()
         sync_state = Mock()
+
+        get_address_response = Mock()
+        get_address_response.nonce = 1
+        sync_state.get_address = MagicMock(return_value=get_address_response)
+
         time_provider = Mock()
 
         node = POW(chain_manager=chain_manager,
