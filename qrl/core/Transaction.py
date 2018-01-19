@@ -699,16 +699,23 @@ class TokenTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
+        owner_processed = False
+        txfrom_processed = False
         for initial_balance in self.initial_balances:
+            if initial_balance.address == self.owner:
+                owner_processed = True
+            if initial_balance.address == self.txfrom:
+                txfrom_processed = True
             if initial_balance.address in addresses_state:
                 addresses_state[initial_balance.address].tokens[bin2hstr(self.txhash).encode()] += initial_balance.amount
                 addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
-        if self.owner in addresses_state:
+        if self.owner in addresses_state and not owner_processed:
             addresses_state[self.owner].transaction_hashes.append(self.txhash)
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= self.fee
             addresses_state[self.txfrom].increase_nonce()
-            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            if not txfrom_processed:
+                addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
             self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
