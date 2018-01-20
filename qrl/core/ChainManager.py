@@ -218,6 +218,9 @@ class ChainManager:
     def add_block(self, block: Block) -> bool:
         batch = self.state.get_batch()
         if self._add_block(block, batch=batch):
+            self.state.write_batch(batch)
+
+            batch = self.state.get_batch()
             self.update_child_metadata(block.headerhash, batch)
             self.state.write_batch(batch)
             return True
