@@ -23,14 +23,14 @@ class TestQryptominer(TestCase):
                 self._solution_lock = threading.Lock()
                 self.nonce = None
 
-            def start(self, threads):
+            def start(self, input, nonceOffset, target, threads):
                 self.cancel()
                 try:
                     self._solution_lock.release()
                 except RuntimeError:
                     pass
                 self._solution_lock.acquire(blocking=False)
-                super().start(threads)
+                super().start(input, nonceOffset, target, threads)
 
             def wait_for_solution(self):
                 self._solution_lock.acquire(blocking=True)
@@ -63,10 +63,10 @@ class TestQryptominer(TestCase):
         input_bytes = [0, 0, 0, 6, 186, 155, 236, 133, 247, 194, 196, 56, 208, 139, 175, 190, 149, 30, 119, 56, 146,
                        137, 223, 27, 167, 199, 76, 131, 237, 152, 160, 251, 168, 78, 77, 181]
         custom_qminer = CustomQMiner()
-        custom_qminer.setInput(input=input_bytes,
-                               nonceOffset=0,
-                               target=new_target)
-        custom_qminer.start(2)
+        custom_qminer.start(input=input_bytes,
+                            nonceOffset=0,
+                            target=new_target,
+                            threads=2)
         custom_qminer.wait_for_solution()
 
         print(custom_qminer.nonce)

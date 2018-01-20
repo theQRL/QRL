@@ -58,9 +58,6 @@ class Miner(Qryptominer):
                                                                       parent_difficulty)
 
             input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
-            self.setInput(input=input_bytes,
-                          nonceOffset=nonce_offset,
-                          target=current_target)
             logger.debug('=================START====================')
             logger.debug('Mine #%s', self._mining_block.block_number)
             logger.debug('block.timestamp %s', self._mining_block.timestamp)
@@ -69,7 +66,10 @@ class Miner(Qryptominer):
             logger.debug('input_bytes %s', UInt256ToString(input_bytes))
             logger.debug('diff : %s | target : %s', UInt256ToString(current_difficulty), current_target)
             logger.debug('===================END====================')
-            self.start(thread_count=thread_count)
+            self.start(input=input_bytes,
+                       nonceOffset=nonce_offset,
+                       target=current_target,
+                       thread_count=thread_count)
         except Exception as e:
             logger.warning("Exception in start_mining")
             logger.exception(e)
