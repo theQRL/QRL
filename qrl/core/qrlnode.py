@@ -5,6 +5,8 @@ import time
 from decimal import Decimal
 from typing import Optional, List
 
+from twisted.internet import reactor
+
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.node import POW, SyncState
 from qrl.core import config
@@ -42,6 +44,7 @@ class QRLNode:
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
         self._pow = None
+        reactor.callLater(10, self.monitor_chain_state)
 
     ####################################################
     ####################################################
@@ -133,6 +136,18 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
+
+    def monitor_chain_state(self):
+        self.peer_manager.monitor_chain_state()
+
+        last_block = self._chain_manager.get_last_block()
+        block_metadata = self.db_state.get_block_metadata(last_block.headerhash)
+        node_chain_state = qrl_pb2.NodeChainState(block_number=last_block.block_number,
+                                                  header_hash=last_block.headerhash,
+                                                  cumulative_difficulty=bytes(block_metadata.cumulative_difficulty),
+                                                  timestamp=int(time.time()))
+        self.peer_manager.broadcast_chain_state(node_chain_state=node_chain_state)
+        reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
     # FIXME: REMOVE. This is temporary
     def set_chain(self, chain_manager: ChainManager):
