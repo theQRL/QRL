@@ -95,8 +95,6 @@ class TestChainManager(TestCase):
         """
         with set_data_dir('no_data'):
             with State() as state:              # FIXME: Move state to temporary directory
-                alice_xmss = get_alice_xmss()
-
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
                 chain_manager.load(genesis_block)

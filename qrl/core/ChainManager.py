@@ -176,7 +176,7 @@ class ChainManager:
 
         if self.validate_block(block, address_txn):
             self.state.put_block(block, batch)
-            self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
+            self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
 
             last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
             new_block_metadata = self.state.get_block_metadata(block.headerhash)
@@ -216,10 +216,15 @@ class ChainManager:
         return False
 
     def add_block(self, block: Block) -> bool:
-        batch = None
+        batch = self.state.get_batch()
         if self._add_block(block, batch=batch):
+            self.state.write_batch(batch)
+
+            batch = self.state.get_batch()
             self.update_child_metadata(block.headerhash, batch)
+            self.state.write_batch(batch)
             return True
+
         return False
 
     def update_child_metadata(self, headerhash, batch):
