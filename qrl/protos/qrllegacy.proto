@@ -12,7 +12,7 @@ message LegacyMessage {
     enum FuncName {
         VE = 0;         // Version
         PL = 1;         // Peers List
-        PONG = 2;       // Pong
+        PONG = 2;       // Pong TODO: Obsolete
 
         MR = 3;         // Message received
         SFM = 4;        // Send Full Message
@@ -32,6 +32,7 @@ message LegacyMessage {
         TK = 17;        // Token Transaction
         TT = 18;        // Transfer Token Transaction
         SYNC = 19;      // Add into synced list, if the node replies
+        CHAINSTATE = 20;    // Chain State
     }
 
     FuncName func_name = 1;
@@ -57,6 +58,7 @@ message LegacyMessage {
         Transaction ltData = 19;
         EncryptedEphemeralMessage ephData = 20;
         SYNCData syncData = 21;
+        NodeChainState chainStateData = 22;
     }
 }
 

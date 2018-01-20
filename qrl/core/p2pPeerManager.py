@@ -2,10 +2,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from enum import Enum
-from threading import Timer
 
 import time
-
 import os
 
 from typing import Callable
@@ -28,8 +26,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._disconnect_callLater = None
         self._channels = []
 
-        self._ping_timestamp = dict()
-        self._ping_timer = None
+        self._peer_node_status = dict()
 
         self._peer_addresses = set()
         self.peers_path = os.path.join(config.user.data_dir,
@@ -38,9 +35,6 @@ class P2PPeerManager(P2PBaseObserver):
         self._observable = Observable(self)
 
         self._p2pfactory = None
-
-        # Start health check monitoring
-        self.periodic_health_check()
 
     def register(self, message_type: EventType, func: Callable):
         self._observable.register(message_type, func)
@@ -89,10 +83,13 @@ class P2PPeerManager(P2PBaseObserver):
 
     def new_channel(self, channel):
         self._channels.append(channel)
-
+        self._peer_node_status[channel] = qrl_pb2.NodeChainState(block_number=0,
+                                                                 header_hash=b'',
+                                                                 cumulative_difficulty=b'\x00',
+                                                                 timestamp=int(time.time()))
         channel.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
         channel.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
-        channel.register(qrllegacy_pb2.LegacyMessage.PONG, self.handle_pong)
+        channel.register(qrllegacy_pb2.LegacyMessage.CHAINSTATE, self.handle_chain_state)
         channel.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
 
     def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -150,39 +147,30 @@ class P2PPeerManager(P2PBaseObserver):
                 source.factory.set_peer_synced(source, False)
 
     @staticmethod
-    def send_ping(dest_channel):
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PONG)
+    def send_node_chain_state(dest_channel, node_chain_state: qrl_pb2.NodeChainState):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.CHAINSTATE,
+                                          chainStateData=node_chain_state)
         dest_channel.send(msg)
-        # logger.debug('<<<< PING [%18s]', dest_channel.connection_id)
 
-    def periodic_health_check(self):
+    def monitor_chain_state(self):
+        current_timestamp = time.time()
+        for channel in self._channels:
+            delta = current_timestamp - self._peer_node_status[channel].timestamp
+            if delta > config.user.chain_state_timeout:
+                del self._peer_node_status[channel]
+                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.connection_id, delta)
+                channel.loseConnection()
+
+    def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
         # TODO: Verify/Disconnect problematic channels
         # Ping all channels
         for channel in self._channels:
-
-            current_timestamp = time.time()
-            if channel not in self._ping_timestamp:
-                self._ping_timestamp[channel] = current_timestamp
-
-            delta = current_timestamp - self._ping_timestamp[channel]
-            if delta > config.user.ping_timeout:
-                self._ping_timestamp.pop(channel, None)
-                logger.debug('>>>> PING [%18s] %2.2f (TIMEOUT)', channel.connection_id, delta)
-                channel.loseConnection()
-            else:
-                self.send_ping(channel)
+            self.send_node_chain_state(channel, node_chain_state)
 
         self._observable.notify(ObservableEvent(self.EventType.NO_PEERS))
 
-        # FIXME: This may result in time drift
-        self._ping_timer = Timer(config.user.ping_period, self.periodic_health_check)
-        self._ping_timer.daemon = True
-        self._ping_timer.start()
+    def handle_chain_state(self, source, message: qrllegacy_pb2.LegacyMessage):
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.CHAINSTATE)
 
-    def handle_pong(self, source, message: qrllegacy_pb2.LegacyMessage):
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PONG)
-
-        # current_timestamp = time.time()
-        # delta = current_timestamp - self._ping_timestamp.get(source, current_timestamp)
-        # logger.debug('>>>> PONG [%18s] %2.2f', source.connection_id, delta)
-        self._ping_timestamp.pop(source, None)
+        message.chainStateData.timestamp = int(time.time())  # Receiving time
+        self._peer_node_status[source] = message.chainStateData

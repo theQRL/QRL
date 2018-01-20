@@ -37,8 +37,8 @@ class UserConfig(object):
                           '45.77.88.205']
 
         self.max_peers_limit = 100  # Number of allowed peers
-        self.ping_timeout = 180
-        self.ping_period = 10
+        self.chain_state_timeout = 180
+        self.chain_state_broadcast_period = 30
         # must be less than ping_timeout
 
         self.qrl_dir = os.path.join(expanduser("~"), ".qrl")
