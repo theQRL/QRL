@@ -17,6 +17,12 @@ class TransactionPool:
         self.pending_tx_pool_hash = []
         self.transaction_pool = []  # FIXME: Everyone is touching this
 
+    def is_full_transaction_pool(self) -> bool:
+        if len(self.transaction_pool) >= config.dev.transaction_pool_size:
+            return True
+
+        return False
+
     def update_pending_tx_pool(self, tx, peer):
         if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
             del self.pending_tx_pool[0]
@@ -26,8 +32,12 @@ class TransactionPool:
         self.pending_tx_pool.append([tx, peer])
         self.pending_tx_pool_hash.append(tx.txhash)
 
-    def add_tx_to_pool(self, tx_class_obj):
+    def add_tx_to_pool(self, tx_class_obj) -> bool:
+        if self.is_full_transaction_pool():
+            return False
+
         self.transaction_pool.append(tx_class_obj)
+        return True
 
     def remove_tx_from_pool(self, tx_class_obj):
         self.transaction_pool.remove(tx_class_obj)
