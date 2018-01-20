@@ -270,12 +270,14 @@ class QRLNode:
         if tx is None:
             raise ValueError("The transaction was empty")
 
-        if tx.subtype == qrl_pb2.Transaction.LATTICE:
-            self._p2pfactory.broadcast_lt(tx)
-        elif tx.subtype in (qrl_pb2.Transaction.TRANSFER,
-                            qrl_pb2.Transaction.MESSAGE,
-                            qrl_pb2.Transaction.TOKEN,
-                            qrl_pb2.Transaction.TRANSFERTOKEN):
+        if self._chain_manager.tx_pool.is_full_transaction_pool():
+            raise ValueError("Transaction Pool is full")
+
+        if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
+                          qrl_pb2.Transaction.LATTICE,
+                          qrl_pb2.Transaction.MESSAGE,
+                          qrl_pb2.Transaction.TOKEN,
+                          qrl_pb2.Transaction.TRANSFERTOKEN):
             tx.validate_or_raise()
 
             tx_state = self._chain_manager.get_address(tx.txfrom)
