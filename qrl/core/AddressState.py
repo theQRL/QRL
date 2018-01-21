@@ -77,7 +77,7 @@ class AddressState(object):
                                        dilithium_pk=lattice_txn.dilithium_pk,
                                        kyber_pk=lattice_txn.kyber_pk)
 
-        self._data.latticePK_list.MergeFrom([lattice_pk])
+        self._data.latticePK_list.extend([lattice_pk])
 
     def increase_nonce(self):
         self._data.nonce += 1
