@@ -63,6 +63,8 @@ class P2PProtocol(Protocol):
                      self.factory.connections)
 
         self.factory.remove_connection(self)
+        if self.peer_manager:
+            self.peer_manager.remove_channel(self)
 
     def dataReceived(self, data: bytes) -> None:
         self._buffer += data

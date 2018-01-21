@@ -81,6 +81,11 @@ class P2PPeerManager(P2PBaseObserver):
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
+    def remove_channel(self, channel):
+        self._channels.remove(channel)
+        if channel in self._peer_node_status:
+            del self._peer_node_status[channel]
+
     def new_channel(self, channel):
         self._channels.append(channel)
         self._peer_node_status[channel] = qrl_pb2.NodeChainState(block_number=0,
@@ -155,6 +160,9 @@ class P2PPeerManager(P2PBaseObserver):
     def monitor_chain_state(self):
         current_timestamp = time.time()
         for channel in self._channels:
+            if channel not in self._peer_node_status:
+                channel.loseConnection()
+                continue
             delta = current_timestamp - self._peer_node_status[channel].timestamp
             if delta > config.user.chain_state_timeout:
                 del self._peer_node_status[channel]
