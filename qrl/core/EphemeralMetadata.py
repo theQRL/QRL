@@ -29,7 +29,7 @@ class EphemeralMetadata:
         for raw_encrypted_ephemeral in self.encrypted_ephemeral_message_list:
             if EncryptedEphemeralMessage(raw_encrypted_ephemeral).get_message_hash() == target_hash:
                 return
-        self._data.encrypted_ephemeral_message_list.MergeFrom([encrypted_ephemeral.pbdata])
+        self._data.encrypted_ephemeral_message_list.extend([encrypted_ephemeral.pbdata])
 
     @staticmethod
     def from_json(json_data):
