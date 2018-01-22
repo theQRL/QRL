@@ -37,7 +37,6 @@ class TestEphemeral(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 with set_wallet_dir("test_wallet"):
-                    alice_xmss = get_alice_xmss()
                     chain_manager = ChainManager(state)
 
                     alice_xmss = get_alice_xmss()
@@ -66,7 +65,8 @@ class TestEphemeral(TestCase):
                                                                              fee=1,
                                                                              kyber_pk=random_kyber1.getPK(),
                                                                              dilithium_pk=random_dilithium1.getPK(),
-                                                                             xmss_pk=random_xmss1.pk())
+                                                                             xmss_pk=random_xmss1.pk(),
+                                                                             xmss_ots_index=random_xmss1.get_index())
                             lattice_public_key_txn._data.nonce = 1
                             lattice_public_key_txn.sign(random_xmss1)
 

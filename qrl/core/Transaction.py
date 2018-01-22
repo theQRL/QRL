@@ -59,8 +59,12 @@ class Transaction(object, metaclass=ABCMeta):
 
     @property
     def ots_key(self):
+        return self._data.xmss_ots_index
+
+    @staticmethod
+    def get_ots_from_signature(signature):
         try:
-            return int(bin2hstr(self._data.signature)[0:8], 16)
+            return int(bin2hstr(signature)[0:8], 16)
         except ValueError:
             raise ValueError('OTS Key Index: First 4 bytes of signature are invalid')
 
@@ -71,6 +75,10 @@ class Transaction(object, metaclass=ABCMeta):
     @property
     def signature(self):
         return self._data.signature
+
+    @property
+    def xmss_ots_index(self):
+        return self._data.xmss_ots_index
 
     @staticmethod
     def tx_id_to_name(idarg):
@@ -199,6 +207,9 @@ class Transaction(object, metaclass=ABCMeta):
         if not isinstance(self, CoinBase) and getAddress('Q', self.PK) != self.txfrom.decode():
             raise ValueError('Public key and address dont match')
 
+        if self.xmss_ots_index != self.get_ots_from_signature(self.signature):
+            raise ValueError('xmss_ots_index and siganture ots index doesnt match')
+
         if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
                                                        signature=self.signature,
                                                        pk=self.PK):
@@ -219,9 +230,7 @@ class Transaction(object, metaclass=ABCMeta):
                  str(self.subtype).encode() +
                  self.addr_from +
                  str(self.fee).encode() +
-                 self.PK +
-                 self.signature +
-                 str(self.nonce).encode()
+                 str(self.xmss_ots_index).encode()
                )
 
 
@@ -251,7 +260,7 @@ class TransferTransaction(Transaction):
                                             )
 
     @staticmethod
-    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk):
+    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk, xmss_ots_index):
         transaction = TransferTransaction()
 
         transaction._data.addr_from = addr_from
@@ -260,6 +269,7 @@ class TransferTransaction(Transaction):
         transaction._data.transfer.addr_to = addr_to
         transaction._data.transfer.amount = int(amount)  # FIXME: Review conversions for quantities
         transaction._data.fee = int(fee)  # FIXME: Review conversions for quantities
+        transaction._data.xmss_ots_index = xmss_ots_index
 
         transaction._set_txhash()
 
@@ -366,6 +376,7 @@ class CoinBase(Transaction):
 
         transaction._data.addr_from = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
         transaction._data.fee = 0
+        transaction._data.xmss_ots_index = xmss.get_index()
         transaction._data.public_key = bytes(xmss.pk())
 
         transaction._data.coinbase.addr_to = xmss.get_address()
@@ -430,11 +441,12 @@ class LatticePublicKey(Transaction):
         )
 
     @staticmethod
-    def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk):
+    def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk, xmss_ots_index):
         transaction = LatticePublicKey()
 
         transaction._data.addr_from = addr_from
         transaction._data.fee = fee
+        transaction._data.xmss_ots_index = xmss_ots_index
         transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = bytes(kyber_pk)
@@ -504,12 +516,13 @@ class MessageTransaction(Transaction):
                                             )
 
     @staticmethod
-    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes):
+    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes, xmss_ots_index: int):
         transaction = MessageTransaction()
 
         transaction._data.addr_from = addr_from
         transaction._data.message.message_hash = message_hash
         transaction._data.fee = fee
+        transaction._data.xmss_ots_index = xmss_ots_index
 
         transaction._data.public_key = xmss_pk
         transaction._set_txhash()
@@ -617,7 +630,8 @@ class TokenTransaction(Transaction):
                decimals: int,
                initial_balances: list,
                fee: int,
-               xmss_pk):
+               xmss_pk: bytes,
+               xmss_ots_index: int):
         transaction = TokenTransaction()
 
         transaction._data.addr_from = addr_from
@@ -632,6 +646,7 @@ class TokenTransaction(Transaction):
             transaction._data.token.initial_balances.extend([initial_balance])
 
         transaction._data.fee = int(fee)
+        transaction._data.xmss_ots_index = xmss_ots_index
 
         transaction._set_txhash()
 
@@ -760,7 +775,8 @@ class TransferTokenTransaction(Transaction):
                addr_to: bytes,
                amount: int,
                fee: int,
-               xmss_pk):
+               xmss_pk: bytes,
+               xmss_ots_index: int):
         transaction = TransferTokenTransaction()
 
         transaction._data.addr_from = addr_from
@@ -770,6 +786,7 @@ class TransferTokenTransaction(Transaction):
         transaction._data.transfer_token.addr_to = addr_to
         transaction._data.transfer_token.amount = amount
         transaction._data.fee = int(fee)
+        transaction._data.xmss_ots_index = xmss_ots_index
 
         transaction._set_txhash()
 
