@@ -287,7 +287,7 @@ class QRLNode:
                                           xmss_pk=xmss_pk)
 
     # FIXME: Rename this appropriately
-    def submit_send_tx(self, tx: TransferTransaction) -> bool:
+    def submit_send_tx(self, tx) -> bool:
         if tx is None:
             raise ValueError("The transaction was empty")
 

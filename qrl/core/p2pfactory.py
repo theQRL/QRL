@@ -187,6 +187,7 @@ class P2PFactory(ServerFactory):
             self._last_requested_block_idx = None
             self._target_node_header_hash = None
             self._target_peer = None
+            self._syncing_enabled = False
             return True
 
         return False
