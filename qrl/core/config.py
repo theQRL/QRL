@@ -97,7 +97,7 @@ class DevConfig(object):
         ################################################################
 
         self.public_ip = None
-        self.reorg_limit = 7 * 1024  # 7 days * 1024 blocks per day
+        self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour
         self.cache_frequency = 1000
 
         self.message_q_size = 300
