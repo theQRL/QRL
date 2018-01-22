@@ -255,7 +255,8 @@ class QRLNode:
                                        decimals,
                                        initial_balances,
                                        fee,
-                                       xmss_pk)
+                                       xmss_pk,
+                                       xmss_ots_index)
 
     @staticmethod
     def create_transfer_token_txn(addr_from: bytes,
