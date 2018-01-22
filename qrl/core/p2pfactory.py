@@ -304,7 +304,7 @@ class P2PFactory(ServerFactory):
             legacy_type = qrllegacy_pb2.LegacyMessage.LT
         else:
             raise ValueError('Invalid Transaction Type')
-        self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.to_json())
+        self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.pbdata)
 
     def broadcast_ephemeral_message(self, encrypted_ephemeral):
         logger.info('<<<Broadcasting Encrypted Ephemeral Message')
