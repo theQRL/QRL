@@ -345,6 +345,8 @@ class State:
                 break
             hash_path.append(header_hash)
             header_hash = block.prev_headerhash
+            if block.block_number == 0:
+                break
 
         for header_hash in hash_path[-1::-1]:
             block = self.get_block(header_hash)
