@@ -249,8 +249,9 @@ def wallet_secret(ctx, wallet_idx):
 @click.option('--amount', default=0, type=float, prompt=True, help='amount to transfer (Quanta)')
 @click.option('--fee', default=0, type=float, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
+@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
-def tx_prepare(ctx, src, dst, amount, fee, pk):
+def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
     """
     Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
     """
@@ -258,8 +259,10 @@ def tx_prepare(ctx, src, dst, amount, fee, pk):
         address_src, src_xmss = _select_wallet(ctx, src)
         if src_xmss:
             address_src_pk = src_xmss.pk()
+            address_src_otsidx = src_xmss.get_index()
         else:
             address_src_pk = pk.encode()
+            address_src_otsidx = int(otsidx)
 
         address_dst = dst.encode()
         amount_shor = int(amount * 1.e9)
@@ -275,7 +278,8 @@ def tx_prepare(ctx, src, dst, amount, fee, pk):
                                                 address_to=address_dst,
                                                 amount=amount_shor,
                                                 fee=fee_shor,
-                                                xmss_pk=address_src_pk)
+                                                xmss_pk=address_src_pk,
+                                                xmss_ots_index=address_src_otsidx)
 
     try:
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
@@ -381,6 +385,7 @@ def tx_transfer(ctx, src, dst, amount, fee):
             quit(1)
 
         address_src_pk = src_xmss.pk()
+        address_src_otsidx = src_xmss.get_index()
         address_dst = dst.encode()
         # FIXME: This could be problematic. Check
         amount_shor = int(amount * 1.e9)
@@ -396,7 +401,8 @@ def tx_transfer(ctx, src, dst, amount, fee):
                                                     address_to=address_dst,
                                                     amount=amount_shor,
                                                     fee=fee_shor,
-                                                    xmss_pk=address_src_pk)
+                                                    xmss_pk=address_src_pk,
+                                                    xmss_ots_index=address_src_otsidx)
 
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
@@ -446,6 +452,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk()
         src_xmss.set_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.get_index()
         address_owner = owner.encode()
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e9)
@@ -464,7 +471,8 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
                                      decimals=decimals,
                                      initial_balances=initial_balances,
                                      fee=fee_shor,
-                                     xmss_pk=address_src_pk)
+                                     xmss_pk=address_src_pk,
+                                     xmss_ots_index=address_src_otsidx)
 
         tx.sign(src_xmss)
 
@@ -480,9 +488,9 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 @click.option('--src', default='', prompt=True, help='source QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
 @click.option('--dst', default='', prompt=True, help='Destination QRL address')
-@click.option('--amount', default=0.0, prompt=True, help='amount')
+@click.option('--amount', default=0, prompt=True, help='amount')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
-@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key_index):
@@ -502,6 +510,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
 
         address_src_pk = src_xmss.pk()
         src_xmss.set_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.get_index()
         address_dst = dst.encode()
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
@@ -520,7 +529,8 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
                                              addr_to=address_dst,
                                              amount=amount,
                                              fee=fee_shor,
-                                             xmss_pk=address_src_pk)
+                                             xmss_pk=address_src_pk,
+                                             xmss_ots_index=address_src_otsidx)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
