@@ -61,7 +61,8 @@ class PublicAPIService(PublicAPIServicer):
                                          addr_to=request.address_to,
                                          amount=request.amount,
                                          fee=request.fee,
-                                         xmss_pk=request.xmss_pk)
+                                         xmss_pk=request.xmss_pk,
+                                         xmss_ots_index=request.xmss_ots_index)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -87,7 +88,8 @@ class PublicAPIService(PublicAPIServicer):
                                            decimals=request.decimals,
                                            initial_balances=request.initial_balances,
                                            fee=request.fee,
-                                           xmss_pk=request.xmss_pk)
+                                           xmss_pk=request.xmss_pk,
+                                           xmss_ots_index=request.xmss_ots_index)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -100,7 +102,8 @@ class PublicAPIService(PublicAPIServicer):
                                                     token_txhash=bin_token_txhash,
                                                     amount=request.amount,
                                                     fee=request.fee,
-                                                    xmss_pk=request.xmss_pk)
+                                                    xmss_pk=request.xmss_pk,
+                                                    xmss_ots_index=request.xmss_ots_index)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 

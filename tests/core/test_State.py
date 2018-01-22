@@ -96,7 +96,8 @@ class TestState(TestCase):
                                                                              addr_to=alice_xmss.get_address(),
                                                                              amount=100000000,
                                                                              fee=1,
-                                                                             xmss_pk=bob_xmss.pk())
+                                                                             xmss_pk=bob_xmss.pk(),
+                                                                             xmss_ots_index=bob_xmss.get_index())
 
                 state.update_token_metadata(transfer_token_transaction)
 
