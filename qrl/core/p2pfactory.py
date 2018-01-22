@@ -38,12 +38,16 @@ class P2PFactory(ServerFactory):
         self._qrl_node = qrl_node
         self._chain_manager = chain_manager
 
+        self._syncing_enabled = False
+        self._target_peer = None
+        self._target_node_header_hash = None
+        self._last_requested_block_idx = None
+
         self._genesis_processed = False
         self._peer_connections = []
         self._synced_peers_protocol = set()
         self._txn_processor_running = False
 
-        self._last_requested_block_idx = None
         self.peer_blockheight = dict()
 
     ###################################################
@@ -130,60 +134,102 @@ class P2PFactory(ServerFactory):
     def get_last_block(self):
         return self._chain_manager.get_last_block()
 
+    def get_headerhashes(self):
+        return self._chain_manager.get_headerhashes()
+
     def get_cumulative_difficulty(self):
         return self._chain_manager.get_cumulative_difficulty()
 
     def get_block(self, block_number):
         return self._chain_manager.get_block_by_number(block_number)
 
-    def block_received(self, block: Block):
+    def block_received(self, source, block: Block):
         self.pow.last_pb_time = time.time()
         logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))
+
+        if source != self._target_peer:
+            logger.warning('Received block from unexpected peer')
+            logger.warning('Expected peer: %s', self._target_peer.connection_id)
+            logger.warning('Found peer: %s', source.connection_id)
+            return
 
         if block.block_number != self._last_requested_block_idx:
             logger.warning('Did not match %s', self._last_requested_block_idx)
             return
 
-        self._last_requested_block_idx = None
+        target_start_blocknumber = self._target_node_header_hash.block_number
+        expected_headerhash = self._target_node_header_hash.headerhashes[block.block_number - target_start_blocknumber]
+        if block.headerhash != expected_headerhash:
+            logger.warning('Did not match headerhash')
+            logger.warning('Expected headerhash %s', expected_headerhash)
+            logger.warning('Found headerhash %s', block.headerhash)
+            return
 
         # FIXME: This check should not be necessary
-        if block.block_number > self.chain_height:
-            if not self._chain_manager.add_block(block):
-                logger.warning('Failed to Add Block')
-                return
+        if not self._chain_manager.add_block(block):
+            logger.warning('Failed to Add Block')
+            return
 
         try:
             reactor.download_monitor.cancel()
         except Exception as e:
             logger.warning("PB: %s", e)
 
-        self.randomize_block_fetch()  # NOTE: Get next block
-
-    def randomize_block_fetch(self):
-        if self.sync_state.state != ESyncState.syncing:
+        if self.is_syncing_finished():
             return
 
-        if self.sync_state.state == ESyncState.syncing:
-            block = self._chain_manager.get_last_block()
-            block_timestamp = block.timestamp
-            if self.pow.isSynced(block_timestamp):
+        self._last_requested_block_idx += 1
+        self.peer_fetch_block()
+
+    def is_syncing_finished(self):
+        last_blocknum = self._target_node_header_hash.block_number + len(self._target_node_header_hash.headerhashes) - 1
+        if self._last_requested_block_idx == last_blocknum:
+            self._last_requested_block_idx = None
+            self._target_node_header_hash = None
+            self._target_peer = None
+            return True
+
+        return False
+
+    def peer_fetch_block(self, retry=0):
+        node_header_hash = self._target_node_header_hash
+        block_headerhash = node_header_hash.headerhashes[self._last_requested_block_idx-node_header_hash.block_number]
+        block = self._chain_manager.state.get_block(block_headerhash)
+        if not block:
+            if retry >= 5:
+                logger.debug('Retry Limit Hit')
+                self._syncing_enabled = False
                 return
+        else:
+            if self.is_syncing_finished():
+                return
+            self._last_requested_block_idx += 1
+            retry = 0
+        self._target_peer.send_fetch_block(self._last_requested_block_idx)
+        reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry+1)
 
-        if self.connections == 0:
-            logger.warning('No connected peers. Moving to synced state')
-            self.pow.update_node_state(ESyncState.synced)
+    def compare_and_sync(self, peer, node_header_hash: qrl_pb2.NodeHeaderHash):
+        if self._syncing_enabled:
+            logger.info('>> Ignoring compare_and_sync Syncing Enabled')
             return
-
-        reactor.download_monitor = reactor.callLater(20, self.randomize_block_fetch)
-
-        random_peer = self.get_random_peer()
-        if not random_peer:
-            self.pow.update_node_state(ESyncState.synced)
+        last_block = self._chain_manager.get_last_block()
+        last_block_number = node_header_hash.block_number + len(node_header_hash.headerhashes) - 1
+        last_block_number = min(last_block.block_number, last_block_number)
+        if last_block_number < node_header_hash.block_number:
             return
-        block_index = self._chain_manager.height + 1
+        fork_block_number = None
+        for i in range(last_block_number, node_header_hash.block_number - 1, -1):
+            block = self._chain_manager.get_block_by_number(i)
+            if block.headerhash == node_header_hash.headerhashes[i-node_header_hash.block_number]:
+                break
+            fork_block_number = i
 
-        self._last_requested_block_idx = block_index
-        random_peer.send_fetch_block(block_index)
+        if fork_block_number:
+            self._target_peer = peer
+            self._target_node_header_hash = node_header_hash
+            self._last_requested_block_idx = fork_block_number
+            self._syncing_enabled = True
+            self.peer_fetch_block()
 
     ###################################################
     ###################################################

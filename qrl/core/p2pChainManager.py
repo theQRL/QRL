@@ -12,6 +12,7 @@ class P2PChainManager(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
         channel.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
         channel.register(qrllegacy_pb2.LegacyMessage.BH, self.handle_block_height)
+        channel.register(qrllegacy_pb2.LegacyMessage.HEADERHASHES, self.handle_node_headerhash)
 
     def handle_fetch_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
         """
@@ -46,7 +47,7 @@ class P2PChainManager(P2PBaseObserver):
 
         try:
             block = Block(message.pbData.block)
-            source.factory.block_received(block)
+            source.factory.block_received(source, block)
 
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', source.peer_ip)
@@ -75,3 +76,19 @@ class P2PChainManager(P2PBaseObserver):
                                                    message.bhData.block_number,
                                                    message.bhData.block_headerhash,
                                                    message.bhData.cumulative_difficulty)
+
+    def handle_node_headerhash(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Sends/Receives NodeHeaderHashes
+        :param source:
+        :param message:
+        :return:
+        """
+
+        if len(message.nodeHeaderHash.headerhashes) == 0:
+            node_headerhash = source.factory.get_headerhashes()
+            msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.HEADERHASHES,
+                                              nodeHeaderHash=node_headerhash)
+            source.send(msg)
+        else:
+            source.factory.compare_and_sync(source, message.nodeHeaderHash)
