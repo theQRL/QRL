@@ -23,14 +23,14 @@ class TestQryptominer(TestCase):
                 self._solution_lock = threading.Lock()
                 self.nonce = None
 
-            def start(self, input, nonceOffset, target, threads):
+            def start(self, input, nonceOffset, target, thread_count):
                 self.cancel()
                 try:
                     self._solution_lock.release()
                 except RuntimeError:
                     pass
                 self._solution_lock.acquire(blocking=False)
-                super().start(input, nonceOffset, target, threads)
+                super().start(input, nonceOffset, target, thread_count)
 
             def wait_for_solution(self):
                 self._solution_lock.acquire(blocking=True)
@@ -43,30 +43,46 @@ class TestQryptominer(TestCase):
 
         block_timestamp = 1515443508
         parent_block_timestamp = 1515443508
-        parent_difficulty = (
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4)
-        new_diff, new_target = Miner.calc_difficulty(block_timestamp, parent_timestamp=parent_block_timestamp,
+
+        parent_difficulty = (0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 0,
+                             0, 0, 0, 0, 0, 0, 0, 4)
+
+        new_diff, new_target = Miner.calc_difficulty(block_timestamp,
+                                                     parent_timestamp=parent_block_timestamp,
                                                      parent_difficulty=parent_difficulty)
-        self.assertEqual(new_diff, (
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6))
+        self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 0,
+                                    0, 0, 0, 0, 0, 0, 0, 4))
+
         self.assertEqual(new_target, (
-            42, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170,
-            170, 170, 170, 170, 170, 170, 170, 170, 170, 170))
+            64, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0))
 
         block_json = read_data_file('core/example_block_mining.json')
 
         block = Block.from_json(block_json)
         self.assertEqual(tuple(block.mining_hash), (
-            186, 155, 236, 133, 247, 194, 196, 56, 208, 139, 175, 190, 149, 30, 119, 56, 146, 137, 223, 27, 167, 199,
-            76,
-            131, 237, 152, 160, 251, 168, 78, 77, 181))
-        input_bytes = [0, 0, 0, 6, 186, 155, 236, 133, 247, 194, 196, 56, 208, 139, 175, 190, 149, 30, 119, 56, 146,
-                       137, 223, 27, 167, 199, 76, 131, 237, 152, 160, 251, 168, 78, 77, 181]
+            186, 155, 236, 133, 247, 194, 196, 56,
+            208, 139, 175, 190, 149, 30, 119, 56,
+            146, 137, 223, 27, 167, 199, 76, 131,
+            237, 152, 160, 251, 168, 78, 77, 181))
+
+        input_bytes = [0, 0, 0, 6, 186, 155, 236, 133,
+                       247, 194, 196, 56, 208, 139, 175,
+                       190, 149, 30, 119, 56, 146, 137, 223,
+                       27, 167, 199, 76, 131, 237, 152,
+                       160, 251, 168, 78, 77, 181]
+
         custom_qminer = CustomQMiner()
         custom_qminer.start(input=input_bytes,
                             nonceOffset=0,
                             target=new_target,
-                            threads=2)
+                            thread_count=2)
         custom_qminer.wait_for_solution()
 
         print(custom_qminer.nonce)

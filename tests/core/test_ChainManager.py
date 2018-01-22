@@ -51,7 +51,10 @@ class TestChainManager(TestCase):
                                            transactions=[],
                                            signing_xmss=alice_xmss,
                                            nonce=1)
-                    block_1.set_mining_nonce(10)
+
+                    while not chain_manager.validate_mining_nonce(block_1, False):
+                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
+
                     result = chain_manager.add_block(block_1)
 
                 self.assertTrue(result)
@@ -65,7 +68,10 @@ class TestChainManager(TestCase):
                                          transactions=[],
                                          signing_xmss=bob_xmss,
                                          nonce=1)
-                    block.set_mining_nonce(15)
+
+                    while not chain_manager.validate_mining_nonce(block, False):
+                        block.set_mining_nonce(block.mining_nonce + 1)
+
                     result = chain_manager.add_block(block)
 
                 self.assertTrue(result)
@@ -82,7 +88,10 @@ class TestChainManager(TestCase):
                                            transactions=[],
                                            signing_xmss=bob_xmss,
                                            nonce=2)
-                    block_2.set_mining_nonce(21)
+
+                    while not chain_manager.validate_mining_nonce(block_2, False):
+                        block_2.set_mining_nonce(block_2.mining_nonce + 1)
+
                     result = chain_manager.add_block(block_2)
 
                 self.assertTrue(result)
@@ -111,7 +120,10 @@ class TestChainManager(TestCase):
                                            transactions=[],
                                            signing_xmss=alice_xmss,
                                            nonce=1)
-                    block_1.set_mining_nonce(10)
+
+                    while not chain_manager.validate_mining_nonce(block_1, False):
+                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
+
                     result = chain_manager.add_block(block_1)
 
                 self.assertTrue(result)
@@ -128,7 +140,8 @@ class TestChainManager(TestCase):
                                          signing_xmss=bob_xmss,
                                          nonce=1)
 
-                    block.set_mining_nonce(15)
+                    while not chain_manager.validate_mining_nonce(block, False):
+                        block.set_mining_nonce(block.mining_nonce + 1)
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1815270948     # Very high to get an easy difficulty
@@ -138,7 +151,9 @@ class TestChainManager(TestCase):
                                            transactions=[],
                                            signing_xmss=bob_xmss,
                                            nonce=2)
-                    block_2.set_mining_nonce(15)
+
+                    while not chain_manager.validate_mining_nonce(block_2, False):
+                        block_2.set_mining_nonce(block_2.mining_nonce + 1)
 
                 result = chain_manager.add_block(block_2)
 

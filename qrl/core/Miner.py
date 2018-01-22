@@ -29,9 +29,12 @@ class Miner(Qryptominer):
 
     @staticmethod
     def calc_difficulty(timestamp, parent_timestamp, parent_difficulty):
-        ph = PoWHelper()
+        ph = PoWHelper(kp=100,
+                       set_point=60)
+
+        ph.clearTimestamps()
+        ph.addTimestamp(parent_timestamp)
         current_difficulty = ph.getDifficulty(timestamp=timestamp,
-                                              parent_timestamp=parent_timestamp,
                                               parent_difficulty=parent_difficulty)
         current_target = ph.getBoundary(current_difficulty)
         return current_difficulty, current_target
