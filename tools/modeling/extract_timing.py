@@ -27,12 +27,15 @@ with open(filename, 'w') as f:
 
         boundary = ph.getBoundary(difficulty)
         delta = block.blockheader.timestamp - prev_timestamp
-        f.write("{},{},{},{},{},{}\n".format(i,
-                                             block.blockheader.timestamp,
-                                             prev_timestamp,
-                                             delta,
-                                             UInt256ToString(difficulty),
-                                             UInt256ToString(boundary)))
+
+        outs = "{},{},{},{},{},{}\n".format(i,
+                                            block.blockheader.timestamp,
+                                            prev_timestamp,
+                                            delta,
+                                            UInt256ToString(difficulty),
+                                            UInt256ToString(boundary))
+
+        f.write(outs)
 
         difficulty = ph.getDifficulty(block.blockheader.timestamp, prev_timestamp, difficulty)
         difficulty = StringToUInt256(str(max(2, int(UInt256ToString(difficulty)))))

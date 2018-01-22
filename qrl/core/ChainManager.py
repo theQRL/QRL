@@ -39,8 +39,8 @@ class ChainManager:
     @staticmethod
     def calc_difficulty(timestamp, parent_timestamp, parent_difficulty):
         ph = PoWHelper()
+        ph.addTimestamp(parent_timestamp)
         current_difficulty = ph.getDifficulty(timestamp=timestamp,
-                                              parent_timestamp=parent_timestamp,
                                               parent_difficulty=parent_difficulty)
         current_target = ph.getBoundary(current_difficulty)
         return current_difficulty, current_target
@@ -73,6 +73,7 @@ class ChainManager:
         parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
         parent_block = self.state.get_block(block.prev_headerhash)
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
+
         diff, target = self.calc_difficulty(block.timestamp,
                                             parent_block.timestamp,
                                             parent_metadata.block_difficulty)

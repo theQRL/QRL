@@ -11,6 +11,6 @@ service_identity
 protobuf
 pyopenssl>=17.3.0
 pyqrllib>=0.4.1
-pyqryptonight>=0.2.0
+pyqryptonight>=0.5.0
 six>=1.9
 click==6.7
