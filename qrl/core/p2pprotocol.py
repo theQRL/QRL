@@ -182,3 +182,8 @@ class P2PProtocol(Protocol):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
+
+    def get_headerhash_list(self):
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.HEADERHASHES,
+                                          nodeHeaderHash=None)
+        self.send(msg)

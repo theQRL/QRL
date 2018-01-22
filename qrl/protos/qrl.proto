@@ -485,3 +485,8 @@ message NodeChainState {
     bytes cumulative_difficulty = 3;
     uint64 timestamp = 4;
 }
+
+message NodeHeaderHash {
+    uint64 block_number = 1;
+    repeated bytes headerhashes = 2;
+}

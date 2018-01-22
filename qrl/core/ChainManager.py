@@ -154,6 +154,7 @@ class ChainManager:
             return False
 
         if (not ignore_duplicate) and self.state.get_block(block.headerhash):  # Duplicate block check
+            logger.info('Duplicate block %s %s', block.block_number, bin2hstr(block.headerhash))
             return False
 
         return True
@@ -205,6 +206,7 @@ class ChainManager:
             return False
 
         if not self._pre_check(block, ignore_duplicate):
+            logger.debug('Failed pre_check')
             return False
 
         if self._try_orphan_add_block(block, batch):
@@ -312,3 +314,13 @@ class ChainManager:
                 return [tx, None]
 
         return self.state.get_tx_metadata(transaction_hash)
+
+    def get_headerhashes(self):
+        start_blocknumber = max(0, self.last_block.block_number - 10000)
+        node_header_hash = qrl_pb2.NodeHeaderHash()
+        node_header_hash.block_number = start_blocknumber
+        for i in range(start_blocknumber, self.last_block.block_number + 1):
+            block = self.state.get_block_by_number(i)
+            node_header_hash.headerhashes.append(block.headerhash)
+
+        return node_header_hash

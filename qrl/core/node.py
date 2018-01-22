@@ -124,7 +124,7 @@ class POW(ConsensusMechanism):
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
     def initialize_pow(self):
-        reactor.callLater(1, self._handler_state_unsynced)
+        reactor.callLater(30, self.update_node_state, ESyncState.synced)
 
     ##############################################
     ##############################################
@@ -178,11 +178,13 @@ class POW(ConsensusMechanism):
     ##############################################
 
     def pre_block_logic(self, block: Block):
+        logger.debug('Checking miner lock')
         with self._miner_lock:
+            logger.debug('Inside add_block')
             if not self.chain_manager.add_block(block):
-                logger.info('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
+                logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
                 return
-
+            logger.debug('Checking trigger_miner %s', self.chain_manager.trigger_miner)
             if self.chain_manager.trigger_miner:                # FIXME: Check with Cyyber
                 self.mine_next(block)
 

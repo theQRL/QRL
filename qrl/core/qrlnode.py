@@ -146,7 +146,13 @@ class QRLNode:
                                                   header_hash=last_block.headerhash,
                                                   cumulative_difficulty=bytes(block_metadata.cumulative_difficulty),
                                                   timestamp=int(time.time()))
+
         self.peer_manager.broadcast_chain_state(node_chain_state=node_chain_state)
+        channel = self.peer_manager.get_better_difficulty(block_metadata.cumulative_difficulty)
+        logger.debug('Got better difficulty %s', channel)
+        if channel:
+            logger.debug('Connection id >> %s', channel.connection_id)
+            channel.get_headerhash_list()
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
     # FIXME: REMOVE. This is temporary

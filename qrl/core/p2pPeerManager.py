@@ -8,6 +8,7 @@ import os
 
 from typing import Callable
 
+from pyqryptonight.pyqryptonight import UInt256ToString
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.notification.Observable import Observable
@@ -81,6 +82,21 @@ class P2PPeerManager(P2PBaseObserver):
         with open(self.peers_path, "wb") as outfile:
             outfile.write(known_peers.SerializeToString())
 
+    def get_better_difficulty(self, current_cumulative_difficulty):
+        best_cumulative_difficulty = int(UInt256ToString(current_cumulative_difficulty))
+        local_best = best_cumulative_difficulty
+        best_channel = None
+
+        for channel in self._peer_node_status:
+            node_chain_state = self._peer_node_status[channel]
+            node_cumulative_difficulty = int(UInt256ToString(node_chain_state.cumulative_difficulty))
+            if node_cumulative_difficulty > best_cumulative_difficulty:
+                best_cumulative_difficulty = node_cumulative_difficulty
+                best_channel = channel
+        logger.debug('Local Best Diff : %s', local_best)
+        logger.debug('Remote Best Diff : %s', best_cumulative_difficulty)
+        return best_channel
+
     def remove_channel(self, channel):
         self._channels.remove(channel)
         if channel in self._peer_node_status:
@@ -90,7 +106,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._channels.append(channel)
         self._peer_node_status[channel] = qrl_pb2.NodeChainState(block_number=0,
                                                                  header_hash=b'',
-                                                                 cumulative_difficulty=b'\x00',
+                                                                 cumulative_difficulty=b'\x00'*32,
                                                                  timestamp=int(time.time()))
         channel.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
         channel.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
