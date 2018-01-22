@@ -220,9 +220,9 @@ class Transaction(object, metaclass=ABCMeta):
                  self.addr_from +
                  str(self.fee).encode() +
                  self.PK +
-                 self.signature +
-                 str(self.nonce).encode()
+                 self.signature
                )
+        # Nonce not included as, nonce is assigned by the block creator
 
 
 class TransferTransaction(Transaction):
