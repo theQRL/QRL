@@ -291,7 +291,20 @@ class P2PFactory(ServerFactory):
     # NOTE: PoW related.. broadcasting, etc. OBSOLETE
     def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.TX, tx.get_message_hash(), tx.to_json())
+
+        if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+            legacy_type = qrllegacy_pb2.LegacyMessage.MT
+        elif tx.subtype == qrl_pb2.Transaction.TRANSFER:
+            legacy_type = qrllegacy_pb2.LegacyMessage.TX
+        elif tx.subtype == qrl_pb2.Transaction.TOKEN:
+            legacy_type = qrllegacy_pb2.LegacyMessage.TK
+        elif tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+            legacy_type = qrllegacy_pb2.LegacyMessage.TT
+        elif tx.subtype == qrl_pb2.Transaction.LATTICE:
+            legacy_type = qrllegacy_pb2.LegacyMessage.LT
+        else:
+            raise ValueError('Invalid Transaction Type')
+        self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.to_json())
 
     def broadcast_ephemeral_message(self, encrypted_ephemeral):
         logger.info('<<<Broadcasting Encrypted Ephemeral Message')
