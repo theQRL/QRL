@@ -176,7 +176,7 @@ class ChainManager:
         address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
         if self.validate_block(block, address_txn):
-            self.state.put_block(block, batch)
+            self.state.put_block(block, None)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
 
             last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
