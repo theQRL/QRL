@@ -494,3 +494,7 @@ message NodeHeaderHash {
     uint64 block_number = 1;
     repeated bytes headerhashes = 2;
 }
+
+message P2PAcknowledgement {
+    uint32 bytes_processed = 1;
+}

@@ -11,6 +11,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
+from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
@@ -49,6 +50,35 @@ class P2PFactory(ServerFactory):
         self._txn_processor_running = False
 
         self.peer_blockheight = dict()
+
+        self.p2p_msg_priority = {
+            qrllegacy_pb2.LegacyMessage.VE: 0,
+            qrllegacy_pb2.LegacyMessage.PL: 0,
+            qrllegacy_pb2.LegacyMessage.PONG: 0,
+
+            ######################
+            qrllegacy_pb2.LegacyMessage.MR: 2,
+            qrllegacy_pb2.LegacyMessage.SFM: 1,
+
+            qrllegacy_pb2.LegacyMessage.BK: 1,
+            qrllegacy_pb2.LegacyMessage.FB: 1,
+            qrllegacy_pb2.LegacyMessage.PB: 1,
+            qrllegacy_pb2.LegacyMessage.BH: 1,
+
+            ############################
+            qrllegacy_pb2.LegacyMessage.TX: 1,
+            qrllegacy_pb2.LegacyMessage.MT: 1,
+            qrllegacy_pb2.LegacyMessage.TK: 1,
+            qrllegacy_pb2.LegacyMessage.TT: 1,
+            qrllegacy_pb2.LegacyMessage.LT: 1,
+
+            qrllegacy_pb2.LegacyMessage.EPH: 3,
+
+            qrllegacy_pb2.LegacyMessage.SYNC: 0,
+            qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
+            qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
+            qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
+        }
 
     ###################################################
     ###################################################
@@ -289,6 +319,28 @@ class P2PFactory(ServerFactory):
     ##############################################
     ##############################################
     # NOTE: PoW related.. broadcasting, etc. OBSOLETE
+
+    def reset_processor_flag(self, _):
+        self._txn_processor_running = False
+
+    def reset_processor_flag_with_err(self, msg):
+        logger.error('Exception in txn task')
+        logger.error('%s', msg)
+        self._txn_processor_running = False
+
+    def add_unprocessed_txn(self, tx, ip):
+        self._chain_manager.tx_pool.update_pending_tx_pool(tx, ip)
+
+        if not self._txn_processor_running:
+            txn_processor = TxnProcessor(state=self._chain_manager.state,
+                                         transaction_pool_obj=self._chain_manager.tx_pool,
+                                         broadcast_tx=self.broadcast_tx)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+            task_defer.addCallback(self.reset_processor_flag) \
+                .addErrback(self.reset_processor_flag_with_err)
+            self._txn_processor_running = True
+
     def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
 

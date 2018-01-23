@@ -52,6 +52,9 @@ class UserConfig(object):
 
         self.load_yaml(self.config_path)
 
+        self.p2p_q_size = 1000
+        self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
+
     @staticmethod
     def getInstance():
         if UserConfig.__instance is None:
@@ -90,7 +93,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'PoW'
+        self.genesis_prev_headerhash = b'PoW-alpha-1'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -140,6 +143,13 @@ class DevConfig(object):
         # SHOR PER QUANTA / MAX ALLOWED DECIMALS
         # ======================================
         self.shor_per_quanta = 10 ** 9
+
+        # ======================================
+        #            P2P SETTINGS
+        # ======================================
+        self.max_receivable_bytes = 10 * 1024 * 1024           # 10 MB [Temporary Restriction]
+        self.reserved_quota = 1024                      # 1 KB
+        self.max_bytes_out = self.max_receivable_bytes - self.reserved_quota
 
     @staticmethod
     def getInstance():

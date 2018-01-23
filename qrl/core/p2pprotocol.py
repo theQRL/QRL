@@ -2,14 +2,17 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import struct
+from queue import PriorityQueue
 from typing import Callable
 
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
 from qrl.core.misc import logger
+from qrl.core import config
+from qrl.core.OutgoingMessage import OutgoingMessage
 from qrl.core.p2pObservable import P2PObservable
-from qrl.generated import qrllegacy_pb2
+from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
 # Rename to p2p channel
@@ -22,6 +25,9 @@ class P2PProtocol(Protocol):
         self.peer_manager = None
         self.p2pchain_manager = None
         self.tx_manager = None
+
+        self.bytes_sent = 0
+        self.outgoing_queue = PriorityQueue(maxsize=config.user.p2p_q_size)
 
     @property
     def peer_ip(self):
@@ -68,11 +74,52 @@ class P2PProtocol(Protocol):
 
     def dataReceived(self, data: bytes) -> None:
         self._buffer += data
-        for msg in self._parse_buffer():
+        total_read = len(self._buffer)
+
+        if total_read > config.dev.max_bytes_out:
+            logger.warning('Disconnecting peer %s', self.peer_ip)
+            logger.warning('Buffer Size %s', len(self._buffer))
+            self.loseConnection()
+
+        read_bytes = [0]
+
+        for msg in self._parse_buffer(read_bytes):
             self._observable.notify(msg)
 
+        if read_bytes[0]:
+            p2p_ack = qrl_pb2.P2PAcknowledgement(bytes_processed=read_bytes[0])
+            msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.P2P_ACK,
+                                              p2pAckData=p2p_ack)
+            self.send(msg)
+
+    def send_next(self):
+        if self.bytes_sent < config.dev.max_bytes_out:
+            outgoing_bytes = self.get_bytes_from_q()
+
+            if outgoing_bytes:
+                self.bytes_sent += len(outgoing_bytes)
+                self.transport.write(outgoing_bytes)
+
+    def get_bytes_from_q(self):
+        outgoing_bytes = b''
+        while not self.outgoing_queue.empty():
+            outgoing_msg = self.outgoing_queue.get()[2]
+            if not outgoing_msg.is_expired():
+                wrapped_message = self._wrap_message(outgoing_msg.message)
+                if len(wrapped_message) + len(outgoing_bytes) > config.dev.max_bytes_out:
+                    self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
+                    break
+                outgoing_bytes += wrapped_message
+
+        return outgoing_bytes
+
     def send(self, message: qrllegacy_pb2.LegacyMessage):
-        self.transport.write(self._wrap_message(message))
+        priority = self.factory.p2p_msg_priority[message.func_name]
+        outgoing_msg = OutgoingMessage(priority, message)
+        if self.outgoing_queue.full():
+            return
+        self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
+        self.send_next()
 
     def loseConnection(self):
         self.transport.loseConnection()
@@ -102,14 +149,14 @@ class P2PProtocol(Protocol):
         str_data_len = struct.pack('>L', len(data))
         return str_data_len + data
 
-    def _parse_buffer(self):
+    def _parse_buffer(self, total_read):
         # FIXME: This parsing/wire protocol needs to be replaced
         """
         >>> from pyqrllib.pyqrllib import hstr2bin
         >>> p=P2PProtocol()
         >>> p._buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'+ \
                                        '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-        >>> messages = p._parse_buffer()
+        >>> messages = p._parse_buffer([0])
         >>> len(list(messages))
         2
         """
@@ -136,6 +183,7 @@ class P2PProtocol(Protocol):
                 logger.warning("Problem parsing message. Skipping")
             finally:
                 self._buffer = self._buffer[4 + chunk_size:]
+                total_read[0] += 4 + chunk_size
 
     ###################################################
     ###################################################

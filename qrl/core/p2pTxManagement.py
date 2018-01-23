@@ -80,18 +80,6 @@ class P2PTxManagement(P2PBaseObserver):
     ###################################################
     ###################################################
 
-    def process(self, factory, tx):
-        if not tx.validate():
-            return False
-
-        chain_manager = factory._chain_manager
-
-        tx_state = chain_manager.state.get_address(address=tx.txfrom)
-
-        is_valid_state = tx.validate_extended(tx_state=tx_state,
-                                              transaction_pool=chain_manager.tx_pool.transaction_pool)
-        return is_valid_state
-
     def handle_tx(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Transaction
@@ -105,7 +93,7 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        self.process(source.factory, tx)
+        source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_message_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -129,7 +117,7 @@ class P2PTxManagement(P2PBaseObserver):
         if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.process(source.factory, tx)
+        source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -153,7 +141,7 @@ class P2PTxManagement(P2PBaseObserver):
         if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.process(source.factory, tx)
+        source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -177,7 +165,7 @@ class P2PTxManagement(P2PBaseObserver):
         if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.process(source.factory, tx)
+        source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
         """
@@ -251,4 +239,4 @@ class P2PTxManagement(P2PBaseObserver):
         if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
-        self.process(source.factory, tx)
+        source.factory.add_unprocessed_txn(tx, source.peer_ip)
