@@ -99,7 +99,7 @@ class P2PTxManagement(P2PBaseObserver):
         :return:
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
-        tx = Transaction(message.txData)
+        tx = Transaction.from_pbdata(message.txData)
 
         # NOTE: Connects to MR
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
