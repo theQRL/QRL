@@ -136,6 +136,11 @@ class DevConfig(object):
         self.size_multiplier = 1.1
         self.block_min_size_limit = 1024 * 1024         # 1 MB - Initial Block Size Limit
 
+        # ======================================
+        # SHOR PER QUANTA / MAX ALLOWED DECIMALS
+        # ======================================
+        self.shor_per_quanta = 10 ** 9
+
     @staticmethod
     def getInstance():
         if DevConfig.__instance is None:
