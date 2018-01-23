@@ -50,7 +50,7 @@ class TestQryptominer(TestCase):
                              0, 0, 0, 0, 0, 0, 0, 4)
 
         new_diff, new_target = Miner.calc_difficulty(block_timestamp,
-                                                     parent_timestamp=parent_block_timestamp,
+                                                     previous_timestamps=[parent_block_timestamp],
                                                      parent_difficulty=parent_difficulty)
         self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,

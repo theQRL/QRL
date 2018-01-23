@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import copy
-from typing import Optional
+from typing import Optional, List
 
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString, Qryptonight
@@ -28,14 +28,19 @@ class Miner(Qryptominer):
         return input_bytes, nonce_offset
 
     @staticmethod
-    def calc_difficulty(timestamp, parent_timestamp, parent_difficulty):
+    def calc_difficulty(timestamp,
+                        previous_timestamps: List,
+                        parent_difficulty):
         ph = PoWHelper(kp=100,
                        set_point=60)
 
         ph.clearTimestamps()
-        ph.addTimestamp(parent_timestamp)
+        for t in previous_timestamps:
+            ph.addTimestamp(t)
+
         current_difficulty = ph.getDifficulty(timestamp=timestamp,
                                               parent_difficulty=parent_difficulty)
+
         current_target = ph.getBoundary(current_difficulty)
         return current_difficulty, current_target
 
@@ -57,7 +62,7 @@ class Miner(Qryptominer):
                                                    signing_xmss=self._mining_xmss)
 
             current_difficulty, current_target = self.calc_difficulty(self._mining_block.timestamp,
-                                                                      parent_block.timestamp,
+                                                                      [parent_block.timestamp],
                                                                       parent_difficulty)
 
             input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
@@ -101,7 +106,7 @@ class Miner(Qryptominer):
                                    signing_xmss=signing_xmss,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
-        signing_xmss.set_index(signing_xmss.get_index()-1)
+        signing_xmss.set_index(signing_xmss.get_index() - 1)
 
         t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
         del tx_pool.transaction_pool[:]
