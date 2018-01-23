@@ -331,7 +331,7 @@ class P2PFactory(ServerFactory):
     def add_unprocessed_txn(self, tx, ip):
         self._chain_manager.tx_pool.update_pending_tx_pool(tx, ip)
 
-        if not self.factory.txn_processor_running:
+        if not self._txn_processor_running:
             txn_processor = TxnProcessor(state=self._chain_manager.state,
                                          transaction_pool_obj=self._chain_manager.tx_pool,
                                          broadcast_tx=self.broadcast_tx)
