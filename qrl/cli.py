@@ -246,8 +246,8 @@ def wallet_secret(ctx, wallet_idx):
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
 @click.option('--dst', default='', prompt=True, help='destination address')
-@click.option('--amount', default=0, type=float, prompt=True, help='amount to transfer (Quanta)')
-@click.option('--fee', default=0, type=float, prompt=True, help='fee (Quanta)')
+@click.option('--amount', default=0.0, type=float, prompt=True, help='amount to transfer (Quanta)')
+@click.option('--fee', default=0.0, type=float, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
@@ -367,8 +367,8 @@ def tx_push(ctx, txblob):
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
 @click.option('--dst', default='', prompt=True, help='destination QRL address')
-@click.option('--amount', default=0, prompt=True, help='amount to transfer in Quanta')
-@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
+@click.option('--amount', default=0.0, prompt=True, help='amount to transfer in Quanta')
+@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.pass_context
 def tx_transfer(ctx, src, dst, amount, fee):
     """
@@ -423,7 +423,7 @@ def tx_transfer(ctx, src, dst, amount, fee):
 @click.option('--name', default='', prompt=True, help='Token Name')
 @click.option('--owner', default='', prompt=True, help='Owner QRL address')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
-@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
+@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
@@ -488,9 +488,9 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 @click.option('--src', default='', prompt=True, help='source QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
 @click.option('--dst', default='', prompt=True, help='Destination QRL address')
-@click.option('--amount', default=0, prompt=True, help='amount')
+@click.option('--amount', default=0.0, prompt=True, help='amount')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
-@click.option('--fee', default=0, prompt=True, help='fee in Quanta')
+@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key_index):
