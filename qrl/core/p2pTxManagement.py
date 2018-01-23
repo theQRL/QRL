@@ -86,7 +86,7 @@ class P2PTxManagement(P2PBaseObserver):
 
         chain_manager = factory._chain_manager
 
-        tx_state = chain_manager.state.get_stxn_state(addr=tx.txfrom)
+        tx_state = chain_manager.state.get_address(address=tx.txfrom)
 
         is_valid_state = tx.validate_extended(tx_state=tx_state,
                                               transaction_pool=chain_manager.tx_pool.transaction_pool)
