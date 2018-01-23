@@ -104,6 +104,7 @@ class TestChainManager(TestCase):
         """
         with mock.patch('qrl.core.config.DevConfig') as devconfig:
             devconfig.genesis_difficulty = 2
+            devconfig.minimum_minting_delay = 10
             with set_data_dir('no_data'):
                 with State() as state:  # FIXME: Move state to temporary directory
                     genesis_block = GenesisBlock()
@@ -123,6 +124,7 @@ class TestChainManager(TestCase):
                                                transactions=[],
                                                signing_xmss=alice_xmss,
                                                nonce=1)
+                        block_1.set_mining_nonce(10)
 
                         while not chain_manager.validate_mining_nonce(block_1, False):
                             block_1.set_mining_nonce(block_1.mining_nonce + 1)
@@ -142,18 +144,20 @@ class TestChainManager(TestCase):
                                              transactions=[],
                                              signing_xmss=bob_xmss,
                                              nonce=1)
+                        block.set_mining_nonce(18)
 
                         while not chain_manager.validate_mining_nonce(block, False):
                             block.set_mining_nonce(block.mining_nonce + 1)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1615270948 + devconfig.minimum_minting_delay * 2
+                        time_mock.return_value = 1615270948 + devconfig.minimum_minting_delay * 3
                         block_2 = Block.create(mining_nonce=17,
                                                block_number=2,
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                signing_xmss=bob_xmss,
                                                nonce=2)
+                        block_2.set_mining_nonce(17)
 
                     result = chain_manager.add_block(block_2)
                     self.assertTrue(result)

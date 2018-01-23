@@ -4,6 +4,7 @@
 from google.protobuf.json_format import MessageToJson, Parse
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import sha256, merkle_tx_hash
@@ -128,6 +129,26 @@ class Block(object):
         block._data.transactions[0].CopyFrom(coinbase_tx.pbdata)
 
         return block
+
+    def validate(self) -> bool:
+        fee_reward = 0
+        for index in range(1, len(self.transactions)):
+            fee_reward += self.transactions[index].fee
+
+        if len(self.transactions) == 0:
+            return False
+
+        try:
+            coinbase_txn = Transaction.from_pbdata(self.transactions[0])
+            coinbase_amount = coinbase_txn.amount
+        except Exception as e:
+            logger.warning('Exception %s', e)
+            return False
+
+        return self.blockheader.validate(fee_reward, coinbase_amount)
+
+    def validate_parent_child_relation(self, parent_block) -> bool:
+        return self.blockheader.validate_parent_child_relation(parent_block)
 
     def add_transaction(self, tx: Transaction):
         # TODO: Verify something basic here?

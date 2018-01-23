@@ -154,6 +154,9 @@ class ChainManager:
         if block.block_number < 1:
             return False
 
+        if not block.validate():
+            return False
+
         if (not ignore_duplicate) and self.state.get_block(block.headerhash):  # Duplicate block check
             logger.info('Duplicate block %s %s', block.block_number, bin2hstr(block.headerhash))
             return False
@@ -173,6 +176,11 @@ class ChainManager:
         return False
 
     def _try_branch_add_block(self, block, batch=None) -> bool:
+        parent_block = self.state.get_block(block.prev_headerhash)
+        if not block.validate_parent_child_relation(parent_block):
+            logger.warning('Failed to validate blocks parent child relation')
+            return False
+
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
         address_txn = self.state.get_state(block.prev_headerhash, address_set)
 

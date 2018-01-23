@@ -146,21 +146,21 @@ class BlockHeader(object):
         """
         return block_reward_calc(self.block_number)
 
-    def validate(self, last_header):
-        if last_header.block_number != self.block_number - 1:
-            logger.warning('Block numbers out of sequence: failed validation')
-            return False
-
-        if last_header.headerhash != self.prev_blockheaderhash:
-            logger.warning('Headerhash not in sequence: failed validation')
-            return False
-
+    def validate(self, fee_reward, coinbase_amount):
         if self.generate_headerhash() != self.headerhash:
             logger.warning('Headerhash false for block: failed validation')
             return False
 
         if self.block_reward != self.block_reward_calc():
             logger.warning('Block reward incorrect for block: failed validation')
+            return False
+
+        if self.fee_reward != fee_reward:
+            logger.warning('Block Fee reward incorrect for block: failed validation')
+            return False
+
+        if self.block_reward + self.fee_reward != coinbase_amount:
+            logger.warning('Block_reward + fee_reward doesnt sums up to coinbase_amount')
             return False
 
         if self.epoch != self.block_number // config.dev.blocks_per_epoch:
@@ -171,10 +171,21 @@ class BlockHeader(object):
             logger.warning('Invalid block timestamp ')
             return False
 
-        if self.timestamp <= last_header.timestamp:
+        return True
+
+    def validate_parent_child_relation(self, parent_block):
+        if parent_block.block_number != self.block_number - 1:
+            logger.warning('Block numbers out of sequence: failed validation')
+            return False
+
+        if parent_block.headerhash != self.prev_blockheaderhash:
+            logger.warning('Headerhash not in sequence: failed validation')
+            return False
+
+        if self.timestamp <= parent_block.timestamp:
             logger.warning('BLOCK timestamp is less than prev block timestamp')
             logger.warning('block timestamp %s ', self.timestamp)
-            logger.warning('must be greater than %s', last_header.timestamp)
+            logger.warning('must be greater than %s', parent_block.timestamp)
             return False
 
         return True
