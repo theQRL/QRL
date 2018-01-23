@@ -112,6 +112,7 @@ class P2PPeerManager(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
         channel.register(qrllegacy_pb2.LegacyMessage.CHAINSTATE, self.handle_chain_state)
         channel.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
+        channel.register(qrllegacy_pb2.LegacyMessage.P2P_ACK, self.handle_p2p_acknowledgement)
 
     def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -198,3 +199,16 @@ class P2PPeerManager(P2PBaseObserver):
 
         message.chainStateData.timestamp = int(time.time())  # Receiving time
         self._peer_node_status[source] = message.chainStateData
+
+    def handle_p2p_acknowledgement(self, source, message: qrllegacy_pb2.LegacyMessage):
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.P2P_ACK)
+
+        source.bytes_sent -= message.p2pAckData.bytes_processed
+        if source.bytes_sent < 0:
+            logger.warning('Disconnecting Peer %s', source.connection_id)
+            logger.warning('Reason: negative bytes_sent value')
+            logger.warning('bytes_sent %s', source.bytes_sent)
+            logger.warning('Ack bytes_processed %s', message.p2pAckData.bytes_processed)
+            source.loseConnection()
+
+        source.send_next()
