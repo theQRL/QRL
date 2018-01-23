@@ -306,7 +306,7 @@ class QRLNode:
                           qrl_pb2.Transaction.MESSAGE,
                           qrl_pb2.Transaction.TOKEN,
                           qrl_pb2.Transaction.TRANSFERTOKEN):
-            self._p2pfactory.add_unprocessed_txn(tx)
+            self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
 
         return True
 

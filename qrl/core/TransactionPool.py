@@ -23,13 +23,13 @@ class TransactionPool:
 
         return False
 
-    def update_pending_tx_pool(self, tx, peer):
+    def update_pending_tx_pool(self, tx, ip):
         if len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
             del self.pending_tx_pool[0]
             del self.pending_tx_pool_hash[0]
 
         # FIXME: Avoid using indexes, etc
-        self.pending_tx_pool.append([tx, peer])
+        self.pending_tx_pool.append([tx, ip])
         self.pending_tx_pool_hash.append(tx.txhash)
 
     def add_tx_to_pool(self, tx_class_obj) -> bool:

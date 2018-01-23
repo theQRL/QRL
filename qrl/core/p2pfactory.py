@@ -328,8 +328,8 @@ class P2PFactory(ServerFactory):
         logger.error('%s', msg)
         self._txn_processor_running = False
 
-    def add_unprocessed_txn(self, tx):
-        self._chain_manager.tx_pool.update_pending_tx_pool(tx)
+    def add_unprocessed_txn(self, tx, ip):
+        self._chain_manager.tx_pool.update_pending_tx_pool(tx, ip)
 
         if not self.factory.txn_processor_running:
             txn_processor = TxnProcessor(state=self._chain_manager.state,
