@@ -306,15 +306,7 @@ class QRLNode:
                           qrl_pb2.Transaction.MESSAGE,
                           qrl_pb2.Transaction.TOKEN,
                           qrl_pb2.Transaction.TRANSFERTOKEN):
-            tx.validate_or_raise()
-
-            tx_state = self._chain_manager.get_address(tx.txfrom)
-
-            if not tx.validate_extended(tx_state=tx_state,
-                                        transaction_pool=self._chain_manager.tx_pool.transaction_pool):
-                raise ValueError("The transaction failed validation (blockchain state)")
-
-            self._p2pfactory.broadcast_tx(tx)
+            self._p2pfactory.add_unprocessed_txn(tx)
 
         return True
 

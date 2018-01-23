@@ -11,6 +11,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
+from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
@@ -318,9 +319,29 @@ class P2PFactory(ServerFactory):
     ##############################################
     ##############################################
     # NOTE: PoW related.. broadcasting, etc. OBSOLETE
-    def broadcast_tx(self, tx: TransferTransaction):
-        self._chain_manager.tx_pool.add_tx_to_pool(tx)
 
+    def reset_processor_flag(self, _):
+        self._txn_processor_running = False
+
+    def reset_processor_flag_with_err(self, msg):
+        logger.error('Exception in txn task')
+        logger.error('%s', msg)
+        self._txn_processor_running = False
+
+    def add_unprocessed_txn(self, tx):
+        self._chain_manager.tx_pool.update_pending_tx_pool(tx)
+
+        if not self.factory.txn_processor_running:
+            txn_processor = TxnProcessor(state=self._chain_manager.state,
+                                         transaction_pool_obj=self._chain_manager.tx_pool,
+                                         broadcast_tx=self.broadcast_tx)
+
+            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+            task_defer.addCallback(self.reset_processor_flag) \
+                .addErrback(self.reset_processor_flag_with_err)
+            self._txn_processor_running = True
+
+    def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
 
         if tx.subtype == qrl_pb2.Transaction.MESSAGE:

@@ -91,7 +91,7 @@ class P2PTxManagement(P2PBaseObserver):
         is_valid_state = tx.validate_extended(tx_state=tx_state,
                                               transaction_pool=chain_manager.tx_pool.transaction_pool)
         if is_valid_state:
-            factory.broadcast_tx(tx)
+            factory.add_unprocessed_txn(tx)
 
     def handle_tx(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
