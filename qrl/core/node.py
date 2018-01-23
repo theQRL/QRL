@@ -181,12 +181,15 @@ class POW(ConsensusMechanism):
         logger.debug('Checking miner lock')
         with self._miner_lock:
             logger.debug('Inside add_block')
-            if not self.chain_manager.add_block(block):
-                logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
-                return
+            result = self.chain_manager.add_block(block)
+
             logger.debug('Checking trigger_miner %s', self.chain_manager.trigger_miner)
             if self.chain_manager.trigger_miner or not self.miner.isRunning():
                 self.mine_next(self.chain_manager.last_block)
+
+            if not result:
+                logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
+                return
 
             reactor.callLater(0, self.broadcast_block, block)
 
