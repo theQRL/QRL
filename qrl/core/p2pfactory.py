@@ -319,6 +319,8 @@ class P2PFactory(ServerFactory):
     ##############################################
     # NOTE: PoW related.. broadcasting, etc. OBSOLETE
     def broadcast_tx(self, tx: TransferTransaction):
+        self._chain_manager.tx_pool.add_tx_to_pool(tx)
+
         logger.info('<<<Transmitting TX: %s', tx.txhash)
 
         if tx.subtype == qrl_pb2.Transaction.MESSAGE:
