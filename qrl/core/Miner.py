@@ -94,6 +94,15 @@ class Miner(Qryptominer):
         # FIXME: Difference between this and create block?????????????
 
         # FIXME: Break encapsulation
+        dummy_block = Block.create(mining_nonce=mining_nonce,
+                                   block_number=last_block.block_number + 1,
+                                   prevblock_headerhash=last_block.headerhash,
+                                   transactions=[],
+                                   signing_xmss=signing_xmss,
+                                   nonce=0)
+        dummy_block.set_mining_nonce(mining_nonce)
+        signing_xmss.set_index(signing_xmss.get_index()-1)
+
         t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
         del tx_pool.transaction_pool[:]
         ######
@@ -111,13 +120,13 @@ class Miner(Qryptominer):
         for address in addresses_set:
             addresses_state[address] = self.state.get_address(address)
 
-        block_size = qrl_pb2.Block().ByteSize()
+        block_size = dummy_block.size
         block_size_limit = self.state.get_block_size_limit(last_block)
         txnum = 0
         while txnum < total_txn:
             tx = t_pool2[txnum]
             # Skip Transactions for later, which doesn't fit into block
-            if block_size + tx.size > block_size_limit:
+            if block_size + tx.size + config.dev.tx_extra_overhead > block_size_limit:
                 txnum += 1
                 continue
             if tx.ots_key_reuse(addresses_state[tx.txfrom], tx.ots_key):
@@ -198,6 +207,7 @@ class Miner(Qryptominer):
             tx_pool.add_tx_to_pool(tx)
             tx._data.nonce = addresses_state[tx.txfrom].nonce
             txnum += 1
+            block_size += tx.size + config.dev.tx_extra_overhead
 
         coinbase_nonce = self.state.get_address(signing_xmss.get_address()).nonce
         if signing_xmss.get_address() in addresses_state:
