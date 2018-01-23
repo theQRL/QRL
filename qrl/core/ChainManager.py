@@ -1,17 +1,19 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from typing import Optional, List
+from typing import Optional
+
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper, Qryptonight
 
-from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.BlockMetadata import BlockMetadata
-from qrl.core.misc import logger, ntp
 from qrl.core import config
 from qrl.core.Block import Block
+from qrl.core.BlockMetadata import BlockMetadata
+from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import Transaction
 from qrl.core.TransactionPool import TransactionPool
+from qrl.core.misc import logger, ntp
 from qrl.generated import qrl_pb2
 
 
@@ -22,6 +24,7 @@ class ChainManager:
         self.last_block = GenesisBlock()
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
         self.current_target = None  # TODO: Not needed, replace all reference to local variable
+        self._difficulty_tracker = DifficultyTracker()
 
         self.trigger_miner = False
 
@@ -36,22 +39,6 @@ class ChainManager:
         last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
         return last_block_metadata.cumulative_difficulty
 
-    @staticmethod
-    def calc_difficulty(timestamp,
-                        previous_timestamps: List,
-                        parent_difficulty):
-        # Unify this
-        ph = PoWHelper(kp=100,
-                       set_point=60)
-
-        for t in previous_timestamps:
-            ph.addTimestamp(t)
-        current_difficulty = ph.getDifficulty(timestamp=timestamp,
-                                              parent_difficulty=parent_difficulty)
-
-        current_target = ph.getBoundary(current_difficulty)
-        return current_difficulty, current_target
-
     def load(self, genesis_block):
         height = self.state.get_mainchain_height()
 
@@ -63,7 +50,7 @@ class ChainManager:
             self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
             parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-            self.current_difficulty, self.current_target = self.calc_difficulty(
+            self.current_difficulty, self.current_target = self._difficulty_tracker.get(
                 timestamp=genesis_block.timestamp,
                 previous_timestamps=[genesis_block.timestamp - 60],
                 parent_difficulty=parent_difficulty)
@@ -84,9 +71,9 @@ class ChainManager:
         parent_block = self.state.get_block(block.prev_headerhash)
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
-        diff, target = self.calc_difficulty(timestamp=block.timestamp,
-                                            previous_timestamps=[parent_block.timestamp],
-                                            parent_difficulty=parent_metadata.block_difficulty)
+        diff, target = self._difficulty_tracker.get(timestamp=block.timestamp,
+                                                    previous_timestamps=[parent_block.timestamp],
+                                                    parent_difficulty=parent_metadata.block_difficulty)
         if enable_logging:
             logger.debug('-----------------START--------------------')
             logger.debug('Validate #%s', block.block_number)
@@ -288,9 +275,9 @@ class ChainManager:
                 parent_block_difficulty = parent_metadata.block_difficulty
                 parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                block_difficulty, _ = self.calc_difficulty(timestamp=block_timestamp,
-                                                           previous_timestamps=[parent_block.timestamp],
-                                                           parent_difficulty=parent_block_difficulty)
+                block_difficulty, _ = self._difficulty_tracker.get(timestamp=block_timestamp,
+                                                                   previous_timestamps=[parent_block.timestamp],
+                                                                   parent_difficulty=parent_block_difficulty)
 
                 block_cumulative_difficulty = StringToUInt256(str(
                     int(UInt256ToString(block_difficulty)) +
@@ -309,9 +296,11 @@ class ChainManager:
 
     def update_mainchain(self, block, batch):
         current_time = int(ntp.getTime())
-        self.current_difficulty, self.current_target = self.calc_difficulty(timestamp=current_time,
-                                                                            previous_timestamps=[block.timestamp],
-                                                                            parent_difficulty=self.current_difficulty)
+        self.current_difficulty, self.current_target = self._difficulty_tracker.get(
+            timestamp=current_time,
+            previous_timestamps=[block.timestamp],
+            parent_difficulty=self.current_difficulty)
+
         block_number_mapping = None
         while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
             block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,

@@ -2,13 +2,14 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import copy
-from typing import Optional, List
+from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, StringToUInt256, UInt256ToString, Qryptonight
+from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString, Qryptonight
 
 from qrl.core import config
 from qrl.core.Block import Block
+from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 
@@ -20,29 +21,13 @@ class Miner(Qryptominer):
         self._mining_block = None
         self._mining_xmss = mining_xmss
         self.state = state
+        self._difficulty_tracker = DifficultyTracker()
 
     @staticmethod
     def _get_mining_data(block):
         input_bytes = [0x00, 0x00, 0x00, 0x00] + list(block.mining_hash)
         nonce_offset = 0
         return input_bytes, nonce_offset
-
-    @staticmethod
-    def calc_difficulty(timestamp,
-                        previous_timestamps: List,
-                        parent_difficulty):
-        ph = PoWHelper(kp=100,
-                       set_point=60)
-
-        ph.clearTimestamps()
-        for t in previous_timestamps:
-            ph.addTimestamp(t)
-
-        current_difficulty = ph.getDifficulty(timestamp=timestamp,
-                                              parent_difficulty=parent_difficulty)
-
-        current_target = ph.getBoundary(current_difficulty)
-        return current_difficulty, current_target
 
     @staticmethod
     def calc_hash(input_bytes):
@@ -61,9 +46,9 @@ class Miner(Qryptominer):
                                                    tx_pool=tx_pool,
                                                    signing_xmss=self._mining_xmss)
 
-            current_difficulty, current_target = self.calc_difficulty(self._mining_block.timestamp,
-                                                                      [parent_block.timestamp],
-                                                                      parent_difficulty)
+            current_difficulty, current_target = self._difficulty_tracker.get(self._mining_block.timestamp,
+                                                                              [parent_block.timestamp],
+                                                                              parent_difficulty)
 
             input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
             logger.debug('=================START====================')
