@@ -124,6 +124,7 @@ class DevConfig(object):
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.genesis_difficulty = 5000
+        self.tx_extra_overhead = 15  # 15 bytes
 
         # Directories and files
         self.db_name = 'state'
@@ -148,7 +149,7 @@ class DevConfig(object):
         #            P2P SETTINGS
         # ======================================
         self.max_receivable_bytes = 10 * 1024 * 1024           # 10 MB [Temporary Restriction]
-        self.reserved_quota = 1024                      # 1 KB
+        self.reserved_quota = 1024                             # 1 KB
         self.max_bytes_out = self.max_receivable_bytes - self.reserved_quota
 
     @staticmethod
