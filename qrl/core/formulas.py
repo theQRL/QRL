@@ -57,7 +57,7 @@ def block_reward_calc(block_number):
 
     # FIXME: Magic number? Unify
     return int((remaining_emission(config.dev.max_coin_supply, block_number - 1) -
-                remaining_emission(config.dev.max_coin_supply, block_number)) * 100000000)
+                remaining_emission(config.dev.max_coin_supply, block_number)) * (config.dev.shor_per_quanta))
 
 
 def calc_seed(staker_seeds):
