@@ -7,7 +7,7 @@ from unittest import TestCase
 from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper
 
 from qrl.core.Block import Block
-from qrl.core.Miner import Miner
+from qrl.core.DifficultyTracker import DifficultyTracker
 from tests.misc.helper import read_data_file
 
 
@@ -49,9 +49,12 @@ class TestQryptominer(TestCase):
                              0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 4)
 
-        new_diff, new_target = Miner.calc_difficulty(block_timestamp,
-                                                     parent_timestamp=parent_block_timestamp,
-                                                     parent_difficulty=parent_difficulty)
+        diff_tracker = DifficultyTracker()
+
+        new_diff, new_target = diff_tracker.get(block_timestamp,
+                                                previous_timestamps=[parent_block_timestamp],
+                                                parent_difficulty=parent_difficulty)
+
         self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
