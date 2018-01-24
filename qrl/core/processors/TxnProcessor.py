@@ -6,6 +6,7 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.misc import logger
+from qrl.core.Transaction import Transaction
 from qrl.core.TransactionPool import TransactionPool
 
 from qrl.core.State import State
@@ -36,9 +37,15 @@ class TxnProcessor:
         if not tx.validate():
             return False
 
-        tx_state = self.state.get_address(address=tx.txfrom)
+        addr_from_state = self.state.get_address(address=tx.txfrom)
+        addr_from_pk_state = addr_from_state
 
-        is_valid_state = tx.validate_extended(tx_state=tx_state,
+        addr_from_pk = Transaction.get_slave(tx)
+        if addr_from_pk:
+            addr_from_pk_state = self.state.get_address(address=addr_from_pk)
+
+        is_valid_state = tx.validate_extended(addr_from_state=addr_from_state,
+                                              addr_from_pk_state=addr_from_pk_state,
                                               transaction_pool=self.transaction_pool_obj.transaction_pool)
 
         if not is_valid_state:
