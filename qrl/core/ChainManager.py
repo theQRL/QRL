@@ -115,7 +115,14 @@ class ChainManager:
 
         coinbase_tx.apply_on_state(address_txn)
 
-        if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txfrom], block.blockheader):
+        addr_from_pk_state = address_txn[coinbase_tx.txto]
+        addr_from_pk = Transaction.get_slave(coinbase_tx)
+        if addr_from_pk:
+            addr_from_pk_state = address_txn[addr_from_pk]
+
+        if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txto],
+                                             addr_from_pk_state,
+                                             self.tx_pool.transaction_pool):
             return False
 
         # TODO: check block reward must be equal to coinbase amount
@@ -129,7 +136,12 @@ class ChainManager:
             if not tx.validate():  # TODO: Move this validation, before adding txn to pool
                 return False
 
-            if not tx.validate_extended(address_txn[tx.txfrom], self.tx_pool.transaction_pool):
+            addr_from_pk_state = address_txn[tx.txfrom]
+            addr_from_pk = Transaction.get_slave(tx)
+            if addr_from_pk:
+                addr_from_pk_state = address_txn[addr_from_pk]
+
+            if not tx.validate_extended(address_txn[tx.txfrom], addr_from_pk_state, self.tx_pool.transaction_pool):
                 return False
 
             expected_nonce = address_txn[tx.txfrom].nonce + 1

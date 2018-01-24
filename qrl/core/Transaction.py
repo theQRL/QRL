@@ -110,6 +110,13 @@ class Transaction(object, metaclass=ABCMeta):
         return Transaction.from_pbdata(pbdata)
 
     @staticmethod
+    def get_slave(tx):
+        addr_from_pk = getAddress('Q', tx.PK).encode()
+        if addr_from_pk != tx.txfrom:
+            return addr_from_pk
+        return None
+
+    @staticmethod
     def ots_key_reuse(state_addr, ots_key):
         if state_addr is None:
             logger.info('-->> state_addr None not possible')
@@ -205,9 +212,6 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
-        if not isinstance(self, CoinBase) and getAddress('Q', self.PK) != self.txfrom.decode():
-            raise ValueError('Public key and address dont match')
-
         if self.xmss_ots_index != self.get_ots_from_signature(self.signature):
             raise ValueError('xmss_ots_index and siganture ots index doesnt match')
 
@@ -215,6 +219,28 @@ class Transaction(object, metaclass=ABCMeta):
                                                        signature=self.signature,
                                                        pk=self.PK):
             raise ValueError("Invalid xmss signature")
+
+        return True
+
+    def validate_slave(self, addr_from_state, addr_from_pk_state):
+        addr_from_pk = getAddress('Q', self.PK)
+        if isinstance(self, CoinBase):
+            master_address = self.txto
+            allowed_access_types = [0, 1]
+        else:
+            master_address = self.txfrom
+            allowed_access_types = [0]
+
+        if addr_from_pk.encode() != master_address:
+            if str(self.PK) not in addr_from_state.slave_pks_access_type:
+                logger.warning('Public key and address dont match')
+                return False
+
+            access_type = addr_from_pk_state.slave_pks_access_type[str(self.PK)]
+            if access_type not in allowed_access_types:
+                logger.warning('Access Type %s', access_type)
+                logger.warning('Slave Address doesnt have sufficient permission')
+                return False
 
         return True
 
@@ -284,18 +310,14 @@ class TransferTransaction(Transaction):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.txto)
             return False
 
-        addr_expected = getAddress('Q', self.PK).encode()
-        if addr_expected != self.addr_from:
-            logger.warning('PK doesnt belong to the address')
-            logger.warning('Address from PK : %s', addr_expected)
-            logger.warning('Address found : %s', self.addr_from)
-            return False
-
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, tx_state, transaction_pool):
-        tx_balance = tx_state.balance
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
+        tx_balance = addr_from_state.balance
 
         if self.amount < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -306,7 +328,7 @@ class TransferTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.amount)
             return False
 
-        if self.ots_key_reuse(tx_state, self.ots_key):
+        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -323,16 +345,23 @@ class TransferTransaction(Transaction):
     def apply_on_state(self, addresses_state):
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= (self.amount + self.fee)
-            addresses_state[self.txfrom].increase_nonce()
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
         if self.txto in addresses_state:
             addresses_state[self.txto].balance += self.amount
             addresses_state[self.txto].transaction_hashes.append(self.txhash)
 
+        addr_from_pk = getAddress('Q', self.PK).encode()
+        if addr_from_pk in addresses_state:
+            if self.txfrom != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 class CoinBase(Transaction):
@@ -391,28 +420,39 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, sv_dict, blockheader):
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
         if self.addr_from != b'Q999999999999999999999999999999999999999999999999999999999999999999999999':
             return False
 
         if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.txto)):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.txto)
             return False
+
         return self.validate()
 
     def apply_on_state(self, addresses_state):
         if self.txto in addresses_state:
             addresses_state[self.txto].balance += self.amount
-            addresses_state[self.txto].increase_nonce()
             addresses_state[self.txto].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txto], self.ots_key)
+
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= self.amount
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
+        addr_from_pk = getAddress('Q', self.PK).encode()
+        if addr_from_pk in addresses_state:
+            if self.txto != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 class LatticePublicKey(Transaction):
@@ -457,8 +497,11 @@ class LatticePublicKey(Transaction):
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, tx_state, transaction_pool):
-        tx_balance = tx_state.balance
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
+        tx_balance = addr_from_state.balance
 
         if self.fee < 0:
             logger.info('Lattice Txn: State validation failed %s : Negative fee %s', self.txhash, self.fee)
@@ -469,7 +512,7 @@ class LatticePublicKey(Transaction):
             logger.info('balance: %s, fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(tx_state, self.ots_key):
+        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
             return False
 
@@ -491,12 +534,18 @@ class LatticePublicKey(Transaction):
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= self.fee
             addresses_state[self.txfrom].add_lattice_pk(self)
-            addresses_state[self.txfrom].increase_nonce()
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+        addr_from_pk = getAddress('Q', self.PK).encode()
+        if addr_from_pk in addresses_state:
+            if self.txfrom != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 class MessageTransaction(Transaction):
@@ -533,16 +582,13 @@ class MessageTransaction(Transaction):
         if len(self.message_hash) > 80:
             logger.warning('Message hash length more than 80, %s', len(self.message_hash))
             return False
-        addr_expected = getAddress('Q', self.PK).encode()
-        if addr_expected != self.addr_from:
-            logger.warning('PK doesnt belong to the address')
-            logger.warning('Address from PK : %s', addr_expected)
-            logger.warning('Address found : %s', self.addr_from)
-            return False
         return True
 
-    def validate_extended(self, tx_state, transaction_pool) -> bool:
-        tx_balance = tx_state.balance
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool) -> bool:
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
+        tx_balance = addr_from_state.balance
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -553,7 +599,7 @@ class MessageTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(tx_state, self.ots_key):
+        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -570,12 +616,18 @@ class MessageTransaction(Transaction):
     def apply_on_state(self, addresses_state):
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= self.fee
-            addresses_state[self.txfrom].increase_nonce()
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+        addr_from_pk = getAddress('Q', self.PK).encode()
+        if addr_from_pk in addresses_state:
+            if self.txfrom != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 class TokenTransaction(Transaction):
@@ -657,13 +709,6 @@ class TokenTransaction(Transaction):
         if self.fee <= 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
-        addr_expected = getAddress('Q', self.PK).encode()
-        if addr_expected != self.addr_from:
-            logger.warning('PK doesnt belong to the address')
-            logger.warning('Address from PK : %s', addr_expected)
-            logger.warning('Address found : %s', self.addr_from)
-            return False
-
         for initial_balance in self._data.token.initial_balances:
             if initial_balance.amount <= 0:
                 raise ValueError('TokenTransaction [%s] Invalid Amount = %s for address %s',
@@ -674,8 +719,11 @@ class TokenTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, tx_state, transaction_pool):
-        tx_balance = tx_state.balance
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
+        tx_balance = addr_from_state.balance
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -699,7 +747,7 @@ class TokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(tx_state, self.ots_key):
+        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -715,30 +763,43 @@ class TokenTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
+        addr_from_pk = getAddress('Q', self.PK).encode()
         owner_processed = False
         txfrom_processed = False
+        addr_from_pk_processed = False
+
         for initial_balance in self.initial_balances:
             if initial_balance.address == self.owner:
                 owner_processed = True
             if initial_balance.address == self.txfrom:
                 txfrom_processed = True
+            if initial_balance.address == addr_from_pk:
+                addr_from_pk_processed = True
             if initial_balance.address in addresses_state:
                 addresses_state[initial_balance.address].tokens[bin2hstr(self.txhash).encode()] += initial_balance.amount
                 addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
+
         if self.owner in addresses_state and not owner_processed:
             addresses_state[self.owner].transaction_hashes.append(self.txhash)
+
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= self.fee
-            addresses_state[self.txfrom].increase_nonce()
             if not txfrom_processed:
                 addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+        if addr_from_pk in addresses_state:
+            if self.txfrom != addr_from_pk:
+                if not addr_from_pk_processed:
+                    addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.owner)
         for initial_balance in self.initial_balances:
             addresses_set.add(initial_balance.address)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 class TransferTokenTransaction(Transaction):
@@ -801,18 +862,14 @@ class TransferTokenTransaction(Transaction):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.txto)
             return False
 
-        addr_expected = getAddress('Q', self.PK).encode()
-        if addr_expected != self.addr_from:
-            logger.warning('PK doesnt belong to the address')
-            logger.warning('Address from PK : %s', addr_expected)
-            logger.warning('Address found : %s', self.addr_from)
-            return False
-
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, tx_state, transaction_pool):
-        tx_balance = tx_state.balance
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
+        tx_balance = addr_from_state.balance
 
         if self.fee < 0 or self.amount < 0:
             logger.info('TransferTokenTransaction State validation failed for %s because: ', self.txhash)
@@ -825,7 +882,7 @@ class TransferTokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(tx_state, self.ots_key):
+        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
                         self.txhash)
             return False
@@ -847,17 +904,23 @@ class TransferTokenTransaction(Transaction):
             if addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()] == 0:
                 del addresses_state[self.txfrom].tokens[bin2hstr(self.token_txhash).encode()]
             addresses_state[self.txfrom].balance -= self.fee
-            addresses_state[self.txfrom].increase_nonce()
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
 
         if self.txto in addresses_state:
             addresses_state[self.txto].transaction_hashes.append(self.txhash)
             addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
 
+        addr_from_pk = getAddress('Q', self.PK).encode()
+        if addr_from_pk in addresses_state:
+            if self.txfrom != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 class SlaveTransaction(Transaction):
@@ -918,16 +981,13 @@ class SlaveTransaction(Transaction):
                 logger.warning('Invalid Access type %s', access_type)
                 return False
 
-        addr_expected = getAddress('Q', self.PK).encode()
-        if addr_expected != self.addr_from:
-            logger.warning('PK doesnt belong to the address')
-            logger.warning('Address from PK : %s', addr_expected)
-            logger.warning('Address found : %s', self.addr_from)
-            return False
         return True
 
-    def validate_extended(self, tx_state, transaction_pool) -> bool:
-        tx_balance = tx_state.balance
+    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool) -> bool:
+        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+            return False
+
+        tx_balance = addr_from_state.balance
 
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', self.txhash)
@@ -938,7 +998,7 @@ class SlaveTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(tx_state, self.ots_key):
+        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -955,15 +1015,21 @@ class SlaveTransaction(Transaction):
     def apply_on_state(self, addresses_state):
         if self.txfrom in addresses_state:
             addresses_state[self.txfrom].balance -= self.fee
-            addresses_state[self.txfrom].increase_nonce()
             for index in range(0, len(self.slave_pks)):
                 addresses_state[self.txfrom].add_slave_pks_access_type(self.slave_pks[index],
                                                                        self.access_types[index])
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
-            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+        addr_from_pk = getAddress('Q', self.PK).encode()
+        if addr_from_pk in addresses_state:
+            if self.txfrom != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from_pk].increase_nonce()
+            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
+        addresses_set.add(getAddress('Q', self.PK).encode())
 
 
 TYPEMAP = {
