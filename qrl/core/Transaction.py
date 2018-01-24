@@ -93,7 +93,8 @@ class Transaction(object, metaclass=ABCMeta):
             qrl_pb2.Transaction.VOTE: 'VOTE',
             qrl_pb2.Transaction.MESSAGE: 'MESSAGE',
             qrl_pb2.Transaction.TOKEN: 'TOKEN',
-            qrl_pb2.Transaction.TRANSFERTOKEN: 'TRANSFERTOKEN'
+            qrl_pb2.Transaction.TRANSFERTOKEN: 'TRANSFERTOKEN',
+            qrl_pb2.Transaction.SLAVE: 'SLAVE'
         }
         return id_name[idarg]
 
@@ -859,6 +860,112 @@ class TransferTokenTransaction(Transaction):
         addresses_set.add(self.txto)
 
 
+class SlaveTransaction(Transaction):
+
+    def __init__(self, protobuf_transaction=None):
+        super(SlaveTransaction, self).__init__(protobuf_transaction)
+        if protobuf_transaction is None:
+            self._data.type = qrl_pb2.Transaction.SLAVE
+
+    @property
+    def slave_pks(self):
+        return self._data.slave.slave_pks
+
+    @property
+    def access_types(self):
+        return self._data.slave.access_types
+
+    def _set_txhash(self):
+        tmptxhash = sha256(
+                           self._get_concatenated_fields()
+                          )
+        for index in range(0, len(self.slave_pks)):
+            tmptxhash = sha256(tmptxhash + self.slave_pks[index] + str(self.access_types[index]).encode())
+
+        self._data.transaction_hash = tmptxhash
+
+    @staticmethod
+    def create(addr_from: bytes, slave_pks: list, access_types: list, fee: int, xmss_pk: bytes, xmss_ots_index: int):
+        transaction = SlaveTransaction()
+
+        transaction._data.addr_from = addr_from
+        for slave_pk in slave_pks:
+            transaction._data.slave.slave_pks.append(slave_pk)
+        for access_type in access_types:
+            transaction._data.slave.access_types.append(access_type)
+        transaction._data.fee = fee
+        transaction._data.xmss_ots_index = xmss_ots_index
+
+        transaction._data.public_key = xmss_pk
+        transaction._set_txhash()
+        return transaction
+
+    def _validate_custom(self) -> bool:
+        if len(self.slave_pks) > 100 or len(self.access_types) > 100:
+            logger.warning('List has more than 100 slave pks or access_types')
+            logger.warning('Slave pks len %s', len(self.slave_pks))
+            logger.warning('Access types len %s', len(self.access_types))
+            return False
+
+        if len(self.slave_pks) != len(self.access_types):
+            logger.warning('Number of slave pks are not equal to the number of access types provided')
+            logger.warning('Slave pks len %s', len(self.slave_pks))
+            logger.warning('Access types len %s', len(self.access_types))
+            return False
+
+        for access_type in self.access_types:
+            if access_type not in [0, 1]:
+                logger.warning('Invalid Access type %s', access_type)
+                return False
+
+        addr_expected = getAddress('Q', self.PK).encode()
+        if addr_expected != self.addr_from:
+            logger.warning('PK doesnt belong to the address')
+            logger.warning('Address from PK : %s', addr_expected)
+            logger.warning('Address found : %s', self.addr_from)
+            return False
+        return True
+
+    def validate_extended(self, tx_state, transaction_pool) -> bool:
+        tx_balance = tx_state.balance
+
+        if self.fee < 0:
+            logger.info('State validation failed for %s because: Negative send', self.txhash)
+            return False
+
+        if tx_balance < self.fee:
+            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('balance: %s, amount: %s', tx_balance, self.fee)
+            return False
+
+        if self.ots_key_reuse(tx_state, self.ots_key):
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            return False
+
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if txn.ots_key == self.ots_key:
+                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                return False
+
+        return True
+
+    def apply_on_state(self, addresses_state):
+        if self.txfrom in addresses_state:
+            addresses_state[self.txfrom].balance -= self.fee
+            addresses_state[self.txfrom].increase_nonce()
+            for index in range(0, len(self.slave_pks)):
+                addresses_state[self.txfrom].add_slave_pks_access_type(self.slave_pks[index],
+                                                                       self.access_types[index])
+            addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
+            self.set_ots_key(addresses_state[self.txfrom], self.ots_key)
+
+    def set_effected_address(self, addresses_set: set):
+        addresses_set.add(self.txfrom)
+
+
 TYPEMAP = {
     qrl_pb2.Transaction.TRANSFER: TransferTransaction,
     qrl_pb2.Transaction.COINBASE: CoinBase,
@@ -866,4 +973,5 @@ TYPEMAP = {
     qrl_pb2.Transaction.MESSAGE: MessageTransaction,
     qrl_pb2.Transaction.TOKEN: TokenTransaction,
     qrl_pb2.Transaction.TRANSFERTOKEN: TransferTokenTransaction,
+    qrl_pb2.Transaction.SLAVE: SlaveTransaction
 }

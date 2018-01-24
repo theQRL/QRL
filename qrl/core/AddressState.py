@@ -58,8 +58,12 @@ class AddressState(object):
     def latticePK_list(self):
         return self._data.latticePK_list
 
+    @property
+    def slave_pks_access_type(self):
+        return self._data.slave_pks_access_type
+
     @staticmethod
-    def create(address: bytes, nonce: int, balance: int, ots_bitfield: list, tokens: dict):
+    def create(address: bytes, nonce: int, balance: int, ots_bitfield: list, tokens: dict, slave_pks_access_type: dict):
         address_state = AddressState()
 
         address_state._data.address = address
@@ -70,7 +74,13 @@ class AddressState(object):
         for token_txhash in tokens:
             address_state.tokens[token_txhash] = tokens[token_txhash]
 
+        for slave_pk in slave_pks_access_type:
+            address_state.slave_pks_access_type[str(slave_pk)] = slave_pks_access_type[str(slave_pk)]
+
         return address_state
+
+    def add_slave_pks_access_type(self, slave_pk: bytes, access_type: int):
+        self._data.slave_pks_access_type[str(slave_pk)] = access_type
 
     def add_lattice_pk(self, lattice_txn):
         lattice_pk = qrl_pb2.LatticePK(txhash=lattice_txn.txhash,
@@ -88,7 +98,8 @@ class AddressState(object):
                                             nonce=config.dev.default_nonce,
                                             balance=config.dev.default_account_balance,
                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                            tokens=dict())
+                                            tokens=dict(),
+                                            slave_pks_access_type=dict())
         return address_state
 
     @staticmethod

@@ -31,10 +31,11 @@ message LegacyMessage {
         MT = 16;            // Message Transaction
         TK = 17;            // Token Transaction
         TT = 18;            // Transfer Token Transaction
-        SYNC = 19;          // Add into synced list, if the node replies
-        CHAINSTATE = 20;    // Chain State
-        HEADERHASHES = 21;  //
-        P2P_ACK = 22;           // P2P Acknowledgement
+        SL = 19;            // Slave Transaction
+        SYNC = 20;          // Add into synced list, if the node replies
+        CHAINSTATE = 21;    // Chain State
+        HEADERHASHES = 22;  //
+        P2P_ACK = 23;       // P2P Acknowledgement
     }
 
     FuncName func_name = 1;
@@ -58,11 +59,12 @@ message LegacyMessage {
         Transaction tkData = 17;
         Transaction ttData = 18;
         Transaction ltData = 19;
-        EncryptedEphemeralMessage ephData = 20;
-        SYNCData syncData = 21;
-        NodeChainState chainStateData = 22;
-        NodeHeaderHash nodeHeaderHash = 23;
-        P2PAcknowledgement p2pAckData = 24;
+        Transaction slData = 20;
+        EncryptedEphemeralMessage ephData = 21;
+        SYNCData syncData = 22;
+        NodeChainState chainStateData = 23;
+        NodeHeaderHash nodeHeaderHash = 24;
+        P2PAcknowledgement p2pAckData = 25;
     }
 }
 

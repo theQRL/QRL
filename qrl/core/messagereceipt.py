@@ -75,6 +75,7 @@ class MessageReceipt(object):
         qrllegacy_pb2.LegacyMessage.TK: 'tkData',
         qrllegacy_pb2.LegacyMessage.TT: 'ttData',
         qrllegacy_pb2.LegacyMessage.LT: 'ltData',
+        qrllegacy_pb2.LegacyMessage.SL: 'slData',
 
         qrllegacy_pb2.LegacyMessage.EPH: 'ephData',
 

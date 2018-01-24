@@ -9,6 +9,7 @@ from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
+from qrl.core.Transaction import SlaveTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
 
 
@@ -42,13 +43,22 @@ class TestChainManager(TestCase):
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
 
+                slave_tx = SlaveTransaction.create(addr_from=alice_xmss.get_address(),
+                                                   slave_pks=[bob_xmss.pk()],
+                                                   access_types=[0],
+                                                   fee=0,
+                                                   xmss_pk=alice_xmss.pk(),
+                                                   xmss_ots_index=alice_xmss.get_index())
+                slave_tx.sign(alice_xmss)
+                slave_tx._data.nonce = 2
+                self.assertTrue(slave_tx.validate())
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
                     block_1 = Block.create(mining_nonce=10,
                                            block_number=1,
                                            prevblock_headerhash=genesis_block.headerhash,
-                                           transactions=[],
+                                           transactions=[slave_tx],
                                            signing_xmss=alice_xmss,
                                            nonce=1)
 
@@ -59,6 +69,11 @@ class TestChainManager(TestCase):
 
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
+
+                alice_state = chain_manager.get_address(alice_xmss.get_address())
+
+                self.assertEqual(len(alice_state.slave_pks_access_type), 1)
+                self.assertTrue(str(bob_xmss.pk()) in alice_state.slave_pks_access_type)
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1715270948  # Very high to get an easy difficulty
