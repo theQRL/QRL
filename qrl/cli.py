@@ -307,7 +307,7 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
 @click.pass_context
 def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, pk, otsidx):
     """
-    Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
+    Generates Slave Transaction for the wallet
     """
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
@@ -329,6 +329,10 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
     slave_pks = []
     access_types = []
     slave_xmss_seed = []
+    if number_of_slaves > 100:
+        click.echo("Error: Max Limit for the number of slaves is 100")
+        quit(1)
+
     for i in range(number_of_slaves):
         print("Generating Slave #"+str(i+1))
         xmss = XMSS(config.dev.xmss_tree_height)
