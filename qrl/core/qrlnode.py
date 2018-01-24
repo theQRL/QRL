@@ -17,7 +17,7 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
 from qrl.core.AddressState import AddressState
 from qrl.core.TokenList import TokenList
-from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction
+from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction
 from qrl.core.misc.logger import logger
 from qrl.core.p2pChainManager import P2PChainManager
 from qrl.core.ChainManager import ChainManager
@@ -293,6 +293,20 @@ class QRLNode:
                                           xmss_pk=xmss_pk,
                                           xmss_ots_index=xmss_ots_index)
 
+    def create_slave_tx(self,
+                        addr_from: bytes,
+                        slave_pks: list,
+                        access_types: list,
+                        fee: int,
+                        xmss_pk: bytes,
+                        xmss_ots_index: int) -> SlaveTransaction:
+        return SlaveTransaction.create(addr_from=addr_from,
+                                       slave_pks=slave_pks,
+                                       access_types=access_types,
+                                       fee=fee,
+                                       xmss_pk=xmss_pk,
+                                       xmss_ots_index=xmss_ots_index)
+
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx) -> bool:
         if tx is None:
@@ -305,7 +319,8 @@ class QRLNode:
                           qrl_pb2.Transaction.LATTICE,
                           qrl_pb2.Transaction.MESSAGE,
                           qrl_pb2.Transaction.TOKEN,
-                          qrl_pb2.Transaction.TRANSFERTOKEN):
+                          qrl_pb2.Transaction.TRANSFERTOKEN,
+                          qrl_pb2.Transaction.SLAVE):
             self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
 
         return True

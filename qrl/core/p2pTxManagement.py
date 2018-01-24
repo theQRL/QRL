@@ -24,6 +24,7 @@ class P2PTxManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
         channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
+        channel.register(qrllegacy_pb2.LegacyMessage.SL, self.handle_slave)
         channel.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
 
     def handle_message_received(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -114,9 +115,6 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
-            return
-
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -138,9 +136,6 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
-        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
-            return
-
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -160,9 +155,6 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
             return
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
@@ -212,7 +204,7 @@ class P2PTxManagement(P2PBaseObserver):
         if not encrypted_ephemeral.validate():
             return
 
-        source.factory.buffered_chain.add_ephemeral_message(encrypted_ephemeral)
+        source.factory.buffered_chain.add_ephemeral_message(encrypted_ephemeral)  # FIXME(cyyber) : Fix broken link
 
     def handle_lattice(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
@@ -236,7 +228,28 @@ class P2PTxManagement(P2PBaseObserver):
             logger.warning('>>>Lattice Public Key %s invalid state validation failed..', tx.hash)
             return
 
-        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+
+    def handle_slave(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Receives Lattice Public Key Transaction
+        :param message:
+        :return:
+        """
+
+        try:
+            tx = Transaction.from_json(message)
+        except Exception as e:
+            logger.error('slave_txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            source.loseConnection()
+            return
+
+        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            return
+
+        if not tx.validate():
+            logger.warning('>>>Slave Txn %s invalid state validation failed..', tx.hash)
             return
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)

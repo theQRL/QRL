@@ -40,6 +40,8 @@ service PublicAPI
 
     rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp);
 
+    rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp);
+
     // ------- Ephemeral API -------
     rpc PushEphemeralMessage (PushEphemeralMessageReq) returns (PushTransactionResp);
     rpc CollectEphemeralMessage (CollectEphemeralMessageReq) returns (CollectEphemeralMessageResp);
@@ -173,6 +175,15 @@ message TransferTokenTxnReq {
     uint64 fee = 5;
     bytes xmss_pk = 6;
     uint64 xmss_ots_index = 7;
+}
+
+message SlaveTxnReq {
+    bytes address_from = 1;
+    repeated bytes slave_pks = 2;
+    repeated uint32 access_types = 3;
+    uint64 fee = 4;
+    bytes xmss_pk = 5;
+    uint64 xmss_ots_index = 6;
 }
 
 ////////////////////////////
