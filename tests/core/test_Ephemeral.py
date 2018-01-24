@@ -37,21 +37,21 @@ class TestEphemeral(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 with set_wallet_dir("test_wallet"):
-                    chain_manager = ChainManager(state)
-
-                    alice_xmss = get_alice_xmss()
-                    slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
-                    random_xmss1 = get_random_xmss()
-                    random_kyber1 = Kyber()
-                    random_dilithium1 = Dilithium()
-                    random_xmss2 = get_random_xmss()
-                    random_kyber2 = Kyber()
-                    random_dilithium2 = Dilithium()
-
-                    message = b'Hello World How are you?'
-                    prf512_seed = b'10192'
-
                     with mocked_genesis() as custom_genesis:
+                        chain_manager = ChainManager(state)
+
+                        alice_xmss = get_alice_xmss()
+                        slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
+                        random_xmss1 = get_random_xmss()
+                        random_kyber1 = Kyber()
+                        random_dilithium1 = Dilithium()
+                        random_xmss2 = get_random_xmss()
+                        random_kyber2 = Kyber()
+                        random_dilithium2 = Dilithium()
+
+                        message = b'Hello World How are you?'
+                        prf512_seed = b'10192'
+
                         custom_genesis.genesis_balance.extend(
                             [qrl_pb2.GenesisBalance(address=random_xmss1.get_address(), balance=65000000000000000)])
                         custom_genesis.genesis_balance.extend(
