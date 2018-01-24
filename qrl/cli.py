@@ -3,9 +3,11 @@ import os
 
 import click
 import grpc
+import simplejson as json
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
+from qrl.crypto.xmss import XMSS
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
@@ -292,6 +294,74 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
 
     txblob = bin2hstr(transferCoinsResp.transaction_unsigned.SerializeToString())
     print(txblob)
+
+
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='source address or index')
+@click.option('--addr_from', default='', prompt=True, help='Address from')
+@click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
+@click.option('--access_type', default=0, type=int, prompt=True, help='0 - For All Access, 1 - For Mining Permission')
+@click.option('--fee', default=0.0, type=float, prompt=True, help='fee (Quanta)')
+@click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
+@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
+@click.pass_context
+def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, pk, otsidx):
+    """
+    Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
+    """
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if len(addr_from.strip()) == 0:
+            addr_from = address_src
+        if src_xmss:
+            address_src_pk = src_xmss.pk()
+            address_src_otsidx = src_xmss.get_index()
+        else:
+            address_src_pk = pk.encode()
+            address_src_otsidx = int(otsidx)
+
+        fee_shor = int(fee * 1.e9)
+    except Exception as e:
+        click.echo("Error validating arguments")
+        quit(1)
+
+    slave_xmss = []
+    slave_pks = []
+    access_types = []
+    slave_xmss_seed = []
+    for i in range(number_of_slaves):
+        print("Generating Slave #"+str(i+1))
+        xmss = XMSS(config.dev.xmss_tree_height)
+        slave_xmss.append(xmss)
+        slave_xmss_seed.append(xmss.get_seed())
+        slave_pks.append(xmss.pk())
+        access_types.append(access_type)
+        print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
+
+    channel = grpc.insecure_channel(ctx.obj.node_public_address)
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+    # FIXME: This could be problematic. Check
+    slaveTxnReq = qrl_pb2.SlaveTxnReq(address_from=addr_from,
+                                      slave_pks=slave_pks,
+                                      access_types=access_types,
+                                      fee=fee_shor,
+                                      xmss_pk=address_src_pk,
+                                      xmss_ots_index=address_src_otsidx)
+
+    try:
+        slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
+        tx = Transaction.from_pbdata(slaveTxnResp.transaction_unsigned)
+        tx.sign(src_xmss)
+        with open('slave_txn.json', 'w') as f:
+            json.dump([tx.to_json()], f)
+        click.echo('Create slave_txn.json in current directory')
+        click.echo('Move this file to the mining node inside ~/.qrl/')
+    except grpc.RpcError as e:
+        click.echo(e.details())
+        quit(1)
+    except Exception as e:
+        click.echo("Unhandled error: {}".format(str(e)))
+        quit(1)
 
 
 @qrl.command()
