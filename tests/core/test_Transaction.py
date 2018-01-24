@@ -631,9 +631,9 @@ class TestCoinBase(TestCase):
                          'cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
                          bin2hstr(tx.PK))
         self.assertEqual(11, tx.ots_key)
-        print()
-        print(bin2hstr(tx.signature, 32))
-        print()
+        # print()
+        # print(bin2hstr(tx.signature, 32))
+        # print()
         self.assertEqual(test_signature_CoinBase, bin2hstr(tx.signature))
 
         self.assertEqual('c6f90c2360b95c2fba2d68ee0f1fc3d03ba016bc5128ca1180540cd7e1e7c781', bin2hstr(tx.txhash))
@@ -719,9 +719,9 @@ class TestTokenTransaction(TestCase):
         self.assertEqual('79b001262daec88fc8d1141fdb0a0b0366ec4aeebf88bf0100aa123478e54300', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
 
-        print()
-        print(bin2hstr(tx.signature, 32))
-        print()
+        # print()
+        # print(bin2hstr(tx.signature, 32))
+        # print()
         self.assertEqual(test_signature_Token, bin2hstr(tx.signature))
 
         total_supply = 0
@@ -808,9 +808,9 @@ class TestTransferTokenTransaction(TestCase):
         self.assertEqual('47cf1c3023780aa3694d32f3adffe7e16e6a18d591ba9f2e3abb6fb41fe6fa61', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
 
-        print()
-        print(bin2hstr(tx.signature, 32))
-        print()
+        # print()
+        # print(bin2hstr(tx.signature, 32))
+        # print()
         self.assertEqual(test_signature_TransferToken, bin2hstr(tx.signature))
 
         self.assertEqual(1, tx.fee)
