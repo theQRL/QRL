@@ -254,6 +254,7 @@ message AddressState {
     repeated bytes transaction_hashes = 5;
     map<string, uint64> tokens = 6;
     repeated LatticePK latticePK_list = 7;
+    map<string, uint32> slave_pks_access_type = 8;
 }
 
 message LatticePK {
@@ -325,6 +326,7 @@ message Transaction {
         MESSAGE = 4;
         TOKEN = 5;
         TRANSFERTOKEN = 6;
+        SLAVE = 7;
     }
 
     Type type = 1;
@@ -343,6 +345,7 @@ message Transaction {
         Message message = 12;
         Token token = 13;
         TransferToken transfer_token = 14;
+        Slave slave = 15;
     }
 
     //////////
@@ -379,6 +382,11 @@ message Transaction {
         bytes token_txhash = 1;
         bytes addr_to = 2;
         uint64 amount = 3;
+    }
+
+    message Slave {
+        repeated bytes slave_pks = 1;
+        repeated uint32 access_types = 2;
     }
 }
 

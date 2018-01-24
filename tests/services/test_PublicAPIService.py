@@ -125,7 +125,8 @@ class TestPublicAPI(TestCase):
                                             nonce=25,
                                             balance=10,
                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                            tokens=dict())
+                                            tokens=dict(),
+                                            slave_pks_access_type=dict())
         db_state.get_address = MagicMock(return_value=address_state)
 
         p2p_factory = Mock(spec=P2PFactory)
@@ -199,7 +200,8 @@ class TestPublicAPI(TestCase):
                                           nonce=25,
                                           balance=10,
                                           ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                          tokens=dict())
+                                          tokens=dict(),
+                                          slave_pks_access_type=dict())
         addr1_state.transaction_hashes.append(sha256(b'0'))
         addr1_state.transaction_hashes.append(sha256(b'1'))
 

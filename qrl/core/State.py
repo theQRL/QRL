@@ -517,7 +517,8 @@ class State:
                                qrl_pb2.Transaction.MESSAGE,
                                qrl_pb2.Transaction.TOKEN,
                                qrl_pb2.Transaction.TRANSFERTOKEN,
-                               qrl_pb2.Transaction.LATTICE):
+                               qrl_pb2.Transaction.LATTICE,
+                               qrl_pb2.Transaction.SLAVE):
                 self._db.put(bin2hstr(txn.txhash),
                              [txn.to_json(), block.block_number, block.timestamp],
                              batch)
@@ -572,7 +573,8 @@ class State:
                                        nonce=config.dev.default_nonce,
                                        balance=config.dev.default_account_balance,
                                        ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                       tokens=dict())
+                                       tokens=dict(),
+                                       slave_pks_access_type=dict())
         return address_state
 
     def nonce(self, addr: bytes) -> int:
