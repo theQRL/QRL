@@ -78,7 +78,9 @@ jobs:
       script:
       - sudo pip install -U docker-compose | cat
       - docker-compose --version
-      - "cd tests_integration; python3 runtest_nodes_synchronize.py"
+      - sudo pip install pytest
+      - export PYTHONPATH=$(pwd)/tests_integration
+      - "cd tests_integration; pytest -s --ignore=tests/custom"
 
     - stage: build+test
       os: linux
@@ -92,7 +94,9 @@ jobs:
       script:
       - sudo pip install -U docker-compose | cat
       - docker-compose --version
-      - "cd tests_integration; python3 runtest_nodes_1minAfterSync.py"
+      - sudo pip install pytest
+      - export PYTHONPATH=$(pwd)/tests_integration
+      - "cd tests_integration; pytest --noconftest -s -m oneminaftersync"
 
     - stage: publish
       if: tag =~ ^v
