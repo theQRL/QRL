@@ -73,13 +73,12 @@ class TestNode(TestCase):
         get_block_metadata_response.block_difficulty = StringToUInt256('2')
         chain_manager.state.get_block_metadata = MagicMock(return_value=get_block_metadata_response)
 
-        p2p_factory = Mock()
-        sync_state = Mock()
-
         get_address_response = Mock()
         get_address_response.nonce = 1
-        sync_state.get_address = MagicMock(return_value=get_address_response)
+        chain_manager.state.get_address = MagicMock(return_value=get_address_response)
 
+        p2p_factory = Mock()
+        sync_state = Mock()
         time_provider = Mock()
 
         node = POW(chain_manager=chain_manager,
