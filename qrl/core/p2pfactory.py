@@ -354,6 +354,8 @@ class P2PFactory(ServerFactory):
             legacy_type = qrllegacy_pb2.LegacyMessage.TT
         elif tx.subtype == qrl_pb2.Transaction.LATTICE:
             legacy_type = qrllegacy_pb2.LegacyMessage.LT
+        elif tx.subtype == qrl_pb2.Transaction.SLAVE:
+            legacy_type = qrllegacy_pb2.LegacyMessage.SL
         else:
             raise ValueError('Invalid Transaction Type')
         self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.pbdata)

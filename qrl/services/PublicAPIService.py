@@ -107,6 +107,18 @@ class PublicAPIService(PublicAPIServicer):
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
+    @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
+    def GetSlaveTxn(self, request: qrl_pb2.SlaveTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetSlaveTxn")
+        tx = self.qrlnode.create_slave_tx(addr_from=request.address_from,
+                                          slave_pks=request.slave_pks,
+                                          access_types=request.access_types,
+                                          fee=request.fee,
+                                          xmss_pk=request.xmss_pk,
+                                          xmss_ots_index=request.xmss_ots_index)
+
+        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+
     @grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
         logger.debug("[PublicAPI] GetObject")
