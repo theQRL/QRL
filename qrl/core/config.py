@@ -23,7 +23,6 @@ class UserConfig(object):
         # Default configuration
         self.mining_enabled = True
         self.mining_thread_count = 2  # TODO: -1 to auto detect thread count based on CPU/GPU num. of processors
-        self.reward_address = b'Qa02d909723512ecd1606c96f52f5a4121946f068986e612a57c75353952ab3624ddd0bd6'
 
         # Ephemeral Configuration
         self.accept_ephemeral = True
