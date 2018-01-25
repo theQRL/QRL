@@ -71,6 +71,7 @@ class P2PFactory(ServerFactory):
             qrllegacy_pb2.LegacyMessage.TK: 1,
             qrllegacy_pb2.LegacyMessage.TT: 1,
             qrllegacy_pb2.LegacyMessage.LT: 1,
+            qrllegacy_pb2.LegacyMessage.SL: 1,
 
             qrllegacy_pb2.LegacyMessage.EPH: 3,
 
