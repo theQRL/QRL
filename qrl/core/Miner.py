@@ -139,6 +139,7 @@ class Miner(Qryptominer):
             logger.debug('Solution Found %s', nonce)
             self._mining_block.set_mining_nonce(nonce)
             logger.info('Block #%s nonce: %s', self._mining_block.block_number, StringToUInt256(str(nonce))[-4:])
+            logger.info('Hash Rate: %s H/s', self.hashRate())
             cloned_block = copy.deepcopy(self._mining_block)
             self.pre_block_logic(cloned_block)
         except Exception as e:
