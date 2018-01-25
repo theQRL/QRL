@@ -51,7 +51,7 @@ class Miner(Qryptominer):
         if self._master_address == self._mining_xmss.get_address():
             return True
         addr_state = self.state.get_address(self._master_address)
-        access_type = addr_state.get_slave_permission(self._mining_xmss.get_address())
+        access_type = addr_state.get_slave_permission(self._mining_xmss.pk())
         if access_type == -1:
             logger.warning('Slave is not authorized yet for mining')
             logger.warning('Added Slave Txn')
