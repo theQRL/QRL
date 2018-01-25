@@ -1,14 +1,11 @@
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import Transaction
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
-
-from qrl.core.messagereceipt import MessageReceipt
-
 from qrl.core import config
+from qrl.core.ESyncState import ESyncState
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from qrl.core.Transaction import Transaction
+from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger
-from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
 from qrl.generated import qrllegacy_pb2
 
@@ -21,7 +18,6 @@ class P2PTxManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.MR, self.handle_message_received)
         channel.register(qrllegacy_pb2.LegacyMessage.SFM, self.handle_full_message_request)
 
-        channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
         channel.register(qrllegacy_pb2.LegacyMessage.TK, self.handle_token_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.TT, self.handle_transfer_token_transaction)
@@ -164,31 +160,6 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
-
-    def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
-        """
-        Block
-        This function processes any new block received.
-        :return:
-        """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.BK)
-        try:
-            block = Block(message.block)
-        except Exception as e:
-            logger.error('block rejected - unable to decode serialised data %s', source.peer_ip)
-            logger.exception(e)
-            return
-
-        logger.info('>>>Received block from %s %s %s',
-                    source.connection_id,
-                    block.block_number,
-                    bin2hstr(block.headerhash))
-
-        if not source.factory.master_mr.isRequested(block.headerhash, source, block):
-            return
-
-        source.factory.pow.pre_block_logic(block)  # FIXME: Ignores return value
-        source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message.block)
 
     def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
