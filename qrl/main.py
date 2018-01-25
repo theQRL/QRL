@@ -97,6 +97,8 @@ def mining_wallet_checks(args):
         addrBundle = Wallet.get_new_address(seed=bin_seed)
         slaves = [addrBundle.xmss.get_address(), [addrBundle.xmss.get_seed()], None]
         write_slaves(slaves_filename, slaves)
+    except KeyboardInterrupt:
+        quit(1)
     except Exception as e:
         logger.error('Exception %s', e)
         quit(1)
