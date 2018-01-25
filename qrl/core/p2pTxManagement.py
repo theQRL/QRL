@@ -197,7 +197,7 @@ class P2PTxManagement(P2PBaseObserver):
         :return:
         """
         try:
-            encrypted_ephemeral = EncryptedEphemeralMessage.from_json(message.ephData)
+            encrypted_ephemeral = EncryptedEphemeralMessage(message.ephData)
         except Exception as e:
             logger.error('ephemeral_message rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -220,7 +220,7 @@ class P2PTxManagement(P2PBaseObserver):
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.LT)
         try:
-            tx = Transaction.from_json(message.ltData)
+            tx = Transaction.from_pbdata(message.ltData)
         except Exception as e:
             logger.error('lattice_public_key rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -244,7 +244,7 @@ class P2PTxManagement(P2PBaseObserver):
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SL)
         try:
-            tx = Transaction.from_json(message.slData)
+            tx = Transaction.from_pbdata(message.slData)
         except Exception as e:
             logger.error('slave_txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
