@@ -89,8 +89,8 @@ class Miner(Qryptominer):
                      parent_difficulty,
                      thread_count=config.user.mining_thread_count):
 
-        mining_xmss = self.get_mining_xmss()
-        if not mining_xmss:
+        self._mining_xmss = self.get_mining_xmss()
+        if not self._mining_xmss:
             logger.warning('No Mining XMSS Found')
             return
 
