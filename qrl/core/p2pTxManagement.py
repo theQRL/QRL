@@ -23,6 +23,9 @@ class P2PTxManagement(P2PBaseObserver):
 
         channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
+        channel.register(qrllegacy_pb2.LegacyMessage.TK, self.handle_token_transaction())
+        channel.register(qrllegacy_pb2.LegacyMessage.TT, self.handle_transfer_token_transaction)
+        channel.register(qrllegacy_pb2.LegacyMessage.MT, self.handle_message_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
         channel.register(qrllegacy_pb2.LegacyMessage.SL, self.handle_slave)
         channel.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
@@ -115,6 +118,9 @@ class P2PTxManagement(P2PBaseObserver):
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
             return
 
+        if tx.txhash in source.factory.buffered_chain.tx_pool.pending_tx_pool_hash:
+            return
+
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -124,11 +130,11 @@ class P2PTxManagement(P2PBaseObserver):
         subtype TOKEN is received.
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
         try:
-            tx = Transaction.from_pbdata(message.mtData)
+            tx = Transaction.from_pbdata(message.tkData)
         except Exception as e:
-            logger.error('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
+            logger.error('Token Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return
@@ -140,16 +146,16 @@ class P2PTxManagement(P2PBaseObserver):
 
     def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Message Transaction
+        Transfer Token Transaction
         This function processes whenever a Transaction having
-        subtype MESSAGE is received.
+        subtype TRANSFERTOKEN is received.
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
         try:
-            tx = Transaction.from_pbdata(message.mtData)
+            tx = Transaction.from_pbdata(message.ttData)
         except Exception as e:
-            logger.error('Token Txn rejected - unable to decode serialised data - closing connection')
+            logger.error('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return
@@ -191,7 +197,7 @@ class P2PTxManagement(P2PBaseObserver):
         :return:
         """
         try:
-            encrypted_ephemeral = EncryptedEphemeralMessage.from_json(message)
+            encrypted_ephemeral = EncryptedEphemeralMessage.from_json(message.ephData)
         except Exception as e:
             logger.error('ephemeral_message rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -212,9 +218,9 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.LT)
         try:
-            tx = Transaction.from_json(message)
+            tx = Transaction.from_json(message.ltData)
         except Exception as e:
             logger.error('lattice_public_key rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
@@ -236,9 +242,9 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-
+        source._validate_message(message, qrllegacy_pb2.LegacyMessage.SL)
         try:
-            tx = Transaction.from_json(message)
+            tx = Transaction.from_json(message.slData)
         except Exception as e:
             logger.error('slave_txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
