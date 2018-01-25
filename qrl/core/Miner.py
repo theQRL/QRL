@@ -8,20 +8,26 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString, Qryptonight
 
 from qrl.core import config
+from qrl.core.State import State
+from qrl.core.Wallet import Wallet
 from qrl.core.Block import Block
+from qrl.core.Transaction import Transaction
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 
 
 class Miner(Qryptominer):
-    def __init__(self, pre_block_logic, mining_xmss, state):
+    def __init__(self, pre_block_logic, slaves: list, state: State, add_unprocessed_txn_fn):
         super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
         self._mining_block = None
-        self._mining_xmss = mining_xmss
+        self._slaves = slaves
+        self._mining_xmss = None
+        self._reward_address = None
         self.state = state
         self._difficulty_tracker = DifficultyTracker()
+        self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
 
     @staticmethod
     def _get_mining_data(block):
@@ -34,17 +40,67 @@ class Miner(Qryptominer):
         qn = Qryptonight()
         return qn.hash(input_bytes)
 
+    def set_unused_ots_key(self, xmss, addr_state, start=0):
+        for i in range(start, 2 ** xmss.height):
+            if not Transaction.ots_key_reuse(addr_state, i):
+                xmss.set_index(i)
+                return True
+        return False
+
+    def get_mining_xmss(self):
+        if self._mining_xmss:
+            addr_state = self.state.get_address(self._mining_xmss.get_address())
+            if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.get_index()):
+                return self._mining_xmss
+            self._mining_xmss = None
+
+        if not self._mining_xmss:
+            self._master_address = self._slaves[0].encode()
+            unused_ots_found = False
+            for slave_seed in self._slaves[1]:
+                xmss = Wallet.get_new_address(seed=slave_seed).xmss
+                addr_state = self.state.get_address(xmss.get_address())
+                if self.set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
+                    self._mining_xmss = xmss
+                    unused_ots_found = True
+                    break
+
+            if not unused_ots_found:  # Unused ots_key_found
+                logger.warning('No OTS-KEY left for mining')
+                return None
+
+        if self._master_address == self._mining_xmss.get_address():
+            return self._mining_xmss
+
+        addr_state = self.state.get_address(xmss.get_address())
+        access_type = addr_state.get_slave_permission(self._mining_xmss.get_address())
+        if access_type == -1:
+            logger.warning('Slave is not authorized yet for mining')
+            logger.warning('Added Slave Txn')
+            slave_tx = Transaction.from_json(self._slaves[2])
+            self._add_unprocessed_txn_fn(slave_tx, None)
+            return None
+
+        return self._mining_xmss
+
     def start_mining(self,
                      tx_pool,
                      parent_block,
                      parent_difficulty,
                      thread_count=config.user.mining_thread_count):
+
+        mining_xmss = self.get_mining_xmss()
+        if not mining_xmss:
+            logger.warning('No Mining XMSS Found')
+            return
+
         try:
             self.cancel()
             self._mining_block = self.create_block(last_block=parent_block,
                                                    mining_nonce=0,
                                                    tx_pool=tx_pool,
-                                                   signing_xmss=self._mining_xmss)
+                                                   signing_xmss=self._mining_xmss,
+                                                   master_address=self._master_address)
 
             current_difficulty, current_target = self._difficulty_tracker.get(self._mining_block.timestamp,
                                                                               [parent_block.timestamp],
@@ -79,7 +135,7 @@ class Miner(Qryptominer):
             logger.warning("Exception in solutionEvent")
             logger.exception(e)
 
-    def create_block(self, last_block, mining_nonce, tx_pool, signing_xmss) -> Optional[Block]:
+    def create_block(self, last_block, mining_nonce, tx_pool, signing_xmss, master_address) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
 
@@ -89,6 +145,7 @@ class Miner(Qryptominer):
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
                                    signing_xmss=signing_xmss,
+                                   master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
         signing_xmss.set_index(signing_xmss.get_index() - 1)
@@ -208,6 +265,7 @@ class Miner(Qryptominer):
                              prevblock_headerhash=last_block.headerhash,
                              transactions=t_pool2,
                              signing_xmss=signing_xmss,
+                             master_address=master_address,
                              nonce=coinbase_nonce)
 
         return block

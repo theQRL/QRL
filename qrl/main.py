@@ -3,9 +3,13 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import logging
+import os
+import simplejson as json
 
 from twisted.internet import reactor
+from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
 
+from qrl.core.Wallet import Wallet
 from qrl.core.ChainManager import ChainManager
 from qrl.core.qrlnode import QRLNode
 from qrl.core.GenesisBlock import GenesisBlock
@@ -39,7 +43,8 @@ def parse_arguments():
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
-
+    parser.add_argument('--randomizeSlaveXMSS', dest='randomizeSlaveXMSS', action='store_true', default=False,
+                        help="Generates random slaves.json file (Warning: For Integration Test only)")
     return parser.parse_args()
 
 
@@ -58,8 +63,53 @@ def set_logger(args, sync_state):
     logger_twisted.enable_twisted_log_observer()
 
 
+def write_slaves(slaves_filename, slaves):
+    with open(slaves_filename, 'w') as f:
+        json.dump(slaves, f)
+
+
+def mining_wallet_checks(args):
+    slaves_filename = os.path.join(config.user.wallet_dir, config.user.slaves_filename)
+
+    if args.randomizeSlaveXMSS:
+        addrBundle = Wallet.get_new_address()
+        slaves = [addrBundle.xmss.get_address(), [addrBundle.xmss.get_seed()], None]
+        write_slaves(slaves_filename, slaves)
+
+    try:
+        with open(slaves_filename, 'r') as f:
+            slaves = json.load(f)
+    except FileNotFoundError:
+        logger.warning('No Slave Seeds found!!')
+        logger.warning('It is highly recommended to use the slave for mining')
+        ans = input('Do you want to use main wallet for mining? (Y/N)')
+        if ans == 'N':
+            quit(0)
+        seed = input('Enter hex or mnemonic seed of mining wallet').encode()
+        if len(seed) == 96:  # hexseed
+            bin_seed = hstr2bin(seed)
+        elif len(seed.split()) == 32:
+            bin_seed = mnemonic2bin(seed)
+        else:
+            logger.warning('Invalid XMSS seed')
+            quit(1)
+
+        addrBundle = Wallet.get_new_address(seed=bin_seed)
+        slaves = [addrBundle.xmss.get_address(), [addrBundle.xmss.get_seed()], None]
+        write_slaves(slaves_filename, slaves)
+    except Exception as e:
+        logger.error('Exception %s', e)
+        quit(1)
+
+    return slaves
+
+
 def main():
     args = parse_arguments()
+
+    config.create_path(config.user.wallet_dir)
+
+    slaves = mining_wallet_checks(args)
 
     logger.debug("=====================================================================================")
     logger.info("Data Path: %s", args.data_dir)
@@ -74,7 +124,7 @@ def main():
     chain_manager = ChainManager(state=persistent_state)
     chain_manager.load(GenesisBlock())
 
-    qrlnode = QRLNode(db_state=persistent_state)
+    qrlnode = QRLNode(db_state=persistent_state, slaves=slaves)
     qrlnode.set_chain(chain_manager)
 
     set_logger(args, qrlnode.sync_state)

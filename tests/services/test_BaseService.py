@@ -22,7 +22,7 @@ class TestBaseAPI(TestCase):
 
     def test_getNodeInfo(self):
         db_state = Mock(spec=State)
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
 
         service = BaseService(qrlnode)
         response = service.GetNodeInfo(request=GetNodeInfoReq, context=None)

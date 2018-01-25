@@ -48,6 +48,11 @@ class UserConfig(object):
         self.log_path = os.path.join(self.qrl_dir, "qrl.log")
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
 
+        # ======================================
+        #    MINING WALLET CONFIGURATION
+        # ======================================
+        self.slaves_filename = 'slaves.json'
+
         self.wallet_dir = os.path.join(self.qrl_dir)
 
         self.load_yaml(self.config_path)

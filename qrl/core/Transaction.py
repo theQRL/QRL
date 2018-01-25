@@ -401,7 +401,7 @@ class CoinBase(Transaction):
                                             )
 
     @staticmethod
-    def create(blockheader, xmss):
+    def create(blockheader, xmss, master_address):
         transaction = CoinBase()
 
         transaction._data.addr_from = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
@@ -409,7 +409,7 @@ class CoinBase(Transaction):
         transaction._data.xmss_ots_index = xmss.get_index()
         transaction._data.public_key = bytes(xmss.pk())
 
-        transaction._data.coinbase.addr_to = xmss.get_address()
+        transaction._data.coinbase.addr_to = master_address
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
         transaction._data.coinbase.block_number = blockheader.block_number
         transaction._data.coinbase.headerhash = blockheader.headerhash

@@ -92,6 +92,13 @@ class AddressState(object):
     def increase_nonce(self):
         self._data.nonce += 1
 
+    def get_slave_permission(self, slave_pk) -> int:
+        slave_pk_str = str(slave_pk)
+        if slave_pk_str in self._data.slave_pks_access_type:
+            return self._data.slave_pks_access_type[slave_pk_str]
+
+        return -1
+
     @staticmethod
     def get_default(address):
         address_state = AddressState.create(address=address,

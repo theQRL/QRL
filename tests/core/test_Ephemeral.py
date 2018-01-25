@@ -75,6 +75,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=GenesisBlock().headerhash,
                                                       transactions=[lattice_public_key_txn],
                                                       signing_xmss=slave_xmss,
+                                                      master_address=slave_xmss.get_address(),
                                                       nonce=1)
 
                             #  Mine the nonce
@@ -124,6 +125,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=tmp_block1.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
+                                                      master_address=slave_xmss.get_address(),
                                                       nonce=2)
 
                             #  Mine the nonce
@@ -141,6 +143,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=tmp_block2.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
+                                                      master_address=slave_xmss.get_address(),
                                                       nonce=3)
 
                             #  Mine the nonce
@@ -157,6 +160,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=tmp_block3.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
+                                                      master_address=slave_xmss.get_address(),
                                                       nonce=4)
 
                             #  Mine the nonce

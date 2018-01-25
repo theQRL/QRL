@@ -60,6 +60,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[slave_tx],
                                            signing_xmss=alice_xmss,
+                                           master_address=alice_xmss.get_address(),
                                            nonce=1)
 
                     while not chain_manager.validate_mining_nonce(block_1, False):
@@ -82,6 +83,7 @@ class TestChainManager(TestCase):
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[],
                                          signing_xmss=bob_xmss,
+                                         master_address=bob_xmss.get_address(),
                                          nonce=1)
 
                     while not chain_manager.validate_mining_nonce(block, False):
@@ -102,6 +104,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=block.headerhash,
                                            transactions=[],
                                            signing_xmss=bob_xmss,
+                                           master_address=bob_xmss.get_address(),
                                            nonce=2)
 
                     while not chain_manager.validate_mining_nonce(block_2, False):
@@ -138,6 +141,7 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
                                                signing_xmss=alice_xmss,
+                                               master_address=alice_xmss.get_address(),
                                                nonce=1)
                         block_1.set_mining_nonce(10)
 
@@ -158,6 +162,7 @@ class TestChainManager(TestCase):
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
                                              signing_xmss=bob_xmss,
+                                             master_address=bob_xmss.get_address(),
                                              nonce=1)
                         block.set_mining_nonce(18)
 
@@ -171,6 +176,7 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                signing_xmss=bob_xmss,
+                                               master_address=bob_xmss.get_address(),
                                                nonce=2)
                         block_2.set_mining_nonce(17)
 

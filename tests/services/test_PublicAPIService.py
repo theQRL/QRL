@@ -40,7 +40,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
         qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -63,7 +63,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
         qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -93,7 +93,7 @@ class TestPublicAPI(TestCase):
         chain_manager.get_block_by_number = MagicMock(return_value=None)
         chain_manager.state = db_state
 
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
         qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -132,7 +132,7 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         chain_manager = ChainManager(db_state)
 
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
         qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
@@ -171,7 +171,7 @@ class TestPublicAPI(TestCase):
 
         chain_manager = ChainManager(db_state)
 
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
         qrlnode.set_chain(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -249,13 +249,15 @@ class TestPublicAPI(TestCase):
         self.assertEqual(125, response.transaction.tx.transfer.amount)
         self.assertEqual(19, response.transaction.tx.fee)
 
+        alice_xmss = get_alice_xmss()
         # Find a block
         db_state.get_block_by_number = MagicMock(
             return_value=Block.create(mining_nonce=10,
                                       block_number=1,
                                       prevblock_headerhash=sha256(b'reveal'),
                                       transactions=[],
-                                      signing_xmss=get_alice_xmss(),
+                                      signing_xmss=alice_xmss,
+                                      master_address=alice_xmss.get_address(),
                                       nonce=1))
 
         context = Mock(spec=ServicerContext)
@@ -270,20 +272,22 @@ class TestPublicAPI(TestCase):
     def test_getLatestData(self):
         blocks = []
         txs = []
+        alice_xmss = get_alice_xmss()
         for i in range(1, 4):
             for j in range(1, 3):
                 txs.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
                                                       addr_to=qrladdress('dest'),
                                                       amount=i * 100 + j,
                                                       fee=j,
-                                                      xmss_pk=get_alice_xmss().pk(),
-                                                      xmss_ots_index=get_alice_xmss().get_index()))
+                                                      xmss_pk=alice_xmss.pk(),
+                                                      xmss_ots_index=alice_xmss.get_index()))
 
             blocks.append(Block.create(mining_nonce=10,
                                        block_number=i,
                                        prevblock_headerhash=sha256(b'reveal'),
                                        transactions=txs,
-                                       signing_xmss=get_alice_xmss(),
+                                       signing_xmss=alice_xmss,
+                                       master_address=alice_xmss.get_address(),
                                        nonce=i))
 
         txpool = []
@@ -309,7 +313,7 @@ class TestPublicAPI(TestCase):
         chain_manager.tx_pool.transaction_pool = txpool
         chain_manager.height = len(blocks)
 
-        qrlnode = QRLNode(db_state)
+        qrlnode = QRLNode(db_state, slaves=[])
         qrlnode.set_chain(chain_manager)
         qrlnode.get_block_from_index = MagicMock(return_value=None)
 
