@@ -106,7 +106,7 @@ class P2PTxManagement(P2PBaseObserver):
         subtype MESSAGE is received.
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
         try:
             tx = Transaction.from_pbdata(message.mtData)
         except Exception as e:
@@ -130,7 +130,7 @@ class P2PTxManagement(P2PBaseObserver):
         subtype TOKEN is received.
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
         try:
             tx = Transaction.from_pbdata(message.tkData)
         except Exception as e:
@@ -151,7 +151,7 @@ class P2PTxManagement(P2PBaseObserver):
         subtype TRANSFERTOKEN is received.
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
         try:
             tx = Transaction.from_pbdata(message.ttData)
         except Exception as e:
@@ -218,7 +218,7 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.LT)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.LT)
         try:
             tx = Transaction.from_json(message.ltData)
         except Exception as e:
@@ -242,7 +242,7 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        source._validate_message(message, qrllegacy_pb2.LegacyMessage.SL)
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SL)
         try:
             tx = Transaction.from_json(message.slData)
         except Exception as e:
