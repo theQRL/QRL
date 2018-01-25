@@ -139,7 +139,7 @@ def main():
     qrlnode.start_pow()
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', config.user.reward_address)
+    logger.info('mining/staking address %s', slaves[0])
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()
