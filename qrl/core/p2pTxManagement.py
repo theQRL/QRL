@@ -51,10 +51,6 @@ class P2PTxManagement(P2PBaseObserver):
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
-        if mr_data.type in [qrllegacy_pb2.LegacyMessage.ST, qrllegacy_pb2.LegacyMessage.VT]:
-            if source.factory.chain_height > 1 and source.factory.sync_state.state != ESyncState.synced:
-                return
-
         if source.factory.master_mr.contains(msg_hash, mr_data.type):
             return
 
