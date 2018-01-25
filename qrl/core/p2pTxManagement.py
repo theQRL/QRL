@@ -23,7 +23,7 @@ class P2PTxManagement(P2PBaseObserver):
 
         channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.TX, self.handle_tx)
-        channel.register(qrllegacy_pb2.LegacyMessage.TK, self.handle_token_transaction())
+        channel.register(qrllegacy_pb2.LegacyMessage.TK, self.handle_token_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.TT, self.handle_transfer_token_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.MT, self.handle_message_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
