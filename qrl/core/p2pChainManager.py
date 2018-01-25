@@ -1,3 +1,5 @@
+from pyqrllib.pyqrllib import bin2hstr
+
 from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.p2pObserver import P2PBaseObserver
@@ -9,6 +11,7 @@ class P2PChainManager(P2PBaseObserver):
         super().__init__()
 
     def new_channel(self, channel):
+        channel.register(qrllegacy_pb2.LegacyMessage.BK, self.handle_block)
         channel.register(qrllegacy_pb2.LegacyMessage.FB, self.handle_fetch_block)
         channel.register(qrllegacy_pb2.LegacyMessage.PB, self.handle_push_block)
         channel.register(qrllegacy_pb2.LegacyMessage.BH, self.handle_block_height)
@@ -52,6 +55,31 @@ class P2PChainManager(P2PBaseObserver):
         except Exception as e:
             logger.error('block rejected - unable to decode serialised data %s', source.peer_ip)
             logger.exception(e)
+
+    def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
+        """
+        Block
+        This function processes any new block received.
+        :return:
+        """
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.BK)
+        try:
+            block = Block(message.block)
+        except Exception as e:
+            logger.error('block rejected - unable to decode serialised data %s', source.peer_ip)
+            logger.exception(e)
+            return
+
+        logger.info('>>>Received block from %s %s %s',
+                    source.connection_id,
+                    block.block_number,
+                    bin2hstr(block.headerhash))
+
+        if not source.factory.master_mr.isRequested(block.headerhash, source, block):
+            return
+
+        source.factory.pow.pre_block_logic(block)  # FIXME: Ignores return value
+        source.factory.master_mr.register(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, message.block)
 
     def handle_block_height(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
