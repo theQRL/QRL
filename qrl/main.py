@@ -82,12 +82,12 @@ def mining_wallet_checks(args):
     except FileNotFoundError:
         logger.warning('No Slave Seeds found!!')
         logger.warning('It is highly recommended to use the slave for mining')
-        ans = input('Do you want to use main wallet for mining? (Y/N)')
+        ans = input('Do you want to use main wallet for mining? (Y/N) ')
         if ans == 'N':
             quit(0)
-        seed = input('Enter hex or mnemonic seed of mining wallet').encode()
+        seed = input('Enter hex or mnemonic seed of mining wallet ').encode()
         if len(seed) == 96:  # hexseed
-            bin_seed = hstr2bin(seed)
+            bin_seed = hstr2bin(seed.decode())
         elif len(seed.split()) == 32:
             bin_seed = mnemonic2bin(seed)
         else:
