@@ -298,9 +298,9 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
-@click.option('--addr_from', default='', prompt=True, help='Address from')
+@click.option('--addr_from', default='', prompt="Addr from (Leave blank in case same as source)", help='Address from')
 @click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
-@click.option('--access_type', default=0, type=int, prompt=True, help='0 - For All Access, 1 - For Mining Permission')
+@click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
 @click.option('--fee', default=0.0, type=float, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
