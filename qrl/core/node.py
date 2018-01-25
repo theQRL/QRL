@@ -8,7 +8,6 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.Miner import Miner
-from qrl.core.Wallet import Wallet
 from qrl.core.ChainManager import ChainManager
 from qrl.core.misc import ntp, logger
 from qrl.core.Block import Block
@@ -32,17 +31,22 @@ class POW(ConsensusMechanism):
                  chain_manager: ChainManager,
                  p2p_factory,
                  sync_state: SyncState,
-                 time_provider):
+                 time_provider,
+                 slaves: list):
 
         super().__init__(chain_manager)
         self.sync_state = sync_state
         self.time_provider = time_provider
 
-        self.mining_xmss = Wallet.get_new_address(config.dev.xmss_tree_height).xmss
-        self.miner = Miner(self.pre_block_logic, self.mining_xmss, self.chain_manager.state)
+        self.slaves = slaves
 
         self.p2p_factory = p2p_factory  # FIXME: Decouple from p2pFactory. Comms vs node logic
         self.p2p_factory.pow = self  # FIXME: Temporary hack to keep things working while refactoring
+
+        self.miner = Miner(self.pre_block_logic,
+                           self.slaves,
+                           self.chain_manager.state,
+                           self.p2p_factory.add_unprocessed_txn)
 
         self._miner_lock = threading.Lock()
 

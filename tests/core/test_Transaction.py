@@ -611,16 +611,16 @@ class TestCoinBase(TestCase):
         self.maxDiff = None
 
     def test_create(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice)
+        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.get_address())
         self.assertIsInstance(tx, CoinBase)
 
     def test_to_json(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice)
+        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.get_address())
         txjson = tx.to_json()
         self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
 
     def test_from_txdict(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice)
+        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.get_address())
         tx.sign(self.alice)
         self.assertIsInstance(tx, CoinBase)
 

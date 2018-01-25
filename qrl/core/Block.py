@@ -92,6 +92,7 @@ class Block(object):
                prevblock_headerhash: bytes,
                transactions: list,
                signing_xmss: XMSS,
+               master_address: bytes,
                nonce: int):
 
         block = Block()
@@ -121,7 +122,7 @@ class Block(object):
         block._data.header.MergeFrom(tmp_blockheader.pbdata)
 
         # Prepare coinbase tx
-        coinbase_tx = CoinBase.create(tmp_blockheader, signing_xmss)
+        coinbase_tx = CoinBase.create(tmp_blockheader, signing_xmss, master_address)
         coinbase_tx.pbdata.nonce = nonce
         coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
 

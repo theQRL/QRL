@@ -27,7 +27,7 @@ from qrl.generated import qrl_pb2
 
 
 class QRLNode:
-    def __init__(self, db_state: State):
+    def __init__(self, db_state: State, slaves: list):
         self.start_time = time.time()
         self.db_state = db_state
         self._sync_state = SyncState()
@@ -44,6 +44,9 @@ class QRLNode:
         self._p2pfactory = None  # FIXME: REMOVE. This is temporary
 
         self._pow = None
+
+        self.slaves = slaves
+
         reactor.callLater(10, self.monitor_chain_state)
 
     ####################################################
@@ -174,7 +177,8 @@ class QRLNode:
         self._pow = POW(chain_manager=self._chain_manager,
                         p2p_factory=self._p2pfactory,
                         sync_state=self._sync_state,
-                        time_provider=ntp)
+                        time_provider=ntp,
+                        slaves=self.slaves)
 
         self._pow.start()
 

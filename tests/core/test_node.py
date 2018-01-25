@@ -6,7 +6,9 @@ from unittest import TestCase
 from mock import Mock, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
+from tests.misc.helper import get_slaves, get_alice_xmss, get_random_master
 from qrl.core.misc import logger
+from qrl.core.AddressState import AddressState
 from qrl.core.ESyncState import ESyncState
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.node import POW
@@ -27,7 +29,8 @@ class TestNode(TestCase):
         node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
-                   time_provider=time_provider)
+                   time_provider=time_provider,
+                   slaves=get_slaves(0, 0))
 
         self.assertIsNotNone(node)
 
@@ -40,7 +43,8 @@ class TestNode(TestCase):
         node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
-                   time_provider=time_provider)
+                   time_provider=time_provider,
+                   slaves=get_slaves(0, 0))
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.unsynced)
@@ -55,7 +59,8 @@ class TestNode(TestCase):
         node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
-                   time_provider=time_provider)
+                   time_provider=time_provider,
+                   slaves=get_slaves(0, 0))
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.syncing)
@@ -73,9 +78,8 @@ class TestNode(TestCase):
         get_block_metadata_response.block_difficulty = StringToUInt256('2')
         chain_manager.state.get_block_metadata = MagicMock(return_value=get_block_metadata_response)
 
-        get_address_response = Mock()
-        get_address_response.nonce = 1
-        chain_manager.state.get_address = MagicMock(return_value=get_address_response)
+        alice_xmss = get_alice_xmss()
+        chain_manager.state.get_address = MagicMock(return_value=AddressState.get_default(alice_xmss.get_address()))
 
         p2p_factory = Mock()
         sync_state = Mock()
@@ -84,7 +88,8 @@ class TestNode(TestCase):
         node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
-                   time_provider=time_provider)
+                   time_provider=time_provider,
+                   slaves=get_random_master())
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.synced)
@@ -99,7 +104,8 @@ class TestNode(TestCase):
         node = POW(chain_manager=chain_manager,
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
-                   time_provider=time_provider)
+                   time_provider=time_provider,
+                   slaves=get_slaves(0, 0))
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.forked)

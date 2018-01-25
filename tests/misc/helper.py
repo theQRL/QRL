@@ -6,6 +6,8 @@ import shutil
 import tempfile
 
 import os
+import simplejson as json
+
 from copy import deepcopy
 
 from mock import mock
@@ -14,7 +16,7 @@ from pyqrllib.dilithium import Dilithium
 
 from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Transaction import TokenTransaction
+from qrl.core.Transaction import TokenTransaction, SlaveTransaction
 from qrl.generated import qrl_pb2
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
@@ -105,8 +107,13 @@ def get_bob_xmss() -> XMSS:
     return XMSS(xmss_height, seed)
 
 
-def get_random_xmss() -> XMSS:
+def get_slave_xmss() -> XMSS:
     xmss_height = 6
+    seed = bytes([i + 10 for i in range(48)])
+    return XMSS(xmss_height, seed)
+
+
+def get_random_xmss(xmss_height=6) -> XMSS:
     return XMSS(xmss_height)
 
 
@@ -204,3 +211,27 @@ def create_ephemeral_message(ttl: int,
     encrypted_ephemeral_message._data.payload = aes.encrypt(ephemeral_data.to_json())
 
     return encrypted_ephemeral_message
+
+
+def get_slaves(alice_ots_index, txn_nonce):
+    # [master_address: bytes, slave_seeds: list, slave_txn: json]
+
+    slave_xmss = get_slave_xmss()
+    alice_xmss = get_alice_xmss()
+
+    alice_xmss.set_index(alice_ots_index)
+    slave_txn = SlaveTransaction.create(alice_xmss.get_address(),
+                                        [slave_xmss.pk()],
+                                        [1],
+                                        0,
+                                        alice_xmss.pk(),
+                                        alice_ots_index)
+    slave_txn._data.nonce = txn_nonce
+    slave_txn.sign(alice_xmss)
+
+    return json.loads(json.dumps([alice_xmss.get_address(), [slave_xmss.get_seed()], slave_txn.to_json()]))
+
+
+def get_random_master():
+    random_master = get_random_xmss(config.dev.xmss_tree_height)
+    return json.loads(json.dumps([random_master.get_address(), [random_master.get_seed()], None]))
