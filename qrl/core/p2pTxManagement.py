@@ -181,7 +181,7 @@ class P2PTxManagement(P2PBaseObserver):
         if not encrypted_ephemeral.validate():
             return
 
-        source.factory.buffered_chain.add_ephemeral_message(encrypted_ephemeral)  # FIXME(cyyber) : Fix broken link
+        source.factory.broadcast_ephemeral_message(encrypted_ephemeral)  # FIXME(cyyber) : Fix broken link
 
     def handle_lattice(self, source, message: qrllegacy_pb2.LegacyMessage):
         """

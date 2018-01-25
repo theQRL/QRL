@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper, Qryptonight
 
 from qrl.core import config
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
@@ -346,3 +347,6 @@ class ChainManager:
             node_header_hash.headerhashes.append(block.headerhash)
 
         return node_header_hash
+
+    def add_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage):
+        self.state.update_ephemeral(encrypted_ephemeral)

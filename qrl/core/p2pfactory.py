@@ -16,7 +16,7 @@ from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
-from qrl.core.Transaction import TransferTransaction, LatticePublicKey
+from qrl.core.Transaction import TransferTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2pprotocol import P2PProtocol
@@ -369,12 +369,6 @@ class P2PFactory(ServerFactory):
         self.register_and_broadcast('EPH',
                                     encrypted_ephemeral.get_message_hash(),
                                     encrypted_ephemeral.to_json())
-
-    def broadcast_lt(self, lattice_public_key_txn: LatticePublicKey):
-        logger.info('<<<Transmitting LATTICE txn: %s', lattice_public_key_txn.txhash)
-        self._chain_manager.add_lattice_public_key(lattice_public_key_txn)
-        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.LT, lattice_public_key_txn.get_message_hash(),
-                                    lattice_public_key_txn.to_json())
 
     def broadcast_tx_relay(self, source_peer, tx):
         txn_msg = source_peer._wrap_message('TX', tx.to_json())
