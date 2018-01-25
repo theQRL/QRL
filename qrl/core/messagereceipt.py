@@ -53,7 +53,8 @@ class MessageReceipt(object):
                      LegacyMessage.BK,
                      LegacyMessage.MT,
                      LegacyMessage.TK,
-                     LegacyMessage.TT]
+                     LegacyMessage.TT,
+                     LegacyMessage.SL]
 
     services_arg = {
         ######################
