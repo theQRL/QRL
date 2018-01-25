@@ -129,6 +129,7 @@ class POW(ConsensusMechanism):
 
     def initialize_pow(self):
         reactor.callLater(30, self.update_node_state, ESyncState.synced)
+        reactor.callLater(60, self.monitor_miner)
 
     ##############################################
     ##############################################
@@ -180,6 +181,10 @@ class POW(ConsensusMechanism):
     ##############################################
     ##############################################
     ##############################################
+    def monitor_miner(self):
+        if not self.miner.isRunning():
+            self.mine_next(self.chain_manager.last_block)
+        reactor.callLater(60, self.monitor_miner)
 
     def pre_block_logic(self, block: Block):
         logger.debug('Checking miner lock')
