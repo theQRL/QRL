@@ -249,7 +249,7 @@ class P2PFactory(ServerFactory):
         last_block_number = min(last_block.block_number, last_block_number)
         if last_block_number < node_header_hash.block_number:
             return
-        fork_block_number = None
+        fork_block_number = last_block_number + 1
         for i in range(last_block_number, node_header_hash.block_number - 1, -1):
             block = self._chain_manager.get_block_by_number(i)
             if block.headerhash == node_header_hash.headerhashes[i-node_header_hash.block_number]:

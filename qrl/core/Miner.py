@@ -47,12 +47,28 @@ class Miner(Qryptominer):
                 return True
         return False
 
+    def valid_mining_permission(self):
+        if self._master_address == self._mining_xmss.get_address():
+            return True
+        addr_state = self.state.get_address(self._master_address)
+        access_type = addr_state.get_slave_permission(self._mining_xmss.get_address())
+        if access_type == -1:
+            logger.warning('Slave is not authorized yet for mining')
+            logger.warning('Added Slave Txn')
+            slave_tx = Transaction.from_json(self._slaves[2])
+            self._add_unprocessed_txn_fn(slave_tx, None)
+            return None
+        return True
+
     def get_mining_xmss(self):
         if self._mining_xmss:
             addr_state = self.state.get_address(self._mining_xmss.get_address())
             if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.get_index()):
-                return self._mining_xmss
-            self._mining_xmss = None
+                if self.valid_mining_permission():
+                    return self._mining_xmss
+            else:
+                self._mining_xmss = None
+            return None
 
         if not self._mining_xmss:
             self._master_address = self._slaves[0].encode()
@@ -72,13 +88,7 @@ class Miner(Qryptominer):
         if self._master_address == self._mining_xmss.get_address():
             return self._mining_xmss
 
-        addr_state = self.state.get_address(self._master_address)
-        access_type = addr_state.get_slave_permission(self._mining_xmss.get_address())
-        if access_type == -1:
-            logger.warning('Slave is not authorized yet for mining')
-            logger.warning('Added Slave Txn')
-            slave_tx = Transaction.from_json(self._slaves[2])
-            self._add_unprocessed_txn_fn(slave_tx, None)
+        if not self.valid_mining_permission():
             return None
 
         return self._mining_xmss
@@ -89,8 +99,8 @@ class Miner(Qryptominer):
                      parent_difficulty,
                      thread_count=config.user.mining_thread_count):
 
-        self._mining_xmss = self.get_mining_xmss()
-        if not self._mining_xmss:
+        mining_xmss = self.get_mining_xmss()
+        if not mining_xmss:
             logger.warning('No Mining XMSS Found')
             return
 
