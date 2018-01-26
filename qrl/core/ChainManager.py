@@ -286,15 +286,15 @@ class ChainManager:
                 parent_block_difficulty = parent_metadata.block_difficulty
                 parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                # FIXME: Cyyber
-                measurement = self.state.get_measurement(block_timestamp, parent_headerhash)
+                if not parent_metadata.is_orphan:
+                    measurement = self.state.get_measurement(block_timestamp, parent_headerhash)
 
-                block_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
-                                                                   parent_difficulty=parent_block_difficulty)
+                    block_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
+                                                                       parent_difficulty=parent_block_difficulty)
 
-                block_cumulative_difficulty = StringToUInt256(str(
-                    int(UInt256ToString(block_difficulty)) +
-                    int(UInt256ToString(parent_cumulative_difficulty))))
+                    block_cumulative_difficulty = StringToUInt256(str(
+                        int(UInt256ToString(block_difficulty)) +
+                        int(UInt256ToString(parent_cumulative_difficulty))))
 
         block_metadata = self.state.get_block_metadata(headerhash)
         if not block_metadata:
