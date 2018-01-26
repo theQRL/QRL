@@ -127,6 +127,7 @@ class DevConfig(object):
         self.default_account_balance = 100 * (10 ** 9)
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
+        self.mining_setpoint_blocktime = 60
         self.genesis_difficulty = 5000
         self.tx_extra_overhead = 15  # 15 bytes
 

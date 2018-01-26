@@ -111,10 +111,12 @@ class Miner(Qryptominer):
                                                    tx_pool=tx_pool,
                                                    signing_xmss=self._mining_xmss,
                                                    master_address=self._master_address)
+            # FIXME: Cyyber
+            measurement = self._mining_block.timestamp - parent_block.timestamp
 
-            current_difficulty, current_target = self._difficulty_tracker.get(self._mining_block.timestamp,
-                                                                              [parent_block.timestamp],
-                                                                              parent_difficulty)
+            current_difficulty, current_target = self._difficulty_tracker.get(
+                measurement=measurement,
+                parent_difficulty=parent_difficulty)
 
             input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
             logger.debug('=================START====================')
