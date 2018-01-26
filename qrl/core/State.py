@@ -625,7 +625,7 @@ class State:
         return coins
 
     def get_measurement(self, block_timestamp, prev_headerhash):
-        for i in range(0, config.dev.N_measurement):
+        for _ in range(0, config.dev.N_measurement):
             block = self.get_block(prev_headerhash)
             nth_block_timestamp = block.timestamp
             prev_headerhash = block.prev_headerhash
