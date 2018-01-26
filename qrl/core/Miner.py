@@ -111,8 +111,8 @@ class Miner(Qryptominer):
                                                    tx_pool=tx_pool,
                                                    signing_xmss=self._mining_xmss,
                                                    master_address=self._master_address)
-            # FIXME: Cyyber
-            measurement = self._mining_block.timestamp - parent_block.timestamp
+
+            measurement = self.state.get_measurement(self._mining_block.timestamp, self._mining_block.prev_headerhash)
 
             current_difficulty, current_target = self._difficulty_tracker.get(
                 measurement=measurement,

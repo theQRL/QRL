@@ -14,7 +14,7 @@ from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import Transaction
 from qrl.core.TransactionPool import TransactionPool
-from qrl.core.misc import logger, ntp
+from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 
 
@@ -70,8 +70,7 @@ class ChainManager:
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
         # FIXME: Cyyber
-        measurement = block.timestamp - parent_block.timestamp
-
+        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
         diff, target = self._difficulty_tracker.get(measurement=measurement,
                                                     parent_difficulty=parent_metadata.block_difficulty)
         if enable_logging:
@@ -288,7 +287,7 @@ class ChainManager:
                 parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
                 # FIXME: Cyyber
-                measurement = block_timestamp - parent_block.timestamp
+                measurement = self.state.get_measurement(block_timestamp, parent_headerhash)
 
                 block_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
                                                                    parent_difficulty=parent_block_difficulty)
@@ -309,10 +308,8 @@ class ChainManager:
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
     def _update_mainchain(self, block, batch):
-        current_time = int(ntp.getTime())
-
         # FIXME: Cyyber
-        measurement = current_time - block.timestamp
+        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
 
         self.current_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
                                                                   parent_difficulty=self.current_difficulty)
