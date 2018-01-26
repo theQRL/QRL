@@ -24,7 +24,6 @@ class ChainManager:
         self.tx_pool = TransactionPool()  # TODO: Move to some pool manager
         self.last_block = GenesisBlock()
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
-        self.current_target = None  # TODO: Not needed, replace all reference to local variable
         self._difficulty_tracker = DifficultyTracker()
 
         self.trigger_miner = False
@@ -51,10 +50,8 @@ class ChainManager:
             self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
             parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-            self.current_difficulty, self.current_target = self._difficulty_tracker.get(
-                timestamp=genesis_block.timestamp,
-                previous_timestamps=[genesis_block.timestamp - 60],
-                parent_difficulty=parent_difficulty)
+            self.current_difficulty, _ = self._difficulty_tracker.get(measurement=config.dev.mining_setpoint_blocktime,
+                                                                      parent_difficulty=parent_difficulty)
 
             block_metadata = BlockMetadata.create()
 
@@ -72,8 +69,10 @@ class ChainManager:
         parent_block = self.state.get_block(block.prev_headerhash)
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
-        diff, target = self._difficulty_tracker.get(timestamp=block.timestamp,
-                                                    previous_timestamps=[parent_block.timestamp],
+        # FIXME: Cyyber
+        measurement = block.timestamp - parent_block.timestamp
+
+        diff, target = self._difficulty_tracker.get(measurement=measurement,
                                                     parent_difficulty=parent_metadata.block_difficulty)
         if enable_logging:
             logger.debug('-----------------START--------------------')
@@ -209,7 +208,7 @@ class ChainManager:
             if new_block_difficulty > last_block_difficulty:
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
-                self.update_mainchain(block, batch)
+                self._update_mainchain(block, batch)
                 self.tx_pool.remove_tx_in_block_from_pool(block)
                 self.state.update_mainchain_height(block.block_number, batch)
                 self.state.update_tx_metadata(block, batch)
@@ -288,8 +287,10 @@ class ChainManager:
                 parent_block_difficulty = parent_metadata.block_difficulty
                 parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                block_difficulty, _ = self._difficulty_tracker.get(timestamp=block_timestamp,
-                                                                   previous_timestamps=[parent_block.timestamp],
+                # FIXME: Cyyber
+                measurement = block_timestamp - parent_block.timestamp
+
+                block_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
                                                                    parent_difficulty=parent_block_difficulty)
 
                 block_cumulative_difficulty = StringToUInt256(str(
@@ -307,12 +308,14 @@ class ChainManager:
         self.state.put_block_metadata(parent_headerhash, parent_metadata, batch)
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
-    def update_mainchain(self, block, batch):
+    def _update_mainchain(self, block, batch):
         current_time = int(ntp.getTime())
-        self.current_difficulty, self.current_target = self._difficulty_tracker.get(
-            timestamp=current_time,
-            previous_timestamps=[block.timestamp],
-            parent_difficulty=self.current_difficulty)
+
+        # FIXME: Cyyber
+        measurement = current_time - block.timestamp
+
+        self.current_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
+                                                                  parent_difficulty=self.current_difficulty)
 
         block_number_mapping = None
         while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:

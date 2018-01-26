@@ -44,6 +44,9 @@ class TestQryptominer(TestCase):
         block_timestamp = 1515443508
         parent_block_timestamp = 1515443508
 
+        # This could be the average of last N blocks
+        measurement = block_timestamp - parent_block_timestamp
+
         parent_difficulty = (0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 0,
@@ -51,8 +54,7 @@ class TestQryptominer(TestCase):
 
         diff_tracker = DifficultyTracker()
 
-        new_diff, new_target = diff_tracker.get(block_timestamp,
-                                                previous_timestamps=[parent_block_timestamp],
+        new_diff, new_target = diff_tracker.get(measurement,
                                                 parent_difficulty=parent_difficulty)
 
         self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,

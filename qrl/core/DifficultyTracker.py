@@ -1,22 +1,17 @@
-from typing import List
-
 from pyqryptonight.pyqryptonight import PoWHelper
+
+from qrl.core import config
 
 
 class DifficultyTracker(object):
     def __init__(self):
         self.ph = PoWHelper(kp=100,
-                            set_point=60)
+                            set_point=config.dev.mining_setpoint_blocktime)
 
     def get(self,
-            timestamp,
-            previous_timestamps: List,
+            measurement,
             parent_difficulty):
-        self.ph.clearTimestamps()
-        for t in previous_timestamps:
-            self.ph.addTimestamp(t)
-
-        current_difficulty = self.ph.getDifficulty(timestamp=timestamp,
+        current_difficulty = self.ph.getDifficulty(measurement=measurement,
                                                    parent_difficulty=parent_difficulty)
 
         current_target = self.ph.getBoundary(current_difficulty)
