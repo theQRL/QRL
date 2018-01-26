@@ -139,6 +139,11 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
 
         # ======================================
+        #       DIFFICULTY CONTROLLER
+        # ======================================
+        self.N_measurement = 10
+
+        # ======================================
         #       BLOCK SIZE CONTROLLER
         # ======================================
         self.number_of_blocks_analyze = 10

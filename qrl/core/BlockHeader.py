@@ -111,7 +111,6 @@ class BlockHeader(object):
 
         bh._data.hash_header_prev = prev_blockheaderhash
         bh._data.merkle_root = hashedtransactions
-        bh.set_mining_nonce(mining_nonce)
         bh._data.PK = PK
         bh._data.reward_fee = fee_reward
 
@@ -120,6 +119,7 @@ class BlockHeader(object):
         if bh._data.block_number != 0:
             bh._data.reward_block = bh.block_reward_calc()
 
+        bh.set_mining_nonce(mining_nonce)
         return bh
 
     def set_mining_nonce(self, value):

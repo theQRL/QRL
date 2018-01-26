@@ -623,3 +623,11 @@ class State:
         for a in all_addresses:
             coins = coins + a.balance
         return coins
+
+    def get_measurement(self, block_timestamp, prev_headerhash):
+        for _ in range(0, config.dev.N_measurement):
+            block = self.get_block(prev_headerhash)
+            prev_headerhash = block.prev_headerhash
+            if block.block_number == 0:
+                break
+        return int((block_timestamp - block.timestamp) / config.dev.N_measurement)
