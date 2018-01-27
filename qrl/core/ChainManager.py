@@ -69,7 +69,6 @@ class ChainManager:
         parent_block = self.state.get_block(block.prev_headerhash)
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
-        # FIXME: Cyyber
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
         diff, target = self._difficulty_tracker.get(measurement=measurement,
                                                     parent_difficulty=parent_metadata.block_difficulty)
@@ -308,7 +307,6 @@ class ChainManager:
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
     def _update_mainchain(self, block, batch):
-        # FIXME: Cyyber
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
 
         self.current_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,

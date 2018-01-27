@@ -3,13 +3,15 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import mock
+from mock import mock, Mock, MagicMock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
+from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
+from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import LatticePublicKey
@@ -39,6 +41,12 @@ class TestEphemeral(TestCase):
                 with set_wallet_dir("test_wallet"):
                     with mocked_genesis() as custom_genesis:
                         chain_manager = ChainManager(state)
+
+                        chain_manager._difficulty_tracker = Mock()
+                        dt = DifficultyTracker()
+                        tmp_difficulty = StringToUInt256('2')
+                        tmp_boundary = dt.ph.getBoundary(tmp_difficulty)
+                        chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                         alice_xmss = get_alice_xmss()
                         slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())

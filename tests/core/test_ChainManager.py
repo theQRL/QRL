@@ -3,10 +3,12 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import mock
+from mock import mock, MagicMock, Mock
+from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
+from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import SlaveTransaction
@@ -33,12 +35,20 @@ class TestChainManager(TestCase):
         """
         with set_data_dir('no_data'):
             with State() as state:
+                state.get_measurement = MagicMock(return_value=10000000)
+
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
                 chain_manager.load(genesis_block)
+
+                chain_manager._difficulty_tracker = Mock()
+                dt = DifficultyTracker()
+                tmp_difficulty = StringToUInt256('2')
+                tmp_boundary = dt.ph.getBoundary(tmp_difficulty)
+                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
@@ -125,10 +135,17 @@ class TestChainManager(TestCase):
             devconfig.minimum_minting_delay = 10
             with set_data_dir('no_data'):
                 with State() as state:  # FIXME: Move state to temporary directory
+                    state.get_measurement = MagicMock(return_value=10000000)
                     genesis_block = GenesisBlock()
 
                     chain_manager = ChainManager(state)
                     chain_manager.load(genesis_block)
+
+                    chain_manager._difficulty_tracker = Mock()
+                    dt = DifficultyTracker()
+                    tmp_difficulty = StringToUInt256('2')
+                    tmp_boundary = dt.ph.getBoundary(tmp_difficulty)
+                    chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                     block = state.get_block(genesis_block.headerhash)
                     self.assertIsNotNone(block)

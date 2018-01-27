@@ -80,6 +80,7 @@ class TestNode(TestCase):
 
         alice_xmss = get_alice_xmss()
         chain_manager.state.get_address = MagicMock(return_value=AddressState.get_default(alice_xmss.get_address()))
+        chain_manager.state.get_measurement = MagicMock(return_value=60)
 
         p2p_factory = Mock()
         sync_state = Mock()
