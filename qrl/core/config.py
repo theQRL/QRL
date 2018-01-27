@@ -141,7 +141,7 @@ class DevConfig(object):
         # ======================================
         #       DIFFICULTY CONTROLLER
         # ======================================
-        self.N_measurement = 10
+        self.N_measurement = 250
 
         # ======================================
         #       BLOCK SIZE CONTROLLER
