@@ -68,6 +68,11 @@ def write_slaves(slaves_filename, slaves):
         json.dump(slaves, f)
 
 
+def read_slaves(slaves_filename):
+    with open(slaves_filename, 'r') as f:
+        return json.load(f)
+
+
 def mining_wallet_checks(args):
     slaves_filename = os.path.join(config.user.wallet_dir, config.user.slaves_filename)
 
@@ -77,8 +82,7 @@ def mining_wallet_checks(args):
         write_slaves(slaves_filename, slaves)
 
     try:
-        with open(slaves_filename, 'r') as f:
-            slaves = json.load(f)
+        slaves = read_slaves(slaves_filename)
     except FileNotFoundError:
         logger.warning('No Slave Seeds found!!')
         logger.warning('It is highly recommended to use the slave for mining')
@@ -97,6 +101,7 @@ def mining_wallet_checks(args):
         addrBundle = Wallet.get_new_address(seed=bin_seed)
         slaves = [addrBundle.xmss.get_address(), [addrBundle.xmss.get_seed()], None]
         write_slaves(slaves_filename, slaves)
+        slaves = read_slaves(slaves_filename)
     except KeyboardInterrupt:
         quit(1)
     except Exception as e:
