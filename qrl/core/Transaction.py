@@ -349,7 +349,8 @@ class TransferTransaction(Transaction):
 
         if self.txto in addresses_state:
             addresses_state[self.txto].balance += self.amount
-            addresses_state[self.txto].transaction_hashes.append(self.txhash)
+            if self.txto != self.txfrom:
+                addresses_state[self.txto].transaction_hashes.append(self.txhash)
 
         addr_from_pk = getAddress('Q', self.PK).encode()
         if addr_from_pk in addresses_state:
@@ -907,7 +908,8 @@ class TransferTokenTransaction(Transaction):
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
         if self.txto in addresses_state:
-            addresses_state[self.txto].transaction_hashes.append(self.txhash)
+            if self.txfrom != self.txto:
+                addresses_state[self.txto].transaction_hashes.append(self.txhash)
             addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
 
         addr_from_pk = getAddress('Q', self.PK).encode()
