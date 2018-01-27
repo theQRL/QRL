@@ -251,7 +251,10 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2))
         False
         """
-        return XmssFast.verify(message, signature, pk)
+        try:
+            return XmssFast.verify(message, signature, pk)
+        except ValueError:
+            return False
 
     def SIGN(self, message):
         # type: (bytes) -> bytes
