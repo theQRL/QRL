@@ -67,11 +67,11 @@ class StateLoader:
 
     def destroy(self, batch=None):
         for address in self._data.addresses:
-            self._db.delete(self.state_code+address, batch)
+            self._db.delete(self.state_code + address, batch)
 
     def update_main(self, batch=None):
         for address in self._data.addresses:
-            address_state = self._db.get(self.state_code+address)
+            address_state = self._db.get(self.state_code + address)
             self._db.put_raw(address, address_state, batch)
         self.destroy(batch)
 
@@ -80,11 +80,11 @@ class StateLoader:
         # blocknumber could be used in state_code, and current could point to cache of
         # latest blocknumber
         for address in self._data.addresses:
-            data = self._db.get_raw(self.state_code+address)
+            data = self._db.get_raw(self.state_code + address)
             if data is None:
                 logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
-            self._db.put_raw(state_loader.state_code+address, data, batch)
-            self._db.delete(self.state_code+address, batch)
+            self._db.put_raw(state_loader.state_code + address, data, batch)
+            self._db.delete(self.state_code + address, batch)
         self._data = qrl_pb2.StateLoader()
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
 
@@ -233,15 +233,15 @@ class State:
         return None
 
     def put_block_metadata(self, headerhash, block_metadata, batch):
-        self._db.put_raw(b'metadata_'+bin2hstr(headerhash).encode(), block_metadata.to_json(), batch)
+        self._db.put_raw(b'metadata_' + bin2hstr(headerhash).encode(), block_metadata.to_json(), batch)
 
     def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
         try:
-            json_data = self._db.get_raw(b'metadata_'+bin2hstr(header_hash).encode())
+            json_data = self._db.get_raw(b'metadata_' + bin2hstr(header_hash).encode())
             return BlockMetadata.from_json(json_data)
         except KeyError:
             logger.debug('[get_block_metadata] Block header_hash %s not found',
-                         b'metadata_'+bin2hstr(header_hash).encode())
+                         b'metadata_' + bin2hstr(header_hash).encode())
         except Exception as e:
             logger.error('[get_block_metadata] %s', e)
 
@@ -625,16 +625,18 @@ class State:
         return coins
 
     def get_measurement(self, block_timestamp, prev_headerhash):
+        block_count = 0
+        set_first_timestamp = block_timestamp
+
         for _ in range(0, config.dev.N_measurement):
+            block_count += 1
             block = self.get_block(prev_headerhash)
-            nth_block_timestamp = block.timestamp
+
+            if block.block_number == 0:
+                set_first_timestamp = set_first_timestamp - config.dev.mining_setpoint_blocktime
+                break
+
+            set_first_timestamp = block.timestamp
             prev_headerhash = block.prev_headerhash
 
-            if block.block_number == 1:
-                nth_block_timestamp -= 60
-                break
-            elif block.block_number == 0:
-                nth_block_timestamp = block_timestamp - 60
-                break
-
-        return int((block_timestamp - nth_block_timestamp) / config.dev.N_measurement)
+        return int((block_timestamp - set_first_timestamp) / block_count)
