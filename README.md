@@ -22,9 +22,9 @@ More information:
 ----------------------
 
 
-# QRL Testnet (Instructions for alpha testers)
+# QRL Testnet (Instructions for beta testers)
 
-*You are welcome to install the alpha version and join the testnet. Be aware that work is in progress and there might be frequent breaking changes.*
+*You are welcome to install the beta version and join the testnet. Be aware that work is in progress and there might be frequent breaking changes.*
 
 ## Ubuntu :white_check_mark:
 
