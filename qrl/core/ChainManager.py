@@ -175,12 +175,12 @@ class ChainManager:
     def _try_orphan_add_block(self, block, batch):
         prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
 
+        self.trigger_miner = False
+
         if prev_block_metadata is None or prev_block_metadata.is_orphan:
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
             return True
-
-        self.trigger_miner = False
 
         return False
 
