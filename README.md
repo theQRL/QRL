@@ -39,6 +39,32 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
+
+qrl wallet_gen
+
+qrl wallet_secret
+Wallet idx [0]: 0
+
+qrl -r --host 104.251.219.215 slave_tx_generate
+
+Src []: 0
+Addr from (Leave blank in case same as source) []:
+Number of slaves [0]: 4
+Access type [0]: 1
+Fee [0.0]: 0
+Successfully Generated Slave 1/4
+Generating Slave #2
+Successfully Generated Slave 2/4
+Generating Slave #3
+Successfully Generated Slave 3/4
+Generating Slave #4
+Successfully Generated Slave 4/4
+Successfully created slaves.json
+Move slaves.json file from current directory to the mining node inside ~/.qrl/
+
+mkdir ~/.qrl
+mv slaves.json ~/.qrl
+
 start_qrl
 ```
 
@@ -61,6 +87,32 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
+
+qrl wallet_gen
+
+qrl wallet_secret
+Wallet idx [0]: 0
+
+qrl -r --host 104.251.219.215 slave_tx_generate
+
+Src []: 0
+Addr from (Leave blank in case same as source) []:
+Number of slaves [0]: 4
+Access type [0]: 1
+Fee [0.0]: 0
+Successfully Generated Slave 1/4
+Generating Slave #2
+Successfully Generated Slave 2/4
+Generating Slave #3
+Successfully Generated Slave 3/4
+Generating Slave #4
+Successfully Generated Slave 4/4
+Successfully created slaves.json
+Move slaves.json file from current directory to the mining node inside ~/.qrl/
+
+mkdir ~/.qrl
+mv slaves.json ~/.qrl
+
 start_qrl
 ```
 
@@ -78,6 +130,32 @@ To get the source and start the node, use the following:
 
 ```bash
 pip3 install -U qrl
+
+qrl wallet_gen
+
+qrl wallet_secret
+Wallet idx [0]: 0
+
+qrl -r --host 104.251.219.215 slave_tx_generate
+
+Src []: 0
+Addr from (Leave blank in case same as source) []:
+Number of slaves [0]: 4
+Access type [0]: 1
+Fee [0.0]: 0
+Successfully Generated Slave 1/4
+Generating Slave #2
+Successfully Generated Slave 2/4
+Generating Slave #3
+Successfully Generated Slave 3/4
+Generating Slave #4
+Successfully Generated Slave 4/4
+Successfully created slaves.json
+Move slaves.json file from current directory to the mining node inside ~/.qrl/
+
+mkdir ~/.qrl
+mv slaves.json ~/.qrl
+
 start_qrl
 ```
 
@@ -94,6 +172,32 @@ To get the source and start the node, use the following:
 
 ```bash
 sudo pip3 install -U qrl
+
+qrl wallet_gen
+
+qrl wallet_secret
+Wallet idx [0]: 0
+
+qrl -r --host 104.251.219.215 slave_tx_generate
+
+Src []: 0
+Addr from (Leave blank in case same as source) []:
+Number of slaves [0]: 4
+Access type [0]: 1
+Fee [0.0]: 0
+Successfully Generated Slave 1/4
+Generating Slave #2
+Successfully Generated Slave 2/4
+Generating Slave #3
+Successfully Generated Slave 3/4
+Generating Slave #4
+Successfully Generated Slave 4/4
+Successfully created slaves.json
+Move slaves.json file from current directory to the mining node inside ~/.qrl/
+
+mkdir ~/.qrl
+mv slaves.json ~/.qrl
+
 start_qrl
 ```
 
@@ -116,6 +220,32 @@ To get the source and start the node, use the following:
 
 ```bash
 sudo pip3 install -U qrl
+
+qrl wallet_gen
+
+qrl wallet_secret
+Wallet idx [0]: 0
+
+qrl -r --host 104.251.219.215 slave_tx_generate
+
+Src []: 0
+Addr from (Leave blank in case same as source) []:
+Number of slaves [0]: 4
+Access type [0]: 1
+Fee [0.0]: 0
+Successfully Generated Slave 1/4
+Generating Slave #2
+Successfully Generated Slave 2/4
+Generating Slave #3
+Successfully Generated Slave 3/4
+Generating Slave #4
+Successfully Generated Slave 4/4
+Successfully created slaves.json
+Move slaves.json file from current directory to the mining node inside ~/.qrl/
+
+mkdir ~/.qrl
+mv slaves.json ~/.qrl
+
 start_qrl
 ```
 
