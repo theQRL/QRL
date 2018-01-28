@@ -253,7 +253,18 @@ class Miner(Qryptominer):
 
             if tx.subtype == qrl_pb2.Transaction.LATTICE:
                 if addresses_state[tx.txfrom].balance < tx.fee:
-                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('Lattice TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s',
+                                   addresses_state[tx.txfrom].balance,
+                                   tx.fee)
+                    del t_pool2[txnum]
+                    total_txn -= 1
+                    continue
+
+            if tx.subtype == qrl_pb2.Transaction.SLAVE:
+                if addresses_state[tx.txfrom].balance < tx.fee:
+                    logger.warning('Slave TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
                     logger.warning('subtype: %s', tx.subtype)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
