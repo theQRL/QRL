@@ -35,7 +35,6 @@ class UserConfig(object):
         self.peer_list = ['104.251.219.215',
                           '104.251.219.145',
                           '104.251.219.40',
-                          '104.237.3.184',
                           '104.237.3.185']
 
         self.max_peers_limit = 100  # Number of allowed peers
@@ -99,7 +98,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'The _____-____ _______'
+        self.genesis_prev_headerhash = b'The Three-Body Problem'
 
         ################################################################
         # Warning: Don't change following configuration.               #
