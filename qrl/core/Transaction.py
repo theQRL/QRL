@@ -992,16 +992,16 @@ class SlaveTransaction(Transaction):
         tx_balance = addr_from_state.balance
 
         if self.fee < 0:
-            logger.info('State validation failed for %s because: Negative send', self.txhash)
+            logger.info('Slave: State validation failed for %s because: Negative send', self.txhash)
             return False
 
         if tx_balance < self.fee:
-            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('Slave: State validation failed for %s because: Insufficient funds', self.txhash)
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
         if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
         for txn in transaction_pool:
@@ -1009,7 +1009,7 @@ class SlaveTransaction(Transaction):
                 continue
 
             if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
                 return False
 
         return True
