@@ -8,6 +8,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHel
 
 from qrl.core import config
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
@@ -60,6 +61,12 @@ class ChainManager:
             block_metadata.set_cumulative_difficulty(self.current_difficulty)
 
             self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
+            addresses_state = dict()
+            for genesis_balance in GenesisBlock().genesis_balance:
+                bytes_addr = genesis_balance.address.encode()
+                addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+                addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+            self.state.state_objects.push(addresses_state, genesis_block.headerhash)
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
@@ -204,6 +211,10 @@ class ChainManager:
 
             self.trigger_miner = False
             if new_block_difficulty > last_block_difficulty:
+                if self.last_block.headerhash != block.prev_headerhash:
+                    self.rollback(block, batch)
+                    return True
+
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
                 self._update_mainchain(block, batch)
@@ -216,6 +227,34 @@ class ChainManager:
             return True
 
         return False
+
+    def rollback(self, block, batch):
+        header_hash = block.headerhash
+        hash_path = []
+        while True:
+            if self.state.state_objects.contains(header_hash):
+                break
+            hash_path.append(header_hash)
+            block = self.state.get_block(block.prev_headerhash)
+            if not block:
+                logger.warning('No block found %s', header_hash)
+                break
+
+        self.state.state_objects.destroy_current_state()
+
+        for header_hash in hash_path[-1::-1]:
+            block = self.state.get_block(header_hash)
+            address_set = self.state.prepare_address_list(block)  # Prepare list for current block
+            address_txn = self.state.get_state(block.prev_headerhash, address_set)
+
+            self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
+            self.last_block = block
+            self._update_mainchain(block, batch)
+            self.tx_pool.remove_tx_in_block_from_pool(block)
+            self.state.update_mainchain_height(block.block_number, batch)
+            self.state.update_tx_metadata(block, batch)
+
+        self.trigger_miner = True
 
     def _add_block(self, block, ignore_duplicate=False, batch=None):
         block_size_limit = self.state.get_block_size_limit(block)

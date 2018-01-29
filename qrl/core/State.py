@@ -148,8 +148,9 @@ class StateObjects:
         self._current_state.put_addresses_state(addresses_state)
 
     def contains(self, headerhash: bytes) -> bool:
+        str_headerhash = bin2hstr(headerhash)
         for state_obj in self._state_loaders:
-            if state_obj.state_code == headerhash:
+            if state_obj.state_code == str_headerhash:
                 return True
         return False
 
@@ -187,6 +188,9 @@ class StateObjects:
                     self.destroy_state_loader(index)
                     index -= 1
                     continue
+
+    def destroy_current_state(self, batch):
+        self._current_state.destroy(batch)
 
 
 class State:
@@ -283,16 +287,17 @@ class State:
         return addresses
 
     def set_addresses_state(self, addresses_state: dict, state_code: bytes):
+        str_state_code = bin2hstr(state_code)
         index = -1
         found = False
         for state_object in self.state_objects.state_loaders:
             index += 1
-            if state_object.state_code == state_code:
+            if state_object.state_code == str_state_code:
                 found = True
                 break
 
         if not found:
-            logger.warning('State Code not found %s', state_code)
+            logger.warning('State Code not found %s', str_state_code)
             return None
 
         for address in addresses_state:
@@ -305,7 +310,6 @@ class State:
                 addresses_state[address] = self._get_address_state(address)
 
     def get_state(self, header_hash, addresses_set):
-        str_headerhash = bin2hstr(header_hash).encode()
         tmp_header_hash = header_hash
         parent_headerhash = None
 
@@ -314,13 +318,14 @@ class State:
             addresses_state[address] = None
 
         while True:
-            if self.state_objects.contains(str_headerhash):
+            if self.state_objects.contains(header_hash):
                 parent_headerhash = header_hash
-                self.set_addresses_state(addresses_state, str_headerhash)
+                self.set_addresses_state(addresses_state, header_hash)
                 break
             block = self.get_block(header_hash)
             if not block:
-                return None
+                logger.warning('[get_state] No Block Found %s', header_hash)
+                break
             if block.block_number == 0:
                 break
             header_hash = block.prev_headerhash
@@ -414,10 +419,11 @@ class State:
 
         for protobuf_txn in block.transactions[-20:]:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype == qrl_pb2.Transaction.TRANSFER:
-                last_txn.insert(0, [txn.to_json(),
-                                    block.block_number,
-                                    block.timestamp])
+            if txn.subtype == qrl_pb2.Transaction.COINBASE:
+                continue
+            last_txn.insert(0, [txn.to_json(),
+                                block.block_number,
+                                block.timestamp])
 
         del last_txn[20:]
         self._db.put('last_txn', last_txn, batch)
