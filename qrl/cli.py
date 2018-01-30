@@ -75,7 +75,7 @@ def _public_get_address_balance(ctx, address):
 
 def _select_wallet(ctx, src):
     try:
-        config.user.wallet_path = ctx.obj.wallet_dir
+        config.user.wallet_dir = ctx.obj.wallet_dir
         wallet = Wallet(valid_or_create=False)
         addresses = [a.address for a in wallet.address_bundle]
         if not addresses:
@@ -137,10 +137,10 @@ def wallet_ls(ctx):
         addresses = _admin_get_local_addresses(ctx)
         _print_addresses(ctx, addresses, ctx.obj.node_public_address)
     else:
-        config.user.wallet_path = ctx.obj.wallet_dir
+        config.user.wallet_dir = ctx.obj.wallet_dir
         wallet = Wallet(valid_or_create=False)
         addresses = [a.address for a in wallet.address_bundle]
-        _print_addresses(ctx, addresses, config.user.wallet_path)
+        _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 
 @qrl.command()
@@ -153,11 +153,11 @@ def wallet_gen(ctx):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_path = ctx.obj.wallet_dir
+    config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet()
 
     addresses = [a.address for a in wallet.address_bundle]
-    _print_addresses(ctx, addresses, config.user.wallet_path)
+    _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 
 @qrl.command()
@@ -170,12 +170,12 @@ def wallet_add(ctx):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_path = ctx.obj.wallet_dir
+    config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet()
     wallet.append(wallet.get_new_address())
 
     addresses = [a.address for a in wallet.address_bundle]
-    _print_addresses(ctx, addresses, config.user.wallet_path)
+    _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 
 @qrl.command()
@@ -206,7 +206,7 @@ def wallet_recover(ctx, seed_type):
             return
         bin_seed = hstr2bin(seed)
 
-    config.user.wallet_path = ctx.obj.wallet_dir
+    config.user.wallet_dir = ctx.obj.wallet_dir
     walletObj = Wallet()
     addrBundle = walletObj.get_new_address(seed=bin_seed)
     print('Recovered Wallet Address : %s' % (addrBundle.address.decode(),))
@@ -233,7 +233,7 @@ def wallet_secret(ctx, wallet_idx):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_path = ctx.obj.wallet_dir
+    config.user.wallet_dir = ctx.obj.wallet_dir
 
     wallet = Wallet(valid_or_create=False)
 
