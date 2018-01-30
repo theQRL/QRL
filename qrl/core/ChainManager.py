@@ -23,7 +23,7 @@ class ChainManager:
     def __init__(self, state):
         self.state = state
         self.tx_pool = TransactionPool()  # TODO: Move to some pool manager
-        self.last_block = GenesisBlock()
+        self.last_block = Block.from_json(GenesisBlock().to_json())
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
         self._difficulty_tracker = DifficultyTracker()
 
@@ -66,7 +66,8 @@ class ChainManager:
                 bytes_addr = genesis_balance.address.encode()
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance
-            self.state.state_objects.push(addresses_state, genesis_block.headerhash)
+            self.state.state_objects.update_current_state(addresses_state)
+            self.state.state_objects.push(genesis_block.headerhash)
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty

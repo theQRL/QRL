@@ -68,6 +68,7 @@ class StateLoader:
     def destroy(self, batch=None):
         for address in self._data.addresses:
             self._db.delete(self.state_code + address, batch)
+        del self._data.addresses[:]
 
     def update_main(self, batch=None):
         for address in self._data.addresses:
@@ -128,10 +129,9 @@ class StateObjects:
                 return state_obj
         return None
 
-    def push(self, addresses_state: dict, headerhash: bytes, batch=None):
+    def push(self, headerhash: bytes, batch=None):
         state_loader = StateLoader(state_code=bin2hstr(headerhash).encode(), db=self._db)
         self._current_state.commit(state_loader)
-        # state_loader.put_addresses_state(addresses_state)
 
         self._data.state_loaders.append(state_loader.state_code)
         self._state_loaders.append(state_loader)
@@ -148,7 +148,7 @@ class StateObjects:
         self._current_state.put_addresses_state(addresses_state)
 
     def contains(self, headerhash: bytes) -> bool:
-        str_headerhash = bin2hstr(headerhash)
+        str_headerhash = bin2hstr(headerhash).encode()
         for state_obj in self._state_loaders:
             if state_obj.state_code == str_headerhash:
                 return True
@@ -176,18 +176,24 @@ class StateObjects:
         :return:
         """
         str_headerhash = bin2hstr(headerhash).encode()
-        for index in range(len(self._state_loaders)):
+        len_state_loaders = len(self._state_loaders)
+        index = 0
+        while index < len_state_loaders:
             state_loader = self._state_loaders[index]
+            logger.debug('Comparing #%s>%s', state_loader.block_number, block_number)
             if state_loader.block_number > block_number:
+                logger.debug('Destroyed State #%s', state_loader.block_number)
                 self.destroy_state_loader(index)
-                index -= 1
+                len_state_loaders -= 1
                 continue
 
             if state_loader.block_number == block_number:
                 if state_loader.state_code != str_headerhash:
                     self.destroy_state_loader(index)
-                    index -= 1
+                    len_state_loaders -= 1
                     continue
+
+            index += 1
 
     def destroy_current_state(self, batch):
         self._current_state.destroy(batch)
@@ -287,7 +293,14 @@ class State:
         return addresses
 
     def set_addresses_state(self, addresses_state: dict, state_code: bytes):
-        str_state_code = bin2hstr(state_code)
+        """
+        Sets the addresses_state from the latest state objects cache from or after
+        state_code.
+        :param addresses_state:
+        :param state_code:
+        :return:
+        """
+        str_state_code = bin2hstr(state_code).encode()
         index = -1
         found = False
         for state_object in self.state_objects.state_loaders:
@@ -297,8 +310,8 @@ class State:
                 break
 
         if not found:
-            logger.warning('State Code not found %s', str_state_code)
-            return None
+            logger.warning('Not Possible: State Code not found %s', str_state_code)
+            raise Exception
 
         for address in addresses_state:
             for state_obj_index in range(index, -1, -1):
@@ -334,7 +347,7 @@ class State:
             bytes_addr = genesis_balance.address.encode()
             if not addresses_state[bytes_addr]:
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
-            addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+                addresses_state[bytes_addr]._data.balance = genesis_balance.balance
 
         for address in addresses_state:
             if not addresses_state[address]:
@@ -374,7 +387,7 @@ class State:
         self.state_objects.update_current_state(addresses_state)
 
         if block_number % config.dev.cache_frequency == 0:
-            self.state_objects.push(addresses_state, headerhash)
+            self.state_objects.push(headerhash)
 
     def get_ephemeral_metadata(self, msg_id: bytes):
         try:
@@ -515,26 +528,18 @@ class State:
             return
 
         # TODO (cyyber): Move To State Cache, instead of writing directly
-        # FIXME: Inconsistency in the keys/types
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype in (qrl_pb2.Transaction.TRANSFER,
-                               qrl_pb2.Transaction.COINBASE,
-                               qrl_pb2.Transaction.MESSAGE,
-                               qrl_pb2.Transaction.TOKEN,
-                               qrl_pb2.Transaction.TRANSFERTOKEN,
-                               qrl_pb2.Transaction.LATTICE,
-                               qrl_pb2.Transaction.SLAVE):
-                self._db.put(bin2hstr(txn.txhash),
-                             [txn.to_json(), block.block_number, block.timestamp],
-                             batch)
-                # FIXME: Being updated without batch, need to fix,
-                if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                    self.update_token_metadata(txn)
-                if txn.subtype == qrl_pb2.Transaction.TOKEN:
-                    self.create_token_metadata(txn)
+            self._db.put(bin2hstr(txn.txhash),
+                         [txn.to_json(), block.block_number, block.timestamp],
+                         batch)
+            # FIXME: Being updated without batch, need to fix,
+            if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                self.update_token_metadata(txn)
+            if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                self.create_token_metadata(txn)
 
-                self.increase_txn_count(txn.txfrom)
+            self.increase_txn_count(txn.txfrom)
 
         self.update_last_tx(block, batch)
         # Disabled as complete token list over the network is not required
@@ -572,15 +577,11 @@ class State:
         self._db.put_raw(address_state.address, data, batch)
 
     def get_address(self, address: bytes) -> AddressState:
-        # FIXME: Avoid two calls to know if address is not recognized (merged with is used)
         address_state = self.state_objects.get_address(address)
+
         if not address_state:
-            return AddressState.create(address=address,
-                                       nonce=config.dev.default_nonce,
-                                       balance=config.dev.default_account_balance,
-                                       ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
-                                       tokens=dict(),
-                                       slave_pks_access_type=dict())
+            return self._get_address_state(address)
+
         return address_state
 
     def nonce(self, addr: bytes) -> int:

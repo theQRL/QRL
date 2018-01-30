@@ -182,6 +182,21 @@ class Transaction(object, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
+    def validate_transaction_pool(self, transaction_pool):
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if self.PK != txn.PK:
+                continue
+
+            if txn.ots_key == self.ots_key:
+                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                logger.info('Subtype %s', self.subtype)
+                return False
+
+        return True
+
     def validate(self) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
@@ -331,14 +346,6 @@ class TransferTransaction(Transaction):
         if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
-
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                return False
 
         return True
 
@@ -517,14 +524,6 @@ class LatticePublicKey(Transaction):
             logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
-                return False
-
         return True
 
     def _validate_custom(self):
@@ -603,14 +602,6 @@ class MessageTransaction(Transaction):
         if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
-
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                return False
 
         return True
 
@@ -752,15 +743,6 @@ class TokenTransaction(Transaction):
             logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
-                            self.txhash)
-                return False
-
         return True
 
     def apply_on_state(self, addresses_state):
@@ -888,15 +870,6 @@ class TransferTokenTransaction(Transaction):
                         self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
-                            self.txhash)
-                return False
-
         return True
 
     def apply_on_state(self, addresses_state):
@@ -1003,14 +976,6 @@ class SlaveTransaction(Transaction):
         if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
-
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                return False
 
         return True
 
