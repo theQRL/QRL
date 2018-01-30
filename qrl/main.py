@@ -9,6 +9,7 @@ import simplejson as json
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
 
+from qrl.core.Block import Block
 from qrl.core.Wallet import Wallet
 from qrl.core.ChainManager import ChainManager
 from qrl.core.qrlnode import QRLNode
@@ -132,7 +133,7 @@ def main():
     logger.info('Initializing chain..')
     persistent_state = State()
     chain_manager = ChainManager(state=persistent_state)
-    chain_manager.load(GenesisBlock())
+    chain_manager.load(Block.from_json(GenesisBlock().to_json()))
 
     qrlnode = QRLNode(db_state=persistent_state, slaves=slaves)
     qrlnode.set_chain(chain_manager)
