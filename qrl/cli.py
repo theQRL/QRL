@@ -153,11 +153,11 @@ def wallet_gen(ctx):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_path = ctx.obj.wallet_dir
+    config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet()
 
     addresses = [a.address for a in wallet.address_bundle]
-    _print_addresses(ctx, addresses, config.user.wallet_path)
+    _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 
 @qrl.command()
