@@ -199,7 +199,10 @@ class ChainManager:
             return False
 
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
-        address_txn = self.state.get_state(block.prev_headerhash, address_set)
+        if self.last_block.headerhash == block.prev_headerhash:
+            address_txn = self.state.get_state_mainchain(address_set)
+        else:
+            address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
         if self.validate_block(block, address_txn):
             self.state.put_block(block, None)
@@ -242,11 +245,13 @@ class ChainManager:
             block = new_block
 
         self.state.state_objects.destroy_current_state(None)
+        block = self.state.get_block(hash_path[-1])
+        self.state.state_objects.destroy_fork_states(block.block_number, block.headerhash)
 
         for header_hash in hash_path[-1::-1]:
             block = self.state.get_block(header_hash)
             address_set = self.state.prepare_address_list(block)  # Prepare list for current block
-            address_txn = self.state.get_state(block.prev_headerhash, address_set)
+            address_txn = self.state.get_state_mainchain(address_set)
 
             self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
             self.last_block = block
@@ -375,9 +380,13 @@ class ChainManager:
 
     def get_headerhashes(self, start_blocknumber):
         start_blocknumber = max(0, start_blocknumber)
+        end_blocknumber = min(self.last_block.block_number,
+                              start_blocknumber + config.dev.reorg_limit)
+
         node_header_hash = qrl_pb2.NodeHeaderHash()
         node_header_hash.block_number = start_blocknumber
-        for i in range(start_blocknumber, self.last_block.block_number + 1):
+
+        for i in range(start_blocknumber, end_blocknumber + 1):
             block = self.state.get_block_by_number(i)
             node_header_hash.headerhashes.append(block.headerhash)
 

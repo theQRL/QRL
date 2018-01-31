@@ -322,6 +322,12 @@ class State:
             if not addresses_state[address]:
                 addresses_state[address] = self._get_address_state(address)
 
+    def get_state_mainchain(self, addresses_set):
+        addresses_state = dict()
+        for address in addresses_set:
+            addresses_state[address] = self.get_address(address)
+        return addresses_state
+
     def get_state(self, header_hash, addresses_set):
         tmp_header_hash = header_hash
         parent_headerhash = None

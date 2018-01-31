@@ -30,6 +30,7 @@ class UserConfig(object):
         # Cache Size
         self.lru_state_cache_size = 10
         self.max_state_limit = 10
+
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['104.251.219.215',
@@ -47,6 +48,9 @@ class UserConfig(object):
         self.config_path = os.path.join(self.qrl_dir, "config.yml")
         self.log_path = os.path.join(self.qrl_dir, "qrl.log")
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
+
+        # Block Limits
+        self.forward_block_limit = 100  # Accept blocks up to the current chain height + forward_block_limit
 
         # ======================================
         #    MINING WALLET CONFIGURATION
