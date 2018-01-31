@@ -373,8 +373,8 @@ class ChainManager:
 
         return self.state.get_tx_metadata(transaction_hash)
 
-    def get_headerhashes(self):
-        start_blocknumber = max(0, self.last_block.block_number - 10000)
+    def get_headerhashes(self, start_blocknumber):
+        start_blocknumber = max(0, start_blocknumber)
         node_header_hash = qrl_pb2.NodeHeaderHash()
         node_header_hash.block_number = start_blocknumber
         for i in range(start_blocknumber, self.last_block.block_number + 1):

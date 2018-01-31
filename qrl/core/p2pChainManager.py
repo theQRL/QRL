@@ -114,7 +114,7 @@ class P2PChainManager(P2PBaseObserver):
         """
 
         if len(message.nodeHeaderHash.headerhashes) == 0:
-            node_headerhash = source.factory.get_headerhashes()
+            node_headerhash = source.factory.get_headerhashes(message.nodeHeaderHash.block_number)
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.HEADERHASHES,
                                               nodeHeaderHash=node_headerhash)
             source.send(msg)

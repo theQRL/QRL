@@ -165,8 +165,8 @@ class P2PFactory(ServerFactory):
     def get_last_block(self):
         return self._chain_manager.get_last_block()
 
-    def get_headerhashes(self):
-        return self._chain_manager.get_headerhashes()
+    def get_headerhashes(self, start_blocknumber):
+        return self._chain_manager.get_headerhashes(start_blocknumber)
 
     def get_cumulative_difficulty(self):
         return self._chain_manager.get_cumulative_difficulty()
