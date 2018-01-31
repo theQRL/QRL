@@ -181,10 +181,15 @@ class POW(ConsensusMechanism):
     ##############################################
     ##############################################
     ##############################################
+
     def monitor_miner(self):
-        if not self.miner.isRunning():
-            self.mine_next(self.chain_manager.last_block)
         reactor.callLater(60, self.monitor_miner)
+
+        if self.p2p_factory.is_syncing():
+            return
+        if not self.miner.isRunning():
+            logger.debug('Mine next called by monitor_miner')
+            self.mine_next(self.chain_manager.last_block)
 
     def pre_block_logic(self, block: Block):
         logger.debug('Checking miner lock')
@@ -192,9 +197,11 @@ class POW(ConsensusMechanism):
             logger.debug('Inside add_block')
             result = self.chain_manager.add_block(block)
 
-            logger.debug('Checking trigger_miner %s', self.chain_manager.trigger_miner)
-            if self.chain_manager.trigger_miner or not self.miner.isRunning():
-                self.mine_next(self.chain_manager.last_block)
+            logger.debug('trigger_miner %s', self.chain_manager.trigger_miner)
+            logger.debug('is_syncing %s', self.p2p_factory.is_syncing())
+            if not self.p2p_factory.is_syncing():
+                if self.chain_manager.trigger_miner or not self.miner.isRunning():
+                    self.mine_next(self.chain_manager.last_block)
 
             if not result:
                 logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))

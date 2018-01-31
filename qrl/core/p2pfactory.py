@@ -212,9 +212,11 @@ class P2PFactory(ServerFactory):
         self._last_requested_block_idx += 1
         self.peer_fetch_block()
 
-    def is_syncing_finished(self):
-        last_blocknum = self._target_node_header_hash.block_number + len(self._target_node_header_hash.headerhashes) - 1
-        if self._last_requested_block_idx == last_blocknum:
+    def is_syncing(self) -> bool:
+        return self._syncing_enabled
+
+    def is_syncing_finished(self, force_finish=False):
+        if self._last_requested_block_idx == len(self._target_node_header_hash.headerhashes) or force_finish:
             self._last_requested_block_idx = None
             self._target_node_header_hash = None
             self._target_peer = None
@@ -225,17 +227,28 @@ class P2PFactory(ServerFactory):
 
     def peer_fetch_block(self, retry=0):
         node_header_hash = self._target_node_header_hash
-        block_headerhash = node_header_hash.headerhashes[self._last_requested_block_idx-node_header_hash.block_number]
+        curr_index = self._last_requested_block_idx - node_header_hash.block_number
+
+        block_headerhash = node_header_hash.headerhashes[curr_index]
         block = self._chain_manager.state.get_block(block_headerhash)
+
         if not block:
             if retry >= 5:
                 logger.debug('Retry Limit Hit')
+                self.is_syncing_finished(force_finish=True)
+                self._qrl_node.ban_peer(self._target_peer)
                 self._syncing_enabled = False
                 return
         else:
+            while block and curr_index < len(node_header_hash.headerhashes):
+                block_headerhash = node_header_hash.headerhashes[curr_index]
+                block = self._chain_manager.state.get_block(block_headerhash)
+                self._last_requested_block_idx += 1
+                curr_index = self._last_requested_block_idx - node_header_hash.block_number
+
             if self.is_syncing_finished():
                 return
-            self._last_requested_block_idx += 1
+
             retry = 0
         self._target_peer.send_fetch_block(self._last_requested_block_idx)
         reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry+1)
@@ -448,6 +461,10 @@ class P2PFactory(ServerFactory):
 
     def add_connection(self, conn_protocol) -> bool:
         # TODO: Most of this can go the peer manager
+
+        if self._qrl_node.is_banned(conn_protocol.peer_ip):
+            conn_protocol.loseConnection()
+            return False
 
         # FIXME: (For AWS) This could be problematic for other users
         # FIXME: identify nodes by an GUID?
