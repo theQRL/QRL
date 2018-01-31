@@ -647,3 +647,6 @@ class State:
             prev_headerhash = block.prev_headerhash
 
         return int((block_timestamp - set_first_timestamp) / block_count)
+
+    def delete(self, key, batch):
+        self._db.delete(key, batch)

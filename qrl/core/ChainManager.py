@@ -213,7 +213,7 @@ class ChainManager:
             self.trigger_miner = False
             if new_block_difficulty > last_block_difficulty:
                 if self.last_block.headerhash != block.prev_headerhash:
-                    self.rollback(block, batch)
+                    self.rollback(block)
                     return True
 
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
@@ -229,19 +229,19 @@ class ChainManager:
 
         return False
 
-    def rollback(self, block, batch):
-        header_hash = block.headerhash
+    def rollback(self, block):
         hash_path = []
         while True:
-            if self.state.state_objects.contains(header_hash):
+            if self.state.state_objects.contains(block.headerhash):
                 break
-            hash_path.append(header_hash)
-            block = self.state.get_block(block.prev_headerhash)
-            if not block:
-                logger.warning('No block found %s', header_hash)
+            hash_path.append(block.headerhash)
+            new_block = self.state.get_block(block.prev_headerhash)
+            if not new_block:
+                logger.warning('No block found %s', block.prev_headerhash)
                 break
+            block = new_block
 
-        self.state.state_objects.destroy_current_state(batch)
+        self.state.state_objects.destroy_current_state(None)
 
         for header_hash in hash_path[-1::-1]:
             block = self.state.get_block(header_hash)
@@ -250,10 +250,10 @@ class ChainManager:
 
             self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
             self.last_block = block
-            self._update_mainchain(block, batch)
+            self._update_mainchain(block, None)
             self.tx_pool.remove_tx_in_block_from_pool(block)
-            self.state.update_mainchain_height(block.block_number, batch)
-            self.state.update_tx_metadata(block, batch)
+            self.state.update_mainchain_height(block.block_number, None)
+            self.state.update_tx_metadata(block, None)
 
         self.trigger_miner = True
 
@@ -279,15 +279,12 @@ class ChainManager:
         batch = self.state.get_batch()
         if self._add_block(block, batch=batch):
             self.state.write_batch(batch)
-
-            batch = self.state.get_batch()
-            self.update_child_metadata(block.headerhash, batch)
-            self.state.write_batch(batch)
+            self.update_child_metadata(block.headerhash)
             return True
 
         return False
 
-    def update_child_metadata(self, headerhash, batch):
+    def update_child_metadata(self, headerhash):
         block_metadata = self.state.get_block_metadata(headerhash)
 
         childs = list(block_metadata.child_headerhashes)
@@ -297,8 +294,8 @@ class ChainManager:
             block = self.state.get_block(child_headerhash)
             if not block:
                 continue
-            if not self._add_block(block, True, batch):
-                self._prune([block.headerhash], batch=batch)
+            if not self._add_block(block, True):
+                self._prune([block.headerhash], None)
                 continue
             block_metadata = self.state.get_block_metadata(child_headerhash)
             childs += block_metadata.child_headerhashes
@@ -310,8 +307,8 @@ class ChainManager:
             block_metadata = self.state.get_block_metadata(child_headerhash)
             childs += block_metadata.child_headerhashes
 
-            batch.Delete(bin2hstr(child_headerhash).encode())
-            batch.Delete(b'metadata_' + bin2hstr(child_headerhash).encode())
+            self.state.delete(bin2hstr(child_headerhash).encode(), batch)
+            self.state.delete(b'metadata_' + bin2hstr(child_headerhash).encode(), batch)
 
     def add_block_metadata(self, headerhash, block_timestamp, parent_headerhash, batch):
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
