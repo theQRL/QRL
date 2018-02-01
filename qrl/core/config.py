@@ -150,6 +150,7 @@ class DevConfig(object):
         #       DIFFICULTY CONTROLLER
         # ======================================
         self.N_measurement = 250
+        self.kp = 5
 
         # ======================================
         #       BLOCK SIZE CONTROLLER

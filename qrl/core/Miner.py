@@ -115,7 +115,6 @@ class Miner(Qryptominer):
             measurement = self.state.get_measurement(self._mining_block.timestamp, self._mining_block.prev_headerhash)
 
             current_difficulty, current_target = self._difficulty_tracker.get(
-                block_idx=block.block_number,
                 measurement=measurement,
                 parent_difficulty=parent_difficulty)
 
