@@ -38,6 +38,7 @@ class POW(ConsensusMechanism):
         self.sync_state = sync_state
         self.time_provider = time_provider
 
+        self.miner_toggler = False
         self.slaves = slaves
 
         self.p2p_factory = p2p_factory  # FIXME: Decouple from p2pFactory. Comms vs node logic
@@ -187,9 +188,14 @@ class POW(ConsensusMechanism):
 
         if self.p2p_factory.is_syncing():
             return
-        if not self.miner.isRunning():
+        if not self.miner.isRunning() or self.miner_toggler:
             logger.debug('Mine next called by monitor_miner')
+            self.miner_toggler = False
             self.mine_next(self.chain_manager.last_block)
+        elif self.miner.solutionAvailable():
+            self.miner_toggler = True
+        else:
+            self.miner_toggler = False
 
     def pre_block_logic(self, block: Block):
         logger.debug('Checking miner lock')

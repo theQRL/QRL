@@ -235,9 +235,8 @@ class P2PFactory(ServerFactory):
         if not block:
             if retry >= 5:
                 logger.debug('Retry Limit Hit')
-                self.is_syncing_finished(force_finish=True)
                 self._qrl_node.ban_peer(self._target_peer)
-                self._syncing_enabled = False
+                self.is_syncing_finished(force_finish=True)
                 return
         else:
             while block and curr_index < len(node_header_hash.headerhashes):
