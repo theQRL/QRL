@@ -214,6 +214,8 @@ class QRLNode:
     def connect_peers(self):
         logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
         for peer_address in self.peer_addresses:
+            if self.is_banned(peer_address):
+                continue
             self._p2pfactory.connect_peer(peer_address)
 
     def start_pow(self):
