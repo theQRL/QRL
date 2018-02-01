@@ -115,18 +115,18 @@ class Miner(Qryptominer):
             measurement = self.state.get_measurement(self._mining_block.timestamp, self._mining_block.prev_headerhash)
 
             current_difficulty, current_target = self._difficulty_tracker.get(
+                block_idx=block.block_number,
                 measurement=measurement,
                 parent_difficulty=parent_difficulty)
 
             input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
-            logger.debug('=================START====================')
-            logger.debug('Mine #%s', self._mining_block.block_number)
-            logger.debug('block.timestamp %s', self._mining_block.timestamp)
-            logger.debug('parent_block.timestamp %s', parent_block.timestamp)
-            logger.debug('parent_block.difficulty %s', UInt256ToString(parent_difficulty))
-            logger.debug('input_bytes %s', UInt256ToString(input_bytes))
-            logger.debug('diff : %s | target : %s', UInt256ToString(current_difficulty), current_target)
-            logger.debug('===================END====================')
+            logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {}'.format(
+                self._mining_block.block_number,
+                measurement, self._mining_block.timestamp - parent_block.timestamp,
+                UInt256ToString(parent_difficulty), UInt256ToString(current_difficulty),
+                current_target
+            ))
+            logger.debug('!!! {}'.format(current_target))
             self.start(input=input_bytes,
                        nonceOffset=nonce_offset,
                        target=current_target,

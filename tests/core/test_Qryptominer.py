@@ -54,8 +54,10 @@ class TestQryptominer(TestCase):
 
         diff_tracker = DifficultyTracker()
 
-        new_diff, new_target = diff_tracker.get(measurement,
-                                                parent_difficulty=parent_difficulty)
+        new_diff, new_target = diff_tracker.get(
+            1,
+            measurement,
+            parent_difficulty=parent_difficulty)
 
         self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
