@@ -51,6 +51,17 @@ class P2PTxManagement(P2PBaseObserver):
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
+        if mr_data.type == qrllegacy_pb2.LegacyMessage.BK:
+            # TODO : Add the code for block number and timestamp validation
+            '''
+            if mr_data.block_number > source.factory.chain_height + config.user.forward_block_limit:
+                logger.debug('Skipping block #%s', mr_data.block_number)
+                return
+            '''
+            if mr_data.block_number < source.factory.chain_height - config.dev.reorg_limit:
+                logger.debug('Skipping block #%s as beyond re-org limit', mr_data.block_number)
+                return
+
         if source.factory.master_mr.contains(msg_hash, mr_data.type):
             return
 

@@ -51,6 +51,8 @@ class P2PFactory(ServerFactory):
 
         self.peer_blockheight = dict()
 
+        reactor.callLater(180, self.monitor_connections)
+
         self.p2p_msg_priority = {
             qrllegacy_pb2.LegacyMessage.VE: 0,
             qrllegacy_pb2.LegacyMessage.PL: 0,
@@ -165,8 +167,8 @@ class P2PFactory(ServerFactory):
     def get_last_block(self):
         return self._chain_manager.get_last_block()
 
-    def get_headerhashes(self):
-        return self._chain_manager.get_headerhashes()
+    def get_headerhashes(self, start_blocknumber):
+        return self._chain_manager.get_headerhashes(start_blocknumber)
 
     def get_cumulative_difficulty(self):
         return self._chain_manager.get_cumulative_difficulty()
@@ -210,11 +212,16 @@ class P2PFactory(ServerFactory):
             return
 
         self._last_requested_block_idx += 1
+        if self.is_syncing_finished():
+            return
+
         self.peer_fetch_block()
 
-    def is_syncing_finished(self):
-        last_blocknum = self._target_node_header_hash.block_number + len(self._target_node_header_hash.headerhashes) - 1
-        if self._last_requested_block_idx == last_blocknum:
+    def is_syncing(self) -> bool:
+        return self._syncing_enabled
+
+    def is_syncing_finished(self, force_finish=False):
+        if self._last_requested_block_idx == len(self._target_node_header_hash.headerhashes) or force_finish:
             self._last_requested_block_idx = None
             self._target_node_header_hash = None
             self._target_peer = None
@@ -225,18 +232,29 @@ class P2PFactory(ServerFactory):
 
     def peer_fetch_block(self, retry=0):
         node_header_hash = self._target_node_header_hash
-        block_headerhash = node_header_hash.headerhashes[self._last_requested_block_idx-node_header_hash.block_number]
+        curr_index = self._last_requested_block_idx - node_header_hash.block_number
+
+        block_headerhash = node_header_hash.headerhashes[curr_index]
         block = self._chain_manager.state.get_block(block_headerhash)
+
         if not block:
             if retry >= 5:
                 logger.debug('Retry Limit Hit')
-                self._syncing_enabled = False
+                self._qrl_node.ban_peer(self._target_peer)
+                self.is_syncing_finished(force_finish=True)
                 return
         else:
-            if self.is_syncing_finished():
-                return
-            self._last_requested_block_idx += 1
+            while block and curr_index < len(node_header_hash.headerhashes):
+                block_headerhash = node_header_hash.headerhashes[curr_index]
+                block = self._chain_manager.state.get_block(block_headerhash)
+                self._last_requested_block_idx += 1
+                curr_index = self._last_requested_block_idx - node_header_hash.block_number
+
             retry = 0
+
+        if self.is_syncing_finished():
+            return
+
         self._target_peer.send_fetch_block(self._last_requested_block_idx)
         reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry+1)
 
@@ -449,6 +467,10 @@ class P2PFactory(ServerFactory):
     def add_connection(self, conn_protocol) -> bool:
         # TODO: Most of this can go the peer manager
 
+        if self._qrl_node.is_banned(conn_protocol.peer_ip):
+            conn_protocol.loseConnection()
+            return False
+
         # FIXME: (For AWS) This could be problematic for other users
         # FIXME: identify nodes by an GUID?
         if config.dev.public_ip and conn_protocol.peer_ip == config.dev.public_ip:
@@ -486,7 +508,26 @@ class P2PFactory(ServerFactory):
         if conn_protocol in self._peer_connections:
             self._peer_connections.remove(conn_protocol)
 
+        if conn_protocol.connection_id in self.peer_blockheight:
+            del self.peer_blockheight[conn_protocol.connection_id]
+
         self._synced_peers_protocol.discard(conn_protocol)
+
+    def monitor_connections(self):
+        reactor.callLater(180, self.monitor_connections)
+
+        if len(self._peer_connections) == 0:
+            logger.warning('No Connected Peer Found')
+            reactor.callLater(60, self._qrl_node.connect_peers)
+            return
+
+        connected_peers_set = set()
+        for conn_protocol in self._peer_connections:
+            connected_peers_set.add(conn_protocol.peer_ip)
+
+        for ip in config.user.peer_list:
+            if ip not in connected_peers_set:
+                self.connect_peer(ip)
 
     def connect_peer(self, peer_address):
         if peer_address not in self.get_connected_peer_ips():

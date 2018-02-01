@@ -30,12 +30,14 @@ class UserConfig(object):
         # Cache Size
         self.lru_state_cache_size = 10
         self.max_state_limit = 10
+
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['104.251.219.215',
                           '104.251.219.145',
                           '104.251.219.40',
                           '104.237.3.185']
+        self.ban_minutes = 20              # Allows to ban a peer's IP who is breaking protocol
 
         self.max_peers_limit = 100  # Number of allowed peers
         self.chain_state_timeout = 180
@@ -47,6 +49,9 @@ class UserConfig(object):
         self.config_path = os.path.join(self.qrl_dir, "config.yml")
         self.log_path = os.path.join(self.qrl_dir, "qrl.log")
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
+
+        # Block Limits
+        self.forward_block_limit = 100  # Accept blocks up to the current chain height + forward_block_limit
 
         # ======================================
         #    MINING WALLET CONFIGURATION
@@ -131,6 +136,7 @@ class DevConfig(object):
         self.mining_setpoint_blocktime = 60
         self.genesis_difficulty = 5000
         self.tx_extra_overhead = 15  # 15 bytes
+        self.coinbase_address = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
 
         # Directories and files
         self.db_name = 'state'
@@ -138,6 +144,7 @@ class DevConfig(object):
         self.chain_file_directory = 'data'
         self.wallet_dat_filename = 'wallet.qrl'
         self.slave_dat_filename = 'slave.qrl'
+        self.banned_peers_filename = 'banned_peers.qrl'
 
         # ======================================
         #       DIFFICULTY CONTROLLER

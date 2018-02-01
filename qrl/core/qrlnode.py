@@ -2,6 +2,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import time
+import os
+import simplejson as json
 from decimal import Decimal
 from typing import Optional, List
 
@@ -46,6 +48,8 @@ class QRLNode:
         self._pow = None
 
         self.slaves = slaves
+
+        self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
 
         reactor.callLater(10, self.monitor_chain_state)
 
@@ -139,6 +143,46 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
+    def _update_banned_peers(self, banned_peers):
+        current_time = ntp.getTime()
+        ip_list = list(banned_peers.keys())
+
+        for ip in ip_list:
+            if current_time > banned_peers[ip]:
+                del banned_peers[ip]
+
+        self._put_banned_peers(banned_peers)
+
+    def _put_banned_peers(self, banned_peers: dict):
+        with open(self.banned_peers_filename, 'w') as f:
+            json.dump(banned_peers, f)
+
+    def _get_banned_peers(self) -> dict:
+        try:
+            with open(self.banned_peers_filename, 'r') as f:
+                banned_peers = json.load(f)
+        except FileNotFoundError:
+            banned_peers = dict()
+            self._put_banned_peers(banned_peers)
+
+        return banned_peers
+
+    def is_banned(self, peer_ip: str):
+        banned_peers = self._get_banned_peers()
+        self._update_banned_peers(banned_peers)
+
+        if peer_ip in banned_peers:
+            return True
+
+    def ban_peer(self, peer_obj):
+        ip = peer_obj.peer_ip
+        ban_time = ntp.getTime() + (config.user.ban_minutes * 60)
+        banned_peers = self._get_banned_peers()
+        banned_peers[ip] = ban_time
+
+        self._update_banned_peers(banned_peers)
+        logger.warning('Banned %s', peer_obj.peer_ip)
+        peer_obj.loseConnection()
 
     def monitor_chain_state(self):
         self.peer_manager.monitor_chain_state()
@@ -155,7 +199,7 @@ class QRLNode:
         logger.debug('Got better difficulty %s', channel)
         if channel:
             logger.debug('Connection id >> %s', channel.connection_id)
-            channel.get_headerhash_list()
+            channel.get_headerhash_list(self._chain_manager.height)
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
     # FIXME: REMOVE. This is temporary
@@ -170,6 +214,8 @@ class QRLNode:
     def connect_peers(self):
         logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
         for peer_address in self.peer_addresses:
+            if self.is_banned(peer_address):
+                continue
             self._p2pfactory.connect_peer(peer_address)
 
     def start_pow(self):

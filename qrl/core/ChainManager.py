@@ -8,6 +8,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHel
 
 from qrl.core import config
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
@@ -22,7 +23,7 @@ class ChainManager:
     def __init__(self, state):
         self.state = state
         self.tx_pool = TransactionPool()  # TODO: Move to some pool manager
-        self.last_block = GenesisBlock()
+        self.last_block = Block.from_json(GenesisBlock().to_json())
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
         self._difficulty_tracker = DifficultyTracker()
 
@@ -62,6 +63,13 @@ class ChainManager:
             block_metadata.set_cumulative_difficulty(self.current_difficulty)
 
             self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
+            addresses_state = dict()
+            for genesis_balance in GenesisBlock().genesis_balance:
+                bytes_addr = genesis_balance.address.encode()
+                addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+                addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+            self.state.state_objects.update_current_state(addresses_state)
+            self.state.state_objects.push(genesis_block.headerhash)
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
@@ -196,7 +204,10 @@ class ChainManager:
             return False
 
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
-        address_txn = self.state.get_state(block.prev_headerhash, address_set)
+        if self.last_block.headerhash == block.prev_headerhash:
+            address_txn = self.state.get_state_mainchain(address_set)
+        else:
+            address_txn = self.state.get_state(block.prev_headerhash, address_set)
 
         if self.validate_block(block, address_txn):
             self.state.put_block(block, None)
@@ -209,6 +220,10 @@ class ChainManager:
 
             self.trigger_miner = False
             if new_block_difficulty > last_block_difficulty:
+                if self.last_block.headerhash != block.prev_headerhash:
+                    self.rollback(block)
+                    return True
+
                 self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
                 self.last_block = block
                 self._update_mainchain(block, batch)
@@ -221,6 +236,39 @@ class ChainManager:
             return True
 
         return False
+
+    def rollback(self, block):
+        hash_path = []
+        while True:
+            if self.state.state_objects.contains(block.headerhash):
+                break
+            hash_path.append(block.headerhash)
+            new_block = self.state.get_block(block.prev_headerhash)
+            if not new_block:
+                logger.warning('No block found %s', block.prev_headerhash)
+                break
+            block = new_block
+            if block.block_number == 0:
+                del hash_path[-1]  # Skip replaying Genesis Block
+                break
+
+        self.state.state_objects.destroy_current_state(None)
+        block = self.state.get_block(hash_path[-1])
+        self.state.state_objects.destroy_fork_states(block.block_number, block.headerhash)
+
+        for header_hash in hash_path[-1::-1]:
+            block = self.state.get_block(header_hash)
+            address_set = self.state.prepare_address_list(block)  # Prepare list for current block
+            address_txn = self.state.get_state_mainchain(address_set)
+
+            self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
+            self.last_block = block
+            self._update_mainchain(block, None)
+            self.tx_pool.remove_tx_in_block_from_pool(block)
+            self.state.update_mainchain_height(block.block_number, None)
+            self.state.update_tx_metadata(block, None)
+
+        self.trigger_miner = True
 
     def _add_block(self, block, ignore_duplicate=False, batch=None):
         block_size_limit = self.state.get_block_size_limit(block)
@@ -241,18 +289,19 @@ class ChainManager:
         return False
 
     def add_block(self, block: Block) -> bool:
+        if block.block_number < self.height - config.dev.reorg_limit:
+            logger.debug('Skipping block #%s as beyond re-org limit', block.block_number)
+            return False
+
         batch = self.state.get_batch()
         if self._add_block(block, batch=batch):
             self.state.write_batch(batch)
-
-            batch = self.state.get_batch()
-            self.update_child_metadata(block.headerhash, batch)
-            self.state.write_batch(batch)
+            self.update_child_metadata(block.headerhash)
             return True
 
         return False
 
-    def update_child_metadata(self, headerhash, batch):
+    def update_child_metadata(self, headerhash):
         block_metadata = self.state.get_block_metadata(headerhash)
 
         childs = list(block_metadata.child_headerhashes)
@@ -262,8 +311,8 @@ class ChainManager:
             block = self.state.get_block(child_headerhash)
             if not block:
                 continue
-            if not self._add_block(block, True, batch):
-                self._prune([block.headerhash], batch=batch)
+            if not self._add_block(block, True):
+                self._prune([block.headerhash], None)
                 continue
             block_metadata = self.state.get_block_metadata(child_headerhash)
             childs += block_metadata.child_headerhashes
@@ -275,8 +324,8 @@ class ChainManager:
             block_metadata = self.state.get_block_metadata(child_headerhash)
             childs += block_metadata.child_headerhashes
 
-            batch.Delete(bin2hstr(child_headerhash).encode())
-            batch.Delete(b'metadata_' + bin2hstr(child_headerhash).encode())
+            self.state.delete(bin2hstr(child_headerhash).encode(), batch)
+            self.state.delete(b'metadata_' + bin2hstr(child_headerhash).encode(), batch)
 
     def add_block_metadata(self,
                            headerhash,
@@ -349,11 +398,15 @@ class ChainManager:
 
         return self.state.get_tx_metadata(transaction_hash)
 
-    def get_headerhashes(self):
-        start_blocknumber = max(0, self.last_block.block_number - 10000)
+    def get_headerhashes(self, start_blocknumber):
+        start_blocknumber = max(0, start_blocknumber)
+        end_blocknumber = min(self.last_block.block_number,
+                              start_blocknumber + config.dev.reorg_limit)
+
         node_header_hash = qrl_pb2.NodeHeaderHash()
         node_header_hash.block_number = start_blocknumber
-        for i in range(start_blocknumber, self.last_block.block_number + 1):
+
+        for i in range(start_blocknumber, end_blocknumber + 1):
             block = self.state.get_block_by_number(i)
             node_header_hash.headerhashes.append(block.headerhash)
 

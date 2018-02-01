@@ -123,7 +123,8 @@ class TestChainManager(TestCase):
                     result = chain_manager.add_block(block_2)
 
                 self.assertTrue(result)
-                self.assertEqual(chain_manager.last_block, block_2)
+                self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
+                self.assertEqual(chain_manager.last_block.to_json(), block_2.to_json())
 
     def test_orphan_block(self):
         """

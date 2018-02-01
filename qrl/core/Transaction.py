@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import getAddress, bin2hstr
 
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.crypto.misc import sha256
@@ -182,6 +183,21 @@ class Transaction(object, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
+    def validate_transaction_pool(self, transaction_pool):
+        for txn in transaction_pool:
+            if txn.txhash == self.txhash:
+                continue
+
+            if self.PK != txn.PK:
+                continue
+
+            if txn.ots_key == self.ots_key:
+                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                logger.info('Subtype %s', self.subtype)
+                return False
+
+        return True
+
     def validate(self) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
@@ -332,14 +348,6 @@ class TransferTransaction(Transaction):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                return False
-
         return True
 
     def apply_on_state(self, addresses_state):
@@ -405,7 +413,7 @@ class CoinBase(Transaction):
     def create(blockheader, xmss, master_address):
         transaction = CoinBase()
 
-        transaction._data.addr_from = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
+        transaction._data.addr_from = config.dev.coinbase_address
         transaction._data.fee = 0
         transaction._data.xmss_ots_index = xmss.get_index()
         transaction._data.public_key = bytes(xmss.pk())
@@ -425,7 +433,7 @@ class CoinBase(Transaction):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
-        if self.addr_from != b'Q999999999999999999999999999999999999999999999999999999999999999999999999':
+        if self.addr_from != config.dev.coinbase_address:
             return False
 
         if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.txto)):
@@ -517,14 +525,6 @@ class LatticePublicKey(Transaction):
             logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
-                return False
-
         return True
 
     def _validate_custom(self):
@@ -603,14 +603,6 @@ class MessageTransaction(Transaction):
         if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
-
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                return False
 
         return True
 
@@ -752,15 +744,6 @@ class TokenTransaction(Transaction):
             logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
-                            self.txhash)
-                return False
-
         return True
 
     def apply_on_state(self, addresses_state):
@@ -888,15 +871,6 @@ class TransferTokenTransaction(Transaction):
                         self.txhash)
             return False
 
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
-                            self.txhash)
-                return False
-
         return True
 
     def apply_on_state(self, addresses_state):
@@ -1003,14 +977,6 @@ class SlaveTransaction(Transaction):
         if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
             logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
-
-        for txn in transaction_pool:
-            if txn.txhash == self.txhash:
-                continue
-
-            if txn.ots_key == self.ots_key:
-                logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                return False
 
         return True
 

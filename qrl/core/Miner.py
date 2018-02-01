@@ -189,7 +189,13 @@ class Miner(Qryptominer):
             if block_size + tx.size + config.dev.tx_extra_overhead > block_size_limit:
                 txnum += 1
                 continue
-            if tx.ots_key_reuse(addresses_state[tx.txfrom], tx.ots_key):
+
+            addr_from_pk_state = addresses_state[tx.txfrom]
+            addr_from_pk = Transaction.get_slave(tx)
+            if addr_from_pk:
+                addr_from_pk_state = addresses_state[addr_from_pk]
+
+            if tx.ots_key_reuse(addr_from_pk_state, tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
