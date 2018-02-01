@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import getAddress, bin2hstr
 
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.crypto.misc import sha256
@@ -412,7 +413,7 @@ class CoinBase(Transaction):
     def create(blockheader, xmss, master_address):
         transaction = CoinBase()
 
-        transaction._data.addr_from = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
+        transaction._data.addr_from = config.dev.coinbase_address
         transaction._data.fee = 0
         transaction._data.xmss_ots_index = xmss.get_index()
         transaction._data.public_key = bytes(xmss.pk())
@@ -432,7 +433,7 @@ class CoinBase(Transaction):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
-        if self.addr_from != b'Q999999999999999999999999999999999999999999999999999999999999999999999999':
+        if self.addr_from != config.dev.coinbase_address:
             return False
 
         if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.txto)):

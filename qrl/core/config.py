@@ -136,6 +136,7 @@ class DevConfig(object):
         self.mining_setpoint_blocktime = 60
         self.genesis_difficulty = 5000
         self.tx_extra_overhead = 15  # 15 bytes
+        self.coinbase_address = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
 
         # Directories and files
         self.db_name = 'state'

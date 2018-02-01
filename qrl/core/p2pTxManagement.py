@@ -58,7 +58,9 @@ class P2PTxManagement(P2PBaseObserver):
                 logger.debug('Skipping block #%s', mr_data.block_number)
                 return
             '''
-            pass
+            if mr_data.block_number < source.factory.chain_height - config.dev.reorg_limit:
+                logger.debug('Skipping block #%s as beyond re-org limit', mr_data.block_number)
+                return
 
         if source.factory.master_mr.contains(msg_hash, mr_data.type):
             return
