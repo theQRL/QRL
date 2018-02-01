@@ -51,8 +51,10 @@ class ChainManager:
             self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
             parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-            self.current_difficulty, _ = self._difficulty_tracker.get(measurement=config.dev.mining_setpoint_blocktime,
-                                                                      parent_difficulty=parent_difficulty)
+            self.current_difficulty, _ = self._difficulty_tracker.get(
+                block_idx=0,
+                measurement=config.dev.mining_setpoint_blocktime,
+                parent_difficulty=parent_difficulty)
 
             block_metadata = BlockMetadata.create()
 
@@ -78,8 +80,11 @@ class ChainManager:
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
-        diff, target = self._difficulty_tracker.get(measurement=measurement,
-                                                    parent_difficulty=parent_metadata.block_difficulty)
+        diff, target = self._difficulty_tracker.get(
+            block_idx=block.block_number,
+            measurement=measurement,
+            parent_difficulty=parent_metadata.block_difficulty)
+
         if enable_logging:
             logger.debug('-----------------START--------------------')
             logger.debug('Validate #%s', block.block_number)
@@ -322,7 +327,11 @@ class ChainManager:
             self.state.delete(bin2hstr(child_headerhash).encode(), batch)
             self.state.delete(b'metadata_' + bin2hstr(child_headerhash).encode(), batch)
 
-    def add_block_metadata(self, headerhash, block_timestamp, parent_headerhash, batch):
+    def add_block_metadata(self,
+                           headerhash,
+                           block_timestamp,
+                           parent_headerhash,
+                           batch):
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
         block_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
         block_cumulative_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
@@ -337,8 +346,10 @@ class ChainManager:
                 if not parent_metadata.is_orphan:
                     measurement = self.state.get_measurement(block_timestamp, parent_headerhash)
 
-                    block_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
-                                                                       parent_difficulty=parent_block_difficulty)
+                    block_difficulty, _ = self._difficulty_tracker.get(
+                        block_idx=parent_block.block_number + 1,
+                        measurement=measurement,
+                        parent_difficulty=parent_block_difficulty)
 
                     block_cumulative_difficulty = StringToUInt256(str(
                         int(UInt256ToString(block_difficulty)) +
@@ -358,8 +369,10 @@ class ChainManager:
     def _update_mainchain(self, block, batch):
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
 
-        self.current_difficulty, _ = self._difficulty_tracker.get(measurement=measurement,
-                                                                  parent_difficulty=self.current_difficulty)
+        self.current_difficulty, _ = self._difficulty_tracker.get(
+            block_idx=block.block_number,
+            measurement=measurement,
+            parent_difficulty=self.current_difficulty)
 
         block_number_mapping = None
         while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
