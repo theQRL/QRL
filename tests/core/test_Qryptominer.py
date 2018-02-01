@@ -55,20 +55,19 @@ class TestQryptominer(TestCase):
         diff_tracker = DifficultyTracker()
 
         new_diff, new_target = diff_tracker.get(
-            1,
             measurement,
             parent_difficulty=parent_difficulty)
 
         self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                    0, 0, 0, 0, 0, 0, 0, 4))
+                                    0, 0, 0, 0, 0, 0, 0, 5))
 
         self.assertEqual(new_target, (
-            64, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0))
+            51, 51, 51, 51, 51, 51, 51, 51,
+            51, 51, 51, 51, 51, 51, 51, 51,
+            51, 51, 51, 51, 51, 51, 51, 51,
+            51, 51, 51, 51, 51, 51, 51, 51))
 
         block_json = read_data_file('core/example_block_mining.json')
 

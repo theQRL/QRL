@@ -52,7 +52,6 @@ class ChainManager:
             parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
             self.current_difficulty, _ = self._difficulty_tracker.get(
-                block_idx=0,
                 measurement=config.dev.mining_setpoint_blocktime,
                 parent_difficulty=parent_difficulty)
 
@@ -81,7 +80,6 @@ class ChainManager:
 
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
         diff, target = self._difficulty_tracker.get(
-            block_idx=block.block_number,
             measurement=measurement,
             parent_difficulty=parent_metadata.block_difficulty)
 
@@ -347,7 +345,6 @@ class ChainManager:
                     measurement = self.state.get_measurement(block_timestamp, parent_headerhash)
 
                     block_difficulty, _ = self._difficulty_tracker.get(
-                        block_idx=parent_block.block_number + 1,
                         measurement=measurement,
                         parent_difficulty=parent_block_difficulty)
 
@@ -370,7 +367,6 @@ class ChainManager:
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
 
         self.current_difficulty, _ = self._difficulty_tracker.get(
-            block_idx=block.block_number,
             measurement=measurement,
             parent_difficulty=self.current_difficulty)
 
