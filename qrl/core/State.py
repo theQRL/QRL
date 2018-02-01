@@ -55,13 +55,16 @@ class StateLoader:
         except KeyError:
             return None
 
+    def add_address(self, address):
+        if address not in self._data.addresses:
+            self._data.addresses.append(address)
+
     def put_addresses_state(self, addresses_state: dict, batch=None):
         for address in addresses_state:
             address_state = addresses_state[address]
             data = address_state.pbdata.SerializeToString()
             self._db.put_raw(self.state_code + address_state.address, data, batch)
-            if address not in self._data.addresses:
-                self._data.addresses.append(address)
+            self.add_address(address)
 
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
 
@@ -72,7 +75,7 @@ class StateLoader:
 
     def update_main(self, batch=None):
         for address in self._data.addresses:
-            address_state = self._db.get(self.state_code + address)
+            address_state = self._db.get_raw(self.state_code + address)
             self._db.put_raw(address, address_state, batch)
         self.destroy(batch)
 
@@ -85,8 +88,9 @@ class StateLoader:
             if data is None:
                 logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
             self._db.put_raw(state_loader.state_code + address, data, batch)
+            self.add_address(address)
             self._db.delete(self.state_code + address, batch)
-        self._data = qrl_pb2.StateLoader()
+        del self._data.addresses[:]
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
 
 
