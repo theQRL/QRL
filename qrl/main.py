@@ -97,7 +97,7 @@ def mining_wallet_checks(args):
         if len(seed) == 96:  # hexseed
             bin_seed = hstr2bin(seed.decode())
         elif len(seed.split()) == 32:
-            bin_seed = mnemonic2bin(seed)
+            bin_seed = mnemonic2bin(seed.decode())
         else:
             logger.warning('Invalid XMSS seed')
             quit(1)
