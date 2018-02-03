@@ -147,6 +147,28 @@ class BlockHeader(object):
         return block_reward_calc(self.block_number)
 
     def validate(self, fee_reward, coinbase_amount):
+        current_time = ntp.getTime()
+        allowed_timestamp = current_time + config.dev.block_lead_timestamp
+        if self.timestamp > allowed_timestamp:
+            logger.warning('BLOCK timestamp is more than the allowed block lead timestamp')
+            logger.warning('Block timestamp %s ', self.timestamp)
+            logger.warning('threshold timestamp %s', allowed_timestamp)
+            return False
+
+        if self.timestamp < config.dev.genesis_timestamp:
+            logger.warning('Timestamp lower than genesis timestamp')
+            logger.warning('Genesis Timestamp %s', config.dev.genesis_timestamp)
+            logger.warning('Block Timestamp %s', self.timestamp)
+            return False
+
+        max_blocknumber = (current_time - config.dev.genesis_timestamp) / 60
+        max_expected_blocknumber = max_blocknumber + config.dev.max_margin_block_number
+        if self.block_number > max_expected_blocknumber:
+            logger.warning('Blocknumber exceeds maximum expected blocknumbers')
+            logger.warning('Max expected blocknumber %s', max_expected_blocknumber)
+            logger.warning('Blocknumber found %s', self.block_number)
+            return False
+
         if self.generate_headerhash() != self.headerhash:
             logger.warning('Headerhash false for block: failed validation')
             return False
