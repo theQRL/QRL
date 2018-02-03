@@ -397,7 +397,7 @@ class ChainManager:
     def get_headerhashes(self, start_blocknumber):
         start_blocknumber = max(0, start_blocknumber)
         end_blocknumber = min(self.last_block.block_number,
-                              start_blocknumber + config.dev.reorg_limit)
+                              start_blocknumber + 2*config.dev.reorg_limit)
 
         node_header_hash = qrl_pb2.NodeHeaderHash()
         node_header_hash.block_number = start_blocknumber
