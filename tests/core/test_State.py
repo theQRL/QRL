@@ -20,6 +20,14 @@ class TestState(TestCase):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
+    def test_release_state(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                self.assertIsNotNone(state)  # to avoid warning (unused variable)
+
+            with State() as state:
+                self.assertIsNotNone(state)  # to avoid warning (unused variable)
+
     def test_set_block_pos(self):
         with set_data_dir('no_data'):
             with State() as state:
