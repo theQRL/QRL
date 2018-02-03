@@ -88,7 +88,7 @@ class StateLoader:
             if data is None:
                 logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
             self._db.put_raw(state_loader.state_code + address, data, batch)
-            self.add_address(address)
+            state_loader.add_address(address)
             self._db.delete(self.state_code + address, batch)
         del self._data.addresses[:]
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)

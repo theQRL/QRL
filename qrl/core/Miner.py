@@ -24,6 +24,7 @@ class Miner(Qryptominer):
         self._mining_block = None
         self._slaves = slaves
         self._mining_xmss = None
+        self._dummy_xmss = None
         self._reward_address = None
         self.state = state
         self._difficulty_tracker = DifficultyTracker()
@@ -104,6 +105,9 @@ class Miner(Qryptominer):
             logger.warning('No Mining XMSS Found')
             return
 
+        if not self._dummy_xmss:
+            self._dummy_xmss = Wallet.get_new_address(signature_tree_height=mining_xmss.height).xmss
+
         try:
             self.cancel()
             self._mining_block = self.create_block(last_block=parent_block,
@@ -156,11 +160,10 @@ class Miner(Qryptominer):
                                    block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=signing_xmss,
+                                   signing_xmss=self._dummy_xmss,
                                    master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
-        signing_xmss.set_index(signing_xmss.get_index() - 1)
 
         t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
         del tx_pool.transaction_pool[:]

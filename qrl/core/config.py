@@ -50,9 +50,6 @@ class UserConfig(object):
         self.log_path = os.path.join(self.qrl_dir, "qrl.log")
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
 
-        # Block Limits
-        self.forward_block_limit = 100  # Accept blocks up to the current chain height + forward_block_limit
-
         # ======================================
         #    MINING WALLET CONFIGURATION
         # ======================================
@@ -103,7 +100,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'The Three-Body Problem'
+        self.genesis_prev_headerhash = b'The Sharp Blade'
 
         ################################################################
         # Warning: Don't change following configuration.               #
