@@ -218,6 +218,8 @@ class State:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._db is not None:
+            if self._db.db is not None:
+                del self._db.db
             del self._db
             self._db = None
 
