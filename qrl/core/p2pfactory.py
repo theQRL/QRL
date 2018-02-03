@@ -221,7 +221,7 @@ class P2PFactory(ServerFactory):
         return self._syncing_enabled
 
     def is_syncing_finished(self, force_finish=False):
-        curr_index = self._last_requested_block_idx - self._target_node_header_hash.block_number
+        curr_index = self._last_requested_block_idx - self._target_node_header_hash.block_number + 1
         if curr_index == len(self._target_node_header_hash.headerhashes) or force_finish:
             self._last_requested_block_idx = None
             self._target_node_header_hash = None
@@ -245,11 +245,11 @@ class P2PFactory(ServerFactory):
                 self.is_syncing_finished(force_finish=True)
                 return
         else:
-            while block and curr_index < len(node_header_hash.headerhashes):
-                block_headerhash = node_header_hash.headerhashes[curr_index]
-                block = self._chain_manager.state.get_block(block_headerhash)
+            while block and curr_index + 1 < len(node_header_hash.headerhashes):
                 self._last_requested_block_idx += 1
                 curr_index = self._last_requested_block_idx - node_header_hash.block_number
+                block_headerhash = node_header_hash.headerhashes[curr_index]
+                block = self._chain_manager.state.get_block(block_headerhash)
 
             retry = 0
 
