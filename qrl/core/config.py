@@ -107,6 +107,8 @@ class DevConfig(object):
         #          For QRL Developers only                             #
         ################################################################
 
+        self.block_lead_timestamp = 15
+        self.max_margin_block_number = 10
         self.public_ip = None
         self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour
         self.cache_frequency = 1000
@@ -142,6 +144,8 @@ class DevConfig(object):
         self.wallet_dat_filename = 'wallet.qrl'
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
+
+        self.genesis_timestamp = 1517695543
 
         # ======================================
         #       DIFFICULTY CONTROLLER

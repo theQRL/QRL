@@ -153,7 +153,7 @@ class TestChainManager(TestCase):
                     alice_xmss = get_alice_xmss()
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1615270948  # Very high to get an easy difficulty
+                        time_mock.return_value = 1517696848  # Very high to get an easy difficulty
                         block_1 = Block.create(mining_nonce=10,
                                                block_number=1,
                                                prevblock_headerhash=genesis_block.headerhash,
@@ -174,7 +174,7 @@ class TestChainManager(TestCase):
                     bob_xmss = get_bob_xmss()
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1615270948 + devconfig.minimum_minting_delay * 2
+                        time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 2
                         block = Block.create(mining_nonce=18,
                                              block_number=1,
                                              prevblock_headerhash=genesis_block.headerhash,
@@ -188,7 +188,7 @@ class TestChainManager(TestCase):
                             block.set_mining_nonce(block.mining_nonce + 1)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1615270948 + devconfig.minimum_minting_delay * 3
+                        time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 3
                         block_2 = Block.create(mining_nonce=17,
                                                block_number=2,
                                                prevblock_headerhash=block.headerhash,
