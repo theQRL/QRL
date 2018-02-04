@@ -257,9 +257,13 @@ class ChainManager:
         for header_hash in hash_path[-1::-1]:
             block = self.state.get_block(header_hash)
             address_set = self.state.prepare_address_list(block)  # Prepare list for current block
-            address_txn = self.state.get_state_mainchain(address_set)
+            addresses_state = self.state.get_state_mainchain(address_set)
 
-            self.state.update_mainchain_state(address_txn, block.block_number, block.headerhash)
+            for tx_idx in range(0, len(block.transactions)):
+                tx = Transaction.from_pbdata(block.transactions[tx_idx])
+                tx.apply_on_state(addresses_state)
+
+            self.state.update_mainchain_state(addresses_state, block.block_number, block.headerhash)
             self.last_block = block
             self._update_mainchain(block, None)
             self.tx_pool.remove_tx_in_block_from_pool(block)
@@ -364,12 +368,6 @@ class ChainManager:
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
     def _update_mainchain(self, block, batch):
-        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
-
-        self.current_difficulty, _ = self._difficulty_tracker.get(
-            measurement=measurement,
-            parent_difficulty=self.current_difficulty)
-
         block_number_mapping = None
         while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
             block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
