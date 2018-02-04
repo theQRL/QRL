@@ -403,7 +403,7 @@ class CoinBase(Transaction):
 
         transaction._data.addr_from = config.dev.coinbase_address
         transaction._data.fee = 0
-        transaction._data.public_key = bytes(xmss.pk())
+        transaction._data.public_key = bytes(xmss.pk)
 
         transaction._data.coinbase.addr_to = master_address
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward

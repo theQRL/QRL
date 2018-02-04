@@ -149,7 +149,7 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
-        request.address = get_alice_xmss().get_address()
+        request.address = get_alice_xmss().address
         response = service.GetAddressState(request=request, context=context)
         context.set_code.assert_not_called()
 
@@ -258,7 +258,7 @@ class TestPublicAPI(TestCase):
                                       prevblock_headerhash=sha256(b'reveal'),
                                       transactions=[],
                                       signing_xmss=alice_xmss,
-                                      master_address=alice_xmss.get_address(),
+                                      master_address=alice_xmss.address,
                                       nonce=1))
 
         context = Mock(spec=ServicerContext)
@@ -276,27 +276,27 @@ class TestPublicAPI(TestCase):
         alice_xmss = get_alice_xmss()
         for i in range(1, 4):
             for j in range(1, 3):
-                txs.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
+                txs.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
                                                       addr_to=qrladdress('dest'),
                                                       amount=i * 100 + j,
                                                       fee=j,
-                                                      xmss_pk=alice_xmss.pk()))
+                                                      xmss_pk=alice_xmss.pk))
 
             blocks.append(Block.create(mining_nonce=10,
                                        block_number=i,
                                        prevblock_headerhash=sha256(b'reveal'),
                                        transactions=txs,
                                        signing_xmss=alice_xmss,
-                                       master_address=alice_xmss.get_address(),
+                                       master_address=alice_xmss.address,
                                        nonce=i))
 
         txpool = []
         for j in range(10, 15):
-            txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
+            txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
                                                      addr_to=qrladdress('dest'),
                                                      amount=1000 + j,
                                                      fee=j,
-                                                     xmss_pk=get_alice_xmss().pk()))
+                                                     xmss_pk=get_alice_xmss().pk))
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)

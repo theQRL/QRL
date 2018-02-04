@@ -81,7 +81,7 @@ def mining_wallet_checks(args):
 
     if args.randomizeSlaveXMSS:
         addrBundle = Wallet.get_new_address()
-        slaves = [addrBundle.xmss.get_address(), [addrBundle.xmss.get_seed()], None]
+        slaves = [addrBundle.xmss.address, [addrBundle.xmss.seed], None]
         write_slaves(slaves_filename, slaves)
 
     try:
@@ -105,7 +105,7 @@ def mining_wallet_checks(args):
             quit(1)
 
         addrBundle = Wallet.get_new_address(seed=bin_seed)
-        slaves = [addrBundle.xmss.get_address(), [addrBundle.xmss.get_seed()], None]
+        slaves = [addrBundle.xmss.address, [addrBundle.xmss.seed], None]
         write_slaves(slaves_filename, slaves)
         slaves = read_slaves(slaves_filename)
     except KeyboardInterrupt:

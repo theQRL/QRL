@@ -279,11 +279,11 @@ class QRLNode:
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
 
-        xmss_pk = xmss_from.pk()
+        xmss_pk = xmss_from.pk
 
         # TODO: Review this
         # Balance validation
-        if xmss_from.get_remaining_signatures() == 1:
+        if xmss_from.remaining_signatures() == 1:
             balance = self.db_state.balance(addr_from)
             if amount + fee < balance:
                 # FIXME: maybe this is too strict?

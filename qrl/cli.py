@@ -241,7 +241,7 @@ def wallet_secret(ctx, wallet_idx):
     if 0 <= wallet_idx < len(wallet.address_bundle):
         addr_bundle = wallet.address_bundle[wallet_idx]
         click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
-        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
+        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.mnemonic))
     else:
         click.echo('Wallet index not found', color='yellow')
 
@@ -261,8 +261,8 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
         if src_xmss:
-            address_src_pk = src_xmss.pk()
-            address_src_otsidx = src_xmss.get_index()
+            address_src_pk = src_xmss.pk
+            address_src_otsidx = src_xmss.ots_index
         else:
             address_src_pk = pk.encode()
             address_src_otsidx = int(otsidx)
@@ -315,8 +315,8 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         if len(addr_from.strip()) == 0:
             addr_from = address_src
         if src_xmss:
-            address_src_pk = src_xmss.pk()
-            address_src_otsidx = src_xmss.get_index()
+            address_src_pk = src_xmss.pk
+            address_src_otsidx = src_xmss.ots_index
         else:
             address_src_pk = pk.encode()
             address_src_otsidx = int(otsidx)
@@ -338,8 +338,8 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         print("Generating Slave #"+str(i+1))
         xmss = XMSS(config.dev.xmss_tree_height)
         slave_xmss.append(xmss)
-        slave_xmss_seed.append(xmss.get_seed())
-        slave_pks.append(xmss.pk())
+        slave_xmss_seed.append(xmss.seed)
+        slave_pks.append(xmss.pk)
         access_types.append(access_type)
         print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
 
@@ -358,7 +358,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         tx = Transaction.from_pbdata(slaveTxnResp.transaction_unsigned)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
-            json.dump([src_xmss.get_address(), slave_xmss_seed, tx.to_json()], f)
+            json.dump([src_xmss.address, slave_xmss_seed, tx.to_json()], f)
         click.echo('Successfully created slaves.json')
         click.echo('Move slaves.json file from current directory to the mining node inside ~/.qrl/')
     except grpc.RpcError as e:
@@ -459,8 +459,8 @@ def tx_transfer(ctx, src, dst, amount, fee):
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
-        address_src_otsidx = src_xmss.get_index()
+        address_src_pk = src_xmss.pk
+        address_src_otsidx = src_xmss.ots_index
         address_dst = dst.encode()
         # FIXME: This could be problematic. Check
         amount_shor = int(amount * 1.e9)
@@ -525,9 +525,9 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
-        src_xmss.set_index(int(ots_key_index))
-        address_src_otsidx = src_xmss.get_index()
+        address_src_pk = src_xmss.pk
+        src_xmss.set_ots_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.ots_index
         address_owner = owner.encode()
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e9)
@@ -583,9 +583,9 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
-        src_xmss.set_index(int(ots_key_index))
-        address_src_otsidx = src_xmss.get_index()
+        address_src_pk = src_xmss.pk
+        src_xmss.set_ots_index(int(ots_key_index))
+        address_src_otsidx = src_xmss.ots_index
         address_dst = dst.encode()
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check

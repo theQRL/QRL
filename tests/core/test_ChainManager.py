@@ -53,11 +53,11 @@ class TestChainManager(TestCase):
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
 
-                slave_tx = SlaveTransaction.create(addr_from=alice_xmss.get_address(),
-                                                   slave_pks=[bob_xmss.pk()],
+                slave_tx = SlaveTransaction.create(addr_from=alice_xmss.address,
+                                                   slave_pks=[bob_xmss.pk],
                                                    access_types=[0],
                                                    fee=0,
-                                                   xmss_pk=alice_xmss.pk())
+                                                   xmss_pk=alice_xmss.pk)
                 slave_tx.sign(alice_xmss)
                 slave_tx._data.nonce = 2
                 self.assertTrue(slave_tx.validate())
@@ -69,7 +69,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[slave_tx],
                                            signing_xmss=alice_xmss,
-                                           master_address=alice_xmss.get_address(),
+                                           master_address=alice_xmss.address,
                                            nonce=1)
 
                     while not chain_manager.validate_mining_nonce(block_1, False):
@@ -80,10 +80,10 @@ class TestChainManager(TestCase):
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
-                alice_state = chain_manager.get_address(alice_xmss.get_address())
+                alice_state = chain_manager.get_address(alice_xmss.address)
 
                 self.assertEqual(len(alice_state.slave_pks_access_type), 1)
-                self.assertTrue(str(bob_xmss.pk()) in alice_state.slave_pks_access_type)
+                self.assertTrue(str(bob_xmss.pk) in alice_state.slave_pks_access_type)
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1715270948  # Very high to get an easy difficulty
@@ -92,7 +92,7 @@ class TestChainManager(TestCase):
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[],
                                          signing_xmss=bob_xmss,
-                                         master_address=bob_xmss.get_address(),
+                                         master_address=bob_xmss.address,
                                          nonce=1)
 
                     while not chain_manager.validate_mining_nonce(block, False):
@@ -113,7 +113,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=block.headerhash,
                                            transactions=[],
                                            signing_xmss=bob_xmss,
-                                           master_address=bob_xmss.get_address(),
+                                           master_address=bob_xmss.address,
                                            nonce=2)
 
                     while not chain_manager.validate_mining_nonce(block_2, False):
@@ -158,7 +158,7 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
                                                signing_xmss=alice_xmss,
-                                               master_address=alice_xmss.get_address(),
+                                               master_address=alice_xmss.address,
                                                nonce=1)
                         block_1.set_mining_nonce(10)
 
@@ -179,7 +179,7 @@ class TestChainManager(TestCase):
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
                                              signing_xmss=bob_xmss,
-                                             master_address=bob_xmss.get_address(),
+                                             master_address=bob_xmss.address,
                                              nonce=1)
                         block.set_mining_nonce(18)
 
@@ -193,7 +193,7 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                signing_xmss=bob_xmss,
-                                               master_address=bob_xmss.get_address(),
+                                               master_address=bob_xmss.address,
                                                nonce=2)
                         block_2.set_mining_nonce(17)
 

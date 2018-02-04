@@ -480,40 +480,40 @@ class TestSimpleTransaction(TestCase):
         self.alice = XMSS(4, seed='a' * 48)
         self.bob = XMSS(4, seed='b' * 48)
 
-        self.alice.set_index(10)
+        self.alice.set_ots_index(10)
         self.maxDiff = None
 
     def test_create(self):
         # Alice sending coins to Bob
-        tx = TransferTransaction.create(addr_from=self.alice.get_address(),
-                                        addr_to=self.bob.get_address(),
+        tx = TransferTransaction.create(addr_from=self.alice.address,
+                                        addr_to=self.bob.address,
                                         amount=100,
                                         fee=1,
-                                        xmss_pk=self.alice.pk())
+                                        xmss_pk=self.alice.pk)
         self.assertTrue(tx)
 
     def test_create_negative_amount(self):
         with self.assertRaises(ValueError):
-            TransferTransaction.create(addr_from=self.alice.get_address(),
-                                       addr_to=self.bob.get_address(),
+            TransferTransaction.create(addr_from=self.alice.address,
+                                       addr_to=self.bob.address,
                                        amount=-100,
                                        fee=1,
-                                       xmss_pk=self.alice.pk())
+                                       xmss_pk=self.alice.pk)
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            TransferTransaction.create(addr_from=self.alice.get_address(),
-                                       addr_to=self.bob.get_address(),
+            TransferTransaction.create(addr_from=self.alice.address,
+                                       addr_to=self.bob.address,
                                        amount=-100,
                                        fee=-1,
-                                       xmss_pk=self.alice.pk())
+                                       xmss_pk=self.alice.pk)
 
     def test_to_json(self):
-        tx = TransferTransaction.create(addr_from=self.alice.get_address(),
-                                        addr_to=self.bob.get_address(),
+        tx = TransferTransaction.create(addr_from=self.alice.address,
+                                        addr_to=self.bob.address,
                                         amount=100,
                                         fee=1,
-                                        xmss_pk=self.alice.pk())
+                                        xmss_pk=self.alice.pk)
         txjson = tx.to_json()
 
         self.assertEqual(json.loads(test_json_Simple), json.loads(txjson))
@@ -542,11 +542,11 @@ class TestSimpleTransaction(TestCase):
 
     def test_validate_tx(self):
         # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
-        tx = TransferTransaction.create(addr_from=self.alice.get_address(),
-                                        addr_to=self.bob.get_address(),
+        tx = TransferTransaction.create(addr_from=self.alice.address,
+                                        addr_to=self.bob.address,
                                         amount=100,
                                         fee=1,
-                                        xmss_pk=self.alice.pk())
+                                        xmss_pk=self.alice.pk)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -564,10 +564,10 @@ class TestCoinBase(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCoinBase, self).__init__(*args, **kwargs)
         self.alice = XMSS(4, seed='a' * 48)
-        self.alice.set_index(11)
+        self.alice.set_ots_index(11)
 
         self.mock_blockheader = Mock(spec=BlockHeader)
-        self.mock_blockheader.stake_selector = self.alice.get_address()
+        self.mock_blockheader.stake_selector = self.alice.address
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
         self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
@@ -577,16 +577,16 @@ class TestCoinBase(TestCase):
         self.maxDiff = None
 
     def test_create(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.get_address())
+        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.address)
         self.assertIsInstance(tx, CoinBase)
 
     def test_to_json(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.get_address())
+        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.address)
         txjson = tx.to_json()
         self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
 
     def test_from_txdict(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.get_address())
+        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.address)
         tx.sign(self.alice)
         self.assertIsInstance(tx, CoinBase)
 
@@ -614,51 +614,51 @@ class TestTokenTransaction(TestCase):
         self.alice = XMSS(4, seed='a' * 48)
         self.bob = XMSS(4, seed='b' * 48)
 
-        self.alice.set_index(10)
+        self.alice.set_ots_index(10)
         self.maxDiff = None
 
     def test_create(self):
         # Alice creates Token
         initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.get_address(),
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=400000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.get_address(),
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(addr_from=self.alice.get_address(),
+        tx = TokenTransaction.create(addr_from=self.alice.address,
                                      symbol=b'QRL',
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2',
                                      decimals=4,
                                      initial_balances=initial_balances,
                                      fee=1,
-                                     xmss_pk=self.alice.pk())
+                                     xmss_pk=self.alice.pk)
         self.assertTrue(tx)
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            TokenTransaction.create(addr_from=self.alice.get_address(),
+            TokenTransaction.create(addr_from=self.alice.address,
                                     symbol=b'QRL',
                                     name=b'Quantum Resistant Ledger',
                                     owner=b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2',
                                     decimals=4,
                                     initial_balances=[],
                                     fee=-1,
-                                    xmss_pk=self.alice.pk())
+                                    xmss_pk=self.alice.pk)
 
     def test_to_json(self):
         initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.get_address(),
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=400000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.get_address(),
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(addr_from=self.alice.get_address(),
+        tx = TokenTransaction.create(addr_from=self.alice.address,
                                      symbol=b'QRL',
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2',
                                      decimals=4,
                                      initial_balances=initial_balances,
                                      fee=1,
-                                     xmss_pk=self.alice.pk())
+                                     xmss_pk=self.alice.pk)
         txjson = tx.to_json()
 
         self.assertEqual(json.loads(test_json_Token), json.loads(txjson))
@@ -691,18 +691,18 @@ class TestTokenTransaction(TestCase):
 
     def test_validate_tx(self):
         initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.get_address(),
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=400000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.get_address(),
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(addr_from=self.alice.get_address(),
+        tx = TokenTransaction.create(addr_from=self.alice.address,
                                      symbol=b'QRL',
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'Q223bc5e5b78edfd778b1bf72702061cc053010711ffeefb9d969318be5d7b86b021b73c2',
                                      decimals=4,
                                      initial_balances=initial_balances,
                                      fee=1,
-                                     xmss_pk=self.alice.pk())
+                                     xmss_pk=self.alice.pk)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -723,25 +723,25 @@ class TestTransferTokenTransaction(TestCase):
         self.alice = XMSS(4, seed='a' * 48)
         self.bob = XMSS(4, seed='b' * 48)
 
-        self.alice.set_index(10)
+        self.alice.set_ots_index(10)
         self.maxDiff = None
 
     def test_create(self):
-        tx = TransferTokenTransaction.create(addr_from=self.alice.get_address(),
+        tx = TransferTokenTransaction.create(addr_from=self.alice.address,
                                              token_txhash=b'000000000000000',
-                                             addr_to=self.bob.get_address(),
+                                             addr_to=self.bob.address,
                                              amount=200000,
                                              fee=1,
-                                             xmss_pk=self.alice.pk())
+                                             xmss_pk=self.alice.pk)
         self.assertTrue(tx)
 
     def test_to_json(self):
-        tx = TransferTokenTransaction.create(addr_from=self.alice.get_address(),
+        tx = TransferTokenTransaction.create(addr_from=self.alice.address,
                                              token_txhash=b'000000000000000',
-                                             addr_to=self.bob.get_address(),
+                                             addr_to=self.bob.address,
                                              amount=200000,
                                              fee=1,
-                                             xmss_pk=self.alice.pk())
+                                             xmss_pk=self.alice.pk)
         txjson = tx.to_json()
 
         self.assertEqual(json.loads(test_json_TransferToken), json.loads(txjson))
@@ -776,12 +776,12 @@ class TestTransferTokenTransaction(TestCase):
         self.assertEqual(1, tx.fee)
 
     def test_validate_tx(self):
-        tx = TransferTokenTransaction.create(addr_from=self.alice.get_address(),
+        tx = TransferTokenTransaction.create(addr_from=self.alice.address,
                                              token_txhash=b'000000000000000',
-                                             addr_to=self.bob.get_address(),
+                                             addr_to=self.bob.address,
                                              amount=200000,
                                              fee=1,
-                                             xmss_pk=self.alice.pk())
+                                             xmss_pk=self.alice.pk)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
