@@ -32,7 +32,8 @@ class POW(ConsensusMechanism):
                  p2p_factory,
                  sync_state: SyncState,
                  time_provider,
-                 slaves: list):
+                 slaves: list,
+                 mining_thread_count):
 
         super().__init__(chain_manager)
         self.sync_state = sync_state
@@ -47,6 +48,7 @@ class POW(ConsensusMechanism):
         self.miner = Miner(self.pre_block_logic,
                            self.slaves,
                            self.chain_manager.state,
+                           mining_thread_count,
                            self.p2p_factory.add_unprocessed_txn)
 
         self._miner_lock = threading.Lock()

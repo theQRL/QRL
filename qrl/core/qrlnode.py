@@ -218,13 +218,14 @@ class QRLNode:
                 continue
             self._p2pfactory.connect_peer(peer_address)
 
-    def start_pow(self):
+    def start_pow(self, mining_thread_count):
         # FIXME: This seems an unexpected side effect. It should be refactored
         self._pow = POW(chain_manager=self._chain_manager,
                         p2p_factory=self._p2pfactory,
                         sync_state=self._sync_state,
                         time_provider=ntp,
-                        slaves=self.slaves)
+                        slaves=self.slaves,
+                        mining_thread_count=mining_thread_count)
 
         self._pow.start()
 
