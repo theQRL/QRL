@@ -18,7 +18,7 @@ from qrl.generated import qrl_pb2
 
 
 class Miner(Qryptominer):
-    def __init__(self, pre_block_logic, slaves: list, state: State, add_unprocessed_txn_fn):
+    def __init__(self, pre_block_logic, slaves: list, state: State, mining_thread_count, add_unprocessed_txn_fn):
         super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
         self._mining_block = None
@@ -29,6 +29,7 @@ class Miner(Qryptominer):
         self.state = state
         self._difficulty_tracker = DifficultyTracker()
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
+        self._mining_thread_count = mining_thread_count
 
     @staticmethod
     def _get_mining_data(block):
@@ -97,8 +98,7 @@ class Miner(Qryptominer):
     def start_mining(self,
                      tx_pool,
                      parent_block,
-                     parent_difficulty,
-                     thread_count=config.user.mining_thread_count):
+                     parent_difficulty):
 
         mining_xmss = self.get_mining_xmss()
         if not mining_xmss:
@@ -133,7 +133,7 @@ class Miner(Qryptominer):
             self.start(input=input_bytes,
                        nonceOffset=nonce_offset,
                        target=current_target,
-                       thread_count=thread_count)
+                       thread_count=self._mining_thread_count)
         except Exception as e:
             logger.warning("Exception in start_mining")
             logger.exception(e)

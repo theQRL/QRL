@@ -30,7 +30,8 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0))
+                   slaves=get_slaves(0, 0),
+                   mining_thread_count=0)
 
         self.assertIsNotNone(node)
 
@@ -44,7 +45,8 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0))
+                   slaves=get_slaves(0, 0),
+                   mining_thread_count=0)
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.unsynced)
@@ -60,7 +62,8 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0))
+                   slaves=get_slaves(0, 0),
+                   mining_thread_count=0)
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.syncing)
@@ -90,7 +93,8 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_random_master())
+                   slaves=get_random_master(),
+                   mining_thread_count=0)
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.synced)
@@ -106,7 +110,8 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0))
+                   slaves=get_slaves(0, 0),
+                   mining_thread_count=0)
 
         self.assertIsNotNone(node)
         node.update_node_state(ESyncState.forked)
