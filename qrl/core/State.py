@@ -650,11 +650,13 @@ class State:
             return config.dev.mining_setpoint_blocktime
         elif count_headerhashes == 1:
             nth_block = self.get_block(parent_headerhash)
-            nth_block_timestamp = nth_block.timestamp - config.dev.mining_setpoint_blocktime
             count_headerhashes += 1
         else:
             nth_block = self.get_block(parent_metadata.last_N_headerhashes[1])
-            nth_block_timestamp = nth_block.timestamp
+
+        nth_block_timestamp = nth_block.timestamp
+        if count_headerhashes < config.dev.N_measurement:
+            nth_block_timestamp -= config.dev.mining_setpoint_blocktime
 
         return (block_timestamp - nth_block_timestamp) // count_headerhashes
 

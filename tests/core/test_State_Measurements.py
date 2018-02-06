@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import Mock, mock, MagicMock
+from mock import Mock, mock
 
 from qrl.core import config
 from qrl.core.State import State
@@ -153,8 +153,8 @@ class TestStateMeasurement(TestCase):
                     parent_metadata = Mock()
                     parent_metadata.last_N_headerhashes = [b'0', b'1', b'2']
 
-                    measurement = state.get_measurement(350, b'4', parent_metadata)
+                    measurement = state.get_measurement(350, b'3', parent_metadata)
                     self.assertEqual(63, measurement)
 
-                    measurement = state.get_measurement(370, b'4', parent_metadata)
+                    measurement = state.get_measurement(370, b'3', parent_metadata)
                     self.assertEqual(70, measurement)
