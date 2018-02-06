@@ -78,7 +78,7 @@ class ChainManager:
         parent_block = self.state.get_block(block.prev_headerhash)
         input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
-        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash)
+        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash, parent_metadata)
         diff, target = self._difficulty_tracker.get(
             measurement=measurement,
             parent_difficulty=parent_metadata.block_difficulty)
@@ -334,6 +334,10 @@ class ChainManager:
                            block_timestamp,
                            parent_headerhash,
                            batch):
+        block_metadata = self.state.get_block_metadata(headerhash)
+        if not block_metadata:
+            block_metadata = BlockMetadata.create()
+
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
         block_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
         block_cumulative_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
@@ -346,7 +350,8 @@ class ChainManager:
                 parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
                 if not parent_metadata.is_orphan:
-                    measurement = self.state.get_measurement(block_timestamp, parent_headerhash)
+                    block_metadata.update_last_headerhashes(parent_metadata.last_N_headerhashes, parent_headerhash)
+                    measurement = self.state.get_measurement(block_timestamp, parent_headerhash, parent_metadata)
 
                     block_difficulty, _ = self._difficulty_tracker.get(
                         measurement=measurement,
@@ -356,13 +361,10 @@ class ChainManager:
                         int(UInt256ToString(block_difficulty)) +
                         int(UInt256ToString(parent_cumulative_difficulty))))
 
-        block_metadata = self.state.get_block_metadata(headerhash)
-        if not block_metadata:
-            block_metadata = BlockMetadata.create()
-
         block_metadata.set_orphan(parent_metadata.is_orphan)
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)
+
         parent_metadata.add_child_headerhash(headerhash)
         self.state.put_block_metadata(parent_headerhash, parent_metadata, batch)
         self.state.put_block_metadata(headerhash, block_metadata, batch)

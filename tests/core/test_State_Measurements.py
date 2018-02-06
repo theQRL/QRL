@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import Mock, mock
+from mock import Mock, mock, MagicMock
 
 from qrl.core import config
 from qrl.core.State import State
@@ -97,14 +97,16 @@ class TestStateMeasurement(TestCase):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
                 state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
+                parent_metadata = Mock()
+                parent_metadata.last_N_headerhashes = []
 
-                measurement = state.get_measurement(100, prev_headerhash=b'0')
+                measurement = state.get_measurement(100, parent_headerhash=b'0', parent_metadata=parent_metadata)
                 self.assertEqual(60, measurement)
 
-                measurement = state.get_measurement(110, prev_headerhash=b'0')
+                measurement = state.get_measurement(110, parent_headerhash=b'0', parent_metadata=parent_metadata)
                 self.assertEqual(60, measurement)
 
-                measurement = state.get_measurement(1000, prev_headerhash=b'0')
+                measurement = state.get_measurement(1000, parent_headerhash=b'0', parent_metadata=parent_metadata)
                 self.assertEqual(60, measurement)
 
     def test_measurement_1(self):
@@ -112,11 +114,13 @@ class TestStateMeasurement(TestCase):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
                 state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
+                parent_metadata = Mock()
+                parent_metadata.last_N_headerhashes = [b'0']
 
-                measurement = state.get_measurement(210, b'1')
+                measurement = state.get_measurement(210, b'1', parent_metadata)
                 self.assertEqual(55, measurement)
 
-                measurement = state.get_measurement(250, b'1')
+                measurement = state.get_measurement(250, b'1', parent_metadata)
                 self.assertEqual(75, measurement)
 
     def test_measurement_3(self):
@@ -128,11 +132,13 @@ class TestStateMeasurement(TestCase):
                 with State() as state:
                     self.assertIsNotNone(state)  # to avoid warning (unused variable)
                     state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
+                    parent_metadata = Mock()
+                    parent_metadata.last_N_headerhashes = [b'1', b'2']
 
-                    measurement = state.get_measurement(350, b'3')
+                    measurement = state.get_measurement(350, b'3', parent_metadata)
                     self.assertEqual(60, measurement)
 
-                    measurement = state.get_measurement(370, b'3')
+                    measurement = state.get_measurement(370, b'3', parent_metadata)
                     self.assertEqual(70, measurement)
 
     def test_measurement_4(self):
@@ -144,9 +150,11 @@ class TestStateMeasurement(TestCase):
                 with State() as state:
                     self.assertIsNotNone(state)  # to avoid warning (unused variable)
                     state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
+                    parent_metadata = Mock()
+                    parent_metadata.last_N_headerhashes = [b'0', b'1', b'2']
 
-                    measurement = state.get_measurement(350, b'3')
+                    measurement = state.get_measurement(350, b'4', parent_metadata)
                     self.assertEqual(63, measurement)
 
-                    measurement = state.get_measurement(370, b'3')
+                    measurement = state.get_measurement(370, b'4', parent_metadata)
                     self.assertEqual(70, measurement)

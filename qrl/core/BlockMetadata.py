@@ -4,6 +4,7 @@
 from google.protobuf.json_format import MessageToJson, Parse
 
 from qrl.generated import qrl_pb2
+from qrl.core import config
 
 
 class BlockMetadata(object):
@@ -29,6 +30,10 @@ class BlockMetadata(object):
     def child_headerhashes(self):
         return self._data.child_headerhashes
 
+    @property
+    def last_N_headerhashes(self):
+        return self._data.last_N_headerhashes
+
     def set_orphan(self, value):
         self._data.is_orphan = value
 
@@ -40,6 +45,12 @@ class BlockMetadata(object):
 
     def add_child_headerhash(self, child_headerhash: bytes):
         self._data.child_headerhashes.append(child_headerhash)
+
+    def update_last_headerhashes(self, parent_last_N_headerhashes, last_headerhash: bytes):
+        self._data.last_N_headerhashes.extend(parent_last_N_headerhashes)
+        self._data.last_N_headerhashes.append(last_headerhash)
+        if len(self._data.last_N_headerhashes) > config.dev.N_measurement:
+            del self._data.last_N_headerhashes[0]
 
     @staticmethod
     def create(is_orphan=True, block_difficulty=b'\x00'*32, cumulative_difficulty=b'\x00'*32, child_headerhashes=None):

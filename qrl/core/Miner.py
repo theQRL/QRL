@@ -97,7 +97,7 @@ class Miner(Qryptominer):
 
     def start_mining(self,
                      tx_pool,
-                     parent_block,
+                     parent_block: Block,
                      parent_difficulty):
 
         mining_xmss = self.get_mining_xmss()
@@ -116,7 +116,10 @@ class Miner(Qryptominer):
                                                    signing_xmss=self._mining_xmss,
                                                    master_address=self._master_address)
 
-            measurement = self.state.get_measurement(self._mining_block.timestamp, self._mining_block.prev_headerhash)
+            parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
+            measurement = self.state.get_measurement(self._mining_block.timestamp,
+                                                     self._mining_block.prev_headerhash,
+                                                     parent_metadata)
 
             current_difficulty, current_target = self._difficulty_tracker.get(
                 measurement=measurement,

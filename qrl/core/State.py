@@ -643,22 +643,20 @@ class State:
             coins = coins + a.balance
         return coins
 
-    def get_measurement(self, block_timestamp, prev_headerhash):
-        block_count = 0
-        set_first_timestamp = block_timestamp
+    def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
+        count_headerhashes = len(parent_metadata.last_N_headerhashes)
 
-        for _ in range(0, config.dev.N_measurement):
-            block_count += 1
-            block = self.get_block(prev_headerhash)
+        if count_headerhashes == 0:
+            return config.dev.mining_setpoint_blocktime
+        elif count_headerhashes == 1:
+            nth_block = self.get_block(parent_headerhash)
+            nth_block_timestamp = nth_block.timestamp - config.dev.mining_setpoint_blocktime
+            count_headerhashes += 1
+        else:
+            nth_block = self.get_block(parent_metadata.last_N_headerhashes[1])
+            nth_block_timestamp = nth_block.timestamp
 
-            if block.block_number == 0:
-                set_first_timestamp = set_first_timestamp - config.dev.mining_setpoint_blocktime
-                break
-
-            set_first_timestamp = block.timestamp
-            prev_headerhash = block.prev_headerhash
-
-        return int((block_timestamp - set_first_timestamp) / block_count)
+        return (block_timestamp - nth_block_timestamp) // count_headerhashes
 
     def delete(self, key, batch):
         self._db.delete(key, batch)
