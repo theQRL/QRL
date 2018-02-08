@@ -29,9 +29,11 @@ class TestPublicAPI2(TestCase):
     def test_getStats2(self):
         start_time = time.time()
         with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
-                State() as state, \
                 set_data_dir('no_data'), \
+                State() as state, \
                 mock.patch('time.time') as time_mock:  # noqa
+            time_mock.return_value = start_time
+            ntp_mock.return_value = start_time
 
             state.get_measurement = MagicMock(return_value=10000000)
 
@@ -61,8 +63,6 @@ class TestPublicAPI2(TestCase):
             slave_tx._data.nonce = 2
             self.assertTrue(slave_tx.validate())
 
-            ntp_mock.return_value = start_time
-
             block_1 = Block.create(mining_nonce=10,
                                    block_number=1,
                                    prevblock_headerhash=genesis_block.headerhash,
@@ -84,7 +84,9 @@ class TestPublicAPI2(TestCase):
             self.assertEqual(len(alice_state.slave_pks_access_type), 1)
             self.assertTrue(str(bob_xmss.pk()) in alice_state.slave_pks_access_type)
 
-            ntp_mock.return_value = start_time + 120  # Very high to get an easy difficulty
+            time_mock.return_value = start_time + 120
+            ntp_mock.return_value = start_time + 120
+
             block = Block.create(mining_nonce=15,
                                  block_number=1,
                                  prevblock_headerhash=genesis_block.headerhash,
@@ -104,7 +106,9 @@ class TestPublicAPI2(TestCase):
             block = state.get_block(block.headerhash)
             self.assertIsNotNone(block)
 
-            ntp_mock.return_value = start_time + 170  # Very high to get an easy difficulty
+            time_mock.return_value = start_time + 170
+            ntp_mock.return_value = start_time + 170
+
             block_2 = Block.create(mining_nonce=15,
                                    block_number=2,
                                    prevblock_headerhash=block.headerhash,

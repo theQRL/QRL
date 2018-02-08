@@ -81,6 +81,7 @@ class TestPublicAPI(TestCase):
     def test_getStats(self):
         db_state = Mock(spec=State)
         db_state.total_coin_supply = MagicMock(return_value=1000)
+        db_state.get_measurement = MagicMock(return_value=60)
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
@@ -112,7 +113,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(0, stats.uptime_network)
 
         self.assertEqual(0, stats.block_last_reward)
-        self.assertEqual(0, stats.block_time_mean)
+        self.assertEqual(60, stats.block_time_mean)
         self.assertEqual(0, stats.block_time_sd)
 
         self.assertEqual(105000000, stats.coins_total_supply)
