@@ -402,10 +402,19 @@ class ChainManager:
         node_header_hash = qrl_pb2.NodeHeaderHash()
         node_header_hash.block_number = start_blocknumber
 
-        for i in range(start_blocknumber, end_blocknumber + 1):
-            block = self.state.get_block_by_number(i)
-            node_header_hash.headerhashes.append(block.headerhash)
+        block = self.state.get_block_by_number(end_blocknumber)
+        block_headerhash = block.headerhash
+        node_header_hash.headerhashes.append(block_headerhash)
+        end_blocknumber -= 1
 
+        while end_blocknumber >= start_blocknumber:
+            block_metadata = self.state.get_block_metadata(block_headerhash)
+            for headerhash in block_metadata.last_N_headerhashes[-1::-1]:
+                node_header_hash.headerhashes.append(headerhash)
+            end_blocknumber -= len(block_metadata.last_N_headerhashes)
+            block_headerhash = block_metadata.last_N_headerhashes[0]
+
+        node_header_hash.headerhashes[:] = node_header_hash.headerhashes[-1::-1]
         return node_header_hash
 
     def add_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage):
