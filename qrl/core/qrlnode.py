@@ -1,30 +1,31 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import time
 import os
-import simplejson as json
+import time
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional, List, Iterator
 
+import simplejson as json
+from pyqryptonight.pyqryptonight import UInt256ToString
 from twisted.internet import reactor
 
-from qrl.core.p2pfactory import P2PFactory
-from qrl.core.node import POW, SyncState
 from qrl.core import config
-from qrl.core.misc import ntp
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
-from qrl.core.Block import Block
-from qrl.core.ESyncState import ESyncState
-from qrl.core.State import State
 from qrl.core.AddressState import AddressState
+from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
+from qrl.core.ESyncState import ESyncState
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from qrl.core.State import State
 from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction
+from qrl.core.misc import ntp
 from qrl.core.misc.logger import logger
+from qrl.core.node import POW, SyncState
 from qrl.core.p2pChainManager import P2PChainManager
-from qrl.core.ChainManager import ChainManager
 from qrl.core.p2pPeerManager import P2PPeerManager
 from qrl.core.p2pTxManagement import P2PTxManagement
+from qrl.core.p2pfactory import P2PFactory
 from qrl.generated import qrl_pb2
 
 
@@ -117,8 +118,12 @@ class QRLNode:
 
     @property
     def block_time_mean(self):
-        # FIXME: Keep a moving mean
-        return 0
+        block = self._chain_manager.get_last_block()
+        prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
+        movavg = self._chain_manager.state.get_measurement(block.timestamp,
+                                                           block.prev_headerhash,
+                                                           prev_block_metadata)
+        return movavg
 
     @property
     def block_time_sd(self):
@@ -144,6 +149,7 @@ class QRLNode:
     ####################################################
     ####################################################
     def _update_banned_peers(self, banned_peers):
+        # FIXME: Move to another class. Group peer banning there
         current_time = ntp.getTime()
         ip_list = list(banned_peers.keys())
 
@@ -154,10 +160,12 @@ class QRLNode:
         self._put_banned_peers(banned_peers)
 
     def _put_banned_peers(self, banned_peers: dict):
+        # FIXME: Move to another class. Group peer banning there
         with open(self.banned_peers_filename, 'w') as f:
             json.dump(banned_peers, f)
 
     def _get_banned_peers(self) -> dict:
+        # FIXME: Move to another class. Group peer banning there
         try:
             with open(self.banned_peers_filename, 'r') as f:
                 banned_peers = json.load(f)
@@ -168,6 +176,7 @@ class QRLNode:
         return banned_peers
 
     def is_banned(self, peer_ip: str):
+        # FIXME: Move to another class. Group peer banning there
         banned_peers = self._get_banned_peers()
         self._update_banned_peers(banned_peers)
 
@@ -175,6 +184,7 @@ class QRLNode:
             return True
 
     def ban_peer(self, peer_obj):
+        # FIXME: Move to another class. Group peer banning there
         ip = peer_obj.peer_ip
         ban_time = ntp.getTime() + (config.user.ban_minutes * 60)
         banned_peers = self._get_banned_peers()
@@ -203,7 +213,7 @@ class QRLNode:
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
     # FIXME: REMOVE. This is temporary
-    def set_chain(self, chain_manager: ChainManager):
+    def set_chain_manager(self, chain_manager: ChainManager):
         self._chain_manager = chain_manager
 
     ####################################################
@@ -479,6 +489,50 @@ class QRLNode:
         info.block_last_hash = b''  # FIXME
         info.network_id = config.dev.genesis_prev_headerhash  # FIXME
         return info
+
+    def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
+        # TODO: Optimize data structures
+        result = []
+
+        if self._chain_manager.height == 0:
+            return result
+
+        block = self._chain_manager.get_last_block()
+        block_metadata = self._chain_manager.state.get_block_metadata(block.headerhash)
+
+        for i in range(block_count):
+            if block is None:
+                break
+
+            prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
+            prev_block = self._chain_manager.state.get_block(block.prev_headerhash)
+
+            data_point = qrl_pb2.BlockDataPoint()
+            data_point.number = block.block_number
+            data_point.timestamp = block.timestamp
+            data_point.time_last = 0
+            data_point.time_movavg = 0
+            data_point.difficulty = UInt256ToString(block_metadata.block_difficulty)
+
+            if prev_block is not None:
+                data_point.time_last = block.timestamp - prev_block.timestamp
+                if prev_block.block_number == 0:
+                    data_point.time_last = config.dev.mining_setpoint_blocktime
+
+                movavg = self._chain_manager.state.get_measurement(block.timestamp,
+                                                                   block.prev_headerhash,
+                                                                   prev_block_metadata)
+                data_point.time_movavg = movavg
+
+                # FIXME: need to consider average difficulty here
+                data_point.hash_power = int(data_point.difficulty) * 60 / movavg
+
+            # Fill up the data point
+            result.append(data_point)
+            block = prev_block
+            block_metadata = prev_block_metadata
+
+        return reversed(result)
 
     ####################################################
     ####################################################

@@ -138,7 +138,7 @@ def main():
     chain_manager.load(Block.from_json(GenesisBlock().to_json()))
 
     qrlnode = QRLNode(db_state=persistent_state, slaves=slaves)
-    qrlnode.set_chain(chain_manager)
+    qrlnode.set_chain_manager(chain_manager)
 
     set_logger(args, qrlnode.sync_state)
 
