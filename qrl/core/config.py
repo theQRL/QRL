@@ -172,6 +172,11 @@ class DevConfig(object):
         self.reserved_quota = 1024                             # 1 KB
         self.max_bytes_out = self.max_receivable_bytes - self.reserved_quota
 
+        # ======================================
+        #            API SETTINGS
+        # ======================================
+        self.block_timeseries_size = 1440
+
     @staticmethod
     def getInstance():
         if DevConfig.__instance is None:

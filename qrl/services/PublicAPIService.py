@@ -47,6 +47,10 @@ class PublicAPIService(PublicAPIServicer):
         response.coins_total_supply = self.qrlnode.coin_supply_max
         response.coins_emitted = self.qrlnode.coin_supply
 
+        if request.include_timeseries:
+            tmp = self.qrlnode.get_block_timeseries(config.dev.block_timeseries_size)
+            response.block_timeseries.extend(tmp)
+
         return response
 
     @grpc_exception_wrapper(qrl_pb2.GetAddressStateResp, StatusCode.UNKNOWN)
