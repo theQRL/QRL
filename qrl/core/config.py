@@ -107,8 +107,8 @@ class DevConfig(object):
         #          For QRL Developers only                             #
         ################################################################
 
-        self.block_lead_timestamp = 15
-        self.max_margin_block_number = 10
+        self.block_lead_timestamp = 120
+        self.max_margin_block_number = 125
         self.public_ip = None
         self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour
         self.cache_frequency = 1000
