@@ -412,6 +412,8 @@ class ChainManager:
             for headerhash in block_metadata.last_N_headerhashes[-1::-1]:
                 node_header_hash.headerhashes.append(headerhash)
             end_blocknumber -= len(block_metadata.last_N_headerhashes)
+            if len(block_metadata.last_N_headerhashes) == 0:
+                break
             block_headerhash = block_metadata.last_N_headerhashes[0]
 
         node_header_hash.headerhashes[:] = node_header_hash.headerhashes[-1::-1]
