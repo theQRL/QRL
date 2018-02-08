@@ -90,7 +90,10 @@ message GetBlockResp {
     Block block = 2;
 }
 
-message GetStatsReq { }
+message GetStatsReq {
+    bool include_timeseries = 1;
+}
+
 message GetStatsResp {
     NodeInfo node_info = 1;
     uint64 epoch = 2;                       // Current epoch
@@ -102,6 +105,18 @@ message GetStatsResp {
 
     uint64 coins_total_supply = 7;
     uint64 coins_emitted = 8;
+
+    repeated BlockDataPoint block_timeseries = 9;
+}
+
+message BlockDataPoint
+{
+    uint64 number = 1;
+    string difficulty = 2;
+    uint64 timestamp = 3;
+    uint64 time_last = 4;
+    uint64 time_movavg = 5;
+    float hash_power = 6;
 }
 
 message GetAddressStateReq {   bytes address = 1; }

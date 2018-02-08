@@ -5,8 +5,8 @@ Twisted>=17.5.0
 colorlog>=3.0.1
 simplejson>=3.11.1
 PyYAML==3.12
-grpcio-tools>=1.7.0,<=1.7.3
-grpcio>=1.7.0,<=1.8.4
+grpcio-tools>=1.9.0,<=1.10.0
+grpcio>=1.9.0,<=1.10.0
 service_identity
 protobuf
 pyopenssl>=17.3.0

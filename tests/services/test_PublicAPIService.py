@@ -41,7 +41,7 @@ class TestPublicAPI(TestCase):
         chain_manager.height = 0
 
         qrlnode = QRLNode(db_state, slaves=[])
-        qrlnode.set_chain(chain_manager)
+        qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
 
@@ -64,7 +64,7 @@ class TestPublicAPI(TestCase):
         chain_manager.height = 0
 
         qrlnode = QRLNode(db_state, slaves=[])
-        qrlnode.set_chain(chain_manager)
+        qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
@@ -94,12 +94,13 @@ class TestPublicAPI(TestCase):
         chain_manager.state = db_state
 
         qrlnode = QRLNode(db_state, slaves=[])
-        qrlnode.set_chain(chain_manager)
+        qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
 
         service = PublicAPIService(qrlnode)
-        stats = service.GetStats(request=qrl_pb2.GetStatsReq, context=None)
+        request = qrl_pb2.GetStatsReq()
+        stats = service.GetStats(request=request, context=None)
 
         # self.assertEqual(__version__, stats.node_info.version)  # FIXME
 
@@ -117,7 +118,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(105000000, stats.coins_total_supply)
         self.assertEqual(1000, stats.coins_emitted)
 
-        logger.info(stats)
+        self.assertEqual(0, len(stats.block_timeseries))
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
@@ -133,7 +134,7 @@ class TestPublicAPI(TestCase):
         chain_manager = ChainManager(db_state)
 
         qrlnode = QRLNode(db_state, slaves=[])
-        qrlnode.set_chain(chain_manager)
+        qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
 
@@ -172,7 +173,7 @@ class TestPublicAPI(TestCase):
         chain_manager = ChainManager(db_state)
 
         qrlnode = QRLNode(db_state, slaves=[])
-        qrlnode.set_chain(chain_manager)
+        qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
@@ -314,7 +315,7 @@ class TestPublicAPI(TestCase):
         chain_manager.height = len(blocks)
 
         qrlnode = QRLNode(db_state, slaves=[])
-        qrlnode.set_chain(chain_manager)
+        qrlnode.set_chain_manager(chain_manager)
         qrlnode.get_block_from_index = MagicMock(return_value=None)
 
         qrlnode._p2pfactory = p2p_factory
