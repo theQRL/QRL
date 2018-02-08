@@ -161,14 +161,6 @@ class BlockHeader(object):
             logger.warning('Block Timestamp %s', self.timestamp)
             return False
 
-        max_blocknumber = (current_time - config.dev.genesis_timestamp) / 60
-        max_expected_blocknumber = max_blocknumber + config.dev.max_margin_block_number
-        if self.block_number > max_expected_blocknumber:
-            logger.warning('Blocknumber exceeds maximum expected blocknumbers')
-            logger.warning('Max expected blocknumber %s', max_expected_blocknumber)
-            logger.warning('Blocknumber found %s', self.block_number)
-            return False
-
         if self.generate_headerhash() != self.headerhash:
             logger.warning('Headerhash false for block: failed validation')
             return False
