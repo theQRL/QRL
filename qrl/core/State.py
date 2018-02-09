@@ -485,7 +485,7 @@ class State:
         self.state_objects.update_last_tx(block, batch)
 
     def get_last_txs(self):
-        self.state_objects.get_last_txs()
+        return self.state_objects.get_last_txs()
 
     #########################################
     #########################################
