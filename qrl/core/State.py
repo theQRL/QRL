@@ -132,7 +132,6 @@ class StateLoader:
         try:
             last_txn = self._db.get(self.state_code + b'last_txn')
             self._db.put(state_loader.state_code + b'last_txn', last_txn, batch)
-            self._db.delete(self.state_code + b'last_txn', batch)
         except:  # noqa
             pass
 
