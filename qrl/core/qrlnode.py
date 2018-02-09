@@ -455,13 +455,12 @@ class QRLNode:
         answer = []
         skipped = 0
         for tx in self.db_state.get_last_txs():
-            if isinstance(tx, TransferTransaction):
-                if skipped >= offset:
-                    answer.append(tx)
-                    if len(answer) >= count:
-                        break
-                else:
-                    skipped += 1
+            if skipped >= offset:
+                answer.append(tx)
+                if len(answer) >= count:
+                    break
+            else:
+                skipped += 1
 
         return answer
 
@@ -469,13 +468,12 @@ class QRLNode:
         answer = []
         skipped = 0
         for tx in self._chain_manager.tx_pool.transaction_pool:
-            if isinstance(tx, TransferTransaction):
-                if skipped >= offset:
-                    answer.append(tx)
-                    if len(answer) >= count:
-                        break
-                else:
-                    skipped += 1
+            if skipped >= offset:
+                answer.append(tx)
+                if len(answer) >= count:
+                    break
+            else:
+                skipped += 1
         return answer
 
     def getNodeInfo(self) -> qrl_pb2.NodeInfo:

@@ -71,6 +71,7 @@ class StateLoader:
     def destroy(self, batch=None):
         for address in self._data.addresses:
             self._db.delete(self.state_code + address, batch)
+        self._db.delete(self.state_code + b'last_txn')
         del self._data.addresses[:]
 
     def update_main(self, batch=None):
@@ -78,6 +79,41 @@ class StateLoader:
             address_state = self._db.get_raw(self.state_code + address)
             self._db.put_raw(address, address_state, batch)
         self.destroy(batch)
+
+    def update_last_tx(self, block, batch):
+        if len(block.transactions) == 0:
+            return
+        last_txn = []
+
+        try:
+            last_txn = self._db.get(self.state_code + b'last_txn')
+        except:  # noqa
+            pass
+
+        for protobuf_txn in block.transactions[-20:]:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            if txn.subtype == qrl_pb2.Transaction.COINBASE:
+                continue
+            last_txn.insert(0, [txn.to_json(),
+                                block.block_number,
+                                block.timestamp])
+
+        del last_txn[20:]
+        self._db.put(self.state_code + b'last_txn', last_txn, batch)
+
+    def get_last_txs(self) -> list:
+        try:
+            last_txn = self._db.get(self.state_code + b'last_txn')
+        except:  # noqa
+            return []
+
+        txs = []
+        for tx_metadata in last_txn:
+            tx_json, block_num, block_ts = tx_metadata
+            tx = Transaction.from_json(tx_json)
+            txs.append(tx)
+
+        return txs
 
     def commit(self, state_loader, batch=None):
         # TODO (cyyber): Optimization, instead of moving from current to headerhash,
@@ -92,6 +128,13 @@ class StateLoader:
             self._db.delete(self.state_code + address, batch)
         del self._data.addresses[:]
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+
+        try:
+            last_txn = self._db.get(self.state_code + b'last_txn')
+            self._db.put(state_loader.state_code + b'last_txn', last_txn, batch)
+            self._db.delete(self.state_code + b'last_txn', batch)
+        except:  # noqa
+            pass
 
 
 class StateObjects:
@@ -201,6 +244,12 @@ class StateObjects:
 
     def destroy_current_state(self, batch):
         self._current_state.destroy(batch)
+
+    def update_last_tx(self, block, batch):
+        self._current_state.update_last_tx(block, batch)
+
+    def get_last_txs(self) -> list:
+        return self._current_state.get_last_txs()
 
 
 class State:
@@ -433,39 +482,10 @@ class State:
         self._db.put('blockheight', height, batch)
 
     def update_last_tx(self, block, batch):
-        if len(block.transactions) == 0:
-            return
-        last_txn = []
-
-        try:
-            last_txn = self._db.get('last_txn')
-        except:  # noqa
-            pass
-
-        for protobuf_txn in block.transactions[-20:]:
-            txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype == qrl_pb2.Transaction.COINBASE:
-                continue
-            last_txn.insert(0, [txn.to_json(),
-                                block.block_number,
-                                block.timestamp])
-
-        del last_txn[20:]
-        self._db.put('last_txn', last_txn, batch)
+        self.state_objects.update_last_tx(block, batch)
 
     def get_last_txs(self):
-        try:
-            last_txn = self._db.get('last_txn')
-        except:  # noqa
-            return []
-
-        txs = []
-        for tx_metadata in last_txn:
-            tx_json, block_num, block_ts = tx_metadata
-            tx = Transaction.from_json(tx_json)
-            txs.append(tx)
-
-        return txs
+        return self.state_objects.get_last_txs()
 
     #########################################
     #########################################
