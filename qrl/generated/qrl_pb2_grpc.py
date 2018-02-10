@@ -77,6 +77,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.SlaveTxnReq.SerializeToString,
         response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
         )
+    self.GetLatticePublicKeyTxn = channel.unary_unary(
+        '/qrl.PublicAPI/GetLatticePublicKeyTxn',
+        request_serializer=qrl__pb2.LatticePublicKeyTxnReq.SerializeToString,
+        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
+        )
     self.PushEphemeralMessage = channel.unary_unary(
         '/qrl.PublicAPI/PushEphemeralMessage',
         request_serializer=qrl__pb2.PushEphemeralMessageReq.SerializeToString,
@@ -172,6 +177,12 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetLatticePublicKeyTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def PushEphemeralMessage(self, request, context):
     """------- Ephemeral API -------
     """
@@ -248,6 +259,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
       'GetSlaveTxn': grpc.unary_unary_rpc_method_handler(
           servicer.GetSlaveTxn,
           request_deserializer=qrl__pb2.SlaveTxnReq.FromString,
+          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
+      ),
+      'GetLatticePublicKeyTxn': grpc.unary_unary_rpc_method_handler(
+          servicer.GetLatticePublicKeyTxn,
+          request_deserializer=qrl__pb2.LatticePublicKeyTxnReq.FromString,
           response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
       'PushEphemeralMessage': grpc.unary_unary_rpc_method_handler(

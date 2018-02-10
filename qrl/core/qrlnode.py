@@ -18,7 +18,8 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.State import State
 from qrl.core.TokenList import TokenList
-from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction
+from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
+    LatticePublicKey
 from qrl.core.misc import ntp
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState
@@ -364,6 +365,20 @@ class QRLNode:
         return SlaveTransaction.create(addr_from=addr_from,
                                        slave_pks=slave_pks,
                                        access_types=access_types,
+                                       fee=fee,
+                                       xmss_pk=xmss_pk,
+                                       xmss_ots_index=xmss_ots_index)
+
+    def create_lattice_public_key_txn(self,
+                                      addr_from: bytes,
+                                      kyber_pk: bytes,
+                                      dilithium_pk: bytes,
+                                      fee: int,
+                                      xmss_pk: bytes,
+                                      xmss_ots_index: int) -> SlaveTransaction:
+        return LatticePublicKey.create(addr_from=addr_from,
+                                       kyber_pk=kyber_pk,
+                                       dilithium_pk=dilithium_pk,
                                        fee=fee,
                                        xmss_pk=xmss_pk,
                                        xmss_ots_index=xmss_ots_index)
