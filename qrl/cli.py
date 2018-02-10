@@ -8,7 +8,7 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
 from qrl.crypto.xmss import XMSS
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
@@ -657,42 +657,53 @@ def token_list(ctx, owner):
 #     # message = click.prompt('Message', type=str)
 
 
-# FIXME: Enable back
-# @qrl.command()
-# @click.pass_context
-# def lattice(ctx):
-#     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-#
-#     walletObj = Wallet()
-#     _admin_print_wallet_list(walletObj)
-#     selected_wallet = select_wallet(walletObj)
-#     if not selected_wallet:
-#         return
-#
-#     lattice_public_key = click.prompt('Enter Lattice Public Key', type=str)
-#
-#     lattice_public_key = lattice_public_key.encode()
-#
-#     try:
-#         latticePublicKeyTxnReq = qrl_pb2.LatticePublicKeyTxnReq(address_from=selected_wallet.address,
-#                                                                 kyber_pk=lattice_public_key,
-#                                                                 tesla_pk=lattice_public_key,
-#                                                                 xmss_pk=selected_wallet.xmss.pk(),
-#                                                                 xmss_ots_index=selected_wallet.xmss.get_index())
-#
-#         f = stub.GetLatticePublicKeyTxn.future(latticePublicKeyTxnReq, timeout=5)
-#         latticePublicKeyResp = f.result(timeout=5)
-#
-#         tx = Transaction.from_pbdata(latticePublicKeyResp.transaction_unsigned)
-#         tx.sign(selected_wallet.xmss)
-#         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-#
-#         f = stub.PushTransaction.future(pushTransactionReq, timeout=5)
-#         pushTransactionResp = f.result(timeout=5)
-#
-#         print('%s' % (pushTransactionResp.some_response,))
-#     except Exception as e:
-#         print("Error {}".format(str(e)))
+@qrl.command()
+@click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--kyber-pk', default='', prompt=True, help='destination QRL address')
+@click.option('--dilithium-pk', default=0.0, prompt=True, help='amount to transfer in Quanta')
+@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.pass_context
+def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee):
+    """
+    Create Lattice Public Keys Transaction
+    """
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+
+    try:
+        address_src, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        address_src_pk = src_xmss.pk()
+        address_src_otsidx = src_xmss.get_index()
+        kyber_pk = kyber_pk.encode()
+        dilithium_pk = dilithium_pk.encode()
+        # FIXME: This could be problematic. Check
+        fee_shor = int(fee * 1.e9)
+    except Exception as e:
+        click.echo("Error validating arguments")
+        quit(1)
+
+    try:
+        tx = LatticePublicKey.create(addr_from=address_src,
+                                     fee=fee_shor,
+                                     kyber_pk=kyber_pk,
+                                     dilithium_pk=dilithium_pk,
+                                     xmss_pk=address_src_pk,
+                                     xmss_ots_index=address_src_otsidx)
+        tx.sign(src_xmss)
+
+        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+
+        print(pushTransactionResp.some_response)
+    except Exception as e:
+        print("Error {}".format(str(e)))
 
 
 def main():
