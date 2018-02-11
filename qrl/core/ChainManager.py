@@ -399,6 +399,8 @@ class ChainManager:
         end_blocknumber = min(self.last_block.block_number,
                               start_blocknumber + 2*config.dev.reorg_limit)
 
+        total_expected_headerhash = end_blocknumber - start_blocknumber + 1
+
         node_header_hash = qrl_pb2.NodeHeaderHash()
         node_header_hash.block_number = start_blocknumber
 
@@ -417,6 +419,8 @@ class ChainManager:
             block_headerhash = block_metadata.last_N_headerhashes[0]
 
         node_header_hash.headerhashes[:] = node_header_hash.headerhashes[-1::-1]
+        del node_header_hash.headerhashes[:len(node_header_hash.headerhashes) - total_expected_headerhash]
+
         return node_header_hash
 
     def add_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage):
