@@ -659,8 +659,8 @@ def token_list(ctx, owner):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
-@click.option('--kyber-pk', default='', prompt=True, help='destination QRL address')
-@click.option('--dilithium-pk', default=0.0, prompt=True, help='amount to transfer in Quanta')
+@click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
+@click.option('--dilithium-pk', default='', prompt=True, help='dilithium public key')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.pass_context
 def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee):
