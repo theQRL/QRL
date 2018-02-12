@@ -9,6 +9,7 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 from qrl.core import config
 from qrl.crypto.xmss import XMSS
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Wallet import Wallet
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
@@ -641,20 +642,78 @@ def token_list(ctx, owner):
         print("Error {}".format(str(e)))
 
 
-# FIXME: Enable back
-# @qrl.command()
-# @click.pass_context
-# def eph(ctx):
-#     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-#
-#     walletObj = Wallet()
-#     _admin_print_wallet_list(walletObj)
-#     selected_wallet = select_wallet(walletObj)
-#     if not selected_wallet:
-#         return
-#
-#     # address_to = click.prompt('Address To', type=str)
-#     # message = click.prompt('Message', type=str)
+@qrl.command()
+@click.option('--msg_id', default='', type=str, prompt=True, help='Message ID')
+@click.pass_context
+def collect(ctx, msg_id):
+    """
+    Collects and returns the list of encrypted ephemeral message corresponding to msg_id
+    :param ctx:
+    :param msg_id:
+    :return:
+    """
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+
+    try:
+        collectEphemeralMessageReq = qrl_pb2.CollectEphemeralMessageReq(msg_id=bytes(hstr2bin(msg_id)))
+        collectEphemeralMessageResp = stub.CollectEphemeralMessage(collectEphemeralMessageReq, timeout=5)
+
+        print(len(collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list))
+        for message in collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list:
+            print('%s' % (message.payload,))
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+@qrl.command()
+@click.option('--msg_id', default='', type=str, prompt=True, help='Message ID')
+@click.option('--ttl', default=0, type=int, prompt=True, help='Time to Live')
+@click.option('--ttr', default=0, type=int, prompt=True, help='Time to Relay')
+@click.option('--enc_aes256_symkey', default='', type=str, prompt=True, help='Encrypted AES256 symmetric key')
+@click.option('--nonce', default=0, type=int, prompt=True, help='nonce')
+@click.option('--payload', default='', type=str, prompt=True, help='Encrypted Payload')
+@click.pass_context
+def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
+    """
+    Creates & Push Ephemeral Message
+    :param ctx:
+    :param msg_id:
+    :param ttl:
+    :param ttr:
+    :param enc_aes256_symkey:
+    :param nonce:
+    :param payload:
+    :return:
+    """
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
+
+    if len(enc_aes256_symkey):
+        enc_aes256_symkey = enc_aes256_symkey.encode()
+
+    payload = payload.encode()
+
+    encrypted_ephemeral_msg = EncryptedEphemeralMessage.create(bytes(hstr2bin(msg_id)),
+                                                               ttl,
+                                                               ttr,
+                                                               nonce,
+                                                               payload,
+                                                               enc_aes256_symkey)
+
+    try:
+        ephemeralMessageReq = qrl_pb2.PushEphemeralMessageReq(ephemeral_message=encrypted_ephemeral_msg.pbdata)
+        ephemeralMessageResp = stub.PushEphemeralMessage(ephemeralMessageReq, timeout=5)
+
+        print(ephemeralMessageResp.some_response)
+    except Exception as e:
+        print("Error {}".format(str(e)))
 
 
 @qrl.command()

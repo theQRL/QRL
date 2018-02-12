@@ -385,9 +385,9 @@ class P2PFactory(ServerFactory):
     def broadcast_ephemeral_message(self, encrypted_ephemeral):
         logger.info('<<<Broadcasting Encrypted Ephemeral Message')
         self._chain_manager.add_ephemeral_message(encrypted_ephemeral)
-        self.register_and_broadcast('EPH',
+        self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.EPH,
                                     encrypted_ephemeral.get_message_hash(),
-                                    encrypted_ephemeral.to_json())
+                                    encrypted_ephemeral.pbdata)
 
     def broadcast_tx_relay(self, source_peer, tx):
         txn_msg = source_peer._wrap_message('TX', tx.to_json())

@@ -561,4 +561,4 @@ class QRLNode:
         return True
 
     def collect_ephemeral_message(self, msg_id):
-        self._chain_manager.collect_ephemeral_message(msg_id)
+        return self.db_state.get_ephemeral_metadata(msg_id)
