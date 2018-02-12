@@ -519,6 +519,9 @@ message BlockNumberMapping {
 
 message StateLoader {
     repeated bytes addresses = 1;
+    repeated bytes token_txhash = 2;
+    repeated bytes txhash = 3;
+    uint64 total_coin_supply = 4;
 }
 
 message StateObjects {

@@ -8,6 +8,10 @@ from qrl.generated import qrl_pb2
 
 
 class TokenList(object):
+    """
+    Maintains the list of tokens in the network.
+    Code is not being used currently.
+    """
     def __init__(self, protobuf_data=None):
         self._data = protobuf_data
         if protobuf_data is None:
