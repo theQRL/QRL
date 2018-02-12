@@ -69,3 +69,16 @@ class EncryptedEphemeralMessage(object):
         pbdata = qrl_pb2.EncryptedEphemeralMessage()
         Parse(json_data, pbdata)
         return EncryptedEphemeralMessage(pbdata)
+
+    @staticmethod
+    def create(msg_id, ttl, ttr, nonce, payload, enc_aes256_symkey=None):
+        encrypted_ephemeral_message = EncryptedEphemeralMessage()
+        encrypted_ephemeral_message._data.msg_id = msg_id
+        encrypted_ephemeral_message._data.ttl = ttl
+        encrypted_ephemeral_message._data.ttr = ttr
+        if enc_aes256_symkey:
+            encrypted_ephemeral_message._data.channel.enc_aes256_symkey = enc_aes256_symkey
+        encrypted_ephemeral_message._data.nonce = nonce
+        encrypted_ephemeral_message._data.payload = payload
+
+        return encrypted_ephemeral_message
