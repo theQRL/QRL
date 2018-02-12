@@ -115,7 +115,7 @@ class XMSS(object):
         return self._xmss.getRemainingSignatures()
 
     @property
-    def mnemonic(self):
+    def mnemonic(self)->str:
         # FIXME: Move to property
         """
         :return:
@@ -137,8 +137,7 @@ class XMSS(object):
         return bytes(self._xmss.getAddress('Q').encode())
 
     @property
-    def ots_index(self):
-        # FIXME: Move to property
+    def ots_index(self)-> int:
         """
         :return:
         :rtype:
@@ -153,7 +152,6 @@ class XMSS(object):
         >>> xmss.ots_index
         1
         """
-        # type: () -> int
         return self._xmss.getIndex()
 
     def set_ots_index(self, new_index):

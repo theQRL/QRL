@@ -739,7 +739,7 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee):
             quit(1)
 
         address_src_pk = src_xmss.pk()
-        address_src_otsidx = src_xmss.get_index()
+        address_src_otsidx = src_xmss.ots_index
         kyber_pk = kyber_pk.encode()
         dilithium_pk = dilithium_pk.encode()
         # FIXME: This could be problematic. Check
