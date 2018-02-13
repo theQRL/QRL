@@ -87,12 +87,17 @@ class StateLoader:
         for token_txhash in self._data.token_txhash:
             self._db.delete(self.state_code + b'token_' + token_txhash, batch)
 
+        del self._data.token_txhash[:]
+
         for txhash in self._data.txhash:
-            self._db.delete(str(self.state_code) + bin2hstr(txhash), batch)
+            self._db.delete((str(self.state_code) + bin2hstr(txhash)).encode(), batch)
+
+        del self._data.txhash[:]
 
         self._db.delete(self.state_code + b'last_txn')
         self._db.delete(self.state_code + b'state_version')
         self._db.delete(self.state_code + b'total_coin_supply')
+        self._data.total_coin_supply = 0
         del self._data.addresses[:]
 
     def update_main(self, batch=None):
@@ -179,7 +184,7 @@ class StateLoader:
 
     def get_txn_count(self, addr):
         try:
-            return self._db.get((self.state_code + b'txn_count_' + addr))
+            return self._db.get(self.state_code + b'txn_count_' + addr)
         except KeyError:
             pass
         except Exception as e:
@@ -201,7 +206,7 @@ class StateLoader:
 
     def get_tx_metadata(self, txhash: bytes):
         try:
-            tx_metadata = self._db.get(bin2hstr(txhash))
+            tx_metadata = self._db.get(str(self.state_code) + bin2hstr(txhash))
         except Exception:
             return None
         if tx_metadata is None:
@@ -249,12 +254,12 @@ class StateLoader:
         del self._data.token_txhash[:]
 
         for txhash in self._data.txhash:
-            data = self._db.get_raw(str(self.state_code) + bin2hstr(txhash))
+            data = self._db.get(str(self.state_code) + bin2hstr(txhash))
             if data is None:
                 logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
             self._db.put(str(state_loader.state_code) + bin2hstr(txhash), data, batch)
             state_loader.add_txhash(txhash)
-            self._db.delete(str(self.state_code) + bin2hstr(txhash))
+            self._db.delete((str(self.state_code) + bin2hstr(txhash)).encode())
         del self._data.txhash[:]
 
         state_loader.update_total_coin_supply(self.total_coin_supply)
@@ -378,6 +383,7 @@ class StateObjects:
 
     def destroy_current_state(self, batch):
         self._current_state.destroy(batch)
+        self._current_state.update_total_coin_supply(self._state_loaders[-1].total_coin_supply)
 
     def update_last_tx(self, block, batch):
         self._current_state.update_last_tx(block, batch)
@@ -445,13 +451,13 @@ class StateObjects:
         # TODO (cyyber): Move To State Cache, instead of writing directly
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
-            self._current_state.put_tx_metadata(protobuf_txn,
+            self._current_state.put_tx_metadata(txn,
                                                 block.block_number,
                                                 block.timestamp,
                                                 batch)
             # FIXME: Being updated without batch, need to fix,
             if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                self._current_state.update_token_metadata(txn)
+                self.update_token_metadata(txn)
             if txn.subtype == qrl_pb2.Transaction.TOKEN:
                 self._current_state.create_token_metadata(txn)
 
