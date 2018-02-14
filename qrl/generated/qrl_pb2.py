@@ -1518,8 +1518,8 @@ _WALLET = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='address', full_name='qrl.Wallet.address', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -2145,8 +2145,8 @@ _GENESISBALANCE = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='address', full_name='qrl.GenesisBalance.address', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),

@@ -265,7 +265,7 @@ message WalletStore {
 }
 
 message Wallet {
-    string address = 1;        // FIXME move to bytes
+    bytes address = 1;        // FIXME move to bytes
     string mnemonic = 2;
     int32 xmss_index = 3;
 }
@@ -341,7 +341,7 @@ message Block {
 
 message GenesisBalance
 {
-    string address = 1;                     // Address is string only here to increase visibility
+    bytes address = 1;                     // Address is string only here to increase visibility
     uint64 balance = 2;
 }
 

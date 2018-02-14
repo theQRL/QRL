@@ -22,7 +22,7 @@ class XMSS(object):
         True
 
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getPK() )
-        '26b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
+        '010226b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getSK() ) == xmss_sk_expected1
         True
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getRoot() )
@@ -35,8 +35,8 @@ class XMSS(object):
         '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getSKPRF() )
         '3aa40c0f99459afe7efe72eb9517ee8ded49ccd51dab72ebf6bc37d73240bb3a'
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getAddress('Q')
-        'Q1d651431536359202ce7095757e3ed66f579a6eab488ac1331486f207c91604016b6a443'
+        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1)._xmss.getAddress())
+        '010245e978261484dda97d1a4eefd418f159765ee00a2800b7835660c331d600f1d7bcd5538a'
 
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
         ''
@@ -115,7 +115,7 @@ class XMSS(object):
         return self._xmss.getRemainingSignatures()
 
     @property
-    def mnemonic(self)->str:
+    def mnemonic(self) -> str:
         # FIXME: Move to property
         """
         :return:
@@ -133,11 +133,11 @@ class XMSS(object):
         return bin2mnemonic(self._xmss.getSeed())
 
     @property
-    def address(self)->bytes:
-        return bytes(self._xmss.getAddress('Q').encode())
+    def address(self) -> bytes:
+        return bytes(self._xmss.getAddress())
 
     @property
-    def ots_index(self)-> int:
+    def ots_index(self) -> int:
         """
         :return:
         :rtype:
