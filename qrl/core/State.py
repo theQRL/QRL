@@ -15,7 +15,6 @@ from qrl.core.Block import Block
 from qrl.core.misc import logger, db
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.TokenMetadata import TokenMetadata
-from qrl.core.TokenList import TokenList
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.EphemeralMetadata import EphemeralMetadata
 from qrl.core.AddressState import AddressState
@@ -42,6 +41,10 @@ class StateLoader:
     def block_number(self):
         return self._block_number
 
+    @property
+    def total_coin_supply(self):
+        return self._data.total_coin_supply
+
     def get_address(self, address: bytes) -> Optional[AddressState]:
         modified_address = self.state_code + address
         try:
@@ -59,6 +62,14 @@ class StateLoader:
         if address not in self._data.addresses:
             self._data.addresses.append(address)
 
+    def add_token_txhash(self, txhash):
+        if txhash not in self._data.token_txhash:
+            self._data.token_txhash.append(txhash)
+
+    def add_txhash(self, txhash):
+        if txhash not in self._data.token_txhash:
+            self._data.txhash.append(txhash)
+
     def put_addresses_state(self, addresses_state: dict, batch=None):
         for address in addresses_state:
             address_state = addresses_state[address]
@@ -71,7 +82,22 @@ class StateLoader:
     def destroy(self, batch=None):
         for address in self._data.addresses:
             self._db.delete(self.state_code + address, batch)
+            self._db.delete(self.state_code + b'txn_count_' + address, batch)
+
+        for token_txhash in self._data.token_txhash:
+            self._db.delete(self.state_code + b'token_' + token_txhash, batch)
+
+        del self._data.token_txhash[:]
+
+        for txhash in self._data.txhash:
+            self._db.delete((str(self.state_code) + bin2hstr(txhash)).encode(), batch)
+
+        del self._data.txhash[:]
+
         self._db.delete(self.state_code + b'last_txn')
+        self._db.delete(self.state_code + b'state_version')
+        self._db.delete(self.state_code + b'total_coin_supply')
+        self._data.total_coin_supply = 0
         del self._data.addresses[:]
 
     def update_main(self, batch=None):
@@ -115,6 +141,94 @@ class StateLoader:
 
         return txs
 
+    def update_total_coin_supply(self, balance):
+        self._data.total_coin_supply += balance
+        self._db.put(self.state_code + b'total_coin_supply', self.total_coin_supply)
+
+    def get_token_metadata(self, token_txhash: bytes):
+        try:
+            json_data = self._db.get_raw(self.state_code + b'token_' + token_txhash)
+            return TokenMetadata.from_json(json_data)
+        except KeyError:
+            pass
+        except Exception as e:
+            logger.error('[get_token_metadata] %s', e)
+
+        return None
+
+    def update_token_metadata(self, token_metadata: TokenMetadata, transfer_token: TransferTokenTransaction):
+        token_metadata.update([transfer_token.txhash])
+        self._db.put_raw(self.state_code + b'token_' + transfer_token.token_txhash,
+                         token_metadata.to_json().encode())
+
+    def create_token_metadata(self, token: TokenTransaction):
+        token_metadata = TokenMetadata.create(token_txhash=token.txhash, transfer_token_txhashes=[token.txhash])
+        self._db.put_raw(self.state_code + b'token_' + token.txhash,
+                         token_metadata.to_json().encode())
+        self.add_token_txhash(token.txhash)
+
+    def get_state_version(self):
+        try:
+            return self._db.get(self.state_code + b'state_version')
+        except KeyError:
+            return 0
+
+    def update_state_version(self, block_number, batch):
+        self._db.put(self.state_code + b'state_version', block_number, batch)
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def get_txn_count(self, addr):
+        try:
+            return self._db.get(self.state_code + b'txn_count_' + addr)
+        except KeyError:
+            pass
+        except Exception as e:
+            # FIXME: Review
+            logger.error('Exception in get_txn_count')
+            logger.exception(e)
+
+        return 0
+
+    def increase_txn_count(self, last_count: int, addr: bytes):
+        # FIXME: This should be transactional
+        self._db.put(self.state_code + b'txn_count_' + addr, last_count + 1)
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
+    def get_tx_metadata(self, txhash: bytes):
+        try:
+            tx_metadata = self._db.get(str(self.state_code) + bin2hstr(txhash))
+        except Exception:
+            return None
+        if tx_metadata is None:
+            return None
+        txn_json, block_number, _ = tx_metadata
+        return Transaction.from_json(txn_json), block_number
+
+    def put_tx_metadata(self, txn, block_number, timestamp, batch):
+        try:
+            self._db.put(str(self.state_code) + bin2hstr(txn.txhash),
+                         [txn.to_json(), block_number, timestamp],
+                         batch)
+            self.add_txhash(txn.txhash)
+        except Exception:
+            pass
+
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+    #########################################
+
     def commit(self, state_loader, batch=None):
         # TODO (cyyber): Optimization, instead of moving from current to headerhash,
         # blocknumber could be used in state_code, and current could point to cache of
@@ -126,12 +240,38 @@ class StateLoader:
             self._db.put_raw(state_loader.state_code + address, data, batch)
             state_loader.add_address(address)
             self._db.delete(self.state_code + address, batch)
+            state_loader.increase_txn_count(self.get_txn_count(address), address)
+            self._db.delete(self.state_code + b'txn_count' + address)
         del self._data.addresses[:]
+
+        for token_txhash in self._data.token_txhash:
+            data = self._db.get_raw(self.state_code + b'token_' + token_txhash)
+            if data is None:
+                logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
+            self._db.put_raw(state_loader.state_code + b'token_' + address, data, batch)
+            state_loader.add_token_txhash(token_txhash)
+            self._db.delete(self.state_code + b'token_' + token_txhash)
+        del self._data.token_txhash[:]
+
+        for txhash in self._data.txhash:
+            data = self._db.get(str(self.state_code) + bin2hstr(txhash))
+            if data is None:
+                logger.warning('>>>>>>>>> GOT NONE <<<<<<< %s', address)
+            self._db.put(str(state_loader.state_code) + bin2hstr(txhash), data, batch)
+            state_loader.add_txhash(txhash)
+            self._db.delete((str(self.state_code) + bin2hstr(txhash)).encode())
+        del self._data.txhash[:]
+
+        state_loader.update_total_coin_supply(self.total_coin_supply)
+
+        state_loader.update_state_version(self.get_state_version(), None)
+
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
 
         try:
             last_txn = self._db.get(self.state_code + b'last_txn')
             self._db.put(state_loader.state_code + b'last_txn', last_txn, batch)
+            self._db.delete(state_loader.state_code + b'last_txn')
         except:  # noqa
             pass
 
@@ -243,12 +383,90 @@ class StateObjects:
 
     def destroy_current_state(self, batch):
         self._current_state.destroy(batch)
+        self._current_state.update_total_coin_supply(self._state_loaders[-1].total_coin_supply)
 
     def update_last_tx(self, block, batch):
         self._current_state.update_last_tx(block, batch)
 
     def get_last_txs(self) -> list:
         return self._current_state.get_last_txs()
+
+    def get_token_metadata(self, token_txhash: bytes):
+        token_metadata = self._current_state.get_token_metadata(token_txhash)
+        if token_metadata:
+            return token_metadata
+
+        for state_loader in self._state_loaders[-1::-1]:
+            token_metadata = state_loader.get_token_metadata(token_txhash)
+            if token_metadata:
+                return token_metadata
+        return None
+
+    def update_token_metadata(self, transfer_token: TransferTokenTransaction):
+        token_metadata = self.get_token_metadata(transfer_token.token_txhash)
+        self._current_state.update_token_metadata(token_metadata, transfer_token)
+
+    def create_token_metadata(self, token: TokenTransaction):
+        self._current_state.create_token_metadata(token)
+
+    def get_state_version(self):
+        return self._current_state.get_state_version()
+
+    def update_state_version(self, block_number, batch):
+        self._current_state.update_state_version(block_number, batch)
+
+    def get_txn_count(self, addr):
+        txn_count = self._current_state.get_txn_count(addr)
+        if txn_count:
+            return txn_count
+
+        for state_loader in self._state_loaders[-1::-1]:
+            txn_count = state_loader.get_txn_count(addr)
+            if txn_count:
+                return txn_count
+        return 0
+
+    def increase_txn_count(self, addr: bytes):
+        last_count = self.get_txn_count(addr)
+        self._current_state.increase_txn_count(last_count, addr)
+
+    def put_tx_metadata(self, txn, block_number, timestamp, batch):
+        self._current_state.put_tx_metadata(txn, block_number, timestamp, batch)
+
+    def get_tx_metadata(self, txhash: bytes):
+        tx_metadata = self._current_state.get_tx_metadata(txhash)
+        if tx_metadata:
+            return tx_metadata
+
+        for state_loader in self._state_loaders[-1::-1]:
+            tx_metadata = state_loader.get_tx_metadata(txhash)
+            if tx_metadata:
+                return tx_metadata
+        return None
+
+    def update_tx_metadata(self, block, batch):
+        if len(block.transactions) == 0:
+            return
+
+        # TODO (cyyber): Move To State Cache, instead of writing directly
+        for protobuf_txn in block.transactions:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            self._current_state.put_tx_metadata(txn,
+                                                block.block_number,
+                                                block.timestamp,
+                                                batch)
+            # FIXME: Being updated without batch, need to fix,
+            if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+                self.update_token_metadata(txn)
+            if txn.subtype == qrl_pb2.Transaction.TOKEN:
+                self._current_state.create_token_metadata(txn)
+
+            self._current_state.increase_txn_count(self.get_txn_count(txn.txfrom), txn.txfrom)
+
+        self._current_state.update_last_tx(block, batch)
+
+    def total_coin_supply(self):
+        return self._current_state.total_coin_supply
 
 
 class State:
@@ -492,38 +710,20 @@ class State:
     #########################################
     #########################################
 
-    def get_token_list(self):
-        try:
-            return self._db.get_raw(b'token_list')
-        except KeyError:
-            return TokenList().to_json()
-
-    def update_token_list(self, token_txhashes: list, batch):
-        pbdata = self.get_token_list()
-        token_list = TokenList.from_json(pbdata)
-        token_list.update(token_txhashes)
-        self._db.put_raw(b'token_list', token_list.to_json().encode(), batch)
-
     def get_token_metadata(self, token_txhash: bytes):
-        json_data = self._db.get_raw(b'token_' + token_txhash)
-        return TokenMetadata.from_json(json_data)
+        return self.state_objects.get_token_metadata(token_txhash)
 
     def update_token_metadata(self, transfer_token: TransferTokenTransaction):
-        token_metadata = self.get_token_metadata(transfer_token.token_txhash)
-        token_metadata.update([transfer_token.txhash])
-        self._db.put_raw(b'token_' + transfer_token.token_txhash,
-                         token_metadata.to_json().encode())
+        self.state_objects.update_token_metadata(transfer_token)
 
     def create_token_metadata(self, token: TokenTransaction):
-        token_metadata = TokenMetadata.create(token_txhash=token.txhash, transfer_token_txhashes=[token.txhash])
-        self._db.put_raw(b'token_' + token.txhash,
-                         token_metadata.to_json().encode())
+        self.state_objects.create_token_metadata(token)
 
     def get_state_version(self):
-        return self._db.get(b'state_version')
+        return self.state_objects.get_state_version()
 
     def update_state_version(self, block_number, batch):
-        self._db.put(b'state_version', block_number, batch)
+        self.state_objects.update_state_version(block_number, batch)
 
     #########################################
     #########################################
@@ -532,21 +732,7 @@ class State:
     #########################################
 
     def get_txn_count(self, addr):
-        try:
-            return self._db.get((b'txn_count_' + addr))
-        except KeyError:
-            pass
-        except Exception as e:
-            # FIXME: Review
-            logger.error('Exception in get_txn_count')
-            logger.exception(e)
-
-        return 0
-
-    def increase_txn_count(self, addr: bytes):
-        # FIXME: This should be transactional
-        last_count = self.get_txn_count(addr)
-        self._db.put(b'txn_count_' + addr, last_count + 1)
+        return self.state_objects.get_txn_count(addr)
 
     #########################################
     #########################################
@@ -555,37 +741,10 @@ class State:
     #########################################
 
     def update_tx_metadata(self, block, batch):
-        if len(block.transactions) == 0:
-            return
-
-        # TODO (cyyber): Move To State Cache, instead of writing directly
-        for protobuf_txn in block.transactions:
-            txn = Transaction.from_pbdata(protobuf_txn)
-            self._db.put(bin2hstr(txn.txhash),
-                         [txn.to_json(), block.block_number, block.timestamp],
-                         batch)
-            # FIXME: Being updated without batch, need to fix,
-            if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
-                self.update_token_metadata(txn)
-            if txn.subtype == qrl_pb2.Transaction.TOKEN:
-                self.create_token_metadata(txn)
-
-            self.increase_txn_count(txn.txfrom)
-
-        self.update_last_tx(block, batch)
-        # Disabled as complete token list over the network is not required
-        # if token_list:
-        #    self.update_token_list(token_list, batch)
+        self.state_objects.update_tx_metadata(block, batch)
 
     def get_tx_metadata(self, txhash: bytes):
-        try:
-            tx_metadata = self._db.get(bin2hstr(txhash))
-        except Exception:
-            return None
-        if tx_metadata is None:
-            return None
-        txn_json, block_number, _ = tx_metadata
-        return Transaction.from_json(txn_json), block_number
+        return self.state_objects.get_tx_metadata(txhash)
 
     #########################################
     #########################################
@@ -655,12 +814,7 @@ class State:
     #########################################
 
     def total_coin_supply(self):
-        # FIXME: This is temporary code. NOT SCALABLE. It is easy to keep a global count
-        all_addresses = self.return_all_addresses()
-        coins = 0
-        for a in all_addresses:
-            coins = coins + a.balance
-        return coins
+        return self.state_objects.total_coin_supply()
 
     def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
         count_headerhashes = len(parent_metadata.last_N_headerhashes)
