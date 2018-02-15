@@ -135,8 +135,7 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
                                    decimals=4,
                                    initial_balances=initial_balances,
                                    fee=fee,
-                                   xmss_pk=xmss1.pk(),
-                                   xmss_ots_index=xmss1.get_index())
+                                   xmss_pk=xmss1.pk())
 
 
 def destroy_state():
@@ -224,8 +223,7 @@ def get_slaves(alice_ots_index, txn_nonce):
                                         [slave_xmss.pk()],
                                         [1],
                                         0,
-                                        alice_xmss.pk(),
-                                        alice_ots_index)
+                                        alice_xmss.pk())
     slave_txn._data.nonce = txn_nonce
     slave_txn.sign(alice_xmss)
 

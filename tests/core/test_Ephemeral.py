@@ -73,8 +73,7 @@ class TestEphemeral(TestCase):
                                                                              fee=1,
                                                                              kyber_pk=random_kyber1.getPK(),
                                                                              dilithium_pk=random_dilithium1.getPK(),
-                                                                             xmss_pk=random_xmss1.pk(),
-                                                                             xmss_ots_index=random_xmss1.get_index())
+                                                                             xmss_pk=random_xmss1.pk())
                             lattice_public_key_txn._data.nonce = 1
                             lattice_public_key_txn.sign(random_xmss1)
 

@@ -57,8 +57,7 @@ class TestPublicAPI2(TestCase):
                                                slave_pks=[bob_xmss.pk()],
                                                access_types=[0],
                                                fee=0,
-                                               xmss_pk=alice_xmss.pk(),
-                                               xmss_ots_index=alice_xmss.get_index())
+                                               xmss_pk=alice_xmss.pk())
             slave_tx.sign(alice_xmss)
             slave_tx._data.nonce = 2
             self.assertTrue(slave_tx.validate())
