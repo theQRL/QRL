@@ -60,7 +60,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @property
     def ots_key(self):
-        return self._data.xmss_ots_index
+        return self.get_ots_from_signature(self.signature)
 
     @staticmethod
     def get_ots_from_signature(signature):
@@ -77,21 +77,13 @@ class Transaction(object, metaclass=ABCMeta):
     def signature(self):
         return self._data.signature
 
-    @property
-    def xmss_ots_index(self):
-        return self._data.xmss_ots_index
-
     @staticmethod
     def tx_id_to_name(idarg):
         # FIXME: Move to enums
         id_name = {
             qrl_pb2.Transaction.TRANSFER: 'TX',
-            qrl_pb2.Transaction.STAKE: 'STAKE',
-            qrl_pb2.Transaction.DESTAKE: 'DESTAKE',
             qrl_pb2.Transaction.COINBASE: 'COINBASE',
             qrl_pb2.Transaction.LATTICE: 'LATTICE',
-            qrl_pb2.Transaction.DUPLICATE: 'DUPLICATE',
-            qrl_pb2.Transaction.VOTE: 'VOTE',
             qrl_pb2.Transaction.MESSAGE: 'MESSAGE',
             qrl_pb2.Transaction.TOKEN: 'TOKEN',
             qrl_pb2.Transaction.TRANSFERTOKEN: 'TRANSFERTOKEN',
@@ -144,8 +136,23 @@ class Transaction(object, metaclass=ABCMeta):
     def txhash(self) -> bytes:
         return self._data.transaction_hash
 
+    def _set_txhash(self):
+        self._data.transaction_hash = sha256(
+                                              self.get_hashable_bytes() +
+                                              self.signature +
+                                              self.PK
+                                            )
+
+    def get_hashable_bytes(self) -> bytes:
+        """
+        This method returns the hashes of the transaction data.
+        :return:
+        """
+        raise NotImplementedError
+
     def sign(self, xmss):
-        self._data.signature = xmss.SIGN(self.txhash)
+        self._data.signature = xmss.SIGN(self.get_hashable_bytes())
+        self._set_txhash()
 
     @abstractmethod
     def apply_on_state(self, addresses_state):
@@ -162,15 +169,6 @@ class Transaction(object, metaclass=ABCMeta):
         """
         This is an extension point for derived classes validation
         If derived classes need additional field validation they should override this member
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def _set_txhash(self) -> bytes:
-        """
-        Derived classes must need to implement this, to set the value of
-        self.transaction_hash
-        :return:
         """
         raise NotImplementedError
 
@@ -228,10 +226,7 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
-        if self.xmss_ots_index != self.get_ots_from_signature(self.signature):
-            raise ValueError('xmss_ots_index and siganture ots index doesnt match')
-
-        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.txhash,
+        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.get_hashable_bytes(),
                                                        signature=self.signature,
                                                        pk=self.PK):
             raise ValueError("Invalid xmss signature")
@@ -268,14 +263,6 @@ class Transaction(object, metaclass=ABCMeta):
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data)
 
-    def _get_concatenated_fields(self):
-        return (
-                 str(self.subtype).encode() +
-                 self.addr_from +
-                 str(self.fee).encode() +
-                 str(self.xmss_ots_index).encode()
-               )
-
 
 class TransferTransaction(Transaction):
     """
@@ -295,15 +282,17 @@ class TransferTransaction(Transaction):
     def amount(self):
         return self._data.transfer.amount
 
-    def _set_txhash(self):
-        self._data.transaction_hash = sha256(
-                                              self._get_concatenated_fields() +
-                                              self._data.transfer.addr_to +
-                                              str(self._data.transfer.amount).encode()
-                                            )
+    def get_hashable_bytes(self):
+        return sha256(
+                       str(self.subtype).encode() +
+                       self.addr_from +
+                       str(self.fee).encode() +
+                       self.txto +
+                       str(self.amount).encode()
+                     )
 
     @staticmethod
-    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk, xmss_ots_index):
+    def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk):
         transaction = TransferTransaction()
 
         transaction._data.addr_from = addr_from
@@ -312,9 +301,6 @@ class TransferTransaction(Transaction):
         transaction._data.transfer.addr_to = addr_to
         transaction._data.transfer.amount = int(amount)  # FIXME: Review conversions for quantities
         transaction._data.fee = int(fee)  # FIXME: Review conversions for quantities
-        transaction._data.xmss_ots_index = xmss_ots_index
-
-        transaction._set_txhash()
 
         return transaction
 
@@ -400,14 +386,16 @@ class CoinBase(Transaction):
     def block_number(self):
         return self._data.coinbase.block_number
 
-    def _set_txhash(self):
-        self._data.transaction_hash = sha256(
-                                              self._get_concatenated_fields() +
-                                              self._data.coinbase.addr_to +
-                                              str(self._data.coinbase.amount).encode() +
-                                              str(self._data.coinbase.block_number).encode() +
-                                              self._data.coinbase.headerhash
-                                            )
+    def get_hashable_bytes(self):
+        return sha256(
+                      str(self.subtype).encode() +
+                      self.addr_from +
+                      str(self.fee).encode() +
+                      self.txto +
+                      str(self.amount).encode() +
+                      str(self.block_number).encode() +
+                      self.headerhash
+                      )
 
     @staticmethod
     def create(blockheader, xmss, master_address):
@@ -415,14 +403,13 @@ class CoinBase(Transaction):
 
         transaction._data.addr_from = config.dev.coinbase_address
         transaction._data.fee = 0
-        transaction._data.xmss_ots_index = xmss.get_index()
         transaction._data.public_key = bytes(xmss.pk())
 
         transaction._data.coinbase.addr_to = master_address
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
         transaction._data.coinbase.block_number = blockheader.block_number
         transaction._data.coinbase.headerhash = blockheader.headerhash
-        transaction._set_txhash()
+
         return transaction
 
     def _validate_custom(self):
@@ -483,26 +470,26 @@ class LatticePublicKey(Transaction):
     def dilithium_pk(self):
         return self._data.latticePK.dilithium_pk
 
-    def _set_txhash(self):
-        self._data.transaction_hash = sha256(
-            self._get_concatenated_fields() +
-            self._data.latticePK.kyber_pk +
-            self._data.latticePK.dilithium_pk
-        )
+    def get_hashable_bytes(self):
+        return sha256(
+                       str(self.subtype).encode() +
+                       self.addr_from +
+                       str(self.fee).encode() +
+                       self.kyber_pk +
+                       self.dilithium_pk
+                     )
 
     @staticmethod
-    def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk, xmss_ots_index):
+    def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk):
         transaction = LatticePublicKey()
 
         transaction._data.addr_from = addr_from
         transaction._data.fee = fee
-        transaction._data.xmss_ots_index = xmss_ots_index
         transaction._data.public_key = xmss_pk
 
         transaction._data.latticePK.kyber_pk = bytes(kyber_pk)
         transaction._data.latticePK.dilithium_pk = bytes(dilithium_pk)
 
-        transaction._set_txhash()
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.
@@ -560,23 +547,24 @@ class MessageTransaction(Transaction):
     def message_hash(self):
         return self._data.message.message_hash
 
-    def _set_txhash(self):
-        self._data.transaction_hash = sha256(
-                                              self._get_concatenated_fields() +
-                                              self._data.message.message_hash
-                                            )
+    def get_hashable_bytes(self):
+        return sha256(
+                      str(self.subtype).encode() +
+                      self.addr_from +
+                      str(self.fee).encode() +
+                      self.message_hash
+                     )
 
     @staticmethod
-    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes, xmss_ots_index: int):
+    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes):
         transaction = MessageTransaction()
 
         transaction._data.addr_from = addr_from
         transaction._data.message.message_hash = message_hash
         transaction._data.fee = fee
-        transaction._data.xmss_ots_index = xmss_ots_index
 
         transaction._data.public_key = xmss_pk
-        transaction._set_txhash()
+
         return transaction
 
     def _validate_custom(self) -> bool:
@@ -653,12 +641,14 @@ class TokenTransaction(Transaction):
     def initial_balances(self):
         return self._data.token.initial_balances
 
-    def _set_txhash(self):
+    def get_hashable_bytes(self):
         tmptxhash = sha256(
-                            self._get_concatenated_fields() +
-                            self._data.token.symbol +
-                            self._data.token.name +
-                            self._data.token.owner +
+                            str(self.subtype).encode() +
+                            self.addr_from +
+                            str(self.fee).encode() +
+                            self.symbol +
+                            self.name +
+                            self.owner +
                             str(self._data.token.decimals).encode()
                           )
 
@@ -666,7 +656,7 @@ class TokenTransaction(Transaction):
             tmptxhash += initial_balance.address
             tmptxhash += str(initial_balance.amount).encode()
 
-        self._data.transaction_hash = sha256(tmptxhash)
+        return sha256(tmptxhash)
 
     @staticmethod
     def create(addr_from: bytes,
@@ -676,8 +666,7 @@ class TokenTransaction(Transaction):
                decimals: int,
                initial_balances: list,
                fee: int,
-               xmss_pk: bytes,
-               xmss_ots_index: int):
+               xmss_pk: bytes):
         transaction = TokenTransaction()
 
         transaction._data.addr_from = addr_from
@@ -692,9 +681,6 @@ class TokenTransaction(Transaction):
             transaction._data.token.initial_balances.extend([initial_balance])
 
         transaction._data.fee = int(fee)
-        transaction._data.xmss_ots_index = xmss_ots_index
-
-        transaction._set_txhash()
 
         return transaction
 
@@ -808,12 +794,15 @@ class TransferTokenTransaction(Transaction):
     def amount(self):
         return self._data.transfer_token.amount
 
-    def _set_txhash(self):
-        self._data.transaction_hash = sha256(
-                                              self._get_concatenated_fields() +
-                                              self._data.transfer_token.addr_to +
-                                              str(self._data.transfer_token.amount).encode()
-                                            )
+    def get_hashable_bytes(self):
+        return sha256(
+                       str(self.subtype).encode() +
+                       self.addr_from +
+                       str(self.fee).encode() +
+                       self.token_txhash +
+                       self.txto +
+                       str(self.amount).encode()
+                     )
 
     @staticmethod
     def create(addr_from: bytes,
@@ -821,8 +810,7 @@ class TransferTokenTransaction(Transaction):
                addr_to: bytes,
                amount: int,
                fee: int,
-               xmss_pk: bytes,
-               xmss_ots_index: int):
+               xmss_pk: bytes):
         transaction = TransferTokenTransaction()
 
         transaction._data.addr_from = addr_from
@@ -832,9 +820,6 @@ class TransferTokenTransaction(Transaction):
         transaction._data.transfer_token.addr_to = addr_to
         transaction._data.transfer_token.amount = amount
         transaction._data.fee = int(fee)
-        transaction._data.xmss_ots_index = xmss_ots_index
-
-        transaction._set_txhash()
 
         return transaction
 
@@ -914,17 +899,20 @@ class SlaveTransaction(Transaction):
     def access_types(self):
         return self._data.slave.access_types
 
-    def _set_txhash(self):
+    def get_hashable_bytes(self):
         tmptxhash = sha256(
-                           self._get_concatenated_fields()
+                            str(self.subtype).encode() +
+                            self.addr_from +
+                            str(self.fee).encode()
                           )
+
         for index in range(0, len(self.slave_pks)):
             tmptxhash = sha256(tmptxhash + self.slave_pks[index] + str(self.access_types[index]).encode())
 
-        self._data.transaction_hash = tmptxhash
+        return tmptxhash
 
     @staticmethod
-    def create(addr_from: bytes, slave_pks: list, access_types: list, fee: int, xmss_pk: bytes, xmss_ots_index: int):
+    def create(addr_from: bytes, slave_pks: list, access_types: list, fee: int, xmss_pk: bytes):
         transaction = SlaveTransaction()
 
         transaction._data.addr_from = addr_from
@@ -933,10 +921,9 @@ class SlaveTransaction(Transaction):
         for access_type in access_types:
             transaction._data.slave.access_types.append(access_type)
         transaction._data.fee = fee
-        transaction._data.xmss_ots_index = xmss_ots_index
 
         transaction._data.public_key = xmss_pk
-        transaction._set_txhash()
+
         return transaction
 
     def _validate_custom(self) -> bool:

@@ -160,7 +160,6 @@ message TransferCoinsReq {
     uint64 amount = 3;                      // Amount. It should be expressed in Shor
     uint64 fee = 4;                         // Fee. It should be expressed in Shor
     bytes xmss_pk = 5;                      // XMSS Public key
-    uint64 xmss_ots_index = 6;
 }
 
 message TransferCoinsResp {
@@ -181,7 +180,6 @@ message TokenTxnReq {
     repeated AddressAmount initial_balances = 6;
     uint64 fee = 7;
     bytes xmss_pk = 8;
-    uint64 xmss_ots_index = 9;
 }
 
 message TransferTokenTxnReq {
@@ -191,7 +189,6 @@ message TransferTokenTxnReq {
     uint64 amount = 4;
     uint64 fee = 5;
     bytes xmss_pk = 6;
-    uint64 xmss_ots_index = 7;
 }
 
 message SlaveTxnReq {
@@ -200,7 +197,6 @@ message SlaveTxnReq {
     repeated uint32 access_types = 3;
     uint64 fee = 4;
     bytes xmss_pk = 5;
-    uint64 xmss_ots_index = 6;
 }
 
 message LatticePublicKeyTxnReq {
@@ -209,7 +205,6 @@ message LatticePublicKeyTxnReq {
     bytes dilithium_pk = 3;
     uint64 fee = 4;
     bytes xmss_pk = 5;
-    uint64 xmss_ots_index = 6;
 }
 
 ////////////////////////////
@@ -373,7 +368,6 @@ message Transaction {
     bytes signature = 5;
     uint64 nonce = 6;
     bytes transaction_hash = 7;
-    uint64 xmss_ots_index = 8;
 
     oneof transactionType {
         Transfer transfer = 9;

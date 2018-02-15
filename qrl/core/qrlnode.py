@@ -270,7 +270,7 @@ class QRLNode:
         return None
 
     # FIXME: Rename this appropriately
-    def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, xmss_ots_index: int, fee: int = 0):
+    def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
         addr_bundle = self.get_address_bundle(addr_from)
         if addr_bundle is None:
             raise LookupError("The source address does not belong to this wallet/node")
@@ -293,8 +293,7 @@ class QRLNode:
                                  addr_to,
                                  amount,
                                  fee,
-                                 xmss_pk,
-                                 xmss_ots_index)
+                                 xmss_pk)
 
         tx.sign(xmss_from)
         self.submit_send_tx(tx)
@@ -308,8 +307,7 @@ class QRLNode:
                          decimals: int,
                          initial_balances,
                          fee: int,
-                         xmss_pk: bytes,
-                         xmss_ots_index: int):
+                         xmss_pk: bytes):
         return TokenTransaction.create(addr_from,
                                        symbol,
                                        name,
@@ -317,8 +315,7 @@ class QRLNode:
                                        decimals,
                                        initial_balances,
                                        fee,
-                                       xmss_pk,
-                                       xmss_ots_index)
+                                       xmss_pk)
 
     @staticmethod
     def create_transfer_token_txn(addr_from: bytes,
@@ -326,15 +323,13 @@ class QRLNode:
                                   token_txhash: bytes,
                                   amount: int,
                                   fee: int,
-                                  xmss_pk: bytes,
-                                  xmss_ots_index: int):
+                                  xmss_pk: bytes):
         return TransferTokenTransaction.create(addr_from,
                                                token_txhash,
                                                addr_to,
                                                amount,
                                                fee,
-                                               xmss_pk,
-                                               xmss_ots_index)
+                                               xmss_pk)
 
     # FIXME: Rename this appropriately
     def create_send_tx(self,
@@ -342,8 +337,7 @@ class QRLNode:
                        addr_to: bytes,
                        amount: int,
                        fee: int,
-                       xmss_pk: bytes,
-                       xmss_ots_index: int) -> TransferTransaction:
+                       xmss_pk: bytes) -> TransferTransaction:
         balance = self.db_state.balance(addr_from)
         if amount + fee > balance:
             raise RuntimeError("Not enough funds in the source address")
@@ -352,36 +346,31 @@ class QRLNode:
                                           addr_to=addr_to,
                                           amount=amount,
                                           fee=fee,
-                                          xmss_pk=xmss_pk,
-                                          xmss_ots_index=xmss_ots_index)
+                                          xmss_pk=xmss_pk)
 
     def create_slave_tx(self,
                         addr_from: bytes,
                         slave_pks: list,
                         access_types: list,
                         fee: int,
-                        xmss_pk: bytes,
-                        xmss_ots_index: int) -> SlaveTransaction:
+                        xmss_pk: bytes) -> SlaveTransaction:
         return SlaveTransaction.create(addr_from=addr_from,
                                        slave_pks=slave_pks,
                                        access_types=access_types,
                                        fee=fee,
-                                       xmss_pk=xmss_pk,
-                                       xmss_ots_index=xmss_ots_index)
+                                       xmss_pk=xmss_pk)
 
     def create_lattice_public_key_txn(self,
                                       addr_from: bytes,
                                       kyber_pk: bytes,
                                       dilithium_pk: bytes,
                                       fee: int,
-                                      xmss_pk: bytes,
-                                      xmss_ots_index: int) -> SlaveTransaction:
+                                      xmss_pk: bytes) -> SlaveTransaction:
         return LatticePublicKey.create(addr_from=addr_from,
                                        kyber_pk=kyber_pk,
                                        dilithium_pk=dilithium_pk,
                                        fee=fee,
-                                       xmss_pk=xmss_pk,
-                                       xmss_ots_index=xmss_ots_index)
+                                       xmss_pk=xmss_pk)
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx) -> bool:

@@ -229,8 +229,7 @@ class TestPublicAPI(TestCase):
             addr_to=SOME_ADDR2,
             amount=125,
             fee=19,
-            xmss_pk=sha256(b'pk'),
-            xmss_ots_index=0)
+            xmss_pk=sha256(b'pk'))
 
         chain_manager.tx_pool.transaction_pool = [tx1]
 
@@ -281,8 +280,7 @@ class TestPublicAPI(TestCase):
                                                       addr_to=qrladdress('dest'),
                                                       amount=i * 100 + j,
                                                       fee=j,
-                                                      xmss_pk=alice_xmss.pk(),
-                                                      xmss_ots_index=alice_xmss.get_index()))
+                                                      xmss_pk=alice_xmss.pk()))
 
             blocks.append(Block.create(mining_nonce=10,
                                        block_number=i,
@@ -298,8 +296,7 @@ class TestPublicAPI(TestCase):
                                                      addr_to=qrladdress('dest'),
                                                      amount=1000 + j,
                                                      fee=j,
-                                                     xmss_pk=get_alice_xmss().pk(),
-                                                     xmss_ots_index=get_alice_xmss().get_index()))
+                                                     xmss_pk=get_alice_xmss().pk()))
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)
