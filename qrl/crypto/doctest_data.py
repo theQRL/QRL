@@ -14,9 +14,9 @@ xmss_test_seed2 = '31' * 24
 new_keys_expected = ('000000000000000000000000000000000000000000000000',
                      '\x83\xa9\x1aMzV\n\xbdA\xea\x95\xf4\x12\xcd\xe9\x8e\xda\x03v\x9dr\xb5u[\xb7\xc4\xabt3\xe750 ?\xa6p\xa4\xc6\xd4\xf2\xadZ\xc0\xf8\xf0\xce0\xa7', "2\xee\xe8\x08\xdc|]\xfe&\xfdHY\xb4\x15\xe5\xa7\x13\xbdv@6\xbb\xee\xfdzT\x1d\xa9\xa1\xcc{\x9f\xca\xf1}\xa09\xa6'V\xb685\xde\x17i\xe0^")
 
-xmss_pk_expected1 = '26b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
+xmss_pk_expected1 = '010226b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
 
-xmss_pk_expected2 = 'ad904af119d215bdc8eeba2cad0c4016e65a180fbe3f6a13589db5d395eef773df2355c48096f2351e4d04db57b326c355345552d31b75a65ac18b1f6d7c7875'
+xmss_pk_expected2 = '0102ad904af119d215bdc8eeba2cad0c4016e65a180fbe3f6a13589db5d395eef773df2355c48096f2351e4d04db57b326c355345552d31b75a65ac18b1f6d7c7875'
 
 xmss_sk_expected1 = '000000005f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b3aa40c0f99459afe7efe72eb9517ee8ded49ccd51dab72ebf6bc37d73240bb3a51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff26b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e'
 
