@@ -609,7 +609,7 @@ class State:
             tx.set_effected_address(addresses)
 
         for genesis_balance in GenesisBlock().genesis_balance:
-            bytes_addr = genesis_balance.address.encode()
+            bytes_addr = genesis_balance.address
             if bytes_addr not in addresses:
                 addresses.add(bytes_addr)
 
@@ -639,7 +639,7 @@ class State:
         for address in addresses_state:
             for state_obj_index in range(index, -1, -1):
                 state_object = self.state_objects.get_state_loader_by_index(state_obj_index)
-                addresses_state[address] = state_object.get_address(address)
+                addresses_state[address] = state_object.get_address(bin2hstr(address).encode())
                 if addresses_state[address]:
                     break
             if not addresses_state[address]:
@@ -673,7 +673,7 @@ class State:
             header_hash = block.prev_headerhash
 
         for genesis_balance in GenesisBlock().genesis_balance:
-            bytes_addr = genesis_balance.address.encode()
+            bytes_addr = genesis_balance.address
             if not addresses_state[bytes_addr]:
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance

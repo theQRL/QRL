@@ -161,8 +161,8 @@ class TestPublicAPI(TestCase):
 
     def test_getObject(self):
         SOME_ODD_HASH = sha256(b'this should not be found')
-        SOME_ADDR1 = b'Q6dcadae42bc451f3bc8b243c8654bcd588fff443b141a9ad2fcdbbd712ba038a0a2a83b1'
-        SOME_ADDR2 = b'Q14542ca43bc801effbc398ed6703924f7287f13d3c3d6c0c6d9d5a41c246d7cc08f71c85'
+        SOME_ADDR1 = b'\x01\x03\x0cU\xb1@\x81\x84\x11\xc5\x84\xe8\xaa`\xb7\x1c0=\xdd\x95\x89\x13]\xeb\x9cQ\xfdG\xa6]\xda\xa8\x02Lt\xba\xee\xb8'
+        SOME_ADDR2 = b'\x01\x03\x8eq\x81\x08\x81\xa05`a\x19w\xad\x14\x13\x08u5\xd1\xf4\xfc\x01\x11^X\x03.Q\xaf\x83\xa4\xb6K\x86\xc2\xa9\x98'
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)

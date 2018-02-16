@@ -54,6 +54,10 @@ class TxnProcessor:
             logger.info('>>>TX %s failed state_validate', tx.txhash)
             return False
 
+        for old_tx in self.transaction_pool_obj.transaction_pool:
+            if old_tx.txhash == tx.txhash:
+                return True
+
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
         self.transaction_pool_obj.add_tx_to_pool(tx)
         self.broadcast_tx(tx)

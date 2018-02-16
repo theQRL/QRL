@@ -11,6 +11,7 @@ import simplejson as json
 from copy import deepcopy
 
 from mock import mock
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from pyqrllib.kyber import Kyber
 from pyqrllib.dilithium import Dilithium
 
@@ -223,13 +224,17 @@ def get_slaves(alice_ots_index, txn_nonce):
                                         [slave_xmss.pk],
                                         [1],
                                         0,
-                                        alice_xmss.pk())
+                                        alice_xmss.pk)
     slave_txn._data.nonce = txn_nonce
     slave_txn.sign(alice_xmss)
 
-    return json.loads(json.dumps([alice_xmss.address, [slave_xmss.seed], slave_txn.to_json()]))
+    slave_data = json.loads(json.dumps([bin2hstr(alice_xmss.address), [slave_xmss.seed], slave_txn.to_json()]))
+    slave_data[0] = bytes(hstr2bin(slave_data[0]))
+    return slave_data
 
 
 def get_random_master():
     random_master = get_random_xmss(config.dev.xmss_tree_height)
-    return json.loads(json.dumps([random_master.address, [random_master.seed], None]))
+    slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.seed], None]))
+    slave_data[0] = bytes(hstr2bin(slave_data[0]))
+    return slave_data
