@@ -7,7 +7,7 @@ import os
 import simplejson as json
 
 from twisted.internet import reactor
-from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr, mnemonic2bin
 
 from qrl.core.Block import Block
 from qrl.core.Wallet import Wallet
@@ -73,7 +73,9 @@ def write_slaves(slaves_filename, slaves):
 
 def read_slaves(slaves_filename):
     with open(slaves_filename, 'r') as f:
-        return json.load(f)
+        slave_data = json.load(f)
+        slave_data[0] = bytes(hstr2bin(slave_data[0]))
+        return slave_data
 
 
 def mining_wallet_checks(args):
@@ -81,7 +83,7 @@ def mining_wallet_checks(args):
 
     if args.randomizeSlaveXMSS:
         addrBundle = Wallet.get_new_address()
-        slaves = [addrBundle.xmss.address, [addrBundle.xmss.seed], None]
+        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.seed], None]
         write_slaves(slaves_filename, slaves)
 
     try:
@@ -105,7 +107,7 @@ def mining_wallet_checks(args):
             quit(1)
 
         addrBundle = Wallet.get_new_address(seed=bin_seed)
-        slaves = [addrBundle.xmss.address, [addrBundle.xmss.seed], None]
+        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.seed], None]
         write_slaves(slaves_filename, slaves)
         slaves = read_slaves(slaves_filename)
     except KeyboardInterrupt:

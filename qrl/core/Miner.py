@@ -24,7 +24,6 @@ class Miner(Qryptominer):
         self._mining_block = None
         self._slaves = slaves
         self._mining_xmss = None
-        self._dummy_xmss = None
         self._reward_address = None
         self.state = state
         self._difficulty_tracker = DifficultyTracker()
@@ -73,7 +72,7 @@ class Miner(Qryptominer):
             return None
 
         if not self._mining_xmss:
-            self._master_address = self._slaves[0].encode()
+            self._master_address = self._slaves[0]
             unused_ots_found = False
             for slave_seed in self._slaves[1]:
                 xmss = Wallet.get_new_address(seed=slave_seed).xmss
@@ -104,9 +103,6 @@ class Miner(Qryptominer):
         if not mining_xmss:
             logger.warning('No Mining XMSS Found')
             return
-
-        if not self._dummy_xmss:
-            self._dummy_xmss = Wallet.get_new_address(signature_tree_height=mining_xmss.height).xmss
 
         try:
             self.cancel()
@@ -163,7 +159,7 @@ class Miner(Qryptominer):
                                    block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=self._dummy_xmss,
+                                   signing_xmss=signing_xmss,
                                    master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)

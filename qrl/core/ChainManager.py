@@ -64,7 +64,7 @@ class ChainManager:
             self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
             addresses_state = dict()
             for genesis_balance in GenesisBlock().genesis_balance:
-                bytes_addr = genesis_balance.address.encode()
+                bytes_addr = genesis_balance.address
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance
             self.state.state_objects.update_current_state(addresses_state)

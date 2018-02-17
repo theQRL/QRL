@@ -471,7 +471,7 @@ class QRLNode:
     def get_latest_transactions_unconfirmed(self, offset, count):
         answer = []
         skipped = 0
-        for tx in self._chain_manager.tx_pool.transaction_pool:
+        for tx in self._chain_manager.tx_pool.transaction_pool[-1::-1]:
             if skipped >= offset:
                 answer.append(tx)
                 if len(answer) >= count:

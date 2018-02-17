@@ -104,7 +104,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def get_slave(tx):
-        addr_from_pk = QRLHelper.getAddress(tx.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(tx.PK))
         if addr_from_pk != tx.txfrom:
             return addr_from_pk
         return None
@@ -234,7 +234,7 @@ class Transaction(object, metaclass=ABCMeta):
         return True
 
     def validate_slave(self, addr_from_state, addr_from_pk_state):
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if isinstance(self, CoinBase):
             master_address = self.txto
             allowed_access_types = [0, 1]
@@ -346,7 +346,7 @@ class TransferTransaction(Transaction):
             if self.txto != self.txfrom:
                 addresses_state[self.txto].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -356,7 +356,7 @@ class TransferTransaction(Transaction):
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class CoinBase(Transaction):
@@ -438,7 +438,7 @@ class CoinBase(Transaction):
             addresses_state[self.txfrom].balance -= self.amount
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txto != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -448,7 +448,7 @@ class CoinBase(Transaction):
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class LatticePublicKey(Transaction):
@@ -524,7 +524,7 @@ class LatticePublicKey(Transaction):
             addresses_state[self.txfrom].add_lattice_pk(self)
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -533,7 +533,7 @@ class LatticePublicKey(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class MessageTransaction(Transaction):
@@ -599,7 +599,7 @@ class MessageTransaction(Transaction):
             addresses_state[self.txfrom].balance -= self.fee
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -608,7 +608,7 @@ class MessageTransaction(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class TokenTransaction(Transaction):
@@ -733,7 +733,7 @@ class TokenTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         owner_processed = False
         txfrom_processed = False
         addr_from_pk_processed = False
@@ -769,7 +769,7 @@ class TokenTransaction(Transaction):
         addresses_set.add(self.owner)
         for initial_balance in self.initial_balances:
             addresses_set.add(initial_balance.address)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class TransferTokenTransaction(Transaction):
@@ -871,7 +871,7 @@ class TransferTokenTransaction(Transaction):
                 addresses_state[self.txto].transaction_hashes.append(self.txhash)
             addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
 
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -881,7 +881,7 @@ class TransferTokenTransaction(Transaction):
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class SlaveTransaction(Transaction):
@@ -975,7 +975,7 @@ class SlaveTransaction(Transaction):
                                                                        self.access_types[index])
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = QRLHelper.getAddress(self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -984,7 +984,7 @@ class SlaveTransaction(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(QRLHelper.getAddress(self.PK))
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 TYPEMAP = {

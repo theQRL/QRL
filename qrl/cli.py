@@ -358,7 +358,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         tx = Transaction.from_pbdata(slaveTxnResp.transaction_unsigned)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
-            json.dump([src_xmss.address, slave_xmss_seed, tx.to_json()], f)
+            json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
         click.echo('Successfully created slaves.json')
         click.echo('Move slaves.json file from current directory to the mining node inside ~/.qrl/')
     except grpc.RpcError as e:

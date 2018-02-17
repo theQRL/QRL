@@ -5,6 +5,8 @@
 from copy import deepcopy
 from collections import defaultdict
 
+from pyqrllib.pyqrllib import bin2hstr
+
 from qrl.core import config
 from qrl.generated import qrl_pb2
 
@@ -113,16 +115,8 @@ class AddressState(object):
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
-        if len(address) != 73:
+        str_address = bin2hstr(address)
+        if len(str_address) != 76:
             return False
-
-        if address[0] != ord('Q'):
-            return False
-
-        hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-
-        for index in range(1, len(address)):
-            if chr(address[index]) not in hex_chars:
-                return False
 
         return True
