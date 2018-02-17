@@ -340,9 +340,9 @@ class TestPublicAPI(TestCase):
         # Verify transactions_unconfirmed
         self.assertEqual(3, len(response.transactions_unconfirmed))
         # TODO: Verify expected order
-        self.assertEqual(1011, response.transactions_unconfirmed[0].tx.transfer.amount)
+        self.assertEqual(1013, response.transactions_unconfirmed[0].tx.transfer.amount)
         self.assertEqual(1012, response.transactions_unconfirmed[1].tx.transfer.amount)
-        self.assertEqual(1013, response.transactions_unconfirmed[2].tx.transfer.amount)
+        self.assertEqual(1011, response.transactions_unconfirmed[2].tx.transfer.amount)
 
         # Verify transactions
         self.assertEqual(3, len(response.transactions))

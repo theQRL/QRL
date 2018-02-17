@@ -430,7 +430,18 @@ class StateObjects:
 
     def destroy_current_state(self, batch):
         self._current_state.destroy(batch)
-        self._current_state.update_total_coin_supply(self._state_loaders[-1].total_coin_supply)
+        last_state_code = b''
+        if len(self._state_loaders):
+            last_state_code = self._state_loaders[-1].state_code
+
+        try:
+            # Re initializing required data in current state using previous state
+            last_txn = self._db.get(last_state_code + b'last_txn')
+            total_coin_supply = self._db.get(last_state_code + b'total_coin_supply')
+            self._current_state.update_total_coin_supply(total_coin_supply)
+            self._db.put(self._current_state.state_code + b'last_txn', last_txn, batch)
+        except KeyError:
+            logger.warning("[destroy_current_state] Key Error")
 
     def update_last_tx(self, block, batch):
         self._current_state.update_last_tx(block, batch)
