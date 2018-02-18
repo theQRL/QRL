@@ -13,7 +13,7 @@ from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Block import Block
 from qrl.core.misc import logger, db
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, CoinBase
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.EphemeralMetadata import EphemeralMetadata
@@ -32,10 +32,10 @@ class StateLoader:
         self._data = qrl_pb2.StateLoader()
         try:
             json_data = self._db.get_raw(b'state' + self.state_code)
-            if json_data:
-                Parse(json_data, self._data)
+            Parse(json_data, self._data)
         except KeyError:
-            pass
+            self._db.put(self.state_code + b'last_txn', [])
+            self._db.put(self.state_code + b'total_coin_supply', 0)
 
     @property
     def block_number(self):
@@ -144,7 +144,7 @@ class StateLoader:
 
         for protobuf_txn in block.transactions[-20:]:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype == qrl_pb2.Transaction.COINBASE:
+            if isinstance(txn, CoinBase):
                 continue
             last_txn.insert(0, [txn.to_json(),
                                 block.block_number,
@@ -310,7 +310,7 @@ class StateLoader:
         try:
             last_txn = self._db.get(self.state_code + b'last_txn')
             self._db.put(state_loader.state_code + b'last_txn', last_txn, batch)
-            self._db.delete(state_loader.state_code + b'last_txn')
+            self._db.delete(self.state_code + b'last_txn')
         except:  # noqa
             pass
 
@@ -434,14 +434,18 @@ class StateObjects:
         if len(self._state_loaders):
             last_state_code = self._state_loaders[-1].state_code
 
+        # Re initializing required data in current state using previous state
         try:
-            # Re initializing required data in current state using previous state
             last_txn = self._db.get(last_state_code + b'last_txn')
-            total_coin_supply = self._db.get(last_state_code + b'total_coin_supply')
-            self._current_state.update_total_coin_supply(total_coin_supply)
             self._db.put(self._current_state.state_code + b'last_txn', last_txn, batch)
         except KeyError:
-            logger.warning("[destroy_current_state] Key Error")
+            logger.warning("[destroy_current_state] Key Error %s", last_state_code + b'last_txn')
+
+        try:
+            total_coin_supply = self._db.get(last_state_code + b'total_coin_supply')
+            self._current_state.update_total_coin_supply(total_coin_supply)
+        except KeyError:
+            logger.warning("[destroy_current_state] Key Error %s", last_state_code + b'total_coin_supply')
 
     def update_last_tx(self, block, batch):
         self._current_state.update_last_tx(block, batch)
@@ -515,9 +519,9 @@ class StateObjects:
                                                 block.timestamp,
                                                 batch)
             # FIXME: Being updated without batch, need to fix,
-            if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+            if isinstance(txn, TransferTokenTransaction):
                 self.update_token_metadata(txn)
-            if txn.subtype == qrl_pb2.Transaction.TOKEN:
+            if isinstance(txn, TokenTransaction):
                 self._current_state.create_token_metadata(txn)
 
             StateLoader.increase_txn_count(self._db,

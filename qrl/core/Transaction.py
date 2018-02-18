@@ -39,8 +39,8 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data
 
     @property
-    def subtype(self):
-        return self._data.type
+    def type(self):
+        return self._data.WhichOneof('transactionType')
 
     @property
     def fee(self):
@@ -93,7 +93,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def from_pbdata(pbdata: qrl_pb2.Transaction):
-        txtype = TYPEMAP[pbdata.type]
+        txtype = TYPEMAP[pbdata.WhichOneof('transactionType')]
         return txtype(pbdata)
 
     @staticmethod
@@ -191,7 +191,7 @@ class Transaction(object, metaclass=ABCMeta):
 
             if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                logger.info('Subtype %s', self.subtype)
+                logger.info('Subtype %s', type(self))
                 return False
 
         return True
@@ -220,9 +220,6 @@ class Transaction(object, metaclass=ABCMeta):
         :return: True if the exception is valid, exceptions otherwise
         :rtype: bool
         """
-        if not isinstance(self, TYPEMAP[self.subtype]):
-            raise TypeError('Invalid subtype: Found: %s Expected: %s', type(self), TYPEMAP[self.subtype])
-
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
@@ -271,8 +268,6 @@ class TransferTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TransferTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.TRANSFER
 
     @property
     def txto(self):
@@ -284,7 +279,6 @@ class TransferTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                       str(self.subtype).encode() +
                        self.addr_from +
                        str(self.fee).encode() +
                        self.txto +
@@ -367,8 +361,6 @@ class CoinBase(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(CoinBase, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.COINBASE
 
     @property
     def txto(self):
@@ -388,7 +380,6 @@ class CoinBase(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                      str(self.subtype).encode() +
                       self.addr_from +
                       str(self.fee).encode() +
                       self.txto +
@@ -459,8 +450,6 @@ class LatticePublicKey(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(LatticePublicKey, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.LATTICE
 
     @property
     def kyber_pk(self):
@@ -472,7 +461,6 @@ class LatticePublicKey(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                       str(self.subtype).encode() +
                        self.addr_from +
                        str(self.fee).encode() +
                        self.kyber_pk +
@@ -540,8 +528,6 @@ class MessageTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(MessageTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.MESSAGE
 
     @property
     def message_hash(self):
@@ -549,7 +535,6 @@ class MessageTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                      str(self.subtype).encode() +
                       self.addr_from +
                       str(self.fee).encode() +
                       self.message_hash
@@ -618,8 +603,6 @@ class TokenTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TokenTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.TOKEN
 
     @property
     def symbol(self):
@@ -643,7 +626,6 @@ class TokenTransaction(Transaction):
 
     def get_hashable_bytes(self):
         tmptxhash = sha256(
-                            str(self.subtype).encode() +
                             self.addr_from +
                             str(self.fee).encode() +
                             self.symbol +
@@ -779,8 +761,6 @@ class TransferTokenTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TransferTokenTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.TRANSFERTOKEN
 
     @property
     def token_txhash(self):
@@ -796,7 +776,6 @@ class TransferTokenTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                       str(self.subtype).encode() +
                        self.addr_from +
                        str(self.fee).encode() +
                        self.token_txhash +
@@ -888,8 +867,6 @@ class SlaveTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(SlaveTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.SLAVE
 
     @property
     def slave_pks(self):
@@ -901,7 +878,6 @@ class SlaveTransaction(Transaction):
 
     def get_hashable_bytes(self):
         tmptxhash = sha256(
-                            str(self.subtype).encode() +
                             self.addr_from +
                             str(self.fee).encode()
                           )
@@ -988,11 +964,21 @@ class SlaveTransaction(Transaction):
 
 
 TYPEMAP = {
-    qrl_pb2.Transaction.TRANSFER: TransferTransaction,
-    qrl_pb2.Transaction.COINBASE: CoinBase,
-    qrl_pb2.Transaction.LATTICE: LatticePublicKey,
-    qrl_pb2.Transaction.MESSAGE: MessageTransaction,
-    qrl_pb2.Transaction.TOKEN: TokenTransaction,
-    qrl_pb2.Transaction.TRANSFERTOKEN: TransferTokenTransaction,
-    qrl_pb2.Transaction.SLAVE: SlaveTransaction
+    'transfer': TransferTransaction,
+    'coinbase': CoinBase,
+    'latticePK': LatticePublicKey,
+    'message': MessageTransaction,
+    'token': TokenTransaction,
+    'transfer_token': TransferTokenTransaction,
+    'slave': SlaveTransaction
+}
+
+CODEMAP = {
+    'transfer': 1,
+    'coinbase': 2,
+    'latticePK': 3,
+    'message': 4,
+    'token': 5,
+    'transfer_token': 6,
+    'slave': 7
 }

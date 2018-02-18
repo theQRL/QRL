@@ -240,7 +240,7 @@ class TestPublicAPI(TestCase):
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
         self.assertIsNotNone(response.transaction)
-        self.assertEqual(qrl_pb2.Transaction.TRANSFER, response.transaction.tx.type)
+        self.assertEqual('transfer', response.transaction.tx.WhichOneof('transactionType'))
         self.assertEqual(SOME_ADDR1, response.transaction.tx.addr_from)
         self.assertEqual(sha256(b'pk'), response.transaction.tx.public_key)
         self.assertEqual(tx1.txhash, response.transaction.tx.transaction_hash)
