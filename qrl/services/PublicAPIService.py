@@ -5,7 +5,7 @@ from grpc import StatusCode
 
 from qrl.core import config
 from qrl.core.misc import logger
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, CODEMAP
 from qrl.core.AddressState import AddressState
 from qrl.core.qrlnode import QRLNode
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
@@ -205,7 +205,7 @@ class PublicAPIService(PublicAPIServicer):
             for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=quantity):
                 transaction_count = qrl_pb2.TransactionCount()
                 for tx in blk.transactions:
-                    transaction_count.count[tx.type] += 1
+                    transaction_count.count[CODEMAP[tx.WhichOneof('transactionType')]] += 1
 
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
                                                           transaction_count=transaction_count))
