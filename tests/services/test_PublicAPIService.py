@@ -251,8 +251,7 @@ class TestPublicAPI(TestCase):
         alice_xmss = get_alice_xmss()
         # Find a block
         db_state.get_block_by_number = MagicMock(
-            return_value=Block.create(mining_nonce=10,
-                                      block_number=1,
+            return_value=Block.create(block_number=1,
                                       prevblock_headerhash=sha256(b'reveal'),
                                       transactions=[],
                                       signing_xmss=alice_xmss,
@@ -280,8 +279,7 @@ class TestPublicAPI(TestCase):
                                                       fee=j,
                                                       xmss_pk=alice_xmss.pk))
 
-            blocks.append(Block.create(mining_nonce=10,
-                                       block_number=i,
+            blocks.append(Block.create(block_number=i,
                                        prevblock_headerhash=sha256(b'reveal'),
                                        transactions=txs,
                                        signing_xmss=alice_xmss,

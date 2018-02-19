@@ -155,8 +155,7 @@ class Miner(Qryptominer):
         # FIXME: Difference between this and create block?????????????
 
         # FIXME: Break encapsulation
-        dummy_block = Block.create(mining_nonce=mining_nonce,
-                                   block_number=last_block.block_number + 1,
+        dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
                                    signing_xmss=signing_xmss,
@@ -292,8 +291,7 @@ class Miner(Qryptominer):
         if signing_xmss.address in addresses_state:
             coinbase_nonce = addresses_state[signing_xmss.address].nonce + 1
 
-        block = Block.create(mining_nonce=mining_nonce,
-                             block_number=last_block.block_number + 1,
+        block = Block.create(block_number=last_block.block_number + 1,
                              prevblock_headerhash=last_block.headerhash,
                              transactions=t_pool2,
                              signing_xmss=signing_xmss,

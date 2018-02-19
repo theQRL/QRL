@@ -77,8 +77,7 @@ class TestEphemeral(TestCase):
                             lattice_public_key_txn._data.nonce = 1
                             lattice_public_key_txn.sign(random_xmss1)
 
-                            tmp_block1 = Block.create(mining_nonce=20,
-                                                      block_number=1,
+                            tmp_block1 = Block.create(block_number=1,
                                                       prevblock_headerhash=GenesisBlock().headerhash,
                                                       transactions=[lattice_public_key_txn],
                                                       signing_xmss=slave_xmss,
@@ -127,8 +126,7 @@ class TestEphemeral(TestCase):
 
                             # TODO (cyyber): Add Ephemeral Testing code using Naive RNG
 
-                            tmp_block2 = Block.create(mining_nonce=20,
-                                                      block_number=2,
+                            tmp_block2 = Block.create(block_number=2,
                                                       prevblock_headerhash=tmp_block1.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
@@ -145,8 +143,7 @@ class TestEphemeral(TestCase):
                             # Need to move forward the time to align with block times
                             time_mock.return_value += config.dev.minimum_minting_delay * 2
 
-                            tmp_block3 = Block.create(mining_nonce=15,
-                                                      block_number=3,
+                            tmp_block3 = Block.create(block_number=3,
                                                       prevblock_headerhash=tmp_block2.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
@@ -162,8 +159,7 @@ class TestEphemeral(TestCase):
 
                             time_mock.return_value += config.dev.minimum_minting_delay
 
-                            tmp_block4 = Block.create(mining_nonce=20,
-                                                      block_number=4,
+                            tmp_block4 = Block.create(block_number=4,
                                                       prevblock_headerhash=tmp_block3.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
