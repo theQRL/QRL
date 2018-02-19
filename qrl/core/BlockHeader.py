@@ -2,7 +2,7 @@
 from pyqrllib.pyqrllib import sha2_256, str2bin
 from qrl.core import config
 from qrl.core.misc import ntp, logger
-from qrl.core.formulas import block_reward_calc
+from qrl.core.formulas import block_reward
 from qrl.generated import qrl_pb2
 from google.protobuf.json_format import MessageToJson, Parse
 
@@ -144,7 +144,7 @@ class BlockHeader(object):
         return block reward for the block_n
         :return:
         """
-        return block_reward_calc(self.block_number)
+        return block_reward(self.block_number)
 
     def validate(self, fee_reward, coinbase_amount):
         current_time = ntp.getTime()

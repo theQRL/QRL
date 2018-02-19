@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import decimal
 from os.path import expanduser
 from qrl import __version__ as version
 
@@ -118,7 +119,8 @@ class DevConfig(object):
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
 
         self.transaction_pool_size = 1000
-        self.max_coin_supply = 105000000
+        self.max_coin_supply = decimal.Decimal(105000000)
+        self.coin_remaning_at_genesis = decimal.Decimal(40000000)
         self.timestamp_error = 5  # Error in second
 
         self.blocks_per_epoch = 100
@@ -163,7 +165,7 @@ class DevConfig(object):
         # ======================================
         # SHOR PER QUANTA / MAX ALLOWED DECIMALS
         # ======================================
-        self.shor_per_quanta = 10 ** 9
+        self.shor_per_quanta = decimal.Decimal(10 ** 9)
 
         # ======================================
         #            P2P SETTINGS
