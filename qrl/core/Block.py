@@ -114,7 +114,7 @@ class Block(object):
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
                                              mining_nonce=mining_nonce,
-                                             PK=signing_xmss.pk(),
+                                             PK=signing_xmss.pk,
                                              prev_blockheaderhash=prevblock_headerhash,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)

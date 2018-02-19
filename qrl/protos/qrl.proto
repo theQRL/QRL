@@ -265,7 +265,7 @@ message WalletStore {
 }
 
 message Wallet {
-    string address = 1;        // FIXME move to bytes
+    bytes address = 1;        // FIXME move to bytes
     string mnemonic = 2;
     int32 xmss_index = 3;
 }
@@ -341,7 +341,7 @@ message Block {
 
 message GenesisBalance
 {
-    string address = 1;                     // Address is string only here to increase visibility
+    bytes address = 1;                     // Address is string only here to increase visibility
     uint64 balance = 2;
 }
 
@@ -350,33 +350,21 @@ message BlockMetaDataList {
 }
 
 message Transaction {
-    enum Type {
-        UNKNOWN = 0;
-        TRANSFER = 1;
-        COINBASE = 2;
-        LATTICE = 3;
-        MESSAGE = 4;
-        TOKEN = 5;
-        TRANSFERTOKEN = 6;
-        SLAVE = 7;
-    }
-
-    Type type = 1;
-    bytes addr_from = 2;
-    uint64 fee = 3;
-    bytes public_key = 4;
-    bytes signature = 5;
-    uint64 nonce = 6;
-    bytes transaction_hash = 7;
+    bytes addr_from = 1;
+    uint64 fee = 2;
+    bytes public_key = 3;
+    bytes signature = 4;
+    uint64 nonce = 5;
+    bytes transaction_hash = 6;
 
     oneof transactionType {
-        Transfer transfer = 9;
-        CoinBase coinbase = 10;
-        LatticePublicKey latticePK = 11;
-        Message message = 12;
-        Token token = 13;
-        TransferToken transfer_token = 14;
-        Slave slave = 15;
+        Transfer transfer = 7;
+        CoinBase coinbase = 8;
+        LatticePublicKey latticePK = 9;
+        Message message = 10;
+        Token token = 11;
+        TransferToken transfer_token = 12;
+        Slave slave = 13;
     }
 
     //////////

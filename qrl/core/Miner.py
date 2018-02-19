@@ -24,7 +24,6 @@ class Miner(Qryptominer):
         self._mining_block = None
         self._slaves = slaves
         self._mining_xmss = None
-        self._dummy_xmss = None
         self._reward_address = None
         self.state = state
         self._difficulty_tracker = DifficultyTracker()
@@ -45,15 +44,15 @@ class Miner(Qryptominer):
     def set_unused_ots_key(self, xmss, addr_state, start=0):
         for i in range(start, 2 ** xmss.height):
             if not Transaction.ots_key_reuse(addr_state, i):
-                xmss.set_index(i)
+                xmss.set_ots_index(i)
                 return True
         return False
 
     def valid_mining_permission(self):
-        if self._master_address == self._mining_xmss.get_address():
+        if self._master_address == self._mining_xmss.address:
             return True
         addr_state = self.state.get_address(self._master_address)
-        access_type = addr_state.get_slave_permission(self._mining_xmss.pk())
+        access_type = addr_state.get_slave_permission(self._mining_xmss.pk)
         if access_type == -1:
             logger.warning('Slave is not authorized yet for mining')
             logger.warning('Added Slave Txn')
@@ -64,8 +63,8 @@ class Miner(Qryptominer):
 
     def get_mining_xmss(self):
         if self._mining_xmss:
-            addr_state = self.state.get_address(self._mining_xmss.get_address())
-            if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.get_index()):
+            addr_state = self.state.get_address(self._mining_xmss.address)
+            if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.ots_index):
                 if self.valid_mining_permission():
                     return self._mining_xmss
             else:
@@ -73,11 +72,11 @@ class Miner(Qryptominer):
             return None
 
         if not self._mining_xmss:
-            self._master_address = self._slaves[0].encode()
+            self._master_address = self._slaves[0]
             unused_ots_found = False
             for slave_seed in self._slaves[1]:
                 xmss = Wallet.get_new_address(seed=slave_seed).xmss
-                addr_state = self.state.get_address(xmss.get_address())
+                addr_state = self.state.get_address(xmss.address)
                 if self.set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
                     self._mining_xmss = xmss
                     unused_ots_found = True
@@ -87,7 +86,7 @@ class Miner(Qryptominer):
                 logger.warning('No OTS-KEY left for mining')
                 return None
 
-        if self._master_address == self._mining_xmss.get_address():
+        if self._master_address == self._mining_xmss.address:
             return self._mining_xmss
 
         if not self.valid_mining_permission():
@@ -104,9 +103,6 @@ class Miner(Qryptominer):
         if not mining_xmss:
             logger.warning('No Mining XMSS Found')
             return
-
-        if not self._dummy_xmss:
-            self._dummy_xmss = Wallet.get_new_address(signature_tree_height=mining_xmss.height).xmss
 
         try:
             self.cancel()
@@ -163,10 +159,11 @@ class Miner(Qryptominer):
                                    block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=self._dummy_xmss,
+                                   signing_xmss=signing_xmss,
                                    master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
+        signing_xmss.set_ots_index(signing_xmss.ots_index - 1)
 
         t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
         del tx_pool.transaction_pool[:]
@@ -291,9 +288,9 @@ class Miner(Qryptominer):
             txnum += 1
             block_size += tx.size + config.dev.tx_extra_overhead
 
-        coinbase_nonce = self.state.get_address(signing_xmss.get_address()).nonce
-        if signing_xmss.get_address() in addresses_state:
-            coinbase_nonce = addresses_state[signing_xmss.get_address()].nonce + 1
+        coinbase_nonce = self.state.get_address(signing_xmss.address).nonce
+        if signing_xmss.address in addresses_state:
+            coinbase_nonce = addresses_state[signing_xmss.address].nonce + 1
 
         block = Block.create(mining_nonce=mining_nonce,
                              block_number=last_block.block_number + 1,
