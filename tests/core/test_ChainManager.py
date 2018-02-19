@@ -188,14 +188,14 @@ class TestChainManager(TestCase):
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 3
-                        block_2 = Block.create(mining_nonce=17,
+                        block_2 = Block.create(mining_nonce=1,
                                                block_number=2,
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                signing_xmss=bob_xmss,
                                                master_address=bob_xmss.address,
                                                nonce=2)
-                        block_2.set_mining_nonce(17)
+                        block_2.set_mining_nonce(1)
 
                     result = chain_manager.add_block(block_2)
                     self.assertTrue(result)
