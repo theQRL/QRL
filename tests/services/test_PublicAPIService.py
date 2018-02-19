@@ -21,6 +21,7 @@ from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
 from qrl.core import config
+from tests.misc import helper
 from tests.misc.helper import qrladdress, get_alice_xmss
 
 logger.initialize_default()
@@ -123,7 +124,7 @@ class TestPublicAPI(TestCase):
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
-        address_state = AddressState.create(address=b'Q' + sha256(b'address'),
+        address_state = AddressState.create(address=qrladdress('address'),
                                             nonce=25,
                                             balance=10,
                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
@@ -153,7 +154,7 @@ class TestPublicAPI(TestCase):
         response = service.GetAddressState(request=request, context=context)
         context.set_code.assert_not_called()
 
-        self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
+        self.assertEqual(qrladdress('address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
         self.assertEqual([b'\x00'] * config.dev.ots_bitfield_size, response.state.ots_bitfield)
@@ -198,7 +199,7 @@ class TestPublicAPI(TestCase):
         self.assertFalse(response.found)
 
         # Find an address
-        addr1_state = AddressState.create(address=SOME_ADDR1,
+        addr1_state = AddressState.create(address=qrladdress('SOME_ADDR1'),
                                           nonce=25,
                                           balance=10,
                                           ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
@@ -211,13 +212,13 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
-        request.query = SOME_ADDR1
+        request.query = qrladdress('SOME_ADDR1')
         response = service.GetObject(request=request, context=context)
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
         self.assertIsNotNone(response.address_state)
 
-        self.assertEqual(SOME_ADDR1, response.address_state.address)
+        self.assertEqual(qrladdress('SOME_ADDR1'), response.address_state.address)
         self.assertEqual(25, response.address_state.nonce)
         self.assertEqual(10, response.address_state.balance)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.address_state.transaction_hashes)
@@ -225,8 +226,8 @@ class TestPublicAPI(TestCase):
         # Find a transaction
         db_state.address_used = MagicMock(return_value=False)
         tx1 = TransferTransaction.create(
-            addr_from=SOME_ADDR1,
-            addr_to=SOME_ADDR2,
+            addr_from=qrladdress('SOME_ADDR1'),
+            addr_to=qrladdress('SOME_ADDR2'),
             amount=125,
             fee=19,
             xmss_pk=sha256(b'pk'))
@@ -246,7 +247,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(tx1.txhash, response.transaction.tx.transaction_hash)
         self.assertEqual(b'', response.transaction.tx.signature)
 
-        self.assertEqual(SOME_ADDR2, response.transaction.tx.transfer.addr_to)
+        self.assertEqual(qrladdress('SOME_ADDR2'), response.transaction.tx.transfer.addr_to)
         self.assertEqual(125, response.transaction.tx.transfer.amount)
         self.assertEqual(19, response.transaction.tx.fee)
 

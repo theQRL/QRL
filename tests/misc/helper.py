@@ -14,6 +14,7 @@ from mock import mock
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from pyqrllib.kyber import Kyber
 from pyqrllib.dilithium import Dilithium
+from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256
 
 from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
@@ -118,8 +119,9 @@ def get_random_xmss(xmss_height=6) -> XMSS:
     return XMSS(xmss_height)
 
 
-def qrladdress(address_seed: str) -> bytes:
-    return b'Q' + sha256(address_seed.encode())
+def qrladdress(address_seed_str: str) -> bytes:
+    seed = QRLDescriptor(SHA2_256, pyqrllib.XMSS, 4, 0).getBytes() + shake128(48, address_seed_str.encode())
+    return bytes(QRLHelper.getAddress(seed))
 
 
 def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fee=1) -> TokenTransaction:
