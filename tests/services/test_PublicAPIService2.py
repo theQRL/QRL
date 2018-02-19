@@ -62,8 +62,7 @@ class TestPublicAPI2(TestCase):
             slave_tx._data.nonce = 2
             self.assertTrue(slave_tx.validate())
 
-            block_1 = Block.create(mining_nonce=10,
-                                   block_number=1,
+            block_1 = Block.create(block_number=1,
                                    prevblock_headerhash=genesis_block.headerhash,
                                    transactions=[slave_tx],
                                    signing_xmss=alice_xmss,
@@ -86,8 +85,7 @@ class TestPublicAPI2(TestCase):
             time_mock.return_value = start_time + 120
             ntp_mock.return_value = start_time + 120
 
-            block = Block.create(mining_nonce=15,
-                                 block_number=1,
+            block = Block.create(block_number=1,
                                  prevblock_headerhash=genesis_block.headerhash,
                                  transactions=[],
                                  signing_xmss=bob_xmss,
@@ -108,8 +106,7 @@ class TestPublicAPI2(TestCase):
             time_mock.return_value = start_time + 170
             ntp_mock.return_value = start_time + 170
 
-            block_2 = Block.create(mining_nonce=15,
-                                   block_number=2,
+            block_2 = Block.create(block_number=2,
                                    prevblock_headerhash=block.headerhash,
                                    transactions=[],
                                    signing_xmss=bob_xmss,
@@ -127,8 +124,6 @@ class TestPublicAPI2(TestCase):
 
             qrlnode = QRLNode(state, slaves=[])
             qrlnode.set_chain_manager(chain_manager)
-            # qrlnode._p2pfactory = p2p_factory
-            # qrlnode._pow = p2p_factory.pow
 
             service = PublicAPIService(qrlnode)
             request = qrl_pb2.GetStatsReq()

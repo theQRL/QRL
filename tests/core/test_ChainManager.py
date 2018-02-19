@@ -64,8 +64,7 @@ class TestChainManager(TestCase):
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
-                    block_1 = Block.create(mining_nonce=10,
-                                           block_number=1,
+                    block_1 = Block.create(block_number=1,
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[slave_tx],
                                            signing_xmss=alice_xmss,
@@ -87,8 +86,7 @@ class TestChainManager(TestCase):
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1715270948  # Very high to get an easy difficulty
-                    block = Block.create(mining_nonce=15,
-                                         block_number=1,
+                    block = Block.create(block_number=1,
                                          prevblock_headerhash=genesis_block.headerhash,
                                          transactions=[],
                                          signing_xmss=bob_xmss,
@@ -108,8 +106,7 @@ class TestChainManager(TestCase):
 
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1815270948  # Very high to get an easy difficulty
-                    block_2 = Block.create(mining_nonce=15,
-                                           block_number=2,
+                    block_2 = Block.create(block_number=2,
                                            prevblock_headerhash=block.headerhash,
                                            transactions=[],
                                            signing_xmss=bob_xmss,
@@ -153,8 +150,7 @@ class TestChainManager(TestCase):
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1517696848  # Very high to get an easy difficulty
-                        block_1 = Block.create(mining_nonce=10,
-                                               block_number=1,
+                        block_1 = Block.create(block_number=1,
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
                                                signing_xmss=alice_xmss,
@@ -174,8 +170,7 @@ class TestChainManager(TestCase):
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 2
-                        block = Block.create(mining_nonce=18,
-                                             block_number=1,
+                        block = Block.create(block_number=1,
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
                                              signing_xmss=bob_xmss,
@@ -188,14 +183,13 @@ class TestChainManager(TestCase):
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 3
-                        block_2 = Block.create(mining_nonce=1,
-                                               block_number=2,
+                        block_2 = Block.create(block_number=2,
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                signing_xmss=bob_xmss,
                                                master_address=bob_xmss.address,
                                                nonce=2)
-                        block_2.set_mining_nonce(1)
+                        block_2.set_mining_nonce(17)
 
                     result = chain_manager.add_block(block_2)
                     self.assertTrue(result)
@@ -206,5 +200,5 @@ class TestChainManager(TestCase):
                     block = state.get_block(block.headerhash)
                     self.assertIsNotNone(block)
 
-                    self.assertEqual(chain_manager.last_block.block_number, block_1.block_number)
-                    self.assertEqual(chain_manager.last_block.headerhash, block_1.headerhash)
+                    self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
+                    self.assertEqual(chain_manager.last_block.headerhash, block_2.headerhash)

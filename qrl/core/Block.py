@@ -87,8 +87,7 @@ class Block(object):
         return MessageToJson(self._data)
 
     @staticmethod
-    def create(mining_nonce: int,
-               block_number: int,
+    def create(block_number: int,
                prevblock_headerhash: bytes,
                transactions: list,
                signing_xmss: XMSS,
@@ -113,7 +112,6 @@ class Block(object):
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
-                                             mining_nonce=mining_nonce,
                                              PK=signing_xmss.pk,
                                              prev_blockheaderhash=prevblock_headerhash,
                                              hashedtransactions=txs_hash,

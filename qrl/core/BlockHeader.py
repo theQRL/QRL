@@ -80,7 +80,6 @@ class BlockHeader(object):
 
     @staticmethod
     def create(blocknumber: int,
-               mining_nonce: int,
                PK: bytes,
                prev_blockheaderhash: bytes,
                hashedtransactions: bytes,
@@ -88,11 +87,11 @@ class BlockHeader(object):
         """
         Create a block header based on the parameters
 
-        >>> BlockHeader.create(blocknumber=1, mining_nonce=1, PK=b'publickey',
+        >>> BlockHeader.create(blocknumber=1, PK=b'publickey',
         ...                    prev_blockheaderhash=b'headerhash',
         ...                    hashedtransactions=b'some_data', fee_reward=1) is not None
         True
-        >>> b=BlockHeader.create(blocknumber=1, mining_nonce=1, PK=b'publickey',
+        >>> b=BlockHeader.create(blocknumber=1, PK=b'publickey',
         ...                       prev_blockheaderhash=b'headerhash',
         ...                       hashedtransactions=b'some_data', fee_reward=1)
         >>> b.epoch
@@ -119,7 +118,7 @@ class BlockHeader(object):
         if bh._data.block_number != 0:
             bh._data.reward_block = bh.block_reward_calc()
 
-        bh.set_mining_nonce(mining_nonce)
+        bh.set_mining_nonce(0)
         return bh
 
     def set_mining_nonce(self, value):
