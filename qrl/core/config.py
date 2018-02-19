@@ -128,7 +128,11 @@ class DevConfig(object):
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.slave_xmss_height += self.slave_xmss_height % 2
 
-        self.ots_bitfield_size = ceil((2 ** self.xmss_tree_height) / 8)
+        # Maximum number of ots index upto which OTS index should be tracked. Any OTS index above the specified value
+        # will be managed by OTS Counter
+        self.max_ots_tracking_index = 1024                                  #
+
+        self.ots_bitfield_size = ceil(self.max_ots_tracking_index / 8)
 
         self.default_nonce = 0
         self.default_account_balance = 100 * (10 ** 9)

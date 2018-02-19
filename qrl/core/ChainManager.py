@@ -130,8 +130,7 @@ class ChainManager:
             addr_from_pk_state = address_txn[addr_from_pk]
 
         if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txto],
-                                             addr_from_pk_state,
-                                             []):
+                                             addr_from_pk_state):
             return False
 
         # TODO: check block reward must be equal to coinbase amount
@@ -150,7 +149,7 @@ class ChainManager:
             if addr_from_pk:
                 addr_from_pk_state = address_txn[addr_from_pk]
 
-            if not tx.validate_extended(address_txn[tx.txfrom], addr_from_pk_state, []):
+            if not tx.validate_extended(address_txn[tx.txfrom], addr_from_pk_state):
                 return False
 
             expected_nonce = address_txn[tx.txfrom].nonce + 1
@@ -161,7 +160,7 @@ class ChainManager:
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
 
-            if tx.ots_key_reuse(address_txn[tx.txfrom], tx.ots_key):
+            if address_txn[tx.txfrom].ots_key_reuse(tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.type)
                 return False

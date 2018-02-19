@@ -109,29 +109,6 @@ class Transaction(object, metaclass=ABCMeta):
             return addr_from_pk
         return None
 
-    @staticmethod
-    def ots_key_reuse(state_addr, ots_key):
-        if state_addr is None:
-            logger.info('-->> state_addr None not possible')
-            return False
-
-        offset = ots_key >> 3
-        relative = ots_key % 8
-        bitfield = bytearray(state_addr.ots_bitfield[offset])
-        bit_value = (bitfield[0] >> relative) & 1
-
-        if bit_value:
-            return True
-
-        return False
-
-    @staticmethod
-    def set_ots_key(state_addr, ots_key):
-        offset = ots_key >> 3
-        relative = ots_key % 8
-        bitfield = bytearray(state_addr._data.ots_bitfield[offset])
-        state_addr._data.ots_bitfield[offset] = bytes([bitfield[0] | (1 << relative)])
-
     @property
     def txhash(self) -> bytes:
         return self._data.transaction_hash
@@ -309,7 +286,7 @@ class TransferTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+    def validate_extended(self, addr_from_state, addr_from_pk_state):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -324,7 +301,7 @@ class TransferTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.amount)
             return False
 
-        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -345,7 +322,7 @@ class TransferTransaction(Transaction):
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
@@ -407,7 +384,7 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+    def validate_extended(self, addr_from_state, addr_from_pk_state):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -434,7 +411,7 @@ class CoinBase(Transaction):
             if self.txto != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
@@ -481,7 +458,7 @@ class LatticePublicKey(Transaction):
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+    def validate_extended(self, addr_from_state, addr_from_pk_state):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -496,7 +473,7 @@ class LatticePublicKey(Transaction):
             logger.info('balance: %s, fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
             return False
 
@@ -517,7 +494,7 @@ class LatticePublicKey(Transaction):
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
@@ -558,7 +535,7 @@ class MessageTransaction(Transaction):
             return False
         return True
 
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool) -> bool:
+    def validate_extended(self, addr_from_state, addr_from_pk_state) -> bool:
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -573,7 +550,7 @@ class MessageTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -589,7 +566,7 @@ class MessageTransaction(Transaction):
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
@@ -680,7 +657,7 @@ class TokenTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+    def validate_extended(self, addr_from_state, addr_from_pk_state):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -708,7 +685,7 @@ class TokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -744,7 +721,7 @@ class TokenTransaction(Transaction):
                 if not addr_from_pk_processed:
                     addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
@@ -813,7 +790,7 @@ class TransferTokenTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool):
+    def validate_extended(self, addr_from_state, addr_from_pk_state):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -830,7 +807,7 @@ class TransferTokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
                         self.txhash)
             return False
@@ -855,7 +832,7 @@ class TransferTokenTransaction(Transaction):
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
@@ -922,7 +899,7 @@ class SlaveTransaction(Transaction):
 
         return True
 
-    def validate_extended(self, addr_from_state, addr_from_pk_state, transaction_pool) -> bool:
+    def validate_extended(self, addr_from_state, addr_from_pk_state) -> bool:
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -937,7 +914,7 @@ class SlaveTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if self.ots_key_reuse(addr_from_pk_state, self.ots_key):
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
             return False
 
@@ -956,7 +933,7 @@ class SlaveTransaction(Transaction):
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
-            self.set_ots_key(addresses_state[addr_from_pk], self.ots_key)
+            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)

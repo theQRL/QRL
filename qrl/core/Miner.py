@@ -43,7 +43,7 @@ class Miner(Qryptominer):
 
     def set_unused_ots_key(self, xmss, addr_state, start=0):
         for i in range(start, 2 ** xmss.height):
-            if not Transaction.ots_key_reuse(addr_state, i):
+            if not addr_state.ots_key_reuse(i):
                 xmss.set_ots_index(i)
                 return True
         return False
@@ -196,7 +196,7 @@ class Miner(Qryptominer):
             if addr_from_pk:
                 addr_from_pk_state = addresses_state[addr_from_pk]
 
-            if tx.ots_key_reuse(addr_from_pk_state, tx.ots_key):
+            if addr_from_pk_state.ots_key_reuse(tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
