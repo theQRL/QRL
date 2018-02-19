@@ -45,8 +45,7 @@ class TxnProcessor:
             addr_from_pk_state = self.state.get_address(address=addr_from_pk)
 
         is_valid_state = tx.validate_extended(addr_from_state=addr_from_state,
-                                              addr_from_pk_state=addr_from_pk_state,
-                                              transaction_pool=self.transaction_pool_obj.transaction_pool)
+                                              addr_from_pk_state=addr_from_pk_state)
 
         is_valid_pool_state = tx.validate_transaction_pool(self.transaction_pool_obj.transaction_pool)
 
