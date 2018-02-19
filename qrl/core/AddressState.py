@@ -110,7 +110,7 @@ class AddressState(object):
                                             tokens=dict(),
                                             slave_pks_access_type=dict())
         if address == config.dev.coinbase_address:
-            address_state.balance = config.dev.max_coin_supply * config.dev.shor_per_quanta
+            address_state.balance = int(config.dev.max_coin_supply * config.dev.shor_per_quanta)
         return address_state
 
     @staticmethod

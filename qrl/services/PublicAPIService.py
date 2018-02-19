@@ -44,8 +44,8 @@ class PublicAPIService(PublicAPIServicer):
         response.block_last_reward = self.qrlnode.block_last_reward
         response.block_time_mean = self.qrlnode.block_time_mean
         response.block_time_sd = self.qrlnode.block_time_sd
-        response.coins_total_supply = self.qrlnode.coin_supply_max
-        response.coins_emitted = self.qrlnode.coin_supply
+        response.coins_total_supply = int(self.qrlnode.coin_supply_max)
+        response.coins_emitted = int(self.qrlnode.coin_supply)
 
         if request.include_timeseries:
             tmp = self.qrlnode.get_block_timeseries(config.dev.block_timeseries_size)
