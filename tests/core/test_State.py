@@ -49,15 +49,15 @@ class TestState(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
-                alice_address = alice_xmss.get_address()
+                alice_address = alice_xmss.address
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
 
-                alice_address = bytearray(alice_xmss.get_address())
+                alice_address = bytearray(alice_xmss.address)
                 with self.assertRaises(TypeError):
                     address_state = state.get_address(alice_address)
 
-                alice_address = alice_xmss.get_address()
+                alice_address = alice_xmss.address
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
                 state._save_address_state(address_state)
@@ -70,7 +70,7 @@ class TestState(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
-                alice_address = alice_xmss.get_address()
+                alice_address = alice_xmss.address
                 address_state = state.get_address(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
                 state._save_address_state(address_state)
@@ -99,12 +99,12 @@ class TestState(TestCase):
                 token_transaction = get_token_transaction(alice_xmss, bob_xmss)
                 state.create_token_metadata(token_transaction)
 
-                transfer_token_transaction = TransferTokenTransaction.create(addr_from=bob_xmss.get_address(),
+                transfer_token_transaction = TransferTokenTransaction.create(addr_from=bob_xmss.address,
                                                                              token_txhash=token_transaction.txhash,
-                                                                             addr_to=alice_xmss.get_address(),
+                                                                             addr_to=alice_xmss.address,
                                                                              amount=100000000,
                                                                              fee=1,
-                                                                             xmss_pk=bob_xmss.pk())
+                                                                             xmss_pk=bob_xmss.pk)
 
                 state.update_token_metadata(transfer_token_transaction)
 

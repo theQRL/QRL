@@ -2,28 +2,28 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import contextlib
+import os
 import shutil
 import tempfile
-
-import os
-import simplejson as json
-
 from copy import deepcopy
 
+import simplejson as json
 from mock import mock
-from pyqrllib.kyber import Kyber
+import pyqrllib
 from pyqrllib.dilithium import Dilithium
+from pyqrllib.kyber import Kyber
+from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import TokenTransaction, SlaveTransaction
-from qrl.generated import qrl_pb2
-from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
-from tests.misc.random_number_generator import RNG
-from tests.misc.aes import AES
+from qrl.generated import qrl_pb2
 from tests.misc.EphemeralPayload import EphemeralMessagePayload, EphemeralChannelPayload
+from tests.misc.aes import AES
+from tests.misc.random_number_generator import RNG
 
 
 @contextlib.contextmanager
@@ -117,25 +117,26 @@ def get_random_xmss(xmss_height=6) -> XMSS:
     return XMSS(xmss_height)
 
 
-def qrladdress(address_seed: str) -> bytes:
-    return b'Q' + sha256(address_seed.encode())
+def qrladdress(address_seed_str: str) -> bytes:
+    seed = QRLDescriptor(SHA2_256, pyqrllib.pyqrllib.XMSS, 4, 0).getBytes() + shake128(48, address_seed_str.encode())
+    return bytes(QRLHelper.getAddress(seed))
 
 
 def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fee=1) -> TokenTransaction:
     initial_balances = list()
-    initial_balances.append(qrl_pb2.AddressAmount(address=xmss1.get_address(),
+    initial_balances.append(qrl_pb2.AddressAmount(address=xmss1.address,
                                                   amount=amount1))
-    initial_balances.append(qrl_pb2.AddressAmount(address=xmss2.get_address(),
+    initial_balances.append(qrl_pb2.AddressAmount(address=xmss2.address,
                                                   amount=amount2))
 
-    return TokenTransaction.create(addr_from=xmss1.get_address(),
+    return TokenTransaction.create(addr_from=xmss1.address,
                                    symbol=b'QRL',
                                    name=b'Quantum Resistant Ledger',
-                                   owner=xmss1.get_address(),
+                                   owner=xmss1.address,
                                    decimals=4,
                                    initial_balances=initial_balances,
                                    fee=fee,
-                                   xmss_pk=xmss1.pk())
+                                   xmss_pk=xmss1.pk)
 
 
 def destroy_state():
@@ -218,18 +219,22 @@ def get_slaves(alice_ots_index, txn_nonce):
     slave_xmss = get_slave_xmss()
     alice_xmss = get_alice_xmss()
 
-    alice_xmss.set_index(alice_ots_index)
-    slave_txn = SlaveTransaction.create(alice_xmss.get_address(),
-                                        [slave_xmss.pk()],
+    alice_xmss.set_ots_index(alice_ots_index)
+    slave_txn = SlaveTransaction.create(alice_xmss.address,
+                                        [slave_xmss.pk],
                                         [1],
                                         0,
-                                        alice_xmss.pk())
+                                        alice_xmss.pk)
     slave_txn._data.nonce = txn_nonce
     slave_txn.sign(alice_xmss)
 
-    return json.loads(json.dumps([alice_xmss.get_address(), [slave_xmss.get_seed()], slave_txn.to_json()]))
+    slave_data = json.loads(json.dumps([bin2hstr(alice_xmss.address), [slave_xmss.seed], slave_txn.to_json()]))
+    slave_data[0] = bytes(hstr2bin(slave_data[0]))
+    return slave_data
 
 
 def get_random_master():
     random_master = get_random_xmss(config.dev.xmss_tree_height)
-    return json.loads(json.dumps([random_master.get_address(), [random_master.get_seed()], None]))
+    slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.seed], None]))
+    slave_data[0] = bytes(hstr2bin(slave_data[0]))
+    return slave_data

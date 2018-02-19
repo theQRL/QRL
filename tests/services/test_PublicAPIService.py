@@ -7,20 +7,20 @@ from grpc import ServicerContext
 from mock import Mock, MagicMock
 from pyqrllib.pyqrllib import str2bin
 
-from qrl.core.misc import logger
-from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core import config
 from qrl.core.AddressState import AddressState
-from qrl.core.ChainManager import ChainManager
 from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
+from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.State import State
 from qrl.core.Transaction import TransferTransaction
+from qrl.core.misc import logger
 from qrl.core.node import SyncState, POW
 from qrl.core.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
-from qrl.core.State import State
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from qrl.core import config
 from tests.misc.helper import qrladdress, get_alice_xmss
 
 logger.initialize_default()
@@ -123,7 +123,7 @@ class TestPublicAPI(TestCase):
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
-        address_state = AddressState.create(address=b'Q' + sha256(b'address'),
+        address_state = AddressState.create(address=qrladdress('address'),
                                             nonce=25,
                                             balance=10,
                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
@@ -149,11 +149,11 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
-        request.address = get_alice_xmss().get_address()
+        request.address = get_alice_xmss().address
         response = service.GetAddressState(request=request, context=context)
         context.set_code.assert_not_called()
 
-        self.assertEqual(b'Q' + sha256(b'address'), response.state.address)
+        self.assertEqual(qrladdress('address'), response.state.address)
         self.assertEqual(25, response.state.nonce)
         self.assertEqual(10, response.state.balance)
         self.assertEqual([b'\x00'] * config.dev.ots_bitfield_size, response.state.ots_bitfield)
@@ -161,8 +161,6 @@ class TestPublicAPI(TestCase):
 
     def test_getObject(self):
         SOME_ODD_HASH = sha256(b'this should not be found')
-        SOME_ADDR1 = b'Q6dcadae42bc451f3bc8b243c8654bcd588fff443b141a9ad2fcdbbd712ba038a0a2a83b1'
-        SOME_ADDR2 = b'Q14542ca43bc801effbc398ed6703924f7287f13d3c3d6c0c6d9d5a41c246d7cc08f71c85'
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)
@@ -198,7 +196,7 @@ class TestPublicAPI(TestCase):
         self.assertFalse(response.found)
 
         # Find an address
-        addr1_state = AddressState.create(address=SOME_ADDR1,
+        addr1_state = AddressState.create(address=qrladdress('SOME_ADDR1'),
                                           nonce=25,
                                           balance=10,
                                           ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
@@ -211,13 +209,13 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
-        request.query = SOME_ADDR1
+        request.query = qrladdress('SOME_ADDR1')
         response = service.GetObject(request=request, context=context)
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
         self.assertIsNotNone(response.address_state)
 
-        self.assertEqual(SOME_ADDR1, response.address_state.address)
+        self.assertEqual(qrladdress('SOME_ADDR1'), response.address_state.address)
         self.assertEqual(25, response.address_state.nonce)
         self.assertEqual(10, response.address_state.balance)
         self.assertEqual([sha256(b'0'), sha256(b'1')], response.address_state.transaction_hashes)
@@ -225,8 +223,8 @@ class TestPublicAPI(TestCase):
         # Find a transaction
         db_state.address_used = MagicMock(return_value=False)
         tx1 = TransferTransaction.create(
-            addr_from=SOME_ADDR1,
-            addr_to=SOME_ADDR2,
+            addr_from=qrladdress('SOME_ADDR1'),
+            addr_to=qrladdress('SOME_ADDR2'),
             amount=125,
             fee=19,
             xmss_pk=sha256(b'pk'))
@@ -240,13 +238,13 @@ class TestPublicAPI(TestCase):
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
         self.assertIsNotNone(response.transaction)
-        self.assertEqual(qrl_pb2.Transaction.TRANSFER, response.transaction.tx.type)
-        self.assertEqual(SOME_ADDR1, response.transaction.tx.addr_from)
+        self.assertEqual('transfer', response.transaction.tx.WhichOneof('transactionType'))
+        self.assertEqual(qrladdress('SOME_ADDR1'), response.transaction.tx.addr_from)
         self.assertEqual(sha256(b'pk'), response.transaction.tx.public_key)
         self.assertEqual(tx1.txhash, response.transaction.tx.transaction_hash)
         self.assertEqual(b'', response.transaction.tx.signature)
 
-        self.assertEqual(SOME_ADDR2, response.transaction.tx.transfer.addr_to)
+        self.assertEqual(qrladdress('SOME_ADDR2'), response.transaction.tx.transfer.addr_to)
         self.assertEqual(125, response.transaction.tx.transfer.amount)
         self.assertEqual(19, response.transaction.tx.fee)
 
@@ -258,7 +256,7 @@ class TestPublicAPI(TestCase):
                                       prevblock_headerhash=sha256(b'reveal'),
                                       transactions=[],
                                       signing_xmss=alice_xmss,
-                                      master_address=alice_xmss.get_address(),
+                                      master_address=alice_xmss.address,
                                       nonce=1))
 
         context = Mock(spec=ServicerContext)
@@ -276,27 +274,27 @@ class TestPublicAPI(TestCase):
         alice_xmss = get_alice_xmss()
         for i in range(1, 4):
             for j in range(1, 3):
-                txs.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
+                txs.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
                                                       addr_to=qrladdress('dest'),
                                                       amount=i * 100 + j,
                                                       fee=j,
-                                                      xmss_pk=alice_xmss.pk()))
+                                                      xmss_pk=alice_xmss.pk))
 
             blocks.append(Block.create(mining_nonce=10,
                                        block_number=i,
                                        prevblock_headerhash=sha256(b'reveal'),
                                        transactions=txs,
                                        signing_xmss=alice_xmss,
-                                       master_address=alice_xmss.get_address(),
+                                       master_address=alice_xmss.address,
                                        nonce=i))
 
         txpool = []
         for j in range(10, 15):
-            txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().get_address(),
+            txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
                                                      addr_to=qrladdress('dest'),
                                                      amount=1000 + j,
                                                      fee=j,
-                                                     xmss_pk=get_alice_xmss().pk()))
+                                                     xmss_pk=get_alice_xmss().pk))
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)
@@ -340,9 +338,9 @@ class TestPublicAPI(TestCase):
         # Verify transactions_unconfirmed
         self.assertEqual(3, len(response.transactions_unconfirmed))
         # TODO: Verify expected order
-        self.assertEqual(1011, response.transactions_unconfirmed[0].tx.transfer.amount)
+        self.assertEqual(1013, response.transactions_unconfirmed[0].tx.transfer.amount)
         self.assertEqual(1012, response.transactions_unconfirmed[1].tx.transfer.amount)
-        self.assertEqual(1013, response.transactions_unconfirmed[2].tx.transfer.amount)
+        self.assertEqual(1011, response.transactions_unconfirmed[2].tx.transfer.amount)
 
         # Verify transactions
         self.assertEqual(3, len(response.transactions))

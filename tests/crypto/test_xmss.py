@@ -23,11 +23,11 @@ class TestXMSS(TestCase):
         seed = bytearray([i for i in range(48)])
         xmss = XMSS(xmss_height, seed)
 
-        pk = xmss.pk()
+        pk = xmss.pk
 
-        xmss.set_index(1)
+        xmss.set_ots_index(1)
 
         for i in range(10):
-            self.assertTrue(xmss.get_index() == i + 1)
+            self.assertTrue(xmss.ots_index == i + 1)
             signature = xmss.SIGN(message_bin)
             self.assertTrue(XMSS.VERIFY(message_bin, signature, pk))

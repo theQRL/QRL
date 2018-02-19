@@ -13,7 +13,7 @@ from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
@@ -64,7 +64,7 @@ class ChainManager:
             self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
             addresses_state = dict()
             for genesis_balance in GenesisBlock().genesis_balance:
-                bytes_addr = genesis_balance.address.encode()
+                bytes_addr = genesis_balance.address
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance
             self.state.state_objects.update_current_state(addresses_state)
@@ -116,7 +116,7 @@ class ChainManager:
         if not self.validate_mining_nonce(block):
             return False
 
-        if coinbase_tx.subtype != qrl_pb2.Transaction.COINBASE:
+        if not isinstance(coinbase_tx, CoinBase):
             return False
 
         if not coinbase_tx.validate():
@@ -139,7 +139,7 @@ class ChainManager:
         for tx_idx in range(1, len_transactions):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
 
-            if tx.subtype == qrl_pb2.Transaction.COINBASE:
+            if isinstance(tx, CoinBase):
                 return False
 
             if not tx.validate():  # TODO: Move this validation, before adding txn to pool
@@ -157,13 +157,13 @@ class ChainManager:
 
             if tx.nonce != expected_nonce:
                 logger.warning('nonce incorrect, invalid tx')
-                logger.warning('subtype: %s', tx.subtype)
+                logger.warning('subtype: %s', tx.type)
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
 
             if tx.ots_key_reuse(address_txn[tx.txfrom], tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-                logger.warning('subtype: %s', tx.subtype)
+                logger.warning('subtype: %s', tx.type)
                 return False
 
             tx.apply_on_state(address_txn)
@@ -250,9 +250,9 @@ class ChainManager:
                 del hash_path[-1]  # Skip replaying Genesis Block
                 break
 
-        self.state.state_objects.destroy_current_state(None)
         block = self.state.get_block(hash_path[-1])
         self.state.state_objects.destroy_fork_states(block.block_number, block.headerhash)
+        self.state.state_objects.destroy_current_state(None)
 
         for header_hash in hash_path[-1::-1]:
             block = self.state.get_block(header_hash)

@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import decimal
 from os.path import expanduser
 from qrl import __version__ as version
 
@@ -118,7 +119,8 @@ class DevConfig(object):
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
 
         self.transaction_pool_size = 1000
-        self.max_coin_supply = 105000000
+        self.max_coin_supply = decimal.Decimal(105000000)
+        self.coin_remaning_at_genesis = decimal.Decimal(40000000)
         self.timestamp_error = 5  # Error in second
 
         self.blocks_per_epoch = 100
@@ -135,7 +137,7 @@ class DevConfig(object):
         self.mining_setpoint_blocktime = 60
         self.genesis_difficulty = 5000
         self.tx_extra_overhead = 15  # 15 bytes
-        self.coinbase_address = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
+        self.coinbase_address = b'\x01\x03\xb3\x07h\xc0\x9bX\xaf\xf9\xe7=\x18_B\xd0dN\x08\x90\xff\xd4\x05\xc1 \xb6\x03\x00\xf5\x94\xbda\xa8 sY)c'
 
         # Directories and files
         self.db_name = 'state'
@@ -163,7 +165,7 @@ class DevConfig(object):
         # ======================================
         # SHOR PER QUANTA / MAX ALLOWED DECIMALS
         # ======================================
-        self.shor_per_quanta = 10 ** 9
+        self.shor_per_quanta = decimal.Decimal(10 ** 9)
 
         # ======================================
         #            P2P SETTINGS

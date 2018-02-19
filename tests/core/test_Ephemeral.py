@@ -49,7 +49,7 @@ class TestEphemeral(TestCase):
                         chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                         alice_xmss = get_alice_xmss()
-                        slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
+                        slave_xmss = XMSS(alice_xmss.height, alice_xmss.seed)
                         random_xmss1 = get_random_xmss()
                         random_kyber1 = Kyber()
                         random_dilithium1 = Dilithium()
@@ -61,19 +61,19 @@ class TestEphemeral(TestCase):
                         prf512_seed = b'10192'
 
                         custom_genesis.genesis_balance.extend(
-                            [qrl_pb2.GenesisBalance(address=random_xmss1.get_address(), balance=65000000000000000)])
+                            [qrl_pb2.GenesisBalance(address=random_xmss1.address, balance=65000000000000000)])
                         custom_genesis.genesis_balance.extend(
-                            [qrl_pb2.GenesisBalance(address=random_xmss2.get_address(), balance=65000000000000000)])
+                            [qrl_pb2.GenesisBalance(address=random_xmss2.address, balance=65000000000000000)])
                         chain_manager.load(custom_genesis)
 
                         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                             time_mock.return_value = 1615270948
 
-                            lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
+                            lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.address,
                                                                              fee=1,
                                                                              kyber_pk=random_kyber1.getPK(),
                                                                              dilithium_pk=random_dilithium1.getPK(),
-                                                                             xmss_pk=random_xmss1.pk())
+                                                                             xmss_pk=random_xmss1.pk)
                             lattice_public_key_txn._data.nonce = 1
                             lattice_public_key_txn.sign(random_xmss1)
 
@@ -82,7 +82,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=GenesisBlock().headerhash,
                                                       transactions=[lattice_public_key_txn],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=1)
 
                             #  Mine the nonce
@@ -98,7 +98,7 @@ class TestEphemeral(TestCase):
                             encrypted_eph_message = create_ephemeral_channel(msg_id=lattice_public_key_txn.txhash,
                                                                              ttl=time_mock.return_value,
                                                                              ttr=0,
-                                                                             addr_from=random_xmss2.get_address(),
+                                                                             addr_from=random_xmss2.address,
                                                                              kyber_pk=random_kyber2.getPK(),
                                                                              kyber_sk=random_kyber2.getSK(),
                                                                              receiver_kyber_pk=random_kyber1.getPK(),
@@ -132,7 +132,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=tmp_block1.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=2)
 
                             #  Mine the nonce
@@ -150,7 +150,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=tmp_block2.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=3)
 
                             #  Mine the nonce
@@ -167,7 +167,7 @@ class TestEphemeral(TestCase):
                                                       prevblock_headerhash=tmp_block3.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=4)
 
                             #  Mine the nonce
@@ -177,13 +177,14 @@ class TestEphemeral(TestCase):
                             res = chain_manager.add_block(block=tmp_block4)
                             self.assertTrue(res)
 
-                            address_state = chain_manager.get_address(random_xmss1.get_address())
+                            address_state = chain_manager.get_address(random_xmss1.address)
 
                             self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
                             self.assertEqual(address_state.latticePK_list[0].dilithium_pk,
                                              lattice_public_key_txn.dilithium_pk)
+
                             self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
 
-                            random_xmss1_state = chain_manager.get_address(random_xmss1.get_address())
+                            random_xmss1_state = chain_manager.get_address(random_xmss1.address)
 
                             self.assertEqual(64999999999999999, random_xmss1_state.balance)

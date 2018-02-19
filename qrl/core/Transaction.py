@@ -5,7 +5,7 @@
 from abc import ABCMeta, abstractmethod
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import getAddress, bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core import config
 from qrl.core.misc import logger
@@ -39,8 +39,8 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data
 
     @property
-    def subtype(self):
-        return self._data.type
+    def type(self):
+        return self._data.WhichOneof('transactionType')
 
     @property
     def fee(self):
@@ -93,7 +93,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def from_pbdata(pbdata: qrl_pb2.Transaction):
-        txtype = TYPEMAP[pbdata.type]
+        txtype = TYPEMAP[pbdata.WhichOneof('transactionType')]
         return txtype(pbdata)
 
     @staticmethod
@@ -104,7 +104,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def get_slave(tx):
-        addr_from_pk = getAddress('Q', tx.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(tx.PK))
         if addr_from_pk != tx.txfrom:
             return addr_from_pk
         return None
@@ -191,7 +191,7 @@ class Transaction(object, metaclass=ABCMeta):
 
             if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
-                logger.info('Subtype %s', self.subtype)
+                logger.info('Subtype %s', type(self))
                 return False
 
         return True
@@ -220,9 +220,6 @@ class Transaction(object, metaclass=ABCMeta):
         :return: True if the exception is valid, exceptions otherwise
         :rtype: bool
         """
-        if not isinstance(self, TYPEMAP[self.subtype]):
-            raise TypeError('Invalid subtype: Found: %s Expected: %s', type(self), TYPEMAP[self.subtype])
-
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
@@ -234,7 +231,7 @@ class Transaction(object, metaclass=ABCMeta):
         return True
 
     def validate_slave(self, addr_from_state, addr_from_pk_state):
-        addr_from_pk = getAddress('Q', self.PK)
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if isinstance(self, CoinBase):
             master_address = self.txto
             allowed_access_types = [0, 1]
@@ -242,7 +239,7 @@ class Transaction(object, metaclass=ABCMeta):
             master_address = self.txfrom
             allowed_access_types = [0]
 
-        if addr_from_pk.encode() != master_address:
+        if addr_from_pk != master_address:
             if str(self.PK) not in addr_from_state.slave_pks_access_type:
                 logger.warning('Public key and address dont match')
                 return False
@@ -271,8 +268,6 @@ class TransferTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TransferTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.TRANSFER
 
     @property
     def txto(self):
@@ -284,7 +279,6 @@ class TransferTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                       str(self.subtype).encode() +
                        self.addr_from +
                        str(self.fee).encode() +
                        self.txto +
@@ -346,7 +340,7 @@ class TransferTransaction(Transaction):
             if self.txto != self.txfrom:
                 addresses_state[self.txto].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -356,7 +350,7 @@ class TransferTransaction(Transaction):
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class CoinBase(Transaction):
@@ -367,8 +361,6 @@ class CoinBase(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(CoinBase, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.COINBASE
 
     @property
     def txto(self):
@@ -388,7 +380,6 @@ class CoinBase(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                      str(self.subtype).encode() +
                       self.addr_from +
                       str(self.fee).encode() +
                       self.txto +
@@ -403,7 +394,7 @@ class CoinBase(Transaction):
 
         transaction._data.addr_from = config.dev.coinbase_address
         transaction._data.fee = 0
-        transaction._data.public_key = bytes(xmss.pk())
+        transaction._data.public_key = bytes(xmss.pk)
 
         transaction._data.coinbase.addr_to = master_address
         transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
@@ -438,7 +429,7 @@ class CoinBase(Transaction):
             addresses_state[self.txfrom].balance -= self.amount
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txto != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -448,7 +439,7 @@ class CoinBase(Transaction):
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class LatticePublicKey(Transaction):
@@ -459,8 +450,6 @@ class LatticePublicKey(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(LatticePublicKey, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.LATTICE
 
     @property
     def kyber_pk(self):
@@ -472,7 +461,6 @@ class LatticePublicKey(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                       str(self.subtype).encode() +
                        self.addr_from +
                        str(self.fee).encode() +
                        self.kyber_pk +
@@ -524,7 +512,7 @@ class LatticePublicKey(Transaction):
             addresses_state[self.txfrom].add_lattice_pk(self)
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -533,15 +521,13 @@ class LatticePublicKey(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class MessageTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(MessageTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.MESSAGE
 
     @property
     def message_hash(self):
@@ -549,7 +535,6 @@ class MessageTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                      str(self.subtype).encode() +
                       self.addr_from +
                       str(self.fee).encode() +
                       self.message_hash
@@ -599,7 +584,7 @@ class MessageTransaction(Transaction):
             addresses_state[self.txfrom].balance -= self.fee
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -608,7 +593,7 @@ class MessageTransaction(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class TokenTransaction(Transaction):
@@ -618,8 +603,6 @@ class TokenTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TokenTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.TOKEN
 
     @property
     def symbol(self):
@@ -643,7 +626,6 @@ class TokenTransaction(Transaction):
 
     def get_hashable_bytes(self):
         tmptxhash = sha256(
-                            str(self.subtype).encode() +
                             self.addr_from +
                             str(self.fee).encode() +
                             self.symbol +
@@ -733,7 +715,7 @@ class TokenTransaction(Transaction):
         return True
 
     def apply_on_state(self, addresses_state):
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         owner_processed = False
         txfrom_processed = False
         addr_from_pk_processed = False
@@ -769,7 +751,7 @@ class TokenTransaction(Transaction):
         addresses_set.add(self.owner)
         for initial_balance in self.initial_balances:
             addresses_set.add(initial_balance.address)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class TransferTokenTransaction(Transaction):
@@ -779,8 +761,6 @@ class TransferTokenTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(TransferTokenTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.TRANSFERTOKEN
 
     @property
     def token_txhash(self):
@@ -796,7 +776,6 @@ class TransferTokenTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                       str(self.subtype).encode() +
                        self.addr_from +
                        str(self.fee).encode() +
                        self.token_txhash +
@@ -871,7 +850,7 @@ class TransferTokenTransaction(Transaction):
                 addresses_state[self.txto].transaction_hashes.append(self.txhash)
             addresses_state[self.txto].tokens[bin2hstr(self.token_txhash).encode()] += self.amount
 
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -881,15 +860,13 @@ class TransferTokenTransaction(Transaction):
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
         addresses_set.add(self.txto)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class SlaveTransaction(Transaction):
 
     def __init__(self, protobuf_transaction=None):
         super(SlaveTransaction, self).__init__(protobuf_transaction)
-        if protobuf_transaction is None:
-            self._data.type = qrl_pb2.Transaction.SLAVE
 
     @property
     def slave_pks(self):
@@ -901,7 +878,6 @@ class SlaveTransaction(Transaction):
 
     def get_hashable_bytes(self):
         tmptxhash = sha256(
-                            str(self.subtype).encode() +
                             self.addr_from +
                             str(self.fee).encode()
                           )
@@ -975,7 +951,7 @@ class SlaveTransaction(Transaction):
                                                                        self.access_types[index])
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        addr_from_pk = getAddress('Q', self.PK).encode()
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.txfrom != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
@@ -984,15 +960,25 @@ class SlaveTransaction(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(getAddress('Q', self.PK).encode())
+        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 TYPEMAP = {
-    qrl_pb2.Transaction.TRANSFER: TransferTransaction,
-    qrl_pb2.Transaction.COINBASE: CoinBase,
-    qrl_pb2.Transaction.LATTICE: LatticePublicKey,
-    qrl_pb2.Transaction.MESSAGE: MessageTransaction,
-    qrl_pb2.Transaction.TOKEN: TokenTransaction,
-    qrl_pb2.Transaction.TRANSFERTOKEN: TransferTokenTransaction,
-    qrl_pb2.Transaction.SLAVE: SlaveTransaction
+    'transfer': TransferTransaction,
+    'coinbase': CoinBase,
+    'latticePK': LatticePublicKey,
+    'message': MessageTransaction,
+    'token': TokenTransaction,
+    'transfer_token': TransferTokenTransaction,
+    'slave': SlaveTransaction
+}
+
+CODEMAP = {
+    'transfer': 1,
+    'coinbase': 2,
+    'latticePK': 3,
+    'message': 4,
+    'token': 5,
+    'transfer_token': 6,
+    'slave': 7
 }
