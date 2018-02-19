@@ -2,6 +2,7 @@
 # They will be installed automatically when running `python setup.py test`.
 # ATTENTION: Don't remove pytest-cov and pytest as they are needed.
 pytest-cov
+pytest-flake8
 pytest
 mock>=2.0.0
 flake8
