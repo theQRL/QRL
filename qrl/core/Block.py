@@ -70,8 +70,12 @@ class Block(object):
         return self.blockheader.timestamp
 
     @property
-    def mining_hash(self):
-        return self.blockheader.mining_hash
+    def mining_blob(self)->bytes:
+        return self.blockheader.mining_blob
+
+    @property
+    def mining_nonce_offset(self)->bytes:
+        return self.blockheader.nonce_offset
 
     @staticmethod
     def from_json(json_data):

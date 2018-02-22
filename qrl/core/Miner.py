@@ -5,14 +5,14 @@ import copy
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString, Qryptonight
+from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString
 
 from qrl.core import config
-from qrl.core.State import State
-from qrl.core.Wallet import Wallet
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction
 from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.State import State
+from qrl.core.Transaction import Transaction
+from qrl.core.Wallet import Wallet
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 
@@ -31,17 +31,7 @@ class Miner(Qryptominer):
         self._mining_thread_count = mining_thread_count
 
     @staticmethod
-    def _get_mining_data(block):
-        input_bytes = [0x00, 0x00, 0x00, 0x00] + list(block.mining_hash)
-        nonce_offset = 0
-        return input_bytes, nonce_offset
-
-    @staticmethod
-    def calc_hash(input_bytes):
-        qn = Qryptonight()
-        return qn.hash(input_bytes)
-
-    def set_unused_ots_key(self, xmss, addr_state, start=0):
+    def set_unused_ots_key(xmss, addr_state, start=0):
         for i in range(start, 2 ** xmss.height):
             if not addr_state.ots_key_reuse(i):
                 xmss.set_ots_index(i)
@@ -121,7 +111,9 @@ class Miner(Qryptominer):
                 measurement=measurement,
                 parent_difficulty=parent_difficulty)
 
-            input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
+            mining_blob = self._mining_block.mining_blob
+            nonce_offset = self._mining_block.mining_nonce_offset
+
             logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {}'.format(
                 self._mining_block.block_number,
                 measurement, self._mining_block.timestamp - parent_block.timestamp,
@@ -129,7 +121,7 @@ class Miner(Qryptominer):
                 current_target
             ))
             logger.debug('!!! {}'.format(current_target))
-            self.start(input=input_bytes,
+            self.start(input=mining_blob,
                        nonceOffset=nonce_offset,
                        target=current_target,
                        thread_count=self._mining_thread_count)
