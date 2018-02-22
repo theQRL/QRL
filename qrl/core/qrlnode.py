@@ -380,13 +380,7 @@ class QRLNode:
         if self._chain_manager.tx_pool.is_full_transaction_pool():
             raise ValueError("Transaction Pool is full")
 
-        if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
-                          qrl_pb2.Transaction.LATTICE,
-                          qrl_pb2.Transaction.MESSAGE,
-                          qrl_pb2.Transaction.TOKEN,
-                          qrl_pb2.Transaction.TRANSFERTOKEN,
-                          qrl_pb2.Transaction.SLAVE):
-            self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
+        self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
 
         return True
 
