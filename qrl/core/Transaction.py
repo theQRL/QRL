@@ -78,20 +78,6 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.signature
 
     @staticmethod
-    def tx_id_to_name(idarg):
-        # FIXME: Move to enums
-        id_name = {
-            qrl_pb2.Transaction.TRANSFER: 'TX',
-            qrl_pb2.Transaction.COINBASE: 'COINBASE',
-            qrl_pb2.Transaction.LATTICE: 'LATTICE',
-            qrl_pb2.Transaction.MESSAGE: 'MESSAGE',
-            qrl_pb2.Transaction.TOKEN: 'TOKEN',
-            qrl_pb2.Transaction.TRANSFERTOKEN: 'TRANSFERTOKEN',
-            qrl_pb2.Transaction.SLAVE: 'SLAVE'
-        }
-        return id_name[idarg]
-
-    @staticmethod
     def from_pbdata(pbdata: qrl_pb2.Transaction):
         txtype = TYPEMAP[pbdata.WhichOneof('transactionType')]
         return txtype(pbdata)
