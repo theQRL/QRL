@@ -484,7 +484,6 @@ class QRLNode:
         info.block_height = self.block_height
         info.block_last_hash = b''  # FIXME
         info.network_id = config.dev.genesis_prev_headerhash  # FIXME
-        info.coinb
         return info
 
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
