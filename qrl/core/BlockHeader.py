@@ -1,14 +1,12 @@
 # coding=utf-8
-import struct
 
-from pyqrllib.pyqrllib import sha2_256, str2bin
+from google.protobuf.json_format import MessageToJson, Parse
 from pyqryptonight.pyqryptonight import Qryptonight
 
 from qrl.core import config
-from qrl.core.misc import ntp, logger
 from qrl.core.formulas import block_reward
+from qrl.core.misc import ntp, logger
 from qrl.generated import qrl_pb2
-from google.protobuf.json_format import MessageToJson, Parse
 
 
 class BlockHeader(object):
@@ -88,9 +86,8 @@ class BlockHeader(object):
             raise Exception("Mining blob size below 39 bytes")
 
         # Now insert mining nonce in offset 39 for compatibility
-        blob = blob[:self.nonce_offset] + \
-               self.mining_nonce.to_bytes(4, byteorder='big', signed=False) + \
-               blob[self.nonce_offset:]
+        mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False)
+        blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
 
         return bytes(blob)
 

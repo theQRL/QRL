@@ -5,14 +5,14 @@ import copy
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString, Qryptonight
+from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString
 
 from qrl.core import config
-from qrl.core.State import State
-from qrl.core.Wallet import Wallet
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction
 from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.State import State
+from qrl.core.Transaction import Transaction
+from qrl.core.Wallet import Wallet
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 

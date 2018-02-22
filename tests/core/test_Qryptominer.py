@@ -4,7 +4,6 @@
 import threading
 from unittest import TestCase
 
-from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper
 
 from qrl.core import config
