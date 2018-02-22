@@ -76,7 +76,6 @@ class ChainManager:
     def validate_mining_nonce(self, block, enable_logging=False):
         parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
         parent_block = self.state.get_block(block.prev_headerhash)
-        input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash, parent_metadata)
         diff, target = self._difficulty_tracker.get(
@@ -89,15 +88,14 @@ class ChainManager:
             logger.debug('block.timestamp %s', block.timestamp)
             logger.debug('parent_block.timestamp %s', parent_block.timestamp)
             logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
-            logger.debug('input_bytes %s', UInt256ToString(input_bytes))
             logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
             logger.debug('-------------------END--------------------')
 
-        if not PoWHelper.verifyInput(input_bytes, target):
+        if not PoWHelper.verifyInput(block.mining_blob, target):
             if enable_logging:
                 logger.warning("PoW verification failed")
                 qn = Qryptonight()
-                tmp_hash = qn.hash(input_bytes)
+                tmp_hash = qn.hash(block.mining_blob)
                 logger.warning("{}".format(tmp_hash))
                 logger.debug('%s', block.to_json())
             return False

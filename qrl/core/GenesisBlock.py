@@ -40,7 +40,7 @@ class GenesisBlock(Block, metaclass=Singleton):
                     new_items = [qrl_pb2.GenesisBalance(address=k, balance=v)
                                  for k, v in additional_balances['genesis_info'].items()]
                     self._data.genesis_balance.extend(new_items)
-        self.blockheader._data.timestamp.seconds = config.dev.genesis_timestamp
+        self.blockheader._data.timestamp_seconds = config.dev.genesis_timestamp
 
     @property
     def transactions(self):

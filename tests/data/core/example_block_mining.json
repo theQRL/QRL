@@ -17,12 +17,11 @@
     "hashHeader": "thnmRQ7hkiIBc+/U2HpJrJypV3/gryR8MOBBC1x7VXY=",
     "PK": "KG0suGkuHIbvYEZSsRL4zDo3iZ5fc37jsQHLtl172kGOi6whHeECz1/5DBxrjATEh6L/xBr6NXtcwjQ1YappjA==",
     "hashHeaderPrev": "JvSNOBlNRIRp2s38w5KzR6HpFGYEuHhw2BW3DzajAbI=",
-    "miningNonce": 1,
+    "miningNonce": 15,
     "merkleRoot": "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
     "rewardBlock": "461209139",
     "blockNumber": "27",
-    "timestamp": {
-      "seconds": "1515443508"
-    }
+    "timestamp_seconds": "1515443508"
   }
 }
+

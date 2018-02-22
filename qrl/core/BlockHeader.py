@@ -1,5 +1,9 @@
 # coding=utf-8
+import struct
+
 from pyqrllib.pyqrllib import sha2_256, str2bin
+from pyqryptonight.pyqryptonight import Qryptonight
+
 from qrl.core import config
 from qrl.core.misc import ntp, logger
 from qrl.core.formulas import block_reward
@@ -32,11 +36,11 @@ class BlockHeader(object):
 
     @property
     def epoch(self):
-        return self._data.epoch
+        return self._data.block_number // config.dev.blocks_per_epoch
 
     @property
     def timestamp(self):
-        return self._data.timestamp.seconds
+        return self._data.timestamp_seconds
 
     @property
     def headerhash(self):
@@ -67,16 +71,32 @@ class BlockHeader(object):
         return self._data.mining_nonce
 
     @property
-    def mining_hash(self):
-        data = "{0}{1}{2}{3}{4}{5}{6}{7}".format(self.PK,
-                                                 self.epoch,
-                                                 self.block_reward,
-                                                 self.fee_reward,
-                                                 self.timestamp,
-                                                 self.block_number,
-                                                 self.prev_blockheaderhash,
-                                                 self.tx_merkle_root)
-        return bytes(sha2_256(str2bin(data)))
+    def nonce_offset(self):
+        return config.dev.mining_nonce_offset
+
+    @property
+    def mining_blob(self) -> bytes:
+        blob = self.block_number.to_bytes(8, byteorder='big', signed=False) + \
+               self.timestamp.to_bytes(8, byteorder='big', signed=False) + \
+               self.prev_blockheaderhash + \
+               self.block_reward.to_bytes(8, byteorder='big', signed=False) + \
+               self.fee_reward.to_bytes(8, byteorder='big', signed=False) + \
+               self.tx_merkle_root + \
+               self.PK
+
+        if len(blob) < self.nonce_offset:
+            raise Exception("Mining blob size below 39 bytes")
+
+        # Now insert mining nonce in offset 39 for compatibility
+        blob = blob[:self.nonce_offset] + \
+               self.mining_nonce.to_bytes(4, byteorder='big', signed=False) + \
+               blob[self.nonce_offset:]
+
+        return bytes(blob)
+
+    def generate_headerhash(self):
+        qn = Qryptonight()
+        return bytes(qn.hash(self.mining_blob))
 
     @staticmethod
     def create(blocknumber: int,
@@ -100,11 +120,10 @@ class BlockHeader(object):
 
         bh = BlockHeader()
         bh._data.block_number = blocknumber
-        bh._data.epoch = bh._data.block_number // config.dev.blocks_per_epoch
 
         if bh._data.block_number != 0:
-            bh._data.timestamp.seconds = int(ntp.getTime())
-            if bh._data.timestamp == 0:
+            bh._data.timestamp_seconds = int(ntp.getTime())
+            if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
 
@@ -124,19 +143,6 @@ class BlockHeader(object):
     def set_mining_nonce(self, value):
         self._data.mining_nonce = value
         self._data.hash_header = self.generate_headerhash()
-
-    def generate_headerhash(self):
-        # FIXME: This is using strings... fix
-        data = "{0}{1}{2}{3}{4}{5}{6}{7}{8}".format(self.PK,
-                                                    self.epoch,
-                                                    self.block_reward,
-                                                    self.fee_reward,
-                                                    self.timestamp,
-                                                    self.block_number,
-                                                    self.prev_blockheaderhash,
-                                                    self.tx_merkle_root,
-                                                    self.mining_nonce)
-        return bytes(sha2_256(str2bin(data)))
 
     def block_reward_calc(self):
         """
@@ -174,10 +180,6 @@ class BlockHeader(object):
 
         if self.block_reward + self.fee_reward != coinbase_amount:
             logger.warning('Block_reward + fee_reward doesnt sums up to coinbase_amount')
-            return False
-
-        if self.epoch != self.block_number // config.dev.blocks_per_epoch:
-            logger.warning('Epoch incorrect for block: failed validation')
             return False
 
         if self.timestamp == 0 and self.block_number > 0:
