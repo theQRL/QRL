@@ -17,5 +17,5 @@ class TestHelpers(TestCase):
 
     def test_getAddress(self):
         address = helper.qrladdress('mySeed')
-        self.assertEqual('0002d27d73162f36e6e839eeaf829e6842c124144a3b067d4583778b2f152362400dd3a66701',
+        self.assertEqual('00020080a24d25a75c99077719c6b5077b0ae16cf243f69d142e848075e985dbb28df7fbcd5acf',
                          bin2hstr(address))

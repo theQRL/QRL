@@ -4,7 +4,7 @@
 from collections import namedtuple
 from typing import List
 
-from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr
+from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr, XmssFast
 
 from qrl.generated import qrl_pb2
 from qrl.core import config
@@ -93,8 +93,7 @@ class Wallet:
 
     @staticmethod
     def get_new_address(signature_tree_height=config.dev.xmss_tree_height,
-                        seed=None):
-        # type: (int, str) -> AddressBundle
+                        seed=None) -> AddressBundle:
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
@@ -103,5 +102,6 @@ class Wallet:
         :param seed:
         :return: a wallet address
         """
-        xmss = XMSS(tree_height=signature_tree_height, seed=seed)
+        # FIXME: This should be using the extended seed instead
+        xmss = XMSS(XmssFast(seed, signature_tree_height))
         return AddressBundle(bin2hstr(xmss.address).encode(), xmss)

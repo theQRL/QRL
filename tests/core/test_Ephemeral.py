@@ -6,6 +6,7 @@ from unittest import TestCase
 from mock import mock, Mock, MagicMock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
+from pyqrllib.pyqrllib import XmssFast
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
@@ -33,7 +34,7 @@ class TestEphemeral(TestCase):
     def test_init(self):
         # TODO: Not much going on here..
         block = Block()
-        self.assertIsNotNone(block)             # just to avoid warnings
+        self.assertIsNotNone(block)  # just to avoid warnings
 
     def test_add_4(self):
         with set_data_dir('no_data'):
@@ -49,7 +50,7 @@ class TestEphemeral(TestCase):
                         chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                         alice_xmss = get_alice_xmss()
-                        slave_xmss = XMSS(alice_xmss.height, alice_xmss.seed)
+                        slave_xmss = XMSS(XmssFast(alice_xmss.seed, alice_xmss.height))
                         random_xmss1 = get_random_xmss()
                         random_kyber1 = Kyber()
                         random_dilithium1 = Dilithium()
@@ -86,7 +87,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block1, False):
-                                tmp_block1.set_mining_nonce(tmp_block1.mining_nonce+1)
+                                tmp_block1.set_mining_nonce(tmp_block1.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block1)
                             self.assertTrue(res)
@@ -135,7 +136,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block2, False):
-                                tmp_block2.set_mining_nonce(tmp_block2.mining_nonce+1)
+                                tmp_block2.set_mining_nonce(tmp_block2.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block2)
                             self.assertTrue(res)
@@ -152,7 +153,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block3, False):
-                                tmp_block3.set_mining_nonce(tmp_block3.mining_nonce+1)
+                                tmp_block3.set_mining_nonce(tmp_block3.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block3)
                             self.assertTrue(res)
@@ -168,7 +169,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block4, False):
-                                tmp_block4.set_mining_nonce(tmp_block4.mining_nonce+1)
+                                tmp_block4.set_mining_nonce(tmp_block4.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block4)
                             self.assertTrue(res)
