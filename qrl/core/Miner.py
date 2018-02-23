@@ -11,10 +11,10 @@ from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.State import State
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction, \
+    MessageTransaction, LatticePublicKey, SlaveTransaction
 from qrl.core.Wallet import Wallet
 from qrl.core.misc import logger
-from qrl.generated import qrl_pb2
 
 
 class Miner(Qryptominer):
@@ -193,28 +193,28 @@ class Miner(Qryptominer):
                 total_txn -= 1
                 continue
 
-            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
+            if isinstance(tx, TransferTransaction):
                 if addresses_state[tx.txfrom].balance < tx.amount + tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s', addresses_state[tx.txfrom].balance,
                                    tx.amount)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+            if isinstance(tx, MessageTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid message tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Free %s', addresses_state[tx.txfrom].balance, tx.fee)
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+            if isinstance(tx, TokenTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Fee %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -222,10 +222,10 @@ class Miner(Qryptominer):
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+            if isinstance(tx, TransferTokenTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -250,10 +250,10 @@ class Miner(Qryptominer):
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.LATTICE:
+            if isinstance(tx, LatticePublicKey):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('Lattice TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -261,10 +261,10 @@ class Miner(Qryptominer):
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.SLAVE:
+            if isinstance(tx, SlaveTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('Slave TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)

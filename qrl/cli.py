@@ -99,7 +99,7 @@ def _select_wallet(ctx, src):
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return src.encode(), None
+        return bytes(hstr2bin(src)), None
     except Exception as e:
         click.echo("Error selecting wallet")
         quit(1)
@@ -459,7 +459,7 @@ def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(ots_key_index)
-        address_dst = dst.encode()
+        address_dst = bytes(hstr2bin(dst[1:]))
         # FIXME: This could be problematic. Check
         amount_shor = int(amount * 1.e9)
         fee_shor = int(fee * 1.e9)
@@ -514,7 +514,8 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         if address == '':
             break
         amount = int(click.prompt('Amount ')) * (10**int(decimals))
-        initial_balances.append(qrl_pb2.AddressAmount(address=address.encode(), amount=amount))
+        initial_balances.append(qrl_pb2.AddressAmount(address=bytes(hstr2bin(address)),
+                                                      amount=amount))
 
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
@@ -524,7 +525,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
-        address_owner = owner.encode()
+        address_owner = bytes(hstr2bin(owner[1:]))
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e9)
     except KeyboardInterrupt:
@@ -580,7 +581,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
-        address_dst = dst.encode()
+        address_dst = bytes(hstr2bin(dst[1:]))
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
         amount = int(amount * (10**int(decimals)))
