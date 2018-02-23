@@ -5,13 +5,12 @@
 from abc import ABCMeta, abstractmethod
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
 
 from qrl.core import config
-from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
+from qrl.core.misc import logger
 from qrl.crypto.misc import sha256
-from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 
 
@@ -114,7 +113,7 @@ class Transaction(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     def sign(self, xmss):
-        self._data.signature = xmss.SIGN(self.get_hashable_bytes())
+        self._data.signature = xmss.sign(self.get_hashable_bytes())
         self._set_txhash()
 
     @abstractmethod
@@ -186,11 +185,10 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
-        if len(self.signature) == 0 or not XMSS.VERIFY(message=self.get_hashable_bytes(),
-                                                       signature=self.signature,
-                                                       pk=self.PK):
+        if XmssFast.verify(self.get_hashable_bytes(),
+                           self.signature,
+                           self.PK):
             raise ValueError("Invalid xmss signature")
-
         return True
 
     def validate_slave(self, addr_from_state, addr_from_pk_state):

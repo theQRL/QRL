@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from pyqrllib.pyqrllib import str2bin
+from pyqrllib.pyqrllib import str2bin, XmssFast
 
 from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
@@ -21,7 +21,7 @@ class TestXMSS(TestCase):
 
         xmss_height = 10
         seed = bytearray([i for i in range(48)])
-        xmss = XMSS(xmss_height, seed)
+        xmss = XMSS(XmssFast(seed, xmss_height))
 
         pk = xmss.pk
 
@@ -29,5 +29,5 @@ class TestXMSS(TestCase):
 
         for i in range(10):
             self.assertTrue(xmss.ots_index == i + 1)
-            signature = xmss.SIGN(message_bin)
-            self.assertTrue(XMSS.VERIFY(message_bin, signature, pk))
+            signature = xmss.sign(message_bin)
+            self.assertTrue(XmssFast.verify(message_bin, signature, pk))

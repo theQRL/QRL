@@ -241,7 +241,7 @@ def wallet_secret(ctx, wallet_idx):
     if 0 <= wallet_idx < len(wallet.address_bundle):
         addr_bundle = wallet.address_bundle[wallet_idx]
         click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
-        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.mnemonic))
+        click.echo('Mnemonic        : %s' % addr_bundle.xmss.mnemonic)
     else:
         click.echo('Wallet index not found', color='yellow')
 
@@ -425,7 +425,7 @@ def tx_push(ctx, txblob):
     tmp_json = tx.to_json()
     # FIXME: binary fields are represented in base64. Improve output
     print(tmp_json)
-    if (len(tx.signature) == 0):
+    if len(tx.signature) == 0:
         click.echo('Signature missing')
         quit(1)
 

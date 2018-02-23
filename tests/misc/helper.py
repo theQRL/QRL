@@ -12,7 +12,7 @@ from mock import mock
 import pyqrllib
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
-from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256
+from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256, XmssFast
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
@@ -98,28 +98,29 @@ def clean_genesis():
 def get_alice_xmss() -> XMSS:
     xmss_height = 6
     seed = bytes([i for i in range(48)])
-    return XMSS(xmss_height, seed)
+    return XMSS(XmssFast(seed, xmss_height))
 
 
 def get_bob_xmss() -> XMSS:
     xmss_height = 6
     seed = bytes([i + 5 for i in range(48)])
-    return XMSS(xmss_height, seed)
+    return XMSS(XmssFast(seed, xmss_height))
 
 
 def get_slave_xmss() -> XMSS:
     xmss_height = 6
     seed = bytes([i + 10 for i in range(48)])
-    return XMSS(xmss_height, seed)
+    return XMSS(XmssFast(seed, xmss_height))
 
 
 def get_random_xmss(xmss_height=6) -> XMSS:
-    return XMSS(xmss_height)
+    return XMSS.from_height(xmss_height)
 
 
 def qrladdress(address_seed_str: str) -> bytes:
-    seed = QRLDescriptor(SHA2_256, pyqrllib.pyqrllib.XMSS, 4, 0).getBytes() + shake128(48, address_seed_str.encode())
-    return bytes(QRLHelper.getAddress(seed))
+    extended_seed = QRLDescriptor(SHA2_256, pyqrllib.pyqrllib.XMSS, 4, 0).getBytes() + \
+                    shake128(48, address_seed_str.encode())
+    return bytes(QRLHelper.getAddress(extended_seed))
 
 
 def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fee=1) -> TokenTransaction:

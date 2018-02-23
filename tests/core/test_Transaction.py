@@ -10,11 +10,12 @@ from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, Tok
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
+from tests.misc.helper import get_alice_xmss
 
 logger.initialize_default()
 
 test_json_Simple = """{
-  "addrFrom": "AQL3xLfc/IPo5Boazr5GoFgil0K4gAsjotI/Pawm71JyB61QTks=",
+  "addrFrom": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
   "fee": "1",
   "publicKey": "AQI8Uj+cwm+ACGPAA1JDkoBv9t83OstNR8xge2I2X+Srd88wGNMh333LZTyfeWhnPkPRLMJuNGG19CX9XZd0AP6l",
   "transfer": {
@@ -25,9 +26,9 @@ test_json_Simple = """{
 
 test_json_CoinBase = """{
   "addrFrom": "AQOzB2jAm1iv+ec9GF9C0GROCJD/1AXBILYDAPWUvWGoIHNZKWM=",
-  "publicKey": "AQI8Uj+cwm+ACGPAA1JDkoBv9t83OstNR8xge2I2X+Srd88wGNMh333LZTyfeWhnPkPRLMJuNGG19CX9XZd0AP6l",
+  "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
   "coinbase": {
-    "addrTo": "AQL3xLfc/IPo5Boazr5GoFgil0K4gAsjotI/Pawm71JyB61QTks=",
+    "addrTo": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
     "amount": "90",
     "blockNumber": "1",
     "headerhash": "cbyk7G3tHwuys91Ox27qL/Y/kPtS8AG7vvGx1bntChk="
@@ -35,7 +36,7 @@ test_json_CoinBase = """{
 }"""
 
 test_json_Token = """{
-  "addrFrom": "AQL3xLfc/IPo5Boazr5GoFgil0K4gAsjotI/Pawm71JyB61QTks=",
+  "addrFrom": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
   "fee": "1",
   "publicKey": "AQI8Uj+cwm+ACGPAA1JDkoBv9t83OstNR8xge2I2X+Srd88wGNMh333LZTyfeWhnPkPRLMJuNGG19CX9XZd0AP6l",
   "token": {
@@ -57,7 +58,7 @@ test_json_Token = """{
 }"""
 
 test_json_TransferToken = """{
-  "addrFrom": "AQL3xLfc/IPo5Boazr5GoFgil0K4gAsjotI/Pawm71JyB61QTks=",
+  "addrFrom": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
   "fee": "1",
   "publicKey": "AQI8Uj+cwm+ACGPAA1JDkoBv9t83OstNR8xge2I2X+Srd88wGNMh333LZTyfeWhnPkPRLMJuNGG19CX9XZd0AP6l",
   "transferToken": {
@@ -472,7 +473,8 @@ class TestSimpleTransaction(TestCase):
 class TestCoinBase(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCoinBase, self).__init__(*args, **kwargs)
-        self.alice = XMSS(4, seed='a' * 48)
+
+        self.alice = get_alice_xmss()
         self.alice.set_ots_index(11)
 
         self.mock_blockheader = Mock(spec=BlockHeader)
@@ -501,10 +503,10 @@ class TestCoinBase(TestCase):
 
         # Test that common Transaction components were copied over.
         self.assertEqual(0, tx.nonce)
-        self.assertEqual('0102f7c4b7dcfc83e8e41a1acebe46a058229742b8800b23a2d23f3dac26ef527207ad504e4b',
+        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
                          bin2hstr(tx.txto))
-        self.assertEqual('01023c523f9cc26f800863c003524392806ff6df373acb4d47cc607b62365fe4ab'
-                         '77cf3018d321df7dcb653c9f7968673e43d12cc26e3461b5f425fd5d977400fea5',
+        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
+                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
                          bin2hstr(tx.PK))
         self.assertEqual(11, tx.ots_key)
 
