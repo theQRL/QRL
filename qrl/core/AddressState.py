@@ -5,7 +5,7 @@
 from copy import deepcopy
 from collections import defaultdict
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core import config
 from qrl.generated import qrl_pb2
@@ -151,8 +151,7 @@ class AddressState(object):
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
-        str_address = bin2hstr(address)
-        if len(str_address) != 76:
+        if not QRLHelper.addressIsValid(address):
             return False
 
         return True
