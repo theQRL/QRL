@@ -36,7 +36,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getSKPRF() )
         '3aa40c0f99459afe7efe72eb9517ee8ded49ccd51dab72ebf6bc37d73240bb3a'
         >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1)._xmss.getAddress())
-        '010245e978261484dda97d1a4eefd418f159765ee00a2800b7835660c331d600f1d7bcd5538a'
+        '010245e978261484dda97d1a4eefd418f159765ee00a2800b7835660c331d600f1d7c92067ef'
 
         >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
         ''
