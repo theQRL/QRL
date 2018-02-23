@@ -110,6 +110,8 @@ def _select_wallet(ctx, src):
 ########################
 ########################
 
+@click.version_option(version=config.dev.version, prog_name='QRL Command Line Interface')
+
 @click.group()
 @click.option('--remote', '-r', default=False, is_flag=True, help='connect to remote node')
 @click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
@@ -242,6 +244,7 @@ def wallet_secret(ctx, wallet_idx):
         addr_bundle = wallet.address_bundle[wallet_idx]
         click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
         click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
+        click.echo('Hexseed         : %s' % (addr_bundle.xmss.get_hexseed()))
     else:
         click.echo('Wallet index not found', color='yellow')
 
