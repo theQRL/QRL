@@ -244,6 +244,7 @@ def wallet_secret(ctx, wallet_idx):
         addr_bundle = wallet.address_bundle[wallet_idx]
         click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
         click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
+        click.echo('Hexseed         : %s' % (addr_bundle.xmss.get_hexseed()))
     else:
         click.echo('Wallet index not found', color='yellow')
 
