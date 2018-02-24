@@ -30,7 +30,7 @@ class XMSS(object):
         """
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
-        :param seed:
+        :param _xmssfast:
 
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)

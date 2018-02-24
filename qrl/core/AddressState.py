@@ -5,7 +5,7 @@
 from copy import deepcopy
 from collections import defaultdict
 
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import QRLHelper
 
 from qrl.core import config
 from qrl.generated import qrl_pb2
