@@ -10,7 +10,7 @@ from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, Tok
 from qrl.crypto.misc import sha256
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
-from tests.misc.helper import get_alice_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss
 
 logger.initialize_default()
 
@@ -377,8 +377,8 @@ class TestSimpleTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestSimpleTransaction, self).__init__(*args, **kwargs)
-        self.alice = XMSS(4, seed='a' * 48)
-        self.bob = XMSS(4, seed='b' * 48)
+        self.alice = get_alice_xmss()
+        self.bob = get_bob_xmss()
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
@@ -524,8 +524,8 @@ class TestTokenTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestTokenTransaction, self).__init__(*args, **kwargs)
-        self.alice = XMSS(4, seed='a' * 48)
-        self.bob = XMSS(4, seed='b' * 48)
+        self.alice = get_alice_xmss()
+        self.bob = get_bob_xmss()
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
@@ -634,8 +634,8 @@ class TestTransferTokenTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestTransferTokenTransaction, self).__init__(*args, **kwargs)
-        self.alice = XMSS(4, seed='a' * 48)
-        self.bob = XMSS(4, seed='b' * 48)
+        self.alice = get_alice_xmss()
+        self.bob = get_bob_xmss()
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
