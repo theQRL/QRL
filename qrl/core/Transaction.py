@@ -64,7 +64,6 @@ class Transaction(object, metaclass=ABCMeta):
     @staticmethod
     def get_ots_from_signature(signature):
         try:
-            # FIXME: This is incorrect.. can lead to endianness problems
             return int(bin2hstr(signature)[0:8], 16)
         except ValueError:
             raise ValueError('OTS Key Index: First 4 bytes of signature are invalid')
@@ -99,7 +98,7 @@ class Transaction(object, metaclass=ABCMeta):
     def txhash(self) -> bytes:
         return self._data.transaction_hash
 
-    def _set_txhash(self):
+    def update_txhash(self):
         self._data.transaction_hash = sha256(
                                               self.get_hashable_bytes() +
                                               self.signature +
@@ -115,7 +114,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def sign(self, xmss):
         self._data.signature = xmss.sign(self.get_hashable_bytes())
-        self._set_txhash()
+        self.update_txhash()
 
     @abstractmethod
     def apply_on_state(self, addresses_state):
@@ -232,7 +231,7 @@ class TransferTransaction(Transaction):
         super(TransferTransaction, self).__init__(protobuf_transaction)
 
     @property
-    def txto(self):
+    def addr_to(self):
         return self._data.transfer.addr_to
 
     @property
@@ -243,10 +242,10 @@ class TransferTransaction(Transaction):
         # FIXME: Avoid using strings
         # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         return sha256(
-                       self.addr_from +
-                       str(self.fee).encode() +
-                       self.txto +
-                       str(self.amount).encode()
+            self.addr_from +
+            str(self.fee).encode() +
+            self.addr_to +
+            str(self.amount).encode()
                      )
 
     @staticmethod
@@ -266,8 +265,8 @@ class TransferTransaction(Transaction):
         if self.amount <= 0:
             raise ValueError('[%s] Invalid amount = %d', bin2hstr(self.txhash), self.amount)
 
-        if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.txto)):
-            logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.txto)
+        if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.addr_to)):
+            logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.addr_to)
             return False
 
         return True
@@ -299,10 +298,10 @@ class TransferTransaction(Transaction):
             addresses_state[self.txfrom].balance -= (self.amount + self.fee)
             addresses_state[self.txfrom].transaction_hashes.append(self.txhash)
 
-        if self.txto in addresses_state:
-            addresses_state[self.txto].balance += self.amount
-            if self.txto != self.txfrom:
-                addresses_state[self.txto].transaction_hashes.append(self.txhash)
+        if self.addr_to in addresses_state:
+            addresses_state[self.addr_to].balance += self.amount
+            if self.addr_to != self.txfrom:
+                addresses_state[self.addr_to].transaction_hashes.append(self.txhash)
 
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
@@ -313,7 +312,7 @@ class TransferTransaction(Transaction):
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.txfrom)
-        addresses_set.add(self.txto)
+        addresses_set.add(self.addr_to)
         addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
