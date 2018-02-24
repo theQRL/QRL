@@ -185,9 +185,9 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
-        if XmssFast.verify(self.get_hashable_bytes(),
-                           self.signature,
-                           self.PK):
+        if not XmssFast.verify(self.get_hashable_bytes(),
+                               self.signature,
+                               self.PK):
             raise ValueError("Invalid xmss signature")
         return True
 

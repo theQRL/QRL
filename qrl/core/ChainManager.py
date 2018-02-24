@@ -109,15 +109,14 @@ class ChainManager:
             return False
 
         coinbase_tx = Transaction.from_pbdata(block.transactions[0])
-        coinbase_tx.validate()
-
-        if not self.validate_mining_nonce(block):
-            return False
 
         if not isinstance(coinbase_tx, CoinBase):
             return False
 
         if not coinbase_tx.validate():
+            return False
+
+        if not self.validate_mining_nonce(block):
             return False
 
         coinbase_tx.apply_on_state(address_txn)

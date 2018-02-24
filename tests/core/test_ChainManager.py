@@ -28,6 +28,43 @@ class TestChainManager(TestCase):
                 block = state.get_block(GenesisBlock().headerhash)
                 self.assertIsNotNone(block)
 
+    def test_simple_add_block(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                state.get_measurement = MagicMock(return_value=10000000)
+                alice_xmss = get_alice_xmss()
+
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                chain_manager.load(genesis_block)
+
+                chain_manager._difficulty_tracker = Mock()
+                dt = DifficultyTracker()
+                tmp_difficulty = StringToUInt256('2')
+                tmp_boundary = dt.get_boundary(tmp_difficulty)
+                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+
+                block = state.get_block(genesis_block.headerhash)
+                self.assertIsNotNone(block)
+
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1615270948  # Very high to get an easy difficulty
+
+                    block_1 = Block.create(block_number=1,
+                                           prevblock_headerhash=genesis_block.headerhash,
+                                           transactions=[],
+                                           signing_xmss=alice_xmss,
+                                           master_address=alice_xmss.address,
+                                           nonce=1)
+
+                    while not chain_manager.validate_mining_nonce(block_1, False):
+                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
+
+                    result = chain_manager.add_block(block_1)
+
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
+
     def test_add_block(self):
         """
         Testing add_block, with fork logic
