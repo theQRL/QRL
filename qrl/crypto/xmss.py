@@ -10,15 +10,15 @@ class XMSS(object):
     @staticmethod
     def from_extended_seed(extended_seed: bytes):
         if len(extended_seed) != 51:
-            raise Exception('Extended seed should be 50 bytes long')
+            raise Exception('Extended seed should be 51 bytes long')
 
-        descr = QRLDescriptor.fromBytes(extended_seed[0], extended_seed[1])
+        descr = QRLDescriptor.fromBytes(extended_seed[0], extended_seed[1], extended_seed[2])
         if descr.getSignatureType() != pyqrllib.XMSS:
             raise Exception('Signature type nor supported')
 
         height = descr.getHeight()
         hash_function = descr.getHashFunction()
-        tmp = XmssFast(extended_seed[2:], height, hash_function)
+        tmp = XmssFast(extended_seed[3:], height, hash_function)
         return XMSS(tmp)
 
     @staticmethod
@@ -45,12 +45,12 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
         >>> bin2hstr( tmp._xmss.getPK() )
-        '0002eb0372d56b886645e7c036b480be95ed97bc431b4e828befd4162bf432858df83191da3442686282b3d5160f25cf162a517fd2131f83fbf2698a58f9c46afc5d'
+        '000200eb0372d56b886645e7c036b480be95ed97bc431b4e828befd4162bf432858df83191da3442686282b3d5160f25cf162a517fd2131f83fbf2698a58f9c46afc5d'
 
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
         >>> len( tmp._xmss.getPK() )
-        66
+        67
 
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
@@ -85,7 +85,7 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
         >>> bin2hstr(tmp._xmss.getAddress())
-        '0002e4b1da78e5bc64632506135301f67b22bebeea46f74c37eb5379bd7602a8e0d1b53ff966'
+        '00020096e5c065cf961565169e795803c1e60f521af7a3ea0326b42aa40c0e75390e5d8f4336de'
         """
         self._xmss = _xmssfast
 
@@ -170,11 +170,11 @@ class XMSS(object):
         :rtype:
 
         >>> from qrl.crypto.doctest_data import *
-        >>> tmp = XMSS.from_extended_seed(hstr2bin(xmss_mnemonic_seed1))
+        >>> tmp = XMSS.from_extended_seed(hstr2bin(xmss_mnemonic_eseed1))
         >>> tmp.mnemonic == xmss_mnemonic_test1
         True
         >>> from qrl.crypto.doctest_data import *
-        >>> tmp = XMSS.from_extended_seed(hstr2bin(xmss_mnemonic_seed2))
+        >>> tmp = XMSS.from_extended_seed(hstr2bin(xmss_mnemonic_eseed2))
         >>> tmp.mnemonic == xmss_mnemonic_test2
         True
         >>> from qrl.crypto.doctest_data import *
@@ -241,13 +241,31 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
         >>> tmp.hexseed
-        '0002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+        '000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
         >>> tmp.hexseed
-        '0002010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
+        '000200010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
         """
         return bin2hstr(self._xmss.getExtendedSeed())
+
+    @property
+    def extended_seed(self):
+        """
+        :return:
+        :rtype:
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp.seed )
+        '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
+        >>> bin2hstr( tmp.extended_seed )
+        '010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
+        """
+        return self._xmss.getSeed()
 
     @property
     def seed(self):

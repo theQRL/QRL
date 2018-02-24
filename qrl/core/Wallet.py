@@ -102,6 +102,10 @@ class Wallet:
         :param seed:
         :return: a wallet address
         """
-        # FIXME: This should be using the extended seed instead
-        xmss = XMSS(XmssFast(seed, signature_tree_height))
+        # FIXME: This should be always using the extended seed instead
+        if seed is None:
+            xmss = XMSS.from_height(signature_tree_height)
+        else:
+            xmss = XMSS(XmssFast(seed, signature_tree_height))
+
         return AddressBundle(bin2hstr(xmss.address).encode(), xmss)
