@@ -11,7 +11,7 @@ QRL addresses are structured in the following way:
 | VERH | 36 .. 40      |   4    | SHA2-256(HASH) (only last 4 bytes)   |
 
 - `PK` is public key
-- `ePK` is the extended public key. This result from the concatenation of the descriptor with the public key (PK)
+- `ePK` is the extended public key, i.e. DESC+PK
 
 **Important**: 
 - Addresses are composed by 37 _bytes_. This is the internal format used in any API or module.
