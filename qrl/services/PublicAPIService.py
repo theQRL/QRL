@@ -1,11 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import traceback
+
 from grpc import StatusCode
 
 from qrl.core import config
 from qrl.core.misc import logger
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, CODEMAP
 from qrl.core.AddressState import AddressState
 from qrl.core.qrlnode import QRLNode
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
@@ -44,8 +46,8 @@ class PublicAPIService(PublicAPIServicer):
         response.block_last_reward = self.qrlnode.block_last_reward
         response.block_time_mean = self.qrlnode.block_time_mean
         response.block_time_sd = self.qrlnode.block_time_sd
-        response.coins_total_supply = self.qrlnode.coin_supply_max
-        response.coins_emitted = self.qrlnode.coin_supply
+        response.coins_total_supply = int(self.qrlnode.coin_supply_max)
+        response.coins_emitted = int(self.qrlnode.coin_supply)
 
         if request.include_timeseries:
             tmp = self.qrlnode.get_block_timeseries(config.dev.block_timeseries_size)
@@ -65,8 +67,7 @@ class PublicAPIService(PublicAPIServicer):
                                          addr_to=request.address_to,
                                          amount=request.amount,
                                          fee=request.fee,
-                                         xmss_pk=request.xmss_pk,
-                                         xmss_ots_index=request.xmss_ots_index)
+                                         xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -74,12 +75,25 @@ class PublicAPIService(PublicAPIServicer):
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
         tx = Transaction.from_pbdata(request.transaction_signed)
-        submitted = self.qrlnode.submit_send_tx(tx)
 
-        # FIXME: Improve response type
-        # Prepare response
         answer = qrl_pb2.PushTransactionResp()
-        answer.some_response = str(submitted)
+
+        try:
+            # FIXME: Full validation takes too much time. At least verify there is a signature
+            # the validation happens later in the tx pool
+            if len(tx.signature) > 1000:
+                self.qrlnode.submit_send_tx(tx)
+                answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
+                tx.update_txhash()
+                answer.tx_hash = tx.txhash
+            else:
+                answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
+
+        except Exception as e:
+            error_str = traceback.format_exception(None, e, e.__traceback__)
+            answer.error_description = str(''.join(error_str))
+            answer.error_code = qrl_pb2.PushTransactionResp.ERROR
+
         return answer
 
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
@@ -92,8 +106,7 @@ class PublicAPIService(PublicAPIServicer):
                                            decimals=request.decimals,
                                            initial_balances=request.initial_balances,
                                            fee=request.fee,
-                                           xmss_pk=request.xmss_pk,
-                                           xmss_ots_index=request.xmss_ots_index)
+                                           xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -106,8 +119,7 @@ class PublicAPIService(PublicAPIServicer):
                                                     token_txhash=bin_token_txhash,
                                                     amount=request.amount,
                                                     fee=request.fee,
-                                                    xmss_pk=request.xmss_pk,
-                                                    xmss_ots_index=request.xmss_ots_index)
+                                                    xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -118,8 +130,7 @@ class PublicAPIService(PublicAPIServicer):
                                           slave_pks=request.slave_pks,
                                           access_types=request.access_types,
                                           fee=request.fee,
-                                          xmss_pk=request.xmss_pk,
-                                          xmss_ots_index=request.xmss_ots_index)
+                                          xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -130,8 +141,7 @@ class PublicAPIService(PublicAPIServicer):
                                                         kyber_pk=request.kyber_pk,
                                                         dilithium_pk=request.dilithium_pk,
                                                         fee=request.fee,
-                                                        xmss_pk=request.xmss_pk,
-                                                        xmss_ots_index=request.xmss_ots_index)
+                                                        xmss_pk=request.xmss_pk)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -205,7 +215,7 @@ class PublicAPIService(PublicAPIServicer):
             for blk in self.qrlnode.get_latest_blocks(offset=request.offset, count=quantity):
                 transaction_count = qrl_pb2.TransactionCount()
                 for tx in blk.transactions:
-                    transaction_count.count[tx.type] += 1
+                    transaction_count.count[CODEMAP[tx.WhichOneof('transactionType')]] += 1
 
                 result.append(qrl_pb2.BlockHeaderExtended(header=blk.blockheader.pbdata,
                                                           transaction_count=transaction_count))

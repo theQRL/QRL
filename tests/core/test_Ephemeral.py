@@ -6,6 +6,7 @@ from unittest import TestCase
 from mock import mock, Mock, MagicMock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
+from pyqrllib.pyqrllib import XmssFast
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
@@ -33,7 +34,7 @@ class TestEphemeral(TestCase):
     def test_init(self):
         # TODO: Not much going on here..
         block = Block()
-        self.assertIsNotNone(block)             # just to avoid warnings
+        self.assertIsNotNone(block)  # just to avoid warnings
 
     def test_add_4(self):
         with set_data_dir('no_data'):
@@ -49,7 +50,7 @@ class TestEphemeral(TestCase):
                         chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                         alice_xmss = get_alice_xmss()
-                        slave_xmss = XMSS(alice_xmss.height, alice_xmss.get_seed())
+                        slave_xmss = XMSS(XmssFast(alice_xmss.seed, alice_xmss.height))
                         random_xmss1 = get_random_xmss()
                         random_kyber1 = Kyber()
                         random_dilithium1 = Dilithium()
@@ -61,33 +62,32 @@ class TestEphemeral(TestCase):
                         prf512_seed = b'10192'
 
                         custom_genesis.genesis_balance.extend(
-                            [qrl_pb2.GenesisBalance(address=random_xmss1.get_address(), balance=65000000000000000)])
+                            [qrl_pb2.GenesisBalance(address=random_xmss1.address, balance=65000000000000000)])
                         custom_genesis.genesis_balance.extend(
-                            [qrl_pb2.GenesisBalance(address=random_xmss2.get_address(), balance=65000000000000000)])
+                            [qrl_pb2.GenesisBalance(address=random_xmss2.address, balance=65000000000000000)])
                         chain_manager.load(custom_genesis)
 
                         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                             time_mock.return_value = 1615270948
 
-                            lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.get_address(),
+                            lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.address,
                                                                              fee=1,
                                                                              kyber_pk=random_kyber1.getPK(),
                                                                              dilithium_pk=random_dilithium1.getPK(),
-                                                                             xmss_pk=random_xmss1.pk())
+                                                                             xmss_pk=random_xmss1.pk)
                             lattice_public_key_txn._data.nonce = 1
                             lattice_public_key_txn.sign(random_xmss1)
 
-                            tmp_block1 = Block.create(mining_nonce=20,
-                                                      block_number=1,
+                            tmp_block1 = Block.create(block_number=1,
                                                       prevblock_headerhash=GenesisBlock().headerhash,
                                                       transactions=[lattice_public_key_txn],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=1)
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block1, False):
-                                tmp_block1.set_mining_nonce(tmp_block1.mining_nonce+1)
+                                tmp_block1.set_mining_nonce(tmp_block1.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block1)
                             self.assertTrue(res)
@@ -98,7 +98,7 @@ class TestEphemeral(TestCase):
                             encrypted_eph_message = create_ephemeral_channel(msg_id=lattice_public_key_txn.txhash,
                                                                              ttl=time_mock.return_value,
                                                                              ttr=0,
-                                                                             addr_from=random_xmss2.get_address(),
+                                                                             addr_from=random_xmss2.address,
                                                                              kyber_pk=random_kyber2.getPK(),
                                                                              kyber_sk=random_kyber2.getSK(),
                                                                              receiver_kyber_pk=random_kyber1.getPK(),
@@ -127,17 +127,16 @@ class TestEphemeral(TestCase):
 
                             # TODO (cyyber): Add Ephemeral Testing code using Naive RNG
 
-                            tmp_block2 = Block.create(mining_nonce=20,
-                                                      block_number=2,
+                            tmp_block2 = Block.create(block_number=2,
                                                       prevblock_headerhash=tmp_block1.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=2)
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block2, False):
-                                tmp_block2.set_mining_nonce(tmp_block2.mining_nonce+1)
+                                tmp_block2.set_mining_nonce(tmp_block2.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block2)
                             self.assertTrue(res)
@@ -145,45 +144,44 @@ class TestEphemeral(TestCase):
                             # Need to move forward the time to align with block times
                             time_mock.return_value += config.dev.minimum_minting_delay * 2
 
-                            tmp_block3 = Block.create(mining_nonce=15,
-                                                      block_number=3,
+                            tmp_block3 = Block.create(block_number=3,
                                                       prevblock_headerhash=tmp_block2.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=3)
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block3, False):
-                                tmp_block3.set_mining_nonce(tmp_block3.mining_nonce+1)
+                                tmp_block3.set_mining_nonce(tmp_block3.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block3)
                             self.assertTrue(res)
 
                             time_mock.return_value += config.dev.minimum_minting_delay
 
-                            tmp_block4 = Block.create(mining_nonce=20,
-                                                      block_number=4,
+                            tmp_block4 = Block.create(block_number=4,
                                                       prevblock_headerhash=tmp_block3.headerhash,
                                                       transactions=[],
                                                       signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.get_address(),
+                                                      master_address=slave_xmss.address,
                                                       nonce=4)
 
                             #  Mine the nonce
                             while not chain_manager.validate_mining_nonce(tmp_block4, False):
-                                tmp_block4.set_mining_nonce(tmp_block4.mining_nonce+1)
+                                tmp_block4.set_mining_nonce(tmp_block4.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block4)
                             self.assertTrue(res)
 
-                            address_state = chain_manager.get_address(random_xmss1.get_address())
+                            address_state = chain_manager.get_address(random_xmss1.address)
 
                             self.assertEqual(address_state.latticePK_list[0].kyber_pk, lattice_public_key_txn.kyber_pk)
                             self.assertEqual(address_state.latticePK_list[0].dilithium_pk,
                                              lattice_public_key_txn.dilithium_pk)
+
                             self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
 
-                            random_xmss1_state = chain_manager.get_address(random_xmss1.get_address())
+                            random_xmss1_state = chain_manager.get_address(random_xmss1.address)
 
                             self.assertEqual(64999999999999999, random_xmss1_state.balance)

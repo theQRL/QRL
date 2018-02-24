@@ -1,285 +1,305 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin, XmssFast  # noqa
+from pyqrllib import pyqrllib
+from pyqrllib.pyqrllib import bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin  # noqa
+from pyqrllib.pyqrllib import XmssFast, QRLDescriptor
 
 
 class XMSS(object):
-    # FIXME: Getters are only temporarily. Delete everything or use properties
-    def __init__(self, tree_height, seed=None, _xmssfast=None):
+    @staticmethod
+    def from_extended_seed(extended_seed: bytes):
+        if len(extended_seed) != 51:
+            raise Exception('Extended seed should be 51 bytes long')
+
+        descr = QRLDescriptor.fromBytes(extended_seed[0], extended_seed[1], extended_seed[2])
+        if descr.getSignatureType() != pyqrllib.XMSS:
+            raise Exception('Signature type nor supported')
+
+        height = descr.getHeight()
+        hash_function = descr.getHashFunction()
+        tmp = XmssFast(extended_seed[3:], height, hash_function)
+        return XMSS(tmp)
+
+    @staticmethod
+    def from_height(tree_height: int):
+        seed = getRandomSeed(48, '')
+        return XMSS(XmssFast(seed, tree_height, pyqrllib.SHAKE_128))
+
+    def __init__(self, _xmssfast):
         """
         :param
         tree_height: height of the tree to generate. number of OTS keypairs=2**tree_height
-        :param seed:
+        :param _xmssfast:
 
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getHeight()
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.height
         4
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getSecretKeySize()
-        132
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getSignatureSize()
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp._xmss.getSignatureSize()
         2308
-        >>> from qrl.crypto.doctest_data import *; len(XMSS(4, xmss_test_seed1)._xmss.getSK()) == XMSS(4, xmss_test_seed1)._xmss.getSecretKeySize()
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp._xmss.getPK() )
+        '000200eb0372d56b886645e7c036b480be95ed97bc431b4e828befd4162bf432858df83191da3442686282b3d5160f25cf162a517fd2131f83fbf2698a58f9c46afc5d'
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> len( tmp._xmss.getPK() )
+        67
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp._xmss.getSK() ) == xmss_sk_expected1
         True
 
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getPK() )
-        '26b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getSK() ) == xmss_sk_expected1
-        True
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getRoot() )
-        '26b3bcc104d686ecfd9fdea7b1963384339121430fbe056cab7c3048ea3e4c4e'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getPKSeed() )
-        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getIndex()
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp._xmss.getRoot() )
+        'eb0372d56b886645e7c036b480be95ed97bc431b4e828befd4162bf432858df8'
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp._xmss.getPKSeed() )
+        '3191da3442686282b3d5160f25cf162a517fd2131f83fbf2698a58f9c46afc5d'
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp._xmss.getIndex()
         0
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getSKSeed() )
-        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1)._xmss.getSKPRF() )
-        '3aa40c0f99459afe7efe72eb9517ee8ded49ccd51dab72ebf6bc37d73240bb3a'
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1)._xmss.getAddress('Q')
-        'Q1d651431536359202ce7095757e3ed66f579a6eab488ac1331486f207c91604016b6a443'
 
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2)._xmss.getPK() )         # doctest: +SKIP
-        ''
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp._xmss.getSKSeed() )
+        'eda313c95591a023a5b37f361c07a5753a92d3d0427459f34c7895d727d62816'
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp._xmss.getSKPRF() )
+        'b3aa2224eb9d823127d4f9f8a30fd7a1a02c6483d9c0f1fd41957b9ae4dfc63a'
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr(tmp._xmss.getAddress())
+        '00020096e5c065cf961565169e795803c1e60f521af7a3ea0326b42aa40c0e75390e5d8f4336de'
         """
-
-        self._type = 'XMSS'
-
-        if _xmssfast is not None:
-            self._xmss = _xmssfast
-            self._seed = self._xmss.getSeed()
-        else:
-            # TODO: This is the old code, probably it should be removed
-
-            if seed is None:
-                # FIXME: Improve seed generation
-                self._seed = getRandomSeed(48, '')
-            else:
-                if isinstance(seed, str):
-                    self._seed = str2bin(seed)
-                else:
-                    self._seed = seed
-
-            self._xmss = XmssFast(self._seed, tree_height)
-
-        self.addresses = [(0, self.get_address(), self.get_number_signatures())]
+        self._xmss = _xmssfast
 
     @property
     def height(self):
         return self._xmss.getHeight()
 
+    @property
     def _sk(self):
-        # FIXME: Move to property
         """
-        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1)._sk()) == xmss_sk_expected1
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> len(tmp._sk)
+        132
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr(tmp._sk) == xmss_sk_expected1
         True
-        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2)._sk()) == xmss_sk_expected2
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
+        >>> bin2hstr(tmp._sk) == xmss_sk_expected2
         True
         """
         return bytes(self._xmss.getSK())
 
+    @property
     def pk(self):
-        # FIXME: Move to property
         """
-        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1).pk()) == xmss_pk_expected1
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr(tmp.pk) == xmss_pk_expected1
         True
-        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2).pk()) == xmss_pk_expected2
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr(tmp.pk) == xmss_pk_expected2
         True
         """
         return bytes(self._xmss.getPK())
 
-    def get_number_signatures(self):
-        # FIXME: Move to property
+    @property
+    def number_signatures(self) -> int:
+        """
+        Returns the number of signatures in the XMSS tree
+        :return:
+        :rtype:
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.number_signatures
+        16
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.number_signatures
+        16
+        """
+        return self._xmss.getNumberSignatures()
+
+    @property
+    def remaining_signatures(self):
+        """
+        Returns the number of remaining signatures in the XMSS tree
+        :return:
+        :rtype:
+
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.remaining_signatures
+        16
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.remaining_signatures
+        16
+        """
+        return self._xmss.getRemainingSignatures()
+
+    @property
+    def mnemonic(self) -> str:
         """
         :return:
         :rtype:
 
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_number_signatures()
-        16
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_number_signatures()
-        16
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(hstr2bin(xmss_mnemonic_eseed1))
+        >>> tmp.mnemonic == xmss_mnemonic_test1
+        True
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(hstr2bin(xmss_mnemonic_eseed2))
+        >>> tmp.mnemonic == xmss_mnemonic_test2
+        True
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(mnemonic2bin(xmss_mnemonic_test1))
+        >>> tmp.mnemonic == xmss_mnemonic_test1
+        True
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(mnemonic2bin(xmss_mnemonic_test2))
+        >>> tmp.mnemonic == xmss_mnemonic_test2
+        True
         """
-        # type: () -> int
-        return 2 ** self._xmss.getHeight()
+        return bin2mnemonic(self._xmss.getExtendedSeed())
 
-    def get_remaining_signatures(self):
-        # FIXME: Move to property
+    @property
+    def address(self) -> bytes:
+        return bytes(self._xmss.getAddress())
+
+    @property
+    def ots_index(self) -> int:
         """
         :return:
         :rtype:
 
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_remaining_signatures()
-        16
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_remaining_signatures()
-        16
-        """
-        return self.get_number_signatures() - self._xmss.getIndex()
-
-    def get_mnemonic(self):
-        # FIXME: Move to property
-        """
-        :return:
-        :rtype:
-
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, hstr2bin(xmss_mnemonic_seed1)).get_mnemonic() == xmss_mnemonic_test1
-        True
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, hstr2bin(xmss_mnemonic_seed2)).get_mnemonic() == xmss_mnemonic_test2
-        True
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test1)).get_mnemonic() == xmss_mnemonic_test1
-        True
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, mnemonic2bin(xmss_mnemonic_test2)).get_mnemonic() == xmss_mnemonic_test2
-        True
-        """
-        return bin2mnemonic(self._xmss.getSeed())
-
-    def get_address(self)->bytes:
-        # FIXME: Move to property
-        return bytes(self._xmss.getAddress('Q').encode())
-
-    def get_type(self):
-        # FIXME: Move to property
-        # type: () -> str
-        return self._type
-
-    def get_index(self):
-        # FIXME: Move to property
-        """
-        :return:
-        :rtype:
-
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_index()
-        0
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_index()
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.ots_index
         0
         >>> from qrl.crypto.doctest_data import *
-        >>> xmss = XMSS(4, xmss_test_seed2)
-        >>> s = xmss.SIGN(str2bin("test"))
-        >>> xmss.get_index()
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.ots_index
+        0
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> s = tmp.sign(str2bin("test"))
+        >>> tmp.ots_index
         1
         """
-        # type: () -> int
         return self._xmss.getIndex()
 
-    def set_index(self, new_index):
+    def set_ots_index(self, new_index):
         """
         :return:
         :rtype:
 
         >>> from qrl.crypto.doctest_data import *
-        >>> xmss = XMSS(4, xmss_test_seed1)
-        >>> xmss.set_index(1)
-        >>> xmss.get_index()
+        >>> xmss = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> xmss.set_ots_index(1)
+        >>> xmss.ots_index
         1
         >>> from qrl.crypto.doctest_data import *
-        >>> xmss = XMSS(4, xmss_test_seed1)
-        >>> xmss.set_index(10)
-        >>> xmss.get_index()
+        >>> xmss = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> xmss.set_ots_index(10)
+        >>> xmss.ots_index
         10
         """
         self._xmss.setIndex(new_index)
 
-    def get_hexseed(self):
-        # FIXME: Move to property
+    @property
+    def hexseed(self) -> str:
         """
         :return:
         :rtype:
 
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed1).get_hexseed()
-        '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
-        >>> from qrl.crypto.doctest_data import *; XMSS(4, xmss_test_seed2).get_hexseed()
-        '333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331'
-        """
-        return bin2hstr(self._seed)
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> tmp.hexseed
+        '000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
-    def get_seed(self):
-        # FIXME: Move to property
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
+        >>> tmp.hexseed
+        '000200010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
         """
-        :return:
-        :rtype:
+        return bin2hstr(self._xmss.getExtendedSeed())
 
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1).get_seed() )
-        '303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed() )
-        '333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331'
-        """
-        return self._seed
-
-    def get_seed_public(self):
-        # FIXME: Move to property
+    @property
+    def extended_seed(self):
         """
         :return:
         :rtype:
 
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1).get_seed_private() )
-        '5f2eb95ccf6a0e3e7f472c32d234340c20b3fd379dc28b710affcc0cb2afa57b'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_private() )
-        'ad70ef34f316aaadcbf16a64b1b381db731eb53d833745c0d3eaa1e24cf728a2'
-        """
-        return bytes(self._xmss.getPKSeed())
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp.seed )
+        '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
-    def get_seed_private(self):
-        # FIXME: Move to property
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
+        >>> bin2hstr( tmp.extended_seed )
+        '010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
+        """
+        return self._xmss.getSeed()
+
+    @property
+    def seed(self):
         """
         :return:
         :rtype:
 
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed1).get_seed_public() )
-        '51ec21420dd061739e4637fd74517a46f86f89e0fb83f2526fafafe356e564ff'
-        >>> from qrl.crypto.doctest_data import *; bin2hstr( XMSS(4, xmss_test_seed2).get_seed_public() )
-        'df2355c48096f2351e4d04db57b326c355345552d31b75a65ac18b1f6d7c7875'
-        """
-        return bytes(self._xmss.getSKSeed())
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr( tmp.seed )
+        '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
-    @staticmethod
-    # NOTE: USED EXTERNALLY!!!
-    def VERIFY(message: bytes, signature: bytes, pk: bytes):
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
+        >>> bin2hstr( tmp.seed )
+        '010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
         """
-        Verify an xmss sig with shorter PK
-        same function but verifies using shorter signature where PK: {root, hex(_public_SEED)}
-        # main verification function..
-        :param pk:
-        :type pk:
-        :param message:
-        :param signature:
-        :return:
+        return self._xmss.getSeed()
 
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1))
-        True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected1), hstr2bin(xmss_pk_expected1))
-        False
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_message"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2))
-        True
-        >>> from qrl.crypto.doctest_data import *; XMSS.VERIFY( str2bin("test_messagex"), hstr2bin(xmss_sign_expected2), hstr2bin(xmss_pk_expected2))
-        False
-        """
-        try:
-            return XmssFast.verify(message, signature, pk)
-        except ValueError:
-            return False
-
-    def SIGN(self, message):
-        # type: (bytes) -> bytes
+    def sign(self, message: bytes) -> bytes:
         """
         :param message:
         :return:
 
-        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed1).SIGN(str2bin("test_message"))) == xmss_sign_expected1
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed1)
+        >>> bin2hstr(tmp.sign(str2bin("test_message"))) == xmss_sign_expected1
         True
-        >>> from qrl.crypto.doctest_data import *; bin2hstr(XMSS(4, xmss_test_seed2).SIGN(str2bin("test_message"))) == xmss_sign_expected2
+        >>> from qrl.crypto.doctest_data import *
+        >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
+        >>> bin2hstr(tmp.sign(str2bin("test_message"))) == xmss_sign_expected2
         True
         """
         return bytes(self._xmss.sign(message))
-
-    def list_addresses(self):
-        """
-        List the addresses derived in the main tree
-        :return:
-
-        """
-        addr_arr = []
-        for addr in self.addresses:
-            addr_arr.append(addr[1])
-
-        return addr_arr
 
 
 if __name__ == "__main__":

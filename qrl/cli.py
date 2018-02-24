@@ -87,7 +87,7 @@ def _select_wallet(ctx, src):
             try:
                 # FIXME: This should only return pk and index
                 ab = wallet.address_bundle[int(src)]
-                return ab.address, ab.xmss
+                return bytes(hstr2bin(ab.address.decode())), ab.xmss
             except IndexError:
                 click.echo('Wallet index not found', color='yellow')
                 quit(1)
@@ -95,11 +95,11 @@ def _select_wallet(ctx, src):
         elif src.startswith('Q'):
             for i, addr in enumerate(wallet.addresses):
                 if src.encode() == addr:
-                    return wallet.address_bundle[i].address, wallet.address_bundle[i].xmss
+                    return bytes(hstr2bin(wallet.address_bundle[i].address.decode())), wallet.address_bundle[i].xmss
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return src.encode(), None
+        return bytes(hstr2bin(src)), None
     except Exception as e:
         click.echo("Error selecting wallet")
         quit(1)
@@ -264,11 +264,9 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
         if src_xmss:
-            address_src_pk = src_xmss.pk()
-            address_src_otsidx = src_xmss.get_index()
+            address_src_pk = src_xmss.pk
         else:
             address_src_pk = pk.encode()
-            address_src_otsidx = int(otsidx)
 
         address_dst = dst.encode()
         amount_shor = int(amount * 1.e9)
@@ -284,8 +282,7 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
                                                 address_to=address_dst,
                                                 amount=amount_shor,
                                                 fee=fee_shor,
-                                                xmss_pk=address_src_pk,
-                                                xmss_ots_index=address_src_otsidx)
+                                                xmss_pk=address_src_pk)
 
     try:
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
@@ -318,8 +315,8 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         if len(addr_from.strip()) == 0:
             addr_from = address_src
         if src_xmss:
-            address_src_pk = src_xmss.pk()
-            address_src_otsidx = src_xmss.get_index()
+            address_src_pk = src_xmss.pk
+            address_src_otsidx = src_xmss.ots_index
         else:
             address_src_pk = pk.encode()
             address_src_otsidx = int(otsidx)
@@ -341,8 +338,8 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         print("Generating Slave #"+str(i+1))
         xmss = XMSS(config.dev.xmss_tree_height)
         slave_xmss.append(xmss)
-        slave_xmss_seed.append(xmss.get_seed())
-        slave_pks.append(xmss.pk())
+        slave_xmss_seed.append(xmss.seed)
+        slave_pks.append(xmss.pk)
         access_types.append(access_type)
         print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
 
@@ -361,7 +358,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         tx = Transaction.from_pbdata(slaveTxnResp.transaction_unsigned)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
-            json.dump([src_xmss.get_address(), slave_xmss_seed, tx.to_json()], f)
+            json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
         click.echo('Successfully created slaves.json')
         click.echo('Move slaves.json file from current directory to the mining node inside ~/.qrl/')
     except grpc.RpcError as e:
@@ -431,7 +428,7 @@ def tx_push(ctx, txblob):
     tmp_json = tx.to_json()
     # FIXME: binary fields are represented in base64. Improve output
     print(tmp_json)
-    if (len(tx.signature) == 0):
+    if len(tx.signature) == 0:
         click.echo('Signature missing')
         quit(1)
 
@@ -447,8 +444,9 @@ def tx_push(ctx, txblob):
 @click.option('--dst', default='', prompt=True, help='destination QRL address')
 @click.option('--amount', default=0.0, prompt=True, help='amount to transfer in Quanta')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_transfer(ctx, src, dst, amount, fee):
+def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
     """
     Transfer coins from src to dst
     """
@@ -462,13 +460,13 @@ def tx_transfer(ctx, src, dst, amount, fee):
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
-        address_src_otsidx = src_xmss.get_index()
-        address_dst = dst.encode()
+        address_src_pk = src_xmss.pk
+        src_xmss.set_ots_index(ots_key_index)
+        address_dst = bytes(hstr2bin(dst[1:]))
         # FIXME: This could be problematic. Check
         amount_shor = int(amount * 1.e9)
         fee_shor = int(fee * 1.e9)
-    except Exception as e:
+    except Exception:
         click.echo("Error validating arguments")
         quit(1)
 
@@ -479,8 +477,7 @@ def tx_transfer(ctx, src, dst, amount, fee):
                                                     address_to=address_dst,
                                                     amount=amount_shor,
                                                     fee=fee_shor,
-                                                    xmss_pk=address_src_pk,
-                                                    xmss_ots_index=address_src_otsidx)
+                                                    xmss_pk=address_src_pk)
 
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
@@ -520,7 +517,8 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         if address == '':
             break
         amount = int(click.prompt('Amount ')) * (10**int(decimals))
-        initial_balances.append(qrl_pb2.AddressAmount(address=address.encode(), amount=amount))
+        initial_balances.append(qrl_pb2.AddressAmount(address=bytes(hstr2bin(address)),
+                                                      amount=amount))
 
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
@@ -528,13 +526,12 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
-        src_xmss.set_index(int(ots_key_index))
-        address_src_otsidx = src_xmss.get_index()
-        address_owner = owner.encode()
+        address_src_pk = src_xmss.pk
+        src_xmss.set_ots_index(int(ots_key_index))
+        address_owner = bytes(hstr2bin(owner[1:]))
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e9)
-    except KeyboardInterrupt as e:
+    except KeyboardInterrupt:
         click.echo("Error validating arguments")
         quit(1)
 
@@ -549,8 +546,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
                                      decimals=decimals,
                                      initial_balances=initial_balances,
                                      fee=fee_shor,
-                                     xmss_pk=address_src_pk,
-                                     xmss_ots_index=address_src_otsidx)
+                                     xmss_pk=address_src_pk)
 
         tx.sign(src_xmss)
 
@@ -586,10 +582,9 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
-        src_xmss.set_index(int(ots_key_index))
-        address_src_otsidx = src_xmss.get_index()
-        address_dst = dst.encode()
+        address_src_pk = src_xmss.pk
+        src_xmss.set_ots_index(int(ots_key_index))
+        address_dst = bytes(hstr2bin(dst[1:]))
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
         amount = int(amount * (10**int(decimals)))
@@ -607,8 +602,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
                                              addr_to=address_dst,
                                              amount=amount,
                                              fee=fee_shor,
-                                             xmss_pk=address_src_pk,
-                                             xmss_ots_index=address_src_otsidx)
+                                             xmss_pk=address_src_pk)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
@@ -724,8 +718,9 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
 @click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
 @click.option('--dilithium-pk', default='', prompt=True, help='dilithium public key')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee):
+def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
     """
     Create Lattice Public Keys Transaction
     """
@@ -742,12 +737,12 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee):
             quit(1)
 
         address_src_pk = src_xmss.pk()
-        address_src_otsidx = src_xmss.get_index()
+        src_xmss.set_ots_index(ots_key_index)
         kyber_pk = kyber_pk.encode()
         dilithium_pk = dilithium_pk.encode()
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e9)
-    except Exception as e:
+    except Exception:
         click.echo("Error validating arguments")
         quit(1)
 
@@ -756,8 +751,7 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee):
                                      fee=fee_shor,
                                      kyber_pk=kyber_pk,
                                      dilithium_pk=dilithium_pk,
-                                     xmss_pk=address_src_pk,
-                                     xmss_ots_index=address_src_otsidx)
+                                     xmss_pk=address_src_pk)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)

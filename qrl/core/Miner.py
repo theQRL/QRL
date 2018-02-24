@@ -5,16 +5,16 @@ import copy
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString, Qryptonight
+from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString
 
 from qrl.core import config
-from qrl.core.State import State
-from qrl.core.Wallet import Wallet
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction
 from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.State import State
+from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction, \
+    MessageTransaction, LatticePublicKey, SlaveTransaction
+from qrl.core.Wallet import Wallet
 from qrl.core.misc import logger
-from qrl.generated import qrl_pb2
 
 
 class Miner(Qryptominer):
@@ -24,7 +24,6 @@ class Miner(Qryptominer):
         self._mining_block = None
         self._slaves = slaves
         self._mining_xmss = None
-        self._dummy_xmss = None
         self._reward_address = None
         self.state = state
         self._difficulty_tracker = DifficultyTracker()
@@ -32,28 +31,18 @@ class Miner(Qryptominer):
         self._mining_thread_count = mining_thread_count
 
     @staticmethod
-    def _get_mining_data(block):
-        input_bytes = [0x00, 0x00, 0x00, 0x00] + list(block.mining_hash)
-        nonce_offset = 0
-        return input_bytes, nonce_offset
-
-    @staticmethod
-    def calc_hash(input_bytes):
-        qn = Qryptonight()
-        return qn.hash(input_bytes)
-
-    def set_unused_ots_key(self, xmss, addr_state, start=0):
+    def set_unused_ots_key(xmss, addr_state, start=0):
         for i in range(start, 2 ** xmss.height):
-            if not Transaction.ots_key_reuse(addr_state, i):
-                xmss.set_index(i)
+            if not addr_state.ots_key_reuse(i):
+                xmss.set_ots_index(i)
                 return True
         return False
 
     def valid_mining_permission(self):
-        if self._master_address == self._mining_xmss.get_address():
+        if self._master_address == self._mining_xmss.address:
             return True
         addr_state = self.state.get_address(self._master_address)
-        access_type = addr_state.get_slave_permission(self._mining_xmss.pk())
+        access_type = addr_state.get_slave_permission(self._mining_xmss.pk)
         if access_type == -1:
             logger.warning('Slave is not authorized yet for mining')
             logger.warning('Added Slave Txn')
@@ -64,8 +53,8 @@ class Miner(Qryptominer):
 
     def get_mining_xmss(self):
         if self._mining_xmss:
-            addr_state = self.state.get_address(self._mining_xmss.get_address())
-            if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.get_index()):
+            addr_state = self.state.get_address(self._mining_xmss.address)
+            if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.ots_index):
                 if self.valid_mining_permission():
                     return self._mining_xmss
             else:
@@ -73,11 +62,11 @@ class Miner(Qryptominer):
             return None
 
         if not self._mining_xmss:
-            self._master_address = self._slaves[0].encode()
+            self._master_address = self._slaves[0]
             unused_ots_found = False
             for slave_seed in self._slaves[1]:
                 xmss = Wallet.get_new_address(seed=slave_seed).xmss
-                addr_state = self.state.get_address(xmss.get_address())
+                addr_state = self.state.get_address(xmss.address)
                 if self.set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
                     self._mining_xmss = xmss
                     unused_ots_found = True
@@ -87,7 +76,7 @@ class Miner(Qryptominer):
                 logger.warning('No OTS-KEY left for mining')
                 return None
 
-        if self._master_address == self._mining_xmss.get_address():
+        if self._master_address == self._mining_xmss.address:
             return self._mining_xmss
 
         if not self.valid_mining_permission():
@@ -104,9 +93,6 @@ class Miner(Qryptominer):
         if not mining_xmss:
             logger.warning('No Mining XMSS Found')
             return
-
-        if not self._dummy_xmss:
-            self._dummy_xmss = Wallet.get_new_address(signature_tree_height=mining_xmss.height).xmss
 
         try:
             self.cancel()
@@ -125,7 +111,9 @@ class Miner(Qryptominer):
                 measurement=measurement,
                 parent_difficulty=parent_difficulty)
 
-            input_bytes, nonce_offset = self._get_mining_data(self._mining_block)
+            mining_blob = self._mining_block.mining_blob
+            nonce_offset = self._mining_block.mining_nonce_offset
+
             logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {}'.format(
                 self._mining_block.block_number,
                 measurement, self._mining_block.timestamp - parent_block.timestamp,
@@ -133,7 +121,7 @@ class Miner(Qryptominer):
                 current_target
             ))
             logger.debug('!!! {}'.format(current_target))
-            self.start(input=input_bytes,
+            self.start(input=mining_blob,
                        nonceOffset=nonce_offset,
                        target=current_target,
                        thread_count=self._mining_thread_count)
@@ -159,14 +147,14 @@ class Miner(Qryptominer):
         # FIXME: Difference between this and create block?????????????
 
         # FIXME: Break encapsulation
-        dummy_block = Block.create(mining_nonce=mining_nonce,
-                                   block_number=last_block.block_number + 1,
+        dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=self._dummy_xmss,
+                                   signing_xmss=signing_xmss,
                                    master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
+        signing_xmss.set_ots_index(signing_xmss.ots_index - 1)
 
         t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
         del tx_pool.transaction_pool[:]
@@ -200,33 +188,33 @@ class Miner(Qryptominer):
             if addr_from_pk:
                 addr_from_pk_state = addresses_state[addr_from_pk]
 
-            if tx.ots_key_reuse(addr_from_pk_state, tx.ots_key):
+            if addr_from_pk_state.ots_key_reuse(tx.ots_key):
                 del t_pool2[txnum]
                 total_txn -= 1
                 continue
 
-            if tx.subtype == qrl_pb2.Transaction.TRANSFER:
+            if isinstance(tx, TransferTransaction):
                 if addresses_state[tx.txfrom].balance < tx.amount + tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s', addresses_state[tx.txfrom].balance,
                                    tx.amount)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.MESSAGE:
+            if isinstance(tx, MessageTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid message tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Free %s', addresses_state[tx.txfrom].balance, tx.fee)
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.TOKEN:
+            if isinstance(tx, TokenTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Fee %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -234,10 +222,10 @@ class Miner(Qryptominer):
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+            if isinstance(tx, TransferTokenTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -262,10 +250,10 @@ class Miner(Qryptominer):
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.LATTICE:
+            if isinstance(tx, LatticePublicKey):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('Lattice TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -273,10 +261,10 @@ class Miner(Qryptominer):
                     total_txn -= 1
                     continue
 
-            if tx.subtype == qrl_pb2.Transaction.SLAVE:
+            if isinstance(tx, SlaveTransaction):
                 if addresses_state[tx.txfrom].balance < tx.fee:
                     logger.warning('Slave TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
-                    logger.warning('subtype: %s', tx.subtype)
+                    logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
                                    addresses_state[tx.txfrom].balance,
                                    tx.fee)
@@ -291,12 +279,11 @@ class Miner(Qryptominer):
             txnum += 1
             block_size += tx.size + config.dev.tx_extra_overhead
 
-        coinbase_nonce = self.state.get_address(signing_xmss.get_address()).nonce
-        if signing_xmss.get_address() in addresses_state:
-            coinbase_nonce = addresses_state[signing_xmss.get_address()].nonce + 1
+        coinbase_nonce = self.state.get_address(signing_xmss.address).nonce
+        if signing_xmss.address in addresses_state:
+            coinbase_nonce = addresses_state[signing_xmss.address].nonce + 1
 
-        block = Block.create(mining_nonce=mining_nonce,
-                             block_number=last_block.block_number + 1,
+        block = Block.create(block_number=last_block.block_number + 1,
                              prevblock_headerhash=last_block.headerhash,
                              transactions=t_pool2,
                              signing_xmss=signing_xmss,

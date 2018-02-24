@@ -279,11 +279,11 @@ class QRLNode:
         if xmss_from is None:
             raise LookupError("The source address does not belong to this wallet/node")
 
-        xmss_pk = xmss_from.pk()
+        xmss_pk = xmss_from.pk
 
         # TODO: Review this
         # Balance validation
-        if xmss_from.get_remaining_signatures() == 1:
+        if xmss_from.remaining_signatures() == 1:
             balance = self.db_state.balance(addr_from)
             if amount + fee < balance:
                 # FIXME: maybe this is too strict?
@@ -380,13 +380,7 @@ class QRLNode:
         if self._chain_manager.tx_pool.is_full_transaction_pool():
             raise ValueError("Transaction Pool is full")
 
-        if tx.subtype in (qrl_pb2.Transaction.TRANSFER,
-                          qrl_pb2.Transaction.LATTICE,
-                          qrl_pb2.Transaction.MESSAGE,
-                          qrl_pb2.Transaction.TOKEN,
-                          qrl_pb2.Transaction.TRANSFERTOKEN,
-                          qrl_pb2.Transaction.SLAVE):
-            self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
+        self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
 
         return True
 
@@ -471,7 +465,7 @@ class QRLNode:
     def get_latest_transactions_unconfirmed(self, offset, count):
         answer = []
         skipped = 0
-        for tx in self._chain_manager.tx_pool.transaction_pool:
+        for tx in self._chain_manager.tx_pool.transaction_pool[-1::-1]:
             if skipped >= offset:
                 answer.append(tx)
                 if len(answer) >= count:

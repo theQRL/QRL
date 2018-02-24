@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import decimal
 from os.path import expanduser
 from qrl import __version__ as version
 
@@ -118,7 +119,8 @@ class DevConfig(object):
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
 
         self.transaction_pool_size = 1000
-        self.max_coin_supply = 105000000
+        self.max_coin_supply = decimal.Decimal(105000000)
+        self.coin_remaning_at_genesis = decimal.Decimal(40000000)
         self.timestamp_error = 5  # Error in second
 
         self.blocks_per_epoch = 100
@@ -126,7 +128,12 @@ class DevConfig(object):
         self.slave_xmss_height = int(ceil(log(self.blocks_per_epoch * 3, 2)))
         self.slave_xmss_height += self.slave_xmss_height % 2
 
-        self.ots_bitfield_size = ceil((2 ** self.xmss_tree_height) / 8)
+        # Maximum number of ots index upto which OTS index should be tracked. Any OTS index above the specified value
+        # will be managed by OTS Counter
+        self.max_ots_tracking_index = 1024                                  #
+        self.mining_nonce_offset = 39
+
+        self.ots_bitfield_size = ceil(self.max_ots_tracking_index / 8)
 
         self.default_nonce = 0
         self.default_account_balance = 100 * (10 ** 9)
@@ -135,7 +142,7 @@ class DevConfig(object):
         self.mining_setpoint_blocktime = 60
         self.genesis_difficulty = 5000
         self.tx_extra_overhead = 15  # 15 bytes
-        self.coinbase_address = b'Q999999999999999999999999999999999999999999999999999999999999999999999999'
+        self.coinbase_address = b'\x01\x03\x00\x08#\x82\xa5/\x8b\xa9\xc2\xd3:\xd8\x07\xc2\xcd\xd5\xbd\x08l,/\xe6<n\xa1;c\r\x12\x80\x89L:9\xe1\xc3\x80'
 
         # Directories and files
         self.db_name = 'state'
@@ -163,7 +170,7 @@ class DevConfig(object):
         # ======================================
         # SHOR PER QUANTA / MAX ALLOWED DECIMALS
         # ======================================
-        self.shor_per_quanta = 10 ** 9
+        self.shor_per_quanta = decimal.Decimal(10 ** 9)
 
         # ======================================
         #            P2P SETTINGS

@@ -13,7 +13,7 @@ from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Block import Block
 from qrl.core.misc import logger, db
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, CoinBase
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.EphemeralMetadata import EphemeralMetadata
@@ -32,10 +32,10 @@ class StateLoader:
         self._data = qrl_pb2.StateLoader()
         try:
             json_data = self._db.get_raw(b'state' + self.state_code)
-            if json_data:
-                Parse(json_data, self._data)
+            Parse(json_data, self._data)
         except KeyError:
-            pass
+            self._db.put(self.state_code + b'last_txn', [])
+            self._db.put(self.state_code + b'total_coin_supply', 0)
 
     @property
     def block_number(self):
@@ -144,7 +144,7 @@ class StateLoader:
 
         for protobuf_txn in block.transactions[-20:]:
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.subtype == qrl_pb2.Transaction.COINBASE:
+            if isinstance(txn, CoinBase):
                 continue
             last_txn.insert(0, [txn.to_json(),
                                 block.block_number,
@@ -310,7 +310,7 @@ class StateLoader:
         try:
             last_txn = self._db.get(self.state_code + b'last_txn')
             self._db.put(state_loader.state_code + b'last_txn', last_txn, batch)
-            self._db.delete(state_loader.state_code + b'last_txn')
+            self._db.delete(self.state_code + b'last_txn')
         except:  # noqa
             pass
 
@@ -430,7 +430,22 @@ class StateObjects:
 
     def destroy_current_state(self, batch):
         self._current_state.destroy(batch)
-        self._current_state.update_total_coin_supply(self._state_loaders[-1].total_coin_supply)
+        last_state_code = b''
+        if len(self._state_loaders):
+            last_state_code = self._state_loaders[-1].state_code
+
+        # Re initializing required data in current state using previous state
+        try:
+            last_txn = self._db.get(last_state_code + b'last_txn')
+            self._db.put(self._current_state.state_code + b'last_txn', last_txn, batch)
+        except KeyError:
+            logger.warning("[destroy_current_state] Key Error %s", last_state_code + b'last_txn')
+
+        try:
+            total_coin_supply = self._db.get(last_state_code + b'total_coin_supply')
+            self._current_state.update_total_coin_supply(total_coin_supply)
+        except KeyError:
+            logger.warning("[destroy_current_state] Key Error %s", last_state_code + b'total_coin_supply')
 
     def update_last_tx(self, block, batch):
         self._current_state.update_last_tx(block, batch)
@@ -504,9 +519,9 @@ class StateObjects:
                                                 block.timestamp,
                                                 batch)
             # FIXME: Being updated without batch, need to fix,
-            if txn.subtype == qrl_pb2.Transaction.TRANSFERTOKEN:
+            if isinstance(txn, TransferTokenTransaction):
                 self.update_token_metadata(txn)
-            if txn.subtype == qrl_pb2.Transaction.TOKEN:
+            if isinstance(txn, TokenTransaction):
                 self._current_state.create_token_metadata(txn)
 
             StateLoader.increase_txn_count(self._db,
@@ -609,7 +624,7 @@ class State:
             tx.set_effected_address(addresses)
 
         for genesis_balance in GenesisBlock().genesis_balance:
-            bytes_addr = genesis_balance.address.encode()
+            bytes_addr = genesis_balance.address
             if bytes_addr not in addresses:
                 addresses.add(bytes_addr)
 
@@ -639,7 +654,7 @@ class State:
         for address in addresses_state:
             for state_obj_index in range(index, -1, -1):
                 state_object = self.state_objects.get_state_loader_by_index(state_obj_index)
-                addresses_state[address] = state_object.get_address(address)
+                addresses_state[address] = state_object.get_address(bin2hstr(address).encode())
                 if addresses_state[address]:
                     break
             if not addresses_state[address]:
@@ -673,7 +688,7 @@ class State:
             header_hash = block.prev_headerhash
 
         for genesis_balance in GenesisBlock().genesis_balance:
-            bytes_addr = genesis_balance.address.encode()
+            bytes_addr = genesis_balance.address
             if not addresses_state[bytes_addr]:
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance

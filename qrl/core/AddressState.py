@@ -5,6 +5,8 @@
 from copy import deepcopy
 from collections import defaultdict
 
+from pyqrllib.pyqrllib import QRLHelper
+
 from qrl.core import config
 from qrl.generated import qrl_pb2
 
@@ -51,6 +53,10 @@ class AddressState(object):
         return self._data.ots_bitfield
 
     @property
+    def ots_counter(self):
+        return self._data.ots_counter
+
+    @property
     def transaction_hashes(self):
         return self._data.transaction_hashes
 
@@ -63,13 +69,20 @@ class AddressState(object):
         return self._data.slave_pks_access_type
 
     @staticmethod
-    def create(address: bytes, nonce: int, balance: int, ots_bitfield: list, tokens: dict, slave_pks_access_type: dict):
+    def create(address: bytes,
+               nonce: int,
+               balance: int,
+               ots_bitfield: list,
+               tokens: dict,
+               slave_pks_access_type: dict,
+               ots_counter: int):
         address_state = AddressState()
 
         address_state._data.address = address
         address_state._data.nonce = nonce
         address_state._data.balance = balance
         address_state._data.ots_bitfield.extend(ots_bitfield)
+        address_state._data.ots_counter = ots_counter
 
         for token_txhash in tokens:
             address_state.tokens[token_txhash] = tokens[token_txhash]
@@ -106,23 +119,39 @@ class AddressState(object):
                                             balance=config.dev.default_account_balance,
                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
                                             tokens=dict(),
-                                            slave_pks_access_type=dict())
+                                            slave_pks_access_type=dict(),
+                                            ots_counter=0)
         if address == config.dev.coinbase_address:
-            address_state.balance = config.dev.max_coin_supply * config.dev.shor_per_quanta
+            address_state.balance = int(config.dev.max_coin_supply * config.dev.shor_per_quanta)
         return address_state
+
+    def ots_key_reuse(self, ots_key_index):
+        if ots_key_index < config.dev.max_ots_tracking_index:
+            offset = ots_key_index >> 3
+            relative = ots_key_index % 8
+            bitfield = bytearray(self.ots_bitfield[offset])
+            bit_value = (bitfield[0] >> relative) & 1
+
+            if bit_value:
+                return True
+        else:
+            if ots_key_index > self._data.ots_counter:
+                return True
+
+        return False
+
+    def set_ots_key(self, ots_key_index):
+        if ots_key_index < config.dev.max_ots_tracking_index:
+            offset = ots_key_index >> 3
+            relative = ots_key_index % 8
+            bitfield = bytearray(self._data.ots_bitfield[offset])
+            self._data.ots_bitfield[offset] = bytes([bitfield[0] | (1 << relative)])
+        else:
+            self._data.ots_counter = ots_key_index
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
-        if len(address) != 73:
+        if not QRLHelper.addressIsValid(address):
             return False
-
-        if address[0] != ord('Q'):
-            return False
-
-        hex_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-
-        for index in range(1, len(address)):
-            if chr(address[index]) not in hex_chars:
-                return False
 
         return True

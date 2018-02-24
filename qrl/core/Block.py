@@ -70,8 +70,12 @@ class Block(object):
         return self.blockheader.timestamp
 
     @property
-    def mining_hash(self):
-        return self.blockheader.mining_hash
+    def mining_blob(self)->bytes:
+        return self.blockheader.mining_blob
+
+    @property
+    def mining_nonce_offset(self)->bytes:
+        return self.blockheader.nonce_offset
 
     @staticmethod
     def from_json(json_data):
@@ -87,8 +91,7 @@ class Block(object):
         return MessageToJson(self._data)
 
     @staticmethod
-    def create(mining_nonce: int,
-               block_number: int,
+    def create(block_number: int,
                prevblock_headerhash: bytes,
                transactions: list,
                signing_xmss: XMSS,
@@ -113,8 +116,7 @@ class Block(object):
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
-                                             mining_nonce=mining_nonce,
-                                             PK=signing_xmss.pk(),
+                                             PK=signing_xmss.pk,
                                              prev_blockheaderhash=prevblock_headerhash,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)

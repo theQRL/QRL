@@ -5,14 +5,13 @@
 		"merkle_root": "X+zrZv/IbzjZUnhsbWlsecLbwjndTpG0ZynXOif7V+k=",
 		"PK": "",
 		"block_number": "0",
-		"epoch": "0",
 		"reward_block": "0",
 		"reward_fee": "0",
 		"mining_nonce": "0"
 	},
 	"transactions": [],
 	"genesis_balance": [{
-		"address": "Q999999999999999999999999999999999999999999999999999999999999999999999999",
+		"address": "AQMACCOCpS+LqcLTOtgHws3VvQhsLC/mPG6hO2MNEoCJTDo54cOA",
 		"balance": "105000000000000000"
 	}]
 }

@@ -13,7 +13,7 @@ from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
@@ -64,7 +64,7 @@ class ChainManager:
             self.state.put_block_metadata(genesis_block.headerhash, block_metadata, None)
             addresses_state = dict()
             for genesis_balance in GenesisBlock().genesis_balance:
-                bytes_addr = genesis_balance.address.encode()
+                bytes_addr = genesis_balance.address
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance
             self.state.state_objects.update_current_state(addresses_state)
@@ -76,7 +76,6 @@ class ChainManager:
     def validate_mining_nonce(self, block, enable_logging=False):
         parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
         parent_block = self.state.get_block(block.prev_headerhash)
-        input_bytes = StringToUInt256(str(block.mining_nonce))[-4:] + tuple(block.mining_hash)
 
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash, parent_metadata)
         diff, target = self._difficulty_tracker.get(
@@ -89,15 +88,14 @@ class ChainManager:
             logger.debug('block.timestamp %s', block.timestamp)
             logger.debug('parent_block.timestamp %s', parent_block.timestamp)
             logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
-            logger.debug('input_bytes %s', UInt256ToString(input_bytes))
             logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
             logger.debug('-------------------END--------------------')
 
-        if not PoWHelper.verifyInput(input_bytes, target):
+        if not PoWHelper.verifyInput(block.mining_blob, target):
             if enable_logging:
                 logger.warning("PoW verification failed")
                 qn = Qryptonight()
-                tmp_hash = qn.hash(input_bytes)
+                tmp_hash = qn.hash(block.mining_blob)
                 logger.warning("{}".format(tmp_hash))
                 logger.debug('%s', block.to_json())
             return False
@@ -111,15 +109,14 @@ class ChainManager:
             return False
 
         coinbase_tx = Transaction.from_pbdata(block.transactions[0])
-        coinbase_tx.validate()
 
-        if not self.validate_mining_nonce(block):
-            return False
-
-        if coinbase_tx.subtype != qrl_pb2.Transaction.COINBASE:
+        if not isinstance(coinbase_tx, CoinBase):
             return False
 
         if not coinbase_tx.validate():
+            return False
+
+        if not self.validate_mining_nonce(block):
             return False
 
         coinbase_tx.apply_on_state(address_txn)
@@ -130,8 +127,7 @@ class ChainManager:
             addr_from_pk_state = address_txn[addr_from_pk]
 
         if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txto],
-                                             addr_from_pk_state,
-                                             []):
+                                             addr_from_pk_state):
             return False
 
         # TODO: check block reward must be equal to coinbase amount
@@ -139,7 +135,7 @@ class ChainManager:
         for tx_idx in range(1, len_transactions):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
 
-            if tx.subtype == qrl_pb2.Transaction.COINBASE:
+            if isinstance(tx, CoinBase):
                 return False
 
             if not tx.validate():  # TODO: Move this validation, before adding txn to pool
@@ -150,20 +146,20 @@ class ChainManager:
             if addr_from_pk:
                 addr_from_pk_state = address_txn[addr_from_pk]
 
-            if not tx.validate_extended(address_txn[tx.txfrom], addr_from_pk_state, []):
+            if not tx.validate_extended(address_txn[tx.txfrom], addr_from_pk_state):
                 return False
 
             expected_nonce = address_txn[tx.txfrom].nonce + 1
 
             if tx.nonce != expected_nonce:
                 logger.warning('nonce incorrect, invalid tx')
-                logger.warning('subtype: %s', tx.subtype)
+                logger.warning('subtype: %s', tx.type)
                 logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
                 return False
 
-            if tx.ots_key_reuse(address_txn[tx.txfrom], tx.ots_key):
+            if address_txn[tx.txfrom].ots_key_reuse(tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
-                logger.warning('subtype: %s', tx.subtype)
+                logger.warning('subtype: %s', tx.type)
                 return False
 
             tx.apply_on_state(address_txn)
@@ -250,9 +246,9 @@ class ChainManager:
                 del hash_path[-1]  # Skip replaying Genesis Block
                 break
 
-        self.state.state_objects.destroy_current_state(None)
         block = self.state.get_block(hash_path[-1])
         self.state.state_objects.destroy_fork_states(block.block_number, block.headerhash)
+        self.state.state_objects.destroy_current_state(None)
 
         for header_hash in hash_path[-1::-1]:
             block = self.state.get_block(header_hash)

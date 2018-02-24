@@ -4,7 +4,7 @@
 from collections import namedtuple
 from typing import List
 
-from pyqrllib.pyqrllib import mnemonic2bin
+from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr, XmssFast
 
 from qrl.generated import qrl_pb2
 from qrl.core import config
@@ -45,8 +45,8 @@ class Wallet:
         wallets = []
         for a in self.address_bundle:
             wallets.append(qrl_pb2.Wallet(address=a.address,
-                                          mnemonic=a.xmss.get_mnemonic(),
-                                          xmss_index=a.xmss.get_index()))
+                                          mnemonic=a.xmss.mnemonic,
+                                          xmss_index=a.xmss.ots_index))
         wallet_store.wallets.extend(wallets)
 
         with open(self.wallet_dat_filename, "wb") as outfile:
@@ -65,12 +65,12 @@ class Wallet:
 
                 self.address_bundle = []
                 for a in wallet_store.wallets:
-                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a.mnemonic.strip()))
-                    tmpxmss.set_index(a.xmss_index)
-                    if a.address.encode() != tmpxmss.get_address():
+                    tmpxmss = XMSS.from_extended_seed(mnemonic2bin(a.mnemonic.strip()))
+                    tmpxmss.set_ots_index(a.xmss_index)
+                    if a.address != bin2hstr(tmpxmss.address).encode():
                         logger.fatal("Mnemonic and address do not match.")
                         exit(1)
-                    self.address_bundle.append(AddressBundle(tmpxmss.get_address(), tmpxmss))
+                    self.address_bundle.append(AddressBundle(a.address, tmpxmss))
 
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
@@ -89,12 +89,11 @@ class Wallet:
         for addr_bundle in self.address_bundle:
             # FIXME: Linear search?
             if addr_bundle.address == address_to_check:
-                return addr_bundle.xmss.get_remaining_signatures()
+                return addr_bundle.xmss.remaining_signatures()
 
     @staticmethod
     def get_new_address(signature_tree_height=config.dev.xmss_tree_height,
-                        seed=None):
-        # type: (int, str) -> AddressBundle
+                        seed=None) -> AddressBundle:
         """
         Get a new wallet address
         The address format is a list of two items [address, data structure from random_mss call]
@@ -103,5 +102,10 @@ class Wallet:
         :param seed:
         :return: a wallet address
         """
-        xmss = XMSS(tree_height=signature_tree_height, seed=seed)
-        return AddressBundle(xmss.get_address(), xmss)
+        # FIXME: This should be always using the extended seed instead
+        if seed is None:
+            xmss = XMSS.from_height(signature_tree_height)
+        else:
+            xmss = XMSS(XmssFast(seed, signature_tree_height))
+
+        return AddressBundle(bin2hstr(xmss.address).encode(), xmss)

@@ -15,12 +15,10 @@ class TestFormulas(TestCase):
         super(TestFormulas, self).__init__(*args, **kwargs)
 
     def test_calc_coeff(self):
-        # TODO: Verify value and required precision
-        self.assertAlmostEqual(calc_coeff(100, 2), 2.302585092994046, places=10)
+        self.assertEqual(calc_coeff(), Decimal('1.664087503734056374552843909E-7'))
         # TODO: Test more values
 
     def test_remaining_emission(self):
-        # TODO: Verify value and required precision
-        logger.info(remaining_emission(100, 2))
-        self.assertEqual(remaining_emission(100, 2), Decimal('99.99999122'))
+        logger.info(remaining_emission(100))
+        self.assertEqual(remaining_emission(100), Decimal('39999334370536850'))
         # TODO: Test more values

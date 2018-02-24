@@ -53,21 +53,20 @@ class TestPublicAPI2(TestCase):
             block = state.get_block(genesis_block.headerhash)
             self.assertIsNotNone(block)
 
-            slave_tx = SlaveTransaction.create(addr_from=alice_xmss.get_address(),
-                                               slave_pks=[bob_xmss.pk()],
+            slave_tx = SlaveTransaction.create(addr_from=alice_xmss.address,
+                                               slave_pks=[bob_xmss.pk],
                                                access_types=[0],
                                                fee=0,
-                                               xmss_pk=alice_xmss.pk())
+                                               xmss_pk=alice_xmss.pk)
             slave_tx.sign(alice_xmss)
             slave_tx._data.nonce = 2
             self.assertTrue(slave_tx.validate())
 
-            block_1 = Block.create(mining_nonce=10,
-                                   block_number=1,
+            block_1 = Block.create(block_number=1,
                                    prevblock_headerhash=genesis_block.headerhash,
                                    transactions=[slave_tx],
                                    signing_xmss=alice_xmss,
-                                   master_address=alice_xmss.get_address(),
+                                   master_address=alice_xmss.address,
                                    nonce=1)
 
             while not chain_manager.validate_mining_nonce(block_1, False):
@@ -78,20 +77,19 @@ class TestPublicAPI2(TestCase):
             self.assertTrue(result)
             self.assertEqual(chain_manager.last_block, block_1)
 
-            alice_state = chain_manager.get_address(alice_xmss.get_address())
+            alice_state = chain_manager.get_address(alice_xmss.address)
 
             self.assertEqual(len(alice_state.slave_pks_access_type), 1)
-            self.assertTrue(str(bob_xmss.pk()) in alice_state.slave_pks_access_type)
+            self.assertTrue(str(bob_xmss.pk) in alice_state.slave_pks_access_type)
 
             time_mock.return_value = start_time + 120
             ntp_mock.return_value = start_time + 120
 
-            block = Block.create(mining_nonce=15,
-                                 block_number=1,
+            block = Block.create(block_number=1,
                                  prevblock_headerhash=genesis_block.headerhash,
                                  transactions=[],
                                  signing_xmss=bob_xmss,
-                                 master_address=bob_xmss.get_address(),
+                                 master_address=bob_xmss.address,
                                  nonce=1)
 
             while not chain_manager.validate_mining_nonce(block, False):
@@ -108,12 +106,11 @@ class TestPublicAPI2(TestCase):
             time_mock.return_value = start_time + 170
             ntp_mock.return_value = start_time + 170
 
-            block_2 = Block.create(mining_nonce=15,
-                                   block_number=2,
+            block_2 = Block.create(block_number=2,
                                    prevblock_headerhash=block.headerhash,
                                    transactions=[],
                                    signing_xmss=bob_xmss,
-                                   master_address=bob_xmss.get_address(),
+                                   master_address=bob_xmss.address,
                                    nonce=2)
 
             while not chain_manager.validate_mining_nonce(block_2, False):
@@ -127,8 +124,6 @@ class TestPublicAPI2(TestCase):
 
             qrlnode = QRLNode(state, slaves=[])
             qrlnode.set_chain_manager(chain_manager)
-            # qrlnode._p2pfactory = p2p_factory
-            # qrlnode._pow = p2p_factory.pow
 
             service = PublicAPIService(qrlnode)
             request = qrl_pb2.GetStatsReq()

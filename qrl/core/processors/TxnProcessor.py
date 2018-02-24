@@ -45,14 +45,17 @@ class TxnProcessor:
             addr_from_pk_state = self.state.get_address(address=addr_from_pk)
 
         is_valid_state = tx.validate_extended(addr_from_state=addr_from_state,
-                                              addr_from_pk_state=addr_from_pk_state,
-                                              transaction_pool=self.transaction_pool_obj.transaction_pool)
+                                              addr_from_pk_state=addr_from_pk_state)
 
         is_valid_pool_state = tx.validate_transaction_pool(self.transaction_pool_obj.transaction_pool)
 
         if not (is_valid_state and is_valid_pool_state):
             logger.info('>>>TX %s failed state_validate', tx.txhash)
             return False
+
+        for old_tx in self.transaction_pool_obj.transaction_pool:
+            if old_tx.txhash == tx.txhash:
+                return True
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
         self.transaction_pool_obj.add_tx_to_pool(tx)

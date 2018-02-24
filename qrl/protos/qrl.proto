@@ -5,14 +5,6 @@ syntax = "proto3";
 
 package qrl;
 
-// TODO: Avoid using timestamp until the github issue is fixed
-// import "google/protobuf/timestamp.proto";
-message Timestamp
-{
-    int64 seconds = 1;
-    int32 nanos = 2;
-}
-
 ////////////////////////////
 ////////////////////////////
 ////////////////////////////
@@ -168,7 +160,16 @@ message TransferCoinsResp {
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
-    string some_response = 1;
+    enum ResponseCode {
+        UNKNOWN = 0;
+        ERROR = 1;
+        VALIDATION_FAILED = 2;
+        SUBMITTED = 3;
+    }
+
+    ResponseCode error_code = 1;
+    string error_description = 2;
+    bytes tx_hash = 3;
 }
 
 message TokenTxnReq {
@@ -265,7 +266,7 @@ message WalletStore {
 }
 
 message Wallet {
-    string address = 1;        // FIXME move to bytes
+    bytes address = 1;        // FIXME move to bytes
     string mnemonic = 2;
     int32 xmss_index = 3;
 }
@@ -287,6 +288,7 @@ message AddressState {
     map<string, uint64> tokens = 6;
     repeated LatticePK latticePK_list = 7;
     map<string, uint32> slave_pks_access_type = 8;
+    uint64 ots_counter = 9;
 }
 
 message LatticePK {
@@ -302,19 +304,17 @@ message AddressAmount {
 
 message BlockHeader {
     // Header
-    uint64 block_number = 1;
-    uint64 epoch = 2;  // TODO : Discuss as its not Required
-    Timestamp timestamp = 3;  // FIXME: Temporary
+    bytes hash_header = 1;
 
-    bytes hash_header = 4;
-    bytes hash_header_prev = 5;
+    uint64 block_number = 2;
+    uint64 timestamp_seconds = 3;
+    bytes hash_header_prev = 4;
+    uint64 reward_block = 5;
+    uint64 reward_fee = 6;
+    bytes merkle_root = 7;
+    bytes PK = 8;
 
-    uint64 reward_block = 6;
-    uint64 reward_fee = 7;
-
-    bytes merkle_root = 8;
-    uint32 mining_nonce = 9;
-    bytes PK = 10;
+    uint64 mining_nonce = 9;
 }
 
 message BlockHeaderExtended {
@@ -341,7 +341,7 @@ message Block {
 
 message GenesisBalance
 {
-    string address = 1;                     // Address is string only here to increase visibility
+    bytes address = 1;                     // Address is string only here to increase visibility
     uint64 balance = 2;
 }
 
@@ -350,33 +350,21 @@ message BlockMetaDataList {
 }
 
 message Transaction {
-    enum Type {
-        UNKNOWN = 0;
-        TRANSFER = 1;
-        COINBASE = 2;
-        LATTICE = 3;
-        MESSAGE = 4;
-        TOKEN = 5;
-        TRANSFERTOKEN = 6;
-        SLAVE = 7;
-    }
-
-    Type type = 1;
-    bytes addr_from = 2;
-    uint64 fee = 3;
-    bytes public_key = 4;
-    bytes signature = 5;
-    uint64 nonce = 6;
-    bytes transaction_hash = 7;
+    bytes addr_from = 1;            // FIXME: we probably do not need this
+    uint64 fee = 2;
+    bytes public_key = 3;
+    bytes signature = 4;
+    uint64 nonce = 5;
+    bytes transaction_hash = 6;
 
     oneof transactionType {
-        Transfer transfer = 9;
-        CoinBase coinbase = 10;
-        LatticePublicKey latticePK = 11;
-        Message message = 12;
-        Token token = 13;
-        TransferToken transfer_token = 14;
-        Slave slave = 15;
+        Transfer transfer = 7;
+        CoinBase coinbase = 8;
+        LatticePublicKey latticePK = 9;
+        Message message = 10;
+        Token token = 11;
+        TransferToken transfer_token = 12;
+        Slave slave = 13;
     }
 
     //////////
