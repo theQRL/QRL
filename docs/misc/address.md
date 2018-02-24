@@ -53,7 +53,7 @@ In the case of using XMSS. The parameters are used as follows:
 
 | Name | Bits           | Count  |      Description     |
 |------| ------------- |:------:|-----------------------| 
-| HF   | 0 .. 3        |   4    | ANY                   |
+| HF   | 0 .. 3        |   4    | SHA2-256, SHAKE128, SHAKE256 |
 | SIG  | 4 .. 7        |   4    | XMSS                  |
 | P1   | 8 .. 11       |   4    | XMSS Height / 2       |
 | P2   | 12 .. 15      |   4    | Not used          |
