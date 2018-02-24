@@ -65,7 +65,7 @@ class Wallet:
 
                 self.address_bundle = []
                 for a in wallet_store.wallets:
-                    tmpxmss = XMSS(config.dev.xmss_tree_height, mnemonic2bin(a.mnemonic.strip()))
+                    tmpxmss = XMSS.from_extended_seed(mnemonic2bin(a.mnemonic.strip()))
                     tmpxmss.set_ots_index(a.xmss_index)
                     if a.address != bin2hstr(tmpxmss.address).encode():
                         logger.fatal("Mnemonic and address do not match.")

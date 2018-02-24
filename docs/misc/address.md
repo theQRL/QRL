@@ -68,6 +68,3 @@ _Important_: The seed is not enough to reconstruct an address because it does no
 **HexSeed** (102 bytes): Extended seed represented as a hexadecimal number in ASCII characters. This is used for representational purposes and never used in the code or API.
 
 **Mnemonic** (34 words): Each word represents 12-bits. A mnemonic can be converted to an **Extended Seed**
-
-
-
