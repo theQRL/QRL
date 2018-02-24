@@ -160,7 +160,16 @@ message TransferCoinsResp {
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
-    string some_response = 1;
+    enum ResponseCode {
+        UNKNOWN = 0;
+        ERROR = 1;
+        VALIDATION_FAILED = 2;
+        SUBMITTED = 3;
+    }
+
+    ResponseCode error_code = 1;
+    string error_description = 2;
+    bytes tx_hash = 3;
 }
 
 message TokenTxnReq {
@@ -341,7 +350,7 @@ message BlockMetaDataList {
 }
 
 message Transaction {
-    bytes addr_from = 1;
+    bytes addr_from = 1;            // FIXME: we probably do not need this
     uint64 fee = 2;
     bytes public_key = 3;
     bytes signature = 4;

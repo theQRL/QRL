@@ -444,12 +444,12 @@ class TestSimpleTransaction(TestCase):
 
         # Test that specific content was copied over.
         self.assertEqual('0103001d65d7e59aed5efbeae64246e0f3184d7c42411421eb385ba30f2c1c005a85ebc4419cfd',
-                         bin2hstr(tx.txto))
+                         bin2hstr(tx.addr_to))
         self.assertEqual(100, tx.amount)
         self.assertEqual(1, tx.fee)
 
     def test_validate_tx(self):
-        # If we change amount, fee, txfrom, txto, (maybe include xmss stuff) txhash should change.
+        # If we change amount, fee, txfrom, addr_to, (maybe include xmss stuff) txhash should change.
         tx = TransferTransaction.create(addr_from=self.alice.address,
                                         addr_to=self.bob.address,
                                         amount=100,

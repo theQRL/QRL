@@ -1,6 +1,8 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import traceback
+
 from grpc import StatusCode
 
 from qrl.core import config
@@ -73,12 +75,25 @@ class PublicAPIService(PublicAPIServicer):
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
         tx = Transaction.from_pbdata(request.transaction_signed)
-        submitted = self.qrlnode.submit_send_tx(tx)
 
-        # FIXME: Improve response type
-        # Prepare response
         answer = qrl_pb2.PushTransactionResp()
-        answer.some_response = str(submitted)
+
+        try:
+            # FIXME: Full validation takes too much time. At least verify there is a signature
+            # the validation happens later in the tx pool
+            if len(tx.signature) > 1000:
+                self.qrlnode.submit_send_tx(tx)
+                answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
+                tx.update_txhash()
+                answer.tx_hash = tx.txhash
+            else:
+                answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
+
+        except Exception as e:
+            error_str = traceback.format_exception(None, e, e.__traceback__)
+            answer.error_description = str(''.join(error_str))
+            answer.error_code = qrl_pb2.PushTransactionResp.ERROR
+
         return answer
 
     @grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
