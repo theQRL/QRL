@@ -87,7 +87,7 @@ def _select_wallet(ctx, src):
             try:
                 # FIXME: This should only return pk and index
                 ab = wallet.address_bundle[int(src)]
-                return ab.address, ab.xmss
+                return bytes(hstr2bin(ab.address.decode())), ab.xmss
             except IndexError:
                 click.echo('Wallet index not found', color='yellow')
                 quit(1)
@@ -95,7 +95,7 @@ def _select_wallet(ctx, src):
         elif src.startswith('Q'):
             for i, addr in enumerate(wallet.addresses):
                 if src.encode() == addr:
-                    return wallet.address_bundle[i].address, wallet.address_bundle[i].xmss
+                    return bytes(hstr2bin(wallet.address_bundle[i].address.decode())), wallet.address_bundle[i].xmss
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
