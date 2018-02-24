@@ -10,12 +10,14 @@ QRL addresses are structured in the following way:
 | HASH | 3 .. 35       |  32    | SHA2-256(DESC+PK)      |
 | VERH | 36 .. 40      |   4    | SHA2-256(HASH) (only last 4 bytes)   |
 
-- `PK` is public key
-- `ePK` is the extended public key, i.e. DESC+PK
+- `PK` (32 bytes) is public key
+- `ePK` (35 bytes) is the extended public key, i.e. DESC+PK
 
 **Important**: 
 - Addresses are composed by 37 _bytes_. This is the internal format used in any API or module.
 - For representational purposes (i.e. user interface, debugging, logs), it is possible that the address is represented as a hexstring prefixed with Q (75 ascii characters). This is appropriate for user related purposes but will be rejected by the API.
+- It is recommended that block explorer, web-wallet and other components show addresses with the Q prefix to users. 
+- It is possible to determine valid addresses by checking the descriptor and VERH bytes. 
 
 ## Descriptor
 
