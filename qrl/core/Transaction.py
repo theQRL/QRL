@@ -64,6 +64,7 @@ class Transaction(object, metaclass=ABCMeta):
     @staticmethod
     def get_ots_from_signature(signature):
         try:
+            # FIXME: This is incorrect.. can lead to endianness problems
             return int(bin2hstr(signature)[0:8], 16)
         except ValueError:
             raise ValueError('OTS Key Index: First 4 bytes of signature are invalid')
@@ -239,6 +240,8 @@ class TransferTransaction(Transaction):
         return self._data.transfer.amount
 
     def get_hashable_bytes(self):
+        # FIXME: Avoid using strings
+        # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         return sha256(
                        self.addr_from +
                        str(self.fee).encode() +
@@ -340,6 +343,8 @@ class CoinBase(Transaction):
         return self._data.coinbase.block_number
 
     def get_hashable_bytes(self):
+        # FIXME: Avoid using strings
+        # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         return sha256(
                       self.addr_from +
                       str(self.fee).encode() +
@@ -421,6 +426,8 @@ class LatticePublicKey(Transaction):
         return self._data.latticePK.dilithium_pk
 
     def get_hashable_bytes(self):
+        # FIXME: Avoid using strings
+        # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         return sha256(
                        self.addr_from +
                        str(self.fee).encode() +
@@ -586,6 +593,9 @@ class TokenTransaction(Transaction):
         return self._data.token.initial_balances
 
     def get_hashable_bytes(self):
+        # FIXME: Avoid using strings
+        # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
+        # FIXME: Use a separator between fields..
         tmptxhash = sha256(
                             self.addr_from +
                             str(self.fee).encode() +
@@ -736,6 +746,9 @@ class TransferTokenTransaction(Transaction):
         return self._data.transfer_token.amount
 
     def get_hashable_bytes(self):
+        # FIXME: Avoid using strings
+        # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
+        # FIXME: Use a separator between fields..
         return sha256(
                        self.addr_from +
                        str(self.fee).encode() +
