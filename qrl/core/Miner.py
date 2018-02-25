@@ -29,6 +29,7 @@ class Miner(Qryptominer):
         self._difficulty_tracker = DifficultyTracker()
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
         self._mining_thread_count = mining_thread_count
+        self._dummy_xmss = None
 
     @staticmethod
     def set_unused_ots_key(xmss, addr_state, start=0):
@@ -147,14 +148,15 @@ class Miner(Qryptominer):
         # FIXME: Difference between this and create block?????????????
 
         # FIXME: Break encapsulation
+        if not self._dummy_xmss:
+            self._dummy_xmss = Wallet.get_new_address(signature_tree_height=signing_xmss.height)
         dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=signing_xmss,
+                                   signing_xmss=self._dummy_xmss,
                                    master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
-        signing_xmss.set_ots_index(signing_xmss.ots_index - 1)
 
         t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
         del tx_pool.transaction_pool[:]
