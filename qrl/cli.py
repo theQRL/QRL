@@ -311,14 +311,13 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
     """
     try:
         address_src, src_xmss = _select_wallet(ctx, src)
+        src_xmss.set_ots_index(otsidx)
         if len(addr_from.strip()) == 0:
             addr_from = address_src
         if src_xmss:
             address_src_pk = src_xmss.pk
-            address_src_otsidx = src_xmss.ots_index
         else:
             address_src_pk = pk.encode()
-            address_src_otsidx = int(otsidx)
 
         fee_shor = int(fee * 1.e9)
     except Exception as e:
@@ -335,7 +334,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
 
     for i in range(number_of_slaves):
         print("Generating Slave #"+str(i+1))
-        xmss = XMSS(config.dev.xmss_tree_height)
+        xmss = XMSS.from_height(config.dev.xmss_tree_height)
         slave_xmss.append(xmss)
         slave_xmss_seed.append(xmss.seed)
         slave_pks.append(xmss.pk)
@@ -349,8 +348,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
                                       slave_pks=slave_pks,
                                       access_types=access_types,
                                       fee=fee_shor,
-                                      xmss_pk=address_src_pk,
-                                      xmss_ots_index=address_src_otsidx)
+                                      xmss_pk=address_src_pk,)
 
     try:
         slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
