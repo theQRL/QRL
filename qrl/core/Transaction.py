@@ -387,7 +387,11 @@ class CoinBase(Transaction):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.txto)
             return False
 
-        return self.validate()
+        if addr_from_pk_state.ots_key_reuse(self.ots_key):
+            logger.warning('CoinBase Txn: OTS Public key re-use detected %s', self.txhash)
+            return False
+
+        return True
 
     def apply_on_state(self, addresses_state):
         if self.txto in addresses_state:

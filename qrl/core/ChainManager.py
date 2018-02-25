@@ -113,14 +113,6 @@ class ChainManager:
         if not isinstance(coinbase_tx, CoinBase):
             return False
 
-        if not coinbase_tx.validate():
-            return False
-
-        if not self.validate_mining_nonce(block):
-            return False
-
-        coinbase_tx.apply_on_state(address_txn)
-
         addr_from_pk_state = address_txn[coinbase_tx.txto]
         addr_from_pk = Transaction.get_slave(coinbase_tx)
         if addr_from_pk:
@@ -129,6 +121,14 @@ class ChainManager:
         if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txto],
                                              addr_from_pk_state):
             return False
+
+        if not self.validate_mining_nonce(block):
+            return False
+
+        if not coinbase_tx.validate():
+            return False
+
+        coinbase_tx.apply_on_state(address_txn)
 
         # TODO: check block reward must be equal to coinbase amount
 
