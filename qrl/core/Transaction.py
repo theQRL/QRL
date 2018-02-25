@@ -100,10 +100,10 @@ class Transaction(object, metaclass=ABCMeta):
 
     def update_txhash(self):
         self._data.transaction_hash = sha256(
-                                              self.get_hashable_bytes() +
-                                              self.signature +
-                                              self.PK
-                                            )
+            self.get_hashable_bytes() +
+            self.signature +
+            self.PK
+        )
 
     def get_hashable_bytes(self) -> bytes:
         """
@@ -246,7 +246,7 @@ class TransferTransaction(Transaction):
             str(self.fee).encode() +
             self.addr_to +
             str(self.amount).encode()
-                     )
+        )
 
     @staticmethod
     def create(addr_from: bytes, addr_to: bytes, amount, fee, xmss_pk):
@@ -345,13 +345,13 @@ class CoinBase(Transaction):
         # FIXME: Avoid using strings
         # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         return sha256(
-                      self.addr_from +
-                      str(self.fee).encode() +
-                      self.txto +
-                      str(self.amount).encode() +
-                      str(self.block_number).encode() +
-                      self.headerhash
-                      )
+            self.addr_from +
+            str(self.fee).encode() +
+            self.txto +
+            str(self.amount).encode() +
+            str(self.block_number).encode() +
+            self.headerhash
+        )
 
     @staticmethod
     def create(blockheader, xmss, master_address):
@@ -436,11 +436,11 @@ class LatticePublicKey(Transaction):
         # FIXME: Avoid using strings
         # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         return sha256(
-                       self.addr_from +
-                       str(self.fee).encode() +
-                       self.kyber_pk +
-                       self.dilithium_pk
-                     )
+            self.addr_from +
+            str(self.fee).encode() +
+            self.kyber_pk +
+            self.dilithium_pk
+        )
 
     @staticmethod
     def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk):
@@ -510,10 +510,10 @@ class MessageTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-                      self.addr_from +
-                      str(self.fee).encode() +
-                      self.message_hash
-                     )
+            self.addr_from +
+            str(self.fee).encode() +
+            self.message_hash
+        )
 
     @staticmethod
     def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes):
@@ -604,13 +604,13 @@ class TokenTransaction(Transaction):
         # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         # FIXME: Use a separator between fields..
         tmptxhash = sha256(
-                            self.addr_from +
-                            str(self.fee).encode() +
-                            self.symbol +
-                            self.name +
-                            self.owner +
-                            str(self._data.token.decimals).encode()
-                          )
+            self.addr_from +
+            str(self.fee).encode() +
+            self.symbol +
+            self.name +
+            self.owner +
+            str(self._data.token.decimals).encode()
+        )
 
         for initial_balance in self._data.token.initial_balances:
             tmptxhash += initial_balance.address
@@ -706,7 +706,8 @@ class TokenTransaction(Transaction):
             if initial_balance.address == addr_from_pk:
                 addr_from_pk_processed = True
             if initial_balance.address in addresses_state:
-                addresses_state[initial_balance.address].tokens[bin2hstr(self.txhash).encode()] += initial_balance.amount
+                addresses_state[initial_balance.address].tokens[
+                    bin2hstr(self.txhash).encode()] += initial_balance.amount
                 addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
 
         if self.owner in addresses_state and not owner_processed:
@@ -757,12 +758,12 @@ class TransferTokenTransaction(Transaction):
         # Example blob = self.block_number.to_bytes(8, byteorder='big', signed=False)
         # FIXME: Use a separator between fields..
         return sha256(
-                       self.addr_from +
-                       str(self.fee).encode() +
-                       self.token_txhash +
-                       self.txto +
-                       str(self.amount).encode()
-                     )
+            self.addr_from +
+            str(self.fee).encode() +
+            self.token_txhash +
+            self.txto +
+            str(self.amount).encode()
+        )
 
     @staticmethod
     def create(addr_from: bytes,
@@ -812,8 +813,9 @@ class TransferTokenTransaction(Transaction):
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
-                        self.txhash)
+            logger.info(
+                'TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
+                self.txhash)
             return False
 
         return True
@@ -859,9 +861,9 @@ class SlaveTransaction(Transaction):
 
     def get_hashable_bytes(self):
         tmptxhash = sha256(
-                            self.addr_from +
-                            str(self.fee).encode()
-                          )
+            self.addr_from +
+            str(self.fee).encode()
+        )
 
         for index in range(0, len(self.slave_pks)):
             tmptxhash = sha256(tmptxhash + self.slave_pks[index] + str(self.access_types[index]).encode())

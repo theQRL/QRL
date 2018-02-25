@@ -333,7 +333,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         quit(1)
 
     for i in range(number_of_slaves):
-        print("Generating Slave #"+str(i+1))
+        print("Generating Slave #" + str(i + 1))
         xmss = XMSS.from_height(config.dev.xmss_tree_height)
         slave_xmss.append(xmss)
         slave_xmss_seed.append(xmss.seed)
@@ -348,7 +348,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
                                       slave_pks=slave_pks,
                                       access_types=access_types,
                                       fee=fee_shor,
-                                      xmss_pk=address_src_pk,)
+                                      xmss_pk=address_src_pk, )
 
     try:
         slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
@@ -513,7 +513,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         address = click.prompt('Address ', default='')
         if address == '':
             break
-        amount = int(click.prompt('Amount ')) * (10**int(decimals))
+        amount = int(click.prompt('Amount ')) * (10 ** int(decimals))
         initial_balances.append(qrl_pb2.AddressAmount(address=bytes(hstr2bin(address)),
                                                       amount=amount))
 
@@ -584,7 +584,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
         address_dst = bytes(hstr2bin(dst[1:]))
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
-        amount = int(amount * (10**int(decimals)))
+        amount = int(amount * (10 ** int(decimals)))
         fee_shor = int(fee * 1.e9)
     except KeyboardInterrupt as e:
         click.echo("Error validating arguments")
@@ -630,8 +630,8 @@ def token_list(ctx, owner):
         addressStateResp = stub.GetAddressState(addressStateReq, timeout=5)
 
         for token_hash in addressStateResp.state.tokens:
-            click.echo('Hash: %s' % (token_hash, ))
-            click.echo('Balance: %s' % (addressStateResp.state.tokens[token_hash], ))
+            click.echo('Hash: %s' % (token_hash,))
+            click.echo('Balance: %s' % (addressStateResp.state.tokens[token_hash],))
     except Exception as e:
         print("Error {}".format(str(e)))
 

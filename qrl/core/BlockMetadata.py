@@ -53,7 +53,10 @@ class BlockMetadata(object):
             del self._data.last_N_headerhashes[0]
 
     @staticmethod
-    def create(is_orphan=True, block_difficulty=b'\x00'*32, cumulative_difficulty=b'\x00'*32, child_headerhashes=None):
+    def create(is_orphan=True,
+               block_difficulty=b'\x00' * 32,
+               cumulative_difficulty=b'\x00' * 32,
+               child_headerhashes=None):
         block_meta_data = BlockMetadata()
         block_meta_data._data.is_orphan = is_orphan
         block_meta_data._data.block_difficulty = block_difficulty

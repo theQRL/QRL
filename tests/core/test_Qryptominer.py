@@ -104,8 +104,10 @@ class TestQryptominer(TestCase):
         custom_qminer.wait_for_solution()
 
         expected_mined_blob = bytearray(expected_blob)
-        expected_mined_blob[config.dev.mining_nonce_offset:config.dev.mining_nonce_offset+4] = \
-            custom_qminer.nonce.to_bytes(4, byteorder='big', signed=False)
+        tmp_offset = config.dev.mining_nonce_offset
+        expected_mined_blob[tmp_offset:tmp_offset + 4] = custom_qminer.nonce.to_bytes(4,
+                                                                                      byteorder='big',
+                                                                                      signed=False)
 
         print(custom_qminer.nonce)
         self.assertEqual(tuple(expected_mined_blob), custom_qminer.solution_blob)

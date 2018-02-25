@@ -106,7 +106,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._channels.append(channel)
         self._peer_node_status[channel] = qrl_pb2.NodeChainState(block_number=0,
                                                                  header_hash=b'',
-                                                                 cumulative_difficulty=b'\x00'*32,
+                                                                 cumulative_difficulty=b'\x00' * 32,
                                                                  timestamp=int(time.time()))
         channel.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
         channel.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)

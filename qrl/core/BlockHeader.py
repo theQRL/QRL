@@ -74,13 +74,13 @@ class BlockHeader(object):
 
     @property
     def mining_blob(self) -> bytes:
-        blob = self.block_number.to_bytes(8, byteorder='big', signed=False) + \
-               self.timestamp.to_bytes(8, byteorder='big', signed=False) + \
-               self.prev_blockheaderhash + \
-               self.block_reward.to_bytes(8, byteorder='big', signed=False) + \
-               self.fee_reward.to_bytes(8, byteorder='big', signed=False) + \
-               self.tx_merkle_root + \
-               self.PK
+        blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
+               + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
+               + self.prev_blockheaderhash \
+               + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
+               + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
+               + self.tx_merkle_root \
+               + self.PK
 
         if len(blob) < self.nonce_offset:
             raise Exception("Mining blob size below 39 bytes")

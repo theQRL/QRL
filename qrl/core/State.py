@@ -895,7 +895,7 @@ class State:
     def delete(self, key, batch):
         self._db.delete(key, batch)
 
-    @functools.lru_cache(maxsize=config.dev.block_timeseries_size+50)
+    @functools.lru_cache(maxsize=config.dev.block_timeseries_size + 50)
     def get_block_datapoint(self, headerhash):
         block = self.get_block(headerhash)
         if block is None:

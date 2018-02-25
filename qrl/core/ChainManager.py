@@ -396,7 +396,7 @@ class ChainManager:
     def get_headerhashes(self, start_blocknumber):
         start_blocknumber = max(0, start_blocknumber)
         end_blocknumber = min(self.last_block.block_number,
-                              start_blocknumber + 2*config.dev.reorg_limit)
+                              start_blocknumber + 2 * config.dev.reorg_limit)
 
         total_expected_headerhash = end_blocknumber - start_blocknumber + 1
 
