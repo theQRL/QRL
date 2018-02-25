@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 from copy import deepcopy
+from math import log, ceil
 
 import simplejson as json
 import time
@@ -78,7 +79,10 @@ def qrlnode_with_mock_blockchain(num_blocks):
 
         state.get_measurement = MagicMock(return_value=10000000)
 
-        alice_xmss = get_alice_xmss()
+        required_height = ceil(log(num_blocks, 2))
+        required_height = int(required_height + required_height % 2)
+
+        alice_xmss = get_alice_xmss(xmss_height=required_height)
         bob_xmss = get_bob_xmss()
 
         genesis_block = GenesisBlock()
@@ -164,14 +168,12 @@ def clean_genesis():
         config.user.qrl_dir = prev_val
 
 
-def get_alice_xmss() -> XMSS:
-    xmss_height = 6
+def get_alice_xmss(xmss_height=6) -> XMSS:
     seed = bytes([i for i in range(48)])
     return XMSS(XmssFast(seed, xmss_height))
 
 
-def get_bob_xmss() -> XMSS:
-    xmss_height = 6
+def get_bob_xmss(xmss_height=6) -> XMSS:
     seed = bytes([i + 5 for i in range(48)])
     return XMSS(XmssFast(seed, xmss_height))
 

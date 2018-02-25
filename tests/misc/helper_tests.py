@@ -22,6 +22,6 @@ class TestHelpers(TestCase):
                          bin2hstr(address))
 
     def test_mock_blockchain(self):
-        number_blocks = 50
+        number_blocks = 200
         with qrlnode_with_mock_blockchain(number_blocks) as qrlnode:
             self.assertIsNotNone(qrlnode)
