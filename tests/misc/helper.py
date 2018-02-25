@@ -65,6 +65,7 @@ def set_data_dir(data_name):
         shutil.rmtree(dst_dir)
         config.user.data_dir = prev_val
 
+
 @contextlib.contextmanager
 def qrlnode_with_mock_blockchain(num_blocks):
     start_time = time.time()
@@ -93,7 +94,7 @@ def qrlnode_with_mock_blockchain(num_blocks):
 
         block_prev = state.get_block(genesis_block.headerhash)
 
-        for block_idx in range(1, 1+num_blocks):
+        for block_idx in range(1, num_blocks):
             transactions = []
             if block_idx == 1:
                 slave_tx = SlaveTransaction.create(addr_from=alice_xmss.address,

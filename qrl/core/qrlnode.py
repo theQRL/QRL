@@ -7,7 +7,6 @@ from decimal import Decimal
 from typing import Optional, List, Iterator
 
 import simplejson as json
-from pyqryptonight.pyqryptonight import UInt256ToString
 from twisted.internet import reactor
 
 from qrl.core import config
@@ -487,46 +486,24 @@ class QRLNode:
         return info
 
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
-        # TODO: Optimize data structures
         result = []
 
         if self._chain_manager.height == 0:
             return result
 
         block = self._chain_manager.get_last_block()
-        block_metadata = self._chain_manager.state.get_block_metadata(block.headerhash)
+        if block is None:
+            return result
 
-        for i in range(block_count):
-            if block is None:
+        headerhash_current = block.headerhash
+        while len(result) < block_count:
+            data_point = self._chain_manager.state.get_block_datapoint(headerhash_current)
+
+            if data_point is None:
                 break
 
-            prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
-            prev_block = self._chain_manager.state.get_block(block.prev_headerhash)
-
-            data_point = qrl_pb2.BlockDataPoint()
-            data_point.number = block.block_number
-            data_point.timestamp = block.timestamp
-            data_point.time_last = 0
-            data_point.time_movavg = 0
-            data_point.difficulty = UInt256ToString(block_metadata.block_difficulty)
-
-            if prev_block is not None:
-                data_point.time_last = block.timestamp - prev_block.timestamp
-                if prev_block.block_number == 0:
-                    data_point.time_last = config.dev.mining_setpoint_blocktime
-
-                movavg = self._chain_manager.state.get_measurement(block.timestamp,
-                                                                   block.prev_headerhash,
-                                                                   prev_block_metadata)
-                data_point.time_movavg = movavg
-
-                # FIXME: need to consider average difficulty here
-                data_point.hash_power = int(data_point.difficulty) * 60 / movavg
-
-            # Fill up the data point
             result.append(data_point)
-            block = prev_block
-            block_metadata = prev_block_metadata
+            headerhash_current = data_point.header_hash_prev
 
         return reversed(result)
 

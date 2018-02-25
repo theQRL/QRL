@@ -16,11 +16,12 @@ class TestPublicAPI2(TestCase):
         super(TestPublicAPI2, self).__init__(*args, **kwargs)
 
     def test_getStats2(self):
-        with qrlnode_with_mock_blockchain(10) as qrlnode:
+        number_blocks = 50
+        with qrlnode_with_mock_blockchain(number_blocks) as qrlnode:
             service = PublicAPIService(qrlnode)
             request = qrl_pb2.GetStatsReq()
             request.include_timeseries = True
 
             stats = service.GetStats(request=request, context=None)
-            self.assertEqual(11, len(stats.block_timeseries))
+            self.assertEqual(number_blocks, len(stats.block_timeseries))
             logger.info(stats)

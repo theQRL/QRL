@@ -4,11 +4,12 @@
 from typing import Optional
 from statistics import median
 
+import functools
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr
+from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
-from qrl.core.cache.LRU import LRUStateCache
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Block import Block
@@ -541,7 +542,6 @@ class State:
 
     def __init__(self):
         self._db = db.DB()  # generate db object here
-        self.state_cache = LRUStateCache(config.user.lru_state_cache_size, self._db)
         self.state_objects = StateObjects(self._db)
 
     def __enter__(self):
@@ -723,9 +723,6 @@ class State:
             self._save_address_state(addresses_state[address])
 
     def update_mainchain_state(self, addresses_state, block_number, headerhash):
-        if block_number % config.dev.cache_frequency == 0:
-            self.state_cache.set(headerhash, addresses_state)
-
         self.state_objects.destroy_fork_states(block_number, headerhash)
         self.state_objects.update_current_state(addresses_state)
 
@@ -897,3 +894,38 @@ class State:
 
     def delete(self, key, batch):
         self._db.delete(key, batch)
+
+    @functools.lru_cache(maxsize=config.dev.block_timeseries_size+50)
+    def get_block_datapoint(self, headerhash):
+        block = self.get_block(headerhash)
+        if block is None:
+            return None
+
+        block_metadata = self.get_block_metadata(headerhash)
+        prev_block_metadata = self.get_block_metadata(block.prev_headerhash)
+        prev_block = self.get_block(block.prev_headerhash)
+
+        data_point = qrl_pb2.BlockDataPoint()
+        data_point.number = block.block_number
+        data_point.header_hash = headerhash
+        if prev_block is not None:
+            data_point.header_hash_prev = prev_block.headerhash
+        data_point.timestamp = block.timestamp
+        data_point.time_last = 0
+        data_point.time_movavg = 0
+        data_point.difficulty = UInt256ToString(block_metadata.block_difficulty)
+
+        if prev_block is not None:
+            data_point.time_last = block.timestamp - prev_block.timestamp
+            if prev_block.block_number == 0:
+                data_point.time_last = config.dev.mining_setpoint_blocktime
+
+            movavg = self.get_measurement(block.timestamp,
+                                          block.prev_headerhash,
+                                          prev_block_metadata)
+            data_point.time_movavg = movavg
+
+            # FIXME: need to consider average difficulty here
+            data_point.hash_power = int(data_point.difficulty) * (config.dev.mining_setpoint_blocktime / movavg)
+
+        return data_point
