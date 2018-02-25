@@ -111,6 +111,9 @@ message BlockDataPoint
     uint64 time_last = 4;
     uint64 time_movavg = 5;
     float hash_power = 6;
+
+    bytes header_hash = 7;
+    bytes header_hash_prev = 8;
 }
 
 message GetAddressStateReq {   bytes address = 1; }

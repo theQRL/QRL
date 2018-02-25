@@ -365,6 +365,9 @@ class ChainManager:
         self.state.put_block_metadata(parent_headerhash, parent_metadata, batch)
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
+        # Call once to populate the cache
+        self.state.get_block_datapoint(headerhash)
+
     def _update_mainchain(self, block, batch):
         block_number_mapping = None
         while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
