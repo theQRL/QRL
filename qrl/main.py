@@ -83,7 +83,7 @@ def mining_wallet_checks(args):
 
     if args.randomizeSlaveXMSS:
         addrBundle = Wallet.get_new_address()
-        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.seed], None]
+        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.extended_seed], None]
         write_slaves(slaves_filename, slaves)
 
     try:
@@ -98,16 +98,17 @@ def mining_wallet_checks(args):
             seed = input('Enter hex or mnemonic seed of mining wallet ').encode()
         except KeyboardInterrupt:
             quit(0)
-        if len(seed) == 96:  # hexseed
+
+        if len(seed) == 102:  # hexseed
             bin_seed = hstr2bin(seed.decode())
-        elif len(seed.split()) == 32:
+        elif len(seed.split()) == 34:
             bin_seed = mnemonic2bin(seed.decode())
         else:
             logger.warning('Invalid XMSS seed')
             quit(1)
 
-        addrBundle = Wallet.get_new_address(seed=bin_seed)
-        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.seed], None]
+        addrBundle = Wallet.get_new_address(signature_tree_height=None, seed=bin_seed)
+        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.extended_seed], None]
         write_slaves(slaves_filename, slaves)
         slaves = read_slaves(slaves_filename)
     except KeyboardInterrupt:

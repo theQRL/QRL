@@ -263,9 +263,9 @@ class XMSS(object):
         >>> from qrl.crypto.doctest_data import *
         >>> tmp = XMSS.from_extended_seed(xmss_test_eseed2)
         >>> bin2hstr( tmp.extended_seed )
-        '010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
+        '000200010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101'
         """
-        return self._xmss.getSeed()
+        return self._xmss.getExtendedSeed()
 
     @property
     def seed(self):

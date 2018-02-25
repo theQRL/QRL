@@ -300,13 +300,13 @@ def get_slaves(alice_ots_index, txn_nonce):
     slave_txn._data.nonce = txn_nonce
     slave_txn.sign(alice_xmss)
 
-    slave_data = json.loads(json.dumps([bin2hstr(alice_xmss.address), [slave_xmss.seed], slave_txn.to_json()]))
+    slave_data = json.loads(json.dumps([bin2hstr(alice_xmss.address), [slave_xmss.extended_seed], slave_txn.to_json()]))
     slave_data[0] = bytes(hstr2bin(slave_data[0]))
     return slave_data
 
 
 def get_random_master():
     random_master = get_random_xmss(config.dev.xmss_tree_height)
-    slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.seed], None]))
+    slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.extended_seed], None]))
     slave_data[0] = bytes(hstr2bin(slave_data[0]))
     return slave_data
