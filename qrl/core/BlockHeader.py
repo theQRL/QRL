@@ -1,5 +1,5 @@
 # coding=utf-8
-
+import functools
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqryptonight.pyqryptonight import Qryptonight
 
@@ -91,9 +91,13 @@ class BlockHeader(object):
 
         return bytes(blob)
 
-    def generate_headerhash(self):
+    @functools.lru_cache(maxsize=5)
+    def _get_qryptonight_hash(self, blob):
         qn = Qryptonight()
-        return bytes(qn.hash(self.mining_blob))
+        return bytes(qn.hash(blob))
+
+    def generate_headerhash(self):
+        return self._get_qryptonight_hash(self.mining_blob)
 
     @staticmethod
     def create(blocknumber: int,
