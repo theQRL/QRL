@@ -369,6 +369,10 @@ class CoinBase(Transaction):
         return transaction
 
     def _validate_custom(self):
+        if self.fee != 0:
+            logger.warning('Fee for coinbase transaction should be 0')
+            return False
+
         return True
 
     # noinspection PyBroadException

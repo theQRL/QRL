@@ -508,12 +508,11 @@ class StateObjects:
         return StateLoader.get_tx_metadata(self._db, b'', txhash)
 
     def update_tx_metadata(self, block, batch):
-        if len(block.transactions) == 0:
-            return
-
+        fee_reward = 0
         # TODO (cyyber): Move To State Cache, instead of writing directly
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
+            fee_reward += txn.fee
             self._current_state.put_tx_metadata(txn,
                                                 block.block_number,
                                                 block.timestamp,
@@ -523,13 +522,13 @@ class StateObjects:
                 self.update_token_metadata(txn)
             elif isinstance(txn, TokenTransaction):
                 self._current_state.create_token_metadata(txn)
-            elif isinstance(txn, CoinBase):
-                self._current_state.update_total_coin_supply(txn.amount)
             StateLoader.increase_txn_count(self._db,
                                            self._current_state.state_code,
                                            self.get_txn_count(txn.txfrom),
                                            txn.txfrom)
 
+        txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
+        self._current_state.update_total_coin_supply(txn.amount - fee_reward)
         self._current_state.update_last_tx(block, batch)
 
     def total_coin_supply(self):
