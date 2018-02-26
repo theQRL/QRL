@@ -196,21 +196,21 @@ def wallet_recover(ctx, seed_type):
 
     if seed_type == 'mnemonic':
         words = seed.split()
-        if len(words) != 32:
+        if len(words) != 34:
             print('You have entered %s words' % (len(words),))
-            print('Mnemonic seed must contain only 32 words')
+            print('Mnemonic seed must contain only 34 words')
             return
         bin_seed = mnemonic2bin(seed)
     else:
-        if len(seed) != 96:
+        if len(seed) != 102:
             print('You have entered hexseed of %s characters' % (len(seed),))
-            print('Hexseed must be of only 96 characters.')
+            print('Hexseed must be of only 102 characters.')
             return
         bin_seed = hstr2bin(seed)
 
     config.user.wallet_dir = ctx.obj.wallet_dir
     walletObj = Wallet()
-    addrBundle = walletObj.get_new_address(seed=bin_seed)
+    addrBundle = walletObj.get_new_address(signature_tree_height=None, seed=bin_seed)
     print('Recovered Wallet Address : %s' % (addrBundle.address.decode(),))
     for addr in walletObj.address_bundle:
         if addrBundle.address == addr.address:
@@ -242,8 +242,8 @@ def wallet_secret(ctx, wallet_idx):
     if 0 <= wallet_idx < len(wallet.address_bundle):
         addr_bundle = wallet.address_bundle[wallet_idx]
         click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
-        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.get_mnemonic()))
-        click.echo('Hexseed         : %s' % (addr_bundle.xmss.get_hexseed()))
+        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.mnemonic))
+        click.echo('Hexseed         : %s' % (addr_bundle.xmss.hexseed))
     else:
         click.echo('Wallet index not found', color='yellow')
 
