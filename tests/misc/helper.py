@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 from copy import deepcopy
+from math import log, ceil
 
 import simplejson as json
 import time
@@ -78,7 +79,10 @@ def qrlnode_with_mock_blockchain(num_blocks):
 
         state.get_measurement = MagicMock(return_value=10000000)
 
-        alice_xmss = get_alice_xmss()
+        required_height = ceil(log(num_blocks, 2))
+        required_height = int(required_height + required_height % 2)
+
+        alice_xmss = get_alice_xmss(xmss_height=required_height)
         bob_xmss = get_bob_xmss()
 
         genesis_block = GenesisBlock()
@@ -164,14 +168,12 @@ def clean_genesis():
         config.user.qrl_dir = prev_val
 
 
-def get_alice_xmss() -> XMSS:
-    xmss_height = 6
+def get_alice_xmss(xmss_height=6) -> XMSS:
     seed = bytes([i for i in range(48)])
     return XMSS(XmssFast(seed, xmss_height))
 
 
-def get_bob_xmss() -> XMSS:
-    xmss_height = 6
+def get_bob_xmss(xmss_height=6) -> XMSS:
     seed = bytes([i + 5 for i in range(48)])
     return XMSS(XmssFast(seed, xmss_height))
 
@@ -298,13 +300,13 @@ def get_slaves(alice_ots_index, txn_nonce):
     slave_txn._data.nonce = txn_nonce
     slave_txn.sign(alice_xmss)
 
-    slave_data = json.loads(json.dumps([bin2hstr(alice_xmss.address), [slave_xmss.seed], slave_txn.to_json()]))
+    slave_data = json.loads(json.dumps([bin2hstr(alice_xmss.address), [slave_xmss.extended_seed], slave_txn.to_json()]))
     slave_data[0] = bytes(hstr2bin(slave_data[0]))
     return slave_data
 
 
 def get_random_master():
     random_master = get_random_xmss(config.dev.xmss_tree_height)
-    slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.seed], None]))
+    slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.extended_seed], None]))
     slave_data[0] = bytes(hstr2bin(slave_data[0]))
     return slave_data

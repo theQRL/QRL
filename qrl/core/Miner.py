@@ -66,7 +66,7 @@ class Miner(Qryptominer):
             self._master_address = self._slaves[0]
             unused_ots_found = False
             for slave_seed in self._slaves[1]:
-                xmss = Wallet.get_new_address(seed=slave_seed).xmss
+                xmss = Wallet.get_new_address(signature_tree_height=None, seed=slave_seed).xmss
                 addr_state = self.state.get_address(xmss.address)
                 if self.set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
                     self._mining_xmss = xmss

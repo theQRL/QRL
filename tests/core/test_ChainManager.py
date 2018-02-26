@@ -186,7 +186,7 @@ class TestChainManager(TestCase):
                     alice_xmss = get_alice_xmss()
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1517696848  # Very high to get an easy difficulty
+                        time_mock.return_value = 1519601174  # Very high to get an easy difficulty
                         block_1 = Block.create(block_number=1,
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
@@ -206,7 +206,7 @@ class TestChainManager(TestCase):
                     bob_xmss = get_bob_xmss()
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 2
+                        time_mock.return_value = 1519601174 + devconfig.minimum_minting_delay * 2
                         block = Block.create(block_number=1,
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
@@ -219,14 +219,14 @@ class TestChainManager(TestCase):
                             block.set_mining_nonce(block.mining_nonce + 1)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1517696848 + devconfig.minimum_minting_delay * 3
+                        time_mock.return_value = 1519601174 + devconfig.minimum_minting_delay * 3
                         block_2 = Block.create(block_number=2,
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                signing_xmss=bob_xmss,
                                                master_address=bob_xmss.address,
                                                nonce=2)
-                        block_2.set_mining_nonce(17)
+                        block_2.set_mining_nonce(10)
 
                     result = chain_manager.add_block(block_2)
                     self.assertTrue(result)

@@ -3,15 +3,16 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import Optional
 
+import functools
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper, Qryptonight
 
 from qrl.core import config
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.TransactionPool import TransactionPool
@@ -91,7 +92,7 @@ class ChainManager:
             logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
             logger.debug('-------------------END--------------------')
 
-        if not PoWHelper.verifyInput(block.mining_blob, target):
+        if not self.verify_input_cached(block.mining_blob, target):
             if enable_logging:
                 logger.warning("PoW verification failed")
                 qn = Qryptonight()
@@ -101,6 +102,10 @@ class ChainManager:
             return False
 
         return True
+
+    @functools.lru_cache(maxsize=5)
+    def verify_input_cached(self, mining_blob, target):
+        return PoWHelper.verifyInput(mining_blob, target)
 
     def validate_block(self, block, address_txn) -> bool:
         len_transactions = len(block.transactions)
