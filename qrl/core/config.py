@@ -101,7 +101,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'The Sharp Blade'
+        self.genesis_prev_headerhash = b'Feersum Endjinn'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -152,7 +152,7 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.genesis_timestamp = 1517695543
+        self.genesis_timestamp = 1519600074
 
         # ======================================
         #       DIFFICULTY CONTROLLER
