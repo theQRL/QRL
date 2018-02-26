@@ -336,7 +336,7 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
         print("Generating Slave #"+str(i+1))
         xmss = XMSS.from_height(config.dev.xmss_tree_height)
         slave_xmss.append(xmss)
-        slave_xmss_seed.append(xmss.seed)
+        slave_xmss_seed.append(xmss.extended_seed)
         slave_pks.append(xmss.pk)
         access_types.append(access_type)
         print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
