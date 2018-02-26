@@ -50,7 +50,6 @@ class P2PProtocol(Protocol):
 
     def connectionMade(self):
         if self.factory.add_connection(self):
-
             self.peer_manager = self.factory._qrl_node.peer_manager
             self.p2pchain_manager = self.factory._qrl_node.p2pchain_manager
             self.tx_manager = self.factory._qrl_node.tx_manager
@@ -232,7 +231,7 @@ class P2PProtocol(Protocol):
         self.send(msg)
 
     def get_headerhash_list(self, current_block_height):
-        start_blocknumber = max(0, current_block_height-config.dev.reorg_limit)
+        start_blocknumber = max(0, current_block_height - config.dev.reorg_limit)
         node_header_hash = qrl_pb2.NodeHeaderHash(block_number=start_blocknumber,
                                                   headerhashes=[])
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.HEADERHASHES,

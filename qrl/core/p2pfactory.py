@@ -258,7 +258,7 @@ class P2PFactory(ServerFactory):
             return
 
         self._target_peer.send_fetch_block(self._last_requested_block_idx)
-        reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry+1)
+        reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry + 1)
 
     def compare_and_sync(self, peer, node_header_hash: qrl_pb2.NodeHeaderHash):
         if self._syncing_enabled:
@@ -273,7 +273,7 @@ class P2PFactory(ServerFactory):
         fork_found = False
         for i in range(last_block_number, node_header_hash.block_number - 1, -1):
             block = self._chain_manager.get_block_by_number(i)
-            if block.headerhash == node_header_hash.headerhashes[i-node_header_hash.block_number]:
+            if block.headerhash == node_header_hash.headerhashes[i - node_header_hash.block_number]:
                 break
             fork_block_number = i
             fork_found = True

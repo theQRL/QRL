@@ -4,7 +4,7 @@
 from qrl.core.misc import logger
 
 
-class grpc_exception_wrapper(object):
+class Grpc_exception_wrapper(object):
     def __init__(self, response_type, state_code):
         self.response_type = response_type
         self.state_code = state_code
