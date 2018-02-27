@@ -7,9 +7,9 @@ from time import time
 
 from ntplib import NTPClient
 
+from qrl.core import config
 from qrl.core.misc import logger
 
-ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
 NTP_VERSION = 3
 NTP_RETRIES = 6
 drift = None
@@ -17,7 +17,7 @@ drift = None
 
 def get_ntp_response():
     for retry in range(NTP_RETRIES):
-        ntp_server = ntp_servers[retry % len(ntp_servers)]
+        ntp_server = config.user.ntp_servers[retry % len(config.user.ntp_servers)]
         try:
             ntp_client = NTPClient()
             response = ntp_client.request(ntp_server, version=NTP_VERSION)
