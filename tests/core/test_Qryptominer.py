@@ -55,9 +55,7 @@ class TestQryptominer(TestCase):
                              0, 0, 0, 0, 0, 0, 0, 0,
                              0, 0, 0, 0, 0, 0, 0, 4)
 
-        diff_tracker = DifficultyTracker()
-
-        new_diff, new_target = diff_tracker.get(
+        new_diff, new_target = DifficultyTracker.get(
             measurement,
             parent_difficulty=parent_difficulty)
 

@@ -9,6 +9,8 @@ from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToS
 
 from qrl.core import config
 from qrl.core.Block import Block
+from qrl.core.BlockHeader import BlockHeader
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.State import State
 from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction, \
@@ -22,11 +24,11 @@ class Miner(Qryptominer):
         super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
         self._mining_block = None
+        self._mining_difficulty = None
         self._slaves = slaves
         self._mining_xmss = None
         self._reward_address = None
         self.state = state
-        self._difficulty_tracker = DifficultyTracker()
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
         self._mining_thread_count = mining_thread_count
         self._dummy_xmss = None
@@ -108,9 +110,11 @@ class Miner(Qryptominer):
                                                      self._mining_block.prev_headerhash,
                                                      parent_metadata)
 
-            current_difficulty, current_target = self._difficulty_tracker.get(
+            current_difficulty, current_target = DifficultyTracker.get(
                 measurement=measurement,
                 parent_difficulty=parent_difficulty)
+
+            self._mining_difficulty = current_difficulty
 
             mining_blob = self._mining_block.mining_blob
             nonce_offset = self._mining_block.mining_nonce_offset
@@ -293,3 +297,25 @@ class Miner(Qryptominer):
                              nonce=coinbase_nonce)
 
         return block
+
+    def get_block_to_mine(self, wallet_address) -> list:
+        # TODO: use wallet_address to track the share
+        if not self._mining_block:
+            return []
+
+        return [self._mining_block, self._mining_difficulty]
+
+    def submit_mined_block(self, blob) -> bool:
+        block_header = BlockHeader.from_blob(blob)
+
+        if block_header.prev_blockheaderhash != self._mining_block.prev_headerhash:
+            return False
+
+        if block_header.block_number != self._mining_block.block_number:
+            return False
+
+        if PoWValidator.validate_mining_nonce(self.state, blockheader=block_header):
+            self._mining_block.set_mining_nonce(block_header.mining_nonce)
+            return True
+
+        return False

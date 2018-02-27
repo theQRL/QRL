@@ -522,3 +522,22 @@ class QRLNode:
 
     def collect_ephemeral_message(self, msg_id):
         return self.db_state.get_ephemeral_metadata(msg_id)
+
+    def get_blockheader_and_metadata(self, block_number) -> list:
+        if block_number == 0:
+            block_number = self.block_height
+
+        result = []
+        block = self.get_block_from_index(block_number)
+        if block:
+            blockheader = block.blockheader
+            blockmetadata = self.db_state.get_block_metadata(blockheader.headerhash)
+            result = [blockheader, blockmetadata]
+
+        return result
+
+    def get_block_to_mine(self, wallet_address) -> list:
+        return self._pow.miner.get_block_to_mine(wallet_address)
+
+    def submit_mined_block(self, blob) -> bool:
+        return self._pow.miner.submit_mined_block(blob)

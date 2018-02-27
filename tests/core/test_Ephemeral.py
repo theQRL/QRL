@@ -10,6 +10,7 @@ from pyqrllib.pyqrllib import XmssFast
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
@@ -44,10 +45,9 @@ class TestEphemeral(TestCase):
                         chain_manager = ChainManager(state)
 
                         chain_manager._difficulty_tracker = Mock()
-                        dt = DifficultyTracker()
                         tmp_difficulty = StringToUInt256('2')
-                        tmp_boundary = dt.get_boundary(tmp_difficulty)
-                        chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                        tmp_boundary = DifficultyTracker.get_boundary(tmp_difficulty)
+                        DifficultyTracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                         alice_xmss = get_alice_xmss()
                         slave_xmss = XMSS(XmssFast(alice_xmss.seed, alice_xmss.height))
@@ -86,7 +86,7 @@ class TestEphemeral(TestCase):
                                                       nonce=1)
 
                             #  Mine the nonce
-                            while not chain_manager.validate_mining_nonce(tmp_block1, False):
+                            while not PoWValidator.validate_mining_nonce(state, tmp_block1.blockheader, False):
                                 tmp_block1.set_mining_nonce(tmp_block1.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block1)
@@ -135,7 +135,7 @@ class TestEphemeral(TestCase):
                                                       nonce=2)
 
                             #  Mine the nonce
-                            while not chain_manager.validate_mining_nonce(tmp_block2, False):
+                            while not PoWValidator.validate_mining_nonce(state, tmp_block2.blockheader, False):
                                 tmp_block2.set_mining_nonce(tmp_block2.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block2)
@@ -152,7 +152,7 @@ class TestEphemeral(TestCase):
                                                       nonce=3)
 
                             #  Mine the nonce
-                            while not chain_manager.validate_mining_nonce(tmp_block3, False):
+                            while not PoWValidator.validate_mining_nonce(state, tmp_block3.blockheader, False):
                                 tmp_block3.set_mining_nonce(tmp_block3.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block3)
@@ -168,7 +168,7 @@ class TestEphemeral(TestCase):
                                                       nonce=4)
 
                             #  Mine the nonce
-                            while not chain_manager.validate_mining_nonce(tmp_block4, False):
+                            while not PoWValidator.validate_mining_nonce(state, tmp_block4.blockheader, False):
                                 tmp_block4.set_mining_nonce(tmp_block4.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block4)
