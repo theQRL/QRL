@@ -62,9 +62,9 @@ def _print_addresses(ctx, addresses, source_description):
             balance = _public_get_address_balance(ctx, addr)
             # TODO standardize quanta/shor conversion
             balance /= 1e9
-            click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
+            click.echo('{:<8}Q{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
         except Exception as e:
-            click.echo('{:<8}{:<75}?'.format(pos, addr.decode()))
+            click.echo('{:<8}Q{:<75}?'.format(pos, addr.decode()))
 
 
 def _public_get_address_balance(ctx, address):
