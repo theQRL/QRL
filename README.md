@@ -9,7 +9,7 @@
 
 # QRL - Quantum Resistant Ledger 
 
-> Python-based blockchain ledger utilising hash-based one-time merkle tree signature scheme (XMSS) instead of ECDSA. Proof-of-work block selection via the cryptonight algorithm. Late 2018 planned transition to POS with signed iterative hash chain reveal scheme which is both probabilistic and random (https://github.com/theQRL/pos).
+> Python-based blockchain ledger utilizing hash-based one-time merkle tree signature scheme (XMSS) instead of ECDSA. Proof-of-work block selection via the cryptonight algorithm. Late 2018 planned transition to POS with signed iterative hash chain reveal scheme which is both probabilistic and random (https://github.com/theQRL/pos).
 >
 > Hash-based signatures means larger transactions (6kb per tx, binary), longer keypair generation times and the need to record 'state' of transactions as each keypair can only be used once safely. Merkle tree usage enables a single address to be used for signing numerous transactions (up to 2^13 computationally easily enough). Transactions have an incremented nonce to allow wallets to know which MSS keypair to use - currently XMSS/W-OTS+ are natively supported.
 
@@ -26,7 +26,7 @@ More information:
 
 You are welcome to install the beta version and join the testnet. Be aware that work is in progress and there might be frequent breaking changes. It's best to start with a fresh install of Ubuntu 16.04.
 
-> Note if you build on a small VPS or other light weight hardware you may run into issues buildig the package. Make sure you have enough *RAM* and enable *SWAP* if needed.
+> Note if you build on a small VPS or other light weight hardware you may run into issues building the package. Make sure you have enough *RAM* and enable *SWAP* if needed.
 
 ### Minimum Hardware Requirements
 
@@ -140,7 +140,7 @@ Fee [0.0]: 0            # How much fee
 
 This will generate a `slaves.json` in the directory you are in. 
 
-If you have saved the **Mmneonic** or **hexseed** somewhere safe you can delete the open `wallet.qrl` file and use the `slaves.json` file to mine with. 
+If you have saved the **Mnemonic** or **hexseed** somewhere safe you can delete the open `wallet.qrl` file and use the `slaves.json` file to mine with. 
 
 Move it into your ~/.qrl directory. If needed create the directory.
 
