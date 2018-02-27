@@ -93,11 +93,9 @@ qrl wallet_gen
 ### Get Mnemonic/hexseed
 
 ```bash
-# Get mnemonic phrase
+# Get mnemonic phrase and hexseed
 
 qrl wallet_secret
-
-# get hexseed 
 ```  
 ### Recover QRL Wallet
 
