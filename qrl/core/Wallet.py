@@ -91,6 +91,14 @@ class Wallet:
             if addr_bundle.address == address_to_check:
                 return addr_bundle.xmss.remaining_signatures()
 
+    def remove(self, old_addr):
+        if old_addr:
+            try:
+                self.address_bundle.remove(old_addr)
+                self.save_wallet()
+            except ValueError:
+                logger.warning("Could not remove address from wallet")
+
     @staticmethod
     def get_new_address(signature_tree_height=config.dev.xmss_tree_height,
                         seed=None) -> AddressBundle:
