@@ -1,3 +1,4 @@
+
 [![PyPI version](https://badge.fury.io/py/qrl.svg)](https://badge.fury.io/py/qrl)
 [![Build Status](https://travis-ci.org/theQRL/QRL.svg?branch=master)](https://travis-ci.org/theQRL/QRL) 
 [![Build Status](https://img.shields.io/travis/theQRL/integration_tests/master.svg?label=Integration_Tests)](https://travis-ci.org/theQRL/integration_tests) 
@@ -8,265 +9,310 @@
 
 # QRL - Quantum Resistant Ledger 
 
-> Python-based blockchain ledger utilising hash-based one-time merkle tree signature scheme (XMSS) instead of ECDSA. Proof-of-work block selection via the cryptonight algorithm. Late 2018 planned transition to POS with signed iterative hash chain reveal scheme which is both probabilistic and random (https://github.com/theQRL/pos).
+> Python-based blockchain ledger utilizing hash-based one-time merkle tree signature scheme (XMSS) instead of ECDSA. Proof-of-work block selection via the cryptonight algorithm. Late 2018 planned transition to POS with signed iterative hash chain reveal scheme which is both probabilistic and random (https://github.com/theQRL/pos).
 >
 > Hash-based signatures means larger transactions (6kb per tx, binary), longer keypair generation times and the need to record 'state' of transactions as each keypair can only be used once safely. Merkle tree usage enables a single address to be used for signing numerous transactions (up to 2^13 computationally easily enough). Transactions have an incremented nonce to allow wallets to know which MSS keypair to use - currently XMSS/W-OTS+ are natively supported.
 
 More information:
- - [theqrl.org](https://theqrl.org)
- - [Blog (Medium)](https://medium.com/the-quantum-resistant-ledger)
- - [Original Whitepaper (English)](https://github.com/theQRL/Whitepaper/blob/master/QRL_whitepaper.pdf) or [other languages](https://github.com/theQRL/Whitepaper/blob/master) [These documents are subject to change]
- - [Original Proof of Stake document](https://github.com/theQRL/pos) [This document is subject to change]
+ * [theqrl.org](https://theqrl.org)
+ * [Blog (Medium)](https://medium.com/the-quantum-resistant-ledger)
+ * [Original Whitepaper (English)](https://github.com/theQRL/Whitepaper/blob/master/QRL_whitepaper.pdf) or [other languages](https://github.com/theQRL/Whitepaper/blob/master) [These documents are subject to change]
+ * [Original Proof of Stake document](https://github.com/theQRL/pos) [This document is subject to change]
+ * [Discord Chat](https://discord.gg/RcR9WzX)
  
-
-----------------------
-
+* * *
 
 # QRL Testnet (Instructions for beta testers)
 
-*You are welcome to install the beta version and join the testnet. Be aware that work is in progress and there might be frequent breaking changes.*
+You are welcome to install the beta version and join the testnet. Be aware that work is in progress and there might be frequent breaking changes. It's best to start with a fresh install of Ubuntu 16.04.
 
-## Ubuntu :white_check_mark:
+> Note if you build on a small VPS or other light weight hardware you may run into issues building the package. Make sure you have enough *RAM* and enable *SWAP* if needed.
 
-Ensure your apt sources are up to date and install dependencies
+### Minimum Hardware Requirements
+
+* Most Linux / Unix based systems
+* Any x86 or x64 based processor
+* Support for AES-NI
+* Enough space for the blockchain growth.
+
+## Update and Dependencies 
 
 ```bash
-sudo apt-get update
+# Issue the following command to update software
+
+sudo apt update && sudo apt upgrade -y
+```
+
+### Dependencies
+
+```bash
+# Install the required packages for QRL
+
 sudo apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
 ```
+* * * 
 
-To get the source and start the node, use the following:
-
-```bash
-pip3 install -U qrl
-
-qrl wallet_gen
-
-qrl wallet_secret
-Wallet idx [0]: 0
-
-qrl -r --host 104.251.219.215 slave_tx_generate
-
-Src []: 0
-Addr from (Leave blank in case same as source) []:
-Number of slaves [0]: 4
-Access type [0]: 1
-Fee [0.0]: 0
-Successfully Generated Slave 1/4
-Generating Slave #2
-Successfully Generated Slave 2/4
-Generating Slave #3
-Successfully Generated Slave 3/4
-Generating Slave #4
-Successfully Generated Slave 4/4
-Successfully created slaves.json
-Move slaves.json file from current directory to the mining node inside ~/.qrl/
-
-mkdir ~/.qrl
-mv slaves.json ~/.qrl
-
-start_qrl
-```
-
-## Debian Jessie :white_check_mark:
-
-Debian has some issues in old packages, so you need to install some backports.
-Debian does not have `sudo` by default, if you have not installed `sudo`, the use `su` and later do not forget to `exit`.
-Do NOT run the node as root.
-The following lines show `[sudo]` as optional. Adjust accordingly. 
-
-```bash
-echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
-[sudo] apt-get update
-[sudo] apt-get -t jessie-backports install cmake swig3.0
-[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
-[sudo] pip3 install -U setuptools pip
-```
-
-To get the source and start the node, use the following:
-
-```bash
-pip3 install -U qrl
-
-qrl wallet_gen
-
-qrl wallet_secret
-Wallet idx [0]: 0
-
-qrl -r --host 104.251.219.215 slave_tx_generate
-
-Src []: 0
-Addr from (Leave blank in case same as source) []:
-Number of slaves [0]: 4
-Access type [0]: 1
-Fee [0.0]: 0
-Successfully Generated Slave 1/4
-Generating Slave #2
-Successfully Generated Slave 2/4
-Generating Slave #3
-Successfully Generated Slave 3/4
-Generating Slave #4
-Successfully Generated Slave 4/4
-Successfully created slaves.json
-Move slaves.json file from current directory to the mining node inside ~/.qrl/
-
-mkdir ~/.qrl
-mv slaves.json ~/.qrl
-
-start_qrl
-```
-
-## OSX :white_check_mark:
-If you dont have brew yet, we think you should :) Install brew following the instructions here: [https://brew.sh/](https://brew.sh/)
-
-Now install some dependencies
+### OSX
 
 ```bash
 brew update
 brew install cmake python3 swig boost hwloc
 ```
 
-To get the source and start the node, use the following:
+* * * 
+
+
+### Install QRL BETA-NET
 
 ```bash
+# Install the qrl Package.
+
 pip3 install -U qrl
+```
+If you need to add logging and troubleshoot issues enter:
+
+```
+# Add Logging for pip3 
+
+pip3 install -U qrl --log ~/pip3-Qrl.log
+```
+
+* * *
+
+## Wallet
+
+Create a new wallet using the `qrl` command. After you create a wallet you can create a new `slaves.json` file and use it to mine with.
+
+### Create New Wallet
+
+```bash
+# Create a new wallet
 
 qrl wallet_gen
+```
+### Get Mnemonic/hexseed
+
+```bash
+# Get mnemonic phrase and hexseed
 
 qrl wallet_secret
-Wallet idx [0]: 0
+```  
+### Recover QRL Wallet
 
-qrl -r --host 104.251.219.215 slave_tx_generate
+```bash
+# Options:
+#	--seed-type	[hexseed|mnemonic]
+#  	--help   	Show this message and exit.
 
-Src []: 0
-Addr from (Leave blank in case same as source) []:
-Number of slaves [0]: 4
-Access type [0]: 1
-Fee [0.0]: 0
-Successfully Generated Slave 1/4
-Generating Slave #2
-Successfully Generated Slave 2/4
-Generating Slave #3
-Successfully Generated Slave 3/4
-Generating Slave #4
-Successfully Generated Slave 4/4
-Successfully created slaves.json
-Move slaves.json file from current directory to the mining node inside ~/.qrl/
+qrl wallet_recover --seed-type mnemonic
+```
 
-mkdir ~/.qrl
-mv slaves.json ~/.qrl
+### Generate a slaves.json file
+
+Using the wallet you just created generate the slaves.json file against a know working node. You can switch the ip-address with a trusted open node.
+
+```
+# QRL Nodes
+
+104.237.3.185
+104.237.3.184
+104.251.219.145
+104.251.219.40
+```
+
+```bash
+# Generate slaves.json file
+
+qrl -r --host 104.237.3.185 slave_tx_generate 
+```
+This will prompt with some questions:
+
+```bash
+Src []:                 # The wallet you generated by #ID
+Addr from []:           # (Leave blank in case same as source)
+Number of slaves [0]:   # Enter 4
+Access type [0]:        # Mining only or transfer coins [0],[1]
+                        # 0 Gives all permissions from the master wallet to slave wallet
+                        # 1 Only mining permissions to slave wallet
+                            # This setting allows incoming only transfers (SAFE)
+Fee [0.0]: 0            # How much fee
+```
+
+This will generate a `slaves.json` in the directory you are in. 
+
+If you have saved the **Mnemonic** or **hexseed** somewhere safe you can delete the open `wallet.qrl` file and use the `slaves.json` file to mine with. 
+
+Move it into your ~/.qrl directory. If needed create the directory.
+
+* * * 
+
+## Start QRL Node
+
+Now that we have a `slaves.json` file in our ~/.qrl folder we can start qrl.
+
+```bash
+# start qrl
 
 start_qrl
 ```
 
-## Raspberry Pi (Raspbian Stretch) :white_check_mark:
+Check out all the options with a simple `start_qrl --help`
 
-Install dependencies
-```bash
-sudo apt-get update
-sudo apt-get -y install swig3.0 python3-dev build-essential cmake ninja-build libboost-random-dev libssl-dev libffi-dev
-sudo pip3 install -U setuptools pip
-```
-
-To get the source and start the node, use the following:
+Using `screen` you can run in the background and reconnect later. You may need to install screen.
 
 ```bash
-sudo pip3 install -U qrl
+# run in background
 
-qrl wallet_gen
-
-qrl wallet_secret
-Wallet idx [0]: 0
-
-qrl -r --host 104.251.219.215 slave_tx_generate
-
-Src []: 0
-Addr from (Leave blank in case same as source) []:
-Number of slaves [0]: 4
-Access type [0]: 1
-Fee [0.0]: 0
-Successfully Generated Slave 1/4
-Generating Slave #2
-Successfully Generated Slave 2/4
-Generating Slave #3
-Successfully Generated Slave 3/4
-Generating Slave #4
-Successfully Generated Slave 4/4
-Successfully created slaves.json
-Move slaves.json file from current directory to the mining node inside ~/.qrl/
-
-mkdir ~/.qrl
-mv slaves.json ~/.qrl
-
-start_qrl
+screen -d -m start_qrl
 ```
-
-## Raspberry Pi (Raspbian Jessie) :white_check_mark:
-
-Debian has some issues in old packages, so you need to install some backports.
-Debian does not have `sudo` by default, if you have not installed `sudo`, the use `su` and later do not forget to `exit`.
-Do NOT run the node as root.
-The following lines show `[sudo]` as optional. Adjust accordingly. 
+You can see the progress in the `~/.qrl/qrl.log` file.
 
 ```bash
-echo "deb http://ftp.debian.org/debian jessie-backports main" | [sudo] tee -a /etc/apt/sources.list
-[sudo] apt-get update
-[sudo] apt-get -t jessie-backports install cmake swig3.0
-[sudo] apt-get -y install swig3.0 python3-dev python3-pip build-essential pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
-[sudo] pip3 install -U setuptools pip
+# watch the action with 
+
+tail -f ~/.qrl/qrl.log
 ```
 
-To get the source and start the node, use the following:
+* * * 
+
+## Config File
+
+You can alter the default settings of the node by simply adding a file to your `~/.qrl` folder 
 
 ```bash
-sudo pip3 install -U qrl
 
-qrl wallet_gen
-
-qrl wallet_secret
-Wallet idx [0]: 0
-
-qrl -r --host 104.251.219.215 slave_tx_generate
-
-Src []: 0
-Addr from (Leave blank in case same as source) []:
-Number of slaves [0]: 4
-Access type [0]: 1
-Fee [0.0]: 0
-Successfully Generated Slave 1/4
-Generating Slave #2
-Successfully Generated Slave 2/4
-Generating Slave #3
-Successfully Generated Slave 3/4
-Generating Slave #4
-Successfully Generated Slave 4/4
-Successfully created slaves.json
-Move slaves.json file from current directory to the mining node inside ~/.qrl/
-
-mkdir ~/.qrl
-mv slaves.json ~/.qrl
-
-start_qrl
+nano ~/.qrl/config.yml`
 ```
 
-If you get the following error:
+Add the following to the file. These are all default settings, uncomment to edit the parameters.
 
-```dependencies not satisfied, run [pip3 install -r requirements.txt] first.
- The 'cffi>=1.7' distribution was not found and is required by cryptography
- get an error with 
-``` 
+```bash
+# ====================================== 
+## QRL Configuration File
+# ====================================== 
+## Format must meet the following "{VARIABLE} : {SETTING}, {Boolean} : [True] [False]"
+#
+#
+## Drop into the Discord chat for help setting this up 
+## https://discord.gg/RcR9WzX
+#
+# 
+# ====================================== 
+## Mining Setup  
+# ====================================== 
+## Enable mining with True | Disable with False  
+#mining_enabled : True 
+#  
+## Set to desired CPU count. [0] == auto-detect CPU/threads and use all available 
+#mining_thread_count : 0 
+#
+#  
+# ======================================  
+# Mining Wallet Setup  
+# ======================================  
+## Full path to the slaves.json wallet
+#slaves_filename : '/home/{USER}/.qrl/slaves.json'  
+#
+## Full Path to wallet directory Defaults to ~./qrl/
+#wallet_dir : /home/{USER}/.qrl/wallet  
+#
+#
+# ====================================== 
+## NTP Settings  
+# ======================================
+## Select the NTP server for the node to use. 
+## This must connect and get the correct time for this node to sync the blockchain
+## Here are a few good options. Select a server you can connect to from the node.
+##
+## time.nist.gov
+## pool.ntp.org
+## time.google.com
+## ntp.ubuntu.com
+## mycustomdns.com
+##
+##
+##
+#ntp_servers: pool.ntp.org
 
-Add the cffi package:
-
+#
+#
+#
+# ====================================== 
+## Default Locations  
+# ====================================== 
+## This is where the program will look for files  
+## Only change these if you must! You HAVE to use full path for location.  
+## Change the {USER} to your local user.  
+#  
+## The users ~/.qrl/ directory  
+#qrl_dir : /home/{USER}/.qrl  
+#  
+## The users ~/.qrl/data/ directory  
+#data_dir : /home/{USER}/.qrl/data  
+#  
+## QRL Loging location ~/.qrl/qrl.log  
+#log_path : /home/{USER}/.qrl/qrl.log  
+#  
+## The users ~/.qrl/wallet/ directory  
+#wallet_staking_dir : /home/{USER}/.qrl/wallet  
+#
+#
+# ======================================  
+## Ephemeral Configuration 
+# ======================================  
+## Change ephemeral messaging settings
+# 
+#accept_ephemeral : True  
+#
+#outgoing_message_expiry : 90 # Outgoing message expires after 90 seconds  
+#
+#p2p_q_size : 1000  
+#  
+## Cache Size  
+#lru_state_cache_size : 10  
+#max_state_limit : 10  
+#
+#  
+# ======================================  
+## PEER Configuration  
+# ======================================  
+#
+## Allows to discover new peers from the connected peers  
+#enable_peer_discovery : True  
+#  
+## Allows to ban a peer's IP who is breaking protocol  
+#ban_minutes : 20  
+#  
+## Number of allowed peers  
+#max_peers_limit : 100  
+#  
+#chain_state_timeout : 180  
+#chain_state_broadcast_period : 30 # must be less than ping_timeout  
+#  
+#
+# ==================
+## End Configuration
 ```
-[sudo] pip3 install cffi
-```
+
+* * *
+
+
+Please add any issues found here in GitHub. Thanks for helping run QRL Beta-Net!
+
+If you need help jump into the [Discord Chat](https://discord.gg/RcR9WzX)
+
+* * *
 
 ## Windows :seedling:
 
-*Windows support in the current version is limited. An alternative is to use an Ubuntu VM (virtualbox), or install Ubuntu using the Linux Subsystem for Windows. Docker containers are not working well in Windows at the moment*
+*Windows support in the current version is limited. An alternative is to use an Ubuntu VM (virtualbox), or install Ubuntu using the Linux Subsystem for Windows.
 
-#### Ubuntu on Linux Subsystem for Windows
-It is possible to run a QRL node using an Ubuntu Bash shell through the Linux Subsystem for Windows. Follow [these instructions](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10) to install Ubuntu using Linux Subsystem, start the Ubuntu bash shell, and then follow the previous instructions on setting up QRL on [Ubuntu](https://github.com/theQRL/QRL#ubuntu-white_check_mark).
+### Ubuntu on Linux Subsystem for Windows
+
+It is possible to run a QRL node using an Ubuntu Bash shell through the Linux Subsystem for Windows. 
+
+Follow [these instructions](https://msdn.microsoft.com/en-us/commandline/wsl/install-win10) to install Ubuntu using Linux Subsystem, start the Ubuntu bash shell, and then follow the previous instructions on setting up QRL.
 
 *We are working on a solution to native Windows support*
+
+* * *
