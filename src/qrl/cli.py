@@ -249,7 +249,7 @@ def wallet_recover(ctx, seed_type):
     config.user.wallet_dir = ctx.obj.wallet_dir
     walletObj = Wallet()
     recovered_xmss = XMSS.from_extended_seed(bin_seed)
-    print('Recovered Wallet Address : %s' % (recovered_xmss.address,))
+    print('Recovered Wallet Address : %s' % (Wallet._get_Qaddress(recovered_xmss.address),))
     for addr in walletObj.address_items:
         if recovered_xmss.address == addr.address:
             print('Wallet Address is already in the wallet list')
@@ -259,6 +259,7 @@ def wallet_recover(ctx, seed_type):
         click.echo('Saving...')
         walletObj.append_xmss(recovered_xmss)
         click.echo('Done')
+        _print_addresses(ctx, walletObj.address_items, config.user.wallet_dir)
 
 
 @qrl.command()
@@ -281,6 +282,41 @@ def wallet_secret(ctx, wallet_idx):
         click.echo('Wallet Address  : %s' % (address_item.address))
         click.echo('Mnemonic        : %s' % (address_item.mnemonic))
         click.echo('Hexseed         : %s' % (address_item.hexseed))
+    else:
+        click.echo('Wallet index not found', color='yellow')
+
+
+@qrl.command()
+@click.option('--wallet-idx', type=int, prompt=True, help='index of address in wallet')
+@click.option('--skip-confirmation', default=False, is_flag=True, prompt=False, help='skip the confirmation prompt')
+@click.pass_context
+def wallet_rm(ctx, wallet_idx, skip_confirmation):
+    """
+    Removes an address from the wallet using the given address index.
+
+    Warning! Use with caution. Removing an address from the wallet
+    will result in loss of access to the address and is not
+    reversible unless you have address recovery information.
+    Use the wallet_secret command for obtaining the recovery Mnemonic/Hexseed and
+    the wallet_recover command for restoring an address.
+    """
+    if ctx.obj.remote:
+        click.echo('This command is unsupported for remote wallets')
+        return
+
+    config.user.wallet_dir = ctx.obj.wallet_dir
+
+    wallet = Wallet()
+
+    if 0 <= wallet_idx < len(wallet.address_items):
+        addr_item = wallet.address_items[wallet_idx]
+        if not skip_confirmation:
+            click.echo('You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_item.address))
+            click.echo('Warning! By continuing, you risk complete loss of access to this address if you do not have a recovery Mnemonic/Hexseed.')
+            click.confirm('Do you want to continue?', abort=True)
+        wallet.remove(addr_item.address)
+
+        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
         click.echo('Wallet index not found', color='yellow')
 
