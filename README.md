@@ -47,12 +47,24 @@ sudo apt update && sudo apt upgrade -y
 
 ```bash
 # Install the required packages for QRL
-
 sudo apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
 ```
 * * * 
 
 ### OSX
+
+To build in OSX Please install `brew` if you have not already.
+
+```bash
+# Install brew with
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" 
+```
+
+This will prompt you through a few questions while it installs.
+
+Having Issues? Please follow the instructions found at the brew main page: [https://brew.sh/](https://brew.sh/)
+
+#### Update brew
 
 ```bash
 brew update
@@ -66,14 +78,12 @@ brew install cmake python3 swig boost hwloc
 
 ```bash
 # Install the qrl Package.
-
 pip3 install -U qrl
 ```
 If you need to add logging and troubleshoot issues enter:
 
 ```
 # Add Logging for pip3 
-
 pip3 install -U qrl --log ~/pip3-Qrl.log
 ```
 
@@ -87,14 +97,12 @@ Create a new wallet using the `qrl` command. After you create a wallet you can c
 
 ```bash
 # Create a new wallet
-
 qrl wallet_gen
 ```
 ### Get Mnemonic/hexseed
 
 ```bash
 # Get mnemonic phrase and hexseed
-
 qrl wallet_secret
 ```  
 ### Recover QRL Wallet
@@ -122,7 +130,6 @@ Using the wallet you just created generate the slaves.json file against a know w
 
 ```bash
 # Generate slaves.json file
-
 qrl -r --host 104.237.3.185 slave_tx_generate 
 ```
 This will prompt with some questions:
@@ -142,7 +149,7 @@ This will generate a `slaves.json` in the directory you are in.
 
 If you have saved the **Mnemonic** or **hexseed** somewhere safe you can delete the open `wallet.qrl` file and use the `slaves.json` file to mine with. 
 
-Move it into your ~/.qrl directory. If needed create the directory.
+Move this fie into your `~/.qrl` directory. If needed, create the directory.
 
 * * * 
 
@@ -152,7 +159,6 @@ Now that we have a `slaves.json` file in our ~/.qrl folder we can start qrl.
 
 ```bash
 # start qrl
-
 start_qrl
 ```
 
@@ -162,14 +168,12 @@ Using `screen` you can run in the background and reconnect later. You may need t
 
 ```bash
 # run in background
-
 screen -d -m start_qrl
 ```
 You can see the progress in the `~/.qrl/qrl.log` file.
 
 ```bash
 # watch the action with 
-
 tail -f ~/.qrl/qrl.log
 ```
 
@@ -180,8 +184,8 @@ tail -f ~/.qrl/qrl.log
 You can alter the default settings of the node by simply adding a file to your `~/.qrl` folder 
 
 ```bash
-
-nano ~/.qrl/config.yml`
+# Create and edit the config.yml file
+nano ~/.qrl/config.yml
 ```
 
 Add the following to the file. These are all default settings, uncomment to edit the parameters.
@@ -192,11 +196,9 @@ Add the following to the file. These are all default settings, uncomment to edit
 # ====================================== 
 ## Format must meet the following "{VARIABLE} : {SETTING}, {Boolean} : [True] [False]"
 #
-#
 ## Drop into the Discord chat for help setting this up 
 ## https://discord.gg/RcR9WzX
 #
-# 
 # ====================================== 
 ## Mining Setup  
 # ====================================== 
@@ -205,7 +207,6 @@ Add the following to the file. These are all default settings, uncomment to edit
 #  
 ## Set to desired CPU count. [0] == auto-detect CPU/threads and use all available 
 #mining_thread_count : 0 
-#
 #  
 # ======================================  
 # Mining Wallet Setup  
@@ -215,7 +216,6 @@ Add the following to the file. These are all default settings, uncomment to edit
 #
 ## Full Path to wallet directory Defaults to ~./qrl/
 #wallet_dir : /home/{USER}/.qrl/wallet  
-#
 #
 # ====================================== 
 ## NTP Settings  
@@ -228,14 +228,8 @@ Add the following to the file. These are all default settings, uncomment to edit
 ## pool.ntp.org
 ## time.google.com
 ## ntp.ubuntu.com
-## mycustomdns.com
-##
-##
-##
+## mycustomdns.com#
 #ntp_servers: pool.ntp.org
-
-#
-#
 #
 # ====================================== 
 ## Default Locations  
@@ -256,7 +250,6 @@ Add the following to the file. These are all default settings, uncomment to edit
 ## The users ~/.qrl/wallet/ directory  
 #wallet_staking_dir : /home/{USER}/.qrl/wallet  
 #
-#
 # ======================================  
 ## Ephemeral Configuration 
 # ======================================  
@@ -272,7 +265,6 @@ Add the following to the file. These are all default settings, uncomment to edit
 #lru_state_cache_size : 10  
 #max_state_limit : 10  
 #
-#  
 # ======================================  
 ## PEER Configuration  
 # ======================================  
@@ -288,14 +280,12 @@ Add the following to the file. These are all default settings, uncomment to edit
 #  
 #chain_state_timeout : 180  
 #chain_state_broadcast_period : 30 # must be less than ping_timeout  
-#  
 #
 # ==================
 ## End Configuration
 ```
 
 * * *
-
 
 Please add any issues found here in GitHub. Thanks for helping run QRL Beta-Net!
 
