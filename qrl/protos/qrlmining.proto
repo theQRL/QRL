@@ -1,0 +1,42 @@
+// Distributed under the MIT software license, see the accompanying
+// file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+syntax = "proto3";
+
+package qrl;
+
+import "qrl.proto";
+
+service MiningAPI
+{
+    rpc GetBlockMiningCompatible(GetBlockMiningCompatibleReq) returns (GetBlockMiningCompatibleResp);
+    rpc GetBlockToMine(GetBlockToMineReq) returns (GetBlockToMineResp);
+    rpc SubmitMinedBlock(SubmitMinedBlockReq) returns (SubmitMinedBlockResp);
+}
+
+message GetBlockMiningCompatibleReq {
+    // Used for getlastblockheader and getblockheaderbyheight
+    uint64 height = 1; // if height = 0, this means getlastblockheader
+}
+
+message GetBlockMiningCompatibleResp {
+    BlockHeader blockheader = 1;
+    BlockMetaData blockmetadata = 2;
+}
+
+message GetBlockToMineReq {
+    bytes wallet_address = 1;
+}
+
+message GetBlockToMineResp {
+    bytes blocktemplate_blob = 1; // max length 112 bytes, otherwise xmr-stak will hiccup
+    bytes difficulty = 2; // difficulty that the new block should meet. JuansDifficultyFunc(cumulative_difficulty)?
+}
+
+message SubmitMinedBlockReq {
+    bytes blob = 1; // blocktemplate_blob with the correct nonce
+}
+
+message SubmitMinedBlockResp {
+    // It seems there are no special fields for success/error reporting, does gRPC automatically give me something?
+}
