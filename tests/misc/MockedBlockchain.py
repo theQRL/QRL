@@ -1,0 +1,96 @@
+import contextlib
+import time
+from math import ceil, log
+
+from mock import mock, MagicMock, Mock
+from pyqryptonight.pyqryptonight import StringToUInt256
+
+from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
+from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.PoWValidator import PoWValidator
+from qrl.core.State import State
+from qrl.core.Transaction import SlaveTransaction
+from qrl.core.qrlnode import QRLNode
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
+
+
+class MockedBlockchain(object):
+    MAXNUMBLOCKS = 1000
+
+    def __init__(self, qrlnode, time_mock, ntp_mock):
+        required_height = ceil(log(self.MAXNUMBLOCKS, 2))
+        required_height = int(required_height + required_height % 2)
+
+        self.qrlnode = qrlnode
+        self.time_mock = time_mock
+        self.ntp_mock = ntp_mock
+        self.alice_xmss = get_alice_xmss(xmss_height=required_height)
+        self.bob_xmss = get_bob_xmss()
+
+    def add_new_block(self):
+        transactions = []
+        block_prev = self.qrlnode.get_block_last()
+        block_idx = block_prev.block_number + 1
+
+        if block_idx == 1:
+            slave_tx = SlaveTransaction.create(addr_from=self.alice_xmss.address,
+                                               slave_pks=[self.bob_xmss.pk],
+                                               access_types=[0],
+                                               fee=0,
+                                               xmss_pk=self.alice_xmss.pk)
+            slave_tx.sign(self.alice_xmss)
+            slave_tx._data.nonce = 2
+            transactions = [slave_tx]
+
+        self.time_mock.return_value = self.time_mock.return_value + 60
+        self.ntp_mock.return_value = self.ntp_mock.return_value + 60
+
+        block_new = Block.create(block_number=block_idx,
+                                 prevblock_headerhash=block_prev.headerhash,
+                                 transactions=transactions,
+                                 signing_xmss=self.alice_xmss,
+                                 master_address=self.alice_xmss.address,
+                                 nonce=block_idx)
+
+        while not PoWValidator.validate_mining_nonce(self.qrlnode._chain_manager.state,
+                                                     block_new.blockheader,
+                                                     False):
+
+            block_new.set_mining_nonce(block_new.mining_nonce + 1)
+
+        self.qrlnode._chain_manager.add_block(block_new)
+
+    @staticmethod
+    @contextlib.contextmanager
+    def create(num_blocks):
+        start_time = time.time()
+        with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
+                set_data_dir('no_data'), \
+                State() as state, \
+                mock.patch('time.time') as time_mock:  # noqa
+            time_mock.return_value = start_time
+            ntp_mock.return_value = start_time
+
+            state.get_measurement = MagicMock(return_value=10000000)
+
+            genesis_block = GenesisBlock()
+            chain_manager = ChainManager(state)
+            chain_manager.load(genesis_block)
+
+            chain_manager._difficulty_tracker = Mock()
+            dt = DifficultyTracker()
+            tmp_difficulty = StringToUInt256('2')
+            tmp_boundary = dt.get_boundary(tmp_difficulty)
+
+            chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+
+            qrlnode = QRLNode(state, slaves=[])
+            qrlnode.set_chain_manager(chain_manager)
+
+            mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock,  )
+            for block_idx in range(1, num_blocks+1):
+                mock_blockchain.add_new_block()
+
+            yield mock_blockchain
