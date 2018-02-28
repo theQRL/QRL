@@ -3,18 +3,18 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import mock, Mock, MagicMock
+from mock import mock, Mock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
 from pyqrllib.pyqrllib import XmssFast
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
 from qrl.core.Transaction import LatticePublicKey
 from qrl.core.misc import logger
@@ -22,8 +22,8 @@ from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from tests.misc.EphemeralPayload import EphemeralChannelPayload
 from tests.misc.aes import AES
-from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel
 from tests.misc.helper import set_data_dir
+from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel
 
 logger.initialize_default()
 
@@ -37,7 +37,8 @@ class TestEphemeral(TestCase):
         block = Block()
         self.assertIsNotNone(block)  # just to avoid warnings
 
-    def test_add_4(self):
+    @mock.patch("qrl.core.DifficultyTracker.DifficultyTracker.get")
+    def test_add_4(self, mock_difficulty_tracker_get):
         with set_data_dir('no_data'):
             with State() as state:
                 with set_wallet_dir("test_wallet"):
@@ -47,7 +48,7 @@ class TestEphemeral(TestCase):
                         chain_manager._difficulty_tracker = Mock()
                         tmp_difficulty = StringToUInt256('2')
                         tmp_boundary = DifficultyTracker.get_boundary(tmp_difficulty)
-                        DifficultyTracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                        mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_boundary]
 
                         alice_xmss = get_alice_xmss()
                         slave_xmss = XMSS(XmssFast(alice_xmss.seed, alice_xmss.height))

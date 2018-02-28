@@ -6,6 +6,7 @@ from unittest import TestCase
 from mock import mock, MagicMock, Mock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
+from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.ChainManager import ChainManager
@@ -66,7 +67,8 @@ class TestChainManager(TestCase):
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
-    def test_add_block(self):
+    @mock.patch("qrl.core.DifficultyTracker.DifficultyTracker.get")
+    def test_add_block(self, mock_difficulty_tracker_get):
         """
         Testing add_block, with fork logic
         :return:
@@ -80,12 +82,13 @@ class TestChainManager(TestCase):
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
+                mock_difficulty_tracker_get.return_value = [config.dev.mining_setpoint_blocktime, 2]
                 chain_manager.load(genesis_block)
 
                 chain_manager._difficulty_tracker = Mock()
                 tmp_difficulty = StringToUInt256('2')
                 tmp_boundary = DifficultyTracker.get_boundary(tmp_difficulty)
-                DifficultyTracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_boundary]
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
