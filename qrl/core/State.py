@@ -653,7 +653,7 @@ class State:
         for address in addresses_state:
             for state_obj_index in range(index, -1, -1):
                 state_object = self.state_objects.get_state_loader_by_index(state_obj_index)
-                addresses_state[address] = state_object.get_address(bin2hstr(address).encode())
+                addresses_state[address] = state_object.get_address(address)
                 if addresses_state[address]:
                     break
             if not addresses_state[address]:

@@ -18,13 +18,14 @@ ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
 
 class CLIContext(object):
 
-    def __init__(self, remote, host, port_public, port_admin, wallet_dir):
+    def __init__(self, remote, host, port_public, port_admin, wallet_dir, json):
         self.remote = remote
         self.host = host
         self.port_public = port_public
         self.port_admin = port_admin
 
         self.wallet_dir = os.path.abspath(wallet_dir)
+        self.json = json
 
         self.channel_public = grpc.insecure_channel(self.node_public_address)
         self.channel_admin = grpc.insecure_channel(self.node_admin_address)
@@ -50,21 +51,36 @@ def _admin_get_local_addresses(ctx):
 
 def _print_addresses(ctx, addresses, source_description):
     if len(addresses) == 0:
-        click.echo('No wallet found at {}'.format(source_description))
+        msg = 'No wallet found at {}'.format(source_description)
+        if ctx.obj.json:
+            msg = json.dumps({'error': msg, 'wallets': []})
+        click.echo(msg)
         return
 
-    click.echo('Wallet at          : {}'.format(source_description))
-    click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
-    click.echo('-' * 95)
+    if not ctx.obj.json:
+        click.echo('Wallet at          : {}'.format(source_description))
+        click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
+        click.echo('-' * 95)
 
+    msg = {'error': None, 'wallets': []}
     for pos, addr in enumerate(addresses):
         try:
             balance = _public_get_address_balance(ctx, addr)
             # TODO standardize quanta/shor conversion
             balance /= 1e9
-            click.echo('{:<8}{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
+            if ctx.obj.json:
+                msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': balance})
+            else:
+                click.echo('{:<8}Q{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
         except Exception as e:
-            click.echo('{:<8}{:<75}?'.format(pos, addr.decode()))
+            if ctx.obj.json:
+                msg['error'] = str(e)
+                msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': '?'})
+            else:
+                click.echo('{:<8}Q{:<75}?'.format(pos, addr.decode()))
+
+    if ctx.obj.json:
+        click.echo(json.dumps(msg))
 
 
 def _public_get_address_balance(ctx, address):
@@ -117,8 +133,9 @@ def _select_wallet(ctx, src):
 @click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
 @click.option('--port_adm', default=9008, help='remote port number (admin api)  [9009]* will change')
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
+@click.option('--json', default=False, is_flag=True, help='output in json')
 @click.pass_context
-def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
+def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir, json):
     """
     QRL Command Line Interface
     """
@@ -126,7 +143,8 @@ def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir):
                          host=host,
                          port_public=port_pub,
                          port_admin=port_adm,
-                         wallet_dir=wallet_dir)
+                         wallet_dir=wallet_dir,
+                         json=json)
 
 
 @qrl.command()
