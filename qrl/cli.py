@@ -85,7 +85,7 @@ def _print_addresses(ctx, addresses, source_description):
 
 def _public_get_address_balance(ctx, address):
     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=address)
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(address.decode())))
     getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
     return getAddressStateResp.state.balance
 
@@ -153,14 +153,10 @@ def wallet_ls(ctx):
     """
     Lists available wallets
     """
-    if ctx.obj.remote:
-        addresses = _admin_get_local_addresses(ctx)
-        _print_addresses(ctx, addresses, ctx.obj.node_public_address)
-    else:
-        config.user.wallet_dir = ctx.obj.wallet_dir
-        wallet = Wallet(valid_or_create=False)
-        addresses = [a.address for a in wallet.address_bundle]
-        _print_addresses(ctx, addresses, config.user.wallet_dir)
+    config.user.wallet_dir = ctx.obj.wallet_dir
+    wallet = Wallet(valid_or_create=False)
+    addresses = [a.address for a in wallet.address_bundle]
+    _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 
 @qrl.command()
