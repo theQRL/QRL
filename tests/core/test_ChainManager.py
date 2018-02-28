@@ -7,6 +7,7 @@ from mock import mock, MagicMock, Mock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core.Block import Block
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
@@ -57,7 +58,7 @@ class TestChainManager(TestCase):
                                            master_address=alice_xmss.address,
                                            nonce=1)
 
-                    while not chain_manager.validate_mining_nonce(block_1, False):
+                    while not PoWValidator.validate_mining_nonce(state, block_1.blockheader, False):
                         block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_1)
@@ -82,10 +83,9 @@ class TestChainManager(TestCase):
                 chain_manager.load(genesis_block)
 
                 chain_manager._difficulty_tracker = Mock()
-                dt = DifficultyTracker()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_boundary = dt.get_boundary(tmp_difficulty)
-                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                tmp_boundary = DifficultyTracker.get_boundary(tmp_difficulty)
+                DifficultyTracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
@@ -108,7 +108,7 @@ class TestChainManager(TestCase):
                                            master_address=alice_xmss.address,
                                            nonce=1)
 
-                    while not chain_manager.validate_mining_nonce(block_1, False):
+                    while not PoWValidator.validate_mining_nonce(state, block_1.blockheader, False):
                         block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_1)
@@ -130,7 +130,7 @@ class TestChainManager(TestCase):
                                          master_address=bob_xmss.address,
                                          nonce=1)
 
-                    while not chain_manager.validate_mining_nonce(block, False):
+                    while not PoWValidator.validate_mining_nonce(state, block.blockheader, False):
                         block.set_mining_nonce(block.mining_nonce + 1)
 
                     result = chain_manager.add_block(block)
@@ -150,7 +150,7 @@ class TestChainManager(TestCase):
                                            master_address=bob_xmss.address,
                                            nonce=2)
 
-                    while not chain_manager.validate_mining_nonce(block_2, False):
+                    while not PoWValidator.validate_mining_nonce(state, block_2.blockheader, False):
                         block_2.set_mining_nonce(block_2.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_2)
@@ -195,7 +195,7 @@ class TestChainManager(TestCase):
                                                nonce=1)
                         block_1.set_mining_nonce(10)
 
-                        while not chain_manager.validate_mining_nonce(block_1, False):
+                        while not PoWValidator.validate_mining_nonce(state, block_1.blockheader, False):
                             block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                         result = chain_manager.add_block(block_1)
@@ -215,7 +215,7 @@ class TestChainManager(TestCase):
                                              nonce=1)
                         block.set_mining_nonce(18)
 
-                        while not chain_manager.validate_mining_nonce(block, False):
+                        while not PoWValidator.validate_mining_nonce(state, block.blockheader, False):
                             block.set_mining_nonce(block.mining_nonce + 1)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:

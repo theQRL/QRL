@@ -8,6 +8,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper, Qryptonight
 
 from qrl.core import config
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -26,7 +27,6 @@ class ChainManager:
         self.tx_pool = TransactionPool()  # TODO: Move to some pool manager
         self.last_block = Block.from_json(GenesisBlock().to_json())
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
-        self._difficulty_tracker = DifficultyTracker()
 
         self.trigger_miner = False
 
@@ -52,7 +52,7 @@ class ChainManager:
             self.state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
             parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
-            self.current_difficulty, _ = self._difficulty_tracker.get(
+            self.current_difficulty, _ = DifficultyTracker.get(
                 measurement=config.dev.mining_setpoint_blocktime,
                 parent_difficulty=parent_difficulty)
 
@@ -79,7 +79,7 @@ class ChainManager:
         parent_block = self.state.get_block(block.prev_headerhash)
 
         measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash, parent_metadata)
-        diff, target = self._difficulty_tracker.get(
+        diff, target = DifficultyTracker.get(
             measurement=measurement,
             parent_difficulty=parent_metadata.block_difficulty)
 
@@ -127,7 +127,7 @@ class ChainManager:
                                              addr_from_pk_state):
             return False
 
-        if not self.validate_mining_nonce(block):
+        if not PoWValidator.validate_mining_nonce(self.state, block.blockheader):
             return False
 
         if not coinbase_tx.validate():
@@ -354,7 +354,7 @@ class ChainManager:
                     block_metadata.update_last_headerhashes(parent_metadata.last_N_headerhashes, parent_headerhash)
                     measurement = self.state.get_measurement(block_timestamp, parent_headerhash, parent_metadata)
 
-                    block_difficulty, _ = self._difficulty_tracker.get(
+                    block_difficulty, _ = DifficultyTracker.get(
                         measurement=measurement,
                         parent_difficulty=parent_block_difficulty)
 

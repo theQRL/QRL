@@ -66,6 +66,10 @@ class Block(object):
         return self.blockheader.block_reward
 
     @property
+    def fee_reward(self):
+        return self.blockheader.fee_reward
+
+    @property
     def timestamp(self):
         return self.blockheader.timestamp
 
