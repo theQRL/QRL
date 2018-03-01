@@ -39,4 +39,5 @@ def api_proxy(api_method_name):
     return Response(response=MessageToJson(resp), status=200, mimetype='application/json')
 
 
-app.run(port=18081)
+if __name__ == '__main__':
+    app.run(port=18081)
