@@ -29,9 +29,9 @@ class MockedBlockchain(object):
         self.alice_xmss = get_alice_xmss(xmss_height=required_height)
         self.bob_xmss = get_bob_xmss()
 
-    def add_new_block(self):
+    def create_block(self, prev_hash):
         transactions = []
-        block_prev = self.qrlnode.get_block_last()
+        block_prev = self.qrlnode.get_block_from_hash(prev_hash)
         block_idx = block_prev.block_number + 1
 
         if block_idx == 1:
@@ -57,9 +57,16 @@ class MockedBlockchain(object):
         while not PoWValidator.validate_mining_nonce(self.qrlnode._chain_manager.state,
                                                      block_new.blockheader,
                                                      False):
-
             block_new.set_mining_nonce(block_new.mining_nonce + 1)
 
+        return block_new
+
+    def add_block(self, block):
+        return self.qrlnode._chain_manager.add_block(block)
+
+    def add_new_block(self):
+        block_prev = self.qrlnode.get_block_last()
+        block_new = self.create_block(prev_hash=block_prev.headerhash)
         self.qrlnode._chain_manager.add_block(block_new)
 
     @staticmethod
@@ -89,8 +96,8 @@ class MockedBlockchain(object):
             qrlnode = QRLNode(state, slaves=[])
             qrlnode.set_chain_manager(chain_manager)
 
-            mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock,  )
-            for block_idx in range(1, num_blocks+1):
+            mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock, )
+            for block_idx in range(1, num_blocks + 1):
                 mock_blockchain.add_new_block()
 
             yield mock_blockchain

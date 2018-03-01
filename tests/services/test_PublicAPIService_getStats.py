@@ -3,15 +3,12 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from decimal import Decimal
-from mock import mock
-
 import qrl
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from tests.misc.MockedBlockchain import MockedBlockchain
+from tests.blockchain.MockedBlockchain import MockedBlockchain
 
 logger.initialize_default()
 
@@ -24,10 +21,10 @@ class TestPublicAPI(TestCase):
         number_blocks = 1
         with MockedBlockchain.create(number_blocks) as mock_blockchain:
             service = PublicAPIService(mock_blockchain.qrlnode)
-            default_value = qrl.core.config.dev.block_timeseries_size
+            default_value = config.dev.block_timeseries_size
 
             try:
-                qrl.core.config.dev.block_timeseries_size = 10
+                config.dev.block_timeseries_size = 10
 
                 for i in range(number_blocks + 1, 50):
                     mock_blockchain.add_new_block()
