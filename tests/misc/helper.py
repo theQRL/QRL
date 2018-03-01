@@ -21,6 +21,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.GenesisBlock import GenesisBlock
@@ -120,7 +121,7 @@ def qrlnode_with_mock_blockchain(num_blocks):
                                      master_address=alice_xmss.address,
                                      nonce=block_idx)
 
-            while not chain_manager.validate_mining_nonce(block_new, False):
+            while not PoWValidator.validate_mining_nonce(state, block_new.blockheader, False):
                 block_new.set_mining_nonce(block_new.mining_nonce + 1)
 
             chain_manager.add_block(block_new)

@@ -85,7 +85,7 @@ def _print_addresses(ctx, addresses, source_description):
 
 def _public_get_address_balance(ctx, address):
     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=address)
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(address.decode())))
     getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
     return getAddressStateResp.state.balance
 
@@ -153,14 +153,10 @@ def wallet_ls(ctx):
     """
     Lists available wallets
     """
-    if ctx.obj.remote:
-        addresses = _admin_get_local_addresses(ctx)
-        _print_addresses(ctx, addresses, ctx.obj.node_public_address)
-    else:
-        config.user.wallet_dir = ctx.obj.wallet_dir
-        wallet = Wallet(valid_or_create=False)
-        addresses = [a.address for a in wallet.address_bundle]
-        _print_addresses(ctx, addresses, config.user.wallet_dir)
+    config.user.wallet_dir = ctx.obj.wallet_dir
+    wallet = Wallet(valid_or_create=False)
+    addresses = [a.address for a in wallet.address_bundle]
+    _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 
 @qrl.command()
@@ -451,7 +447,7 @@ def tx_push(ctx, txblob):
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
     pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
-    print(pushTransactionResp.some_response)
+    print(pushTransactionResp.error_code)
 
 
 @qrl.command()
@@ -502,7 +498,7 @@ def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        print(pushTransactionResp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -568,7 +564,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        print(pushTransactionResp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -623,7 +619,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        print(pushTransactionResp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -723,7 +719,7 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
         ephemeralMessageReq = qrl_pb2.PushEphemeralMessageReq(ephemeral_message=encrypted_ephemeral_msg.pbdata)
         ephemeralMessageResp = stub.PushEphemeralMessage(ephemeralMessageReq, timeout=5)
 
-        print(ephemeralMessageResp.some_response)
+        print(ephemeralMessageResp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -751,7 +747,7 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
-        address_src_pk = src_xmss.pk()
+        address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(ots_key_index)
         kyber_pk = kyber_pk.encode()
         dilithium_pk = dilithium_pk.encode()
@@ -772,7 +768,7 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.some_response)
+        print(pushTransactionResp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
