@@ -410,6 +410,12 @@ class QRLNode:
             return result[0], result[1]
         return None, None
 
+    def get_block_last(self) -> Optional[Block]:
+        """
+        This method returns an object that matches the query hash
+        """
+        return self._chain_manager.get_last_block()
+
     def get_block_from_hash(self, query_hash: bytes) -> Optional[Block]:
         """
         This method returns an object that matches the query hash
