@@ -4,8 +4,9 @@
 import grpc
 from google.protobuf.json_format import MessageToJson
 
-from qrl.generated import qrl_pb2_grpc, qrl_pb2
+from qrl.generated import qrl_pb2_grpc, qrl_pb2, qrlmining_pb2, qrlmining_pb2_grpc
 from flask import Flask, Response, request
+from jsonrpc.backend.flask import api
 
 app = Flask(__name__)
 
@@ -38,6 +39,37 @@ def api_proxy(api_method_name):
     resp = getattr(stub, api_method_name)(api_request, timeout=10)
     return Response(response=MessageToJson(resp), status=200, mimetype='application/json')
 
+
+def get_mining_stub():
+    stub = qrlmining_pb2_grpc.MiningAPIStub(grpc.insecure_channel('127.0.0.1:9007'))
+    return stub
+
+
+@api.dispatcher.add_method
+def getblocktemplate(wallet_address):
+    stub = get_mining_stub()
+    request = qrlmining_pb2.GetBlockToMineReq(wallet_address=wallet_address.encode())
+    response = stub.GetBlockToMine(request=request, timeout=10)
+    return MessageToJson(response)
+
+
+@api.dispatcher.add_method
+def submitminedblock(blob):
+    stub = get_mining_stub()
+    request = qrlmining_pb2.SubmitMinedBlockReq(blob=blob)
+    response = stub.SubmitMinedBlock(request=request, timeout=10)
+    return MessageToJson(response)
+
+
+@api.dispatcher.add_method
+def getblockminingcompatible(height):
+    stub = get_mining_stub()
+    request = qrlmining_pb2.GetBlockMiningCompatibleReq(height=height)
+    response = stub.GetBlockMiningCompatible(request=request, timeout=10)
+    return MessageToJson(response)
+
+
+app.add_url_rule('/json_rpc', 'api', api.as_view(), methods=['POST'])
 
 if __name__ == '__main__':
     app.run(port=18081)
