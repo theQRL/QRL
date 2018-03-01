@@ -43,4 +43,4 @@ def start_services(node: QRLNode):
 
     logger.info("grpc admin service - started !")
 
-    return admin_server, public_server
+    return admin_server, public_server, mining_server

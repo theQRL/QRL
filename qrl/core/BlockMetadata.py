@@ -15,6 +15,10 @@ class BlockMetadata(object):
             self._data = qrl_pb2.BlockMetaData()
 
     @property
+    def pbdata(self):
+        return self._data
+
+    @property
     def is_orphan(self):
         return self._data.is_orphan
 
