@@ -328,7 +328,7 @@ class Miner(Qryptominer):
         if block_header.block_number != self._mining_block.block_number:
             return False
 
-        if PoWValidator.validate_mining_nonce(self.state, blockheader=block_header):
+        if PoWValidator().validate_mining_nonce(self.state, blockheader=block_header):
             self._mining_block.set_mining_nonce(block_header.mining_nonce)
             return True
 

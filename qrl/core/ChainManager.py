@@ -8,8 +8,8 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper
 
 from qrl.core import config
-from qrl.crypto.Qryptonight import Qryptonight
 from qrl.core.PoWValidator import PoWValidator
+from qrl.crypto.Qryptonight import Qryptonight
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -128,7 +128,7 @@ class ChainManager:
                                              addr_from_pk_state):
             return False
 
-        if not PoWValidator.validate_mining_nonce(self.state, block.blockheader):
+        if not PoWValidator().validate_mining_nonce(self.state, block.blockheader):
             return False
 
         if not coinbase_tx.validate():

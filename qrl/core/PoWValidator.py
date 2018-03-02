@@ -5,18 +5,18 @@ import functools
 
 from pyqryptonight.pyqryptonight import UInt256ToString, Qryptonight, PoWHelper
 
-from qrl.core.misc import logger
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.Singleton import Singleton
 from qrl.core.State import State
+from qrl.core.misc import logger
 
 
-class PoWValidator:
+class PoWValidator(object, metaclass=Singleton):
     def __init__(self):
-        pass
+        self._powv = PoWHelper()
 
-    @staticmethod
-    def validate_mining_nonce(state: State, blockheader: BlockHeader, enable_logging=False):
+    def validate_mining_nonce(self, state: State, blockheader: BlockHeader, enable_logging=False):
         parent_metadata = state.get_block_metadata(blockheader.prev_blockheaderhash)
         parent_block = state.get_block(blockheader.prev_blockheaderhash)
 
@@ -34,7 +34,7 @@ class PoWValidator:
             logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
             logger.debug('-------------------END--------------------')
 
-        if not PoWValidator.verify_input_cached(blockheader.mining_blob, target):
+        if not self.verify_input_cached(blockheader.mining_blob, target):
             if enable_logging:
                 logger.warning("PoW verification failed")
                 qn = Qryptonight()
@@ -45,7 +45,6 @@ class PoWValidator:
 
         return True
 
-    @staticmethod
     @functools.lru_cache(maxsize=5)
-    def verify_input_cached(mining_blob, target):
-        return PoWHelper.verifyInput(mining_blob, target)
+    def verify_input_cached(self, mining_blob, target):
+        return PoWValidator()._powv.verifyInput(mining_blob, target)

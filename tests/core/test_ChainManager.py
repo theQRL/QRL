@@ -59,7 +59,7 @@ class TestChainManager(TestCase):
                                            master_address=alice_xmss.address,
                                            nonce=1)
 
-                    while not PoWValidator.validate_mining_nonce(state, block_1.blockheader, False):
+                    while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
                         block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_1)
@@ -111,7 +111,7 @@ class TestChainManager(TestCase):
                                            master_address=alice_xmss.address,
                                            nonce=1)
 
-                    while not PoWValidator.validate_mining_nonce(state, block_1.blockheader, False):
+                    while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
                         block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_1)
@@ -133,7 +133,7 @@ class TestChainManager(TestCase):
                                          master_address=bob_xmss.address,
                                          nonce=1)
 
-                    while not PoWValidator.validate_mining_nonce(state, block.blockheader, False):
+                    while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
                         block.set_mining_nonce(block.mining_nonce + 1)
 
                     result = chain_manager.add_block(block)
@@ -153,7 +153,7 @@ class TestChainManager(TestCase):
                                            master_address=bob_xmss.address,
                                            nonce=2)
 
-                    while not PoWValidator.validate_mining_nonce(state, block_2.blockheader, False):
+                    while not PoWValidator().validate_mining_nonce(state, block_2.blockheader, False):
                         block_2.set_mining_nonce(block_2.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_2)
@@ -198,7 +198,7 @@ class TestChainManager(TestCase):
                                                nonce=1)
                         block_1.set_mining_nonce(10)
 
-                        while not PoWValidator.validate_mining_nonce(state, block_1.blockheader, False):
+                        while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
                             block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                         result = chain_manager.add_block(block_1)
@@ -218,7 +218,7 @@ class TestChainManager(TestCase):
                                              nonce=1)
                         block.set_mining_nonce(18)
 
-                        while not PoWValidator.validate_mining_nonce(state, block.blockheader, False):
+                        while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
                             block.set_mining_nonce(block.mining_nonce + 1)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:

@@ -55,9 +55,9 @@ class MockedBlockchain(object):
                                  master_address=self.alice_xmss.address,
                                  nonce=block_idx)
 
-        while not PoWValidator.validate_mining_nonce(state=self.qrlnode._chain_manager.state,
-                                                     blockheader=block_new.blockheader,
-                                                     enable_logging=False):
+        while not PoWValidator().validate_mining_nonce(state=self.qrlnode._chain_manager.state,
+                                                       blockheader=block_new.blockheader,
+                                                       enable_logging=False):
             block_new.set_mining_nonce(block_new.mining_nonce + 1)
 
         return block_new

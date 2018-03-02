@@ -87,7 +87,7 @@ class TestEphemeral(TestCase):
                                                       nonce=1)
 
                             #  Mine the nonce
-                            while not PoWValidator.validate_mining_nonce(state, tmp_block1.blockheader, False):
+                            while not PoWValidator().validate_mining_nonce(state, tmp_block1.blockheader, False):
                                 tmp_block1.set_mining_nonce(tmp_block1.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block1)
@@ -136,7 +136,7 @@ class TestEphemeral(TestCase):
                                                       nonce=2)
 
                             #  Mine the nonce
-                            while not PoWValidator.validate_mining_nonce(state, tmp_block2.blockheader, False):
+                            while not PoWValidator().validate_mining_nonce(state, tmp_block2.blockheader, False):
                                 tmp_block2.set_mining_nonce(tmp_block2.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block2)
@@ -153,7 +153,7 @@ class TestEphemeral(TestCase):
                                                       nonce=3)
 
                             #  Mine the nonce
-                            while not PoWValidator.validate_mining_nonce(state, tmp_block3.blockheader, False):
+                            while not PoWValidator().validate_mining_nonce(state, tmp_block3.blockheader, False):
                                 tmp_block3.set_mining_nonce(tmp_block3.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block3)
@@ -169,7 +169,7 @@ class TestEphemeral(TestCase):
                                                       nonce=4)
 
                             #  Mine the nonce
-                            while not PoWValidator.validate_mining_nonce(state, tmp_block4.blockheader, False):
+                            while not PoWValidator().validate_mining_nonce(state, tmp_block4.blockheader, False):
                                 tmp_block4.set_mining_nonce(tmp_block4.mining_nonce + 1)
 
                             res = chain_manager.add_block(block=tmp_block4)
