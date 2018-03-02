@@ -3,6 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from grpc import StatusCode
 
+from pyqrllib.pyqrllib import bin2hstr
+
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrlmining_pb2
 from qrl.generated.qrlmining_pb2_grpc import MiningAPIServicer
@@ -28,6 +30,23 @@ class MiningAPIService(MiningAPIServicer):
 
         return response
 
+    @Grpc_exception_wrapper(qrlmining_pb2.GetLastBlockHeaderResp, StatusCode.UNKNOWN)
+    def GetLastBlockHeader(self,
+                           request: qrlmining_pb2.GetLastBlockHeaderReq,
+                           context) -> qrlmining_pb2.GetLastBlockHeaderResp:
+        response = qrlmining_pb2.GetLastBlockHeaderResp()
+
+        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(self.qrlnode.block_height)
+        blockheader = blockheader_and_metadata[0]
+        block_metadata = blockheader_and_metadata[1]
+        response.difficulty = int(bin2hstr(block_metadata.block_difficulty), 16)
+        response.height = self.qrlnode.block_height
+        response.timestamp = blockheader.timestamp
+        response.reward = blockheader.block_reward + blockheader.fee_reward
+        response.hash = bin2hstr(blockheader.headerhash)
+
+        return response
+
     @Grpc_exception_wrapper(qrlmining_pb2.GetBlockToMineResp, StatusCode.UNKNOWN)
     def GetBlockToMine(self,
                        request: qrlmining_pb2.GetBlockToMineReq,
@@ -39,6 +58,7 @@ class MiningAPIService(MiningAPIServicer):
         if blocktemplate_blob_and_difficulty:
             response.blocktemplate_blob = blocktemplate_blob_and_difficulty[0]
             response.difficulty = blocktemplate_blob_and_difficulty[1]
+            response.height = self.qrlnode.block_height
 
         return response
 

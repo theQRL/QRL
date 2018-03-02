@@ -10,6 +10,7 @@ import "qrl.proto";
 service MiningAPI
 {
     rpc GetBlockMiningCompatible(GetBlockMiningCompatibleReq) returns (GetBlockMiningCompatibleResp);
+    rpc GetLastBlockHeader(GetLastBlockHeaderReq) returns (GetLastBlockHeaderResp);
     rpc GetBlockToMine(GetBlockToMineReq) returns (GetBlockToMineResp);
     rpc SubmitMinedBlock(SubmitMinedBlockReq) returns (SubmitMinedBlockResp);
 }
@@ -19,9 +20,20 @@ message GetBlockMiningCompatibleReq {
     uint64 height = 1; // if height = 0, this means getlastblockheader
 }
 
+
+message GetLastBlockHeaderReq { }
+
 message GetBlockMiningCompatibleResp {
     BlockHeader blockheader = 1;
     BlockMetaData blockmetadata = 2;
+}
+
+message GetLastBlockHeaderResp {
+    uint64 difficulty = 1;
+    uint64 height = 2;
+    uint64 timestamp = 3;
+    uint64 reward = 4;
+    string hash = 5;
 }
 
 message GetBlockToMineReq {
@@ -29,8 +41,9 @@ message GetBlockToMineReq {
 }
 
 message GetBlockToMineResp {
-    bytes blocktemplate_blob = 1; // max length 112 bytes, otherwise xmr-stak will hiccup
-    bytes difficulty = 2; // difficulty that the new block should meet. JuansDifficultyFunc(cumulative_difficulty)?
+    string blocktemplate_blob = 1; // max length 112 bytes, otherwise xmr-stak will hiccup
+    uint64 difficulty = 2; // difficulty that the new block should meet
+    uint64 height = 3;
 }
 
 message SubmitMinedBlockReq {

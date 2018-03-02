@@ -228,7 +228,9 @@ class POW(ConsensusMechanism):
         return False
 
     def mine_next(self, parent_block):
+        parent_metadata = self.chain_manager.state.get_block_metadata(parent_block.headerhash)
+        self.miner.prepare_next_unmined_block_template(self.chain_manager.tx_pool, parent_block, parent_metadata.block_difficulty)
+
         if config.user.mining_enabled:
-            parent_metadata = self.chain_manager.state.get_block_metadata(parent_block.headerhash)
             logger.info('Mining Block #%s', parent_block.block_number + 1)
-            self.miner.start_mining(self.chain_manager.tx_pool, parent_block, parent_metadata.block_difficulty)
+            self.miner.start_mining(parent_block, parent_metadata.block_difficulty)

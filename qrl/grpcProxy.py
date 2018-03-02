@@ -46,15 +46,42 @@ def get_mining_stub():
 
 
 @api.dispatcher.add_method
+def getlastblockheader():
+    stub = get_mining_stub()
+    request = qrlmining_pb2.GetBlockToMineReq()
+    grpc_response = stub.GetLastBlockHeader(request=request, timeout=10)
+    block_header = {
+        'difficulty': grpc_response.difficulty,
+        'height': grpc_response.height,
+        'timestamp': grpc_response.timestamp,
+        'reward': grpc_response.reward,
+        'hash': grpc_response.hash
+    }
+    resp = {
+        "block_header": block_header,
+        "status": "OK"
+    }
+    return resp
+
+
+@api.dispatcher.add_method
 def getblocktemplate(wallet_address):
     stub = get_mining_stub()
     request = qrlmining_pb2.GetBlockToMineReq(wallet_address=wallet_address.encode())
-    response = stub.GetBlockToMine(request=request, timeout=10)
-    return MessageToJson(response)
+    grpc_response = stub.GetBlockToMine(request=request, timeout=10)
+    resp = {
+        'blocktemplate_blob': grpc_response.blocktemplate_blob,
+        'difficulty': grpc_response.difficulty,
+        'height': grpc_response.height,
+        'status': 'OK'
+    }
+
+    return resp
 
 
 @api.dispatcher.add_method
 def submitminedblock(blob):
+    print('called submitminedblock')
     stub = get_mining_stub()
     request = qrlmining_pb2.SubmitMinedBlockReq(blob=blob)
     response = stub.SubmitMinedBlock(request=request, timeout=10)
@@ -63,6 +90,7 @@ def submitminedblock(blob):
 
 @api.dispatcher.add_method
 def getblockminingcompatible(height):
+    print('called getblockmining compatible')
     stub = get_mining_stub()
     request = qrlmining_pb2.GetBlockMiningCompatibleReq(height=height)
     response = stub.GetBlockMiningCompatible(request=request, timeout=10)
@@ -72,4 +100,4 @@ def getblockminingcompatible(height):
 app.add_url_rule('/json_rpc', 'api', api.as_view(), methods=['POST'])
 
 if __name__ == '__main__':
-    app.run(port=18081)
+    app.run(host='127.0.0.1', port=18081)

@@ -19,6 +19,11 @@ class MiningAPIStub(object):
         request_serializer=qrlmining__pb2.GetBlockMiningCompatibleReq.SerializeToString,
         response_deserializer=qrlmining__pb2.GetBlockMiningCompatibleResp.FromString,
         )
+    self.GetLastBlockHeader = channel.unary_unary(
+        '/qrl.MiningAPI/GetLastBlockHeader',
+        request_serializer=qrlmining__pb2.GetLastBlockHeaderReq.SerializeToString,
+        response_deserializer=qrlmining__pb2.GetLastBlockHeaderResp.FromString,
+        )
     self.GetBlockToMine = channel.unary_unary(
         '/qrl.MiningAPI/GetBlockToMine',
         request_serializer=qrlmining__pb2.GetBlockToMineReq.SerializeToString,
@@ -36,6 +41,13 @@ class MiningAPIServicer(object):
   pass
 
   def GetBlockMiningCompatible(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetLastBlockHeader(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -63,6 +75,11 @@ def add_MiningAPIServicer_to_server(servicer, server):
           servicer.GetBlockMiningCompatible,
           request_deserializer=qrlmining__pb2.GetBlockMiningCompatibleReq.FromString,
           response_serializer=qrlmining__pb2.GetBlockMiningCompatibleResp.SerializeToString,
+      ),
+      'GetLastBlockHeader': grpc.unary_unary_rpc_method_handler(
+          servicer.GetLastBlockHeader,
+          request_deserializer=qrlmining__pb2.GetLastBlockHeaderReq.FromString,
+          response_serializer=qrlmining__pb2.GetLastBlockHeaderResp.SerializeToString,
       ),
       'GetBlockToMine': grpc.unary_unary_rpc_method_handler(
           servicer.GetBlockToMine,
