@@ -145,7 +145,7 @@ Access type [0]:        # Mining only or transfer coins [0],[1]
 Fee [0.0]: 0            # How much fee
 ```
 
-This will generate a `slaves.json` in the directory you are in. If you later need to generate another file later, you must use an **Unused** OTS. 
+This will generate a `slaves.json` in the directory you are in. If you need to generate another file later, you must use an **Unused** OTS. 
 
 To specify an OTS index use the `--otsidx {INDEX#}` flag when you call ``slave_tx_generate` Change the INDEX# to an unused OTS key.
 
