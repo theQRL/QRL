@@ -145,7 +145,14 @@ Access type [0]:        # Mining only or transfer coins [0],[1]
 Fee [0.0]: 0            # How much fee
 ```
 
-This will generate a `slaves.json` in the directory you are in. 
+This will generate a `slaves.json` in the directory you are in. If you need to generate another file later, you must use an **Unused** OTS. 
+
+To specify an OTS index use the `--otsidx {INDEX#}` flag when you call ``slave_tx_generate` Change the INDEX# to an unused OTS key.
+
+```bash
+# Using index # 1 to generate slaves.json file
+qrl -r --host 104.237.3.185 slave_tx_generate --otsidx 1
+```
 
 If you have saved the **Mnemonic** or **hexseed** somewhere safe you can delete the open `wallet.qrl` file and use the `slaves.json` file to mine with. 
 
