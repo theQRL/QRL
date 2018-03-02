@@ -9,7 +9,6 @@ from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToS
 
 from qrl.core import config
 from qrl.core.Block import Block
-from qrl.core.BlockHeader import BlockHeader
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.State import State
@@ -320,16 +319,16 @@ class Miner(Qryptominer):
         return [bin2hstr(self._mining_block.mining_blob), int(bin2hstr(self._current_difficulty), 16)]
 
     def submit_mined_block(self, blob) -> bool:
-        block_header = BlockHeader.from_blob(blob)
-
-        if block_header.prev_blockheaderhash != self._mining_block.prev_headerhash:
+        if not self._mining_block.verify_blob(blob):
             return False
 
-        if block_header.block_number != self._mining_block.block_number:
+        blockheader = copy.deepcopy(self._mining_block.blockheader)
+        blockheader.set_mining_nonce_from_blob(blob)
+
+        if not PoWValidator().validate_mining_nonce(self.state, blockheader=blockheader):
             return False
 
-        if PoWValidator().validate_mining_nonce(self.state, blockheader=block_header):
-            self._mining_block.set_mining_nonce(block_header.mining_nonce)
-            return True
-
-        return False
+        self._mining_block.set_mining_nonce(blockheader.mining_nonce)
+        cloned_block = copy.deepcopy(self._mining_block)
+        self.pre_block_logic(cloned_block)
+        return True

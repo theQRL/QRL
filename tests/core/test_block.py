@@ -21,7 +21,7 @@ class TestBlock(TestCase):
         block = Block()
         self.assertIsNotNone(block)             # just to avoid warnings
 
-    def test_from_blob(self):
+    def test_verify_blob(self):
         alice_xmss = get_alice_xmss()
         block = Block.create(block_number=5,
                              prevblock_headerhash=bytes(sha2_256(b'test')),
@@ -30,13 +30,20 @@ class TestBlock(TestCase):
                              master_address=alice_xmss.address,
                              nonce=10)
         mining_blob = block.mining_blob
-        block_header = block.blockheader.from_blob(mining_blob)
-        self.assertEqual(block_header.block_number, block.block_number)
-        self.assertEqual(block_header.timestamp, block.timestamp)
-        self.assertEqual(block_header.prev_blockheaderhash, block.prev_headerhash)
-        self.assertEqual(block_header.block_reward, block.block_reward)
-        self.assertEqual(block_header.fee_reward, block.fee_reward)
-        self.assertEqual(block_header.tx_merkle_root, block.blockheader.tx_merkle_root)
-        self.assertEqual(block_header.PK, block.blockheader.PK)
-        self.assertEqual(block_header.mining_nonce, block.mining_nonce)
-        self.assertEqual(block_header.headerhash, block.headerhash)
+        self.assertTrue(block.blockheader.verify_blob(mining_blob))
+
+    def test_set_mining_nonce_from_blob(self):
+        alice_xmss = get_alice_xmss()
+        block = Block.create(block_number=5,
+                             prevblock_headerhash=bytes(sha2_256(b'test')),
+                             transactions=[],
+                             signing_xmss=alice_xmss,
+                             master_address=alice_xmss.address,
+                             nonce=10)
+        current_mining_nonce = block.mining_nonce
+        current_headerhash = block.headerhash
+        mining_blob = block.mining_blob
+        block.blockheader.set_mining_nonce_from_blob(mining_blob)
+        self.assertEqual(block.blockheader.mining_nonce, current_mining_nonce)
+        self.assertEqual(block.headerhash, current_headerhash)
+        self.assertEqual(block.blockheader.mining_blob, mining_blob)

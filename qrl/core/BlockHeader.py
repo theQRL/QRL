@@ -149,6 +149,12 @@ class BlockHeader(object):
         self._data.mining_nonce = value
         self._data.hash_header = self.generate_headerhash()
 
+    def set_mining_nonce_from_blob(self, blob):
+        mining_nonce_offset = config.dev.mining_nonce_offset
+        mining_nonce_bytes = blob[mining_nonce_offset: mining_nonce_offset + 4]
+        mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
+        self.set_mining_nonce(mining_nonce)
+
     def block_reward_calc(self):
         """
         return block reward for the block_n
@@ -216,25 +222,17 @@ class BlockHeader(object):
         Parse(json_data, pbdata)
         return BlockHeader(pbdata)
 
-    @staticmethod
-    def from_blob(blob):
+    def verify_blob(self, blob):
         mining_nonce_offset = config.dev.mining_nonce_offset
-        mining_nonce_bytes = blob[mining_nonce_offset: mining_nonce_offset + 4]
         blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 4:]
 
-        block_header = qrl_pb2.BlockHeader()
-        block_header.block_number = int.from_bytes(blob[:8], byteorder='big', signed=False)
-        block_header.timestamp_seconds = int.from_bytes(blob[8:16], byteorder='big', signed=False)
-        block_header.hash_header_prev = blob[16:48]  # 16 + 32 = 48, 32 bytes prev_header_hash
-        block_header.reward_block = int.from_bytes(blob[48:56], byteorder='big', signed=False)
-        block_header.reward_fee = int.from_bytes(blob[56:64], byteorder='big', signed=False)
-        block_header.merkle_root = blob[64:96]
-        block_header.PK = blob[96:]
-        block_header.mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
-        block_header_obj = BlockHeader(block_header)
+        actual_blob = self.mining_blob
+        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 4:]
 
-        block_header_obj.set_mining_nonce(block_header.mining_nonce)  # set mining nonce and updates block's header_hash
-        return block_header_obj
+        if blob != actual_blob:
+            return False
+
+        return True
 
     def to_json(self):
         # FIXME: Remove once we move completely to protobuf
