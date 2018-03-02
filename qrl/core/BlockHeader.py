@@ -1,6 +1,7 @@
 # coding=utf-8
 import functools
 from google.protobuf.json_format import MessageToJson, Parse
+from pyqrllib.pyqrllib import shake128
 
 from qrl.core import config
 from qrl.core.formulas import block_reward
@@ -81,6 +82,9 @@ class BlockHeader(object):
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root \
                + self.PK
+
+        # reduce mining blob considering nonce (4 byte)
+        blob = bytes(shake128(config.dev.mining_blob_size - 4, blob))
 
         if len(blob) < self.nonce_offset:
             raise Exception("Mining blob size below 39 bytes")

@@ -133,6 +133,7 @@ class DevConfig(object):
         # will be managed by OTS Counter
         self.max_ots_tracking_index = 1024                                  #
         self.mining_nonce_offset = 39
+        self.mining_blob_size = 96
 
         self.ots_bitfield_size = ceil(self.max_ots_tracking_index / 8)
 
