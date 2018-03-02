@@ -121,7 +121,7 @@ def qrlnode_with_mock_blockchain(num_blocks):
                                      master_address=alice_xmss.address,
                                      nonce=block_idx)
 
-            while not PoWValidator.validate_mining_nonce(state, block_new.blockheader, False):
+            while not PoWValidator().validate_mining_nonce(state, block_new.blockheader, False):
                 block_new.set_mining_nonce(block_new.mining_nonce + 1)
 
             chain_manager.add_block(block_new)

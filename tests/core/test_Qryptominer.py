@@ -109,4 +109,4 @@ class TestQryptominer(TestCase):
 
         print(custom_qminer.nonce)
         self.assertEqual(tuple(expected_mined_blob), custom_qminer.solution_blob)
-        self.assertTrue(PoWHelper.verifyInput(custom_qminer.solution_blob, new_target))
+        self.assertTrue(PoWHelper().verifyInput(custom_qminer.solution_blob, new_target))
