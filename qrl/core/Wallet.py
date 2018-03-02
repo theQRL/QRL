@@ -2,8 +2,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import namedtuple
-from typing import List
+from typing import List, Optional, KeysView
 
+import simplejson
 from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr, XmssFast
 
 from qrl.generated import qrl_pb2
@@ -26,17 +27,21 @@ class Wallet:
         True
         """
         config.create_path(config.user.wallet_dir)
-        self.wallet_dat_filename = os.path.join(config.user.wallet_dir, config.dev.wallet_dat_filename)
+        self.wallet_dat_filename = os.path.join(config.user.wallet_dir,
+                                                config.dev.wallet_dat_filename)
 
-        self.address_bundle = None
-        self._read_wallet()
+        self.address_dict = dict()
+        self._read_wallet(self.wallet_dat_filename)
 
         if valid_or_create:
             self._valid_or_create()
 
     @property
     def addresses(self) -> List[bytes]:
-        return [a.address for a in self.address_bundle]
+        return list(self.address_dict.keys())
+
+    def get_xmss(self, address)->Optional[XMSS]:
+        return self.address_dict.get(address, None)
 
     def save_wallet(self):
         logger.debug('Syncing wallet file')
@@ -52,25 +57,24 @@ class Wallet:
         with open(self.wallet_dat_filename, "wb") as outfile:
             outfile.write(wallet_store.SerializeToString())
 
-    def _read_wallet(self):
+    def _read_wallet(self, filename):
         self.address_bundle = []
 
-        if not os.path.isfile(self.wallet_dat_filename):
+        if not os.path.isfile(filename):
             return
 
         try:
-            with open(self.wallet_dat_filename, "rb") as infile:
-                wallet_store = qrl_pb2.WalletStore()
-                wallet_store.ParseFromString(bytes(infile.read()))
+            with open(filename, "rb") as infile:
+                wallet_store = simplejson.loads(infile.read())
 
                 self.address_bundle = []
-                for a in wallet_store.wallets:
-                    tmpxmss = XMSS.from_extended_seed(mnemonic2bin(a.mnemonic.strip()))
-                    tmpxmss.set_ots_index(a.xmss_index)
-                    if a.address != bin2hstr(tmpxmss.address).encode():
+                for a in wallet_store:
+                    tmp_xmss = XMSS.from_extended_seed(mnemonic2bin(a['mnemonic'].strip()))
+                    tmp_xmss.set_ots_index(a['index'])
+                    if a['address'] != 'Q'+bin2hstr(tmp_xmss.address):
                         logger.fatal("Mnemonic and address do not match.")
                         exit(1)
-                    self.address_bundle.append(AddressBundle(a.address, tmpxmss))
+                    self.address_dict[tmp_xmss.address] = tmp_xmss
 
         except Exception as e:
             logger.warning("It was not possible to open the wallet: %s", e)
