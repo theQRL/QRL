@@ -5,9 +5,10 @@ from typing import Optional
 
 import functools
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper, Qryptonight
+from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper
 
 from qrl.core import config
+from qrl.crypto.Qryptonight import Qryptonight
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block

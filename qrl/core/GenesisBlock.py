@@ -8,16 +8,8 @@ from google.protobuf.json_format import Parse
 
 from qrl.core import config
 from qrl.core.Block import Block
+from qrl.core.Singleton import Singleton
 from qrl.generated import qrl_pb2
-
-
-class Singleton(type):
-    instance = None
-
-    def __call__(cls, *args, **kw):
-        if not cls.instance:
-            cls.instance = super(Singleton, cls).__call__(*args, **kw)
-        return cls.instance
 
 
 class GenesisBlock(Block, metaclass=Singleton):

@@ -5,6 +5,7 @@ from math import ceil, log
 from mock import mock, MagicMock, Mock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
+from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
@@ -54,9 +55,9 @@ class MockedBlockchain(object):
                                  master_address=self.alice_xmss.address,
                                  nonce=block_idx)
 
-        while not PoWValidator.validate_mining_nonce(self.qrlnode._chain_manager.state,
-                                                     block_new.blockheader,
-                                                     False):
+        while not PoWValidator.validate_mining_nonce(state=self.qrlnode._chain_manager.state,
+                                                     blockheader=block_new.blockheader,
+                                                     enable_logging=False):
             block_new.set_mining_nonce(block_new.mining_nonce + 1)
 
         return block_new
@@ -82,22 +83,27 @@ class MockedBlockchain(object):
 
             state.get_measurement = MagicMock(return_value=10000000)
 
-            genesis_block = GenesisBlock()
-            chain_manager = ChainManager(state)
-            chain_manager.load(genesis_block)
+            genesis_difficulty = config.dev.genesis_difficulty
+            try:
+                config.dev.genesis_difficulty = 10
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                chain_manager.load(genesis_block)
 
-            chain_manager._difficulty_tracker = Mock()
-            dt = DifficultyTracker()
-            tmp_difficulty = StringToUInt256('2')
-            tmp_boundary = dt.get_boundary(tmp_difficulty)
+                chain_manager._difficulty_tracker = Mock()
+                dt = DifficultyTracker()
+                tmp_difficulty = StringToUInt256('2')
+                tmp_boundary = dt.get_boundary(tmp_difficulty)
 
-            chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
-            qrlnode = QRLNode(state, slaves=[])
-            qrlnode.set_chain_manager(chain_manager)
+                qrlnode = QRLNode(state, slaves=[])
+                qrlnode.set_chain_manager(chain_manager)
 
-            mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock, )
-            for block_idx in range(1, num_blocks + 1):
-                mock_blockchain.add_new_block()
+                mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock, )
+                for block_idx in range(1, num_blocks + 1):
+                    mock_blockchain.add_new_block()
 
-            yield mock_blockchain
+                yield mock_blockchain
+            finally:
+                config.dev.genesis_difficulty = genesis_difficulty

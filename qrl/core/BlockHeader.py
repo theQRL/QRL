@@ -1,11 +1,11 @@
 # coding=utf-8
 import functools
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqryptonight.pyqryptonight import Qryptonight
 
 from qrl.core import config
 from qrl.core.formulas import block_reward
 from qrl.core.misc import ntp, logger
+from qrl.crypto.Qryptonight import Qryptonight
 from qrl.generated import qrl_pb2
 
 
