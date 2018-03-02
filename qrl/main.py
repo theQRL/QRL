@@ -147,7 +147,7 @@ def main():
 
     #######
     # NOTE: Keep assigned to a variable or might get collected
-    admin_service, grpc_service = start_services(qrlnode)
+    admin_service, grpc_service, mining_service = start_services(qrlnode)
 
     qrlnode.start_listening()
     qrlnode.connect_peers()
