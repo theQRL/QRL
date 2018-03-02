@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrlmining.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fqrlmining.proto\x12\x03qrl\x1a\tqrl.proto\"-\n\x1bGetBlockMiningCompatibleReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"p\n\x1cGetBlockMiningCompatibleResp\x12%\n\x0b\x62lockheader\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12)\n\rblockmetadata\x18\x02 \x01(\x0b\x32\x12.qrl.BlockMetaData\"+\n\x11GetBlockToMineReq\x12\x16\n\x0ewallet_address\x18\x01 \x01(\x0c\"D\n\x12GetBlockToMineResp\x12\x1a\n\x12\x62locktemplate_blob\x18\x01 \x01(\x0c\x12\x12\n\ndifficulty\x18\x02 \x01(\x0c\"#\n\x13SubmitMinedBlockReq\x12\x0c\n\x04\x62lob\x18\x01 \x01(\x0c\"\x16\n\x14SubmitMinedBlockResp2\xf8\x01\n\tMiningAPI\x12_\n\x18GetBlockMiningCompatible\x12 .qrl.GetBlockMiningCompatibleReq\x1a!.qrl.GetBlockMiningCompatibleResp\x12\x41\n\x0eGetBlockToMine\x12\x16.qrl.GetBlockToMineReq\x1a\x17.qrl.GetBlockToMineResp\x12G\n\x10SubmitMinedBlock\x12\x18.qrl.SubmitMinedBlockReq\x1a\x19.qrl.SubmitMinedBlockRespb\x06proto3')
+  serialized_pb=_b('\n\x0fqrlmining.proto\x12\x03qrl\x1a\tqrl.proto\"-\n\x1bGetBlockMiningCompatibleReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"\x17\n\x15GetLastBlockHeaderReq\"p\n\x1cGetBlockMiningCompatibleResp\x12%\n\x0b\x62lockheader\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12)\n\rblockmetadata\x18\x02 \x01(\x0b\x32\x12.qrl.BlockMetaData\"m\n\x16GetLastBlockHeaderResp\x12\x12\n\ndifficulty\x18\x01 \x01(\x04\x12\x0e\n\x06height\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x0e\n\x06reward\x18\x04 \x01(\x04\x12\x0c\n\x04hash\x18\x05 \x01(\t\"+\n\x11GetBlockToMineReq\x12\x16\n\x0ewallet_address\x18\x01 \x01(\x0c\"T\n\x12GetBlockToMineResp\x12\x1a\n\x12\x62locktemplate_blob\x18\x01 \x01(\t\x12\x12\n\ndifficulty\x18\x02 \x01(\x04\x12\x0e\n\x06height\x18\x03 \x01(\x04\"#\n\x13SubmitMinedBlockReq\x12\x0c\n\x04\x62lob\x18\x01 \x01(\x0c\"\x16\n\x14SubmitMinedBlockResp2\xc7\x02\n\tMiningAPI\x12_\n\x18GetBlockMiningCompatible\x12 .qrl.GetBlockMiningCompatibleReq\x1a!.qrl.GetBlockMiningCompatibleResp\x12M\n\x12GetLastBlockHeader\x12\x1a.qrl.GetLastBlockHeaderReq\x1a\x1b.qrl.GetLastBlockHeaderResp\x12\x41\n\x0eGetBlockToMine\x12\x16.qrl.GetBlockToMineReq\x1a\x17.qrl.GetBlockToMineResp\x12G\n\x10SubmitMinedBlock\x12\x18.qrl.SubmitMinedBlockReq\x1a\x19.qrl.SubmitMinedBlockRespb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -58,6 +58,30 @@ _GETBLOCKMININGCOMPATIBLEREQ = _descriptor.Descriptor(
 )
 
 
+_GETLASTBLOCKHEADERREQ = _descriptor.Descriptor(
+  name='GetLastBlockHeaderReq',
+  full_name='qrl.GetLastBlockHeaderReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=82,
+  serialized_end=105,
+)
+
+
 _GETBLOCKMININGCOMPATIBLERESP = _descriptor.Descriptor(
   name='GetBlockMiningCompatibleResp',
   full_name='qrl.GetBlockMiningCompatibleResp',
@@ -91,8 +115,67 @@ _GETBLOCKMININGCOMPATIBLERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=82,
-  serialized_end=194,
+  serialized_start=107,
+  serialized_end=219,
+)
+
+
+_GETLASTBLOCKHEADERRESP = _descriptor.Descriptor(
+  name='GetLastBlockHeaderResp',
+  full_name='qrl.GetLastBlockHeaderResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='difficulty', full_name='qrl.GetLastBlockHeaderResp.difficulty', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='height', full_name='qrl.GetLastBlockHeaderResp.height', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='qrl.GetLastBlockHeaderResp.timestamp', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='reward', full_name='qrl.GetLastBlockHeaderResp.reward', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='hash', full_name='qrl.GetLastBlockHeaderResp.hash', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=221,
+  serialized_end=330,
 )
 
 
@@ -122,8 +205,8 @@ _GETBLOCKTOMINEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=196,
-  serialized_end=239,
+  serialized_start=332,
+  serialized_end=375,
 )
 
 
@@ -136,15 +219,22 @@ _GETBLOCKTOMINERESP = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='blocktemplate_blob', full_name='qrl.GetBlockToMineResp.blocktemplate_blob', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='difficulty', full_name='qrl.GetBlockToMineResp.difficulty', index=1,
-      number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='height', full_name='qrl.GetBlockToMineResp.height', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -160,8 +250,8 @@ _GETBLOCKTOMINERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=241,
-  serialized_end=309,
+  serialized_start=377,
+  serialized_end=461,
 )
 
 
@@ -191,8 +281,8 @@ _SUBMITMINEDBLOCKREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=311,
-  serialized_end=346,
+  serialized_start=463,
+  serialized_end=498,
 )
 
 
@@ -215,14 +305,16 @@ _SUBMITMINEDBLOCKRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=348,
-  serialized_end=370,
+  serialized_start=500,
+  serialized_end=522,
 )
 
 _GETBLOCKMININGCOMPATIBLERESP.fields_by_name['blockheader'].message_type = qrl__pb2._BLOCKHEADER
 _GETBLOCKMININGCOMPATIBLERESP.fields_by_name['blockmetadata'].message_type = qrl__pb2._BLOCKMETADATA
 DESCRIPTOR.message_types_by_name['GetBlockMiningCompatibleReq'] = _GETBLOCKMININGCOMPATIBLEREQ
+DESCRIPTOR.message_types_by_name['GetLastBlockHeaderReq'] = _GETLASTBLOCKHEADERREQ
 DESCRIPTOR.message_types_by_name['GetBlockMiningCompatibleResp'] = _GETBLOCKMININGCOMPATIBLERESP
+DESCRIPTOR.message_types_by_name['GetLastBlockHeaderResp'] = _GETLASTBLOCKHEADERRESP
 DESCRIPTOR.message_types_by_name['GetBlockToMineReq'] = _GETBLOCKTOMINEREQ
 DESCRIPTOR.message_types_by_name['GetBlockToMineResp'] = _GETBLOCKTOMINERESP
 DESCRIPTOR.message_types_by_name['SubmitMinedBlockReq'] = _SUBMITMINEDBLOCKREQ
@@ -236,12 +328,26 @@ GetBlockMiningCompatibleReq = _reflection.GeneratedProtocolMessageType('GetBlock
   ))
 _sym_db.RegisterMessage(GetBlockMiningCompatibleReq)
 
+GetLastBlockHeaderReq = _reflection.GeneratedProtocolMessageType('GetLastBlockHeaderReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETLASTBLOCKHEADERREQ,
+  __module__ = 'qrlmining_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetLastBlockHeaderReq)
+  ))
+_sym_db.RegisterMessage(GetLastBlockHeaderReq)
+
 GetBlockMiningCompatibleResp = _reflection.GeneratedProtocolMessageType('GetBlockMiningCompatibleResp', (_message.Message,), dict(
   DESCRIPTOR = _GETBLOCKMININGCOMPATIBLERESP,
   __module__ = 'qrlmining_pb2'
   # @@protoc_insertion_point(class_scope:qrl.GetBlockMiningCompatibleResp)
   ))
 _sym_db.RegisterMessage(GetBlockMiningCompatibleResp)
+
+GetLastBlockHeaderResp = _reflection.GeneratedProtocolMessageType('GetLastBlockHeaderResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETLASTBLOCKHEADERRESP,
+  __module__ = 'qrlmining_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetLastBlockHeaderResp)
+  ))
+_sym_db.RegisterMessage(GetLastBlockHeaderResp)
 
 GetBlockToMineReq = _reflection.GeneratedProtocolMessageType('GetBlockToMineReq', (_message.Message,), dict(
   DESCRIPTOR = _GETBLOCKTOMINEREQ,
@@ -279,8 +385,8 @@ _MININGAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=373,
-  serialized_end=621,
+  serialized_start=525,
+  serialized_end=852,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetBlockMiningCompatible',
@@ -292,9 +398,18 @@ _MININGAPI = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='GetLastBlockHeader',
+    full_name='qrl.MiningAPI.GetLastBlockHeader',
+    index=1,
+    containing_service=None,
+    input_type=_GETLASTBLOCKHEADERREQ,
+    output_type=_GETLASTBLOCKHEADERRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='GetBlockToMine',
     full_name='qrl.MiningAPI.GetBlockToMine',
-    index=1,
+    index=2,
     containing_service=None,
     input_type=_GETBLOCKTOMINEREQ,
     output_type=_GETBLOCKTOMINERESP,
@@ -303,7 +418,7 @@ _MININGAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='SubmitMinedBlock',
     full_name='qrl.MiningAPI.SubmitMinedBlock',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_SUBMITMINEDBLOCKREQ,
     output_type=_SUBMITMINEDBLOCKRESP,

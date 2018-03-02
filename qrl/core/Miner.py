@@ -23,8 +23,12 @@ class Miner(Qryptominer):
     def __init__(self, pre_block_logic, slaves: list, state: State, mining_thread_count, add_unprocessed_txn_fn):
         super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
+
         self._mining_block = None
-        self._mining_difficulty = None
+        self._current_difficulty = None
+        self._current_target = None
+        self._measurement = None  # Required only for logging
+
         self._slaves = slaves
         self._mining_xmss = None
         self._reward_address = None
@@ -87,11 +91,7 @@ class Miner(Qryptominer):
 
         return self._mining_xmss
 
-    def start_mining(self,
-                     tx_pool,
-                     parent_block: Block,
-                     parent_difficulty):
-
+    def prepare_next_unmined_block_template(self, tx_pool, parent_block: Block, parent_difficulty):
         mining_xmss = self.get_mining_xmss()
         if not mining_xmss:
             logger.warning('No Mining XMSS Found')
@@ -106,29 +106,43 @@ class Miner(Qryptominer):
                                                    master_address=self._master_address)
 
             parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
-            measurement = self.state.get_measurement(self._mining_block.timestamp,
-                                                     self._mining_block.prev_headerhash,
-                                                     parent_metadata)
+            self._measurement = self.state.get_measurement(self._mining_block.timestamp,
+                                                           self._mining_block.prev_headerhash,
+                                                           parent_metadata)
 
-            current_difficulty, current_target = DifficultyTracker.get(
-                measurement=measurement,
+            self._current_difficulty, self._current_target = DifficultyTracker.get(
+                measurement=self._measurement,
                 parent_difficulty=parent_difficulty)
 
-            self._mining_difficulty = current_difficulty
+        except Exception as e:
+            logger.warning("Exception in start_mining")
+            logger.exception(e)
+
+    def start_mining(self,
+                     parent_block: Block,
+                     parent_difficulty):
+
+        mining_xmss = self.get_mining_xmss()
+        if not mining_xmss:
+            logger.warning('No Mining XMSS Found')
+            return
+
+        try:
+            self.cancel()
 
             mining_blob = self._mining_block.mining_blob
             nonce_offset = self._mining_block.mining_nonce_offset
 
             logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {}'.format(
                 self._mining_block.block_number,
-                measurement, self._mining_block.timestamp - parent_block.timestamp,
-                UInt256ToString(parent_difficulty), UInt256ToString(current_difficulty),
-                current_target
+                self._measurement, self._mining_block.timestamp - parent_block.timestamp,
+                UInt256ToString(parent_difficulty), UInt256ToString(self._current_difficulty),
+                self._current_target
             ))
-            logger.debug('!!! {}'.format(current_target))
+
             self.start(input=mining_blob,
                        nonceOffset=nonce_offset,
-                       target=current_target,
+                       target=self._current_target,
                        thread_count=self._mining_thread_count)
         except Exception as e:
             logger.warning("Exception in start_mining")
@@ -303,7 +317,7 @@ class Miner(Qryptominer):
         if not self._mining_block:
             return []
 
-        return [self._mining_block, self._mining_difficulty]
+        return [bin2hstr(self._mining_block.mining_blob), int(bin2hstr(self._current_difficulty), 16)]
 
     def submit_mined_block(self, blob) -> bool:
         block_header = BlockHeader.from_blob(blob)
