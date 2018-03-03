@@ -59,3 +59,4 @@ tests/core/_trial_temp\.lock
 
 venv/
 /.pytest_cache/
+/.coverage.*
