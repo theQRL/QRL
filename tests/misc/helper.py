@@ -93,7 +93,7 @@ def qrlnode_with_mock_blockchain(num_blocks):
         chain_manager._difficulty_tracker = Mock()
         dt = DifficultyTracker()
         tmp_difficulty = StringToUInt256('2')
-        tmp_boundary = dt.get_boundary(tmp_difficulty)
+        tmp_boundary = dt.get_target(tmp_difficulty)
 
         chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 

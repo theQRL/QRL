@@ -8,10 +8,10 @@ class DifficultyTracker(object):
         pass
 
     @staticmethod
-    def get_boundary(current_difficulty):
+    def get_target(current_difficulty):
         ph = PoWHelper(kp=config.dev.kp,
                        set_point=config.dev.mining_setpoint_blocktime)
-        return ph.getBoundary(current_difficulty)
+        return ph.getTarget(current_difficulty)
 
     @staticmethod
     def get(measurement,
@@ -23,5 +23,5 @@ class DifficultyTracker(object):
         current_difficulty = ph.getDifficulty(measurement=measurement,
                                               parent_difficulty=parent_difficulty)
 
-        current_target = ph.getBoundary(current_difficulty)
+        current_target = ph.getTarget(current_difficulty)
         return current_difficulty, current_target
