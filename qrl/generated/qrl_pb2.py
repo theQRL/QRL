@@ -3469,10 +3469,8 @@ _PUSHTRANSACTIONREQ.fields_by_name['transaction_signed'].message_type = _TRANSAC
 _PUSHTRANSACTIONRESP.fields_by_name['error_code'].enum_type = _PUSHTRANSACTIONRESP_RESPONSECODE
 _PUSHTRANSACTIONRESP_RESPONSECODE.containing_type = _PUSHTRANSACTIONRESP
 _TOKENTXNREQ.fields_by_name['initial_balances'].message_type = _ADDRESSAMOUNT
-_GETWALLETRESP.fields_by_name['wallet'].message_type = _WALLET
 _NODEINFO.fields_by_name['state'].enum_type = _NODEINFO_STATE
 _NODEINFO_STATE.containing_type = _NODEINFO
-_WALLETSTORE.fields_by_name['wallets'].message_type = _WALLET
 _STOREDPEERS.fields_by_name['peers'].message_type = _PEER
 _ADDRESSSTATE_TOKENSENTRY.containing_type = _ADDRESSSTATE
 _ADDRESSSTATE_SLAVEPKSACCESSTYPEENTRY.containing_type = _ADDRESSSTATE
@@ -3560,11 +3558,7 @@ DESCRIPTOR.message_types_by_name['SlaveTxnReq'] = _SLAVETXNREQ
 DESCRIPTOR.message_types_by_name['LatticePublicKeyTxnReq'] = _LATTICEPUBLICKEYTXNREQ
 DESCRIPTOR.message_types_by_name['GetLocalAddressesReq'] = _GETLOCALADDRESSESREQ
 DESCRIPTOR.message_types_by_name['GetLocalAddressesResp'] = _GETLOCALADDRESSESRESP
-DESCRIPTOR.message_types_by_name['GetWalletReq'] = _GETWALLETREQ
-DESCRIPTOR.message_types_by_name['GetWalletResp'] = _GETWALLETRESP
 DESCRIPTOR.message_types_by_name['NodeInfo'] = _NODEINFO
-DESCRIPTOR.message_types_by_name['WalletStore'] = _WALLETSTORE
-DESCRIPTOR.message_types_by_name['Wallet'] = _WALLET
 DESCRIPTOR.message_types_by_name['StoredPeers'] = _STOREDPEERS
 DESCRIPTOR.message_types_by_name['Peer'] = _PEER
 DESCRIPTOR.message_types_by_name['AddressState'] = _ADDRESSSTATE
@@ -3797,40 +3791,12 @@ GetLocalAddressesResp = _reflection.GeneratedProtocolMessageType('GetLocalAddres
   ))
 _sym_db.RegisterMessage(GetLocalAddressesResp)
 
-GetWalletReq = _reflection.GeneratedProtocolMessageType('GetWalletReq', (_message.Message,), dict(
-  DESCRIPTOR = _GETWALLETREQ,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetWalletReq)
-  ))
-_sym_db.RegisterMessage(GetWalletReq)
-
-GetWalletResp = _reflection.GeneratedProtocolMessageType('GetWalletResp', (_message.Message,), dict(
-  DESCRIPTOR = _GETWALLETRESP,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetWalletResp)
-  ))
-_sym_db.RegisterMessage(GetWalletResp)
-
 NodeInfo = _reflection.GeneratedProtocolMessageType('NodeInfo', (_message.Message,), dict(
   DESCRIPTOR = _NODEINFO,
   __module__ = 'qrl_pb2'
   # @@protoc_insertion_point(class_scope:qrl.NodeInfo)
   ))
 _sym_db.RegisterMessage(NodeInfo)
-
-WalletStore = _reflection.GeneratedProtocolMessageType('WalletStore', (_message.Message,), dict(
-  DESCRIPTOR = _WALLETSTORE,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.WalletStore)
-  ))
-_sym_db.RegisterMessage(WalletStore)
-
-Wallet = _reflection.GeneratedProtocolMessageType('Wallet', (_message.Message,), dict(
-  DESCRIPTOR = _WALLET,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.Wallet)
-  ))
-_sym_db.RegisterMessage(Wallet)
 
 StoredPeers = _reflection.GeneratedProtocolMessageType('StoredPeers', (_message.Message,), dict(
   DESCRIPTOR = _STOREDPEERS,

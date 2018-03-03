@@ -4,6 +4,7 @@ import os
 import click
 import grpc
 import simplejson as json
+from decimal import Decimal
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
@@ -38,7 +39,6 @@ class CLIContext(object):
     def node_admin_address(self):
         return '{}:{}'.format(self.host, self.port_admin)
 
-
 def _admin_get_local_addresses(ctx):
     try:
         stub = qrl_pb2_grpc.AdminAPIStub(ctx.obj.channel_admin)
@@ -65,9 +65,7 @@ def _print_addresses(ctx, addresses, source_description):
     msg = {'error': None, 'wallets': []}
     for pos, addr in enumerate(addresses):
         try:
-            balance = _public_get_address_balance(ctx, addr)
-            # TODO standardize quanta/shor conversion
-            balance /= 1e9
+            balance = Decimal(_public_get_address_balance(ctx, addr)) / config.dev.shor_per_quanta
             if ctx.obj.json:
                 msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': balance})
             else:
@@ -155,7 +153,7 @@ def wallet_ls(ctx):
     """
     config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet(valid_or_create=False)
-    addresses = [a.address for a in wallet.address_bundle]
+    addresses = [addr for addr in wallet.addresses]
     _print_addresses(ctx, addresses, config.user.wallet_dir)
 
 

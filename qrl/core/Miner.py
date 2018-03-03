@@ -12,10 +12,11 @@ from qrl.core.Block import Block
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.State import State
-from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction, \
-    MessageTransaction, LatticePublicKey, SlaveTransaction
+from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction
+from qrl.core.Transaction import MessageTransaction, LatticePublicKey, SlaveTransaction
 from qrl.core.Wallet import Wallet
 from qrl.core.misc import logger
+from qrl.crypto.xmss import XMSS
 
 
 class Miner(Qryptominer):
@@ -71,7 +72,7 @@ class Miner(Qryptominer):
             self._master_address = self._slaves[0]
             unused_ots_found = False
             for slave_seed in self._slaves[1]:
-                xmss = Wallet.get_new_address(signature_tree_height=None, seed=slave_seed).xmss
+                xmss = XMSS.from_extended_seed(slave_seed)
                 addr_state = self.state.get_address(xmss.address)
                 if self.set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
                     self._mining_xmss = xmss
