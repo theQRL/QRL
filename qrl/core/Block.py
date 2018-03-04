@@ -87,6 +87,9 @@ class Block(object):
         Parse(json_data, pbdata)
         return Block(pbdata)
 
+    def verify_blob(self, blob: bytes) -> bool:
+        return self.blockheader.verify_blob(blob)
+
     def set_mining_nonce(self, mining_nonce):
         self.blockheader.set_mining_nonce(mining_nonce)
 

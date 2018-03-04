@@ -38,6 +38,7 @@ class UserConfig(object):
                           '104.251.219.145',
                           '104.251.219.40',
                           '104.237.3.185']
+
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ban_minutes = 20              # Allows to ban a peer's IP who is breaking protocol
 
@@ -102,7 +103,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'Feersum Endjinn'
+        self.genesis_prev_headerhash = b'The Burning Ice'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -154,7 +155,7 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.genesis_timestamp = 1519600074
+        self.genesis_timestamp = 1519601074
 
         # ======================================
         #       DIFFICULTY CONTROLLER

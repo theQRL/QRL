@@ -21,7 +21,9 @@ message GetBlockMiningCompatibleReq {
 }
 
 
-message GetLastBlockHeaderReq { }
+message GetLastBlockHeaderReq {
+    uint64 height = 1;
+}
 
 message GetBlockMiningCompatibleResp {
     BlockHeader blockheader = 1;

@@ -36,7 +36,7 @@ class MiningAPIService(MiningAPIServicer):
                            context) -> qrlmining_pb2.GetLastBlockHeaderResp:
         response = qrlmining_pb2.GetLastBlockHeaderResp()
 
-        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(self.qrlnode.block_height)
+        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)  # 0 means last block
         blockheader = blockheader_and_metadata[0]
         block_metadata = blockheader_and_metadata[1]
         response.difficulty = int(bin2hstr(block_metadata.block_difficulty), 16)
