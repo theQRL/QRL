@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import grpc
 from google.protobuf.json_format import MessageToJson
+from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.generated import qrl_pb2_grpc, qrl_pb2, qrlmining_pb2, qrlmining_pb2_grpc
 from flask import Flask, Response, request
@@ -18,7 +19,6 @@ def api_proxy(api_method_name):
     to JSON.
     TODO :
     1.  Remove hardcoded Server IP and Port
-    2.  Include MiningAPIServices too
     :param api_method_name:
     :return:
     """
@@ -46,9 +46,9 @@ def get_mining_stub():
 
 
 @api.dispatcher.add_method
-def getlastblockheader():
+def getlastblockheader(height=0):
     stub = get_mining_stub()
-    request = qrlmining_pb2.GetBlockToMineReq()
+    request = qrlmining_pb2.GetLastBlockHeaderReq(height=height)
     grpc_response = stub.GetLastBlockHeader(request=request, timeout=10)
     block_header = {
         'difficulty': grpc_response.difficulty,
@@ -62,6 +62,11 @@ def getlastblockheader():
         "status": "OK"
     }
     return resp
+
+
+@api.dispatcher.add_method
+def getblockheaderbyheight(height):
+    return getlastblockheader(height)
 
 
 @api.dispatcher.add_method
@@ -80,17 +85,15 @@ def getblocktemplate(wallet_address):
 
 
 @api.dispatcher.add_method
-def submitminedblock(blob):
-    print('called submitminedblock')
+def submitblock(blob):
     stub = get_mining_stub()
-    request = qrlmining_pb2.SubmitMinedBlockReq(blob=blob)
+    request = qrlmining_pb2.SubmitMinedBlockReq(blob=bytes(hstr2bin(blob)))
     response = stub.SubmitMinedBlock(request=request, timeout=10)
     return MessageToJson(response)
 
 
 @api.dispatcher.add_method
 def getblockminingcompatible(height):
-    print('called getblockmining compatible')
     stub = get_mining_stub()
     request = qrlmining_pb2.GetBlockMiningCompatibleReq(height=height)
     response = stub.GetBlockMiningCompatible(request=request, timeout=10)

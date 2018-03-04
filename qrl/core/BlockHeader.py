@@ -222,7 +222,7 @@ class BlockHeader(object):
         Parse(json_data, pbdata)
         return BlockHeader(pbdata)
 
-    def verify_blob(self, blob):
+    def verify_blob(self, blob: bytes) -> bool:
         mining_nonce_offset = config.dev.mining_nonce_offset
         blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 4:]
 
