@@ -50,13 +50,16 @@ def getlastblockheader(height=0):
     stub = get_mining_stub()
     request = qrlmining_pb2.GetLastBlockHeaderReq(height=height)
     grpc_response = stub.GetLastBlockHeader(request=request, timeout=10)
+
     block_header = {
         'difficulty': grpc_response.difficulty,
         'height': grpc_response.height,
         'timestamp': grpc_response.timestamp,
         'reward': grpc_response.reward,
-        'hash': grpc_response.hash
+        'hash': grpc_response.hash,
+        'depth': grpc_response.depth
     }
+
     resp = {
         "block_header": block_header,
         "status": "OK"
@@ -98,6 +101,11 @@ def getblockminingcompatible(height):
     request = qrlmining_pb2.GetBlockMiningCompatibleReq(height=height)
     response = stub.GetBlockMiningCompatible(request=request, timeout=10)
     return MessageToJson(response)
+
+
+@api.dispatcher.add_method
+def transfer():
+    return None
 
 
 app.add_url_rule('/json_rpc', 'api', api.as_view(), methods=['POST'])

@@ -44,6 +44,7 @@ class MiningAPIService(MiningAPIServicer):
         response.timestamp = blockheader.timestamp
         response.reward = blockheader.block_reward + blockheader.fee_reward
         response.hash = bin2hstr(blockheader.headerhash)
+        response.depth = self.qrlnode.block_height - blockheader.block_number
 
         return response
 
@@ -58,7 +59,7 @@ class MiningAPIService(MiningAPIServicer):
         if blocktemplate_blob_and_difficulty:
             response.blocktemplate_blob = blocktemplate_blob_and_difficulty[0]
             response.difficulty = blocktemplate_blob_and_difficulty[1]
-            response.height = self.qrlnode.block_height
+            response.height = self.qrlnode.block_height + 1
 
         return response
 

@@ -316,7 +316,8 @@ class Miner(Qryptominer):
         if not self._mining_block:
             return []
 
-        return [bin2hstr(self._mining_block.mining_blob), int(bin2hstr(self._current_difficulty), 16)]
+        return [bin2hstr(self._mining_block.mining_blob),
+                int(bin2hstr(self._current_difficulty), 16)]
 
     def submit_mined_block(self, blob) -> bool:
         if not self._mining_block.verify_blob(blob):
