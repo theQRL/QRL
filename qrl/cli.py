@@ -59,7 +59,7 @@ def _print_addresses(ctx, addresses, source_description):
 
     if not ctx.obj.json:
         click.echo('Wallet at          : {}'.format(source_description))
-        click.echo('{:<8}{:<75}{}'.format('Number', 'Address', 'Balance'))
+        click.echo('{:<8}{:<80}{}'.format('Number', 'Address', 'Balance'))
         click.echo('-' * 95)
 
     msg = {'error': None, 'wallets': []}
@@ -71,13 +71,13 @@ def _print_addresses(ctx, addresses, source_description):
             if ctx.obj.json:
                 msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': balance})
             else:
-                click.echo('{:<8}Q{:<75}{:5.8f}'.format(pos, addr.decode(), balance))
+                click.echo('{:<8}Q{:<80}{:5.8f}'.format(pos, addr.decode(), balance))
         except Exception as e:
             if ctx.obj.json:
                 msg['error'] = str(e)
                 msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': '?'})
             else:
-                click.echo('{:<8}Q{:<75}?'.format(pos, addr.decode()))
+                click.echo('{:<8}Q{:<80}?'.format(pos, addr.decode()))
 
     if ctx.obj.json:
         click.echo(json.dumps(msg))
