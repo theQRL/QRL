@@ -28,7 +28,7 @@ class AESHelper(object):
         return output_message.decode()
 
     def decrypt(self, data: str) -> bytes:
-        secret_message = base64.decodebytes(data.encode())
+        secret_message = base64.standard_b64decode(data.encode())
         secret_iv = secret_message[:16]
 
         secret_ciphertext = secret_message[16:]

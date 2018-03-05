@@ -11,6 +11,7 @@ from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr, hstr2bin
 
 from qrl.core import config
 from qrl.core.misc import logger
+from qrl.crypto.AESHelper import AESHelper
 from qrl.crypto.xmss import XMSS
 
 AddressItem = namedtuple('AddressItem',
@@ -83,7 +84,7 @@ class Wallet:
         :param addr:
         :return:
         """
-        return 'Q'+bin2hstr(addr)
+        return 'Q' + bin2hstr(addr)
 
     @staticmethod
     def _get_address_item_from_xmss(xmss: XMSS) -> AddressItem:
@@ -110,11 +111,6 @@ class Wallet:
                 return self.get_xmss_by_index(idx)
         return None
 
-    def save_wallet(self, filename):
-        with open(filename, "wb") as outfile:
-            data_out = simplejson.dumps(self._address_items).encode('ascii')
-            outfile.write(data_out)
-
     def verify_wallet(self):
         """
         Confirms that json address data is correct and valid.
@@ -127,6 +123,9 @@ class Wallet:
     def _read_wallet(self, filename) -> List[AddressItem]:
         answer = []
 
+        if not os.path.isfile(filename):
+            return answer
+
         try:
             with open(filename, "rb") as infile:
                 data = simplejson.loads(infile.read())
@@ -136,6 +135,45 @@ class Wallet:
             logger.warning("ReadWallet: %s", e)
 
         return answer
+
+    def save_wallet(self, filename):
+        with open(filename, "wb") as outfile:
+            data_out = simplejson.dumps(self._address_items).encode('ascii')
+            outfile.write(data_out)
+
+    def decrypt_item(self, index: int, key: str):
+        if index < len(self._address_items):
+            cipher = AESHelper(key)
+            tmp = self._address_items[index]._asdict()  # noqa
+            tmp['address'] = cipher.decrypt(tmp['address']).decode()
+            tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
+            tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
+            tmp['encrypted'] = False
+            self._address_items[index] = AddressItem(**tmp)
+
+    def encrypt_item(self, index: int, key: str):
+        if index < len(self._address_items):
+            cipher = AESHelper(key)
+            tmp = self._address_items[index]._asdict()  # noqa
+            tmp['address'] = cipher.encrypt(tmp['address'].encode())
+            tmp['hexseed'] = cipher.encrypt(tmp['hexseed'].encode())
+            tmp['mnemonic'] = cipher.encrypt(tmp['mnemonic'].encode())
+            tmp['encrypted'] = True
+            self._address_items[index] = AddressItem(**tmp)
+
+    def decrypt(self, key: str):
+        for i in range(len(self._address_items)):
+            self.decrypt_item(i, key)
+
+    def encrypt(self, key: str):
+        for i in range(len(self._address_items)):
+            self.encrypt_item(i, key)
+
+    def save(self):
+        self.save_wallet(self.wallet_path)
+
+    def load(self):
+        self._read_wallet(self.wallet_path)
 
     def append_xmss(self, xmss):
         if xmss:

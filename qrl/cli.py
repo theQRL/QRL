@@ -96,8 +96,8 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description)->
 
 
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
-    if ctx.obj.json:
-        click.echo(_serialize_output(ctx, addresses, source_description))
+    output = _serialize_output(ctx, addresses, source_description)
+    click.echo(output)
 
 
 def _public_get_address_balance(ctx, address):
