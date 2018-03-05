@@ -36,6 +36,7 @@ message GetLastBlockHeaderResp {
     uint64 timestamp = 3;
     uint64 reward = 4;
     string hash = 5;
+    uint64 depth = 6;
 }
 
 message GetBlockToMineReq {
