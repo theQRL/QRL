@@ -119,12 +119,12 @@ class ChainManager:
         if not isinstance(coinbase_tx, CoinBase):
             return False
 
-        addr_from_pk_state = address_txn[coinbase_tx.txto]
+        addr_from_pk_state = address_txn[coinbase_tx.addr_to]
         addr_from_pk = Transaction.get_slave(coinbase_tx)
         if addr_from_pk:
             addr_from_pk_state = address_txn[addr_from_pk]
 
-        if not coinbase_tx.validate_extended(address_txn[coinbase_tx.txto],
+        if not coinbase_tx.validate_extended(address_txn[coinbase_tx.addr_to],
                                              addr_from_pk_state):
             return False
 
@@ -147,23 +147,23 @@ class ChainManager:
             if not tx.validate():  # TODO: Move this validation, before adding txn to pool
                 return False
 
-            addr_from_pk_state = address_txn[tx.txfrom]
+            addr_from_pk_state = address_txn[tx.addr_from]
             addr_from_pk = Transaction.get_slave(tx)
             if addr_from_pk:
                 addr_from_pk_state = address_txn[addr_from_pk]
 
-            if not tx.validate_extended(address_txn[tx.txfrom], addr_from_pk_state):
+            if not tx.validate_extended(address_txn[tx.addr_from], addr_from_pk_state):
                 return False
 
-            expected_nonce = address_txn[tx.txfrom].nonce + 1
+            expected_nonce = address_txn[tx.addr_from].nonce + 1
 
             if tx.nonce != expected_nonce:
                 logger.warning('nonce incorrect, invalid tx')
                 logger.warning('subtype: %s', tx.type)
-                logger.warning('%s actual: %s expected: %s', tx.txfrom, tx.nonce, expected_nonce)
+                logger.warning('%s actual: %s expected: %s', tx.addr_from, tx.nonce, expected_nonce)
                 return False
 
-            if address_txn[tx.txfrom].ots_key_reuse(tx.ots_key):
+            if address_txn[tx.addr_from].ots_key_reuse(tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.type)
                 return False

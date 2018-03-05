@@ -269,7 +269,7 @@ class QRLNode:
         return None
 
     # FIXME: Rename this appropriately
-    def transfer_coins(self, addr_from: bytes, addr_to: bytes, amount: int, fee: int = 0):
+    def transfer_coins(self, addr_from: bytes, addrs_to: list, amounts: list, fee: int = 0):
         addr_bundle = self.get_address_bundle(addr_from)
         if addr_bundle is None:
             raise LookupError("The source address does not belong to this wallet/node")
@@ -284,13 +284,13 @@ class QRLNode:
         # Balance validation
         if xmss_from.remaining_signatures() == 1:
             balance = self.db_state.balance(addr_from)
-            if amount + fee < balance:
+            if sum(amounts) + fee < balance:
                 # FIXME: maybe this is too strict?
                 raise RuntimeError("Last signature! You must move all the funds to another account!")
 
         tx = self.create_send_tx(addr_from,
-                                 addr_to,
-                                 amount,
+                                 addrs_to,
+                                 amounts,
                                  fee,
                                  xmss_pk)
 
@@ -318,32 +318,32 @@ class QRLNode:
 
     @staticmethod
     def create_transfer_token_txn(addr_from: bytes,
-                                  addr_to: bytes,
+                                  addrs_to: list,
                                   token_txhash: bytes,
-                                  amount: int,
+                                  amounts: list,
                                   fee: int,
                                   xmss_pk: bytes):
         return TransferTokenTransaction.create(addr_from,
                                                token_txhash,
-                                               addr_to,
-                                               amount,
+                                               addrs_to,
+                                               amounts,
                                                fee,
                                                xmss_pk)
 
     # FIXME: Rename this appropriately
     def create_send_tx(self,
                        addr_from: bytes,
-                       addr_to: bytes,
-                       amount: int,
+                       addrs_to: list,
+                       amounts: list,
                        fee: int,
                        xmss_pk: bytes) -> TransferTransaction:
         balance = self.db_state.balance(addr_from)
-        if amount + fee > balance:
+        if sum(amounts) + fee > balance:
             raise RuntimeError("Not enough funds in the source address")
 
         return TransferTransaction.create(addr_from=addr_from,
-                                          addr_to=addr_to,
-                                          amount=amount,
+                                          addrs_to=addrs_to,
+                                          amounts=amounts,
                                           fee=fee,
                                           xmss_pk=xmss_pk)
 

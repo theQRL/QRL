@@ -149,7 +149,7 @@ class MessageReceipt(object):
 
         params = self.requested_hash[msg_hash].params
         coinbase_tx = CoinBase.from_pbdata(block.transactions[0])
-        if coinbase_tx.txfrom != params.stake_selector:
+        if coinbase_tx.addr_from != params.stake_selector:
             return False
 
         if block.block_number != params.block_number:

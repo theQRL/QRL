@@ -104,7 +104,8 @@ def getblockminingcompatible(height):
 
 
 @api.dispatcher.add_method
-def transfer():
+def transfer(destinations, fee, mixin, unlock_time):
+    print(destinations, fee, mixin, unlock_time)
     return None
 
 

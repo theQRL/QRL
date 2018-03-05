@@ -101,8 +101,8 @@ class TestState(TestCase):
 
                 transfer_token_transaction = TransferTokenTransaction.create(addr_from=bob_xmss.address,
                                                                              token_txhash=token_transaction.txhash,
-                                                                             addr_to=alice_xmss.address,
-                                                                             amount=100000000,
+                                                                             addrs_to=[alice_xmss.address],
+                                                                             amounts=[100000000],
                                                                              fee=1,
                                                                              xmss_pk=bob_xmss.pk)
 

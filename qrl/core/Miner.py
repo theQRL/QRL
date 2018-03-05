@@ -202,7 +202,7 @@ class Miner(Qryptominer):
                 txnum += 1
                 continue
 
-            addr_from_pk_state = addresses_state[tx.txfrom]
+            addr_from_pk_state = addresses_state[tx.addr_from]
             addr_from_pk = Transaction.get_slave(tx)
             if addr_from_pk:
                 addr_from_pk_state = addresses_state[addr_from_pk]
@@ -213,79 +213,80 @@ class Miner(Qryptominer):
                 continue
 
             if isinstance(tx, TransferTransaction):
-                if addresses_state[tx.txfrom].balance < tx.amount + tx.fee:
-                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                if addresses_state[tx.addr_from].balance < tx.total_amount + tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.addr_from)
                     logger.warning('type: %s', tx.type)
-                    logger.warning('Buffer State Balance: %s  Transfer Amount %s', addresses_state[tx.txfrom].balance,
-                                   tx.amount)
+                    logger.warning('Buffer State Balance: %s  Transfer Amount %s',
+                                   addresses_state[tx.addr_from].balance,
+                                   tx.total_amount)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
             if isinstance(tx, MessageTransaction):
-                if addresses_state[tx.txfrom].balance < tx.fee:
-                    logger.warning('%s %s exceeds balance, invalid message tx', tx, tx.txfrom)
+                if addresses_state[tx.addr_from].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid message tx', tx, tx.addr_from)
                     logger.warning('type: %s', tx.type)
-                    logger.warning('Buffer State Balance: %s  Free %s', addresses_state[tx.txfrom].balance, tx.fee)
+                    logger.warning('Buffer State Balance: %s  Free %s', addresses_state[tx.addr_from].balance, tx.fee)
                     total_txn -= 1
                     continue
 
             if isinstance(tx, TokenTransaction):
-                if addresses_state[tx.txfrom].balance < tx.fee:
-                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                if addresses_state[tx.addr_from].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.addr_from)
                     logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Fee %s',
-                                   addresses_state[tx.txfrom].balance,
+                                   addresses_state[tx.addr_from].balance,
                                    tx.fee)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
             if isinstance(tx, TransferTokenTransaction):
-                if addresses_state[tx.txfrom].balance < tx.fee:
-                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                if addresses_state[tx.addr_from].balance < tx.fee:
+                    logger.warning('%s %s exceeds balance, invalid tx', tx, tx.addr_from)
                     logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
-                                   addresses_state[tx.txfrom].balance,
+                                   addresses_state[tx.addr_from].balance,
                                    tx.fee)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
-                if bin2hstr(tx.token_txhash).encode() not in addresses_state[tx.txfrom].tokens:
-                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.txfrom,
+                if bin2hstr(tx.token_txhash).encode() not in addresses_state[tx.addr_from].tokens:
+                    logger.warning('%s doesnt own any token with token_txnhash %s', tx.addr_from,
                                    bin2hstr(tx.token_txhash).encode())
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
-                if addresses_state[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()] < tx.amount:
+                if addresses_state[tx.addr_from].tokens[bin2hstr(tx.token_txhash).encode()] < tx.total_amount:
                     logger.warning('Token Transfer amount exceeds available token')
                     logger.warning('Token Txhash %s', bin2hstr(tx.token_txhash).encode())
                     logger.warning('Available Token Amount %s',
-                                   addresses_state[tx.txfrom].tokens[bin2hstr(tx.token_txhash).encode()])
-                    logger.warning('Transaction Amount %s', tx.amount)
+                                   addresses_state[tx.addr_from].tokens[bin2hstr(tx.token_txhash).encode()])
+                    logger.warning('Transaction Amount %s', tx.total_amount)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
             if isinstance(tx, LatticePublicKey):
-                if addresses_state[tx.txfrom].balance < tx.fee:
-                    logger.warning('Lattice TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                if addresses_state[tx.addr_from].balance < tx.fee:
+                    logger.warning('Lattice TXN %s %s exceeds balance, invalid tx', tx, tx.addr_from)
                     logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
-                                   addresses_state[tx.txfrom].balance,
+                                   addresses_state[tx.addr_from].balance,
                                    tx.fee)
                     del t_pool2[txnum]
                     total_txn -= 1
                     continue
 
             if isinstance(tx, SlaveTransaction):
-                if addresses_state[tx.txfrom].balance < tx.fee:
-                    logger.warning('Slave TXN %s %s exceeds balance, invalid tx', tx, tx.txfrom)
+                if addresses_state[tx.addr_from].balance < tx.fee:
+                    logger.warning('Slave TXN %s %s exceeds balance, invalid tx', tx, tx.addr_from)
                     logger.warning('type: %s', tx.type)
                     logger.warning('Buffer State Balance: %s  Transfer Amount %s',
-                                   addresses_state[tx.txfrom].balance,
+                                   addresses_state[tx.addr_from].balance,
                                    tx.fee)
                     del t_pool2[txnum]
                     total_txn -= 1
@@ -294,7 +295,7 @@ class Miner(Qryptominer):
             tx.apply_on_state(addresses_state)
 
             tx_pool.add_tx_to_pool(tx)
-            tx._data.nonce = addresses_state[tx.txfrom].nonce
+            tx._data.nonce = addresses_state[tx.addr_from].nonce
             txnum += 1
             block_size += tx.size + config.dev.tx_extra_overhead
 
