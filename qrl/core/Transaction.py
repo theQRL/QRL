@@ -242,17 +242,15 @@ class TransferTransaction(Transaction):
         return self._data.transfer.amounts
 
     def get_hashable_bytes(self):
-        tmptxhash = sha256(
-            self.addr_from +
-            self.fee.to_bytes(8, byteorder='big', signed=False)
-        )
+        tmptxhash = (self.addr_from +
+                     self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = sha256(tmptxhash +
-                               self.addrs_to[index] +
-                               self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            tmptxhash = (tmptxhash +
+                         self.addrs_to[index] +
+                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
-        return tmptxhash
+        return sha256(tmptxhash)
 
     @staticmethod
     def create(addr_from: bytes, addrs_to: list, amounts: list, fee, xmss_pk):
@@ -626,14 +624,12 @@ class TokenTransaction(Transaction):
         return self._data.token.initial_balances
 
     def get_hashable_bytes(self):
-        tmptxhash = sha256(
-            self.addr_from +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
-            self.symbol +
-            self.name +
-            self.owner +
-            self._data.token.decimals.to_bytes(8, byteorder='big', signed=False)
-        )
+        tmptxhash = (self.addr_from +
+                     self.fee.to_bytes(8, byteorder='big', signed=False) +
+                     self.symbol +
+                     self.name +
+                     self.owner +
+                     self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
 
         for initial_balance in self._data.token.initial_balances:
             tmptxhash += initial_balance.address
@@ -781,18 +777,16 @@ class TransferTokenTransaction(Transaction):
         return self._data.transfer_token.amounts
 
     def get_hashable_bytes(self):
-        tmptxhash = sha256(
-            self.addr_from +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
-            self.token_txhash
-        )
+        tmptxhash = (self.addr_from +
+                     self.fee.to_bytes(8, byteorder='big', signed=False) +
+                     self.token_txhash)
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = sha256(tmptxhash +
-                               self.addrs_to[index] +
-                               self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            tmptxhash = (tmptxhash +
+                         self.addrs_to[index] +
+                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
-        return tmptxhash
+        return sha256(tmptxhash)
 
     @staticmethod
     def create(addr_from: bytes,
@@ -916,17 +910,15 @@ class SlaveTransaction(Transaction):
         return self._data.slave.access_types
 
     def get_hashable_bytes(self):
-        tmptxhash = sha256(
-            self.addr_from +
-            self.fee.to_bytes(8, byteorder='big', signed=False)
-        )
+        tmptxhash = (self.addr_from +
+                     self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.slave_pks)):
-            tmptxhash = sha256(tmptxhash +
-                               self.slave_pks[index] +
-                               self.access_types[index].to_bytes(8, byteorder='big', signed=False))
+            tmptxhash = (tmptxhash +
+                         self.slave_pks[index] +
+                         self.access_types[index].to_bytes(8, byteorder='big', signed=False))
 
-        return tmptxhash
+        return sha256(tmptxhash)
 
     @staticmethod
     def create(addr_from: bytes, slave_pks: list, access_types: list, fee: int, xmss_pk: bytes):
