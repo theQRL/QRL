@@ -1,15 +1,89 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import simplejson as json
 import grpc
 from google.protobuf.json_format import MessageToJson
-from pyqrllib.pyqrllib import hstr2bin
+from qrl.core import config
+from qrl.core.AddressState import AddressState
+from qrl.core.Wallet import Wallet
+from qrl.core.Transaction import TransferTransaction, Transaction
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
 from qrl.generated import qrl_pb2_grpc, qrl_pb2, qrlmining_pb2, qrlmining_pb2_grpc
 from flask import Flask, Response, request
 from jsonrpc.backend.flask import api
 
 app = Flask(__name__)
+
+
+def read_slaves(slaves_filename):
+    with open(slaves_filename, 'r') as f:
+        slave_data = json.load(f)
+        slave_data[0] = bytes(hstr2bin(slave_data[0]))
+        return slave_data
+
+
+def get_addr_state(addr: bytes) -> AddressState:
+    stub = get_public_stub()
+    response = stub.GetAddressState(request=qrl_pb2.GetAddressStateReq(address=addr))
+    return AddressState(response.state)
+
+
+def set_unused_ots_key(xmss, addr_state, start=0):
+    for i in range(start, 2 ** xmss.height):
+        if not addr_state.ots_key_reuse(i):
+            xmss.set_ots_index(i)
+            return True
+    return False
+
+
+def valid_payment_permission(public_stub, master_address_state, payment_xmss, json_slave_txn):
+    access_type = master_address_state.get_slave_permission(payment_xmss.pk)
+
+    if access_type == -1:
+        tx = Transaction.from_json(json_slave_txn)
+        public_stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
+        return None
+
+    if access_type == 0:
+        return True
+
+    return False
+
+
+def get_unused_payment_xmss(public_stub):
+    global payment_slaves
+    global payment_xmss
+
+    master_address = payment_slaves[0]
+    master_address_state = get_addr_state(master_address)
+
+    if payment_xmss:
+        addr_state = get_addr_state(payment_xmss.address)
+        if set_unused_ots_key(payment_xmss, addr_state, payment_xmss.ots_index):
+            if valid_payment_permission(public_stub, master_address_state, payment_xmss, payment_slaves[2]):
+                return payment_xmss
+        else:
+            payment_xmss = None
+
+    if not payment_xmss:
+        unused_ots_found = False
+        for slave_seed in payment_slaves[1]:
+            xmss = Wallet.get_new_address(signature_tree_height=None, seed=slave_seed).xmss
+            addr_state = get_addr_state(xmss.address)
+            if set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
+                payment_xmss = xmss
+                unused_ots_found = True
+                break
+
+        if not unused_ots_found:  # Unused ots_key_found
+            return None
+
+        if not valid_payment_permission(public_stub, master_address_state, payment_xmss, payment_slaves[2]):
+            return None
+
+    return payment_xmss
 
 
 @app.route('/api/<api_method_name>')
@@ -42,6 +116,11 @@ def api_proxy(api_method_name):
 
 def get_mining_stub():
     stub = qrlmining_pb2_grpc.MiningAPIStub(grpc.insecure_channel('127.0.0.1:9007'))
+    return stub
+
+
+def get_public_stub():
+    stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('127.0.0.1:9009'))
     return stub
 
 
@@ -105,11 +184,45 @@ def getblockminingcompatible(height):
 
 @api.dispatcher.add_method
 def transfer(destinations, fee, mixin, unlock_time):
-    print(destinations, fee, mixin, unlock_time)
-    return None
+    if len(destinations) > config.dev.transaction_multi_output_limit:
+        return None
+
+    addrs_to = []
+    amounts = []
+
+    for tx in destinations:
+        addrs_to.append(bytes(hstr2bin(tx['address'][1:])))  # Skipping 'Q'
+        amounts.append(tx['amount'])
+
+    stub = get_public_stub()
+
+    xmss = get_unused_payment_xmss(stub)
+    if not xmss:
+        return None
+
+    tx = TransferTransaction.create(addr_from=payment_slaves[0],
+                                    addrs_to=addrs_to,
+                                    amounts=amounts,
+                                    fee=fee,
+                                    xmss_pk=xmss.pk)
+
+    tx.sign(xmss)
+
+    response = stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
+
+    if response.error_code != 3:
+        return None
+
+    response = {'tx_hash': bin2hstr(tx.txhash)}
+
+    return response
 
 
 app.add_url_rule('/json_rpc', 'api', api.as_view(), methods=['POST'])
 
 if __name__ == '__main__':
+    global payment_slaves
+    global payment_xmss
+    payment_xmss = None
+    payment_slaves = read_slaves(config.user.mining_pool_payment_wallet_path)
     app.run(host='127.0.0.1', port=18081)
