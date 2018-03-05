@@ -64,8 +64,8 @@ class PublicAPIService(PublicAPIServicer):
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] TransferCoins")
         tx = self.qrlnode.create_send_tx(addr_from=request.address_from,
-                                         addr_to=request.address_to,
-                                         amount=request.amount,
+                                         addrs_to=request.addresses_to,
+                                         amounts=request.amounts,
                                          fee=request.fee,
                                          xmss_pk=request.xmss_pk)
 
@@ -115,9 +115,9 @@ class PublicAPIService(PublicAPIServicer):
         logger.debug("[PublicAPI] GetTransferTokenTxn")
         bin_token_txhash = bytes(hstr2bin(request.token_txhash.decode()))
         tx = self.qrlnode.create_transfer_token_txn(addr_from=request.address_from,
-                                                    addr_to=request.address_to,
+                                                    addrs_to=request.addresses_to,
                                                     token_txhash=bin_token_txhash,
-                                                    amount=request.amount,
+                                                    amounts=request.amounts,
                                                     fee=request.fee,
                                                     xmss_pk=request.xmss_pk)
 

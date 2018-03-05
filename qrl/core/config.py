@@ -158,6 +158,12 @@ class DevConfig(object):
         self.genesis_timestamp = 1519601074
 
         # ======================================
+        #       TRANSACTION CONTROLLER
+        # ======================================
+        # Max number of output addresses and corresponding data can be added into a list of a transaction
+        self.transaction_multi_output_limit = 100
+
+        # ======================================
         #       DIFFICULTY CONTROLLER
         # ======================================
         self.N_measurement = 250

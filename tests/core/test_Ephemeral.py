@@ -181,7 +181,7 @@ class TestEphemeral(TestCase):
                             self.assertEqual(address_state.latticePK_list[0].dilithium_pk,
                                              lattice_public_key_txn.dilithium_pk)
 
-                            self.assertEqual(address_state.address, lattice_public_key_txn.txfrom)
+                            self.assertEqual(address_state.address, lattice_public_key_txn.addr_from)
 
                             random_xmss1_state = chain_manager.get_address(random_xmss1.address)
 
