@@ -4,19 +4,18 @@
 import argparse
 import logging
 import os
-import simplejson as json
 
+import simplejson as json
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr, mnemonic2bin, XMSS
 from twisted.internet import reactor
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr, mnemonic2bin
 
 from qrl.core.Block import Block
-from qrl.core.Wallet import Wallet
 from qrl.core.ChainManager import ChainManager
-from qrl.core.qrlnode import QRLNode
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.misc import ntp, logger, logger_twisted
+from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from .core import config
-from qrl.core.misc import ntp, logger, logger_twisted
 from .core.State import State
 
 LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
@@ -78,38 +77,45 @@ def read_slaves(slaves_filename):
         return slave_data
 
 
-def mining_wallet_checks(args):
+def generate_slave_from_input(slaves_filename):
+    # FIXME: Refactor and improve error handling
+    extended_seed = ''
+    logger.warning('No Slave Seeds found!!')
+    logger.warning('It is highly recommended to use the slave for mining')
+    try:
+        ans = input('Do you want to use main wallet for mining? (Y/N) ')
+        if ans == 'N':
+            quit(0)
+        extended_seed = input('Enter hex or mnemonic seed of mining wallet ').encode()
+    except KeyboardInterrupt:
+        quit(0)
+
+    if len(extended_seed) == 102:  # hexseed
+        bin_extended_seed = hstr2bin(extended_seed.decode())
+    elif len(extended_seed.split()) == 34:
+        bin_extended_seed = mnemonic2bin(extended_seed.decode())
+    else:
+        logger.warning('Invalid XMSS seed')
+        quit(1)
+
+    addrBundle = XMSS.from_extended_seed(bin_extended_seed)
+    slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.extended_seed], None]
+    write_slaves(slaves_filename, slaves)
+
+
+def get_mining_slave_addresses(args):
     slaves_filename = os.path.join(config.user.wallet_dir, config.user.slaves_filename)
 
     if args.randomizeSlaveXMSS:
-        addrBundle = Wallet.get_new_address()
-        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.extended_seed], None]
+        xmss = XMSS.from_height(config.dev.slave_xmss_height)
+        slaves = [bin2hstr(xmss.address), [xmss.extended_seed], None]
         write_slaves(slaves_filename, slaves)
 
+    if not os.path.isfile(slaves_filename):
+        generate_slave_from_input(slaves_filename)
+
+    slaves = None
     try:
-        slaves = read_slaves(slaves_filename)
-    except FileNotFoundError:
-        logger.warning('No Slave Seeds found!!')
-        logger.warning('It is highly recommended to use the slave for mining')
-        try:
-            ans = input('Do you want to use main wallet for mining? (Y/N) ')
-            if ans == 'N':
-                quit(0)
-            seed = input('Enter hex or mnemonic seed of mining wallet ').encode()
-        except KeyboardInterrupt:
-            quit(0)
-
-        if len(seed) == 102:  # hexseed
-            bin_seed = hstr2bin(seed.decode())
-        elif len(seed.split()) == 34:
-            bin_seed = mnemonic2bin(seed.decode())
-        else:
-            logger.warning('Invalid XMSS seed')
-            quit(1)
-
-        addrBundle = Wallet.get_new_address(signature_tree_height=None, seed=bin_seed)
-        slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.extended_seed], None]
-        write_slaves(slaves_filename, slaves)
         slaves = read_slaves(slaves_filename)
     except KeyboardInterrupt:
         quit(1)
@@ -125,7 +131,7 @@ def main():
 
     config.create_path(config.user.wallet_dir)
 
-    slaves = mining_wallet_checks(args)
+    slaves = get_mining_slave_addresses(args)
 
     logger.debug("=====================================================================================")
     logger.info("Data Path: %s", args.data_dir)

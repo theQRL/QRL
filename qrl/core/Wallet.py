@@ -32,7 +32,7 @@ class Wallet:
                             config.dev.wallet_dat_filename)
 
     @property
-    def address_items(self) -> List[bytes]:
+    def address_items(self) -> List[AddressItem]:
         """
         Returns all address items in the wallet
         :return:

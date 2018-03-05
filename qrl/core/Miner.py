@@ -9,12 +9,12 @@ from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToS
 
 from qrl.core import config
 from qrl.core.Block import Block
-from qrl.core.PoWValidator import PoWValidator
+from qrl.core.BlockHeader import BlockHeader
 from qrl.core.DifficultyTracker import DifficultyTracker
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
-from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.Transaction import MessageTransaction, LatticePublicKey, SlaveTransaction
-from qrl.core.Wallet import Wallet
+from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
 
@@ -167,7 +167,7 @@ class Miner(Qryptominer):
 
         # FIXME: Break encapsulation
         if not self._dummy_xmss:
-            self._dummy_xmss = Wallet.get_new_address(signature_tree_height=signing_xmss.height)
+            self._dummy_xmss = XMSS.from_height(signing_xmss.height)
         dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
