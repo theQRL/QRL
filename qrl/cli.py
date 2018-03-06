@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 import os
 from collections import namedtuple
+from decimal import Decimal
 from typing import List
 
 import click
 import grpc
 import simplejson as json
-from decimal import Decimal
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.crypto.xmss import XMSS
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
-from qrl.core.Wallet import Wallet, AddressItem
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
+from qrl.core.Wallet import Wallet
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
@@ -23,6 +23,7 @@ OutputMessage = namedtuple('OutputMessage',
 
 BalanceItem = namedtuple('BalanceItem',
                          'address balance')
+
 
 class CLIContext(object):
 
@@ -56,6 +57,7 @@ def _admin_get_local_addresses(ctx):
         click.echo('Error connecting to node', color='red')
         return []
 
+
 def _print_error(ctx, error_descr, wallets=None):
     if ctx.obj.json:
         if wallets is None:
@@ -65,7 +67,8 @@ def _print_error(ctx, error_descr, wallets=None):
     else:
         print("ERROR: {}".format(error_descr))
 
-def _serialize_output(ctx, addresses: List[OutputMessage], source_description)->str:
+
+def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> str:
     # FIXME: Refactor this
     if len(addresses) == 0:
         msg = 'No wallet found at {}'.format(source_description)
@@ -193,6 +196,7 @@ def wallet_gen(ctx):
     else:
         # FIXME: !!!!!
         click.echo("Wallet already exists")
+
 
 @qrl.command()
 @click.pass_context

@@ -47,8 +47,8 @@ class TestEphemeral(TestCase):
 
                         chain_manager._difficulty_tracker = Mock()
                         tmp_difficulty = StringToUInt256('2')
-                        tmp_boundary = DifficultyTracker.get_target(tmp_difficulty)
-                        mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_boundary]
+                        tmp_target = DifficultyTracker.get_target(tmp_difficulty)
+                        mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_target]
 
                         alice_xmss = get_alice_xmss()
                         slave_xmss = XMSS(XmssFast(alice_xmss.seed, alice_xmss.height))

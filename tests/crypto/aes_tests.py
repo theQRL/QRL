@@ -17,8 +17,8 @@ class TestAES(TestCase):
                       'hGMGIT7095JczFYNq6WoTzciljWIk5NkLwa8lWBXCmDn5u/ogWkLC9eTdPITPc7rZEAgB3uZKh' \
                       'Vq08LfdNNyGdi/rIvb9CdCrDqN+H4DgpqcBlrPw6c7rJ1zHOqUSQOeP62FrWQbc6wmew=='
     MNEMONIC_PLAINTEXT = 'absorb drank fruity set aside earth sacred she junior over daisy trend rude huge blew ' \
-                        'size stem sticky baron lowest robert spicy friar clear elude knack invoke buggy volume ' \
-                        'pit plead paris drift highly'
+                         'size stem sticky baron lowest robert spicy friar clear elude knack invoke buggy volume ' \
+                         'pit plead paris drift highly'
 
     def __init__(self, *args, **kwargs):
         super(TestAES, self).__init__(*args, **kwargs)
@@ -28,7 +28,7 @@ class TestAES(TestCase):
 
     def test_mnemonic_encrypt(self):
         key = 'test1234'
-        iv = bytes(hstr2bin('c1f45a71eb78bde0f0d2ce0edd8fd161'))    # Fix it so tests are reproducible
+        iv = bytes(hstr2bin('c1f45a71eb78bde0f0d2ce0edd8fd161'))  # Fix it so tests are reproducible
 
         walletAES = AESHelper(key)
         message = self.MNEMONIC_PLAINTEXT.encode()

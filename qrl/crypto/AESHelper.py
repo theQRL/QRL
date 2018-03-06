@@ -6,7 +6,7 @@ import base64
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from pyqrllib.pyqrllib import getRandomSeed, bin2hstr
+from pyqrllib.pyqrllib import getRandomSeed
 
 from qrl.crypto.misc import sha256
 

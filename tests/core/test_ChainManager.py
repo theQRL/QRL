@@ -43,8 +43,8 @@ class TestChainManager(TestCase):
                 chain_manager._difficulty_tracker = Mock()
                 dt = DifficultyTracker()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_boundary = dt.get_target(tmp_difficulty)
-                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                tmp_target = dt.get_target(tmp_difficulty)
+                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
@@ -143,8 +143,8 @@ class TestChainManager(TestCase):
 
                 chain_manager._difficulty_tracker = Mock()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_boundary = DifficultyTracker.get_target(tmp_difficulty)
-                mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_boundary]
+                tmp_target = DifficultyTracker.get_target(tmp_difficulty)
+                mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_target]
 
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
@@ -237,8 +237,8 @@ class TestChainManager(TestCase):
                     chain_manager._difficulty_tracker = Mock()
                     dt = DifficultyTracker()
                     tmp_difficulty = StringToUInt256('2')
-                    tmp_boundary = dt.get_target(tmp_difficulty)
-                    chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                    tmp_target = dt.get_target(tmp_difficulty)
+                    chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
 
                     block = state.get_block(genesis_block.headerhash)
                     self.assertIsNotNone(block)
