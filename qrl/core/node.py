@@ -188,7 +188,7 @@ class POW(ConsensusMechanism):
     def monitor_miner(self):
         reactor.callLater(60, self.monitor_miner)
 
-        if self.p2p_factory.is_syncing():
+        if self.p2p_factory.is_syncing() or not config.user.mining_enabled:
             return
         if not self.miner.isRunning() or self.miner_toggler:
             logger.debug('Mine next called by monitor_miner')

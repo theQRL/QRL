@@ -151,8 +151,8 @@ message GetLatestDataResp {
 
 message TransferCoinsReq {
     bytes address_from = 1;                 // Transaction source address
-    bytes address_to = 2;                   // Transaction destination address
-    uint64 amount = 3;                      // Amount. It should be expressed in Shor
+    repeated bytes addresses_to = 2;                   // Transaction destination address
+    repeated uint64 amounts = 3;                      // Amount. It should be expressed in Shor
     uint64 fee = 4;                         // Fee. It should be expressed in Shor
     bytes xmss_pk = 5;                      // XMSS Public key
 }
@@ -188,9 +188,9 @@ message TokenTxnReq {
 
 message TransferTokenTxnReq {
     bytes address_from = 1;
-    bytes address_to = 2;
+    repeated bytes address_to = 2;
     bytes token_txhash = 3;
-    uint64 amount = 4;
+    repeated uint64 amount = 4;
     uint64 fee = 5;
     bytes xmss_pk = 6;
 }
@@ -372,8 +372,8 @@ message Transaction {
 
     //////////
     message Transfer {
-        bytes addr_to = 1;
-        uint64 amount = 2;
+        repeated bytes addrs_to = 1;
+        repeated uint64 amounts = 2;
     }
 
     message CoinBase {
@@ -402,8 +402,8 @@ message Transaction {
 
     message TransferToken {
         bytes token_txhash = 1;
-        bytes addr_to = 2;
-        uint64 amount = 3;
+        repeated bytes addrs_to = 2;
+        repeated uint64 amounts = 3;
     }
 
     message Slave {

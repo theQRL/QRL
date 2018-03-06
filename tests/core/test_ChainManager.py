@@ -13,8 +13,8 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
-from qrl.core.Transaction import SlaveTransaction
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
+from qrl.core.Transaction import SlaveTransaction, TransferTransaction
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir, get_random_xmss
 
 
 class TestChainManager(TestCase):
@@ -43,7 +43,7 @@ class TestChainManager(TestCase):
                 chain_manager._difficulty_tracker = Mock()
                 dt = DifficultyTracker()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_boundary = dt.get_boundary(tmp_difficulty)
+                tmp_boundary = dt.get_target(tmp_difficulty)
                 chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                 block = state.get_block(genesis_block.headerhash)
@@ -67,6 +67,62 @@ class TestChainManager(TestCase):
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
+    def test_multi_output_transaction_add_block(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                state.get_measurement = MagicMock(return_value=10000000)
+                alice_xmss = get_alice_xmss()
+                bob_xmss = get_bob_xmss()
+                random_xmss = get_random_xmss()
+                transfer_transaction = TransferTransaction.create(addr_from=bob_xmss.address,
+                                                                  addrs_to=[alice_xmss.address, random_xmss.address],
+                                                                  amounts=[40 * int(config.dev.shor_per_quanta),
+                                                                           59 * int(config.dev.shor_per_quanta)],
+                                                                  fee=1 * config.dev.shor_per_quanta,
+                                                                  xmss_pk=bob_xmss.pk)
+                transfer_transaction._data.nonce = 1
+                transfer_transaction.sign(bob_xmss)
+
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                chain_manager.load(genesis_block)
+
+                chain_manager._difficulty_tracker = Mock()
+                dt = DifficultyTracker()
+                tmp_difficulty = StringToUInt256('2')
+                tmp_boundary = dt.get_target(tmp_difficulty)
+                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+
+                block = state.get_block(genesis_block.headerhash)
+                self.assertIsNotNone(block)
+
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1615270948  # Very high to get an easy difficulty
+
+                    block_1 = Block.create(block_number=1,
+                                           prevblock_headerhash=genesis_block.headerhash,
+                                           transactions=[transfer_transaction],
+                                           signing_xmss=alice_xmss,
+                                           master_address=alice_xmss.address,
+                                           nonce=1)
+
+                    while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
+
+                    result = chain_manager.add_block(block_1)
+
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
+
+                bob_addr_state = state.get_address(bob_xmss.address)
+                alice_addr_state = state.get_address(alice_xmss.address)
+                random_addr_state = state.get_address(random_xmss.address)
+
+                self.assertEqual(bob_addr_state.balance, 0)
+                self.assertEqual(alice_addr_state.balance,
+                                 140 * int(config.dev.shor_per_quanta) + block_1.block_reward + block_1.fee_reward)
+                self.assertEqual(random_addr_state.balance, 159 * int(config.dev.shor_per_quanta))
+
     @mock.patch("qrl.core.DifficultyTracker.DifficultyTracker.get")
     def test_add_block(self, mock_difficulty_tracker_get):
         """
@@ -87,7 +143,7 @@ class TestChainManager(TestCase):
 
                 chain_manager._difficulty_tracker = Mock()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_boundary = DifficultyTracker.get_boundary(tmp_difficulty)
+                tmp_boundary = DifficultyTracker.get_target(tmp_difficulty)
                 mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_boundary]
 
                 block = state.get_block(genesis_block.headerhash)
@@ -181,7 +237,7 @@ class TestChainManager(TestCase):
                     chain_manager._difficulty_tracker = Mock()
                     dt = DifficultyTracker()
                     tmp_difficulty = StringToUInt256('2')
-                    tmp_boundary = dt.get_boundary(tmp_difficulty)
+                    tmp_boundary = dt.get_target(tmp_difficulty)
                     chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
 
                     block = state.get_block(genesis_block.headerhash)

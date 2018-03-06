@@ -36,7 +36,7 @@ class MiningAPIService(MiningAPIServicer):
                            context) -> qrlmining_pb2.GetLastBlockHeaderResp:
         response = qrlmining_pb2.GetLastBlockHeaderResp()
 
-        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(self.qrlnode.block_height)
+        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)  # 0 means last block
         blockheader = blockheader_and_metadata[0]
         block_metadata = blockheader_and_metadata[1]
         response.difficulty = int(bin2hstr(block_metadata.block_difficulty), 16)
@@ -44,6 +44,7 @@ class MiningAPIService(MiningAPIServicer):
         response.timestamp = blockheader.timestamp
         response.reward = blockheader.block_reward + blockheader.fee_reward
         response.hash = bin2hstr(blockheader.headerhash)
+        response.depth = self.qrlnode.block_height - blockheader.block_number
 
         return response
 
@@ -58,7 +59,7 @@ class MiningAPIService(MiningAPIServicer):
         if blocktemplate_blob_and_difficulty:
             response.blocktemplate_blob = blocktemplate_blob_and_difficulty[0]
             response.difficulty = blocktemplate_blob_and_difficulty[1]
-            response.height = self.qrlnode.block_height
+            response.height = self.qrlnode.block_height + 1
 
         return response
 

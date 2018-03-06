@@ -21,7 +21,9 @@ message GetBlockMiningCompatibleReq {
 }
 
 
-message GetLastBlockHeaderReq { }
+message GetLastBlockHeaderReq {
+    uint64 height = 1;
+}
 
 message GetBlockMiningCompatibleResp {
     BlockHeader blockheader = 1;
@@ -34,6 +36,7 @@ message GetLastBlockHeaderResp {
     uint64 timestamp = 3;
     uint64 reward = 4;
     string hash = 5;
+    uint64 depth = 6;
 }
 
 message GetBlockToMineReq {

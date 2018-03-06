@@ -48,8 +48,8 @@ class TestPublicAPI(TestCase):
 
                     request = qrl_pb2.TransferCoinsReq(
                         address_from=alice.address,
-                        address_to=bob.address,
-                        amount=101,
+                        addresses_to=[bob.address],
+                        amounts=[101],
                         fee=12,
                         xmss_pk=alice.pk
                     )
@@ -70,8 +70,8 @@ class TestPublicAPI(TestCase):
                     self.assertEqual(b'', response.transaction_unsigned.signature)
                     self.assertEqual(b'', response.transaction_unsigned.transaction_hash)
 
-                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addr_to)
-                    self.assertEqual(101, response.transaction_unsigned.transfer.amount)
+                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
+                    self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
 
     def test_transferCoins_push_unsigned(self):
         with set_data_dir('no_data'):
@@ -96,8 +96,8 @@ class TestPublicAPI(TestCase):
 
                     request = qrl_pb2.TransferCoinsReq(
                         address_from=alice.address,
-                        address_to=bob.address,
-                        amount=101,
+                        addresses_to=[bob.address],
+                        amounts=[101],
                         fee=12,
                         xmss_pk=alice.pk
                     )
@@ -116,8 +116,8 @@ class TestPublicAPI(TestCase):
                     self.assertEqual(0, response.transaction_unsigned.nonce)
                     self.assertEqual(b'', response.transaction_unsigned.signature)
                     self.assertEqual(b'', response.transaction_unsigned.transaction_hash)
-                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addr_to)
-                    self.assertEqual(101, response.transaction_unsigned.transfer.amount)
+                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
+                    self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
 
                     req_push = qrl_pb2.PushTransactionReq(transaction_signed=response.transaction_unsigned)
 
@@ -152,8 +152,8 @@ class TestPublicAPI(TestCase):
 
                     request = qrl_pb2.TransferCoinsReq(
                         address_from=alice.address,
-                        address_to=bob.address,
-                        amount=101,
+                        addresses_to=[bob.address],
+                        amounts=[101],
                         fee=12,
                         xmss_pk=alice.pk
                     )
@@ -172,13 +172,13 @@ class TestPublicAPI(TestCase):
                     self.assertEqual(0, response.transaction_unsigned.nonce)
                     self.assertEqual(b'', response.transaction_unsigned.signature)
                     self.assertEqual(b'', response.transaction_unsigned.transaction_hash)
-                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addr_to)
-                    self.assertEqual(101, response.transaction_unsigned.transfer.amount)
+                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
+                    self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
 
                     tmp_hash_pre = response.transaction_unsigned.addr_from
                     tmp_hash_pre += str(response.transaction_unsigned.fee).encode()
-                    tmp_hash_pre += response.transaction_unsigned.transfer.addr_to
-                    tmp_hash_pre += str(response.transaction_unsigned.transfer.amount).encode()
+                    tmp_hash_pre += response.transaction_unsigned.transfer.addrs_to[0]
+                    tmp_hash_pre += str(response.transaction_unsigned.transfer.amounts[0]).encode()
 
                     self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c939078'
                                      '2a9c61ac02f31320103001d65d7e59aed5efbeae64246e0f3184d7c42411421eb38'
@@ -202,5 +202,5 @@ class TestPublicAPI(TestCase):
                     self.assertIsNotNone(resp_push)
                     self.assertEqual(qrl_pb2.PushTransactionResp.SUBMITTED,
                                      resp_push.error_code)
-                    self.assertEqual('c34d96d036a83378a44a8feb47d01174f8147583a668811451d76a6893aa7045',
+                    self.assertEqual('832c0fe9819992cc0d1d97f8d6579ca28e210c7884488a3858376a9c0cec279d',
                                      bin2hstr(resp_push.tx_hash))

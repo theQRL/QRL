@@ -226,8 +226,8 @@ class TestPublicAPI(TestCase):
         db_state.address_used = MagicMock(return_value=False)
         tx1 = TransferTransaction.create(
             addr_from=qrladdress('SOME_ADDR1'),
-            addr_to=qrladdress('SOME_ADDR2'),
-            amount=125,
+            addrs_to=[qrladdress('SOME_ADDR2')],
+            amounts=[125],
             fee=19,
             xmss_pk=sha256(b'pk'))
 
@@ -246,8 +246,8 @@ class TestPublicAPI(TestCase):
         self.assertEqual(tx1.txhash, response.transaction.tx.transaction_hash)
         self.assertEqual(b'', response.transaction.tx.signature)
 
-        self.assertEqual(qrladdress('SOME_ADDR2'), response.transaction.tx.transfer.addr_to)
-        self.assertEqual(125, response.transaction.tx.transfer.amount)
+        self.assertEqual(qrladdress('SOME_ADDR2'), response.transaction.tx.transfer.addrs_to[0])
+        self.assertEqual(125, response.transaction.tx.transfer.amounts[0])
         self.assertEqual(19, response.transaction.tx.fee)
 
         alice_xmss = get_alice_xmss()
@@ -276,8 +276,8 @@ class TestPublicAPI(TestCase):
         for i in range(1, 4):
             for j in range(1, 3):
                 txs.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
-                                                      addr_to=qrladdress('dest'),
-                                                      amount=i * 100 + j,
+                                                      addrs_to=[qrladdress('dest')],
+                                                      amounts=[i * 100 + j],
                                                       fee=j,
                                                       xmss_pk=alice_xmss.pk))
 
@@ -291,8 +291,8 @@ class TestPublicAPI(TestCase):
         txpool = []
         for j in range(10, 15):
             txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
-                                                     addr_to=qrladdress('dest'),
-                                                     amount=1000 + j,
+                                                     addrs_to=[qrladdress('dest')],
+                                                     amounts=[1000 + j],
                                                      fee=j,
                                                      xmss_pk=get_alice_xmss().pk))
 
@@ -338,9 +338,9 @@ class TestPublicAPI(TestCase):
         # Verify transactions_unconfirmed
         self.assertEqual(3, len(response.transactions_unconfirmed))
         # TODO: Verify expected order
-        self.assertEqual(1013, response.transactions_unconfirmed[0].tx.transfer.amount)
-        self.assertEqual(1012, response.transactions_unconfirmed[1].tx.transfer.amount)
-        self.assertEqual(1011, response.transactions_unconfirmed[2].tx.transfer.amount)
+        self.assertEqual(1013, response.transactions_unconfirmed[0].tx.transfer.amounts[0])
+        self.assertEqual(1012, response.transactions_unconfirmed[1].tx.transfer.amounts[0])
+        self.assertEqual(1011, response.transactions_unconfirmed[2].tx.transfer.amounts[0])
 
         # Verify transactions
         self.assertEqual(3, len(response.transactions))
@@ -348,6 +348,6 @@ class TestPublicAPI(TestCase):
         self.assertEqual(1, response.transactions[1].tx.fee)
         self.assertEqual(2, response.transactions[2].tx.fee)
 
-        self.assertEqual(102, response.transactions[0].tx.transfer.amount)
-        self.assertEqual(201, response.transactions[1].tx.transfer.amount)
-        self.assertEqual(202, response.transactions[2].tx.transfer.amount)
+        self.assertEqual(102, response.transactions[0].tx.transfer.amounts[0])
+        self.assertEqual(201, response.transactions[1].tx.transfer.amounts[0])
+        self.assertEqual(202, response.transactions[2].tx.transfer.amounts[0])

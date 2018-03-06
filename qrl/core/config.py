@@ -38,6 +38,7 @@ class UserConfig(object):
                           '104.251.219.145',
                           '104.251.219.40',
                           '104.237.3.185']
+
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ban_minutes = 20              # Allows to ban a peer's IP who is breaking protocol
 
@@ -51,6 +52,8 @@ class UserConfig(object):
         self.config_path = os.path.join(self.qrl_dir, "config.yml")
         self.log_path = os.path.join(self.qrl_dir, "qrl.log")
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
+
+        self.mining_pool_payment_wallet_path = '/home/.qrl/payment_slaves.json'  # Only for mining Pool
 
         # ======================================
         #    MINING WALLET CONFIGURATION
@@ -102,7 +105,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'Feersum Endjinn'
+        self.genesis_prev_headerhash = b'The Burning Ice'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -133,6 +136,7 @@ class DevConfig(object):
         # will be managed by OTS Counter
         self.max_ots_tracking_index = 1024                                  #
         self.mining_nonce_offset = 39
+        self.mining_blob_size = 96
 
         self.ots_bitfield_size = ceil(self.max_ots_tracking_index / 8)
 
@@ -153,7 +157,13 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.genesis_timestamp = 1519600074
+        self.genesis_timestamp = 1519601074
+
+        # ======================================
+        #       TRANSACTION CONTROLLER
+        # ======================================
+        # Max number of output addresses and corresponding data can be added into a list of a transaction
+        self.transaction_multi_output_limit = 100
 
         # ======================================
         #       DIFFICULTY CONTROLLER

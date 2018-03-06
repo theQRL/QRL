@@ -524,8 +524,8 @@ class StateObjects:
                 self._current_state.create_token_metadata(txn)
             StateLoader.increase_txn_count(self._db,
                                            self._current_state.state_code,
-                                           self.get_txn_count(txn.txfrom),
-                                           txn.txfrom)
+                                           self.get_txn_count(txn.addr_from),
+                                           txn.addr_from)
 
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         self._current_state.update_total_coin_supply(txn.amount - fee_reward)
