@@ -9,7 +9,6 @@ from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToS
 
 from qrl.core import config
 from qrl.core.Block import Block
-from qrl.core.BlockHeader import BlockHeader
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
