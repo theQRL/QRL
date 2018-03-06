@@ -167,10 +167,11 @@ class Miner(Qryptominer):
         # FIXME: Break encapsulation
         if not self._dummy_xmss:
             self._dummy_xmss = XMSS.from_height(signing_xmss.height)
+
         dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=self._dummy_xmss.xmss,
+                                   signing_xmss=self._dummy_xmss,
                                    master_address=master_address,
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
