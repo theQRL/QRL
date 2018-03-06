@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import os
+from collections import namedtuple
+from decimal import Decimal
+from typing import List
 
 import click
 import grpc
@@ -7,13 +10,19 @@ import simplejson as json
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.crypto.xmss import XMSS
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.Wallet import Wallet
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
+
+OutputMessage = namedtuple('OutputMessage',
+                           'error address_items balance_items')
+
+BalanceItem = namedtuple('BalanceItem',
+                         'address balance')
 
 
 class CLIContext(object):
@@ -49,7 +58,18 @@ def _admin_get_local_addresses(ctx):
         return []
 
 
-def _print_addresses(ctx, addresses, source_description):
+def _print_error(ctx, error_descr, wallets=None):
+    if ctx.obj.json:
+        if wallets is None:
+            wallets = []
+        msg = {'error': error_descr, 'wallets': wallets}
+        click.echo(json.dumps(msg))
+    else:
+        print("ERROR: {}".format(error_descr))
+
+
+def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> str:
+    # FIXME: Refactor this
     if len(addresses) == 0:
         msg = 'No wallet found at {}'.format(source_description)
         if ctx.obj.json:
@@ -59,28 +79,28 @@ def _print_addresses(ctx, addresses, source_description):
 
     if not ctx.obj.json:
         click.echo('Wallet at          : {}'.format(source_description))
-        click.echo('{:<8}{:<80}{}'.format('Number', 'Address', 'Balance'))
-        click.echo('-' * 95)
+        click.echo('{:<8}{:<83}{}'.format('Number', 'Address', 'Balance'))
+        click.echo('-' * 99)
 
     msg = {'error': None, 'wallets': []}
-    for pos, addr in enumerate(addresses):
+    for pos, item in enumerate(addresses):
         try:
-            balance = _public_get_address_balance(ctx, addr)
-            # TODO standardize quanta/shor conversion
-            balance /= 1e9
+            balance = Decimal(_public_get_address_balance(ctx, item)) / config.dev.shor_per_quanta
             if ctx.obj.json:
-                msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': balance})
+                msg['wallets'].append({'number': pos, 'address': item.decode(), 'balance': balance})
             else:
-                click.echo('{:<8}Q{:<80}{:5.8f}'.format(pos, addr.decode(), balance))
+                click.echo('{:<8}Q{:<83}{:5.8f}'.format(pos, item.decode(), balance))
         except Exception as e:
             if ctx.obj.json:
                 msg['error'] = str(e)
-                msg['wallets'].append({'number': pos, 'address': addr.decode(), 'balance': '?'})
+                msg['wallets'].append({'number': pos, 'address': item.decode(), 'balance': '?'})
             else:
-                click.echo('{:<8}Q{:<80}?'.format(pos, addr.decode()))
+                click.echo('{:<8}Q{:<83}?'.format(pos, item.address))
 
-    if ctx.obj.json:
-        click.echo(json.dumps(msg))
+
+def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
+    output = _serialize_output(ctx, addresses, source_description)
+    click.echo(output)
 
 
 def _public_get_address_balance(ctx, address):
@@ -93,9 +113,8 @@ def _public_get_address_balance(ctx, address):
 def _select_wallet(ctx, src):
     try:
         config.user.wallet_dir = ctx.obj.wallet_dir
-        wallet = Wallet(valid_or_create=False)
-        addresses = [a.address for a in wallet.address_bundle]
-        if not addresses:
+        wallet = Wallet()
+        if not wallet.addresses:
             click.echo('This command requires a local wallet')
             return
 
@@ -154,9 +173,8 @@ def wallet_ls(ctx):
     Lists available wallets
     """
     config.user.wallet_dir = ctx.obj.wallet_dir
-    wallet = Wallet(valid_or_create=False)
-    addresses = [a.address for a in wallet.address_bundle]
-    _print_addresses(ctx, addresses, config.user.wallet_dir)
+    wallet = Wallet()
+    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
 @qrl.command()
@@ -170,10 +188,14 @@ def wallet_gen(ctx):
         return
 
     config.user.wallet_dir = ctx.obj.wallet_dir
+    # FIXME: If the wallet is there, it should fail
     wallet = Wallet()
-
-    addresses = [a.address for a in wallet.address_bundle]
-    _print_addresses(ctx, addresses, config.user.wallet_dir)
+    if len(wallet.address_items) == 0:
+        wallet.add_new_address(config.dev.xmss_tree_height)
+        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+    else:
+        # FIXME: !!!!!
+        click.echo("Wallet already exists")
 
 
 @qrl.command()
@@ -188,10 +210,8 @@ def wallet_add(ctx):
 
     config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet()
-    wallet.append(wallet.get_new_address())
-
-    addresses = [a.address for a in wallet.address_bundle]
-    _print_addresses(ctx, addresses, config.user.wallet_dir)
+    wallet.add_new_address(config.dev.xmss_tree_height)
+    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
 @qrl.command()

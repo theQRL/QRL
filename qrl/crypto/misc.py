@@ -25,6 +25,16 @@ def sha256(message: bytes) -> bytes:
 
 
 def sha256_n(message: bytes, count) -> bytes:
+    """
+    Calculate hash n times on the same data
+
+    >>> bin2hstr(sha256_n(b"test", 1))
+    '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
+    >>> bin2hstr(sha256(sha256(b"test")))
+    '954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4'
+    >>> bin2hstr(sha256_n(b"test", 2))
+    '954d5a49fd70d9b8bcdb35d252267829957f7ef7fa6c74f88419bdc5e82209f4'
+    """
     if count == 0:
         return message
     return bytes(sha2_256_n(message, count))
@@ -40,6 +50,10 @@ def merkle_tx_hash(hashes):
 
     >>> bin2hstr(merkle_tx_hash([b'0', b'1']) ) # FIXME: This input is not realistic
     '938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'
+    >>> bin2hstr(merkle_tx_hash([b'0', b'1', b'2']) )
+    '22073806c4a9967bed132107933c5ec151d602847274f6b911d0086c2a41adc0'
+    >>> bin2hstr(merkle_tx_hash([b'0', b'1', b'2', b'3']) )
+    'f16689fdb29d871013c77feede7231de127b7a2e8b4a9c020375408cfb51a241'
     >>> merkle_tx_hash(['938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'])
     '938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'
     >>> bin2hstr(merkle_tx_hash('938db8c9f82c8cb58d3f3ef4fd250036a48d26a712753d2fde5abd03a85cabf4'))

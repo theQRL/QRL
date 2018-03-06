@@ -225,17 +225,6 @@ message GetLocalAddressesResp
     repeated bytes addresses = 1;
 }
 
-message GetWalletReq
-{
-    bytes address = 1;
-}
-
-message GetWalletResp
-{
-    // FIXME: Encrypt
-    Wallet wallet = 1;
-}
-
 ////////////////////////////
 ////////////////////////////
 ////////////////////////////
@@ -262,16 +251,6 @@ message NodeInfo
     uint64 block_height = 6;
     bytes  block_last_hash = 7;
     string network_id = 8;
-}
-
-message WalletStore {
-    repeated Wallet wallets = 1;
-}
-
-message Wallet {
-    bytes address = 1;        // FIXME move to bytes
-    string mnemonic = 2;
-    int32 xmss_index = 3;
 }
 
 message StoredPeers {

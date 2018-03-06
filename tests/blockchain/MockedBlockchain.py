@@ -93,9 +93,9 @@ class MockedBlockchain(object):
                 chain_manager._difficulty_tracker = Mock()
                 dt = DifficultyTracker()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_boundary = dt.get_target(tmp_difficulty)
+                tmp_target = dt.get_target(tmp_difficulty)
 
-                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_boundary))
+                chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
 
                 qrlnode = QRLNode(state, slaves=[])
                 qrlnode.set_chain_manager(chain_manager)

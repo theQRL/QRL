@@ -16,7 +16,7 @@ delta = 0
 filename = os.path.expanduser("~/crypto/qryptonight/modeling/blockdata.csv")
 
 with open(filename, 'w') as f:
-    f.write("i,timestamp,prev_timestamp,delta,difficulty,boundary\n")
+    f.write("i,timestamp,prev_timestamp,delta,difficulty,target\n")
     prev_timestamp = None
     for i in range(chain_manager.height):
         block = chain_manager.get_block_by_number(i)
@@ -25,7 +25,7 @@ with open(filename, 'w') as f:
             prev_timestamp = block.blockheader.timestamp
             continue
 
-        boundary = ph.getBoundary(difficulty)
+        target = ph.getTarget(difficulty)
         delta = block.blockheader.timestamp - prev_timestamp
 
         outs = "{},{},{},{},{},{}\n".format(i,
@@ -33,7 +33,7 @@ with open(filename, 'w') as f:
                                             prev_timestamp,
                                             delta,
                                             UInt256ToString(difficulty),
-                                            UInt256ToString(boundary))
+                                            UInt256ToString(target))
 
         f.write(outs)
 

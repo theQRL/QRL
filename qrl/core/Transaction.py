@@ -116,8 +116,6 @@ class Transaction(object, metaclass=ABCMeta):
     def apply_on_state(self, addresses_state):
         """
         This method, applies the changes on the state caused by txn.
-        :param addr_from_state:
-        :param addr_to_state:
         :return:
         """
         raise NotImplementedError

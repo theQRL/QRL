@@ -153,7 +153,7 @@ class DevConfig(object):
         self.db_name = 'state'
         self.peers_filename = 'peers.qrl'
         self.chain_file_directory = 'data'
-        self.wallet_dat_filename = 'wallet.qrl'
+        self.wallet_dat_filename = 'wallet.json'
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
