@@ -6,7 +6,7 @@ import logging
 import os
 
 import simplejson as json
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr, mnemonic2bin, XMSS
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr, mnemonic2bin
 from twisted.internet import reactor
 
 from qrl.core.Block import Block
@@ -15,8 +15,9 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.misc import ntp, logger, logger_twisted
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
-from .core import config
-from .core.State import State
+from qrl.core import config
+from qrl.core.State import State
+from qrl.crypto.xmss import XMSS
 
 LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
 
@@ -90,11 +91,13 @@ def generate_slave_from_input(slaves_filename):
     except KeyboardInterrupt:
         quit(0)
 
+    bin_extended_seed = None
     if len(extended_seed) == 102:  # hexseed
         bin_extended_seed = hstr2bin(extended_seed.decode())
     elif len(extended_seed.split()) == 34:
         bin_extended_seed = mnemonic2bin(extended_seed.decode())
-    else:
+
+    if bin_extended_seed is None:
         logger.warning('Invalid XMSS seed')
         quit(1)
 
