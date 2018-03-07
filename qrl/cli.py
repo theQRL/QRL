@@ -89,13 +89,13 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
             if ctx.obj.json:
                 msg['wallets'].append({'number': pos, 'address': item.decode(), 'balance': balance})
             else:
-                click.echo('{:<8}Q{:<83}{:5.8f}'.format(pos, item.decode(), balance))
+                click.echo('{:<8}{:<83}{:5.8f}'.format(pos, item.decode(), balance))
         except Exception as e:
             if ctx.obj.json:
                 msg['error'] = str(e)
                 msg['wallets'].append({'number': pos, 'address': item.decode(), 'balance': '?'})
             else:
-                click.echo('{:<8}Q{:<83}?'.format(pos, item.address))
+                click.echo('{:<8}{:<83}?'.format(pos, item.address))
 
 
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
