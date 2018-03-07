@@ -85,15 +85,15 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
     msg = {'error': None, 'wallets': []}
     for pos, item in enumerate(addresses):
         try:
-            balance = Decimal(_public_get_address_balance(ctx, item)) / config.dev.shor_per_quanta
+            balance = Decimal(_public_get_address_balance(ctx, item.address)) / config.dev.shor_per_quanta
             if ctx.obj.json:
-                msg['wallets'].append({'number': pos, 'address': item.decode(), 'balance': balance})
+                msg['wallets'].append({'number': pos, 'address': item.address, 'balance': balance})
             else:
-                click.echo('{:<8}{:<83}{:5.8f}'.format(pos, item.decode(), balance))
+                click.echo('{:<8}{:<83}{:5.8f}'.format(pos, item.address, balance))
         except Exception as e:
             if ctx.obj.json:
                 msg['error'] = str(e)
-                msg['wallets'].append({'number': pos, 'address': item.decode(), 'balance': '?'})
+                msg['wallets'].append({'number': pos, 'address': item.address, 'balance': '?'})
             else:
                 click.echo('{:<8}{:<83}?'.format(pos, item.address))
 
@@ -104,8 +104,9 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 
 
 def _public_get_address_balance(ctx, address):
+    address = address[1:]
     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(address.decode())))
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(address)))
     getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
     return getAddressStateResp.state.balance
 
@@ -271,13 +272,13 @@ def wallet_secret(ctx, wallet_idx):
 
     config.user.wallet_dir = ctx.obj.wallet_dir
 
-    wallet = Wallet(valid_or_create=False)
+    wallet = Wallet()
 
-    if 0 <= wallet_idx < len(wallet.address_bundle):
-        addr_bundle = wallet.address_bundle[wallet_idx]
-        click.echo('Wallet Address  : %s' % (addr_bundle.address.decode()))
-        click.echo('Mnemonic        : %s' % (addr_bundle.xmss.mnemonic))
-        click.echo('Hexseed         : %s' % (addr_bundle.xmss.hexseed))
+    if 0 <= wallet_idx < len(wallet.address_items):
+        address_item = wallet.address_items[wallet_idx]
+        click.echo('Wallet Address  : %s' % (address_item.address))
+        click.echo('Mnemonic        : %s' % (address_item.mnemonic))
+        click.echo('Hexseed         : %s' % (address_item.hexseed))
     else:
         click.echo('Wallet index not found', color='yellow')
 
