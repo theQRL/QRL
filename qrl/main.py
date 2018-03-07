@@ -101,8 +101,8 @@ def generate_slave_from_input(slaves_filename):
         logger.warning('Invalid XMSS seed')
         quit(1)
 
-    addrBundle = XMSS.from_extended_seed(bin_extended_seed)
-    slaves = [bin2hstr(addrBundle.xmss.address), [addrBundle.xmss.extended_seed], None]
+    xmss_object = XMSS.from_extended_seed(bin_extended_seed)
+    slaves = [bin2hstr(xmss_object.address), [xmss_object.extended_seed], None]
     write_slaves(slaves_filename, slaves)
 
 
