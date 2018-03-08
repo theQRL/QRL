@@ -120,18 +120,20 @@ def _select_wallet(ctx, src):
             return
 
         if src.isdigit():
+            src = int(src)
             try:
                 # FIXME: This should only return pk and index
-                ab = wallet.address_bundle[int(src)]
-                return bytes(hstr2bin(ab.address.decode())), ab.xmss
+                xmss = wallet.get_xmss_by_index(src)
+                return wallet.addresses[src], xmss
             except IndexError:
                 click.echo('Wallet index not found', color='yellow')
                 quit(1)
 
         elif src.startswith('Q'):
-            for i, addr in enumerate(wallet.addresses):
-                if src.encode() == addr:
-                    return bytes(hstr2bin(wallet.address_bundle[i].address.decode())), wallet.address_bundle[i].xmss
+            for i, addr_item in enumerate(wallet.address_items):
+                if src == addr_item.address:
+                    xmss = wallet.get_xmss_by_address(wallet.addresses[i])
+                    return wallet.addresses[i], xmss
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
@@ -506,8 +508,8 @@ def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
         transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                    address_to=address_dst,
-                                                    amount=amount_shor,
+                                                    addresses_to=[address_dst],
+                                                    amounts=[amount_shor],
                                                     fee=fee_shor,
                                                     xmss_pk=address_src_pk)
 
@@ -519,7 +521,7 @@ def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
 
-        print(pushTransactionResp.error_code)
+        print(pushTransactionResp)
     except Exception as e:
         print("Error {}".format(str(e)))
 
