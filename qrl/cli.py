@@ -69,38 +69,38 @@ def _print_error(ctx, error_descr, wallets=None):
 
 
 def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> str:
-    # FIXME: Refactor this
     if len(addresses) == 0:
-        msg = 'No wallet found at {}'.format(source_description)
-        if ctx.obj.json:
-            msg = json.dumps({'error': msg, 'wallets': []})
-        click.echo(msg)
-        return
-
-    if not ctx.obj.json:
-        click.echo('Wallet at          : {}'.format(source_description))
-        click.echo('{:<8}{:<83}{}'.format('Number', 'Address', 'Balance'))
-        click.echo('-' * 99)
+        msg = json.dumps({'error': 'No wallet found at {}'.format(source_description), 'wallets': []})
+        return msg
 
     msg = {'error': None, 'wallets': []}
+
     for pos, item in enumerate(addresses):
         try:
             balance = Decimal(_public_get_address_balance(ctx, item.address)) / config.dev.shor_per_quanta
-            if ctx.obj.json:
-                msg['wallets'].append({'number': pos, 'address': item.address, 'balance': balance})
-            else:
-                click.echo('{:<8}{:<83}{:5.8f}'.format(pos, item.address, balance))
+            msg['wallets'].append({'number': pos, 'address': item.address, 'balance': balance})
         except Exception as e:
-            if ctx.obj.json:
                 msg['error'] = str(e)
                 msg['wallets'].append({'number': pos, 'address': item.address, 'balance': '?'})
-            else:
-                click.echo('{:<8}{:<83}?'.format(pos, item.address))
+    return msg
 
 
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
     output = _serialize_output(ctx, addresses, source_description)
-    click.echo(output)
+    if ctx.obj.json:
+        click.echo(output)
+    else:
+        if output['error'] and output['wallets'] == []:
+            click.echo(output['error'])
+        else:
+            click.echo("Wallet at          : {}".format(source_description))
+            click.echo("{:<8}{:<83}{}".format('Number', 'Address', 'Balance'))
+            click.echo('-' * 99)
+            for wallet in output['wallets']:
+                if isinstance(wallet['balance'], str):
+                    click.echo("{:<8}{:<83} {}".format(wallet['number'], wallet['address'], wallet['balance']))
+                else:
+                    click.echo("{:<8}{:<83}{:5.8f}".format(wallet['number'], wallet['address'], wallet['balance']))
 
 
 def _public_get_address_balance(ctx, address):
