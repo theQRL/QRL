@@ -796,6 +796,33 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
         print("Error {}".format(str(e)))
 
 
+@qrl.command()
+@click.pass_context
+def state(ctx):
+    """
+    Shows Information about a Node's State
+    """
+    channel = grpc.insecure_channel(ctx.obj.node_public_address)
+    stub = qrl_pb2_grpc.PublicAPIStub(channel)
+
+    nodeStateResp = stub.GetNodeState(qrl_pb2.GetNodeStateReq())
+
+    if ctx.obj.json:
+        output = {
+            "version": nodeStateResp.info.version,
+            "state": nodeStateResp.info.state,
+            "num_connections": nodeStateResp.info.num_connections,
+            "num_known_peers": nodeStateResp.info.num_known_peers,
+            "uptime": nodeStateResp.info.uptime,
+            "block_height": nodeStateResp.info.block_height,
+            "block_last_hash": bin2hstr(nodeStateResp.info.block_last_hash),
+            "network_id": nodeStateResp.info.network_id
+        }
+        click.echo(json.dumps(output))
+    else:
+        click.echo(nodeStateResp.info)
+
+
 def main():
     qrl()
 
