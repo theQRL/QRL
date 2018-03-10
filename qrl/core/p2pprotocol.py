@@ -8,7 +8,7 @@ from typing import Callable
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
-from qrl.core.misc import logger
+from qrl.core.misc import logger, ntp
 from qrl.core import config
 from qrl.core.OutgoingMessage import OutgoingMessage
 from qrl.core.p2pObservable import P2PObservable
@@ -25,6 +25,11 @@ class P2PProtocol(Protocol):
         self.peer_manager = None
         self.p2pchain_manager = None
         self.tx_manager = None
+
+        self.last_rate_limit_update = 0
+        self.rate_limit = config.user.peer_rate_limit
+        self.in_counter = 0
+        self.out_counter = 0
 
         self.bytes_sent = 0
         self.outgoing_queue = PriorityQueue(maxsize=config.user.p2p_q_size)
@@ -83,6 +88,10 @@ class P2PProtocol(Protocol):
         read_bytes = [0]
 
         for msg in self._parse_buffer(read_bytes):
+            self.update_counters()
+            self.in_counter += 1
+            if self.in_counter > self.rate_limit:
+                self.factory.ban_peer(self)
             self._observable.notify(msg)
 
         if read_bytes[0]:
@@ -91,7 +100,17 @@ class P2PProtocol(Protocol):
                                               p2pAckData=p2p_ack)
             self.send(msg)
 
+    def update_counters(self):
+        if ntp.getTime() - self.last_rate_limit_update > 60:
+            self.out_counter = 0
+            self.in_counter = 0
+            return
+
     def send_next(self):
+        self.update_counters()
+        if self.out_counter == self.rate_limit:
+            return
+
         if self.bytes_sent < config.dev.max_bytes_out:
             outgoing_bytes = self.get_bytes_from_q()
 
@@ -109,6 +128,10 @@ class P2PProtocol(Protocol):
                     self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
                     break
                 outgoing_bytes += wrapped_message
+
+                self.out_counter += 1
+                if self.out_counter == self.rate_limit:
+                    break
 
         return outgoing_bytes
 
