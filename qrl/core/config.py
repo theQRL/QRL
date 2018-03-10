@@ -38,6 +38,7 @@ class UserConfig(object):
                           '104.251.219.145',
                           '104.251.219.40',
                           '104.237.3.185']
+        self.peer_rate_limit = 500  # Max Number of messages per minute per peer
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ban_minutes = 20              # Allows to ban a peer's IP who is breaking protocol

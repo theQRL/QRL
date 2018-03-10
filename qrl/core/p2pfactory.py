@@ -218,6 +218,9 @@ class P2PFactory(ServerFactory):
 
         self.peer_fetch_block()
 
+    def ban_peer(self, peer_obj):
+        self._qrl_node.ban_peer(peer_obj)
+
     def is_syncing(self) -> bool:
         return self._syncing_enabled
 

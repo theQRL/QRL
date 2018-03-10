@@ -74,6 +74,7 @@ message VEData
 {
     string version = 1;
     bytes genesis_prev_hash = 2;
+    uint64 rate_limit = 3;
 }
 
 message PLData
