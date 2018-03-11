@@ -20,8 +20,12 @@ block = Block.create(block_number=0,
                      master_address=dist_xmss.address,
                      nonce=0)
 
+block.set_mining_nonce(0)
+
 block._data.genesis_balance.MergeFrom([qrl_pb2.GenesisBalance(address=config.dev.coinbase_address,
                                                               balance=105000000000000000)])
+
+k = block.blockheader.to_json()
 
 with open('genesis.json', 'w') as f:
     f.write(block.to_json())

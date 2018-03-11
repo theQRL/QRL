@@ -4,17 +4,18 @@
 from unittest import TestCase
 
 from mock import mock, MagicMock, Mock
+from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
+from qrl.crypto.xmss import XMSS
 from qrl.core.Block import Block
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import SlaveTransaction, TransferTransaction
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir, get_random_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
 
 
 class TestChainManager(TestCase):
@@ -58,9 +59,11 @@ class TestChainManager(TestCase):
                                            signing_xmss=alice_xmss,
                                            master_address=alice_xmss.address,
                                            nonce=1)
+                    block_1.set_mining_nonce(109)
 
-                    while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
-                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+                    #    block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_1)
 
@@ -73,7 +76,10 @@ class TestChainManager(TestCase):
                 state.get_measurement = MagicMock(return_value=10000000)
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
-                random_xmss = get_random_xmss()
+                extended_seed = "010300cebc4e25553afa0aab899f7838e59e18a48852fa9dfd5" \
+                                "ae78278c371902aa9e6e9c1fa8a196d2dba0cbfd2f2d212d16c"
+                random_xmss = XMSS.from_extended_seed(hstr2bin(extended_seed))
+
                 transfer_transaction = TransferTransaction.create(addr_from=bob_xmss.address,
                                                                   addrs_to=[alice_xmss.address, random_xmss.address],
                                                                   amounts=[40 * int(config.dev.shor_per_quanta),
@@ -105,9 +111,11 @@ class TestChainManager(TestCase):
                                            signing_xmss=alice_xmss,
                                            master_address=alice_xmss.address,
                                            nonce=1)
+                    block_1.set_mining_nonce(388)
 
-                    while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
-                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+                    #     block_1.set_mining_nonce(block_1.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_1)
 
@@ -167,9 +175,6 @@ class TestChainManager(TestCase):
                                            master_address=alice_xmss.address,
                                            nonce=1)
 
-                    while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
-                        block_1.set_mining_nonce(block_1.mining_nonce + 1)
-
                     result = chain_manager.add_block(block_1)
 
                 self.assertTrue(result)
@@ -189,9 +194,6 @@ class TestChainManager(TestCase):
                                          master_address=bob_xmss.address,
                                          nonce=1)
 
-                    while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
-                        block.set_mining_nonce(block.mining_nonce + 1)
-
                     result = chain_manager.add_block(block)
 
                 self.assertTrue(result)
@@ -209,8 +211,7 @@ class TestChainManager(TestCase):
                                            master_address=bob_xmss.address,
                                            nonce=2)
 
-                    while not PoWValidator().validate_mining_nonce(state, block_2.blockheader, False):
-                        block_2.set_mining_nonce(block_2.mining_nonce + 1)
+                    block_2.set_mining_nonce(1)
 
                     result = chain_manager.add_block(block_2)
 
@@ -220,7 +221,8 @@ class TestChainManager(TestCase):
 
     def test_orphan_block(self):
         """
-        Testing add_block logic in case of orphan_blocks
+        Testing add_block logic in case of orphan_blocks.
+        This test is expected to shift the mainchain towards block_2.
         :return:
         """
         with mock.patch('qrl.core.config.DevConfig') as devconfig:
@@ -252,10 +254,7 @@ class TestChainManager(TestCase):
                                                signing_xmss=alice_xmss,
                                                master_address=alice_xmss.address,
                                                nonce=1)
-                        block_1.set_mining_nonce(10)
-
-                        while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
-                            block_1.set_mining_nonce(block_1.mining_nonce + 1)
+                        block_1.set_mining_nonce(253)
 
                         result = chain_manager.add_block(block_1)
 
@@ -272,10 +271,7 @@ class TestChainManager(TestCase):
                                              signing_xmss=bob_xmss,
                                              master_address=bob_xmss.address,
                                              nonce=1)
-                        block.set_mining_nonce(18)
-
-                        while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
-                            block.set_mining_nonce(block.mining_nonce + 1)
+                        block.set_mining_nonce(57)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1519601174 + devconfig.minimum_minting_delay * 3
@@ -285,7 +281,11 @@ class TestChainManager(TestCase):
                                                signing_xmss=bob_xmss,
                                                master_address=bob_xmss.address,
                                                nonce=2)
-                        block_2.set_mining_nonce(10)
+                        block_2.set_mining_nonce(100)
+
+                        # Uncomment only to determine the correct mining_nonce of above blocks
+                        # while not PoWValidator().validate_mining_nonce(state, block_2.blockheader, False):
+                        #    block_2.set_mining_nonce(block_2.mining_nonce + 1)
 
                     result = chain_manager.add_block(block_2)
                     self.assertTrue(result)

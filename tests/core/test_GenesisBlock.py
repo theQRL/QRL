@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.GenesisBlock import GenesisBlock
 from tests.misc.helper import clean_genesis
@@ -20,5 +21,5 @@ class TestGenesisBlock(TestCase):
 
             self.assertIsNotNone(gb)
             self.assertEqual(0, gb.block_number)
-            self.assertEqual(b'QuantumBoosterTestnet', gb.prev_headerhash)
+            self.assertEqual(config.dev.genesis_prev_headerhash, gb.prev_headerhash)
             self.assertEqual(1, len(gb.genesis_balance))

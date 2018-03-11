@@ -139,8 +139,7 @@ class BlockHeader(object):
 
         bh._data.reward_block = 0
 
-        if bh._data.block_number != 0:
-            bh._data.reward_block = bh.block_reward_calc()
+        bh._data.reward_block = bh.block_reward_calc()
 
         bh.set_mining_nonce(0)
         return bh

@@ -69,6 +69,28 @@ class ChainManager:
                 bytes_addr = genesis_balance.address
                 addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
                 addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+
+            coinbase_tx = Transaction.from_pbdata(genesis_block.transactions[0])
+
+            if not isinstance(coinbase_tx, CoinBase):
+                return False
+
+            addresses_state[coinbase_tx.addr_to] = AddressState.get_default(coinbase_tx.addr_to)
+
+            addr_from_pk_state = addresses_state[coinbase_tx.addr_to]
+            addr_from_pk = Transaction.get_slave(coinbase_tx)
+            if addr_from_pk:
+                addr_from_pk_state = addresses_state[addr_from_pk]
+
+            if not coinbase_tx.validate_extended(addresses_state[coinbase_tx.addr_to],
+                                                 addr_from_pk_state):
+                return False
+
+            if not coinbase_tx.validate():
+                return False
+
+            coinbase_tx.apply_on_state(addresses_state)
+
             self.state.state_objects.update_current_state(addresses_state)
             self.state.state_objects.push(genesis_block.headerhash)
         else:
