@@ -554,7 +554,7 @@ class State:
             del self._db
             self._db = None
 
-    def get_block_size_limit(self, block):
+    def get_block_size_limit(self, block: Block):
         block_size_list = []
         for _ in range(0, 10):
             block = self.get_block(block.prev_headerhash)
@@ -565,7 +565,7 @@ class State:
                 break
         return max(config.dev.block_min_size_limit, config.dev.size_multiplier * median(block_size_list))
 
-    def put_block(self, block, batch):
+    def put_block(self, block: Block, batch):
         self._db.put_raw(bin2hstr(block.headerhash).encode(), block.to_json().encode(), batch)
 
     def get_block(self, header_hash: bytes) -> Optional[Block]:
@@ -579,7 +579,7 @@ class State:
 
         return None
 
-    def put_block_metadata(self, headerhash, block_metadata, batch):
+    def put_block_metadata(self, headerhash: bytes, block_metadata: BlockMetadata, batch):
         self._db.put_raw(b'metadata_' + bin2hstr(headerhash).encode(), block_metadata.to_json(), batch)
 
     def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
@@ -659,13 +659,13 @@ class State:
             if not addresses_state[address]:
                 addresses_state[address] = self._get_address_state(address)
 
-    def get_state_mainchain(self, addresses_set):
+    def get_state_mainchain(self, addresses_set: set):
         addresses_state = dict()
         for address in addresses_set:
             addresses_state[address] = self.get_address(address)
         return addresses_state
 
-    def get_state(self, header_hash, addresses_set):
+    def get_state(self, header_hash: bytes, addresses_set: set):
         tmp_header_hash = header_hash
         parent_headerhash = None
 
