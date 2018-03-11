@@ -112,7 +112,7 @@ class TestPublicAPI(TestCase):
         self.assertEqual(0, stats.epoch)
         self.assertEqual(0, stats.uptime_network)
 
-        self.assertEqual(0, stats.block_last_reward)
+        self.assertEqual(65000000000000000, stats.block_last_reward)
         self.assertEqual(60, stats.block_time_mean)
         self.assertEqual(0, stats.block_time_sd)
 
