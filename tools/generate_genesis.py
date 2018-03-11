@@ -1,19 +1,27 @@
 # coding=utf-8
 from __future__ import print_function
 
-import json
+from pyqrllib.pyqrllib import hstr2bin
 
-import qrl.crypto.xmss
+from qrl.generated import qrl_pb2
 from qrl.core import config
+from qrl.core.Block import Block
+from qrl.crypto.xmss import XMSS
 
-num_accounts = 100
-file_name = "aws_wallet"
 
-wallets = {}
-for i in range(num_accounts):
-    print("Generating (", i + 1, "/", num_accounts, ")")
-    wallet = qrl.crypto.xmss.XMSS(tree_height=config.dev.xmss_tree_height, seed=None)
-    wallets[wallet.address] = wallet.mnemonic
+seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
 
-with open(file_name, 'w') as f:
-    json.dump(wallets, f)  # , encoding = "ISO-8859-1")
+dist_xmss = XMSS.from_extended_seed(seed)
+
+block = Block.create(block_number=0,
+                     prevblock_headerhash=config.dev.genesis_prev_headerhash,
+                     transactions=[],
+                     signing_xmss=dist_xmss,
+                     master_address=dist_xmss.address,
+                     nonce=0)
+
+block._data.genesis_balance.MergeFrom([qrl_pb2.GenesisBalance(address=config.dev.coinbase_address,
+                                                              balance=105000000000000000)])
+
+with open('genesis.json', 'w') as f:
+    f.write(block.to_json())

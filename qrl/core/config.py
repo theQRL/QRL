@@ -160,6 +160,8 @@ class DevConfig(object):
 
         self.genesis_timestamp = 1519601074
 
+        self.supplied_coins = 65000000 * (10 ** 9)
+
         # ======================================
         #       TRANSACTION CONTROLLER
         # ======================================
