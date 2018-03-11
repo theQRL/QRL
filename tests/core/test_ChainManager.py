@@ -4,19 +4,18 @@
 from unittest import TestCase
 
 from mock import mock, MagicMock, Mock
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
 from qrl.crypto.xmss import XMSS
 from qrl.core.Block import Block
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import SlaveTransaction, TransferTransaction
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir, get_random_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
 
 
 class TestChainManager(TestCase):
