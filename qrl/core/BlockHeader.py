@@ -160,6 +160,8 @@ class BlockHeader(object):
         return block reward for the block_n
         :return:
         """
+        if self.block_number == 0:
+            return config.dev.supplied_coins
         return int(block_reward(self.block_number))
 
     def validate(self, fee_reward, coinbase_amount):
