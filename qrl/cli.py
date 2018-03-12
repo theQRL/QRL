@@ -286,8 +286,8 @@ def wallet_secret(ctx, wallet_idx):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
-@click.option('--dst', default=[], type=list, prompt=True, help='List of destination addresses')
-@click.option('--amounts', default=[], type=list, prompt=True, help='List of amounts to transfer (Quanta)')
+@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
+@click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.pass_context
@@ -303,12 +303,12 @@ def tx_prepare(ctx, src, dst, amounts, fee, pk):
             address_src_pk = pk.encode()
 
         addresses_dst = []
-        for addr in dst:
-            addresses_dst.append(bytes(hstr2bin(addr.encode()[1:])))
+        for addr in dst.split(' '):
+            addresses_dst.append(bytes(hstr2bin(addr[1:])))
 
         shor_amounts = []
-        for amount in amounts:
-            shor_amounts.append(int(amount * 1.e9))
+        for amount in amounts.split(' '):
+            shor_amounts.append(int(float(amount) * 1.e9))
         fee_shor = int(fee * 1.e9)
     except Exception as e:
         click.echo("Error validating arguments")
@@ -478,8 +478,8 @@ def tx_push(ctx, txblob):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
-@click.option('--dst', default=[], type=list, prompt=True, help='List of destination addresses')
-@click.option('--amounts', default=[], type=list, prompt=True, help='List of amounts to transfer (Quanta)')
+@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
+@click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
@@ -500,12 +500,12 @@ def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(ots_key_index)
         addresses_dst = []
-        for addr in dst:
-            addresses_dst.append(bytes(hstr2bin(addr.encode()[1:])))
+        for addr in dst.split(' '):
+            addresses_dst.append(bytes(hstr2bin(addr[1:])))
 
         shor_amounts = []
-        for amount in amounts:
-            shor_amounts.append(int(amount * 1.e9))
+        for amount in amounts.split(' '):
+            shor_amounts.append(int(float(amount) * 1.e9))
 
         fee_shor = int(fee * 1.e9)
     except Exception:
@@ -603,8 +603,8 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
-@click.option('--dst', default=[], type=list, prompt=True, help='List of destination addresses')
-@click.option('--amounts', default=[], type=list, prompt=True, help='List of amounts to transfer')
+@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
+@click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
@@ -627,12 +627,12 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amounts, decimals, fee, ots_ke
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
         addresses_dst = []
-        for addr in dst:
-            addresses_dst.append(bytes(hstr2bin(addr.encode()[1:])))
+        for addr in dst.split(' '):
+            addresses_dst.append(bytes(hstr2bin(addr[1:])))
 
         shor_amounts = []
-        for amount in amounts:
-            shor_amounts.append(int(amount * (10 ** int(decimals))))
+        for amount in amounts.split(' '):
+            shor_amounts.append(int(float(amount) * (10 ** int(decimals))))
 
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
