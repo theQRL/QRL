@@ -247,17 +247,16 @@ def wallet_recover(ctx, seed_type):
 
     config.user.wallet_dir = ctx.obj.wallet_dir
     walletObj = Wallet()
-    addrBundle = walletObj.get_new_address(signature_tree_height=None, seed=bin_seed)
-    print('Recovered Wallet Address : %s' % (addrBundle.address.decode(),))
-    for addr in walletObj.address_bundle:
-        if addrBundle.address == addr.address:
+    recovered_xmss = XMSS.from_extended_seed(bin_seed)
+    print('Recovered Wallet Address : %s' % (recovered_xmss.address,))
+    for addr in walletObj.address_items:
+        if recovered_xmss.address == addr.address:
             print('Wallet Address is already in the wallet list')
             return
 
     if click.confirm('Do you want to save the recovered wallet?'):
-        walletObj.address_bundle.append(addrBundle)
         click.echo('Saving...')
-        walletObj.save_wallet()
+        walletObj.append_xmss(recovered_xmss)
         click.echo('Done')
 
 
@@ -287,13 +286,12 @@ def wallet_secret(ctx, wallet_idx):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
-@click.option('--dst', default='', prompt=True, help='destination address')
-@click.option('--amount', default=0.0, type=float, prompt=True, help='amount to transfer (Quanta)')
-@click.option('--fee', default=0.0, type=float, prompt=True, help='fee (Quanta)')
+@click.option('--dst', default=[], type=list, prompt=True, help='List of destination addresses')
+@click.option('--amounts', default=[], type=list, prompt=True, help='List of amounts to transfer (Quanta)')
+@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
-@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
-def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
+def tx_prepare(ctx, src, dst, amounts, fee, pk):
     """
     Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
     """
@@ -304,8 +302,13 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
         else:
             address_src_pk = pk.encode()
 
-        address_dst = dst.encode()
-        amount_shor = int(amount * 1.e9)
+        addresses_dst = []
+        for addr in dst:
+            addresses_dst.append(bytes(hstr2bin(addr.encode()[1:])))
+
+        shor_amounts = []
+        for amount in amounts:
+            shor_amounts.append(int(amount * 1.e9))
         fee_shor = int(fee * 1.e9)
     except Exception as e:
         click.echo("Error validating arguments")
@@ -315,8 +318,8 @@ def tx_prepare(ctx, src, dst, amount, fee, pk, otsidx):
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
     transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                address_to=address_dst,
-                                                amount=amount_shor,
+                                                addresses_to=addresses_dst,
+                                                amounts=shor_amounts,
                                                 fee=fee_shor,
                                                 xmss_pk=address_src_pk)
 
@@ -475,12 +478,12 @@ def tx_push(ctx, txblob):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
-@click.option('--dst', default='', prompt=True, help='destination QRL address')
-@click.option('--amount', default=0.0, prompt=True, help='amount to transfer in Quanta')
+@click.option('--dst', default=[], type=list, prompt=True, help='List of destination addresses')
+@click.option('--amounts', default=[], type=list, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
+def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
     """
     Transfer coins from src to dst
     """
@@ -496,9 +499,14 @@ def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(ots_key_index)
-        address_dst = bytes(hstr2bin(dst[1:]))
-        # FIXME: This could be problematic. Check
-        amount_shor = int(amount * 1.e9)
+        addresses_dst = []
+        for addr in dst:
+            addresses_dst.append(bytes(hstr2bin(addr.encode()[1:])))
+
+        shor_amounts = []
+        for amount in amounts:
+            shor_amounts.append(int(amount * 1.e9))
+
         fee_shor = int(fee * 1.e9)
     except Exception:
         click.echo("Error validating arguments")
@@ -508,8 +516,8 @@ def tx_transfer(ctx, src, dst, amount, fee, ots_key_index):
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
         transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                    addresses_to=[address_dst],
-                                                    amounts=[amount_shor],
+                                                    addresses_to=addresses_dst,
+                                                    amounts=shor_amounts,
                                                     fee=fee_shor,
                                                     xmss_pk=address_src_pk)
 
@@ -595,13 +603,13 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
-@click.option('--dst', default='', prompt=True, help='Destination QRL address')
-@click.option('--amount', default=0.0, prompt=True, help='amount')
+@click.option('--dst', default=[], type=list, prompt=True, help='List of destination addresses')
+@click.option('--amounts', default=[], type=list, prompt=True, help='List of amounts to transfer')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key_index):
+def tx_transfertoken(ctx, src, token_txhash, dst, amounts, decimals, fee, ots_key_index):
     """
     Create Token Transaction, that results into the formation of new token if accepted.
     """
@@ -618,10 +626,16 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
-        address_dst = bytes(hstr2bin(dst[1:]))
+        addresses_dst = []
+        for addr in dst:
+            addresses_dst.append(bytes(hstr2bin(addr.encode()[1:])))
+
+        shor_amounts = []
+        for amount in amounts:
+            shor_amounts.append(int(amount * (10 ** int(decimals))))
+
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
-        amount = int(amount * (10 ** int(decimals)))
         fee_shor = int(fee * 1.e9)
     except KeyboardInterrupt as e:
         click.echo("Error validating arguments")
@@ -633,8 +647,8 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amount, decimals, fee, ots_key
 
         tx = TransferTokenTransaction.create(addr_from=address_src,
                                              token_txhash=bin_token_txhash,
-                                             addr_to=address_dst,
-                                             amount=amount,
+                                             addrs_to=addresses_dst,
+                                             amounts=amounts,
                                              fee=fee_shor,
                                              xmss_pk=address_src_pk)
         tx.sign(src_xmss)
