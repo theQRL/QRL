@@ -193,6 +193,10 @@ class XMSS(object):
         return bytes(self._xmss.getAddress())
 
     @property
+    def qaddress(self) -> bytes:
+        return b'Q' + bin2hstr(self.address).encode()
+
+    @property
     def ots_index(self) -> int:
         """
         :return:

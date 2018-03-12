@@ -268,8 +268,8 @@ class TransferTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
-        if self.fee <= 0:
-            raise ValueError('TransferTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.amount)
+        if self.fee < 0:
+            raise ValueError('TransferTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
         if (len(self.addrs_to) > config.dev.transaction_multi_output_limit or
                 len(self.addrs_to) > config.dev.transaction_multi_output_limit):
@@ -662,7 +662,7 @@ class TokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
-        if self.fee <= 0:
+        if self.fee < 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
         for initial_balance in self._data.token.initial_balances:
@@ -811,7 +811,7 @@ class TransferTokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
-        if self.fee <= 0:
+        if self.fee < 0:
             raise ValueError('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
         if (len(self.addrs_to) > config.dev.transaction_multi_output_limit or
