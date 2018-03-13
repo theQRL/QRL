@@ -511,3 +511,11 @@ message NodeHeaderHash {
 message P2PAcknowledgement {
     uint32 bytes_processed = 1;
 }
+
+message PeerInfo {
+    bytes peer_ip = 1;
+    uint32 port = 2;
+    uint32 banned_timestamp = 3;
+    uint32 credibility = 4;
+    repeated uint32 last_connections_timestamp = 5;
+}
