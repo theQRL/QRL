@@ -519,3 +519,7 @@ message PeerInfo {
     uint32 credibility = 4;
     repeated uint32 last_connections_timestamp = 5;
 }
+
+message Peers {
+    repeated PeerInfo peer_info_list = 1;
+}
