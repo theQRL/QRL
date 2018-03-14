@@ -207,7 +207,7 @@ class TestPublicAPI(TestCase):
         addr1_state.transaction_hashes.append(sha256(b'0'))
         addr1_state.transaction_hashes.append(sha256(b'1'))
 
-        db_state.get_address = MagicMock(return_value=addr1_state.pbdata)
+        db_state.get_address = MagicMock(return_value=addr1_state)
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()

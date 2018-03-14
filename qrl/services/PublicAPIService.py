@@ -159,7 +159,7 @@ class PublicAPIService(PublicAPIServicer):
                 address_state = self.qrlnode.get_address_state(query)
                 if address_state is not None:
                     answer.found = True
-                    answer.address_state.CopyFrom(address_state)
+                    answer.address_state.CopyFrom(address_state.pbdata)
                     return answer
 
         transaction, block_number = self.qrlnode.get_transaction(query)
