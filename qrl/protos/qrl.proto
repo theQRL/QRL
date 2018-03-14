@@ -188,9 +188,9 @@ message TokenTxnReq {
 
 message TransferTokenTxnReq {
     bytes address_from = 1;
-    repeated bytes address_to = 2;
+    repeated bytes addresses_to = 2;
     bytes token_txhash = 3;
-    repeated uint64 amount = 4;
+    repeated uint64 amounts = 4;
     uint64 fee = 5;
     bytes xmss_pk = 6;
 }

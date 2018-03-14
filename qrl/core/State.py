@@ -505,7 +505,7 @@ class StateObjects:
             if tx_metadata:
                 return tx_metadata
 
-        return StateLoader.get_tx_metadata(self._db, b'', txhash)
+        return StateLoader.get_tx_metadata(self._db, '', txhash)
 
     def update_tx_metadata(self, block, batch):
         fee_reward = 0
