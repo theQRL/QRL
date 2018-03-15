@@ -7,6 +7,7 @@ from typing import List
 import click
 import grpc
 import simplejson as json
+from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
@@ -822,19 +823,9 @@ def state(ctx):
     nodeStateResp = stub.GetNodeState(qrl_pb2.GetNodeStateReq())
 
     if ctx.obj.json:
-        output = {
-            "version": nodeStateResp.info.version,
-            "state": nodeStateResp.info.state,
-            "num_connections": nodeStateResp.info.num_connections,
-            "num_known_peers": nodeStateResp.info.num_known_peers,
-            "uptime": nodeStateResp.info.uptime,
-            "block_height": nodeStateResp.info.block_height,
-            "block_last_hash": bin2hstr(nodeStateResp.info.block_last_hash),
-            "network_id": nodeStateResp.info.network_id
-        }
-        click.echo(json.dumps(output))
+        click.echo(MessageToJson(nodeStateResp))
     else:
-        click.echo(nodeStateResp.info)
+        click.echo(nodeStateResp)
 
 
 def main():
