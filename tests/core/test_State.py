@@ -11,6 +11,7 @@ from qrl.core.State import State
 from qrl.core.Transaction import TransferTokenTransaction
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
+from qrl.generated import qrl_pb2
 from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
 logger.initialize_default()
@@ -195,3 +196,51 @@ class TestState(TestCase):
                     address_state = state.get_state(block.headerhash, state.prepare_address_list(block))
                     self.assertIn(alice_xmss.address, address_state.keys())
                     self.assertEqual(address_state[alice_xmss.address].nonce, i + 1)
+                    with self.assertRaises(Exception):
+                        state.set_addresses_state({"state": 'test'}, 0)
+
+    def test_basic_state_funcs(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                self.assertEqual(state.nonce(alice_xmss.address), 0)
+                self.assertNotEqual(state.balance(alice_xmss.address), 0)
+                self.assertTrue(state.address_used(alice_xmss.address))
+                self.assertEqual(state.return_all_addresses(), [])
+                batch = state.get_batch()
+                self.assertIsNotNone(batch)
+                state.write_batch(batch)
+                self.assertEqual(state.total_coin_supply(), 0)
+
+    def test_state_block_map(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                bm = qrl_pb2.BlockNumberMapping()
+                state.put_block_number_mapping(b"0", bm, None)
+                read_bm = state.get_block_number_mapping(b"0")
+                self.assertEqual(type(bm), type(read_bm))
+                self.assertIsNone(state.get_block_by_number(b"4"))
+
+    def test_state_mainchain(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                blocks = gen_blocks(20, state, alice_xmss)
+                address_set = state.prepare_address_list(blocks[-1])
+                m = state.get_state_mainchain(address_set)
+                state.update_mainchain_state(m, 20, blocks[-1].headerhash)
+                self.assertIsNotNone(m)
+                self.assertTrue(len(m) > 0)
+                state.update_mainchain_height(5, None)
+                self.assertEqual(state.get_mainchain_height(), 5)
+                self.assertIsNotNone(state.get_ephemeral_metadata(b"0"))
+
+    def test_state_tx(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                blocks = gen_blocks(20, state, alice_xmss)
+
+                self.assertEqual(state.get_last_txs(), [])
+                state.update_last_tx(blocks[-1], None)
+                self.assertEqual(state.get_txn_count(alice_xmss.address), 0)

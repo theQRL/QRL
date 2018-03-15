@@ -71,6 +71,9 @@ class StateLoader:
         if txhash not in self._data.txhash:
             self._data.txhash.append(txhash)
 
+    def push_state_loader_metadata(self, batch=None):
+        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+
     def put_addresses_state(self, addresses_state: dict, batch=None):
         for address in addresses_state:
             address_state = addresses_state[address]
@@ -78,7 +81,7 @@ class StateLoader:
             self._db.put_raw(self.state_code + address_state.address, data, batch)
             self.add_address(address)
 
-        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+        self.push_state_loader_metadata(batch)
 
     def destroy(self, batch=None):
         for address in self._data.addresses:
@@ -306,7 +309,8 @@ class StateLoader:
                                           self.get_state_version(self._db, self.state_code),
                                           None)
 
-        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+        self.push_state_loader_metadata(batch)
+        state_loader.push_state_loader_metadata(batch)
 
         try:
             last_txn = self._db.get(self.state_code + b'last_txn')
@@ -362,17 +366,23 @@ class StateObjects:
                 return state_obj
         return None
 
+    def append_state_loader(self, state_loader: StateLoader):
+        self._data.state_loaders.append(state_loader.state_code)
+        self._state_loaders.append(state_loader)
+
+    def remove_state_loader(self, index):
+        del self._state_loaders[index]
+        del self._data.state_loaders[index]
+
     def push(self, headerhash: bytes, batch=None):
         state_loader = StateLoader(state_code=bin2hstr(headerhash).encode(), db=self._db)
         self._current_state.commit(state_loader)
 
-        self._data.state_loaders.append(state_loader.state_code)
-        self._state_loaders.append(state_loader)
+        self.append_state_loader(state_loader)
 
         if len(self._state_loaders) > config.user.max_state_limit:
             state_loader = self._state_loaders[0]
-            del self._state_loaders[0]
-            del self._data.state_loaders[0]
+            self.remove_state_loader(0)
             state_loader.update_main()
 
         self._db.put_raw(b'state_objects', MessageToJson(self._data).encode(), batch)
@@ -397,7 +407,7 @@ class StateObjects:
 
     def destroy_state_loader(self, index):
         self._state_loaders[index].destroy()
-        del self._state_loaders[index]
+        self.remove_state_loader(index)
 
     def destroy_fork_states(self, block_number, headerhash):
         """
@@ -530,6 +540,7 @@ class StateObjects:
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         self._current_state.update_total_coin_supply(txn.amount - fee_reward)
         self._current_state.update_last_tx(block, batch)
+        self._current_state.push_state_loader_metadata(batch)
 
     def total_coin_supply(self):
         return self._current_state.total_coin_supply
