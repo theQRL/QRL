@@ -496,7 +496,7 @@ class StateObjects:
 
     def increase_txn_count(self, addr: bytes):
         last_count = self.get_txn_count(addr)
-        self._current_state.increase_txn_count(last_count, addr)
+        self._current_state.increase_txn_count(self._db, self._current_state.state_code, last_count, addr)
 
     def put_tx_metadata(self, txn, block_number, timestamp, batch):
         self._current_state.put_tx_metadata(txn, block_number, timestamp, batch)
