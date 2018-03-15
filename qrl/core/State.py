@@ -71,6 +71,9 @@ class StateLoader:
         if txhash not in self._data.txhash:
             self._data.txhash.append(txhash)
 
+    def push_state_loader_metadata(self, batch=None):
+        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+
     def put_addresses_state(self, addresses_state: dict, batch=None):
         for address in addresses_state:
             address_state = addresses_state[address]
@@ -78,7 +81,7 @@ class StateLoader:
             self._db.put_raw(self.state_code + address_state.address, data, batch)
             self.add_address(address)
 
-        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+        self.push_state_loader_metadata(batch)
 
     def destroy(self, batch=None):
         for address in self._data.addresses:
@@ -306,7 +309,8 @@ class StateLoader:
                                           self.get_state_version(self._db, self.state_code),
                                           None)
 
-        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+        self.push_state_loader_metadata(batch)
+        state_loader.push_state_loader_metadata(batch)
 
         try:
             last_txn = self._db.get(self.state_code + b'last_txn')
@@ -536,6 +540,7 @@ class StateObjects:
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         self._current_state.update_total_coin_supply(txn.amount - fee_reward)
         self._current_state.update_last_tx(block, batch)
+        self._current_state.push_state_loader_metadata(batch)
 
     def total_coin_supply(self):
         return self._current_state.total_coin_supply
