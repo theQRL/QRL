@@ -362,17 +362,23 @@ class StateObjects:
                 return state_obj
         return None
 
+    def append_state_loader(self, state_loader: StateLoader):
+        self._data.state_loaders.append(state_loader.state_code)
+        self._state_loaders.append(state_loader)
+
+    def remove_state_loader(self, index):
+        del self._state_loaders[index]
+        del self._data.state_loaders[index]
+
     def push(self, headerhash: bytes, batch=None):
         state_loader = StateLoader(state_code=bin2hstr(headerhash).encode(), db=self._db)
         self._current_state.commit(state_loader)
 
-        self._data.state_loaders.append(state_loader.state_code)
-        self._state_loaders.append(state_loader)
+        self.append_state_loader(state_loader)
 
         if len(self._state_loaders) > config.user.max_state_limit:
             state_loader = self._state_loaders[0]
-            del self._state_loaders[0]
-            del self._data.state_loaders[0]
+            self.remove_state_loader(0)
             state_loader.update_main()
 
         self._db.put_raw(b'state_objects', MessageToJson(self._data).encode(), batch)
@@ -397,7 +403,7 @@ class StateObjects:
 
     def destroy_state_loader(self, index):
         self._state_loaders[index].destroy()
-        del self._state_loaders[index]
+        self.remove_state_loader(index)
 
     def destroy_fork_states(self, block_number, headerhash):
         """
