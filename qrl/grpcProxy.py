@@ -6,7 +6,7 @@ import grpc
 from google.protobuf.json_format import MessageToJson
 from qrl.core import config
 from qrl.core.AddressState import AddressState
-from qrl.core.Wallet import Wallet
+from qrl.crypto.xmss import XMSS
 from qrl.core.Transaction import TransferTransaction, Transaction
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
@@ -70,7 +70,7 @@ def get_unused_payment_xmss(public_stub):
     if not payment_xmss:
         unused_ots_found = False
         for slave_seed in payment_slaves[1]:
-            xmss = Wallet.get_new_address(signature_tree_height=None, seed=slave_seed).xmss
+            xmss = XMSS.from_extended_seed(slave_seed)
             addr_state = get_addr_state(xmss.address)
             if set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
                 payment_xmss = xmss
