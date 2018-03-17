@@ -296,7 +296,7 @@ class Miner(Qryptominer):
             tx.apply_on_state(addresses_state)
 
             tx_pool.add_tx_to_pool(tx)
-            tx._data.nonce = addresses_state[tx.addr_from].nonce
+            tx._data.nonce = addr_from_pk_state.nonce
             txnum += 1
             block_size += tx.size + config.dev.tx_extra_overhead
 
