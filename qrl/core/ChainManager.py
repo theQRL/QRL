@@ -177,7 +177,7 @@ class ChainManager:
             if not tx.validate_extended(address_txn[tx.addr_from], addr_from_pk_state):
                 return False
 
-            expected_nonce = address_txn[tx.addr_from].nonce + 1
+            expected_nonce = addr_from_pk_state.nonce + 1
 
             if tx.nonce != expected_nonce:
                 logger.warning('nonce incorrect, invalid tx')
@@ -185,7 +185,7 @@ class ChainManager:
                 logger.warning('%s actual: %s expected: %s', tx.addr_from, tx.nonce, expected_nonce)
                 return False
 
-            if address_txn[tx.addr_from].ots_key_reuse(tx.ots_key):
+            if addr_from_pk_state.ots_key_reuse(tx.ots_key):
                 logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
                 logger.warning('subtype: %s', tx.type)
                 return False
