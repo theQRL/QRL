@@ -318,11 +318,11 @@ def tx_prepare(ctx, src, dst, amounts, fee, pk):
     channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
-    transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                addresses_to=addresses_dst,
+    transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
                                                 amounts=shor_amounts,
                                                 fee=fee_shor,
-                                                xmss_pk=address_src_pk)
+                                                xmss_pk=address_src_pk,
+                                                master_addr=address_src)
 
     try:
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
@@ -385,11 +385,10 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
     channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
-    slaveTxnReq = qrl_pb2.SlaveTxnReq(address_from=addr_from,
-                                      slave_pks=slave_pks,
+    slaveTxnReq = qrl_pb2.SlaveTxnReq(slave_pks=slave_pks,
                                       access_types=access_types,
                                       fee=fee_shor,
-                                      xmss_pk=address_src_pk, )
+                                      xmss_pk=address_src_pk)
 
     try:
         slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
@@ -516,11 +515,11 @@ def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
     try:
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
-        transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                    addresses_to=addresses_dst,
+        transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
                                                     amounts=shor_amounts,
                                                     fee=fee_shor,
-                                                    xmss_pk=address_src_pk)
+                                                    xmss_pk=address_src_pk,
+                                                    master_addr=address_src)
 
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
