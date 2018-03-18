@@ -59,6 +59,9 @@ class StateLoader:
         except KeyError:
             return None
 
+    def push_state_loader_metadata(self, batch=None):
+        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+
     def add_address(self, address):
         if address not in self._data.addresses:
             self._data.addresses.append(address)
@@ -78,7 +81,7 @@ class StateLoader:
             self._db.put_raw(self.state_code + address_state.address, data, batch)
             self.add_address(address)
 
-        self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
+        self.push_state_loader_metadata(batch)
 
     def destroy(self, batch=None):
         for address in self._data.addresses:
@@ -241,11 +244,15 @@ class StateLoader:
     def get_tx_metadata(db, state_code, txhash: bytes):
         try:
             tx_metadata = db.get(str(state_code) + bin2hstr(txhash))
-        except Exception:
+        except KeyError:
+            return None
+        except Exception as e:
+            logger.info('%s ', e)
             return None
         if tx_metadata is None:
             return None
         txn_json, block_number, _ = tx_metadata
+        logger.info('>>> got here %s', bin2hstr(txhash))
         return Transaction.from_json(txn_json), block_number
 
     def put_tx_metadata(self, txn, block_number, timestamp, batch):
@@ -305,6 +312,8 @@ class StateLoader:
                                           state_loader.state_code,
                                           self.get_state_version(self._db, self.state_code),
                                           None)
+        self.push_state_loader_metadata(batch)
+        state_loader.push_state_loader_metadata(batch)
 
         self._db.put_raw(b'state' + self.state_code, MessageToJson(self._data).encode(), batch)
 
@@ -499,13 +508,15 @@ class StateObjects:
         tx_metadata = StateLoader.get_tx_metadata(self._db, self._current_state.state_code, txhash)
         if tx_metadata:
             return tx_metadata
-
+        logger.info('%s <<<<<<<<<, searching for',  bin2hstr(txhash))
         for state_loader in self._state_loaders[-1::-1]:
+            logger.info('>>>>> %s %s', state_loader.block_number, state_loader.state_code)
             tx_metadata = StateLoader.get_tx_metadata(self._db, state_loader.state_code, txhash)
             if tx_metadata:
+                logger.info('>>!! Found %s', txhash)
                 return tx_metadata
 
-        return StateLoader.get_tx_metadata(self._db, b'', txhash)
+        return StateLoader.get_tx_metadata(self._db, '', txhash)
 
     def update_tx_metadata(self, block, batch):
         fee_reward = 0
@@ -530,6 +541,7 @@ class StateObjects:
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         self._current_state.update_total_coin_supply(txn.amount - fee_reward)
         self._current_state.update_last_tx(block, batch)
+        self._current_state.push_state_loader_metadata(batch)
 
     def total_coin_supply(self):
         return self._current_state.total_coin_supply
@@ -575,6 +587,7 @@ class State:
         except KeyError:
             logger.debug('[get_block] Block header_hash %s not found', bin2hstr(header_hash).encode())
         except Exception as e:
+            logger.info('>>> %s', json_data)
             logger.error('[get_block] %s', e)
 
         return None
