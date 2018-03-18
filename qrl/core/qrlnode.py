@@ -264,7 +264,8 @@ class QRLNode:
     ####################################################
     ####################################################
 
-    def get_addr_from(self, xmss_pk, master_addr):
+    @staticmethod
+    def get_addr_from(xmss_pk, master_addr):
         if master_addr:
             return master_addr
 
