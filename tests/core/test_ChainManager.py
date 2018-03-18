@@ -80,8 +80,7 @@ class TestChainManager(TestCase):
                                 "ae78278c371902aa9e6e9c1fa8a196d2dba0cbfd2f2d212d16c"
                 random_xmss = XMSS.from_extended_seed(hstr2bin(extended_seed))
 
-                transfer_transaction = TransferTransaction.create(addr_from=bob_xmss.address,
-                                                                  addrs_to=[alice_xmss.address, random_xmss.address],
+                transfer_transaction = TransferTransaction.create(addrs_to=[alice_xmss.address, random_xmss.address],
                                                                   amounts=[40 * int(config.dev.shor_per_quanta),
                                                                            59 * int(config.dev.shor_per_quanta)],
                                                                   fee=1 * config.dev.shor_per_quanta,
@@ -157,8 +156,7 @@ class TestChainManager(TestCase):
                 block = state.get_block(genesis_block.headerhash)
                 self.assertIsNotNone(block)
 
-                slave_tx = SlaveTransaction.create(addr_from=alice_xmss.address,
-                                                   slave_pks=[bob_xmss.pk],
+                slave_tx = SlaveTransaction.create(slave_pks=[bob_xmss.pk],
                                                    access_types=[0],
                                                    fee=0,
                                                    xmss_pk=alice_xmss.pk)

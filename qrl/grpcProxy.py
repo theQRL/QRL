@@ -200,11 +200,11 @@ def transfer(destinations, fee, mixin, unlock_time):
     if not xmss:
         return None
 
-    tx = TransferTransaction.create(addr_from=payment_slaves[0],
-                                    addrs_to=addrs_to,
+    tx = TransferTransaction.create(addrs_to=addrs_to,
                                     amounts=amounts,
                                     fee=fee,
-                                    xmss_pk=xmss.pk)
+                                    xmss_pk=xmss.pk,
+                                    master_addr=payment_slaves[0])
 
     tx.sign(xmss)
 

@@ -400,8 +400,7 @@ class TestSimpleTransaction(TestCase):
 
     def test_create(self):
         # Alice sending coins to Bob
-        tx = TransferTransaction.create(addr_from=self.alice.address,
-                                        addrs_to=[self.bob.address],
+        tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
                                         fee=1,
                                         xmss_pk=self.alice.pk)
@@ -409,23 +408,20 @@ class TestSimpleTransaction(TestCase):
 
     def test_create_negative_amount(self):
         with self.assertRaises(ValueError):
-            TransferTransaction.create(addr_from=self.alice.address,
-                                       addrs_to=[self.bob.address],
+            TransferTransaction.create(addrs_to=[self.bob.address],
                                        amounts=[-100],
                                        fee=1,
                                        xmss_pk=self.alice.pk)
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            TransferTransaction.create(addr_from=self.alice.address,
-                                       addrs_to=[self.bob.address],
+            TransferTransaction.create(addrs_to=[self.bob.address],
                                        amounts=[-100],
                                        fee=-1,
                                        xmss_pk=self.alice.pk)
 
     def test_to_json(self):
-        tx = TransferTransaction.create(addr_from=self.alice.address,
-                                        addrs_to=[self.bob.address],
+        tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
                                         fee=1,
                                         xmss_pk=self.alice.pk)
@@ -467,8 +463,7 @@ class TestSimpleTransaction(TestCase):
 
     def test_validate_tx(self):
         # If we change amount, fee, addr_from, addr_to, (maybe include xmss stuff) txhash should change.
-        tx = TransferTransaction.create(addr_from=self.alice.address,
-                                        addrs_to=[self.bob.address],
+        tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
                                         fee=1,
                                         xmss_pk=self.alice.pk)
@@ -548,8 +543,7 @@ class TestTokenTransaction(TestCase):
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(addr_from=self.alice.address,
-                                     symbol=b'QRL',
+        tx = TokenTransaction.create(symbol=b'QRL',
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
                                      decimals=4,
@@ -560,8 +554,7 @@ class TestTokenTransaction(TestCase):
 
     def test_create_negative_fee(self):
         with self.assertRaises(ValueError):
-            TokenTransaction.create(addr_from=self.alice.address,
-                                    symbol=b'QRL',
+            TokenTransaction.create(symbol=b'QRL',
                                     name=b'Quantum Resistant Ledger',
                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
                                     decimals=4,
@@ -575,8 +568,7 @@ class TestTokenTransaction(TestCase):
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(addr_from=self.alice.address,
-                                     symbol=b'QRL',
+        tx = TokenTransaction.create(symbol=b'QRL',
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
                                      decimals=4,
@@ -620,8 +612,7 @@ class TestTokenTransaction(TestCase):
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(addr_from=self.alice.address,
-                                     symbol=b'QRL',
+        tx = TokenTransaction.create(symbol=b'QRL',
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
                                      decimals=4,
@@ -652,8 +643,7 @@ class TestTransferTokenTransaction(TestCase):
         self.maxDiff = None
 
     def test_create(self):
-        tx = TransferTokenTransaction.create(addr_from=self.alice.address,
-                                             token_txhash=b'000000000000000',
+        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
                                              fee=1,
@@ -661,8 +651,7 @@ class TestTransferTokenTransaction(TestCase):
         self.assertTrue(tx)
 
     def test_to_json(self):
-        tx = TransferTokenTransaction.create(addr_from=self.alice.address,
-                                             token_txhash=b'000000000000000',
+        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
                                              fee=1,
@@ -693,8 +682,7 @@ class TestTransferTokenTransaction(TestCase):
         self.assertEqual(1, tx.fee)
 
     def test_validate_tx(self):
-        tx = TransferTokenTransaction.create(addr_from=self.alice.address,
-                                             token_txhash=b'000000000000000',
+        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
                                              fee=1,

@@ -332,7 +332,7 @@ message BlockMetaDataList {
 }
 
 message Transaction {
-    bytes addr_from = 1;            // FIXME: we probably do not need this
+    bytes master_addr = 1;
     uint64 fee = 2;
     bytes public_key = 3;
     bytes signature = 4;

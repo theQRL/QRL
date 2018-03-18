@@ -582,8 +582,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-        tx = TokenTransaction.create(addr_from=address_src,
-                                     symbol=symbol.encode(),
+        tx = TokenTransaction.create(symbol=symbol.encode(),
                                      name=name.encode(),
                                      owner=address_owner,
                                      decimals=decimals,
@@ -646,8 +645,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amounts, decimals, fee, ots_ke
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-        tx = TransferTokenTransaction.create(addr_from=address_src,
-                                             token_txhash=bin_token_txhash,
+        tx = TransferTokenTransaction.create(token_txhash=bin_token_txhash,
                                              addrs_to=addresses_dst,
                                              amounts=amounts,
                                              fee=fee_shor,
@@ -796,8 +794,7 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
         quit(1)
 
     try:
-        tx = LatticePublicKey.create(addr_from=address_src,
-                                     fee=fee_shor,
+        tx = LatticePublicKey.create(fee=fee_shor,
                                      kyber_pk=kyber_pk,
                                      dilithium_pk=dilithium_pk,
                                      xmss_pk=address_src_pk)
