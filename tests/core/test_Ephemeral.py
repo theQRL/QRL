@@ -71,8 +71,7 @@ class TestEphemeral(TestCase):
                         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                             time_mock.return_value = 1615270948
 
-                            lattice_public_key_txn = LatticePublicKey.create(addr_from=random_xmss1.address,
-                                                                             fee=1,
+                            lattice_public_key_txn = LatticePublicKey.create(fee=1,
                                                                              kyber_pk=random_kyber1.getPK(),
                                                                              dilithium_pk=random_dilithium1.getPK(),
                                                                              xmss_pk=random_xmss1.pk)

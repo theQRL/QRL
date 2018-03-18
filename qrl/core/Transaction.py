@@ -50,8 +50,15 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.nonce
 
     @property
+    def master_addr(self):
+        return self._data.master_addr
+
+    @property
     def addr_from(self):
-        return self._data.addr_from
+        if self.master_addr:
+            return self.master_addr
+
+        return bytes(QRLHelper.getAddress(self.PK))
 
     @property
     def ots_key(self):
@@ -251,10 +258,12 @@ class TransferTransaction(Transaction):
         return sha256(tmptxhash)
 
     @staticmethod
-    def create(addr_from: bytes, addrs_to: list, amounts: list, fee, xmss_pk):
+    def create(addrs_to: list, amounts: list, fee, xmss_pk, master_addr: bytes=None):
         transaction = TransferTransaction()
 
-        transaction._data.addr_from = addr_from
+        if master_addr:
+            transaction._data.master_addr = master_addr
+
         transaction._data.public_key = bytes(xmss_pk)
 
         for addr_to in addrs_to:
@@ -381,7 +390,7 @@ class CoinBase(Transaction):
     def create(blockheader, xmss, master_address):
         transaction = CoinBase()
 
-        transaction._data.addr_from = config.dev.coinbase_address
+        transaction._data.master_addr = config.dev.coinbase_address
         transaction._data.fee = 0
         transaction._data.public_key = bytes(xmss.pk)
 
@@ -465,10 +474,12 @@ class LatticePublicKey(Transaction):
         )
 
     @staticmethod
-    def create(addr_from: bytes, fee, kyber_pk, dilithium_pk, xmss_pk):
+    def create(fee, kyber_pk, dilithium_pk, xmss_pk, master_addr: bytes=None):
         transaction = LatticePublicKey()
 
-        transaction._data.addr_from = addr_from
+        if master_addr:
+            transaction._data.master_addr = master_addr
+
         transaction._data.fee = fee
         transaction._data.public_key = xmss_pk
 
@@ -538,10 +549,12 @@ class MessageTransaction(Transaction):
         )
 
     @staticmethod
-    def create(addr_from: bytes, message_hash: bytes, fee: int, xmss_pk: bytes):
+    def create(message_hash: bytes, fee: int, xmss_pk: bytes, master_addr: bytes=None):
         transaction = MessageTransaction()
 
-        transaction._data.addr_from = addr_from
+        if master_addr:
+            transaction._data.master_addr = master_addr
+
         transaction._data.message.message_hash = message_hash
         transaction._data.fee = fee
 
@@ -636,17 +649,19 @@ class TokenTransaction(Transaction):
         return sha256(tmptxhash)
 
     @staticmethod
-    def create(addr_from: bytes,
-               symbol: bytes,
+    def create(symbol: bytes,
                name: bytes,
                owner: bytes,
                decimals: int,
                initial_balances: list,
                fee: int,
-               xmss_pk: bytes):
+               xmss_pk: bytes,
+               master_addr: bytes=None):
         transaction = TokenTransaction()
 
-        transaction._data.addr_from = addr_from
+        if master_addr:
+            transaction._data.master_addr = master_addr
+
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.token.symbol = symbol
@@ -787,15 +802,17 @@ class TransferTokenTransaction(Transaction):
         return sha256(tmptxhash)
 
     @staticmethod
-    def create(addr_from: bytes,
-               token_txhash: bytes,
+    def create(token_txhash: bytes,
                addrs_to: list,
                amounts: list,
                fee: int,
-               xmss_pk: bytes):
+               xmss_pk: bytes,
+               master_addr: bytes=None):
         transaction = TransferTokenTransaction()
 
-        transaction._data.addr_from = addr_from
+        if master_addr:
+            transaction._data.master_addr = master_addr
+
         transaction._data.public_key = bytes(xmss_pk)
 
         transaction._data.transfer_token.token_txhash = token_txhash
@@ -919,10 +936,12 @@ class SlaveTransaction(Transaction):
         return sha256(tmptxhash)
 
     @staticmethod
-    def create(addr_from: bytes, slave_pks: list, access_types: list, fee: int, xmss_pk: bytes):
+    def create(slave_pks: list, access_types: list, fee: int, xmss_pk: bytes, master_addr: bytes=None):
         transaction = SlaveTransaction()
 
-        transaction._data.addr_from = addr_from
+        if master_addr:
+            transaction._data.master_addr = master_addr
+
         for slave_pk in slave_pks:
             transaction._data.slave.slave_pks.append(slave_pk)
         for access_type in access_types:

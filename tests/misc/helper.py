@@ -102,8 +102,7 @@ def qrlnode_with_mock_blockchain(num_blocks):
         for block_idx in range(1, num_blocks):
             transactions = []
             if block_idx == 1:
-                slave_tx = SlaveTransaction.create(addr_from=alice_xmss.address,
-                                                   slave_pks=[bob_xmss.pk],
+                slave_tx = SlaveTransaction.create(slave_pks=[bob_xmss.pk],
                                                    access_types=[0],
                                                    fee=0,
                                                    xmss_pk=alice_xmss.pk)
@@ -202,8 +201,7 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
     initial_balances.append(qrl_pb2.AddressAmount(address=xmss2.address,
                                                   amount=amount2))
 
-    return TokenTransaction.create(addr_from=xmss1.address,
-                                   symbol=b'QRL',
+    return TokenTransaction.create(symbol=b'QRL',
                                    name=b'Quantum Resistant Ledger',
                                    owner=xmss1.address,
                                    decimals=4,
@@ -293,8 +291,7 @@ def get_slaves(alice_ots_index, txn_nonce):
     alice_xmss = get_alice_xmss()
 
     alice_xmss.set_ots_index(alice_ots_index)
-    slave_txn = SlaveTransaction.create(alice_xmss.address,
-                                        [slave_xmss.pk],
+    slave_txn = SlaveTransaction.create([slave_xmss.pk],
                                         [1],
                                         0,
                                         alice_xmss.pk)

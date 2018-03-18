@@ -131,8 +131,7 @@ class TestState(TestCase):
                 token_transaction = get_token_transaction(alice_xmss, bob_xmss)
                 state.create_token_metadata(token_transaction)
 
-                transfer_token_transaction = TransferTokenTransaction.create(addr_from=bob_xmss.address,
-                                                                             token_txhash=token_transaction.txhash,
+                transfer_token_transaction = TransferTokenTransaction.create(token_txhash=token_transaction.txhash,
                                                                              addrs_to=[alice_xmss.address],
                                                                              amounts=[100000000],
                                                                              fee=1,

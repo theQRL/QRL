@@ -36,8 +36,7 @@ class MockedBlockchain(object):
         block_idx = block_prev.block_number + 1
 
         if block_idx == 1:
-            slave_tx = SlaveTransaction.create(addr_from=self.alice_xmss.address,
-                                               slave_pks=[self.bob_xmss.pk],
+            slave_tx = SlaveTransaction.create(slave_pks=[self.bob_xmss.pk],
                                                access_types=[0],
                                                fee=0,
                                                xmss_pk=self.alice_xmss.pk)

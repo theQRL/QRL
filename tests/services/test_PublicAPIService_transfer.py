@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from grpc import ServicerContext
 from mock import Mock
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core.ChainManager import ChainManager
 from qrl.core.State import State
@@ -47,7 +47,6 @@ class TestPublicAPI(TestCase):
                     bob = get_bob_xmss()
 
                     request = qrl_pb2.TransferCoinsReq(
-                        address_from=alice.address,
                         addresses_to=[bob.address],
                         amounts=[101],
                         fee=12,
@@ -62,7 +61,6 @@ class TestPublicAPI(TestCase):
                     self.assertIsNotNone(response.transaction_unsigned)
                     self.assertEqual('transfer', response.transaction_unsigned.WhichOneof('transactionType'))
 
-                    self.assertEqual(alice.address, response.transaction_unsigned.addr_from)
                     self.assertEqual(12, response.transaction_unsigned.fee)
                     self.assertEqual(alice.pk, response.transaction_unsigned.public_key)
                     self.assertEqual(0, response.transaction_unsigned.nonce)
@@ -95,7 +93,6 @@ class TestPublicAPI(TestCase):
                     bob = get_bob_xmss()
 
                     request = qrl_pb2.TransferCoinsReq(
-                        address_from=alice.address,
                         addresses_to=[bob.address],
                         amounts=[101],
                         fee=12,
@@ -110,7 +107,6 @@ class TestPublicAPI(TestCase):
                     self.assertIsNotNone(response.transaction_unsigned)
                     self.assertEqual('transfer', response.transaction_unsigned.WhichOneof('transactionType'))
 
-                    self.assertEqual(alice.address, response.transaction_unsigned.addr_from)
                     self.assertEqual(12, response.transaction_unsigned.fee)
                     self.assertEqual(alice.pk, response.transaction_unsigned.public_key)
                     self.assertEqual(0, response.transaction_unsigned.nonce)
@@ -151,7 +147,6 @@ class TestPublicAPI(TestCase):
                     bob = get_bob_xmss()
 
                     request = qrl_pb2.TransferCoinsReq(
-                        address_from=alice.address,
                         addresses_to=[bob.address],
                         amounts=[101],
                         fee=12,
@@ -166,7 +161,6 @@ class TestPublicAPI(TestCase):
                     self.assertIsNotNone(response.transaction_unsigned)
                     self.assertEqual('transfer', response.transaction_unsigned.WhichOneof('transactionType'))
 
-                    self.assertEqual(alice.address, response.transaction_unsigned.addr_from)
                     self.assertEqual(12, response.transaction_unsigned.fee)
                     self.assertEqual(alice.pk, response.transaction_unsigned.public_key)
                     self.assertEqual(0, response.transaction_unsigned.nonce)
@@ -175,7 +169,7 @@ class TestPublicAPI(TestCase):
                     self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
                     self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
 
-                    tmp_hash_pre = response.transaction_unsigned.addr_from
+                    tmp_hash_pre = bytes(QRLHelper.getAddress(response.transaction_unsigned.public_key))
                     tmp_hash_pre += str(response.transaction_unsigned.fee).encode()
                     tmp_hash_pre += response.transaction_unsigned.transfer.addrs_to[0]
                     tmp_hash_pre += str(response.transaction_unsigned.transfer.amounts[0]).encode()

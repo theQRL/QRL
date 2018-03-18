@@ -287,17 +287,18 @@ def wallet_secret(ctx, wallet_idx):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
+@click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.pass_context
-def tx_prepare(ctx, src, dst, amounts, fee, pk):
+def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
     """
     Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
     """
     try:
-        address_src, src_xmss = _select_wallet(ctx, src)
+        _, src_xmss = _select_wallet(ctx, src)
         if src_xmss:
             address_src_pk = src_xmss.pk
         else:
@@ -318,11 +319,11 @@ def tx_prepare(ctx, src, dst, amounts, fee, pk):
     channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
-    transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                addresses_to=addresses_dst,
+    transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
                                                 amounts=shor_amounts,
                                                 fee=fee_shor,
-                                                xmss_pk=address_src_pk)
+                                                xmss_pk=address_src_pk,
+                                                master_addr=master.encode())
 
     try:
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
@@ -339,22 +340,20 @@ def tx_prepare(ctx, src, dst, amounts, fee, pk):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
-@click.option('--addr_from', default='', prompt="Addr from (Leave blank in case same as source)", help='Address from')
+@click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
 @click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
 @click.option('--fee', default=0.0, type=float, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
-def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, pk, otsidx):
+def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, otsidx):
     """
     Generates Slave Transaction for the wallet
     """
     try:
-        address_src, src_xmss = _select_wallet(ctx, src)
+        _, src_xmss = _select_wallet(ctx, src)
         src_xmss.set_ots_index(otsidx)
-        if len(addr_from.strip()) == 0:
-            addr_from = address_src
         if src_xmss:
             address_src_pk = src_xmss.pk
         else:
@@ -385,11 +384,11 @@ def slave_tx_generate(ctx, src, addr_from, number_of_slaves, access_type, fee, p
     channel = grpc.insecure_channel(ctx.obj.node_public_address)
     stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
-    slaveTxnReq = qrl_pb2.SlaveTxnReq(address_from=addr_from,
-                                      slave_pks=slave_pks,
+    slaveTxnReq = qrl_pb2.SlaveTxnReq(slave_pks=slave_pks,
                                       access_types=access_types,
                                       fee=fee_shor,
-                                      xmss_pk=address_src_pk, )
+                                      xmss_pk=address_src_pk,
+                                      master_addr=master.encode())
 
     try:
         slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
@@ -478,13 +477,14 @@ def tx_push(ctx, txblob):
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--src', default='', prompt=True, help='signer QRL address')
+@click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
+def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
     """
     Transfer coins from src to dst
     """
@@ -493,7 +493,7 @@ def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
         return
 
     try:
-        address_src, src_xmss = _select_wallet(ctx, src)
+        _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
@@ -516,11 +516,11 @@ def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
     try:
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
-        transferCoinsReq = qrl_pb2.TransferCoinsReq(address_from=address_src,
-                                                    addresses_to=addresses_dst,
+        transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
                                                     amounts=shor_amounts,
                                                     fee=fee_shor,
-                                                    xmss_pk=address_src_pk)
+                                                    xmss_pk=address_src_pk,
+                                                    master_addr=master.encode())
 
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
@@ -537,6 +537,7 @@ def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--symbol', default='', prompt=True, help='Symbol Name')
 @click.option('--name', default='', prompt=True, help='Token Name')
 @click.option('--owner', default='', prompt=True, help='Owner QRL address')
@@ -544,7 +545,7 @@ def tx_transfer(ctx, src, dst, amounts, fee, ots_key_index):
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
+def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index):
     """
     Create Token Transaction, that results into the formation of new token if accepted.
     """
@@ -564,7 +565,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
                                                       amount=amount))
 
     try:
-        address_src, src_xmss = _select_wallet(ctx, src)
+        _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
@@ -582,14 +583,14 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-        tx = TokenTransaction.create(addr_from=address_src,
-                                     symbol=symbol.encode(),
+        tx = TokenTransaction.create(symbol=symbol.encode(),
                                      name=name.encode(),
                                      owner=address_owner,
                                      decimals=decimals,
                                      initial_balances=initial_balances,
                                      fee=fee_shor,
-                                     xmss_pk=address_src_pk)
+                                     xmss_pk=address_src_pk,
+                                     master_addr=master.encode())
 
         tx.sign(src_xmss)
 
@@ -603,6 +604,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
@@ -610,7 +612,7 @@ def tx_token(ctx, src, symbol, name, owner, decimals, fee, ots_key_index):
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_transfertoken(ctx, src, token_txhash, dst, amounts, decimals, fee, ots_key_index):
+def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee, ots_key_index):
     """
     Create Token Transaction, that results into the formation of new token if accepted.
     """
@@ -620,7 +622,7 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amounts, decimals, fee, ots_ke
         return
 
     try:
-        address_src, src_xmss = _select_wallet(ctx, src)
+        _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
@@ -646,12 +648,12 @@ def tx_transfertoken(ctx, src, token_txhash, dst, amounts, decimals, fee, ots_ke
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
 
-        tx = TransferTokenTransaction.create(addr_from=address_src,
-                                             token_txhash=bin_token_txhash,
+        tx = TransferTokenTransaction.create(token_txhash=bin_token_txhash,
                                              addrs_to=addresses_dst,
                                              amounts=amounts,
                                              fee=fee_shor,
-                                             xmss_pk=address_src_pk)
+                                             xmss_pk=address_src_pk,
+                                             master_addr=master.encode())
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
@@ -764,12 +766,13 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
 
 @qrl.command()
 @click.option('--src', default='', prompt=True, help='source QRL address')
+@click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
 @click.option('--dilithium-pk', default='', prompt=True, help='dilithium public key')
 @click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
-def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
+def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
     """
     Create Lattice Public Keys Transaction
     """
@@ -780,7 +783,7 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
     stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
 
     try:
-        address_src, src_xmss = _select_wallet(ctx, src)
+        _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
@@ -796,11 +799,11 @@ def tx_latticepk(ctx, src, kyber_pk, dilithium_pk, fee, ots_key_index):
         quit(1)
 
     try:
-        tx = LatticePublicKey.create(addr_from=address_src,
-                                     fee=fee_shor,
+        tx = LatticePublicKey.create(fee=fee_shor,
                                      kyber_pk=kyber_pk,
                                      dilithium_pk=dilithium_pk,
-                                     xmss_pk=address_src_pk)
+                                     xmss_pk=address_src_pk,
+                                     master_addr=master.encode())
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)

@@ -150,7 +150,7 @@ message GetLatestDataResp {
 }
 
 message TransferCoinsReq {
-    bytes address_from = 1;                 // Transaction source address
+    bytes master_addr = 1;                 // Transaction source address
     repeated bytes addresses_to = 2;                   // Transaction destination address
     repeated uint64 amounts = 3;                      // Amount. It should be expressed in Shor
     uint64 fee = 4;                         // Fee. It should be expressed in Shor
@@ -176,7 +176,7 @@ message PushTransactionResp {
 }
 
 message TokenTxnReq {
-    bytes address_from = 1;
+    bytes master_addr = 1;
     bytes symbol = 2;
     bytes name = 3;
     bytes owner = 4;
@@ -187,7 +187,7 @@ message TokenTxnReq {
 }
 
 message TransferTokenTxnReq {
-    bytes address_from = 1;
+    bytes master_addr = 1;
     repeated bytes addresses_to = 2;
     bytes token_txhash = 3;
     repeated uint64 amounts = 4;
@@ -196,7 +196,7 @@ message TransferTokenTxnReq {
 }
 
 message SlaveTxnReq {
-    bytes address_from = 1;
+    bytes master_addr = 1;
     repeated bytes slave_pks = 2;
     repeated uint32 access_types = 3;
     uint64 fee = 4;
@@ -204,7 +204,7 @@ message SlaveTxnReq {
 }
 
 message LatticePublicKeyTxnReq {
-    bytes address_from = 1;
+    bytes master_addr = 1;
     bytes kyber_pk = 2;
     bytes dilithium_pk = 3;
     uint64 fee = 4;
@@ -332,7 +332,7 @@ message BlockMetaDataList {
 }
 
 message Transaction {
-    bytes addr_from = 1;            // FIXME: we probably do not need this
+    bytes master_addr = 1;
     uint64 fee = 2;
     bytes public_key = 3;
     bytes signature = 4;
