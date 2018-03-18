@@ -14,7 +14,6 @@ from tests.misc.helper import get_alice_xmss, get_bob_xmss
 logger.initialize_default()
 
 test_json_Simple = """{
-  "addrFrom": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
   "transfer": {
@@ -28,7 +27,7 @@ test_json_Simple = """{
 }"""
 
 test_json_CoinBase = """{
-  "addrFrom": "AQMACCOCpS+LqcLTOtgHws3VvQhsLC/mPG6hO2MNEoCJTDo54cOA",
+  "masterAddr": "AQMACCOCpS+LqcLTOtgHws3VvQhsLC/mPG6hO2MNEoCJTDo54cOA",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
   "coinbase": {
     "addrTo": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
@@ -39,7 +38,6 @@ test_json_CoinBase = """{
 }"""
 
 test_json_Token = """{
-  "addrFrom": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
   "token": {
@@ -61,7 +59,6 @@ test_json_Token = """{
 }"""
 
 test_json_TransferToken = """{
-  "addrFrom": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
   "transferToken": {

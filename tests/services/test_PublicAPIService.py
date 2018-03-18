@@ -225,11 +225,11 @@ class TestPublicAPI(TestCase):
         # Find a transaction
         db_state.address_used = MagicMock(return_value=False)
         tx1 = TransferTransaction.create(
-            addr_from=qrladdress('SOME_ADDR1'),
             addrs_to=[qrladdress('SOME_ADDR2')],
             amounts=[125],
             fee=19,
-            xmss_pk=sha256(b'pk'))
+            xmss_pk=sha256(b'pk'),
+            master_addr=qrladdress('SOME_ADDR1'))
 
         chain_manager.tx_pool.transaction_pool = [tx1]
 
@@ -241,7 +241,7 @@ class TestPublicAPI(TestCase):
         self.assertTrue(response.found)
         self.assertIsNotNone(response.transaction)
         self.assertEqual('transfer', response.transaction.tx.WhichOneof('transactionType'))
-        self.assertEqual(qrladdress('SOME_ADDR1'), response.transaction.tx.addr_from)
+        self.assertEqual(qrladdress('SOME_ADDR1'), response.transaction.tx.master_addr)
         self.assertEqual(sha256(b'pk'), response.transaction.tx.public_key)
         self.assertEqual(tx1.txhash, response.transaction.tx.transaction_hash)
         self.assertEqual(b'', response.transaction.tx.signature)
@@ -275,8 +275,7 @@ class TestPublicAPI(TestCase):
         alice_xmss = get_alice_xmss()
         for i in range(1, 4):
             for j in range(1, 3):
-                txs.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
-                                                      addrs_to=[qrladdress('dest')],
+                txs.append(TransferTransaction.create(addrs_to=[qrladdress('dest')],
                                                       amounts=[i * 100 + j],
                                                       fee=j,
                                                       xmss_pk=alice_xmss.pk))
@@ -290,8 +289,7 @@ class TestPublicAPI(TestCase):
 
         txpool = []
         for j in range(10, 15):
-            txpool.append(TransferTransaction.create(addr_from=get_alice_xmss().address,
-                                                     addrs_to=[qrladdress('dest')],
+            txpool.append(TransferTransaction.create(addrs_to=[qrladdress('dest')],
                                                      amounts=[1000 + j],
                                                      fee=j,
                                                      xmss_pk=get_alice_xmss().pk))

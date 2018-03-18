@@ -63,11 +63,11 @@ class PublicAPIService(PublicAPIServicer):
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] TransferCoins")
-        tx = self.qrlnode.create_send_tx(addr_from=request.address_from,
-                                         addrs_to=request.addresses_to,
+        tx = self.qrlnode.create_send_tx(addrs_to=request.addresses_to,
                                          amounts=request.amounts,
                                          fee=request.fee,
-                                         xmss_pk=request.xmss_pk)
+                                         xmss_pk=request.xmss_pk,
+                                         master_addr=request.master_addr)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -99,14 +99,14 @@ class PublicAPIService(PublicAPIServicer):
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetTokenTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetTokenTxn")
-        tx = self.qrlnode.create_token_txn(addr_from=request.address_from,
-                                           symbol=request.symbol,
+        tx = self.qrlnode.create_token_txn(symbol=request.symbol,
                                            name=request.name,
                                            owner=request.owner,
                                            decimals=request.decimals,
                                            initial_balances=request.initial_balances,
                                            fee=request.fee,
-                                           xmss_pk=request.xmss_pk)
+                                           xmss_pk=request.xmss_pk,
+                                           master_addr=request.master_addr)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
@@ -114,34 +114,34 @@ class PublicAPIService(PublicAPIServicer):
     def GetTransferTokenTxn(self, request: qrl_pb2.TransferTokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetTransferTokenTxn")
         bin_token_txhash = bytes(hstr2bin(request.token_txhash.decode()))
-        tx = self.qrlnode.create_transfer_token_txn(addr_from=request.address_from,
-                                                    addrs_to=request.addresses_to,
+        tx = self.qrlnode.create_transfer_token_txn(addrs_to=request.addresses_to,
                                                     token_txhash=bin_token_txhash,
                                                     amounts=request.amounts,
                                                     fee=request.fee,
-                                                    xmss_pk=request.xmss_pk)
+                                                    xmss_pk=request.xmss_pk,
+                                                    master_addr=request.master_addr)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetSlaveTxn(self, request: qrl_pb2.SlaveTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetSlaveTxn")
-        tx = self.qrlnode.create_slave_tx(addr_from=request.address_from,
-                                          slave_pks=request.slave_pks,
+        tx = self.qrlnode.create_slave_tx(slave_pks=request.slave_pks,
                                           access_types=request.access_types,
                                           fee=request.fee,
-                                          xmss_pk=request.xmss_pk)
+                                          xmss_pk=request.xmss_pk,
+                                          master_addr=request.master_addr)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetLatticePublicKeyTxn")
-        tx = self.qrlnode.create_lattice_public_key_txn(addr_from=request.address_from,
-                                                        kyber_pk=request.kyber_pk,
+        tx = self.qrlnode.create_lattice_public_key_txn(kyber_pk=request.kyber_pk,
                                                         dilithium_pk=request.dilithium_pk,
                                                         fee=request.fee,
-                                                        xmss_pk=request.xmss_pk)
+                                                        xmss_pk=request.xmss_pk,
+                                                        master_addr=request.master_addr)
 
         return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
 
