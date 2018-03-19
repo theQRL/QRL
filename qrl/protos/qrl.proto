@@ -36,6 +36,8 @@ service PublicAPI
 
     rpc GetLatticePublicKeyTxn (LatticePublicKeyTxnReq) returns (TransferCoinsResp);
 
+    rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
+
     // ------- Ephemeral API -------
     rpc PushEphemeralMessage (PushEphemeralMessageReq) returns (PushTransactionResp);
     rpc CollectEphemeralMessage (CollectEphemeralMessageReq) returns (CollectEphemeralMessageResp);
@@ -101,6 +103,14 @@ message GetStatsResp {
     uint64 coins_emitted = 8;
 
     repeated BlockDataPoint block_timeseries = 9;
+}
+
+message GetAddressFromPKReq {
+    bytes pk = 1;
+}
+
+message GetAddressFromPKResp {
+    bytes address = 1;
 }
 
 message BlockDataPoint

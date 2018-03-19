@@ -14,7 +14,7 @@ from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import Grpc_exception_wrapper
-from pyqrllib.pyqrllib import hstr2bin
+from pyqrllib.pyqrllib import hstr2bin, QRLHelper
 
 
 class PublicAPIService(PublicAPIServicer):
@@ -23,6 +23,10 @@ class PublicAPIService(PublicAPIServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
+
+    @Grpc_exception_wrapper(qrl_pb2.GetAddressFromPKResp, StatusCode.UNKNOWN)
+    def GetAddressFromPK(self, request: qrl_pb2.GetAddressFromPKReq, context) -> qrl_pb2.GetAddressFromPKResp:
+        return qrl_pb2.GetAddressFromPKResp(address=bytes(QRLHelper.getAddress(request.pk)))
 
     @Grpc_exception_wrapper(qrl_pb2.GetNodeStateResp, StatusCode.UNKNOWN)
     def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
