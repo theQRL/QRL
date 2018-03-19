@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from grpc import ServicerContext
 from mock import Mock, MagicMock
-from pyqrllib.pyqrllib import str2bin
+from pyqrllib.pyqrllib import str2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -349,3 +349,26 @@ class TestPublicAPI(TestCase):
         self.assertEqual(102, response.transactions[0].tx.transfer.amounts[0])
         self.assertEqual(201, response.transactions[1].tx.transfer.amounts[0])
         self.assertEqual(202, response.transactions[2].tx.transfer.amounts[0])
+
+    def test_GetAddressFromPK(self):
+        db_state = Mock(spec=State)
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.sync_state = SyncState()
+        p2p_factory.connections = 23
+        p2p_factory.pow = Mock()
+
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.height = 0
+
+        qrlnode = QRLNode(db_state, slaves=[])
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+
+        service = PublicAPIService(qrlnode)
+        pk = hstr2bin('01060057ac9cb6085a8135631dcf018dff46d9c368a0b64d508f512e584199b6800'
+                      'f8cfcb672b931398a023680fe0308ed4b6ec75877d684bc2ccf11703e8369f064e7')
+        request = qrl_pb2.GetAddressFromPKReq(pk=bytes(pk))
+        response = service.GetAddressFromPK(request=request, context=None)
+        self.assertEqual('010600b56d161c7de8aa741962e3e49b973b7e53456fa47f2443d69f17c632f29c8b1aab7d2491',
+                         bin2hstr(response.address))
