@@ -80,8 +80,8 @@ def get_unused_payment_xmss(public_stub):
         if not unused_ots_found:  # Unused ots_key_found
             return None
 
-        if not valid_payment_permission(public_stub, master_address_state, payment_xmss, payment_slaves[2]):
-            return None
+    if not valid_payment_permission(public_stub, master_address_state, payment_xmss, payment_slaves[2]):
+        return None
 
     return payment_xmss
 
