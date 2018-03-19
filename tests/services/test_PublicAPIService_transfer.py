@@ -58,18 +58,18 @@ class TestPublicAPI(TestCase):
                     context.set_details.assert_not_called()
 
                     self.assertIsNotNone(response)
-                    self.assertIsNotNone(response.transaction_unsigned)
-                    self.assertEqual('transfer', response.transaction_unsigned.WhichOneof('transactionType'))
+                    self.assertIsNotNone(response.extended_transaction_unsigned)
+                    self.assertEqual('transfer', response.extended_transaction_unsigned.tx.WhichOneof('transactionType'))
 
-                    self.assertEqual(12, response.transaction_unsigned.fee)
-                    self.assertEqual(alice.pk, response.transaction_unsigned.public_key)
-                    self.assertEqual(0, response.transaction_unsigned.nonce)
+                    self.assertEqual(12, response.extended_transaction_unsigned.tx.fee)
+                    self.assertEqual(alice.pk, response.extended_transaction_unsigned.tx.public_key)
+                    self.assertEqual(0, response.extended_transaction_unsigned.tx.nonce)
 
-                    self.assertEqual(b'', response.transaction_unsigned.signature)
-                    self.assertEqual(b'', response.transaction_unsigned.transaction_hash)
+                    self.assertEqual(b'', response.extended_transaction_unsigned.tx.signature)
+                    self.assertEqual(b'', response.extended_transaction_unsigned.tx.transaction_hash)
 
-                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
-                    self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
+                    self.assertEqual(bob.address, response.extended_transaction_unsigned.tx.transfer.addrs_to[0])
+                    self.assertEqual(101, response.extended_transaction_unsigned.tx.transfer.amounts[0])
 
     def test_transferCoins_push_unsigned(self):
         with set_data_dir('no_data'):
@@ -104,18 +104,18 @@ class TestPublicAPI(TestCase):
                     context.set_details.assert_not_called()
 
                     self.assertIsNotNone(response)
-                    self.assertIsNotNone(response.transaction_unsigned)
-                    self.assertEqual('transfer', response.transaction_unsigned.WhichOneof('transactionType'))
+                    self.assertIsNotNone(response.extended_transaction_unsigned)
+                    self.assertEqual('transfer', response.extended_transaction_unsigned.tx.WhichOneof('transactionType'))
 
-                    self.assertEqual(12, response.transaction_unsigned.fee)
-                    self.assertEqual(alice.pk, response.transaction_unsigned.public_key)
-                    self.assertEqual(0, response.transaction_unsigned.nonce)
-                    self.assertEqual(b'', response.transaction_unsigned.signature)
-                    self.assertEqual(b'', response.transaction_unsigned.transaction_hash)
-                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
-                    self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
+                    self.assertEqual(12, response.extended_transaction_unsigned.tx.fee)
+                    self.assertEqual(alice.pk, response.extended_transaction_unsigned.tx.public_key)
+                    self.assertEqual(0, response.extended_transaction_unsigned.tx.nonce)
+                    self.assertEqual(b'', response.extended_transaction_unsigned.tx.signature)
+                    self.assertEqual(b'', response.extended_transaction_unsigned.tx.transaction_hash)
+                    self.assertEqual(bob.address, response.extended_transaction_unsigned.tx.transfer.addrs_to[0])
+                    self.assertEqual(101, response.extended_transaction_unsigned.tx.transfer.amounts[0])
 
-                    req_push = qrl_pb2.PushTransactionReq(transaction_signed=response.transaction_unsigned)
+                    req_push = qrl_pb2.PushTransactionReq(transaction_signed=response.extended_transaction_unsigned.tx)
 
                     resp_push = service.PushTransaction(req_push, context=context)
                     context.set_code.assert_not_called()
@@ -158,21 +158,21 @@ class TestPublicAPI(TestCase):
                     context.set_details.assert_not_called()
 
                     self.assertIsNotNone(response)
-                    self.assertIsNotNone(response.transaction_unsigned)
-                    self.assertEqual('transfer', response.transaction_unsigned.WhichOneof('transactionType'))
+                    self.assertIsNotNone(response.extended_transaction_unsigned.tx)
+                    self.assertEqual('transfer', response.extended_transaction_unsigned.tx.WhichOneof('transactionType'))
 
-                    self.assertEqual(12, response.transaction_unsigned.fee)
-                    self.assertEqual(alice.pk, response.transaction_unsigned.public_key)
-                    self.assertEqual(0, response.transaction_unsigned.nonce)
-                    self.assertEqual(b'', response.transaction_unsigned.signature)
-                    self.assertEqual(b'', response.transaction_unsigned.transaction_hash)
-                    self.assertEqual(bob.address, response.transaction_unsigned.transfer.addrs_to[0])
-                    self.assertEqual(101, response.transaction_unsigned.transfer.amounts[0])
+                    self.assertEqual(12, response.extended_transaction_unsigned.tx.fee)
+                    self.assertEqual(alice.pk, response.extended_transaction_unsigned.tx.public_key)
+                    self.assertEqual(0, response.extended_transaction_unsigned.tx.nonce)
+                    self.assertEqual(b'', response.extended_transaction_unsigned.tx.signature)
+                    self.assertEqual(b'', response.extended_transaction_unsigned.tx.transaction_hash)
+                    self.assertEqual(bob.address, response.extended_transaction_unsigned.tx.transfer.addrs_to[0])
+                    self.assertEqual(101, response.extended_transaction_unsigned.tx.transfer.amounts[0])
 
-                    tmp_hash_pre = bytes(QRLHelper.getAddress(response.transaction_unsigned.public_key))
-                    tmp_hash_pre += str(response.transaction_unsigned.fee).encode()
-                    tmp_hash_pre += response.transaction_unsigned.transfer.addrs_to[0]
-                    tmp_hash_pre += str(response.transaction_unsigned.transfer.amounts[0]).encode()
+                    tmp_hash_pre = bytes(QRLHelper.getAddress(response.extended_transaction_unsigned.tx.public_key))
+                    tmp_hash_pre += str(response.extended_transaction_unsigned.tx.fee).encode()
+                    tmp_hash_pre += response.extended_transaction_unsigned.tx.transfer.addrs_to[0]
+                    tmp_hash_pre += str(response.extended_transaction_unsigned.tx.transfer.amounts[0]).encode()
 
                     self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c939078'
                                      '2a9c61ac02f31320103001d65d7e59aed5efbeae64246e0f3184d7c42411421eb38'
@@ -184,7 +184,7 @@ class TestPublicAPI(TestCase):
                     self.assertEqual('3645f2819aba65479f9a7fad3f5d7a41a9357410a595fa02fb947bfe3ed96e0f',
                                      bin2hstr(tmp_hash))
 
-                    signed_transaction = response.transaction_unsigned
+                    signed_transaction = response.extended_transaction_unsigned.tx
                     signed_transaction.signature = alice.sign(tmp_hash)
 
                     req_push = qrl_pb2.PushTransactionReq(transaction_signed=signed_transaction)

@@ -73,9 +73,10 @@ class PublicAPIService(PublicAPIServicer):
                                          xmss_pk=request.xmss_pk,
                                          master_addr=request.master_addr)
 
-        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
-    @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
+    @Grpc_exception_wrapper(qrl_pb2.PushTransactionResp, StatusCode.UNKNOWN)
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
         tx = Transaction.from_pbdata(request.transaction_signed)
@@ -112,7 +113,8 @@ class PublicAPIService(PublicAPIServicer):
                                            xmss_pk=request.xmss_pk,
                                            master_addr=request.master_addr)
 
-        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetTransferTokenTxn(self, request: qrl_pb2.TransferTokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
@@ -125,7 +127,8 @@ class PublicAPIService(PublicAPIServicer):
                                                     xmss_pk=request.xmss_pk,
                                                     master_addr=request.master_addr)
 
-        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetSlaveTxn(self, request: qrl_pb2.SlaveTxnReq, context) -> qrl_pb2.TransferCoinsResp:
@@ -136,7 +139,8 @@ class PublicAPIService(PublicAPIServicer):
                                           xmss_pk=request.xmss_pk,
                                           master_addr=request.master_addr)
 
-        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
     def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
@@ -147,7 +151,8 @@ class PublicAPIService(PublicAPIServicer):
                                                         xmss_pk=request.xmss_pk,
                                                         master_addr=request.master_addr)
 
-        return qrl_pb2.TransferCoinsResp(transaction_unsigned=tx.pbdata)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
@@ -175,7 +180,8 @@ class PublicAPIService(PublicAPIServicer):
                 blockheader = block.blockheader.pbdata
 
             txextended = qrl_pb2.TransactionExtended(header=blockheader,
-                                                     tx=transaction.pbdata)
+                                                     tx=transaction.pbdata,
+                                                     addr_from=transaction.addr_from)
             answer.transaction.CopyFrom(txextended)
             return answer
 
@@ -235,7 +241,8 @@ class PublicAPIService(PublicAPIServicer):
                 if block:
                     header = block.blockheader.pbdata
                 txextended = qrl_pb2.TransactionExtended(header=header,
-                                                         tx=tx.pbdata)
+                                                         tx=tx.pbdata,
+                                                         addr_from=tx.addr_from)
                 result.append(txextended)
 
             response.transactions.extend(result)
@@ -244,7 +251,8 @@ class PublicAPIService(PublicAPIServicer):
             result = []
             for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=quantity):
                 txextended = qrl_pb2.TransactionExtended(header=None,
-                                                         tx=tx.pbdata)
+                                                         tx=tx.pbdata,
+                                                         addr_from=tx.addr_from)
                 result.append(txextended)
             response.transactions_unconfirmed.extend(result)
 

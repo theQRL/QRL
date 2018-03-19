@@ -168,7 +168,7 @@ message TransferCoinsReq {
 }
 
 message TransferCoinsResp {
-    Transaction transaction_unsigned = 1;
+    TransactionExtended extended_transaction_unsigned = 1;
 }
 
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
@@ -321,6 +321,7 @@ message TransactionCount {
 message TransactionExtended {
     BlockHeader header = 1;
     Transaction tx = 2;
+    bytes addr_from = 3;
 }
 
 message Block {
@@ -406,7 +407,7 @@ message TokenList {
 }
 
 message TokenDetailedList {
-    repeated Transaction tokens = 1;
+    repeated TransactionExtended extended_tokens = 1;
 }
 
 message TokenMetadata {
