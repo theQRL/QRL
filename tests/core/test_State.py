@@ -7,6 +7,7 @@ import mock
 from pyqrllib.pyqrllib import sha2_256
 
 from qrl.core.misc import logger, db
+from qrl.core.AddressState import AddressState
 from qrl.core.State import State, StateLoader
 from qrl.core.Transaction import TransferTokenTransaction
 from qrl.core.Block import Block
@@ -290,3 +291,21 @@ class TestState(TestCase):
                 state.state_objects.destroy_fork_states(blocks[-1].block_number, blocks[-1].headerhash)
                 state.state_objects.destroy_current_state(None)
                 self.assertIsNone(state.state_objects.get(b'current'))
+
+    def test_destroy_current_state(self):
+        with set_data_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                alice_address_state = AddressState.get_default(alice_xmss.address)
+
+                for _ in range(10):
+                    alice_address_state.increase_nonce()
+
+                addresses_state = {alice_xmss.address: alice_address_state}
+                state.state_objects.update_current_state(addresses_state)
+                alice_address_state2 = state.get_address(alice_xmss.address)
+                self.assertEqual(alice_address_state.nonce, alice_address_state2.nonce)
+
+                state.state_objects.destroy_current_state(None)
+                alice_address_state2 = state.get_address(alice_xmss.address)
+                self.assertEqual(0, alice_address_state2.nonce)
