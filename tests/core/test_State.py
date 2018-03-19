@@ -298,7 +298,7 @@ class TestState(TestCase):
                 alice_xmss = get_alice_xmss()
                 alice_address_state = AddressState.get_default(alice_xmss.address)
 
-                for i in range(10):
+                for _ in range(10):
                     alice_address_state.increase_nonce()
 
                 addresses_state = {alice_xmss.address: alice_address_state}
