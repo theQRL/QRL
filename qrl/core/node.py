@@ -206,10 +206,8 @@ class POW(ConsensusMechanism):
             result = self.chain_manager.add_block(block)
 
             logger.debug('trigger_miner %s', self.chain_manager.trigger_miner)
-            logger.debug('is_syncing %s', self.p2p_factory.is_syncing())
-            if not self.p2p_factory.is_syncing():
-                if self.chain_manager.trigger_miner or not self.miner.isRunning():
-                    self.mine_next(self.chain_manager.last_block)
+            if self.chain_manager.trigger_miner or not self.miner.isRunning():
+                self.mine_next(self.chain_manager.last_block)
 
             if not result:
                 logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
