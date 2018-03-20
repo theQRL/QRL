@@ -82,8 +82,7 @@ class ChainManager:
             if addr_from_pk:
                 addr_from_pk_state = addresses_state[addr_from_pk]
 
-            if not coinbase_tx.validate_extended(addresses_state[coinbase_tx.addr_to],
-                                                 addr_from_pk_state):
+            if not coinbase_tx.validate_extended(addr_from_pk_state):
                 return False
 
             if not coinbase_tx.validate():
@@ -146,8 +145,7 @@ class ChainManager:
         if addr_from_pk:
             addr_from_pk_state = address_txn[addr_from_pk]
 
-        if not coinbase_tx.validate_extended(address_txn[coinbase_tx.addr_to],
-                                             addr_from_pk_state):
+        if not coinbase_tx.validate_extended(addr_from_pk_state):
             return False
 
         if not PoWValidator().validate_mining_nonce(self.state, block.blockheader):

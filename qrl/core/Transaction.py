@@ -409,10 +409,7 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, addr_from_state, addr_from_pk_state):
-        if not self.validate_slave(addr_from_state, addr_from_pk_state):
-            return False
-
+    def validate_extended(self, addr_from_pk_state):
         if self.addr_from != config.dev.coinbase_address:
             return False
 

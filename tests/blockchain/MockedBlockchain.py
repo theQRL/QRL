@@ -67,8 +67,7 @@ class MockedBlockchain(object):
     def add_new_block(self):
         block_prev = self.qrlnode.get_block_last()
         block_new = self.create_block(prev_hash=block_prev.headerhash)
-        result = self.qrlnode._chain_manager.add_block(block_new)
-        assert result
+        self.qrlnode._chain_manager.add_block(block_new)
 
     @staticmethod
     @contextlib.contextmanager
