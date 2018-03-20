@@ -138,6 +138,8 @@ class Block(object):
         # Replace first tx
         block._data.transactions[0].CopyFrom(coinbase_tx.pbdata)
 
+        block.set_mining_nonce(0)
+
         return block
 
     def validate(self) -> bool:
