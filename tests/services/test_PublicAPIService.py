@@ -266,8 +266,8 @@ class TestPublicAPI(TestCase):
         response = service.GetObject(request=request, context=context)
         context.set_code.assert_not_called()
         self.assertTrue(response.found)
-        self.assertIsNotNone(response.block)
-        self.assertEqual(1, response.block.header.block_number)
+        self.assertIsNotNone(response.block_extended)
+        self.assertEqual(1, response.block_extended.header.block_number)
 
     def test_getLatestData(self):
         blocks = []
