@@ -334,7 +334,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         click.echo("Unhandled error: {}".format(str(e)))
         quit(1)
 
-    txblob = bin2hstr(transferCoinsResp.transaction_unsigned.SerializeToString())
+    txblob = bin2hstr(transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString())
     print(txblob)
 
 
@@ -392,7 +392,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 
     try:
         slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
-        tx = Transaction.from_pbdata(slaveTxnResp.transaction_unsigned)
+        tx = Transaction.from_pbdata(slaveTxnResp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
             json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
@@ -524,7 +524,7 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
 
         transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
 
-        tx = Transaction.from_pbdata(transferCoinsResp.transaction_unsigned)
+        tx = Transaction.from_pbdata(transferCoinsResp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
