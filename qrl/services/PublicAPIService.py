@@ -185,21 +185,23 @@ class PublicAPIService(PublicAPIServicer):
             answer.transaction.CopyFrom(txextended)
             return answer
 
-        block = self.qrlnode.get_block_from_hash(query)
-        if block is not None:
-            answer.found = True
-            answer.block.CopyFrom(block.pbdata)
-            return answer
-
         # NOTE: This is temporary, indexes are accepted for blocks
         try:
-            query_str = query.decode()
-            query_index = int(query_str)
-            block = self.qrlnode.get_block_from_index(query_index)
-            if block is not None:
-                answer.found = True
-                answer.block.CopyFrom(block.pbdata)
-                return answer
+            block = self.qrlnode.get_block_from_hash(query)
+            if block is None:
+                query_str = query.decode()
+                query_index = int(query_str)
+                block = self.qrlnode.get_block_from_index(query_index)
+
+            answer.found = True
+            block_extended = qrl_pb2.BlockExtended()
+            block_extended.header.CopyFrom(block.blockheader.pbdata)
+            for transaction in block.transactions:
+                extended_tx = qrl_pb2.TransactionExtended(tx=transaction,
+                                                          addr_from=Transaction.from_pbdata(transaction).addr_from)
+                block_extended.extended_transactions.extend([extended_tx])
+            answer.block_extended.CopyFrom(block_extended)
+            return answer
         except Exception:
             pass
 

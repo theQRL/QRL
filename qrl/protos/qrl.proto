@@ -137,7 +137,7 @@ message GetObjectResp {
     oneof result {
         AddressState address_state = 2;
         TransactionExtended transaction = 3;
-        Block block = 4;
+        BlockExtended block_extended = 4;
     }
 }
 
@@ -322,6 +322,14 @@ message TransactionExtended {
     BlockHeader header = 1;
     Transaction tx = 2;
     bytes addr_from = 3;
+}
+
+message BlockExtended {
+    BlockHeader header = 1;
+    repeated TransactionExtended extended_transactions = 2;
+
+    // This is only applicable to genesis blocks
+    repeated GenesisBalance genesis_balance = 3;
 }
 
 message Block {
