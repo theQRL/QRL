@@ -7,7 +7,7 @@ from unittest import TestCase
 from mock import Mock, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
-from tests.misc.helper import get_slaves, get_alice_xmss, get_random_master
+from tests.misc.helper import get_alice_xmss, get_random_xmss
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
@@ -42,7 +42,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0),
+                   mining_credit_wallet=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
@@ -57,7 +57,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0),
+                   mining_credit_wallet=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
@@ -74,7 +74,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0),
+                   mining_credit_wallet=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
@@ -107,7 +107,7 @@ class TestNode(TestCase):
                        p2p_factory=p2p_factory,
                        sync_state=sync_state,
                        time_provider=time_provider,
-                       slaves=get_random_master(),
+                       mining_credit_wallet=get_random_xmss().address,
                        mining_thread_count=0)
 
             self.assertIsNotNone(node)
@@ -124,7 +124,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   slaves=get_slaves(0, 0),
+                   mining_credit_wallet=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
