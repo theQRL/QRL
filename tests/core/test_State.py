@@ -4,8 +4,9 @@
 from unittest import TestCase
 import mock
 
-from pyqrllib.pyqrllib import sha2_256
+from pyqrllib.pyqrllib import sha2_256, bin2hstr
 
+from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.misc import logger, db
 from qrl.core.AddressState import AddressState
 from qrl.core.State import State, StateLoader
@@ -295,6 +296,11 @@ class TestState(TestCase):
     def test_destroy_current_state(self):
         with set_data_dir('no_data'):
             with State() as state:
+                genesis_block = GenesisBlock()
+                state.put_block(genesis_block, None)
+                dummy_state = StateLoader(bin2hstr(genesis_block.headerhash).encode(), state._db)
+                state.state_objects.append_state_loader(dummy_state)
+
                 alice_xmss = get_alice_xmss()
                 alice_address_state = AddressState.get_default(alice_xmss.address)
 
