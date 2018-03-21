@@ -24,6 +24,7 @@ class UserConfig(object):
         # Default configuration
         self.mining_enabled = True
         self.mining_thread_count = 0  # 0 to auto detect thread count based on CPU/GPU number of processors
+        self.random_mining_xmss_height = 6  # Height for the randomly generated XMSS used for mining
 
         # Ephemeral Configuration
         self.accept_ephemeral = True

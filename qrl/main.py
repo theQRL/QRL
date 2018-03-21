@@ -3,12 +3,11 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import logging
-import os
 
-import simplejson as json
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr, mnemonic2bin
 from twisted.internet import reactor
+from pyqrllib.pyqrllib import hstr2bin
 
+from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
@@ -17,7 +16,6 @@ from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from qrl.core import config
 from qrl.core.State import State
-from qrl.crypto.xmss import XMSS
 
 LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
 
@@ -46,8 +44,8 @@ def parse_arguments():
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
-    parser.add_argument('--randomizeSlaveXMSS', dest='randomizeSlaveXMSS', action='store_true', default=False,
-                        help="Generates random slaves.json file (Warning: For Integration Test only)")
+    parser.add_argument('--miningCreditWallet', dest='mining_credit_wallet', required=True,
+                        help="QRL Wallet address on which mining reward has to be credited.")
     return parser.parse_args()
 
 
@@ -66,67 +64,15 @@ def set_logger(args, sync_state):
     logger_twisted.enable_twisted_log_observer()
 
 
-def write_slaves(slaves_filename, slaves):
-    with open(slaves_filename, 'w') as f:
-        json.dump(slaves, f)
-
-
-def read_slaves(slaves_filename):
-    with open(slaves_filename, 'r') as f:
-        slave_data = json.load(f)
-        slave_data[0] = bytes(hstr2bin(slave_data[0]))
-        return slave_data
-
-
-def generate_slave_from_input(slaves_filename):
-    # FIXME: Refactor and improve error handling
-    extended_seed = ''
-    logger.warning('No Slave Seeds found!!')
-    logger.warning('It is highly recommended to use the slave for mining')
+def get_mining_credit_wallet(mining_credit_wallet: str):
     try:
-        ans = input('Do you want to use main wallet for mining? (Y/N) ')
-        if ans == 'N':
-            quit(0)
-        extended_seed = input('Enter hex or mnemonic seed of mining wallet ').encode()
-    except KeyboardInterrupt:
-        quit(0)
+        mining_credit_wallet = bytes(hstr2bin(mining_credit_wallet[1:]))
+        if AddressState.address_is_valid(mining_credit_wallet):
+            return mining_credit_wallet
+    except Exception:
+        logger.info('Exception in validate_mining_credit_wallet')
 
-    bin_extended_seed = None
-    if len(extended_seed) == 102:  # hexseed
-        bin_extended_seed = hstr2bin(extended_seed.decode())
-    elif len(extended_seed.split()) == 34:
-        bin_extended_seed = mnemonic2bin(extended_seed.decode())
-
-    if bin_extended_seed is None:
-        logger.warning('Invalid XMSS seed')
-        quit(1)
-
-    xmss_object = XMSS.from_extended_seed(bin_extended_seed)
-    slaves = [bin2hstr(xmss_object.address), [xmss_object.extended_seed], None]
-    write_slaves(slaves_filename, slaves)
-
-
-def get_mining_slave_addresses(args):
-    slaves_filename = os.path.join(config.user.wallet_dir, config.user.slaves_filename)
-
-    if args.randomizeSlaveXMSS:
-        xmss = XMSS.from_height(config.dev.slave_xmss_height)
-        slaves = [bin2hstr(xmss.address), [xmss.extended_seed], None]
-        write_slaves(slaves_filename, slaves)
-
-    if not os.path.isfile(slaves_filename):
-        generate_slave_from_input(slaves_filename)
-
-    slaves = None
-    try:
-        slaves = read_slaves(slaves_filename)
-    except KeyboardInterrupt:
-        quit(1)
-    except Exception as e:
-        logger.error('Exception %s', e)
-        quit(1)
-
-    return slaves
+    return None
 
 
 def main():
@@ -134,7 +80,12 @@ def main():
 
     config.create_path(config.user.wallet_dir)
 
-    slaves = get_mining_slave_addresses(args)
+    mining_credit_wallet = get_mining_credit_wallet(args.mining_credit_wallet)
+
+    if not mining_credit_wallet:
+        logger.warning('Invalid Mining Credit Wallet Address')
+        logger.warning('%s', args.mining_credit_wallet)
+        return False
 
     logger.debug("=====================================================================================")
     logger.info("Data Path: %s", args.data_dir)
@@ -149,7 +100,7 @@ def main():
     chain_manager = ChainManager(state=persistent_state)
     chain_manager.load(Block.from_json(GenesisBlock().to_json()))
 
-    qrlnode = QRLNode(db_state=persistent_state, slaves=slaves)
+    qrlnode = QRLNode(db_state=persistent_state, mining_credit_wallet=mining_credit_wallet)
     qrlnode.set_chain_manager(chain_manager)
 
     set_logger(args, qrlnode.sync_state)
@@ -164,7 +115,7 @@ def main():
     qrlnode.start_pow(args.mining_thread_count)
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', slaves[0])
+    logger.info('mining/staking address %s', args.mining_credit_wallet)
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()
