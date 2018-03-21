@@ -729,10 +729,6 @@ class State:
 
         return addresses_state
 
-    def update_state(self, addresses_state):
-        for address in addresses_state:
-            self._save_address_state(addresses_state[address])
-
     def update_mainchain_state(self, addresses_state, block_number, headerhash):
         self.state_objects.destroy_fork_states(block_number, headerhash)
         self.state_objects.update_current_state(addresses_state)
@@ -791,9 +787,6 @@ class State:
 
     def create_token_metadata(self, token: TokenTransaction):
         self.state_objects.create_token_metadata(token)
-
-    def get_state_version(self):
-        return self.state_objects.get_state_version()
 
     def update_state_version(self, block_number, batch):
         self.state_objects.update_state_version(block_number, batch)
