@@ -32,7 +32,7 @@ from qrl.generated import qrl_pb2
 
 
 class QRLNode:
-    def __init__(self, db_state: State, slaves: list):
+    def __init__(self, db_state: State, mining_credit_wallet: bytes):
         self.start_time = time.time()
         self.db_state = db_state
         self._sync_state = SyncState()
@@ -50,7 +50,7 @@ class QRLNode:
 
         self._pow = None
 
-        self.slaves = slaves
+        self.mining_credit_wallet = mining_credit_wallet
 
         self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
 
@@ -236,7 +236,7 @@ class QRLNode:
                         p2p_factory=self._p2pfactory,
                         sync_state=self._sync_state,
                         time_provider=ntp,
-                        slaves=self.slaves,
+                        mining_credit_wallet=self.mining_credit_wallet,
                         mining_thread_count=mining_thread_count)
 
         self._pow.start()

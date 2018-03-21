@@ -20,7 +20,12 @@ from qrl.crypto.xmss import XMSS
 
 
 class Miner(Qryptominer):
-    def __init__(self, pre_block_logic, slaves: list, state: State, mining_thread_count, add_unprocessed_txn_fn):
+    def __init__(self,
+                 pre_block_logic,
+                 mining_credit_wallet: bytes,
+                 state: State,
+                 mining_thread_count,
+                 add_unprocessed_txn_fn):
         super().__init__()
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
 
@@ -29,7 +34,7 @@ class Miner(Qryptominer):
         self._current_target = None
         self._measurement = None  # Required only for logging
 
-        self._slaves = slaves
+        self._mining_credit_wallet = mining_credit_wallet
         self._mining_xmss = None
         self._reward_address = None
         self.state = state
@@ -45,57 +50,17 @@ class Miner(Qryptominer):
                 return True
         return False
 
-    def valid_mining_permission(self):
-        if self._master_address == self._mining_xmss.address:
-            return True
-        addr_state = self.state.get_address(self._master_address)
-        access_type = addr_state.get_slave_permission(self._mining_xmss.pk)
-        if access_type == -1:
-            logger.warning('Slave is not authorized yet for mining')
-            logger.warning('Added Slave Txn')
-            slave_tx = Transaction.from_json(self._slaves[2])
-            self._add_unprocessed_txn_fn(slave_tx, None)
-            return None
-        return True
-
-    def get_mining_xmss(self):
+    def prepare_mining_xmss(self):
         if self._mining_xmss:
-            addr_state = self.state.get_address(self._mining_xmss.address)
-            if self.set_unused_ots_key(self._mining_xmss, addr_state, self._mining_xmss.ots_index):
-                if self.valid_mining_permission():
-                    return self._mining_xmss
-            else:
-                self._mining_xmss = None
-            return None
+            if self._mining_xmss.ots_index < 2 ** config.user.random_mining_xmss_height:
+                return self._mining_xmss
 
-        if not self._mining_xmss:
-            self._master_address = self._slaves[0]
-            unused_ots_found = False
-            for slave_seed in self._slaves[1]:
-                xmss = XMSS.from_extended_seed(slave_seed)
-                addr_state = self.state.get_address(xmss.address)
-                if self.set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
-                    self._mining_xmss = xmss
-                    unused_ots_found = True
-                    break
-
-            if not unused_ots_found:  # Unused ots_key_found
-                logger.warning('No OTS-KEY left for mining')
-                return None
-
-        if self._master_address == self._mining_xmss.address:
-            return self._mining_xmss
-
-        if not self.valid_mining_permission():
-            return None
+        self._mining_xmss = XMSS.from_height(config.user.random_mining_xmss_height)
 
         return self._mining_xmss
 
     def prepare_next_unmined_block_template(self, tx_pool, parent_block: Block, parent_difficulty):
-        mining_xmss = self.get_mining_xmss()
-        if not mining_xmss:
-            logger.warning('No Mining XMSS Found')
-            return
+        self.prepare_mining_xmss()
 
         try:
             self.cancel()
@@ -103,7 +68,7 @@ class Miner(Qryptominer):
                                                    mining_nonce=0,
                                                    tx_pool=tx_pool,
                                                    signing_xmss=self._mining_xmss,
-                                                   master_address=self._master_address)
+                                                   master_address=self._mining_credit_wallet)
 
             parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
             self._measurement = self.state.get_measurement(self._mining_block.timestamp,
