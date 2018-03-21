@@ -1,12 +1,14 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import contextlib
 from unittest import TestCase
 
 from mock import Mock, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from tests.misc.helper import get_slaves, get_alice_xmss, get_random_master
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.ESyncState import ESyncState
@@ -14,6 +16,16 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.node import POW
 
 logger.initialize_default()
+
+
+@contextlib.contextmanager
+def set_mining_enabled(new_value):
+    old_value = config.user.mining_enabled
+    try:
+        config.user.mining_enabled = new_value
+        yield
+    finally:
+        config.user.mining_enabled = old_value
 
 
 class TestNode(TestCase):
@@ -88,16 +100,18 @@ class TestNode(TestCase):
         p2p_factory = Mock()
         sync_state = Mock()
         time_provider = Mock()
+        # Setting mining enabled False, when update_note_state set to synced,
+        # starts miner which is not exited properly by unit test
+        with set_mining_enabled(False):
+            node = POW(chain_manager=chain_manager,
+                       p2p_factory=p2p_factory,
+                       sync_state=sync_state,
+                       time_provider=time_provider,
+                       slaves=get_random_master(),
+                       mining_thread_count=0)
 
-        node = POW(chain_manager=chain_manager,
-                   p2p_factory=p2p_factory,
-                   sync_state=sync_state,
-                   time_provider=time_provider,
-                   slaves=get_random_master(),
-                   mining_thread_count=0)
-
-        self.assertIsNotNone(node)
-        node.update_node_state(ESyncState.synced)
+            self.assertIsNotNone(node)
+            node.update_node_state(ESyncState.synced)
         # FIXME: Add more asserts
 
     def test_sync_state_change_forked(self):
