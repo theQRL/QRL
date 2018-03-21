@@ -12,6 +12,7 @@ from qrl.core.Block import Block
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
+from qrl.core.TransactionPool import TransactionPool
 from qrl.core.Transaction import MessageTransaction, LatticePublicKey, SlaveTransaction
 from qrl.core.Transaction import Transaction, TransferTransaction, TokenTransaction, TransferTokenTransaction
 from qrl.core.misc import logger
@@ -160,11 +161,15 @@ class Miner(Qryptominer):
             logger.warning("Exception in solutionEvent")
             logger.exception(e)
 
-    def create_block(self, last_block, mining_nonce, tx_pool, signing_xmss, master_address) -> Optional[Block]:
+    def create_block(self,
+                     last_block,
+                     mining_nonce,
+                     tx_pool: TransactionPool,
+                     signing_xmss,
+                     master_address) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
 
-        # FIXME: Break encapsulation
         if not self._dummy_xmss:
             self._dummy_xmss = XMSS.from_height(signing_xmss.height)
 
@@ -176,11 +181,8 @@ class Miner(Qryptominer):
                                    nonce=0)
         dummy_block.set_mining_nonce(mining_nonce)
 
-        t_pool2 = copy.deepcopy(tx_pool.transaction_pool)
-        del tx_pool.transaction_pool[:]
-        ######
+        t_pool2 = tx_pool.transactions
 
-        # recreate the transaction pool as in the tx_hash_list, ordered by txhash..
         total_txn = len(t_pool2)
         txnum = 0
         addresses_set = set()
@@ -295,7 +297,6 @@ class Miner(Qryptominer):
 
             tx.apply_on_state(addresses_state)
 
-            tx_pool.add_tx_to_pool(tx)
             tx._data.nonce = addr_from_pk_state.nonce
             txnum += 1
             block_size += tx.size + config.dev.tx_extra_overhead
