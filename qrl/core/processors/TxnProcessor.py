@@ -4,7 +4,6 @@
 from twisted.internet.task import cooperate
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Transaction import Transaction
 from qrl.core.TransactionPool import TransactionPool
@@ -25,14 +24,10 @@ class TxnProcessor:
         return self
 
     def __next__(self):
-        if not self.transaction_pool_obj.pending_tx_pool:
-            raise StopIteration
+        tx = self.transaction_pool_obj.get_pending_transaction()
 
-        if len(self.transaction_pool_obj.transaction_pool) >= config.dev.transaction_pool_size:
+        if not tx:
             raise StopIteration
-
-        tx = self.transaction_pool_obj.pending_tx_pool.pop(0)
-        tx = tx[0]
 
         if not tx.validate():
             return False
@@ -52,10 +47,6 @@ class TxnProcessor:
         if not (is_valid_state and is_valid_pool_state):
             logger.info('>>>TX %s failed state_validate', tx.txhash)
             return False
-
-        for old_tx in self.transaction_pool_obj.transaction_pool:
-            if old_tx.txhash == tx.txhash:
-                return True
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
         self.transaction_pool_obj.add_tx_to_pool(tx)

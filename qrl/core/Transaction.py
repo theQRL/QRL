@@ -145,7 +145,8 @@ class Transaction(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     def validate_transaction_pool(self, transaction_pool):
-        for txn in transaction_pool:
+        for tx_set in transaction_pool:
+            txn = tx_set[1]
             if txn.txhash == self.txhash:
                 continue
 

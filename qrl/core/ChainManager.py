@@ -413,7 +413,8 @@ class ChainManager:
         return self.state.get_address(address)
 
     def get_transaction(self, transaction_hash) -> list:
-        for tx in self.tx_pool.transaction_pool:
+        for tx_set in self.tx_pool.transactions:
+            tx = tx_set[1]
             if tx.txhash == transaction_hash:
                 return [tx, None]
 
