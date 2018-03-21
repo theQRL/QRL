@@ -71,4 +71,3 @@ class TransactionPool:
                 del self.transaction_pool[idx]
 
         heapq.heapify(self.transaction_pool)
-
