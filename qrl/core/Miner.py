@@ -87,10 +87,7 @@ class Miner(Qryptominer):
                      parent_block: Block,
                      parent_difficulty):
 
-        mining_xmss = self.get_mining_xmss()
-        if not mining_xmss:
-            logger.warning('No Mining XMSS Found')
-            return
+        self.prepare_mining_xmss()
 
         try:
             self.cancel()
