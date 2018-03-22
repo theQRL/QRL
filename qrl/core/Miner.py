@@ -132,7 +132,7 @@ class Miner(Qryptominer):
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
 
-        if not self._dummy_xmss:
+        if (not self._dummy_xmss) or (self._dummy_xmss.ots_index == 2 ** self._dummy_xmss.height):
             self._dummy_xmss = XMSS.from_height(signing_xmss.height)
 
         dummy_block = Block.create(block_number=last_block.block_number + 1,
