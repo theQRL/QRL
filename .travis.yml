@@ -74,11 +74,11 @@ jobs:
       - PLATFORM='xenial'
       install:
       - python --version
-      - echo "Skip installing requirements.txt when running integration tests"
+      - pip -V
+      - sudo pip -V
+      - pip install -r $(pwd)/tests_integration/requirements.txt
+      - pip freeze
       script:
-      - sudo pip install -U docker-compose | cat
-      - docker-compose --version
-      - sudo pip install pytest
       - export PYTHONPATH=$(pwd)/tests_integration
       - "cd tests_integration; pytest -s --ignore=tests/custom"
 
@@ -90,11 +90,11 @@ jobs:
       - PLATFORM='xenial'
       install:
       - python --version
-      - echo "Skip installing requirements.txt when running integration tests"
+      - pip -V
+      - sudo pip -V
+      - pip install -r $(pwd)/tests_integration/requirements.txt
+      - pip freeze
       script:
-      - sudo pip install -U docker-compose | cat
-      - docker-compose --version
-      - sudo pip install pytest
       - export PYTHONPATH=$(pwd)/tests_integration
       - "cd tests_integration; pytest --noconftest -s -m oneminaftersync"
 
