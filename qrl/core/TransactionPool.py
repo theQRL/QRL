@@ -45,7 +45,9 @@ class TransactionPool:
         if tx.txhash in self.pending_tx_pool_hash:
             return
 
-        heapq.heappush(self.pending_tx_pool, (tx.fee, tx, ip))
+        # Since its a min heap giving priority to lower number
+        # So -1 multiplied to give higher priority to higher txn
+        heapq.heappush(self.pending_tx_pool, (tx.fee * -1, tx, ip))
         self.pending_tx_pool_hash.add(tx.txhash)
 
     def add_tx_to_pool(self, tx_class_obj) -> bool:
