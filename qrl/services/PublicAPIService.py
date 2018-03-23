@@ -80,6 +80,7 @@ class PublicAPIService(PublicAPIServicer):
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
         tx = Transaction.from_pbdata(request.transaction_signed)
+        tx.update_txhash()
 
         answer = qrl_pb2.PushTransactionResp()
 
@@ -89,7 +90,6 @@ class PublicAPIService(PublicAPIServicer):
             if len(tx.signature) > 1000:
                 self.qrlnode.submit_send_tx(tx)
                 answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
-                tx.update_txhash()
                 answer.tx_hash = tx.txhash
             else:
                 answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
