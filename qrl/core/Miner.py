@@ -168,7 +168,7 @@ class Miner(Qryptominer):
             if addr_from_pk:
                 addr_from_pk_state = addresses_state[addr_from_pk]
 
-            if not tx.validate_extended(addresses_state, addr_from_pk_state):
+            if not tx.validate_extended(addresses_state[tx.addr_from], addr_from_pk_state):
                 logger.warning('Txn validation failed for tx in tx_pool')
                 tx_pool.remove_tx_from_pool(tx)
                 continue
