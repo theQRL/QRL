@@ -88,6 +88,7 @@ class TestNode(TestCase):
         chain_manager.last_block = GenesisBlock()
         chain_manager.tx_pool = Mock()
         chain_manager.tx_pool.transaction_pool = []
+        chain_manager.tx_pool.transactions = chain_manager.tx_pool.transaction_pool
 
         get_block_metadata_response = Mock()
         get_block_metadata_response.block_difficulty = StringToUInt256('2')
