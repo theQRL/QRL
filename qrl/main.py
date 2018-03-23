@@ -7,6 +7,7 @@ import logging
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import hstr2bin
 
+from qrl.crypto.xmss import XMSS
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
@@ -44,7 +45,10 @@ def parse_arguments():
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
-    parser.add_argument('--miningCreditWallet', dest='mining_credit_wallet', required=True,
+    parser.add_argument('--randomizeSlaveXMSS', dest='randomize_slave_xmss', action='store_true', default=False,
+                        help="Generates random slaves.json file (Warning: For Integration Test only)")
+    parser.add_argument('--miningCreditWallet', dest='mining_credit_wallet',
+                        required=not parser.parse_args().randomize_slave_xmss,
                         help="QRL Wallet address on which mining reward has to be credited.")
     return parser.parse_args()
 
@@ -80,7 +84,11 @@ def main():
 
     config.create_path(config.user.wallet_dir)
 
-    mining_credit_wallet = get_mining_credit_wallet(args.mining_credit_wallet)
+    if not args.randomize_slave_xmss:
+        mining_credit_wallet = get_mining_credit_wallet(args.mining_credit_wallet)
+    else:
+        # Temporary to maintain compatiblity with old integration_test
+        mining_credit_wallet = XMSS.from_height(6).address
 
     if not mining_credit_wallet:
         logger.warning('Invalid Mining Credit Wallet Address')
