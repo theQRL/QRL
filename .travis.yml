@@ -53,18 +53,18 @@ jobs:
       script:
       - "./travis/build.sh"
 
-    - stage: build+test
-      os: linux
-      env:
-      - D="UNITTESTS"
-      - TEST='TRUE'
-      - PLATFORM='jessie'
-      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt when running integration tests"
-      script:
-      - "./travis/build.sh"
+#    - stage: build+test
+#      os: linux
+#      env:
+#      - D="UNITTESTS"
+#      - TEST='TRUE'
+#      - PLATFORM='jessie'
+#      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
+#      install:
+#      - python --version
+#      - echo "Skip installing requirements.txt when running integration tests"
+#      script:
+#      - "./travis/build.sh"
 
     - stage: build+test
       os: linux
