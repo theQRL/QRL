@@ -15,7 +15,6 @@ from qrl.core.State import State
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.Transaction import Transaction
 from qrl.core.misc import logger
-from qrl.crypto.xmss import XMSS
 
 
 class Miner(Qryptominer):

@@ -8,7 +8,6 @@ from qrl.core.misc import logger
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import sha256, merkle_tx_hash
-from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 
 
