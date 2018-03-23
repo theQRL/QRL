@@ -76,7 +76,6 @@ class POW(ConsensusMechanism):
         self.restart_unsynced_logic()
 
     def _handler_state_syncing(self):
-        self.miner.cancel()
         self.last_pb_time = time.time()
 
     def _handler_state_synced(self):
@@ -131,7 +130,7 @@ class POW(ConsensusMechanism):
         reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
 
     def initialize_pow(self):
-        reactor.callLater(30, self.update_node_state, ESyncState.synced)
+        reactor.callLater(0, self.update_node_state, ESyncState.synced)
         reactor.callLater(60, self.monitor_miner)
 
     ##############################################

@@ -101,12 +101,9 @@ class Block(object):
     def create(block_number: int,
                prevblock_headerhash: bytes,
                transactions: list,
-               signing_xmss: XMSS,
-               master_address: bytes,
-               nonce: int):
+               miner_address: bytes):
 
         block = Block()
-        block._data.transactions.extend([qrl_pb2.Transaction()])  # FIXME: Empty for coinbase?
 
         # Process transactions
         hashedtransactions = []
@@ -114,6 +111,14 @@ class Block(object):
 
         for tx in transactions:
             fee_reward += tx.fee
+
+        # Prepare coinbase tx
+        total_reward_amount = BlockHeader.block_reward_calc(block_number) + fee_reward
+        coinbase_tx = CoinBase.create(total_reward_amount, miner_address, block_number)
+        hashedtransactions.append(coinbase_tx.txhash)
+        block._data.transactions.extend([coinbase_tx.pbdata])  # copy memory rather than sym link
+
+        for tx in transactions:
             hashedtransactions.append(tx.txhash)
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
@@ -123,20 +128,11 @@ class Block(object):
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
-                                             PK=signing_xmss.pk,
                                              prev_blockheaderhash=prevblock_headerhash,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
 
         block._data.header.MergeFrom(tmp_blockheader.pbdata)
-
-        # Prepare coinbase tx
-        coinbase_tx = CoinBase.create(tmp_blockheader, signing_xmss, master_address)
-        coinbase_tx.pbdata.nonce = nonce
-        coinbase_tx.sign(signing_xmss)  # Sign after nonce has been set
-
-        # Replace first tx
-        block._data.transactions[0].CopyFrom(coinbase_tx.pbdata)
 
         block.set_mining_nonce(0)
 

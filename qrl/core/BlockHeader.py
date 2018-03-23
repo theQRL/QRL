@@ -62,10 +62,6 @@ class BlockHeader(object):
         return self._data.merkle_root
 
     @property
-    def PK(self):
-        return self._data.PK
-
-    @property
     def mining_nonce(self):
         return self._data.mining_nonce
 
@@ -80,8 +76,7 @@ class BlockHeader(object):
                + self.prev_blockheaderhash \
                + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
-               + self.tx_merkle_root \
-               + self.PK
+               + self.tx_merkle_root
 
         # reduce mining blob considering nonce (4 byte)
         blob = bytes(shake128(config.dev.mining_blob_size - 4, blob))
@@ -105,20 +100,19 @@ class BlockHeader(object):
 
     @staticmethod
     def create(blocknumber: int,
-               PK: bytes,
                prev_blockheaderhash: bytes,
                hashedtransactions: bytes,
                fee_reward: int):
         """
         Create a block header based on the parameters
 
-        >>> BlockHeader.create(blocknumber=1, PK=b'publickey',
+        >>> BlockHeader.create(blocknumber=1,
         ...                    prev_blockheaderhash=b'headerhash',
         ...                    hashedtransactions=b'some_data', fee_reward=1) is not None
         True
-        >>> b=BlockHeader.create(blocknumber=1, PK=b'publickey',
-        ...                       prev_blockheaderhash=b'headerhash',
-        ...                       hashedtransactions=b'some_data', fee_reward=1)
+        >>> b=BlockHeader.create(blocknumber=1,
+        ...                      prev_blockheaderhash=b'headerhash',
+        ...                      hashedtransactions=b'some_data', fee_reward=1)
         >>> b.epoch
         0
         """
@@ -134,12 +128,9 @@ class BlockHeader(object):
 
         bh._data.hash_header_prev = prev_blockheaderhash
         bh._data.merkle_root = hashedtransactions
-        bh._data.PK = PK
         bh._data.reward_fee = fee_reward
 
-        bh._data.reward_block = 0
-
-        bh._data.reward_block = bh.block_reward_calc()
+        bh._data.reward_block = bh.block_reward_calc(blocknumber)
 
         bh.set_mining_nonce(0)
         return bh
@@ -154,14 +145,15 @@ class BlockHeader(object):
         mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
         self.set_mining_nonce(mining_nonce)
 
-    def block_reward_calc(self):
+    @staticmethod
+    def block_reward_calc(block_number):
         """
         return block reward for the block_n
         :return:
         """
-        if self.block_number == 0:
+        if block_number == 0:
             return config.dev.supplied_coins
-        return int(block_reward(self.block_number))
+        return int(block_reward(block_number))
 
     def validate(self, fee_reward, coinbase_amount):
         current_time = ntp.getTime()
@@ -182,7 +174,7 @@ class BlockHeader(object):
             logger.warning('Headerhash false for block: failed validation')
             return False
 
-        if self.block_reward != self.block_reward_calc():
+        if self.block_reward != self.block_reward_calc(self.block_number):
             logger.warning('Block reward incorrect for block: failed validation')
             return False
 

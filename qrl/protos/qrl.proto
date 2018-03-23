@@ -304,9 +304,8 @@ message BlockHeader {
     uint64 reward_block = 5;
     uint64 reward_fee = 6;
     bytes merkle_root = 7;
-    bytes PK = 8;
 
-    uint64 mining_nonce = 9;
+    uint64 mining_nonce = 8;
 }
 
 message BlockHeaderExtended {
@@ -377,8 +376,6 @@ message Transaction {
     message CoinBase {
         bytes addr_to = 1;
         uint64 amount = 2;
-        uint64 block_number = 3;
-        bytes headerhash = 4;
     }
 
     message LatticePublicKey {

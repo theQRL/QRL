@@ -257,9 +257,7 @@ class TestPublicAPI(TestCase):
             return_value=Block.create(block_number=1,
                                       prevblock_headerhash=sha256(b'reveal'),
                                       transactions=[],
-                                      signing_xmss=alice_xmss,
-                                      master_address=alice_xmss.address,
-                                      nonce=1))
+                                      miner_address=alice_xmss.address))
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
@@ -284,9 +282,7 @@ class TestPublicAPI(TestCase):
             blocks.append(Block.create(block_number=i,
                                        prevblock_headerhash=sha256(b'reveal'),
                                        transactions=txs,
-                                       signing_xmss=alice_xmss,
-                                       master_address=alice_xmss.address,
-                                       nonce=i))
+                                       miner_address=alice_xmss.address))
 
         txpool = []
         for j in range(10, 15):
