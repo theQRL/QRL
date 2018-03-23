@@ -57,7 +57,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
-                    block_1.set_mining_nonce(656)
+                    block_1.set_mining_nonce(162)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -108,7 +108,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
-                    block_1.set_mining_nonce(2)
+                    block_1.set_mining_nonce(339)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -170,7 +170,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[slave_tx],
                                            miner_address=alice_xmss.address)
-                    block_1.set_mining_nonce(2)
+                    block_1.set_mining_nonce(1)
                     result = chain_manager.add_block(block_1)
 
                 self.assertTrue(result)
@@ -244,7 +244,12 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
                                                miner_address=alice_xmss.address)
-                        block_1.set_mining_nonce(73)
+                        block_1.set_mining_nonce(71)
+                        # Uncomment only to determine the correct mining_nonce of above blocks
+                        # from qrl.core.PoWValidator import PoWValidator
+                        # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+                        #     block_1.set_mining_nonce(block_1.mining_nonce + 1)
+                        #     print(block_1.mining_nonce)
                         result = chain_manager.add_block(block_1)
 
                     self.assertTrue(result)
@@ -258,7 +263,13 @@ class TestChainManager(TestCase):
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
                                              miner_address=bob_xmss.address)
-                        block.set_mining_nonce(6)
+                        block.set_mining_nonce(91)
+
+                        # Uncomment only to determine the correct mining_nonce of above blocks
+                        # from qrl.core.PoWValidator import PoWValidator
+                        # while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
+                        #     block.set_mining_nonce(block.mining_nonce + 1)
+                        #     print(block.mining_nonce)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1519601174 + devconfig.minimum_minting_delay * 3
@@ -266,7 +277,7 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                miner_address=bob_xmss.address)
-                        block_2.set_mining_nonce(2)
+                        block_2.set_mining_nonce(5)
 
                         # Uncomment only to determine the correct mining_nonce of above blocks
                         # from qrl.core.PoWValidator import PoWValidator
