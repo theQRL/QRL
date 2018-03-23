@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import heapq
 from unittest import TestCase
 
 from grpc import ServicerContext
@@ -289,10 +290,11 @@ class TestPublicAPI(TestCase):
 
         txpool = []
         for j in range(10, 15):
-            txpool.append(TransferTransaction.create(addrs_to=[qrladdress('dest')],
-                                                     amounts=[1000 + j],
-                                                     fee=j,
-                                                     xmss_pk=get_alice_xmss().pk))
+            tx = TransferTransaction.create(addrs_to=[qrladdress('dest')],
+                                            amounts=[1000 + j],
+                                            fee=j,
+                                            xmss_pk=get_alice_xmss().pk)
+            txpool.append((tx.fee, tx))
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)
@@ -305,6 +307,7 @@ class TestPublicAPI(TestCase):
         chain_manager.get_block_by_number = Mock()
         chain_manager.get_block_by_number.side_effect = blocks
         chain_manager.tx_pool = Mock()
+        chain_manager.tx_pool.transactions = heapq.nlargest(len(txpool), txpool)
         chain_manager.tx_pool.transaction_pool = txpool
         chain_manager.height = len(blocks)
 

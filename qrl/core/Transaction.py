@@ -193,8 +193,9 @@ class Transaction(object, metaclass=ABCMeta):
             raise ValueError("Invalid xmss signature")
         return True
 
-    def validate_slave(self, addr_from_state, addr_from_pk_state):
+    def validate_slave(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        # Validate Slave for CoinBase txn is no more required
         if isinstance(self, CoinBase):
             master_address = self.addr_to
             allowed_access_types = [0, 1]
@@ -306,7 +307,7 @@ class TransferTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state):
+    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -410,7 +411,7 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, addr_from_pk_state):
+    def validate_extended(self, addr_from_pk_state: AddressState):
         if self.addr_from != config.dev.coinbase_address:
             return False
 
@@ -487,7 +488,7 @@ class LatticePublicKey(Transaction):
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state):
+    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -566,7 +567,7 @@ class MessageTransaction(Transaction):
             return False
         return True
 
-    def validate_extended(self, addr_from_state, addr_from_pk_state) -> bool:
+    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState) -> bool:
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -688,7 +689,7 @@ class TokenTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state):
+    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -854,7 +855,7 @@ class TransferTokenTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state, addr_from_pk_state):
+    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 
@@ -971,7 +972,7 @@ class SlaveTransaction(Transaction):
 
         return True
 
-    def validate_extended(self, addr_from_state, addr_from_pk_state) -> bool:
+    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState) -> bool:
         if not self.validate_slave(addr_from_state, addr_from_pk_state):
             return False
 

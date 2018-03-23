@@ -65,6 +65,13 @@ class TransactionPool:
 
         return -1
 
+    def remove_tx_from_pool(self, tx: Transaction):
+        idx = self.get_tx_index_from_pool(tx.txhash)
+        if idx > -1:
+            del self.transaction_pool[idx]
+
+        heapq.heapify(self.transaction_pool)
+
     def remove_tx_in_block_from_pool(self, block_obj: Block):
         for protobuf_tx in block_obj.transactions:
             tx = Transaction.from_pbdata(protobuf_tx)
