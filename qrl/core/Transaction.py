@@ -249,7 +249,7 @@ class TransferTransaction(Transaction):
         return self._data.transfer.amounts
 
     def get_hashable_bytes(self):
-        tmptxhash = (self.addr_from +
+        tmptxhash = (self.master_addr +
                      self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.addrs_to)):
@@ -370,36 +370,23 @@ class CoinBase(Transaction):
     def amount(self):
         return self._data.coinbase.amount
 
-    @property
-    def headerhash(self):
-        return self._data.coinbase.headerhash
-
-    @property
-    def block_number(self):
-        return self._data.coinbase.block_number
-
     def get_hashable_bytes(self):
+        # nonce only added to the hashable bytes of CoinBase
         return sha256(
-            self.addr_from +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
+            self.master_addr +
             self.addr_to +
-            self.amount.to_bytes(8, byteorder='big', signed=False) +
-            self.block_number.to_bytes(8, byteorder='big', signed=False) +
-            self.headerhash
+            self.nonce.to_bytes(8, byteorder='big', signed=False) +
+            self.amount.to_bytes(8, byteorder='big', signed=False)
         )
 
     @staticmethod
-    def create(blockheader, xmss, master_address):
+    def create(amount, miner_address, block_number):
         transaction = CoinBase()
-
         transaction._data.master_addr = config.dev.coinbase_address
-        transaction._data.fee = 0
-        transaction._data.public_key = bytes(xmss.pk)
-
-        transaction._data.coinbase.addr_to = master_address
-        transaction._data.coinbase.amount = blockheader.block_reward + blockheader.fee_reward
-        transaction._data.coinbase.block_number = blockheader.block_number
-        transaction._data.coinbase.headerhash = blockheader.headerhash
+        transaction._data.coinbase.addr_to = miner_address
+        transaction._data.coinbase.amount = amount
+        transaction._data.nonce = block_number + 1
+        transaction._data.transaction_hash = transaction.get_hashable_bytes()
 
         return transaction
 
@@ -411,40 +398,31 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, addr_from_pk_state: AddressState):
-        if self.addr_from != config.dev.coinbase_address:
+    def validate_extended(self):
+        if self.master_addr != config.dev.coinbase_address:
             return False
 
-        if not (AddressState.address_is_valid(self.addr_from) and AddressState.address_is_valid(self.addr_to)):
-            logger.warning('Invalid address addr_from: %s addr_to: %s', self.addr_from, self.addr_to)
+        if not (AddressState.address_is_valid(self.master_addr) and AddressState.address_is_valid(self.addr_to)):
+            logger.warning('Invalid address addr_from: %s addr_to: %s', self.master_addr, self.addr_to)
             return False
 
-        if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.warning('CoinBase Txn: OTS Public key re-use detected %s', self.txhash)
-            return False
-
-        return True
+        return self._validate_custom()
 
     def apply_on_state(self, addresses_state):
         if self.addr_to in addresses_state:
             addresses_state[self.addr_to].balance += self.amount
             addresses_state[self.addr_to].transaction_hashes.append(self.txhash)
 
-        if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].balance -= self.amount
-            addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
+        addr_from = config.dev.coinbase_address
 
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
-        if addr_from_pk in addresses_state:
-            if self.addr_to != addr_from_pk:
-                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
-            addresses_state[addr_from_pk].increase_nonce()
-            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
+        if self.master_addr in addresses_state:
+            addresses_state[self.master_addr].balance -= self.amount
+            addresses_state[self.master_addr].transaction_hashes.append(self.txhash)
+            addresses_state[addr_from].increase_nonce()
 
     def set_effected_address(self, addresses_set: set):
-        addresses_set.add(self.addr_from)
+        addresses_set.add(self.master_addr)
         addresses_set.add(self.addr_to)
-        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
 
 class LatticePublicKey(Transaction):
@@ -466,7 +444,7 @@ class LatticePublicKey(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-            self.addr_from +
+            self.master_addr +
             self.fee.to_bytes(8, byteorder='big', signed=False) +
             self.kyber_pk +
             self.dilithium_pk
@@ -542,7 +520,7 @@ class MessageTransaction(Transaction):
 
     def get_hashable_bytes(self):
         return sha256(
-            self.addr_from +
+            self.master_addr +
             self.fee.to_bytes(8, byteorder='big', signed=False) +
             self.message_hash
         )
@@ -634,7 +612,7 @@ class TokenTransaction(Transaction):
         return self._data.token.initial_balances
 
     def get_hashable_bytes(self):
-        tmptxhash = (self.addr_from +
+        tmptxhash = (self.master_addr +
                      self.fee.to_bytes(8, byteorder='big', signed=False) +
                      self.symbol +
                      self.name +
@@ -789,7 +767,7 @@ class TransferTokenTransaction(Transaction):
         return self._data.transfer_token.amounts
 
     def get_hashable_bytes(self):
-        tmptxhash = (self.addr_from +
+        tmptxhash = (self.master_addr +
                      self.fee.to_bytes(8, byteorder='big', signed=False) +
                      self.token_txhash)
 
@@ -924,7 +902,7 @@ class SlaveTransaction(Transaction):
         return self._data.slave.access_types
 
     def get_hashable_bytes(self):
-        tmptxhash = (self.addr_from +
+        tmptxhash = (self.master_addr +
                      self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.slave_pks)):

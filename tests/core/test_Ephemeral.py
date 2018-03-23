@@ -81,9 +81,7 @@ class TestEphemeral(TestCase):
                             tmp_block1 = Block.create(block_number=1,
                                                       prevblock_headerhash=GenesisBlock().headerhash,
                                                       transactions=[lattice_public_key_txn],
-                                                      signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.address,
-                                                      nonce=1)
+                                                      miner_address=slave_xmss.address)
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block1.blockheader, False):
@@ -130,9 +128,7 @@ class TestEphemeral(TestCase):
                             tmp_block2 = Block.create(block_number=2,
                                                       prevblock_headerhash=tmp_block1.headerhash,
                                                       transactions=[],
-                                                      signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.address,
-                                                      nonce=2)
+                                                      miner_address=slave_xmss.address)
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block2.blockheader, False):
@@ -147,9 +143,7 @@ class TestEphemeral(TestCase):
                             tmp_block3 = Block.create(block_number=3,
                                                       prevblock_headerhash=tmp_block2.headerhash,
                                                       transactions=[],
-                                                      signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.address,
-                                                      nonce=3)
+                                                      miner_address=slave_xmss.address)
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block3.blockheader, False):
@@ -163,9 +157,7 @@ class TestEphemeral(TestCase):
                             tmp_block4 = Block.create(block_number=4,
                                                       prevblock_headerhash=tmp_block3.headerhash,
                                                       transactions=[],
-                                                      signing_xmss=slave_xmss,
-                                                      master_address=slave_xmss.address,
-                                                      nonce=4)
+                                                      miner_address=slave_xmss.address)
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block4.blockheader, False):

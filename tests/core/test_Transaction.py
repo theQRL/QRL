@@ -28,12 +28,11 @@ test_json_Simple = """{
 
 test_json_CoinBase = """{
   "masterAddr": "AQMACCOCpS+LqcLTOtgHws3VvQhsLC/mPG6hO2MNEoCJTDo54cOA",
-  "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
+  "nonce": "2",
+  "transactionHash": "x/Ph4JLnD0mpQ6Fi3osRCJm2CrHa/QxyYl+6b8GtzQE=",
   "coinbase": {
     "addrTo": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
-    "amount": "90",
-    "blockNumber": "1",
-    "headerhash": "cbyk7G3tHwuys91Ox27qL/Y/kPtS8AG7vvGx1bntChk="
+    "amount": "90"
   }
 }"""
 
@@ -73,74 +72,74 @@ test_json_TransferToken = """{
 }"""
 
 test_signature_Simple = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
-                        "3c3f3f6cf7134148dd1c73bb30e17a0451217a9cca93807bb212efcf7810a524" \
-                        "909ebcd17e3db32b97edba3a7de58f1673e09a0c83a059793d3b5df4ddf44cc3" \
-                        "839473039659fe44cfe75c35d3ccba6b68bb2f1f9cbd194507bb52f60e89e62d" \
-                        "cf104d0fa92fe004db5c69c9268a850acdf153f1e8aaedfc65e9b41214d393ac" \
-                        "3e201fdc5e34a68e794728d2b388cc0ea10d5918bf7954b4876deb03693ec44a" \
-                        "6f2fd2efe307bf24f3fb550eb0a3a2acd0907e30abcc07acf3fc7136c455cb61" \
-                        "180a2d23f7326dcf2f564c92480ff19ec6699c3dce45f61791dd60cc5285506a" \
-                        "67d408d807436a6ef7e39bce60a636eace75be0f7047aa28340d1debd49cf5cf" \
-                        "c673f7256a6e2195ccca792bb6511b2c2b45888878d05a27ea129627da356c0d" \
-                        "e849840a4977e502cffc30ebdf04cd5ac7038865e2c3c1262fb77e31f2fbd8c1" \
-                        "eba24a76768bc16de9588ee4afc665cae752feba0b3aa407d686002acf320bc1" \
-                        "0bb738e487dbe406d00edd7b1d84d4a9b039f30bd466b95a87430bcecdf79ebb" \
-                        "da11b9adbda3c387957078d918098bd79eb68185e596bb63e930f6cac38a5055" \
-                        "f755ff5738242a2d3b1f93153fd90ab349fd651ff27dc339602f324e4fdc98cb" \
-                        "5dd4712976688612390460fd4832fdbcad01b0481229bcb44bd2cb62e01305fb" \
-                        "0ff09930b7e9700d8057fbed7c5ecc2cfed68d77e51f8bb9ea5ab0d768c5d365" \
-                        "0194ea64089bea773cd325b9215d3ae8fdb63eb120b54af4fe478344014593db" \
-                        "400efaf05bdfe1218fa0c9104b14bc87d81bc98d3b86ff90e44cf8d3dab89f25" \
-                        "853eb4862c4a070a10873e47477fd5dc35362de92cb72f9becf1e67a9130473f" \
-                        "91ad4e127105bc9fe284eb7cdb41f5016a585deb2ba9b0fd41d21f32029a60bf" \
-                        "40c322be30e079a06fc0f64d40934bb6c2f2b3398d37edd388e5386faff438ff" \
-                        "e0c16283667df70eb9b82e99bf11abd06b07629becdb0f707f2f1d689d2679b5" \
-                        "e50577747f7130500000458437368f013de9ec6bd7014ff18f0d5104f4d841ad" \
-                        "c738d7c42977c1f43367acc0895af37a68753aee0a1f06548a2f46f448b92915" \
-                        "5511821bd7b2249e9881fce33283cac44d3d6c41ef416f7b761a4487ef329a67" \
-                        "0753e73773c5b9bec2a94d1a6491ec72698d0c70575a63a4a7135c10fdc25157" \
-                        "f00722029f743ceb0ca1ba1dd44c0928bfef20f94b5b4fc6873574046c3a3696" \
-                        "e01b4c81155bbc79f2e1bc3c2cdb5f63b76f6c295ab08cfad4ba4f1d83043bf5" \
-                        "89ee6507b29b0ba4b7347aed5f192925c4cc14e9a2e977e07223c3845551adf9" \
-                        "6fd9bf3a89ac4de38b57287dd47f9c4aa788570b29dfaf5f58fc0b0b915252a9" \
-                        "d3e8350ba66848a4e26cd2fefd9a92b8a0679afba49e6fa71288b08b3f0c0867" \
-                        "0871d205de86de79422c3807450c990ab080f07d76f46935475e3d4a8ba2aa72" \
-                        "5865afc3577c09e4aadb6f0e2ee973c6192c6e5876c1d0fcbb1e54fd022302c2" \
-                        "e5752cb5783cbfaa194d6fcc92b566a3ac41ec6c3fdbb26228ea014975fa584e" \
-                        "55c57f5a3f92c5df896df6010091c6d6fdd30621c9ac62225e38abfe6757830b" \
-                        "d2019a58f976b6d1fbbeff0c0e667151e72f4def3f70630e2c9bfa3f6011c954" \
-                        "244fbe280dc66a5d2fb031b72ac9106158ff1d40d8b3649354d8a077db077533" \
-                        "ad50fa2572781e487f13f1359eb22eb024430c00e51b1205630de20c591000c7" \
-                        "6e7116206b118bf3471cb2082231e30f698dde4af3e07a2d33ae4973a42ac28e" \
-                        "3c5646b223b0eae3539e266268e3fb12557329d2e9b6f6300b3ef01480e0eb9d" \
-                        "a50ffb90c8de5fdd98cb05862a863fe9f62a5ccfa7b1634e20c0434d3cd769f8" \
-                        "ceb7d0b60bd64b91af890e3f397a136fdf5fefefa183483b2b7661ae137da071" \
-                        "0f5617b9d6610809d1382ee89dfbab62cc5c42a6de5dbadf37f5cb7ff342fb82" \
-                        "6f81372cbade4c5ec73548208671187f7b564c514ad0364ff8c074e10ff9a97a" \
-                        "db4a8e2f707f4908432a722daa116faa11f74d076d022df1fee44e1e40e330c7" \
-                        "b1f45f0955eb2167664d7e29d8a65647bde1cb81ec5f754eab732a6bc7942281" \
-                        "83aee9e94bbb2dc83721142a89d162e65e9a875fd71422911c9da9fd61fdf61d" \
-                        "0ac6dfbb41b8ab2a26b9787ac9f38e6696968b80dada5d63e71e58d4a8a1333d" \
-                        "471b91d35f4393bef9bba590336119b9f7d87f546758deb4e5480b882e81de6a" \
-                        "dd37945c9ddba84472515f380f468a9dab4bce3cc562f9262309f9af9b0c532d" \
-                        "a64f0bd1c89e4923e42201e5180e6829c75c64aad26d3be19727665e019b15d4" \
-                        "5c03cc41846ca40249e396ad31b467eef233c0556dd0edf50ff06e2d9bdf622e" \
-                        "0a69b4da84e241bcca9fb170572f2ab032c52e772120893e20fd2e550d577104" \
-                        "ffcd3b74876c9e1893b094dccdf4dded0df453dce7977f11248fb5b9cc5d5f19" \
-                        "afadef3283c1f3b7dc392c0887df8bb403dc382b64e17834005885fa4fb39250" \
-                        "4a1e7a73eae39daad61bf7381674245000a65e48432b62c658a5f01432ea0564" \
-                        "0462417ae89f765ba2c0ae9b4a9d31800fbd72e80adcfc88bd4ccd7e58990ae5" \
-                        "ecd17123614b435be6105e1c8d4a5909f30ee94ef3051d42eab9799c80e34ebb" \
-                        "e8f782f8cb7f9eb802aca4c1578fce45823117e5f9ea4139592d8e608e59335d" \
-                        "076a4a3835165efe7f3d7c1ccd38039fb49aa8917610a02a22b0e01e6277d483" \
-                        "dc9a3bd39edfab15df2ada7d622cbbdef9da5a297250448341e33862677b63dd" \
-                        "90643bc70278f83a65ba5fcb407afc83da95ea3a4dd801e5798554bb6cd57b34" \
-                        "92e1d269b77c5c6109f099685533419fc2a788c476ef4bd7773145b8e8128fbe" \
-                        "f3a95dfbbfe3cde1d2dbb16eaa47a28e0b4b1ed9de45237f79c50de0b6d1ed0a" \
-                        "981b86382111ea986fd011fe4b0d9c728c5ef5d30eb1e175aed1b8881c7fc396" \
-                        "9da0ba075e59a7d9db3b89a7f348ceddc3ba47e6097e56a51d8672902b1bd7f8" \
-                        "bf9487711e6b056b88bdbfbc3e9ffd26832097418c866108ea2cb38def9968ff" \
-                        "29e42efae9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
+                        "3c3f3f6cd87250b2ad225ced6b8c902a5fa1ecfacaa6744f6f42323ee586d873" \
+                        "f066388ab9f17ad396aed963678edeab3e6e35c082ecd7bb8ef568f2da92fb2a" \
+                        "7336a7d58fe826663094cba678fe71cd3221bff405f9110acfa4ea58b6a908d4" \
+                        "e3bcb5e555571dc4bd2201c87488c1c68162ebf51b59576a4c0cfdf034f2ab32" \
+                        "9dc157345e34a68e794728d2b388cc0ea10d5918bf7954b4876deb03693ec44a" \
+                        "6f2fd2ef34d07dc3cc49dfaec2612d9ae94881e3bbba86991e935d2b585be306" \
+                        "7f9b91b5d20dce21742ce4cc0b20eb575c86b428a9f2a9ed1905d67250a8b0ba" \
+                        "6b2c70ddc2b832c21ffdf526bfcba0596e4a9dd36dc95d42c27dc235cd482464" \
+                        "ef27c8616a6e2195ccca792bb6511b2c2b45888878d05a27ea129627da356c0d" \
+                        "e849840a2c40dabca5bdd462bc16f6b85a163b8727cf4a806814770fed8f91cc" \
+                        "7106097585df2ff582aaa58cac02d7a6b8c13c655619f04bd95e7819e9353f9f" \
+                        "c727e023ef1b89b72c3ea2c6c89edf4917071690984a1b4644ec523975fe2cbf" \
+                        "113246184d6f5a5b0fc6e925605ef930009415ccb292db9983ecfcaca62601c1" \
+                        "860418dcb73ca1958f83febb53cccd3b1b3767ac9d18a9446817ffbfccc7ebc7" \
+                        "dd33e1876475e5d9d325092d1572b9211df2a1547ea08d49c2d3b6441bb89c38" \
+                        "db466135b4c2ebe50885861560ce20bebb96ccbb166ddfeaad1507089eb385a6" \
+                        "c40d7f94e04eb00d916ecb8fdc14908feb3db6f026e13d5bf7c60ff887ad5ccc" \
+                        "9cd295327da6a2c091f82a98cb7ab34c2e49541714ee9f55b3963d7ee8f1f870" \
+                        "73fbc5c75e1f86e78b149ac7fe764b326e18404203863641ba9fad2b1a038c7e" \
+                        "c1abb0b3ec07183e749b4a57f8eacac0ee2192a9474f63adb35c91abb449fe50" \
+                        "de1858342d3c9f0eac99611115c52e002470e43f95a1fa7b666263eebdc3433e" \
+                        "68be9534c2552eaa461c93911102075ce3e10e1c4bad91b2bfb961e31ab8138a" \
+                        "863f0e429a10fef69e6d318f8bd6cc7523b905c1e3ec097d668fbf478b30cb3d" \
+                        "2cae1ba4ff33b481e05c9049756621e7627cc8860153fe641691993b28f5232b" \
+                        "b150a5f9b0dd0af07834f9dcdf4aa77fc689fedb190164b356aeabcc3e531f66" \
+                        "d30481369a93b10e1fdd4d426f23602184ca8fea5be3353e2d0902cc48df1246" \
+                        "4d432e7dacc3e3556bf4aa2969caa0e7888ed3cef8410421ebef187a99361caf" \
+                        "eda041df53fe1a494534e4c9117c48b3916843dc5252b5bdb56bb5d9effe5819" \
+                        "d22174e5c62e47c124e5bd10102d9894e605827e5914d3c10818162ac5fa4030" \
+                        "b0dbc56d08ada3884320309601580f85f94b7a1d180e33f0ede9a7d1b3a46259" \
+                        "8de014c6953de1640f706c060e3b92e259e829752e42e70dea78e04e1ac9c5a8" \
+                        "74a77d1d3cc7760c92aea2a133509efd579e8c9ad994c02e7a1411031698702c" \
+                        "247726141291ec7ba50d58f70cdaaf9c4a9ca6590778139c8c66465e2d032f61" \
+                        "55946f7e03433add23065e774c3887743cdb8b38807c292436a973d6aa235d0c" \
+                        "ff3a872dd3c864ddb869a2a247a13a4e7e9792e25371d3af6957e8ce9806b27b" \
+                        "cc92369a4b6bcd4b84eafcae09ad1278a349321c8084ce24c9d389540e6893aa" \
+                        "09347b00fdf56441b82074295c2cb0fe0b7afc3bd58f217eb0aee5d6fc265ba8" \
+                        "c459cc9588473307c743c3803fb5103544c3bcec638aa0e608211d6155d401d3" \
+                        "ee3c2f836b118bf3471cb2082231e30f698dde4af3e07a2d33ae4973a42ac28e" \
+                        "3c5646b2844835358269548156509c6efa6c0604f1852cae15495597f270df31" \
+                        "4d73171ff7b308bcac078464754c6d18f27032ea85e407b45fe83354067c5bda" \
+                        "2f82dc9854e90a07a11844836a0b67a80d2375c4f6289e724a5cf8da34a3248d" \
+                        "1d00eaa3ae0f2389a80b51ba813fcaa638a8eece14a85ee64ff8d735e7a1188f" \
+                        "ccf5dcedd17acbb8d46d149087cb1334780e37a0a43b604e1c45356ac3067e13" \
+                        "b8ec1eefe24d775848e5a891a6f23ff84dd70bb81585c00ae7d390a0d80fde58" \
+                        "fc1bfb47c12e749506846ad7d6cd0f4bcc35d49ae7e89c80d4594eb66d8a0db6" \
+                        "de4ff4c0df82deb74554a65fe021d1b8996aca9ba97be8e6050a4302a7872686" \
+                        "1942a663363893d5367ffdbd85ee86ade84ab492682e3a6bd67e27b534a0356b" \
+                        "53db39e13c3a825296e2330246d27b3b66cf6db99c87403d372b1f2e9ece2d49" \
+                        "cad96146b43ddefa92f6187c63804f9da5d1266caa5eb0c5dbf4cf627adab1fa" \
+                        "2a47f0acc89e4923e42201e5180e6829c75c64aad26d3be19727665e019b15d4" \
+                        "5c03cc418aa1f64ca8ce7d857176784778a48233114a8b87b36b3b4cb93ccc13" \
+                        "5ac93060d0309a9fe346ec7db8dc525d9d2a67b1454ed6f3b388d4163b4d13e5" \
+                        "02b95e7c69cf1b6b382d0bb58fad46463165a723cd5b65d4e70058fd1c9c6363" \
+                        "ffa5d170e2c0f22b823a5156eef56553761092b4d581c13e1e47c46d69ed4b91" \
+                        "3af1e271f68cfcd43d8c0681590b2abac50ed3bc33fb67f5b71daab8886ca2c6" \
+                        "9e073a5edd821ccc615f45603202c40bad1e338fbf45b1c92d4d04f4e45c28f5" \
+                        "3188a807cd62e6d38098a56f2d4c72b1a681a08f17178b447a880dd883ce49d1" \
+                        "8f36bb7e1341128c9de9f7304cce08ace4f1444cce7e750fe3dd85cc0f6dfa32" \
+                        "55a66d083807b3459b4b4130b261eaac342b298d884a1696d5253535d96923ee" \
+                        "00359ef5c9941cb00c9e1a5fd53004439a1cf353e14fe4912f07e2822ae81ae6" \
+                        "cd5d8b65b875033859025d4d3c9265614b085daae72b160f471c77f6af443ac9" \
+                        "61175698b77c5c6109f099685533419fc2a788c476ef4bd7773145b8e8128fbe" \
+                        "f3a95dfb9879157f1c9722c2d00b28452c606037156bcaf68cbbc8f6d4fd371a" \
+                        "1acc0ed96f7e524fc9e31d5400049be470af36b375943d6fd33d4edd6fc64514" \
+                        "1d3b735cadfb36679a959451e66714b041e9879566d50d8f13e5a4eb519b53b2" \
+                        "9e0cc58aa36f19e4bf59a90736d83d4c371d29ae6601201e3329f71922802e6c" \
+                        "f728113de9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
                         "e14296218d9e075ae892eb5bb3e8e41568ab594809f2bc173a38649123a86dc6" \
                         "a9f58e48ef5c2c90feccc6a6b1f3f90bcbf233bd0347d4c95b1818c93fe7f250" \
                         "5252d9176958b64cc5a7a6c2b99b6adebc3a66e3c07d2343ec0072fc32645100" \
@@ -148,151 +147,75 @@ test_signature_Simple = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34c
                         "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
                         "98675eed"
 
-test_signature_CoinBase = "0000000b301cf03639633dc916fd972bf6555482329b49b0f54a1e2e56c2059c" \
-                          "14c6dd581fc09bfb75706c161f7850638c76ea0e50e3e0c3f3a723699f4980e7" \
-                          "48faff5b46c9046ce45be51480aa092ee3c9bc2711113b871fbc2300c3b5a4b7" \
-                          "d0f1bbb4130e8170f682d8c0fbde93fef4afa154c1bec8c5e07c227b46f6d3ed" \
-                          "61b36f322251455fee02c9603d414cec6a571f5d6580fcffbe228ba6226e1984" \
-                          "a710452761021137c7c6fa4c889ea0b1a1d6559c5503d4ffb44d637c6dcc0813" \
-                          "02d9c2f97e40b9d6178ee7c187cfb8b719043ba65954b7fd62875282b5dc47fb" \
-                          "2cbb47c538be446eca30216731adba1593f10cd3a57f167563cb8ecc58e89ea9" \
-                          "560d6afda92973c3caf89c10694b116c247239dab368cce5632f549d7420cd66" \
-                          "87df8f019c4132f74e5975b2fc1b36bb5d3b595d72a5f4003c48812ad8e71b6f" \
-                          "02f211efc29418051de7a3dc7ec70b85b3e3adcbfa0e4567d9fe1c603ca4a2cc" \
-                          "a0395a9dae71cae8572e829dc5833301db8738dcd362fbac1d1e040b9892a5a8" \
-                          "38023964e83437fc6bb10d39c72e9e11f98090c4430f9c44861e899c14fd88bb" \
-                          "2c4927124dab00d46fc9e1264a0577d3fca7fcd72b2f577ddca29b2e0c53d843" \
-                          "f92fc338168e4f01c3fb746df6eac812b4b195c78b2ed63cc69d27e71a7244f2" \
-                          "a0a27c542f1d46be6ba45da62c954fed959d9ca0ace661308a82999587b12002" \
-                          "d1cdc35cd32d268088c614b3ed241cc268c71662b35d339a297b057f91999150" \
-                          "054c877f9b8928805f189838fdb6bfcadf8f1ce5572dc8d941ee5792933c2cc8" \
-                          "30c92b74a8d7efb9803af54d6e622c3ef638765d63f66bbbb5e0f88cd3d4dddf" \
-                          "985a73f8842d4012506356bedc9fdcf0c32f5ec4cf5d0881d2c5fa9b877b13d8" \
-                          "a013b26e78ecb6bc3742287acecdade1c83a1ef7609f677826dcd7fefb54c55f" \
-                          "e62935231cd9e55cad2443cde81c628b1b48962b55d9b93d438ad716c5300a9b" \
-                          "311123b69fee2ba152417d7ff4c1bdb3abd11601f3197340791a6cd1a0ac8b75" \
-                          "a3773096ca250dd03710d1d468726b38b32f3527b05b30d4ac4694b5905fd7d9" \
-                          "54a132f8fc1ae24fa80454a425914b9887a31aec8f6461a455c4bd9656c82eea" \
-                          "f681651778e93e6e5446c2c241175dd6a9bfdfd4f7a16a491784465dface395f" \
-                          "81e786553390bf2fd6d3b79fc3580f24702503120fe13b9990350d7f54f8fc89" \
-                          "bd6fbc016f3c82557f5abc08b75d0709e5348aced7afc4152bdffcfdb8411054" \
-                          "35eefeae524f3467fe2a9d570cddd44b7699ced8084c400a85ccf383aebbe105" \
-                          "50a333cb942ccb5070dd403ba4033edc4bc0858c37214974ad3114aacea3d5f4" \
-                          "31fa6772463e20036afb4af3ef4b3c12f14475092c2982dd976995f87474ac99" \
-                          "17109af9ae58008524323de8fcf1be16042dcb0e60446b4a6da30eb5c99e0e43" \
-                          "3223aa5571ed06c0c1f2e9da5d5ff25d29e05cd996863a356a316b736bc78ba7" \
-                          "9a4348b7a450fb64d2a6dc08042745081f163d41b0010c4687588b78676945f7" \
-                          "e550afe97b30b62de8815cea92186526ad13bd1e309b34bd45b49419b23502d1" \
-                          "4bc2803dbb95eae646c56ef1af5eab9c2255666e3d845152fdc9cea4a0e9e07f" \
-                          "208b258b8a2b2499f591bd71347a66b43f66dea81ff8f4fed498ccbb2b0559bf" \
-                          "441826cbdbba99680288c02cb09b4492c60c902783b1749f93c863f204ce0eec" \
-                          "5c2e976b4a74c76ccbdb6db0737322f9dcfa4ab8bc6a2e0b9d897e623e7eb300" \
-                          "ef52117bcfdba72d5201f5370810973fbc0559641edf916a7617811e61984343" \
-                          "53ef8a8e9c1d450bd53f6bb03277cba3396ead56e370fcf567cca09af734b7e5" \
-                          "a3496fac5018f0fe54500d10f4c748cad6f53fa3f366e02ea36ce3326ee61b2a" \
-                          "18050103036abfdb8e4cb0ac837a23cee3a091d58813e450083621d9b3b639ee" \
-                          "c5035de50c3caca862918df6cb4d31349d9ab6f918ec6c4de560014f0e32620e" \
-                          "04abdc9aa64c763965a579b2e2958e32c20d0c09f19aaadac544e1083dcd00b7" \
-                          "2059a5bd962e4df67bdd8ffc8d0a7993a61ec132c828d0b814c45c70b99a8f55" \
-                          "ff9eb192fbe92ee043d6a5b9abf7ee50dd8bcf1ea268188717c94390151f19c8" \
-                          "5494db0c0b20c845230540fcfb581b54042acbcb2ea2d8c7cc8e0f30bfb9c135" \
-                          "10a0c95c888cc4a20cc5b62905d7a76030e8d6c425f9c4e068b7d16170aad53d" \
-                          "3ff87bc7087e5246089508d67ca22b1a1d873983817a3721c3918260f11ff84d" \
-                          "b5114f2b7d0767cd88a226a967f66c6f81a3afd87c8450d796e1803e0c30fdda" \
-                          "5a077c062ea6fffbf320625b0c482dba3a94e43a7517b1b41c63faf1a576a3d0" \
-                          "a0efc1752eba4bee627519aea007c51e95f0ef5a039ce3d9f3fc6ce862c2d0d9" \
-                          "db6dd5d439fd132f15e04a6dd985a55717f452e4ffc856fc5000ace6b679df9d" \
-                          "dd87e9f2031a0d9f0cdcff14bf216f42486da85a35930125d44099205e5c4663" \
-                          "abb1cbfe4487a5c698bcde5489506c1769a05af6d2858113da0172b96368bd55" \
-                          "6a1e502daa760881de711bb49c3dc7806eaa750a486e564aafc18804c750eea4" \
-                          "57174377db98c2fb56ddd0fbb5393ff596e686e721ee4af8cdfe91da4eaee298" \
-                          "dca7895cfa2030ef6072cd41731ca08143102972518d45dfd2f100d928489d04" \
-                          "b00b374e328215481b269f7c6f709733c0e33f86c34e9618cab2f1a51fed3604" \
-                          "85971712c830b879ee116f6a49a23ae67801ed2c6905e9329a81fc94f52c3d1f" \
-                          "c2b507c278ea3c08936b06c8fb1c98738185f377fb2ee94f303554c515a33527" \
-                          "471cc2a33718d2d237e4110b8cbcaba4e875527c3baa8f025d67599808a06278" \
-                          "07d9c2d42298134c62b739d007358e9aaddaadbd228212b5793fb4dc2dfe4fbe" \
-                          "fb57eef35436348572e01bf829517be498aa246551466b9cff03755cd95b68f0" \
-                          "7f68a9107062d2f7ab065682696c99d7087936ea2703fed889dee602238a143f" \
-                          "299c3a888aaf7b7d31214fe12d36b8260a4778b16591ae1f2d8726b934c8bd1f" \
-                          "1c22f558a764e484f7f0ce867d9d5e00a9fec19d45152098e479e8869a2be6f5" \
-                          "30076f6104a621417fbcba8108d0c6951d4873c4f36d09a1ed52afaa25c5ad28" \
-                          "0b33f12c8d9e075ae892eb5bb3e8e41568ab594809f2bc173a38649123a86dc6" \
-                          "a9f58e48ef5c2c90feccc6a6b1f3f90bcbf233bd0347d4c95b1818c93fe7f250" \
-                          "5252d9176958b64cc5a7a6c2b99b6adebc3a66e3c07d2343ec0072fc32645100" \
-                          "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
-                          "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
-                          "98675eed"
-
 test_signature_Token = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
-                       "3c3f3f6cb2e56f06c23ce4fe206b26f7c8c213c0b83405395ce087a071ab4f29" \
-                       "15af977faf540326292558f3ddadd208907f575fa783a1f25d9e05de2c0678ea" \
-                       "5aba805b7c028e5c975acd2471b5f5837b90ffcd10852d885ed570f351c89477" \
-                       "b759b9febe066b202ba0fd2943a28aaf2431649e206071f9073e2f65719e462e" \
-                       "bb7e2df486575887fd7ab5f7e7b41f5752b10d3fae2fbc631b6d6abe11355d4e" \
-                       "291843e8b028338598f6e2b88aa4411a4a86cf110473ce5319a7ade1b86ef223" \
-                       "aee39a1bf7326dcf2f564c92480ff19ec6699c3dce45f61791dd60cc5285506a" \
-                       "67d408d895fb959fc7c9e69aa7daf21ae5804d22c6aa6019000275bb6c1e382d" \
-                       "634565c14e429745b9f0f5942caaf9d06f9f6d0aa8cf196d970ee12d1e5427c6" \
-                       "e2e1f4d52146c5f7e49a998363da5e6914cf6304d27ad3fea113385c81983be3" \
-                       "736258b8b38d2dc81ee93e03e285507122239fd0801f878ab10cb87ed07f5f48" \
-                       "f628c32949ad50c86c4f8e13fce33b9ed75fce18bd3db318f8f92a86a831013c" \
-                       "797fb1bfd65ca991c694715d4c794d9d297f955a698ccd9e9996ddc0f432dea5" \
-                       "df4fd6b6e1868fcc1003d13e768d66ce3bbec029e52d56e3c792c3928ef08e23" \
-                       "11f658afdc3b8ff9d31f0828b31163402b885ca57a90be3f77ff90a1efa68ef5" \
-                       "b65f7afe088b7bf2c955589c0359089817a44965a06b7327004c896c2a93efe6" \
-                       "a530e58c089bea773cd325b9215d3ae8fdb63eb120b54af4fe478344014593db" \
-                       "400efaf00e56cc0403a6dc3c8cc2f905a7b5fbe0eb035e2b9e76530b78c487af" \
-                       "b8919dc3d78aa03ff22e49a558306f45f2b220e9c59b1cf04ebaf50da9962882" \
-                       "db701804ed1762dee373d25ee43cb5de67dc017e4a311d2bc242f8cb1361f644" \
-                       "d2095903960c799275dcf7d6214442c00be2b7677102f61a2ccce33942a1eb47" \
-                       "2b8c0d5c667df70eb9b82e99bf11abd06b07629becdb0f707f2f1d689d2679b5" \
-                       "e505777489dfb0a1e9dcde2fe6fe5496f9e4217720c46423e79a531a997bb75c" \
-                       "f2730d4aa09cff8338a101bdd4bf638a589ecc5b4dd0332740269e338f8349f9" \
-                       "881d9e578e466f992bc64befe9ed339c23676dfa4e1b6087cacc37498d8f3855" \
-                       "f74d0305fa790d128ca99a2aadb65b8ac55b8149bbb22b64070c0c3b9450820b" \
-                       "87cc86df9f743ceb0ca1ba1dd44c0928bfef20f94b5b4fc6873574046c3a3696" \
-                       "e01b4c81af31f246b0ad300691f507b37f297c3afb7fd2217848c421044eabb6" \
-                       "5b18f70ab57def74ca9397c3bb2811df5214dd56b16ddedefe2fe9f4e183c561" \
-                       "7c529af0d2bea614d0fbc2901e725fc9ce126b778d83340777bd626dc6a6b4c9" \
-                       "b95b1e786e031768f003cf4911436144a8558140b7a3d2f920feb45a290a9d4a" \
-                       "ea345571364545a5f615044e4b229d6017b8fcd31f2155110178ce96e6dd98ad" \
-                       "97ba45be3769ea1ff35f1e6f1e3ca7cefe67b9c6bf4edfd301271a71e619fa9d" \
-                       "2b7a3255bf055788c0e851cad41507b06f873e3eaa01cc53e714af90aba79395" \
-                       "9b3e21dbefb1a407da402f377584fae311bfd1719bcbfb8b1ba340a5ad9dbc2f" \
-                       "fb0ebb1a0e629f6ca1a5c5c5af6d35cfba74527df0d0631b9d0770e20ca73679" \
-                       "406e0f0f3191863db5d84463eaa7dd8a0b6835209ba500093bc66a80ab22a0fc" \
-                       "09d22f6576bd6e15cdc2a99e303967365386f60735814ae27c5456c8a4c8e2ce" \
-                       "793538170cb1a3089db078207ab7a975bd4cbd459fcafad253add213757be996" \
-                       "64660c7db6ef04072587b28782441641be578cc97ef4a4f04bbb8b96674a7384" \
-                       "1e1e70e67c95842d6bc1664041847fad326eac879b42d08a5402663bcdee434a" \
-                       "e5640d9403f22bdee253c01d47a142dbdede1ed53139d8da20929751e5f574b5" \
-                       "77b377062dc1b66fcc1caba75f413d6c087477df6f527c7a9b8c7f2b143d2cbb" \
-                       "684b1abe516e586513e1d38e5a84484a45cda9ff5413a3e0fd4fb4087e12f6de" \
-                       "752275d7767a9b5d81f2a16ed8ac51d2beedd31145d5d5cb5cc311e2de45eee6" \
-                       "6f4fde3da37d6ee5b6afdf22727bfc9d791259f735d2d71b124269152945c226" \
-                       "1c9f92eedf82deb74554a65fe021d1b8996aca9ba97be8e6050a4302a7872686" \
-                       "1942a66347929ef65a1424b5fb07d094a8a98a09db01db22bc6c5cf1e51d9075" \
-                       "0bc8224594322068041ce769f59760ffd593a2c97d04cd1fdefcbba79b7a7fac" \
-                       "eaf15952e4cba0f38a138a148ef12133ca534e161bfd812b61baec9f012b6fc4" \
-                       "a44b60a572e0efcf15d0f3ccbb51530d649c48b9c65279573b127a6780c25b2e" \
-                       "2c2cb22ea37361ba1683de2569d922ffcc0a0aa09710647c23ea2adf156a668e" \
-                       "d24e39331bf901805b07927b3bce154f12170775b7c02526868b4f6fd6bef6b2" \
-                       "cdc70bf90b5184034babd55fafae7f4d1d52ff7e6cc036c48da9aeb92210ae7e" \
-                       "0b31be4183c1f3b7dc392c0887df8bb403dc382b64e17834005885fa4fb39250" \
-                       "4a1e7a73129c3035e43e1a0c019fe04c465a535f7ac07ff07937a275b4d17ece" \
-                       "8e76ced02c72b0f7d154057d648594ef8590b508629732ad5a7c41a0a157ba9f" \
-                       "940518bb8a891a69ca2066769712536c7de9d6b2668c58b9c21a12b9d54aeb7d" \
-                       "945746431341128c9de9f7304cce08ace4f1444cce7e750fe3dd85cc0f6dfa32" \
-                       "55a66d083807b3459b4b4130b261eaac342b298d884a1696d5253535d96923ee" \
-                       "00359ef583aeabfc938e84a1ad4d8adbba6cef1d9e0d249fb56dfc765b4623ed" \
-                       "df009e51924671963291af73c1f043164404a965f32f82d6bd402a753b9d663f" \
-                       "4f3e15df540a466bcc7834b2ec0d833aa11e9e7a529df81ed4b1f88bfd8c2920" \
-                       "924359493a7ad481d7bd1a4906449cbe51ee8e56f2e06eefd063f9cfccd3f6f4" \
-                       "a99b5c6c2111ea986fd011fe4b0d9c728c5ef5d30eb1e175aed1b8881c7fc396" \
-                       "9da0ba075e59a7d9db3b89a7f348ceddc3ba47e6097e56a51d8672902b1bd7f8" \
-                       "bf948771c68be98cc1c55826e0cdd24cfe56227d071e7aa802ecd9fb656da970" \
-                       "a65bae77e9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
+                       "3c3f3f6cc186a29f9a39b38d7dd73a51f5dcdc759f9349e9a33ec47aa9e1171e" \
+                       "fa0426b30d5074b25cdf27cf21938f1a6a208ec739f47c982613218b48c5b02b" \
+                       "fd4052a923f916073913b9f3095c0ed7f300d833ad0ccdcc3f2469e228b83466" \
+                       "b86dd76067016d5c5c3552b3314bacd53ab5442129540ebf6047fab4e3f2ea68" \
+                       "dd6ed7935e34a68e794728d2b388cc0ea10d5918bf7954b4876deb03693ec44a" \
+                       "6f2fd2efe307bf24f3fb550eb0a3a2acd0907e30abcc07acf3fc7136c455cb61" \
+                       "180a2d232d1c1eac26d137e6b395b3deec26b1e66b543cbcb261eab981f5ac7b" \
+                       "e9d210faff17cb324ad2d29718ae21688dd307487697acd422726d457e588f0d" \
+                       "2ec15b3b68cfdcaee7fb24f0fd02c92e2df365cc9d89a87fae0f0768d3f11739" \
+                       "693593dee7de346a1ddce5bb2102deb2bd1fb12a93c619bb1418544217f0f71c" \
+                       "cb65890585df2ff582aaa58cac02d7a6b8c13c655619f04bd95e7819e9353f9f" \
+                       "c727e023d231815e32918814ec344a7a2b65e1fbf85ab53f80ca4024c6b77ede" \
+                       "4636b3bb666c03d96b2fd8e938fd1a46189d0a8ac5054cdde594a18fc4c2cf1c" \
+                       "fc7f43308178b254d9b431a9c0cfd7a78b1dad393c0ccdd3dc5ecc9b24912226" \
+                       "2b3f008c76688612390460fd4832fdbcad01b0481229bcb44bd2cb62e01305fb" \
+                       "0ff09930e88dcd6a5d0a4ac5d968a79c838acd7769dd0bbc21a24695c05954da" \
+                       "f2b049c5973866bd41ffc6a9b7fb3aff011b9b64df7dc361740623bce15f0336" \
+                       "09a2a21ce0dbc9a8b8d80f690d200a46b433dc775df902647fdac9e9621595f1" \
+                       "b0c86f06717bacc9f72c8f17701fe131cccf4f1dfe67129bf3880fa51f471fbf" \
+                       "2e1197faec07183e749b4a57f8eacac0ee2192a9474f63adb35c91abb449fe50" \
+                       "de185834e26d227bd00c966da00d13f8f195c13fa6ef2e9cd0e930811d0f2315" \
+                       "8bd91243a5e66a0f5736e11dd2c9f5454348c88a43c2bebbf6c24daa230e7b4e" \
+                       "6db3c0257d12dd2ab248887b4c1973e7431921b2f61abf16ed22a4b2e0189ce6" \
+                       "fe304c3186be408a2a881ded2e8a3534ae03b07927083b8087891d54c12c54c4" \
+                       "b4cc9dbddace3305df0a154c9536bb2a67a2513ba99e10cbda1cc2e3e3f0fd81" \
+                       "e3660edfb2f461c972ab0220e4946c3b6abf5f8784fe77eff0de8b8df5a595f3" \
+                       "d6416e652c2249e9b68f4021fedc23192c5161ec112f4e03abba776e20efdbde" \
+                       "e8a582c8cd04b01bcb24ef635cb8e6cbb1538c5940e6840abe606549117095b6" \
+                       "e5a504cdb29b0ba4b7347aed5f192925c4cc14e9a2e977e07223c3845551adf9" \
+                       "6fd9bf3ab3659366f67eada28522fbd23f2e46a7d31124f1c31ec8586000c7fa" \
+                       "5449d46b0f09d7aefc685866ad53dc58a2aa4388c7e6b1963556e682b869e731" \
+                       "7b01ca320a23c75e301a4df09ecacc0c892cc1e43780f96a256d0639dcc374b5" \
+                       "a13725dece716e5383077fcdd8db6c679e0d56b8efcd296894be8551d0b6eda9" \
+                       "14e565bd17c88cb3bfa47d014d278dc95672e1f8e1764d3587aad7b37a2cc4d9" \
+                       "634d2bc44415502bdef02de04d3c1c8ab4ec95a507c1932117971f81f081567f" \
+                       "50349bfcd5b57bbfccc1867f9593657147ef23423db76fbfb53bc7a9e4833615" \
+                       "c58f30984004f76d259d75d4a15a151942cc41f92cf8d2d8b14c3f538aad3e72" \
+                       "5993a9009d72c4e561591279bf5373aa44ae6b71aee6dc0c29c2604af7f09758" \
+                       "ff7616a3d1f9dcb486e132c1f7818acc9c6f4ebfe60ebad5ca63d86cecdc139f" \
+                       "b2fc665be289caf43af02c034ed6a10a2469e2a40785d9bcee81cc714e70f264" \
+                       "36f2883ef7b308bcac078464754c6d18f27032ea85e407b45fe83354067c5bda" \
+                       "2f82dc986cfaf471dd726a1be1c104b61f543ae5814d19a37ae336aed7c2ae46" \
+                       "1a669f3181d8179419f7540f59acb338834bb36d5bed4c718145e8bae74680d7" \
+                       "37027f1a8fc35a50ab7821fee7b84b09cc1e640b7c3606f73c71b413b464e23c" \
+                       "df81bbc9875d8ed5ae25bac46962b0476fddd3366de52efbc5887325ab8a9bb0" \
+                       "c7d745eabdc6941bea89c40be63a8aa2db07c30a9492145cec0fe005fa222c88" \
+                       "84161a1041021639106d925c47308fd9e98e9909396dd1086ab8e1df8b2a5db9" \
+                       "eaf96cb989f52e1593e0405688a4e2d6a803a2ba03dc3b13ec0e3f21f219a8ad" \
+                       "1cbaf53d3f23e98bd4afe0fd91e62063930ce481f955d33df163f048b8e3f551" \
+                       "91af094302406e4c6eed081186753cfd6274876748dac65fdda4ef154a31e83a" \
+                       "382203c06890ab5896a05d9cfd117254ea34117b0ae6eeff576edb35b6e30acb" \
+                       "5c1cfb45c1911bfdafb8c97e2fcd841f9c0b34241f4a1669776cc48727df459e" \
+                       "30e65ed5dd82b723fe833d3e1c6085873af9c4d015e7781e0fe8bad6cf2e57dc" \
+                       "f41e7f3b584f15880a0ca48fbc856f06852853d334f1f328be8dd9b52e2f9f3a" \
+                       "d2e187ef585749d1fda06ba02b55818cbcaffff8bce89ae3aea73c4b6f27dd38" \
+                       "8da09dfec2c813f9d274262e340b0dd63c629fe17e75e003b1bda516e3e8edee" \
+                       "501dab1374322ea62f9088d3c10b1524a46c4c4df24ac386e74f1c415145ffd8" \
+                       "e2150500b93fde8d1e1987a61a6cfae9a0736bb1aecda99eb047bc42659a213c" \
+                       "995f5ed17853186c49f20e62f8c45e7d60b9cc9a941ef45652badcd8361989b9" \
+                       "ecb848c46f6d7c9fe80f6534f5af2ced1631ae0c593854430d84e3fee5ab914c" \
+                       "ccff1bfc5b00aaf7d0ff707587a5eaf6e547d95b0d263557431ed94b0bcfda9a" \
+                       "c2b2f98675bc52e7a30da7842a179eadc2ffec7181d69799e3c991e75781caba" \
+                       "2ad088d2638eecc58c2c9ea2cefbd80d883e278414bb85e8a46b9cf793d4ea26" \
+                       "2609f148bfe3cde1d2dbb16eaa47a28e0b4b1ed9de45237f79c50de0b6d1ed0a" \
+                       "981b86382111ea986fd011fe4b0d9c728c5ef5d30eb1e175aed1b8881c7fc396" \
+                       "9da0ba073f8949d0b087f605eaf69837b22abab62eb39f0a4bb7c965a4d77887" \
+                       "3c39a093fdf77f0fe1cacc5920b52cb63013fdc852c4243b48ad55b026098ac9" \
+                       "65f771b5e9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
                        "e14296218d9e075ae892eb5bb3e8e41568ab594809f2bc173a38649123a86dc6" \
                        "a9f58e48ef5c2c90feccc6a6b1f3f90bcbf233bd0347d4c95b1818c93fe7f250" \
                        "5252d9176958b64cc5a7a6c2b99b6adebc3a66e3c07d2343ec0072fc32645100" \
@@ -301,74 +224,74 @@ test_signature_Token = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce
                        "98675eed"
 
 test_signature_TransferToken = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
-                               "3c3f3f6cd87250b2ad225ced6b8c902a5fa1ecfacaa6744f6f42323ee586d873" \
-                               "f066388ab9f17ad396aed963678edeab3e6e35c082ecd7bb8ef568f2da92fb2a" \
-                               "7336a7d523f916073913b9f3095c0ed7f300d833ad0ccdcc3f2469e228b83466" \
-                               "b86dd76055571dc4bd2201c87488c1c68162ebf51b59576a4c0cfdf034f2ab32" \
-                               "9dc15734cf8d25676d88db8b0b5d36444ea409ac74197870883527ab3c3693ba" \
-                               "a6d1e82b61e46a5b6b2614d8e1520fe4fe2a48f825c7c43dc65634c4a8f808f8" \
-                               "71c88aa609136a8f97c8b21014d994ec7d901f14440dd4dd1ad65605004f0898" \
-                               "6253b8c41140c7ee3878e851f470607cb2ce124708a27acd4f4f01611adbff19" \
-                               "6747a2584f284a0f4ded53c4569022e384ed11a2834ac8d4a4fc892145230847" \
-                               "57d5b84f810697a42357cfdda8b3c48e1f8c8e2ebb65583dd140e3624f1227f0" \
-                               "ce80f8c95b2b30d4466a3ee14a68704b8b4768c7373a507e9e68e2262289b1e6" \
-                               "df15576a04198d1956137f1c76408e2c9c71a8141a5ce2f10a836b5187e92d33" \
-                               "615af8e4bf2602ed787adb36bc43863135797bf8c5f25dfcb795a079fb6ca831" \
-                               "904f4d8ce1868fcc1003d13e768d66ce3bbec029e52d56e3c792c3928ef08e23" \
-                               "11f658affc1c259e0159c5feace62861a0227d2e6870e092ea39f3b3f76bbed7" \
-                               "c0f5ad5021ce135ddf65c39f07a598f6d6aefb75ab511b18b2984d5afcb03ae9" \
-                               "138bb0b4e4812fab04f928a771770d14a944f221abc5ce9f4a3c8366b26d8a8d" \
-                               "0556d1c04b5262a9cc92f8d8cb24c4cd631ae57942f0b78ef5d99a1f99e902ec" \
-                               "f25c2bdea4b5c683ec03ef0cf0ee85c8bcc87febb42b0b69eb18b9df46369627" \
-                               "e75d1f3cdf9a22eb592e26ff9c70b5a8cea17b3edbbc934bf0afdd8188e7c006" \
-                               "ba6e874c536ddee69002120459d8bc237d9dac2059bdf2d591997c3e4c385d78" \
-                               "941a566cc2552eaa461c93911102075ce3e10e1c4bad91b2bfb961e31ab8138a" \
-                               "863f0e421e7cd30a1dff97489371dedc479310f5ab44b160774ceae0b93bdeb6" \
-                               "9665c32c640dd91071610fc57cecb0b00219f092ba27b27e5bfb6bdcb6815be4" \
-                               "013bc5575a10a9c8651c08ffb0830b175e6200fcd812cabdefc0ea39d82bbd79" \
-                               "82d43e4bb2f461c972ab0220e4946c3b6abf5f8784fe77eff0de8b8df5a595f3" \
-                               "d6416e653e1a9028d2732b0058616706d79cb9169044072922c8cbad8cc56b5b" \
-                               "2a14dfd64bfbe7705b035f0f8ba824a097c9bcbe00eff81461e71a1cfd868553" \
-                               "77efa04ff69f7101567af0bb381c033efef8a9137ae70fb3c05616cfc7bdf517" \
-                               "701cac31ee9015c59fb8419cd29fc03e2a7274444229c6f69439278e941569d9" \
-                               "f21a6e8e6c9015dcf201bf91451d0d69fee85a28d53d9e422ef4cb4e70fdcca0" \
-                               "fc7a7b398e73d4b0c4ea88925ddd112ffaab5a15b63bb1e2806a40c34ff41f60" \
-                               "56595e552e4eb3dacca131d70f84f8d376717a8eed293ebe89d3d5b6eb5cac37" \
-                               "bb23a20271c6357625171ea8eb5589edb1b2b3991445ba6419ada8bb46080245" \
-                               "e5deb9657f6ed8cdc5cbecd249dcc7ff36da100f9175d26a01b6fec2422fb37c" \
-                               "a1392cbd5e7a93b2430cbf30fc3a51019aab82e73a4bb6c7ab32740daaaacf20" \
-                               "bfdd093f5fe033f11a3d57879e8d93291a035470e2e83cff0af30ebd66fd5944" \
-                               "eedd17c720be1caa836ab53303b8571da0b73405e18d4f16335dbd60453fbac3" \
-                               "6868a1b4d51930ddd4a884c2913b4d9e6f70b61e0b94172b77051b04828c66ec" \
-                               "60d8abcd31e19d10e881da3fb6a3b096a950d5e12c81a32670def7f0447671e7" \
-                               "2bd11beea1d3ff0ab6406f5e33ea5b4f8e2d40f20e0c3805249f4eb0029e7294" \
-                               "8fb471aa2990b89a6d0b895124860f841a3b1071b0979b938f78d7b82747aee5" \
-                               "338e40b92dc1b66fcc1caba75f413d6c087477df6f527c7a9b8c7f2b143d2cbb" \
-                               "684b1abe2b5707779d1f0a6dc9ae73e46655467867d033efdc324dad08cb89cb" \
-                               "8a4d438288170fd144ab595fef9f61aac6445286b3efa86145454a12533ef4ad" \
-                               "9a836e442a5e08f05600baf85aa11ab7809e8a243c5b99e392a019bb761eed32" \
-                               "144c0ae4158c8d63275bd4d7c395fd50bc6f80779165fafdd4636537d061b316" \
-                               "55d7f14e76b1b3c074eac387af02bcb67b7c764ae400ec164e91c5143a8f03aa" \
-                               "4985a0e4f742a65757bb6d73dd029774cdb216dcf6788d4823265fd4f1ab879e" \
-                               "196e29c577419c8b450ee0356d65cbe05a92fed183170b9a8348e8d60a18107e" \
-                               "e6de90964b54e576b345e9301f4928ddf1eca2dabaa2149a92d4a0717e35dd2e" \
-                               "d90f63e868041d516c52f49c972dd4afd9353fdd2588750a82a388e956ac28c1" \
-                               "5750b5d0409414352f3b0005c204cb4c1c3406a5f1cc823a51bd7820b9a5e0b8" \
-                               "6d5928927f4583b29c2e1abfd2ceae36512b8e0826ad5b60a6013a9dc7a259c0" \
-                               "a4490521c07922d4cf4b3a04acfb552c502f17efc652606009fcc255ed89af79" \
-                               "d3545f1f53398d2490e2b2cb1c4fa49aaebf103dc87d5ca716f8d14f7e1a0b78" \
-                               "a8f8a460d9c8ca20146963f804a78c50ed0f7b3d207046c56bb8e8b881b6a203" \
-                               "87d85dee644290afed7fced6ab82495975cf5166688bfe33d489d51d11a320ef" \
-                               "db30f30fbcc43ef93907ee5e445dbecb5e400af59fd250ae66435fa8f742c985" \
-                               "186afa53e5ce9245590022441f7bfa9ee1b9e52a231ebe2ae08d931ba869d64d" \
-                               "b2e77e4e5b00aaf7d0ff707587a5eaf6e547d95b0d263557431ed94b0bcfda9a" \
-                               "c2b2f9865a1047fe6e2b04191ca8957621392ba27c970334ad339b31e2607022" \
-                               "232c17a3638eecc58c2c9ea2cefbd80d883e278414bb85e8a46b9cf793d4ea26" \
-                               "2609f1484a5751194a281a2b1ea7ff51204c7713b4d7bf31e5dd034780305f66" \
-                               "87bf32ad2111ea986fd011fe4b0d9c728c5ef5d30eb1e175aed1b8881c7fc396" \
-                               "9da0ba079a934ab085b2fd6dd340ec31e77a1aff6cc586730264da3232b3aa5f" \
-                               "2bd2a254c68be98cc1c55826e0cdd24cfe56227d071e7aa802ecd9fb656da970" \
-                               "a65bae77e9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
+                               "3c3f3f6c704cb79db016ed3aa75b5acf697b4cefa20dd6c66c2598dafd67e995" \
+                               "69441d489b82316035ff53ac3bd7e53007da659e531d77d62dcf3cdbfab00c52" \
+                               "70164f347c028e5c975acd2471b5f5837b90ffcd10852d885ed570f351c89477" \
+                               "b759b9fe70f7693ab3294841fe224c9f4de5c6865e2417a9ada2aa9581f05545" \
+                               "a45fe6a2099e09752c2091c16a6edf0b7e24faed1e0e2b26a72d05e9081b6adb" \
+                               "d0975fdec34e78542457007ed25b6caecf01382ccf252e4509ffd2d3e4302a45" \
+                               "f955490760cf6125fc92a210a7983705358d7b8c7818a767e878e97e5db3c293" \
+                               "54a684abff17cb324ad2d29718ae21688dd307487697acd422726d457e588f0d" \
+                               "2ec15b3ba822d31d5b8d84e899d28ffef2fb678607b1574a8e6324db4028076b" \
+                               "e959815e749d076158d2e674a41707a02ddef3226f4525bc77842388c060a128" \
+                               "ff46ff3c8cd790e10ccce767ee7248738376c254ce6527d864b64e8902344f3f" \
+                               "f5aed9f404198d1956137f1c76408e2c9c71a8141a5ce2f10a836b5187e92d33" \
+                               "615af8e457a0b26c1a0b7b2463e047a2314c6414d87581a01880dd75e081d1df" \
+                               "8be57ab7c54fee608eef62c87e73e95cc2f90ec57f6e767c6ccb0d59dad60ce4" \
+                               "450d777e76688612390460fd4832fdbcad01b0481229bcb44bd2cb62e01305fb" \
+                               "0ff0993095a1f552389c5968ff7ba4b5d33ce12c6c0dc350beeeb891ac82f54f" \
+                               "d54078a5dd4e2dcd1f6d909a01ed91c754770456dbdbf9f3e3d83a1c1ad2bc02" \
+                               "4166461b443e6e310939abf1e6048c95373e985eb8b9967f163764f9f1464aa7" \
+                               "cc18d54474843d2c12e2e15a44730ae8397b13fbef9a0635b81be07e01d424ef" \
+                               "c5d3fb4f7105bc9fe284eb7cdb41f5016a585deb2ba9b0fd41d21f32029a60bf" \
+                               "40c322beb0b93afcb2bed0660e7f455387409f09112df4dd3aed9272f44a4e25" \
+                               "a8cf06763f9dcb62ff95a08b1e66f419921b1ed60ab5d7f412b234f5b889d2fe" \
+                               "0c1ba52dfb56b38056bf3e9843df382e7438d28fbcc7e71d0996e3cf21af7000" \
+                               "9f66ad7e42a1498b62c5624d757a648ab82cd1958c67195128f3f7a978954575" \
+                               "d8c1057478041b1c563dc3de516f5051e56af464923d77adbd57fcc2dd286b4f" \
+                               "75da96c93b787cba99d930f5df9a124a57cf2a7621fb97029299f0ca470f7f26" \
+                               "f512aa2676b366508cb666bceb6188b0a6e19bbf6215b84af50a4db498e1d669" \
+                               "9a6ea35fcd04b01bcb24ef635cb8e6cbb1538c5940e6840abe606549117095b6" \
+                               "e5a504cdf69f7101567af0bb381c033efef8a9137ae70fb3c05616cfc7bdf517" \
+                               "701cac31b3659366f67eada28522fbd23f2e46a7d31124f1c31ec8586000c7fa" \
+                               "5449d46b547f331d3af8842d333d24b0e4e80a2b49c284e83161035740dbd228" \
+                               "4ba98bdce32ed2751649cd9cdcbdb5281fd21d4a9daaf61d18d048d617e49b72" \
+                               "c9d616b5832bb402e1e2ab18a9744d6d610e9ffc671c61c5b4494d08cce4f679" \
+                               "aec9ee97783cbfaa194d6fcc92b566a3ac41ec6c3fdbb26228ea014975fa584e" \
+                               "55c57f5a5aa178e17c7b9f221caef1d30b0569ed6db502e549964b3a2b949f08" \
+                               "4463b52fb34ceadb1cf5f7fa930abfd68b0d1083265450a1d02f3ab2cc2f6fcf" \
+                               "39a516d6054c041aabf33456061324766bb9820260fe17a4fe76d0879cefb1b3" \
+                               "d5f6de7072781e487f13f1359eb22eb024430c00e51b1205630de20c591000c7" \
+                               "6e7116200c7a84744d291a259b6a44d739261311f570bd2721336adfb5189a8a" \
+                               "103a928e0bee0b423807b4fbd9d142cb505850741303e1db058d6ce9770c6470" \
+                               "7f4d412f94649cab8285e8b1b7c96120388c3063e4324e2b6ff1c2e96dabbb6b" \
+                               "43944cbec3883c2d22d252386b8ee9580a6757859381db6afed914563b4bb603" \
+                               "c7200562d6610809d1382ee89dfbab62cc5c42a6de5dbadf37f5cb7ff342fb82" \
+                               "6f81372c1144ca83876418f4b843df9bbecee327e790740876155415070d2e66" \
+                               "3346ae9388170fd144ab595fef9f61aac6445286b3efa86145454a12533ef4ad" \
+                               "9a836e447f7601c9dacfd15d8fac01064ab3ae4027523d1d80bff15ebcdac0b1" \
+                               "e52b3851158c8d63275bd4d7c395fd50bc6f80779165fafdd4636537d061b316" \
+                               "55d7f14e47929ef65a1424b5fb07d094a8a98a09db01db22bc6c5cf1e51d9075" \
+                               "0bc82245877bccc48a2af1852cba39ed81abb0e1309aaaf9efe8dc610be71f15" \
+                               "b770079050a73e1448d89f79f3e2d6d20568bb9570b601484c9c61df1a688fe0" \
+                               "ec19dfe6c8fd46671246a6d186b86c3ce6d12db0d45e5c074f72a5926e7512e8" \
+                               "e327424c9af0524f8bc3a154f53a54fb046cd9cf0df3a45d129adb641ba66b25" \
+                               "d9d99cfbefef37c44399e2ee83b869859b9fd68174086cd2701912926fc79200" \
+                               "3290bf802762e2f5efe38d602eadf9b4fbb84198440f939e88ad3ef4897da608" \
+                               "a2c5e1817c8eb3f20f17b6e40e815f6bd2196ef03e2217961c9690b023d0234c" \
+                               "3646731ffc69448892efa59b217934ee5ea7ee687260d8e1c08e1ec9d04102e6" \
+                               "3bbcaeb74d268b9530d4e1240f4817a91dd236189f9392d7417f7ca59e5150e1" \
+                               "c7b87ddacd62e6d38098a56f2d4c72b1a681a08f17178b447a880dd883ce49d1" \
+                               "8f36bb7e3fa0689a438b30baa6c3159d660bb093380ba04de04a6b1b5ba4d68f" \
+                               "dddd4b7fe5ce9245590022441f7bfa9ee1b9e52a231ebe2ae08d931ba869d64d" \
+                               "b2e77e4e0a1eda5b7b024c65717edc73de75fa950722ab106b3d07806b4a4463" \
+                               "cb6fb136af55aba3a46e730cd7bc8fe61f211a05e20a082bb9ff6c1e1dd97d26" \
+                               "39e048bee9044f4fb0de6a33d6f0d3b2efede3876777016692a095ef4eca1e1e" \
+                               "891eb1139879157f1c9722c2d00b28452c606037156bcaf68cbbc8f6d4fd371a" \
+                               "1acc0ed92111ea986fd011fe4b0d9c728c5ef5d30eb1e175aed1b8881c7fc396" \
+                               "9da0ba073f8949d0b087f605eaf69837b22abab62eb39f0a4bb7c965a4d77887" \
+                               "3c39a093057468628bd3b8839fff9ec7daea107c075f485895dd0bcc793b5bc3" \
+                               "047f4883e9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
                                "e14296218d9e075ae892eb5bb3e8e41568ab594809f2bc173a38649123a86dc6" \
                                "a9f58e48ef5c2c90feccc6a6b1f3f90bcbf233bd0347d4c95b1818c93fe7f250" \
                                "5252d9176958b64cc5a7a6c2b99b6adebc3a66e3c07d2343ec0072fc32645100" \
@@ -438,17 +361,8 @@ class TestSimpleTransaction(TestCase):
         self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
                          '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
                          bin2hstr(tx.PK))
-        self.assertEqual('536c35bb536d324bd6abd8ebe951b010157b95b8c72ece24d562939930f70a4e', bin2hstr(tx.txhash))
+        self.assertEqual('554f546305d4aed6ec71c759942b721b904ab9d65eeac3c954c08c652181c4e8', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
-
-        # z = bin2hstr(tx.signature)
-        # print('"', end='')
-        # for i in range(len(z)):
-        #     print(z[i], end='')
-        #     if (i + 1) % 64 == 0:
-        #         print('" \\', end='')
-        #         print('')
-        #         print('"', end='')
 
         self.assertEqual(test_signature_Simple, bin2hstr(tx.signature))
 
@@ -495,31 +409,27 @@ class TestCoinBase(TestCase):
         self.maxDiff = None
 
     def test_create(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.address)
+        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
+        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
         self.assertIsInstance(tx, CoinBase)
 
     def test_to_json(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.address)
+        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
+        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
         txjson = tx.to_json()
         self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
 
     def test_from_txdict(self):
-        tx = CoinBase.create(self.mock_blockheader, self.alice, self.alice.address)
-        tx.sign(self.alice)
+        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
+        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
         self.assertIsInstance(tx, CoinBase)
 
         # Test that common Transaction components were copied over.
-        self.assertEqual(0, tx.nonce)
+        self.assertEqual(self.mock_blockheader.block_number + 1, tx.nonce)
         self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
                          bin2hstr(tx.addr_to))
-        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
-                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
-                         bin2hstr(tx.PK))
-        self.assertEqual(11, tx.ots_key)
 
-        self.assertEqual(test_signature_CoinBase, bin2hstr(tx.signature))
-
-        self.assertEqual('92f50f236b2061e12e2bd05616d4334d3956cb1af5287f4bc0afc06280b695f5', bin2hstr(tx.txhash))
+        self.assertEqual('c7f3e1e092e70f49a943a162de8b110899b60ab1dafd0c72625fba6fc1adcd01', bin2hstr(tx.txhash))
         self.assertEqual(tx.amount, 90)
 
 
@@ -591,7 +501,7 @@ class TestTokenTransaction(TestCase):
         self.assertEqual(b'Quantum Resistant Ledger', tx.name)
         self.assertEqual('010317463dcd581b679b4754f46c6425125489a2826894e3c42a590efb6806450ce6bf52716c',
                          bin2hstr(tx.owner))
-        self.assertEqual('b887d83f2cb517bc6c4837cab7becb4267d054dee3242a51ce41eac7314697a4', bin2hstr(tx.txhash))
+        self.assertEqual('ff84da605e9c9cd04d68503be7922110b4cc147837f8687ad18aa54b7bc5632d', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
 
         self.assertEqual(test_signature_Token, bin2hstr(tx.signature))
@@ -671,8 +581,18 @@ class TestTransferTokenTransaction(TestCase):
                          bin2hstr(tx.PK))
         self.assertEqual(b'000000000000000', tx.token_txhash)
         self.assertEqual(200000, tx.total_amount)
-        self.assertEqual('2a862e2715683ede4f177f928b558fdb6c1a1bac5c17a34faa57b5ca2c0a9f3f', bin2hstr(tx.txhash))
+        self.assertEqual('390b159b34cffd29d4271a19679ff227df2ccd471078f177a7b58ca5f5d999f0', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
+
+        # z = bin2hstr(tx.signature)
+        # print('"', end='')
+        # for i in range(len(z)):
+        #     print(z[i], end='')
+        #     if (i + 1) % 64 == 0:
+        #         print('" \\', end='')
+        #         print('')
+        #         print(' ' * len('test_signature_TransferToken = '), end='')
+        #         print('"', end='')
 
         self.assertEqual(test_signature_TransferToken, bin2hstr(tx.signature))
 

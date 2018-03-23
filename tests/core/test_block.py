@@ -26,9 +26,7 @@ class TestBlock(TestCase):
         block = Block.create(block_number=5,
                              prevblock_headerhash=bytes(sha2_256(b'test')),
                              transactions=[],
-                             signing_xmss=alice_xmss,
-                             master_address=alice_xmss.address,
-                             nonce=10)
+                             miner_address=alice_xmss.address)
         mining_blob = block.mining_blob
         self.assertTrue(block.blockheader.verify_blob(mining_blob))
 
@@ -37,9 +35,7 @@ class TestBlock(TestCase):
         block = Block.create(block_number=5,
                              prevblock_headerhash=bytes(sha2_256(b'test')),
                              transactions=[],
-                             signing_xmss=alice_xmss,
-                             master_address=alice_xmss.address,
-                             nonce=10)
+                             miner_address=alice_xmss.address)
         current_mining_nonce = block.mining_nonce
         current_headerhash = block.headerhash
         mining_blob = block.mining_blob

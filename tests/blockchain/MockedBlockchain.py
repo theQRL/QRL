@@ -41,7 +41,7 @@ class MockedBlockchain(object):
                                                fee=0,
                                                xmss_pk=self.alice_xmss.pk)
             slave_tx.sign(self.alice_xmss)
-            slave_tx._data.nonce = 2
+            slave_tx._data.nonce = 1
             transactions = [slave_tx]
 
         self.time_mock.return_value = self.time_mock.return_value + 60
@@ -50,9 +50,7 @@ class MockedBlockchain(object):
         block_new = Block.create(block_number=block_idx,
                                  prevblock_headerhash=block_prev.headerhash,
                                  transactions=transactions,
-                                 signing_xmss=self.alice_xmss,
-                                 master_address=self.alice_xmss.address,
-                                 nonce=block_idx)
+                                 miner_address=self.alice_xmss.address)
 
         while not PoWValidator().validate_mining_nonce(state=self.qrlnode._chain_manager.state,
                                                        blockheader=block_new.blockheader,

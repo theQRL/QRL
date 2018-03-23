@@ -196,5 +196,5 @@ class TestPublicAPI(TestCase):
                     self.assertIsNotNone(resp_push)
                     self.assertEqual(qrl_pb2.PushTransactionResp.SUBMITTED,
                                      resp_push.error_code)
-                    self.assertEqual('832c0fe9819992cc0d1d97f8d6579ca28e210c7884488a3858376a9c0cec279d',
+                    self.assertEqual('30955fdc5e2d9dbe5fb9bf812f2e1b6c4b409a8a7c7a75f1c3e9ba1ffdd8e60e',
                                      bin2hstr(resp_push.tx_hash))

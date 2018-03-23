@@ -77,15 +77,7 @@ class ChainManager:
 
             addresses_state[coinbase_tx.addr_to] = AddressState.get_default(coinbase_tx.addr_to)
 
-            addr_from_pk_state = addresses_state[coinbase_tx.addr_to]
-            addr_from_pk = Transaction.get_slave(coinbase_tx)
-            if addr_from_pk:
-                addr_from_pk_state = addresses_state[addr_from_pk]
-
-            if not coinbase_tx.validate_extended(addr_from_pk_state):
-                return False
-
-            if not coinbase_tx.validate():
+            if not coinbase_tx.validate_extended():
                 return False
 
             coinbase_tx.apply_on_state(addresses_state)
@@ -140,18 +132,10 @@ class ChainManager:
         if not isinstance(coinbase_tx, CoinBase):
             return False
 
-        addr_from_pk_state = address_txn[coinbase_tx.addr_to]
-        addr_from_pk = Transaction.get_slave(coinbase_tx)
-        if addr_from_pk:
-            addr_from_pk_state = address_txn[addr_from_pk]
-
-        if not coinbase_tx.validate_extended(addr_from_pk_state):
+        if not coinbase_tx.validate_extended():
             return False
 
         if not PoWValidator().validate_mining_nonce(self.state, block.blockheader):
-            return False
-
-        if not coinbase_tx.validate():
             return False
 
         coinbase_tx.apply_on_state(address_txn)

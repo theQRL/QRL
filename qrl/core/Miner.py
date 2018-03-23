@@ -15,7 +15,6 @@ from qrl.core.State import State
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.Transaction import Transaction
 from qrl.core.misc import logger
-from qrl.crypto.xmss import XMSS
 
 
 class Miner(Qryptominer):
@@ -34,40 +33,19 @@ class Miner(Qryptominer):
         self._measurement = None  # Required only for logging
 
         self._mining_credit_wallet = mining_credit_wallet
-        self._mining_xmss = None
         self._reward_address = None
         self.state = state
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
         self._mining_thread_count = mining_thread_count
         self._dummy_xmss = None
 
-    @staticmethod
-    def set_unused_ots_key(xmss, addr_state, start=0):
-        for i in range(start, 2 ** xmss.height):
-            if not addr_state.ots_key_reuse(i):
-                xmss.set_ots_index(i)
-                return True
-        return False
-
-    def prepare_mining_xmss(self):
-        if self._mining_xmss:
-            if self._mining_xmss.ots_index < 2 ** config.user.random_mining_xmss_height:
-                return self._mining_xmss
-
-        self._mining_xmss = XMSS.from_height(config.user.random_mining_xmss_height)
-
-        return self._mining_xmss
-
     def prepare_next_unmined_block_template(self, tx_pool, parent_block: Block, parent_difficulty):
-        self.prepare_mining_xmss()
-
         try:
             self.cancel()
             self._mining_block = self.create_block(last_block=parent_block,
                                                    mining_nonce=0,
                                                    tx_pool=tx_pool,
-                                                   signing_xmss=self._mining_xmss,
-                                                   master_address=self._mining_credit_wallet)
+                                                   miner_address=self._mining_credit_wallet)
 
             parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
             self._measurement = self.state.get_measurement(self._mining_block.timestamp,
@@ -85,9 +63,6 @@ class Miner(Qryptominer):
     def start_mining(self,
                      parent_block: Block,
                      parent_difficulty):
-
-        self.prepare_mining_xmss()
-
         try:
             self.cancel()
 
@@ -126,20 +101,14 @@ class Miner(Qryptominer):
                      last_block,
                      mining_nonce,
                      tx_pool: TransactionPool,
-                     signing_xmss,
-                     master_address) -> Optional[Block]:
+                     miner_address) -> Optional[Block]:
         # TODO: Persistence will move to rocksdb
         # FIXME: Difference between this and create block?????????????
-
-        if (not self._dummy_xmss) or (self._dummy_xmss.ots_index == 2 ** self._dummy_xmss.height):
-            self._dummy_xmss = XMSS.from_height(signing_xmss.height)
 
         dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
-                                   signing_xmss=self._dummy_xmss,
-                                   master_address=master_address,
-                                   nonce=0)
+                                   miner_address=miner_address)
         dummy_block.set_mining_nonce(mining_nonce)
 
         t_pool2 = tx_pool.transactions
@@ -179,16 +148,10 @@ class Miner(Qryptominer):
             block_size += tx.size + config.dev.tx_extra_overhead
             transactions.append(tx)
 
-        coinbase_nonce = self.state.get_address(signing_xmss.address).nonce
-        if signing_xmss.address in addresses_state:
-            coinbase_nonce = addresses_state[signing_xmss.address].nonce + 1
-
         block = Block.create(block_number=last_block.block_number + 1,
                              prevblock_headerhash=last_block.headerhash,
                              transactions=transactions,
-                             signing_xmss=signing_xmss,
-                             master_address=master_address,
-                             nonce=coinbase_nonce)
+                             miner_address=miner_address)
 
         return block
 

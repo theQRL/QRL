@@ -6,6 +6,7 @@ import mock
 
 from pyqrllib.pyqrllib import sha2_256, bin2hstr
 
+from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.misc import logger, db
 from qrl.core.AddressState import AddressState
@@ -19,19 +20,16 @@ from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_to
 logger.initialize_default()
 
 
-def gen_blocks(block_count, state, xmss):
+def gen_blocks(block_count, state, miner_address):
         blocks = []
         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1615270948
             prev_hash = bytes(sha2_256(b'test'))
-            block = None
             for i in range(0, block_count):
                 block = Block.create(block_number=i,
                                      prevblock_headerhash=prev_hash,
                                      transactions=[],
-                                     signing_xmss=xmss,
-                                     master_address=xmss.address,
-                                     nonce=10)
+                                     miner_address=miner_address)
                 block.set_mining_nonce(10)
                 blocks.append(block)
 
@@ -150,14 +148,14 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
                 self.assertEqual(state.get_block_size_limit(blocks[-1]), 1048576)
 
     def test_block_metadata(self):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
 
                 for block in blocks:
                     state.put_block_metadata(block.headerhash, BlockMetadata(), None)
@@ -169,7 +167,7 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
 
                 for block in blocks:
                     self.assertIn(alice_xmss.address, State.prepare_address_list(block))
@@ -178,7 +176,7 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
                 for i in range(1, 20):
                     datapoint = state.get_block_datapoint(blocks[i].headerhash)
                     self.assertEqual(datapoint.difficulty, "0")
@@ -190,13 +188,13 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
 
                 for i, block in enumerate(blocks):
                     self.assertIn(alice_xmss.address, state.prepare_address_list(block))
                     address_state = state.get_state(block.headerhash, state.prepare_address_list(block))
                     self.assertIn(alice_xmss.address, address_state.keys())
-                    self.assertEqual(address_state[alice_xmss.address].nonce, i + 1)
+                    self.assertEqual(address_state[config.dev.coinbase_address].nonce, i + 1)
                     with self.assertRaises(Exception):
                         state.set_addresses_state({"state": 'test'}, 0)
 
@@ -226,7 +224,7 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
                 address_set = state.prepare_address_list(blocks[-1])
                 m = state.get_state_mainchain(address_set)
                 state.update_mainchain_state(m, 20, blocks[-1].headerhash)
@@ -240,7 +238,7 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
 
                 self.assertEqual(state.get_last_txs(), [])
                 state.update_last_tx(blocks[-1], None)
@@ -261,7 +259,7 @@ class TestState(TestCase):
         with set_data_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss)
+                blocks = gen_blocks(20, state, alice_xmss.address)
 
                 self.assertEqual(state.state_objects.total_coin_supply(), 0)
                 self.assertEqual(state.state_objects.state_loaders, [])

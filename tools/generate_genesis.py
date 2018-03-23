@@ -16,9 +16,7 @@ dist_xmss = XMSS.from_extended_seed(seed)
 block = Block.create(block_number=0,
                      prevblock_headerhash=config.dev.genesis_prev_headerhash,
                      transactions=[],
-                     signing_xmss=dist_xmss,
-                     master_address=dist_xmss.address,
-                     nonce=0)
+                     miner_address=dist_xmss.address)
 
 block.set_mining_nonce(0)
 
