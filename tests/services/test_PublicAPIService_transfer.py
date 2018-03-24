@@ -1,12 +1,14 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import contextlib
 from unittest import TestCase
 
 from grpc import ServicerContext
 from mock import Mock
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
+from qrl.core import config
 from qrl.core.ChainManager import ChainManager
 from qrl.core.State import State
 from qrl.core.misc import logger
@@ -16,7 +18,7 @@ from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from tests.misc.helper import get_alice_xmss, set_data_dir, set_wallet_dir, get_bob_xmss
+from tests.misc.helper import get_alice_xmss, set_data_dir, set_wallet_dir, get_bob_xmss, set_default_balance_size
 
 logger.initialize_default()
 
@@ -25,6 +27,7 @@ class TestPublicAPI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestPublicAPI, self).__init__(*args, **kwargs)
 
+    @set_default_balance_size()
     def test_transferCoins_get_unsigned(self):
         with set_data_dir('no_data'):
             with State() as db_state:
@@ -59,7 +62,8 @@ class TestPublicAPI(TestCase):
 
                     self.assertIsNotNone(response)
                     self.assertIsNotNone(response.extended_transaction_unsigned)
-                    self.assertEqual('transfer', response.extended_transaction_unsigned.tx.WhichOneof('transactionType'))
+                    self.assertEqual('transfer',
+                                     response.extended_transaction_unsigned.tx.WhichOneof('transactionType'))
 
                     self.assertEqual(12, response.extended_transaction_unsigned.tx.fee)
                     self.assertEqual(alice.pk, response.extended_transaction_unsigned.tx.public_key)
@@ -71,6 +75,7 @@ class TestPublicAPI(TestCase):
                     self.assertEqual(bob.address, response.extended_transaction_unsigned.tx.transfer.addrs_to[0])
                     self.assertEqual(101, response.extended_transaction_unsigned.tx.transfer.amounts[0])
 
+    @set_default_balance_size()
     def test_transferCoins_push_unsigned(self):
         with set_data_dir('no_data'):
             with State() as db_state:
@@ -125,6 +130,7 @@ class TestPublicAPI(TestCase):
                     self.assertEqual(qrl_pb2.PushTransactionResp.VALIDATION_FAILED,
                                      resp_push.error_code)
 
+    @set_default_balance_size()
     def test_transferCoins_sign(self):
         with set_data_dir('no_data'):
             with State() as db_state:

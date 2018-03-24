@@ -15,7 +15,8 @@ from qrl.core.Transaction import TransferTokenTransaction
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
+from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction, \
+    set_default_balance_size
 
 logger.initialize_default()
 
@@ -198,6 +199,7 @@ class TestState(TestCase):
                     with self.assertRaises(Exception):
                         state.set_addresses_state({"state": 'test'}, 0)
 
+    @set_default_balance_size()
     def test_basic_state_funcs(self):
         with set_data_dir('no_data'):
             with State() as state:
