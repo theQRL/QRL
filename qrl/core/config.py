@@ -37,7 +37,8 @@ class UserConfig(object):
         self.peer_list = ['104.251.219.215',
                           '104.251.219.145',
                           '104.251.219.40',
-                          '104.237.3.185']
+                          '104.237.3.185',
+                          '35.177.60.137']
         self.peer_rate_limit = 500  # Max Number of messages per minute per peer
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
