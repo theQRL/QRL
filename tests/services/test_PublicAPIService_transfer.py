@@ -1,14 +1,12 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import contextlib
 from unittest import TestCase
 
 from grpc import ServicerContext
 from mock import Mock
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
-from qrl.core import config
 from qrl.core.ChainManager import ChainManager
 from qrl.core.State import State
 from qrl.core.misc import logger
