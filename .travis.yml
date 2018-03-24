@@ -66,21 +66,21 @@ jobs:
 #      script:
 #      - "./travis/build.sh"
 
-    - stage: build+test
-      os: linux
-      env:
-      - D="INTTEST_SYNC"
-      - INTEGRATION_TESTINPLACE='TRUE'
-      - PLATFORM='xenial'
-      install:
-      - python --version
-      - pip -V
-      - sudo pip -V
-      - pip install -r $(pwd)/tests_integration/requirements.txt
-      - pip freeze
-      script:
-      - export PYTHONPATH=$(pwd)/tests_integration
-      - "cd tests_integration; pytest -s --ignore=tests/custom"
+#    - stage: build+test
+#      os: linux
+#      env:
+#      - D="INTTEST_SYNC"
+#      - INTEGRATION_TESTINPLACE='TRUE'
+#      - PLATFORM='xenial'
+#      install:
+#      - python --version
+#      - pip -V
+#      - sudo pip -V
+#      - pip install -r $(pwd)/tests_integration/requirements.txt
+#      - pip freeze
+#      script:
+#      - export PYTHONPATH=$(pwd)/tests_integration
+#      - "cd tests_integration; pytest -s --ignore=tests/custom"
 
     - stage: build+test
       os: linux
