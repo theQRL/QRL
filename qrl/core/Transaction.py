@@ -24,6 +24,16 @@ class Transaction(object, metaclass=ABCMeta):
         if protobuf_transaction is None:
             self._data = qrl_pb2.Transaction()
 
+    def __lt__(self, tx):
+        if self.fee < tx.fee:
+            return True
+        return False
+
+    def __gt__(self, tx):
+        if self.fee > tx.fee:
+            return True
+        return False
+
     @property
     def size(self):
         return self._data.ByteSize()
