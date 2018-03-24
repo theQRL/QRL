@@ -92,8 +92,8 @@ class ChainManager:
                 tx.apply_on_state(addresses_state)
 
             self.state.state_objects.update_current_state(addresses_state)
+            self.state.state_objects.update_tx_metadata(genesis_block, None)
             self.state.state_objects.push(genesis_block.headerhash)
-            self.state.state_objects.update_mainstate_tx_metadata(genesis_block, None)
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
