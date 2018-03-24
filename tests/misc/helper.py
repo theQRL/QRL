@@ -36,6 +36,16 @@ from tests.misc.random_number_generator import RNG
 
 
 @contextlib.contextmanager
+def set_default_balance_size(new_value=100 * int(config.dev.shor_per_quanta)):
+    old_value = config.dev.block_timeseries_size
+    try:
+        config.dev.default_account_balance = new_value
+        yield
+    finally:
+        config.dev.default_account_balance = old_value
+
+
+@contextlib.contextmanager
 def set_wallet_dir(wallet_name):
     dst_dir = tempfile.mkdtemp()
     prev_val = config.user.wallet_dir

@@ -15,7 +15,7 @@ from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import SlaveTransaction, TransferTransaction
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir, set_default_balance_size
 
 
 class TestChainManager(TestCase):
@@ -57,7 +57,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
-                    block_1.set_mining_nonce(162)
+                    block_1.set_mining_nonce(219)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -70,6 +70,7 @@ class TestChainManager(TestCase):
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
+    @set_default_balance_size()
     def test_multi_output_transaction_add_block(self):
         with set_data_dir('no_data'):
             with State() as state:
@@ -108,7 +109,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
-                    block_1.set_mining_nonce(339)
+                    block_1.set_mining_nonce(237)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -170,7 +171,12 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[slave_tx],
                                            miner_address=alice_xmss.address)
-                    block_1.set_mining_nonce(1)
+                    block_1.set_mining_nonce(0)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # from qrl.core.PoWValidator import PoWValidator
+                    # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+                    #     block_1.set_mining_nonce(block_1.mining_nonce + 1)
+                    #     print(block_1.mining_nonce)
                     result = chain_manager.add_block(block_1)
 
                 self.assertTrue(result)
@@ -188,7 +194,12 @@ class TestChainManager(TestCase):
                                          transactions=[],
                                          miner_address=bob_xmss.address)
 
-                    block.set_mining_nonce(4)
+                    block.set_mining_nonce(0)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # from qrl.core.PoWValidator import PoWValidator
+                    # while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
+                    #     block.set_mining_nonce(block.mining_nonce + 1)
+                    #     print(block.mining_nonce)
                     result = chain_manager.add_block(block)
 
                 self.assertTrue(result)
@@ -204,7 +215,12 @@ class TestChainManager(TestCase):
                                            transactions=[],
                                            miner_address=bob_xmss.address)
 
-                    block_2.set_mining_nonce(0)
+                    block_2.set_mining_nonce(1)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # from qrl.core.PoWValidator import PoWValidator
+                    # while not PoWValidator().validate_mining_nonce(state, block_2.blockheader, False):
+                    #     block_2.set_mining_nonce(block_2.mining_nonce + 1)
+                    #     print(block_2.mining_nonce)
                     result = chain_manager.add_block(block_2)
 
                 self.assertTrue(result)
@@ -239,12 +255,12 @@ class TestChainManager(TestCase):
                     alice_xmss = get_alice_xmss()
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1519601174  # Very high to get an easy difficulty
+                        time_mock.return_value = 1521889325  # Very high to get an easy difficulty
                         block_1 = Block.create(block_number=1,
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
                                                miner_address=alice_xmss.address)
-                        block_1.set_mining_nonce(71)
+                        block_1.set_mining_nonce(78)
                         # Uncomment only to determine the correct mining_nonce of above blocks
                         # from qrl.core.PoWValidator import PoWValidator
                         # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
@@ -258,12 +274,12 @@ class TestChainManager(TestCase):
                     bob_xmss = get_bob_xmss()
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1519601174 + devconfig.minimum_minting_delay * 2
+                        time_mock.return_value = 1521889326 + devconfig.minimum_minting_delay * 2
                         block = Block.create(block_number=1,
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
                                              miner_address=bob_xmss.address)
-                        block.set_mining_nonce(91)
+                        block.set_mining_nonce(221)
 
                         # Uncomment only to determine the correct mining_nonce of above blocks
                         # from qrl.core.PoWValidator import PoWValidator
@@ -272,12 +288,12 @@ class TestChainManager(TestCase):
                         #     print(block.mining_nonce)
 
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-                        time_mock.return_value = 1519601174 + devconfig.minimum_minting_delay * 3
+                        time_mock.return_value = 1521889327 + devconfig.minimum_minting_delay * 3
                         block_2 = Block.create(block_number=2,
                                                prevblock_headerhash=block.headerhash,
                                                transactions=[],
                                                miner_address=bob_xmss.address)
-                        block_2.set_mining_nonce(5)
+                        block_2.set_mining_nonce(1)
 
                         # Uncomment only to determine the correct mining_nonce of above blocks
                         # from qrl.core.PoWValidator import PoWValidator

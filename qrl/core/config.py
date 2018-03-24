@@ -106,7 +106,7 @@ class DevConfig(object):
 
         self.version = version
         self.required_version = '0.0.'
-        self.genesis_prev_headerhash = b'The Burning Ice'
+        self.genesis_prev_headerhash = b'Excession'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -142,7 +142,7 @@ class DevConfig(object):
         self.ots_bitfield_size = ceil(self.max_ots_tracking_index / 8)
 
         self.default_nonce = 0
-        self.default_account_balance = 100 * (10 ** 9)
+        self.default_account_balance = 0 * (10 ** 9)
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.mining_setpoint_blocktime = 60
@@ -158,7 +158,7 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.genesis_timestamp = 1519601074
+        self.genesis_timestamp = 1521888567
 
         self.supplied_coins = 65000000 * (10 ** 9)
 
