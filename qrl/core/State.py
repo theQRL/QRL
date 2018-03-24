@@ -540,6 +540,7 @@ class StateObjects:
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
 
         self._db.put(b'total_coin_supply', txn.amount - fee_reward)
+        self._current_state.update_total_coin_supply(txn.amount - fee_reward)
 
         # TODO (cyyber): Replace it with staticmethod passing state prefix
         # update last txn to mainstate
