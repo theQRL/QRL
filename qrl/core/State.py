@@ -517,6 +517,53 @@ class StateObjects:
 
         return StateLoader.get_tx_metadata(self._db, '', txhash)
 
+    def update_mainstate_tx_metadata(self, block, batch):
+        fee_reward = 0
+        # TODO (cyyber): Move To State Cache, instead of writing directly
+        for protobuf_txn in block.transactions:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            fee_reward += txn.fee
+            self._db.put(bin2hstr(txn.txhash),
+                         [txn.to_json(), block.block_number, block.timestamp],
+                         batch)
+            # FIXME: Being updated without batch, need to fix,
+            if isinstance(txn, TransferTokenTransaction):
+                self._db.put_raw(b'token_' + txn.token_txhash, txn.to_json().encode())
+            elif isinstance(txn, TokenTransaction):
+                self._db.put_raw(b'token_' + txn.txhash, txn.to_json().encode())
+
+            StateLoader.increase_txn_count(self._db,
+                                           b'',
+                                           self.get_txn_count(txn.addr_from),
+                                           txn.addr_from)
+
+        txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
+
+        self._db.put(b'total_coin_supply', txn.amount - fee_reward)
+        self._current_state.update_total_coin_supply(txn.amount - fee_reward)
+
+        # TODO (cyyber): Replace it with staticmethod passing state prefix
+        # update last txn to mainstate
+        if len(block.transactions) == 0:
+            return
+        last_txn = []
+
+        try:
+            last_txn = self._db.get(b'last_txn')
+        except:  # noqa
+            pass
+
+        for protobuf_txn in block.transactions[-20:]:
+            txn = Transaction.from_pbdata(protobuf_txn)
+            if isinstance(txn, CoinBase):
+                continue
+            last_txn.insert(0, [txn.to_json(),
+                                block.block_number,
+                                block.timestamp])
+
+        del last_txn[20:]
+        self._db.put(b'last_txn', last_txn, batch)
+
     def update_tx_metadata(self, block, batch):
         fee_reward = 0
         # TODO (cyyber): Move To State Cache, instead of writing directly
