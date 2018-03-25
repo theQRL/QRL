@@ -38,8 +38,8 @@ try:  # for Sphinx >= 1.7
 except ImportError:
     from sphinx import apidoc
 
-output_dir = os.path.join(__location__, "docs", "api")
-module_dir = os.path.join(__location__, "../qrl")
+output_dir = os.path.join(__location__, "api")
+module_dir = os.path.join(__location__, "../src/qrl")
 try:
     shutil.rmtree(output_dir)
 except FileNotFoundError:
