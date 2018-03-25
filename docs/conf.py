@@ -8,41 +8,57 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-# -- Hack for ReadTheDocs ------------------------------------------------------
+import os
+import sys
+import inspect
+import shutil
+
+__location__ = os.path.join(os.getcwd(), os.path.dirname(
+    inspect.getfile(inspect.currentframe())))
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+sys.path.insert(0, os.path.join(__location__, '../src'))
+
+import sphinx_rtd_theme
+from recommonmark.parser import CommonMarkParser
+from recommonmark.transform import AutoStructify
+
+# -- Run sphinx-apidoc ------------------------------------------------------
 # This hack is necessary since RTD does not issue `sphinx-apidoc` before running
 # `sphinx-build -b html . _build/html`. See Issue:
 # https://github.com/rtfd/readthedocs.org/issues/1139
 # DON'T FORGET: Check the box "Install your project inside a virtualenv using
 # setup.py install" in the RTD Advanced Settings.
-import os
-import sys
+# Additionally it helps us to avoid running apidoc manually
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-# sys.path.insert(0, os.path.abspath('.'))
-import sphinx_rtd_theme
-from recommonmark.parser import CommonMarkParser
-from recommonmark.transform import AutoStructify
-
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
-    import inspect
+try:  # for Sphinx >= 1.7
+    from sphinx.ext import apidoc
+except ImportError:
     from sphinx import apidoc
 
-    __location__ = os.path.join(os.getcwd(), os.path.dirname(
-        inspect.getfile(inspect.currentframe())))
+output_dir = os.path.join(__location__, "api")
+module_dir = os.path.join(__location__, "../src/qrl")
+try:
+    shutil.rmtree(output_dir)
+except FileNotFoundError:
+    pass
 
-    output_dir = os.path.join(__location__, "..", "docs", "api")
-    module_dir = os.path.join(__location__, "..", "qrl")
+try:
+    import sphinx
+    from distutils.version import LooseVersion
+
     cmd_line_template = "sphinx-apidoc -f -o {outputdir} {moduledir}"
     cmd_line = cmd_line_template.format(outputdir=output_dir, moduledir=module_dir)
 
-    autodoc_mock_imports = ['leveldb', 'ntplib', 'twisted',
-                            'colorlog', 'simplejson', 'grpcio', 'grpcio-tools',
-                            'service_identity', 'pyopenssl', 'pyqrllib', 'six']
+    args = cmd_line.split(" ")
+    if LooseVersion(sphinx.__version__) >= LooseVersion('1.7'):
+        args = args[1:]
 
-    apidoc.main(cmd_line.split(" "))
+    apidoc.main(args)
+except Exception as e:
+    print("Running `sphinx-apidoc` failed!\n{}".format(e))
 
 # -- General configuration -----------------------------------------------------
 
@@ -51,15 +67,9 @@ if on_rtd:
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.todo',
-              'sphinx.ext.autosummary',
-              'sphinx.ext.viewcode',
-              'sphinx.ext.coverage',
-              'sphinx.ext.doctest',
-              'sphinx.ext.ifconfig',
-              'sphinx.ext.mathjax',
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
+              'sphinx.ext.autosummary', 'sphinx.ext.viewcode', 'sphinx.ext.coverage',
+              'sphinx.ext.doctest', 'sphinx.ext.ifconfig', 'sphinx.ext.mathjax',
               'sphinx.ext.napoleon']
 
 # Add any paths that contain templates here, relative to this directory.
@@ -76,7 +86,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'QRL'
-copyright = u'2017, The Quantum Resistant Ledger'
+copyright = u'2018, The Quantum Resistant Ledger'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -134,8 +144,7 @@ html_theme = "sphinx_rtd_theme"
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-}
+# html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
@@ -143,9 +152,9 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 try:
-    from qrl import __version__ as version
+    from demo import __version__ as version
 except ImportError:
-    version = "unknown"
+    pass
 else:
     release = version
 
@@ -166,7 +175,6 @@ else:
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'
@@ -209,23 +217,24 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'core-doc'
+htmlhelp_basename = 'demo-doc'
+
 
 # -- Options for LaTeX output --------------------------------------------------
 
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    # 'papersize': 'letterpaper',
+# The paper size ('letterpaper' or 'a4paper').
+# 'papersize': 'letterpaper',
 
-    # The font size ('10pt', '11pt' or '12pt').
-    # 'pointsize': '10pt',
+# The font size ('10pt', '11pt' or '12pt').
+# 'pointsize': '10pt',
 
-    # Additional stuff for the LaTeX preamble.
-    # 'preamble': '',
+# Additional stuff for the LaTeX preamble.
+# 'preamble': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
-# (source start file, targematplot name, title, author, documentclass [howto/manual]).
+# (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'user_guide.tex', u'QRL Documentation',
      u'The Quantum Resistant Ledger', 'manual'),
@@ -254,22 +263,11 @@ latex_documents = [
 # -- External mapping ------------------------------------------------------------
 python_version = '.'.join(map(str, sys.version_info[0:2]))
 intersphinx_mapping = {
-    'sphinx': ('http://sphinx.pocoo.org', None),
-    'python': ('http://docs.python.org/' + python_version, None),
-    #    'matplotlib': ('http://matplotlib.sourceforge.net', None),
-    #    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    #    'sklearn': ('http://scikit-learn.org/stable', None),
-    #    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
-    #    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'sphinx': ('http://www.sphinx-doc.org/en/stable', None),
+    'python': ('https://docs.python.org/' + python_version, None),
+    'matplotlib': ('https://matplotlib.org', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'sklearn': ('http://scikit-learn.org/stable', None),
+    'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
 }
-
-source_parsers = {
-    '.md': CommonMarkParser,
-}
-
-
-def setup(app):
-    app.add_config_value('recommonmark_config', {
-        'enable_eval_rst': True,
-    }, True)
-    app.add_transform(AutoStructify)
