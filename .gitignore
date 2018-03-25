@@ -1,6 +1,7 @@
 verifyI# Temporary and binary files
 *~
 *.py[cod]
+*.so
 *.cfg
 !setup.cfg
 *.orig

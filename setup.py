@@ -1,21 +1,29 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Setup file for core.
-
-    This file was generated with PyScaffold 2.5.7, a tool that easily
-    puts up a scaffold for your new Python project. Learn more under:
-    http://pyscaffold.readthedocs.org/
+    This file was generated with PyScaffold 3.0.2.
+    PyScaffold helps you to put up the scaffold of your new Python project.
+    Learn more under: http://pyscaffold.org/
 """
 
 import sys
 from setuptools import setup
 
+# Add here console scripts and other entry points in ini-style format
+entry_points = """
+[console_scripts]
+    start_qrl = qrl.main:main
+    qrl_start = qrl.main:main
+    qrl = qrl.cli:main
+    qrl_measure = qrl.measure:main
+"""
+
 
 def setup_package():
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
     sphinx = ['sphinx'] if needs_sphinx else []
-    setup(setup_requires=['six', 'pyscaffold>=3.0'] + sphinx,
+    setup(setup_requires=['pyscaffold>=3.0a0,<3.1a0'] + sphinx,
+          entry_points=entry_points,
           use_pyscaffold=True)
 
 
