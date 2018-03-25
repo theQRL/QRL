@@ -929,7 +929,10 @@ class State:
                                           prev_block_metadata)
             data_point.time_movavg = movavg
 
-            # FIXME: need to consider average difficulty here
-            data_point.hash_power = int(data_point.difficulty) * (config.dev.mining_setpoint_blocktime / movavg)
+            try:
+                # FIXME: need to consider average difficulty here
+                data_point.hash_power = int(data_point.difficulty) * (config.dev.mining_setpoint_blocktime / movavg)
+            except ZeroDivisionError:
+                data_point.hash_power = 0
 
         return data_point
