@@ -69,6 +69,6 @@ class MiningAPIService(MiningAPIServicer):
                          context) -> qrlmining_pb2.SubmitMinedBlockResp:
         response = qrlmining_pb2.SubmitMinedBlockResp()
 
-        response.status = self.qrlnode.submit_mined_block(request.blob)
+        response.error = not self.qrlnode.submit_mined_block(request.blob)
 
         return response
