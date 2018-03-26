@@ -14,6 +14,7 @@ class DependencyChecker:
                                             os.path.pardir,
                                             os.path.pardir,
                                             os.path.pardir,
+                                            os.path.pardir,
                                             "requirements.txt"))
 
     @staticmethod

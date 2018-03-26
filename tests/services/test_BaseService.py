@@ -32,7 +32,7 @@ class TestBaseAPI(TestCase):
         proto_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   os.path.pardir,
                                                   os.path.pardir,
-                                                  "qrl", "protos", "qrl.proto"))
+                                                  "src", "qrl", "protos", "qrl.proto"))
 
         with open(proto_path, 'r') as content_file:
             proto_content = content_file.read()
