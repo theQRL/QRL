@@ -106,7 +106,7 @@ class Wallet:
 
     def get_xmss_by_address(self, search_addr) -> Optional[XMSS]:
         search_addr_str = self._get_Qaddress(search_addr)
-        for idx, item in enumerate(self._address_items):
+        for item in self._address_items:
             if item.address == search_addr_str:
                 return self.get_xmss_by_index(idx)
         return None
