@@ -135,7 +135,7 @@ class AddressState(object):
             if bit_value:
                 return True
         else:
-            if ots_key_index > self._data.ots_counter:
+            if ots_key_index <= self._data.ots_counter:
                 return True
 
         return False
