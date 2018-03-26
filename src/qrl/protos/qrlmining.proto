@@ -54,5 +54,5 @@ message SubmitMinedBlockReq {
 }
 
 message SubmitMinedBlockResp {
-    // It seems there are no special fields for success/error reporting, does gRPC automatically give me something?
+    bool error = 1; // It seems there are no special fields for success/error reporting, does gRPC automatically give me something?
 }

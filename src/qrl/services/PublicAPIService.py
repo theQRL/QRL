@@ -73,7 +73,9 @@ class PublicAPIService(PublicAPIServicer):
                                          xmss_pk=request.xmss_pk,
                                          master_addr=request.master_addr)
 
-        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.PushTransactionResp, StatusCode.UNKNOWN)
@@ -113,7 +115,9 @@ class PublicAPIService(PublicAPIServicer):
                                            xmss_pk=request.xmss_pk,
                                            master_addr=request.master_addr)
 
-        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
@@ -127,7 +131,9 @@ class PublicAPIService(PublicAPIServicer):
                                                     xmss_pk=request.xmss_pk,
                                                     master_addr=request.master_addr)
 
-        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
@@ -139,7 +145,9 @@ class PublicAPIService(PublicAPIServicer):
                                           xmss_pk=request.xmss_pk,
                                           master_addr=request.master_addr)
 
-        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.TransferCoinsResp, StatusCode.UNKNOWN)
@@ -151,7 +159,9 @@ class PublicAPIService(PublicAPIServicer):
                                                         xmss_pk=request.xmss_pk,
                                                         master_addr=request.master_addr)
 
-        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata, addr_from=tx.addr_from)
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @Grpc_exception_wrapper(qrl_pb2.GetObjectResp, StatusCode.UNKNOWN)
@@ -181,7 +191,8 @@ class PublicAPIService(PublicAPIServicer):
 
             txextended = qrl_pb2.TransactionExtended(header=blockheader,
                                                      tx=transaction.pbdata,
-                                                     addr_from=transaction.addr_from)
+                                                     addr_from=transaction.addr_from,
+                                                     size=transaction.size)
             answer.transaction.CopyFrom(txextended)
             return answer
 
@@ -196,9 +207,12 @@ class PublicAPIService(PublicAPIServicer):
             answer.found = True
             block_extended = qrl_pb2.BlockExtended()
             block_extended.header.CopyFrom(block.blockheader.pbdata)
+            block_extended.size = block.size
             for transaction in block.transactions:
+                tx = Transaction.from_pbdata(transaction)
                 extended_tx = qrl_pb2.TransactionExtended(tx=transaction,
-                                                          addr_from=Transaction.from_pbdata(transaction).addr_from)
+                                                          addr_from=tx.addr_from,
+                                                          size=tx.size)
                 block_extended.extended_transactions.extend([extended_tx])
             answer.block_extended.CopyFrom(block_extended)
             return answer
@@ -244,7 +258,8 @@ class PublicAPIService(PublicAPIServicer):
                     header = block.blockheader.pbdata
                 txextended = qrl_pb2.TransactionExtended(header=header,
                                                          tx=tx.pbdata,
-                                                         addr_from=tx.addr_from)
+                                                         addr_from=tx.addr_from,
+                                                         size=tx.size)
                 result.append(txextended)
 
             response.transactions.extend(result)
@@ -254,7 +269,8 @@ class PublicAPIService(PublicAPIServicer):
             for tx in self.qrlnode.get_latest_transactions_unconfirmed(offset=request.offset, count=quantity):
                 txextended = qrl_pb2.TransactionExtended(header=None,
                                                          tx=tx.pbdata,
-                                                         addr_from=tx.addr_from)
+                                                         addr_from=tx.addr_from,
+                                                         size=tx.size)
                 result.append(txextended)
             response.transactions_unconfirmed.extend(result)
 

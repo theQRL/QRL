@@ -124,7 +124,7 @@ class DevConfig(object):
         self.message_receipt_timeout = 10  # request timeout for full message
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
 
-        self.transaction_pool_size = 1000
+        self.transaction_pool_size = 25000
         self.max_coin_supply = decimal.Decimal(105000000)
         self.coin_remaning_at_genesis = decimal.Decimal(40000000)
         self.timestamp_error = 5  # Error in second

@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 
-set -xe
+#set -xe
 
-source ./travis/prepare.sh
+echo "TRAVIS_OS_NAME" ${TRAVIS_OS_NAME}
+echo "PLATFORM" ${PLATFORM}
+
+
 
 case "${TRAVIS_OS_NAME}" in
     osx)
         echo "UNSUPPORTED OS"
         exit 1
+        brew install python3 swig
+        brew outdated boost || brew upgrade boost
+        brew outdated cmake || brew upgrade cmake
+        sudo pip3 install -U pip setuptools twine | cat
         ;;
 
     linux)
@@ -25,7 +32,14 @@ case "${TRAVIS_OS_NAME}" in
         docker exec -t -e TEST -e DEPLOY -e STYLECHECK builder /build.sh
         ;;
     *)
+        echo ""
         echo "UNSUPPORTED OS"
+        echo "You need to specify the TRAVIS_OS_NAME and PLATFORM"
+        echo "Run: export TRAVIS_OS_NAME=..."
+        echo ""
+        echo "TRAVIS_OS_NAME -> linux, osx"
+        echo "PLATFORM -> jessie, stretch, xenial"
+
         exit 1
         ;;
 esac

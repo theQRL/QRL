@@ -321,6 +321,7 @@ message TransactionExtended {
     BlockHeader header = 1;
     Transaction tx = 2;
     bytes addr_from = 3;
+    uint64 size = 4;
 }
 
 message BlockExtended {
@@ -329,6 +330,7 @@ message BlockExtended {
 
     // This is only applicable to genesis blocks
     repeated GenesisBalance genesis_balance = 3;
+    uint64 size = 4;
 }
 
 message Block {

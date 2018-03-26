@@ -4,6 +4,8 @@
 
 import heapq
 
+from pyqrllib.pyqrllib import QRLHelper, sha2_256
+
 from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.Transaction import Transaction
@@ -15,10 +17,25 @@ class TransactionPool:
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = set()
         self.transaction_pool = []  # FIXME: Everyone is touching this
+        self.address_ots_hash = set()
 
     @property
     def transactions(self):
         return heapq.nlargest(len(self.transaction_pool), self.transaction_pool)
+
+    @staticmethod
+    def calc_addr_ots_hash(tx):
+        addr = tx.master_addr
+        if not addr:
+            addr = bytes(QRLHelper.getAddress(tx.PK))
+
+        addr_ots_hash = sha2_256(addr + tx.ots_key.to_bytes(8, byteorder='big', signed=False))
+
+        return addr_ots_hash
+
+    def append_addr_ots_hash(self, tx: Transaction):
+        addr_ots_hash = self.calc_addr_ots_hash(tx)
+        self.address_ots_hash.add(addr_ots_hash)
 
     def get_pending_transaction(self):
         if len(self.pending_tx_pool_hash) == 0:
@@ -26,6 +43,10 @@ class TransactionPool:
         pending_tx_set = heapq.heappop(self.pending_tx_pool)
         pending_tx = pending_tx_set[1]
         self.pending_tx_pool_hash.remove(pending_tx.txhash)
+
+        addr_ots_hash = self.calc_addr_ots_hash(pending_tx)
+        self.address_ots_hash.remove(addr_ots_hash)
+
         return pending_tx
 
     def is_full_transaction_pool(self) -> bool:
@@ -34,21 +55,30 @@ class TransactionPool:
 
         return False
 
-    def update_pending_tx_pool(self, tx, ip):
+    def update_pending_tx_pool(self, tx, ip) -> bool:
         if self.is_full_transaction_pool():
-            return
+            return False
 
         idx = self.get_tx_index_from_pool(tx.txhash)
         if idx > -1:
-            return
+            return False
+
+        addr_ots_hash = self.calc_addr_ots_hash(tx)
+
+        if addr_ots_hash in self.address_ots_hash:
+            return False
 
         if tx.txhash in self.pending_tx_pool_hash:
-            return
+            return False
+
+        self.address_ots_hash.add(addr_ots_hash)
 
         # Since its a min heap giving priority to lower number
         # So -1 multiplied to give higher priority to higher txn
         heapq.heappush(self.pending_tx_pool, [tx.fee * -1, tx, ip])
         self.pending_tx_pool_hash.add(tx.txhash)
+
+        return True
 
     def add_tx_to_pool(self, tx_class_obj) -> bool:
         if self.is_full_transaction_pool():
@@ -70,7 +100,10 @@ class TransactionPool:
         if idx > -1:
             del self.transaction_pool[idx]
 
-        heapq.heapify(self.transaction_pool)
+            addr_ots_hash = self.calc_addr_ots_hash(tx)
+            self.address_ots_hash.remove(addr_ots_hash)
+
+            heapq.heapify(self.transaction_pool)
 
     def remove_tx_in_block_from_pool(self, block_obj: Block):
         for protobuf_tx in block_obj.transactions:
@@ -78,5 +111,8 @@ class TransactionPool:
             idx = self.get_tx_index_from_pool(tx.txhash)
             if idx > -1:
                 del self.transaction_pool[idx]
+
+                addr_ots_hash = self.calc_addr_ots_hash(tx)
+                self.address_ots_hash.remove(addr_ots_hash)
 
         heapq.heapify(self.transaction_pool)
