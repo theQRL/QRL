@@ -322,6 +322,42 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
 
 
 @qrl.command()
+@click.option('--wallet-idx', type=int, prompt=True, help='index of address in wallet')
+@click.option('--skip-confirmation', default=False, is_flag=True, prompt=False, help='skip the confirmation prompt')
+@click.pass_context
+def wallet_rm(ctx, wallet_idx, skip_confirmation):
+    """
+    Removes an address from the wallet using the given address index.
+
+    Warning! Use with caution. Removing an address from the wallet
+    will result in loss of access to the address and is not
+    reversible unless you have address recovery information.
+    Use the wallet_secret command for obtaining the recovery Mnemonic/Hexseed and
+    the wallet_recover command for restoring an address.
+    """
+    if ctx.obj.remote:
+        click.echo('This command is unsupported for remote wallets')
+        return
+
+    config.user.wallet_dir = ctx.obj.wallet_dir
+
+    wallet = Wallet(valid_or_create=False)
+
+    if 0 <= wallet_idx < len(wallet.address_bundle):
+        addr_bundle = wallet.address_bundle[wallet_idx]
+        if not skip_confirmation:
+            click.echo('You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_bundle.address.decode()))
+            click.echo('Warning! By continuing, you risk complete loss of access to this address if you do not have a recovery Mnemonic/Hexseed.')
+            click.confirm('Do you want to continue?', abort=True)
+        wallet.remove(addr_bundle)
+
+        addresses = [a.address for a in wallet.address_bundle]
+        _print_addresses(ctx, addresses, config.user.wallet_dir)
+    else:
+        click.echo('Wallet index not found', color='yellow')
+
+
+@qrl.command()
 @click.option('--src', default='', prompt=True, help='source address or index')
 @click.option('--master', default='', prompt=True, help='master QRL address')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
