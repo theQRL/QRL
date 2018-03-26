@@ -171,8 +171,6 @@ def submitblock(blob):
     stub = get_mining_stub()
     request = qrlmining_pb2.SubmitMinedBlockReq(blob=bytes(hstr2bin(blob)))
     response = stub.SubmitMinedBlock(request=request, timeout=10)
-    if not response.status:
-        return None
     return MessageToJson(response)
 
 
