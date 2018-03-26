@@ -44,7 +44,7 @@ class TransactionPool:
         pending_tx = pending_tx_set[1]
         self.pending_tx_pool_hash.remove(pending_tx.txhash)
 
-        addr_ots_hash = self.calc_addr_ots_hash(pending_tx.tx)
+        addr_ots_hash = self.calc_addr_ots_hash(pending_tx)
         self.address_ots_hash.remove(addr_ots_hash)
 
         return pending_tx
