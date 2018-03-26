@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: zondax/qrl-build-images:xenial
+    steps:
+      - checkout
+      - run: pip install -U setuptools
+      - run: pip install -U -r requirements.txt
+      - run: pip install -U -r test-requirements.txt
+      - run: python3 setup.py test
+
+workflows:
+  version: 2
+  build_all:
+    jobs:
+      - build
+      - build_ledger
