@@ -354,8 +354,9 @@ class P2PFactory(ServerFactory):
         logger.error('%s', msg)
         self._txn_processor_running = False
 
-    def add_unprocessed_txn(self, tx, ip):
-        self._chain_manager.tx_pool.update_pending_tx_pool(tx, ip)
+    def add_unprocessed_txn(self, tx, ip) -> bool:
+        if not self._chain_manager.tx_pool.update_pending_tx_pool(tx, ip):
+            return False
 
         if not self._txn_processor_running:
             txn_processor = TxnProcessor(state=self._chain_manager.state,
@@ -366,6 +367,8 @@ class P2PFactory(ServerFactory):
             task_defer.addCallback(self.reset_processor_flag) \
                 .addErrback(self.reset_processor_flag_with_err)
             self._txn_processor_running = True
+
+        return True
 
     def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', tx.txhash)
