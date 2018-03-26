@@ -18,7 +18,6 @@ __pycache__/*
 .project
 .pydevproject
 .settings
-.idea
 
 # Package files
 *.egg
@@ -43,21 +42,17 @@ cover/*
 MANIFEST
 
 tests/state/
-
 state/
-
 tests/core/known_data/testcase1/wallet.dat
-
 tests/core/known_data/testcase1/wallet.info
-
 /examples/nodejs/node_modules/
-
 tests/core/_trial_temp/_trial_marker
-
 tests/services/_trial_temp/_trial_marker
-
 tests/core/_trial_temp\.lock
-
 venv/
 /.pytest_cache/
 /.coverage.*
+\.idea/workspace\.xml
+\.idea/modules\.xml
+\.idea/misc\.xml
+\.idea/libraries/R_User_Library\.xml
