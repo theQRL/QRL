@@ -353,9 +353,7 @@ class QRLNode:
         if self._chain_manager.tx_pool.is_full_transaction_pool():
             raise ValueError("Transaction Pool is full")
 
-        self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
-
-        return True
+        return self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
 
     def get_address_is_used(self, address: bytes) -> bool:
         if not AddressState.address_is_valid(address):
