@@ -178,7 +178,10 @@ def wallet_ls(ctx):
     """
     config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet()
-    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+    try:
+        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+    except TypeError:
+        click.echo("There is no wallet.json in {}".format(ctx.obj.wallet_dir))
 
 
 @qrl.command()
