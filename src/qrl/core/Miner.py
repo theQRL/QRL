@@ -88,7 +88,7 @@ class Miner(Qryptominer):
         # NOTE: This function usually runs in the context of a C++ thread
         try:
             logger.debug('Solution Found %s', nonce)
-            self._mining_block.set_mining_nonce(nonce)
+            self._mining_block.set_nonces(nonce, 0)
             logger.info('Block #%s nonce: %s', self._mining_block.block_number, StringToUInt256(str(nonce))[-4:])
             logger.info('Hash Rate: %s H/s', self.hashRate())
             cloned_block = copy.deepcopy(self._mining_block)
@@ -109,7 +109,7 @@ class Miner(Qryptominer):
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],
                                    miner_address=miner_address)
-        dummy_block.set_mining_nonce(mining_nonce)
+        dummy_block.set_nonces(mining_nonce, 0)
 
         t_pool2 = tx_pool.transactions
 
@@ -173,7 +173,7 @@ class Miner(Qryptominer):
         if not PoWValidator().validate_mining_nonce(self.state, blockheader=blockheader):
             return False
 
-        self._mining_block.set_mining_nonce(blockheader.mining_nonce)
+        self._mining_block.set_nonces(blockheader.mining_nonce, blockheader.extra_nonce)
         cloned_block = copy.deepcopy(self._mining_block)
         self.pre_block_logic(cloned_block)
         return True

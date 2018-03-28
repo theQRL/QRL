@@ -59,48 +59,74 @@ service AdminAPI
 ////////////////////////////
 ////////////////////////////
 
+/**
+ * Empty message definition
+*/
 message Empty       { }
 
-message PingReq     { }
-message PongResp    { }
-
+/**
+ * Represents a query to get node state
+*/
 message GetNodeStateReq { }
+
+/**
+ * Represents the reply message to node state query
+*/
 message GetNodeStateResp {
     NodeInfo info = 1;
 }
 
+/**
+ * Represents a query to get known peers
+*/
 message GetKnownPeersReq { }
+
+/**
+ * Represents the reply message to known peers query
+*/
 message GetKnownPeersResp {
-    NodeInfo node_info = 1;
-    repeated Peer known_peers = 2;
+    NodeInfo node_info = 1;             // NodeInfo object containing node state information
+    repeated Peer known_peers = 2;      // List of Peer objects containing peer nodes detailed information
 }
 
+/**
+ * NOT USED -> RM?
+*/
 message GetBlockReq {
     oneof query {
         uint64 index = 1;               // Indicates the index number in mainchain
         bytes after_hash = 2;           // request the node that comes after hash
     }
 }
+/**
+ * NOT USED -> RM?
+*/
 message GetBlockResp {
     NodeInfo node_info = 1;
     Block block = 2;
 }
 
+/**
+ * Represents a query to get statistics about node
+*/
 message GetStatsReq {
-    bool include_timeseries = 1;
+    bool include_timeseries = 1;            // Boolean to define if block timeseries should be included in reply or not
 }
 
+/**
+ * Represents the reply message to get statistics about node
+*/
 message GetStatsResp {
-    NodeInfo node_info = 1;
+    NodeInfo node_info = 1;                 // NodeInfo object containing node state information
     uint64 epoch = 2;                       // Current epoch
     uint64 uptime_network = 3;              // Indicates uptime in seconds
 
-    uint64 block_last_reward = 4;
-    uint64 block_time_mean = 5;
-    uint64 block_time_sd = 6;
+    uint64 block_last_reward = 4;           // Block reward
+    uint64 block_time_mean = 5;             // Blocktime average
+    uint64 block_time_sd = 6;               // Blocktime standrad deviation
 
-    uint64 coins_total_supply = 7;
-    uint64 coins_emitted = 8;
+    uint64 coins_total_supply = 7;          // Total coins supply
+    uint64 coins_emitted = 8;               // Total coins emitted
 
     repeated BlockDataPoint block_timeseries = 9;
 }
@@ -113,17 +139,20 @@ message GetAddressFromPKResp {
     bytes address = 1;
 }
 
+/**
+ * BlockDataPoint message definition
+*/
 message BlockDataPoint
 {
-    uint64 number = 1;
-    string difficulty = 2;
-    uint64 timestamp = 3;
+    uint64 number = 1;                      // Block number
+    string difficulty = 2;                  // Block difficulty
+    uint64 timestamp = 3;                   // Block timestamp
     uint64 time_last = 4;
     uint64 time_movavg = 5;
-    float hash_power = 6;
+    float hash_power = 6;                   // Hash power
 
-    bytes header_hash = 7;
-    bytes header_hash_prev = 8;
+    bytes header_hash = 7;                  // Block header hash
+    bytes header_hash_prev = 8;             // Previous block's header hash
 }
 
 message GetAddressStateReq {   bytes address = 1; }
@@ -306,6 +335,7 @@ message BlockHeader {
     bytes merkle_root = 7;
 
     uint64 mining_nonce = 8;
+    uint64 extra_nonce = 9;
 }
 
 message BlockHeaderExtended {

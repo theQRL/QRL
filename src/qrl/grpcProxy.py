@@ -160,6 +160,7 @@ def getblocktemplate(wallet_address):
         'blocktemplate_blob': grpc_response.blocktemplate_blob,
         'difficulty': grpc_response.difficulty,
         'height': grpc_response.height,
+        'reserved_offset': grpc_response.reserved_offset,
         'status': 'OK'
     }
 
@@ -171,6 +172,8 @@ def submitblock(blob):
     stub = get_mining_stub()
     request = qrlmining_pb2.SubmitMinedBlockReq(blob=bytes(hstr2bin(blob)))
     response = stub.SubmitMinedBlock(request=request, timeout=10)
+    if response.error:
+        raise Exception  # Mining pool expected exception when block submission fails
     return MessageToJson(response)
 
 

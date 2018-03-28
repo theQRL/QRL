@@ -69,9 +69,9 @@ def _print_error(ctx, error_descr, wallets=None):
         print("ERROR: {}".format(error_descr))
 
 
-def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> str:
+def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> dict:
     if len(addresses) == 0:
-        msg = json.dumps({'error': 'No wallet found at {}'.format(source_description), 'wallets': []})
+        msg = {'error': 'No wallet found at {}'.format(source_description), 'wallets': []}
         return msg
 
     msg = {'error': None, 'wallets': []}
@@ -89,7 +89,7 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
     output = _serialize_output(ctx, addresses, source_description)
     if ctx.obj.json:
-        click.echo(output)
+        click.echo(json.dumps(output))
     else:
         if output['error'] and output['wallets'] == []:
             click.echo(output['error'])
@@ -183,7 +183,9 @@ def wallet_ls(ctx):
 
 @qrl.command()
 @click.pass_context
-def wallet_gen(ctx):
+@click.option('--height', default=config.dev.xmss_tree_height,
+              help='XMSS tree height. The resulting tree will be good for 2^height signatures')
+def wallet_gen(ctx, height):
     """
     Generates a new wallet with one address
     """
@@ -195,7 +197,7 @@ def wallet_gen(ctx):
     # FIXME: If the wallet is there, it should fail
     wallet = Wallet()
     if len(wallet.address_items) == 0:
-        wallet.add_new_address(config.dev.xmss_tree_height)
+        wallet.add_new_address(height)
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
         # FIXME: !!!!!

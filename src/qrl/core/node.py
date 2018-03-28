@@ -205,7 +205,7 @@ class POW(ConsensusMechanism):
             result = self.chain_manager.add_block(block)
 
             logger.debug('trigger_miner %s', self.chain_manager.trigger_miner)
-            if self.chain_manager.trigger_miner or not self.miner.isRunning():
+            if self.chain_manager.trigger_miner:
                 self.mine_next(self.chain_manager.last_block)
 
             if not result:

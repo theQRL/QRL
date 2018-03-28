@@ -202,8 +202,6 @@ class ChainManager:
     def _try_orphan_add_block(self, block, batch):
         prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
 
-        self.trigger_miner = False
-
         if prev_block_metadata is None or prev_block_metadata.is_orphan:
             self.state.put_block(block, batch)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
@@ -232,7 +230,6 @@ class ChainManager:
             last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
             new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
 
-            self.trigger_miner = False
             if new_block_difficulty > last_block_difficulty:
                 if self.last_block.headerhash != block.prev_headerhash:
                     self.rollback(block)
@@ -289,6 +286,8 @@ class ChainManager:
         self.trigger_miner = True
 
     def _add_block(self, block, ignore_duplicate=False, batch=None):
+        self.trigger_miner = False
+
         block_size_limit = self.state.get_block_size_limit(block)
         if block_size_limit and block.size > block_size_limit:
             logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
