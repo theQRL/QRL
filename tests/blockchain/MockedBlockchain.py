@@ -55,7 +55,7 @@ class MockedBlockchain(object):
         while not PoWValidator().validate_mining_nonce(state=self.qrlnode._chain_manager.state,
                                                        blockheader=block_new.blockheader,
                                                        enable_logging=False):
-            block_new.set_mining_nonce(block_new.mining_nonce + 1)
+            block_new.set_nonces(block_new.mining_nonce + 1, 0)
 
         return block_new
 
