@@ -69,9 +69,9 @@ def _print_error(ctx, error_descr, wallets=None):
         print("ERROR: {}".format(error_descr))
 
 
-def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> str:
+def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> dict:
     if len(addresses) == 0:
-        msg = json.dumps({'error': 'No wallet found at {}'.format(source_description), 'wallets': []})
+        msg = {'error': 'No wallet found at {}'.format(source_description), 'wallets': []}
         return msg
 
     msg = {'error': None, 'wallets': []}
@@ -89,7 +89,7 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
     output = _serialize_output(ctx, addresses, source_description)
     if ctx.obj.json:
-        click.echo(output)
+        click.echo(json.dumps(output))
     else:
         if output['error'] and output['wallets'] == []:
             click.echo(output['error'])
