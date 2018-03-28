@@ -185,3 +185,13 @@ class Wallet:
         tmp_xmss = XMSS.from_height(height)
         self.append_xmss(tmp_xmss)
         return tmp_xmss
+
+    def remove(self, addr):
+        for item in self._address_items:
+            if item.address == addr:
+                try:
+                    self._address_items.remove(item)
+                    self.save_wallet(self.wallet_path)
+                    return
+                except ValueError:
+                    logger.warning("Could not remove address from wallet")
