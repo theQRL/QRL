@@ -6,6 +6,7 @@ from unittest import TestCase
 from pyqrllib.pyqrllib import sha2_256
 
 from tests.misc.helper import get_alice_xmss
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
 
@@ -29,6 +30,26 @@ class TestBlock(TestCase):
                              miner_address=alice_xmss.address)
         mining_blob = block.mining_blob
         self.assertTrue(block.blockheader.verify_blob(mining_blob))
+
+    def test_mining_blob(self):
+        alice_xmss = get_alice_xmss()
+        block = Block.create(block_number=5,
+                             prevblock_headerhash=bytes(sha2_256(b'test')),
+                             transactions=[],
+                             miner_address=alice_xmss.address)
+
+        block.set_nonces(mining_nonce=5, extra_nonce=4)
+
+        mining_blob = block.mining_blob
+        self.assertEqual(len(mining_blob), config.dev.mining_blob_size)
+        mining_nonce_bytes = mining_blob[config.dev.mining_nonce_offset:config.dev.mining_nonce_offset + 4]
+        extra_nonce_bytes = mining_blob[config.dev.mining_nonce_offset + 4:config.dev.extra_nonce_offset + 4]
+
+        mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
+        extra_nonce = int.from_bytes(extra_nonce_bytes, byteorder='big', signed=False)
+
+        self.assertEqual(mining_nonce, 5)
+        self.assertEqual(extra_nonce, 4)
 
     def test_set_mining_nonce_from_blob(self):
         alice_xmss = get_alice_xmss()

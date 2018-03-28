@@ -87,15 +87,16 @@ class BlockHeader(object):
                + self.tx_merkle_root
 
         # reduce mining blob considering nonce (4 byte)
-        blob = bytes(shake128(config.dev.mining_blob_size - 4, blob))
+        blob = bytes(shake128(config.dev.mining_blob_size - 8, blob))
 
         if len(blob) < self.nonce_offset:
             raise Exception("Mining blob size below 39 bytes")
 
-        # Now insert mining nonce in offset 39 for compatibility
-        mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False)
+        # Now insert mining nonce and extra nonce in offset 39 for compatibility
+        mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False) \
+            + self.extra_nonce.to_bytes(4, byteorder='big', signed=False)
+
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
-        blob = blob[:self.extra_nonce_offset] + b'\x00' * 4 + blob[self.extra_nonce_offset:]
 
         return bytes(blob)
 
