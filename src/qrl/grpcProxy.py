@@ -171,6 +171,8 @@ def submitblock(blob):
     stub = get_mining_stub()
     request = qrlmining_pb2.SubmitMinedBlockReq(blob=bytes(hstr2bin(blob)))
     response = stub.SubmitMinedBlock(request=request, timeout=10)
+    if response.error:
+        raise Exception  # Mining pool expected exception when block submission fails
     return MessageToJson(response)
 
 
