@@ -47,6 +47,7 @@ message GetBlockToMineResp {
     string blocktemplate_blob = 1; // max length 112 bytes, otherwise xmr-stak will hiccup
     uint64 difficulty = 2; // difficulty that the new block should meet
     uint64 height = 3;
+    uint32 reserved_offset = 4;
 }
 
 message SubmitMinedBlockReq {

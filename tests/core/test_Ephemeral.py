@@ -85,7 +85,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block1.blockheader, False):
-                                tmp_block1.set_mining_nonce(tmp_block1.mining_nonce + 1)
+                                tmp_block1.set_nonces(tmp_block1.mining_nonce + 1, 0)
 
                             res = chain_manager.add_block(block=tmp_block1)
                             self.assertTrue(res)
@@ -132,7 +132,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block2.blockheader, False):
-                                tmp_block2.set_mining_nonce(tmp_block2.mining_nonce + 1)
+                                tmp_block2.set_nonces(tmp_block2.mining_nonce + 1, 0)
 
                             res = chain_manager.add_block(block=tmp_block2)
                             self.assertTrue(res)
@@ -147,7 +147,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block3.blockheader, False):
-                                tmp_block3.set_mining_nonce(tmp_block3.mining_nonce + 1)
+                                tmp_block3.set_nonces(tmp_block3.mining_nonce + 1, 0)
 
                             res = chain_manager.add_block(block=tmp_block3)
                             self.assertTrue(res)
@@ -161,7 +161,7 @@ class TestEphemeral(TestCase):
 
                             #  Mine the nonce
                             while not PoWValidator().validate_mining_nonce(state, tmp_block4.blockheader, False):
-                                tmp_block4.set_mining_nonce(tmp_block4.mining_nonce + 1)
+                                tmp_block4.set_nonces(tmp_block4.mining_nonce + 1, 0)
 
                             res = chain_manager.add_block(block=tmp_block4)
                             self.assertTrue(res)

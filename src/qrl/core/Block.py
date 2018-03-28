@@ -89,8 +89,8 @@ class Block(object):
     def verify_blob(self, blob: bytes) -> bool:
         return self.blockheader.verify_blob(blob)
 
-    def set_mining_nonce(self, mining_nonce):
-        self.blockheader.set_mining_nonce(mining_nonce)
+    def set_nonces(self, mining_nonce, extra_nonce=0):
+        self.blockheader.set_nonces(mining_nonce, extra_nonce)
 
     def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf
@@ -133,7 +133,7 @@ class Block(object):
 
         block._data.header.MergeFrom(tmp_blockheader.pbdata)
 
-        block.set_mining_nonce(0)
+        block.set_nonces(0, 0)
 
         return block
 

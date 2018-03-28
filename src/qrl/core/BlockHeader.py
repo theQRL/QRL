@@ -62,12 +62,20 @@ class BlockHeader(object):
         return self._data.merkle_root
 
     @property
+    def extra_nonce(self):
+        return self._data.extra_nonce
+
+    @property
     def mining_nonce(self):
         return self._data.mining_nonce
 
     @property
     def nonce_offset(self):
         return config.dev.mining_nonce_offset
+
+    @property
+    def extra_nonce_offset(self):
+        return config.dev.extra_nonce_offset
 
     @property
     def mining_blob(self) -> bytes:
@@ -87,6 +95,7 @@ class BlockHeader(object):
         # Now insert mining nonce in offset 39 for compatibility
         mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False)
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
+        blob = blob[:self.extra_nonce_offset] + b'\x00' * 4 + blob[self.extra_nonce_offset:]
 
         return bytes(blob)
 
@@ -132,18 +141,22 @@ class BlockHeader(object):
 
         bh._data.reward_block = bh.block_reward_calc(blocknumber)
 
-        bh.set_mining_nonce(0)
+        bh.set_nonces(0, 0)
         return bh
 
-    def set_mining_nonce(self, value):
-        self._data.mining_nonce = value
+    def set_nonces(self, mining_nonce, extra_nonce=0):
+        self._data.mining_nonce = mining_nonce
+        self._data.extra_nonce = extra_nonce
         self._data.hash_header = self.generate_headerhash()
 
     def set_mining_nonce_from_blob(self, blob):
-        mining_nonce_offset = config.dev.mining_nonce_offset
-        mining_nonce_bytes = blob[mining_nonce_offset: mining_nonce_offset + 4]
+        mining_nonce_bytes = blob[self.nonce_offset: self.nonce_offset + 4]
         mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
-        self.set_mining_nonce(mining_nonce)
+
+        extra_nonce_bytes = blob[self.extra_nonce_offset: self.extra_nonce_offset + 4]
+        extra_nonce = int.from_bytes(extra_nonce_bytes, byteorder='big', signed=False)
+
+        self.set_nonces(mining_nonce, extra_nonce)
 
     @staticmethod
     def block_reward_calc(block_number):

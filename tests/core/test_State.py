@@ -31,7 +31,7 @@ def gen_blocks(block_count, state, miner_address):
                                      prevblock_headerhash=prev_hash,
                                      transactions=[],
                                      miner_address=miner_address)
-                block.set_mining_nonce(10)
+                block.set_nonces(10, 0)
                 blocks.append(block)
 
                 metadata = BlockMetadata()

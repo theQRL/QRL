@@ -126,17 +126,15 @@ def qrlnode_with_mock_blockchain(num_blocks):
             block_new = Block.create(block_number=block_idx,
                                      prevblock_headerhash=block_prev.headerhash,
                                      transactions=transactions,
-                                     signing_xmss=alice_xmss,
-                                     master_address=alice_xmss.address,
-                                     nonce=block_idx)
+                                     miner_address=alice_xmss.address)
 
             while not PoWValidator().validate_mining_nonce(state, block_new.blockheader, False):
-                block_new.set_mining_nonce(block_new.mining_nonce + 1)
+                block_new.set_nonces(block_new.mining_nonce + 1, 0)
 
             chain_manager.add_block(block_new)
             block_prev = block_new
 
-        qrlnode = QRLNode(state, slaves=[])
+        qrlnode = QRLNode(state, mining_credit_wallet=alice_xmss.address)
         qrlnode.set_chain_manager(chain_manager)
 
         yield qrlnode

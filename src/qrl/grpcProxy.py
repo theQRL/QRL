@@ -160,6 +160,7 @@ def getblocktemplate(wallet_address):
         'blocktemplate_blob': grpc_response.blocktemplate_blob,
         'difficulty': grpc_response.difficulty,
         'height': grpc_response.height,
+        'reserved_offset': grpc_response.reserved_offset,
         'status': 'OK'
     }
 
