@@ -310,5 +310,9 @@ class TestChainManager(TestCase):
                     block = state.get_block(block.headerhash)
                     self.assertIsNotNone(block)
 
+                    self.assertEqual(len(state.get_block_metadata(block_1.headerhash).child_headerhashes), 0)
+                    self.assertEqual(len(state.get_block_metadata(block.headerhash).child_headerhashes), 1)
+                    self.assertEqual(len(state.get_block_metadata(block_2.headerhash).child_headerhashes), 0)
+
                     self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
                     self.assertEqual(chain_manager.last_block.headerhash, block_2.headerhash)

@@ -48,13 +48,19 @@ class BlockMetadata(object):
         self._data.cumulative_difficulty = bytes(value)
 
     def add_child_headerhash(self, child_headerhash: bytes):
-        self._data.child_headerhashes.append(child_headerhash)
+        if child_headerhash not in self._data.child_headerhashes:
+            self._data.child_headerhashes.append(child_headerhash)
 
     def update_last_headerhashes(self, parent_last_N_headerhashes, last_headerhash: bytes):
         self._data.last_N_headerhashes.extend(parent_last_N_headerhashes)
         self._data.last_N_headerhashes.append(last_headerhash)
         if len(self._data.last_N_headerhashes) > config.dev.N_measurement:
             del self._data.last_N_headerhashes[0]
+
+        if len(self._data.last_N_headerhashes) > config.dev.N_measurement:
+            raise Exception('Size of last_N_headerhashes is more than expected %s %s',
+                            len(self._data.last_N_headerhashes),
+                            config.dev.N_measurement)
 
     @staticmethod
     def create(is_orphan=True,
