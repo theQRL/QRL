@@ -223,11 +223,16 @@ def transfer(destinations, fee, mixin, unlock_time):
 
 app.add_url_rule('/json_rpc', 'api', api.as_view(), methods=['POST'])
 
-if __name__ == '__main__':
-    global payment_slaves
-    global payment_xmss
+
+def main():
+    global payment_slaves, payment_xmss
+    global mining_stub, public_stub
     mining_stub = qrlmining_pb2_grpc.MiningAPIStub(grpc.insecure_channel('127.0.0.1:9007'))
     public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('127.0.0.1:9009'))
     payment_xmss = None
     payment_slaves = read_slaves(config.user.mining_pool_payment_wallet_path)
     app.run(host='127.0.0.1', port=18081)
+
+
+if __name__ == '__main__':
+    main()
