@@ -281,7 +281,7 @@ def wallet_secret(ctx, wallet_idx):
 
     if 0 <= wallet_idx < len(wallet.address_items):
         address_item = wallet.address_items[wallet_idx]
-        click.echo('Wallet Address  : %s' % (address_item.address))
+        click.echo('Wallet Address  : %s' % (address_item.qaddress))
         click.echo('Mnemonic        : %s' % (address_item.mnemonic))
         click.echo('Hexseed         : %s' % (address_item.hexseed))
     else:
@@ -718,7 +718,7 @@ def token_list(ctx, owner):
 
         channel = grpc.insecure_channel(ctx.obj.node_public_address)
         stub = qrl_pb2_grpc.PublicAPIStub(channel)
-        addressStateReq = qrl_pb2.GetAddressStateReq(address=owner.encode())
+        addressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(owner[1:])))
         addressStateResp = stub.GetAddressState(addressStateReq, timeout=5)
 
         for token_hash in addressStateResp.state.tokens:
