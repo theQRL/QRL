@@ -34,7 +34,7 @@ class ContextFilter(logging.Filter):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='QRL node')
-    parser.add_argument('--mining_thread_count', '-m', dest='mining_thread_count', action='store_true', required=False,
+    parser.add_argument('--mining_thread_count', '-m', dest='mining_thread_count', type=int, required=False,
                         default=config.user.mining_thread_count, help="Number of threads for mining")
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
