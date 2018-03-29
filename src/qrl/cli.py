@@ -89,6 +89,7 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
     output = _serialize_output(ctx, addresses, source_description)
     if ctx.obj.json:
+        output["location"] = source_description
         click.echo(json.dumps(output))
     else:
         if output['error'] and output['wallets'] == []:
