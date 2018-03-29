@@ -20,7 +20,7 @@ from qrl.core.misc import logger
 class Miner(Qryptominer):
     def __init__(self,
                  pre_block_logic,
-                 mining_credit_wallet: bytes,
+                 mining_address: bytes,
                  state: State,
                  mining_thread_count,
                  add_unprocessed_txn_fn):
@@ -32,7 +32,7 @@ class Miner(Qryptominer):
         self._current_target = None
         self._measurement = None  # Required only for logging
 
-        self._mining_credit_wallet = mining_credit_wallet
+        self._mining_address = mining_address
         self._reward_address = None
         self.state = state
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
@@ -45,7 +45,7 @@ class Miner(Qryptominer):
             self._mining_block = self.create_block(last_block=parent_block,
                                                    mining_nonce=0,
                                                    tx_pool=tx_pool,
-                                                   miner_address=self._mining_credit_wallet)
+                                                   miner_address=self._mining_address)
 
             parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
             self._measurement = self.state.get_measurement(self._mining_block.timestamp,

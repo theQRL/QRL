@@ -41,7 +41,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -64,7 +64,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -95,7 +95,7 @@ class TestPublicAPI(TestCase):
         chain_manager.get_block_by_number = MagicMock(return_value=None)
         chain_manager.state = db_state
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -136,7 +136,7 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         chain_manager = ChainManager(db_state)
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
@@ -173,7 +173,7 @@ class TestPublicAPI(TestCase):
 
         chain_manager = ChainManager(db_state)
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -307,7 +307,7 @@ class TestPublicAPI(TestCase):
         chain_manager.tx_pool.transaction_pool = txpool
         chain_manager.height = len(blocks)
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode.get_block_from_index = MagicMock(return_value=None)
 
@@ -359,7 +359,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+        qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
