@@ -34,7 +34,7 @@ class TestPublicAPI(TestCase):
                     p2p_factory.pow = Mock(spec=POW)
                     chain_manager = ChainManager(db_state)
 
-                    qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+                    qrlnode = QRLNode(db_state, mining_address=b'')
                     qrlnode.set_chain_manager(chain_manager)
                     qrlnode._p2pfactory = p2p_factory
                     qrlnode._pow = p2p_factory.pow
@@ -82,7 +82,7 @@ class TestPublicAPI(TestCase):
                     p2p_factory.pow = Mock(spec=POW)
                     chain_manager = ChainManager(db_state)
 
-                    qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+                    qrlnode = QRLNode(db_state, mining_address=b'')
                     qrlnode.set_chain_manager(chain_manager)
                     qrlnode._p2pfactory = p2p_factory
                     qrlnode._pow = p2p_factory.pow
@@ -137,7 +137,7 @@ class TestPublicAPI(TestCase):
                     p2p_factory.pow = Mock(spec=POW)
                     chain_manager = ChainManager(db_state)
 
-                    qrlnode = QRLNode(db_state, mining_credit_wallet=b'')
+                    qrlnode = QRLNode(db_state, mining_address=b'')
                     qrlnode.set_chain_manager(chain_manager)
                     qrlnode._p2pfactory = p2p_factory
                     qrlnode._pow = p2p_factory.pow

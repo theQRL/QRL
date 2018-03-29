@@ -42,7 +42,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   mining_credit_wallet=get_random_xmss().address,
+                   mining_address=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
@@ -57,7 +57,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   mining_credit_wallet=get_random_xmss().address,
+                   mining_address=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
@@ -74,7 +74,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   mining_credit_wallet=get_random_xmss().address,
+                   mining_address=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)
@@ -108,7 +108,7 @@ class TestNode(TestCase):
                        p2p_factory=p2p_factory,
                        sync_state=sync_state,
                        time_provider=time_provider,
-                       mining_credit_wallet=get_random_xmss().address,
+                       mining_address=get_random_xmss().address,
                        mining_thread_count=0)
 
             self.assertIsNotNone(node)
@@ -125,7 +125,7 @@ class TestNode(TestCase):
                    p2p_factory=p2p_factory,
                    sync_state=sync_state,
                    time_provider=time_provider,
-                   mining_credit_wallet=get_random_xmss().address,
+                   mining_address=get_random_xmss().address,
                    mining_thread_count=0)
 
         self.assertIsNotNone(node)

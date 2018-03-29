@@ -32,7 +32,7 @@ class POW(ConsensusMechanism):
                  p2p_factory,
                  sync_state: SyncState,
                  time_provider,
-                 mining_credit_wallet: bytes,
+                 mining_address: bytes,
                  mining_thread_count):
 
         super().__init__(chain_manager)
@@ -40,13 +40,13 @@ class POW(ConsensusMechanism):
         self.time_provider = time_provider
 
         self.miner_toggler = False
-        self.mining_credit_wallet = mining_credit_wallet
+        self.mining_address = mining_address
 
         self.p2p_factory = p2p_factory  # FIXME: Decouple from p2pFactory. Comms vs node logic
         self.p2p_factory.pow = self  # FIXME: Temporary hack to keep things working while refactoring
 
         self.miner = Miner(self.pre_block_logic,
-                           self.mining_credit_wallet,
+                           self.mining_address,
                            self.chain_manager.state,
                            mining_thread_count,
                            self.p2p_factory.add_unprocessed_txn)
