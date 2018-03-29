@@ -15,6 +15,7 @@ entry_points = """
     start_qrl = qrl.main:main
     qrl_start = qrl.main:main
     qrl = qrl.cli:main
+    qrl_grpc_proxy = qrl.grpcProxy:main
     qrl_measure = qrl.measure:main
 """
 
