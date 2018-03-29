@@ -97,7 +97,7 @@ class MockedBlockchain(object):
                 qrlnode = QRLNode(state, mining_credit_wallet=b'')
                 qrlnode.set_chain_manager(chain_manager)
 
-                mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock, )
+                mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock)
                 for block_idx in range(1, num_blocks + 1):
                     mock_blockchain.add_new_block()
 
