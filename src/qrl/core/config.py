@@ -55,7 +55,7 @@ class UserConfig(object):
         self.log_path = os.path.join(self.qrl_dir, "qrl.log")
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
 
-        self.mining_pool_payment_wallet_path = '/home/.qrl/payment_slaves.json'  # Only for mining Pool
+        self.mining_pool_payment_wallet_path = os.path.join(self.qrl_dir, 'payment_slaves.json')  # Only for mining Pool
 
         # ======================================
         #    MINING WALLET CONFIGURATION
