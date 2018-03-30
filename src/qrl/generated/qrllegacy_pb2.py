@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrllegacy.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fqrllegacy.proto\x12\x03qrl\x1a\tqrl.proto\"\xa0\t\n\rLegacyMessage\x12.\n\tfunc_name\x18\x01 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x1d\n\x06noData\x18\x02 \x01(\x0b\x32\x0b.qrl.NoDataH\x00\x12\x1d\n\x06veData\x18\x03 \x01(\x0b\x32\x0b.qrl.VEDataH\x00\x12\x1d\n\x06plData\x18\x04 \x01(\x0b\x32\x0b.qrl.PLDataH\x00\x12!\n\x08pongData\x18\x05 \x01(\x0b\x32\r.qrl.PONGDataH\x00\x12\x1d\n\x06mrData\x18\x06 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1b\n\x05\x62lock\x18\x07 \x01(\x0b\x32\n.qrl.BlockH\x00\x12\x1d\n\x06\x66\x62\x44\x61ta\x18\x08 \x01(\x0b\x32\x0b.qrl.FBDataH\x00\x12\x1d\n\x06pbData\x18\t \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12&\n\x06\x62hData\x18\n \x01(\x0b\x32\x14.qrl.BlockHeightDataH\x00\x12\"\n\x06stData\x18\x0b \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12#\n\x07\x64stData\x18\x0c \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06\x64tData\x18\r \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06txData\x18\x0e \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06vtData\x18\x0f \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06mtData\x18\x10 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06tkData\x18\x11 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06ttData\x18\x12 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06ltData\x18\x13 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06slData\x18\x14 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\x31\n\x07\x65phData\x18\x15 \x01(\x0b\x32\x1e.qrl.EncryptedEphemeralMessageH\x00\x12!\n\x08syncData\x18\x16 \x01(\x0b\x32\r.qrl.SYNCDataH\x00\x12-\n\x0e\x63hainStateData\x18\x17 \x01(\x0b\x32\x13.qrl.NodeChainStateH\x00\x12-\n\x0enodeHeaderHash\x18\x18 \x01(\x0b\x32\x13.qrl.NodeHeaderHashH\x00\x12-\n\np2pAckData\x18\x19 \x01(\x0b\x32\x17.qrl.P2PAcknowledgementH\x00\"\xe8\x01\n\x08\x46uncName\x12\x06\n\x02VE\x10\x00\x12\x06\n\x02PL\x10\x01\x12\x08\n\x04PONG\x10\x02\x12\x06\n\x02MR\x10\x03\x12\x07\n\x03SFM\x10\x04\x12\x06\n\x02\x42K\x10\x05\x12\x06\n\x02\x46\x42\x10\x06\x12\x06\n\x02PB\x10\x07\x12\x06\n\x02\x42H\x10\x08\x12\x06\n\x02ST\x10\t\x12\x07\n\x03\x44ST\x10\n\x12\x06\n\x02\x44T\x10\x0b\x12\x06\n\x02TX\x10\x0c\x12\x06\n\x02VT\x10\r\x12\x06\n\x02LT\x10\x0e\x12\x07\n\x03\x45PH\x10\x0f\x12\x06\n\x02MT\x10\x10\x12\x06\n\x02TK\x10\x11\x12\x06\n\x02TT\x10\x12\x12\x06\n\x02SL\x10\x13\x12\x08\n\x04SYNC\x10\x14\x12\x0e\n\nCHAINSTATE\x10\x15\x12\x10\n\x0cHEADERHASHES\x10\x16\x12\x0b\n\x07P2P_ACK\x10\x17\x42\x06\n\x04\x64\x61ta\"\x08\n\x06NoData\"H\n\x06VEData\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x19\n\x11genesis_prev_hash\x18\x02 \x01(\x0c\x12\x12\n\nrate_limit\x18\x03 \x01(\x04\"\x1a\n\x06PLData\x12\x10\n\x08peer_ips\x18\x01 \x03(\t\"\n\n\x08PONGData\"\x9d\x01\n\x06MRData\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12)\n\x04type\x18\x02 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"@\n\x06\x42KData\x12\x1b\n\x06mrData\x18\x01 \x01(\x0b\x32\x0b.qrl.MRData\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x17\n\x06\x46\x42\x44\x61ta\x12\r\n\x05index\x18\x01 \x01(\x04\"#\n\x06PBData\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x19\n\x08SYNCData\x12\r\n\x05state\x18\x01 \x01(\tb\x06proto3')
+  serialized_pb=_b('\n\x0fqrllegacy.proto\x12\x03qrl\x1a\tqrl.proto\"\xee\x07\n\rLegacyMessage\x12.\n\tfunc_name\x18\x01 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x1d\n\x06noData\x18\x02 \x01(\x0b\x32\x0b.qrl.NoDataH\x00\x12\x1d\n\x06veData\x18\x03 \x01(\x0b\x32\x0b.qrl.VEDataH\x00\x12\x1d\n\x06plData\x18\x04 \x01(\x0b\x32\x0b.qrl.PLDataH\x00\x12!\n\x08pongData\x18\x05 \x01(\x0b\x32\r.qrl.PONGDataH\x00\x12\x1d\n\x06mrData\x18\x06 \x01(\x0b\x32\x0b.qrl.MRDataH\x00\x12\x1b\n\x05\x62lock\x18\x07 \x01(\x0b\x32\n.qrl.BlockH\x00\x12\x1d\n\x06\x66\x62\x44\x61ta\x18\x08 \x01(\x0b\x32\x0b.qrl.FBDataH\x00\x12\x1d\n\x06pbData\x18\t \x01(\x0b\x32\x0b.qrl.PBDataH\x00\x12&\n\x06\x62hData\x18\n \x01(\x0b\x32\x14.qrl.BlockHeightDataH\x00\x12\"\n\x06txData\x18\x0b \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06mtData\x18\x0c \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06tkData\x18\r \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06ttData\x18\x0e \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06ltData\x18\x0f \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\"\n\x06slData\x18\x10 \x01(\x0b\x32\x10.qrl.TransactionH\x00\x12\x31\n\x07\x65phData\x18\x11 \x01(\x0b\x32\x1e.qrl.EncryptedEphemeralMessageH\x00\x12!\n\x08syncData\x18\x12 \x01(\x0b\x32\r.qrl.SYNCDataH\x00\x12-\n\x0e\x63hainStateData\x18\x13 \x01(\x0b\x32\x13.qrl.NodeChainStateH\x00\x12-\n\x0enodeHeaderHash\x18\x14 \x01(\x0b\x32\x13.qrl.NodeHeaderHashH\x00\x12-\n\np2pAckData\x18\x15 \x01(\x0b\x32\x17.qrl.P2PAcknowledgementH\x00\"\xc7\x01\n\x08\x46uncName\x12\x06\n\x02VE\x10\x00\x12\x06\n\x02PL\x10\x01\x12\x08\n\x04PONG\x10\x02\x12\x06\n\x02MR\x10\x03\x12\x07\n\x03SFM\x10\x04\x12\x06\n\x02\x42K\x10\x05\x12\x06\n\x02\x46\x42\x10\x06\x12\x06\n\x02PB\x10\x07\x12\x06\n\x02\x42H\x10\x08\x12\x06\n\x02TX\x10\t\x12\x06\n\x02LT\x10\n\x12\x07\n\x03\x45PH\x10\x0b\x12\x06\n\x02MT\x10\x0c\x12\x06\n\x02TK\x10\r\x12\x06\n\x02TT\x10\x0e\x12\x06\n\x02SL\x10\x0f\x12\x08\n\x04SYNC\x10\x10\x12\x0e\n\nCHAINSTATE\x10\x11\x12\x10\n\x0cHEADERHASHES\x10\x12\x12\x0b\n\x07P2P_ACK\x10\x13\x42\x06\n\x04\x64\x61ta\"\x08\n\x06NoData\"H\n\x06VEData\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x19\n\x11genesis_prev_hash\x18\x02 \x01(\x0c\x12\x12\n\nrate_limit\x18\x03 \x01(\x04\"\x1a\n\x06PLData\x12\x10\n\x08peer_ips\x18\x01 \x03(\t\"\n\n\x08PONGData\"\x9d\x01\n\x06MRData\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\x12)\n\x04type\x18\x02 \x01(\x0e\x32\x1b.qrl.LegacyMessage.FuncName\x12\x16\n\x0estake_selector\x18\x03 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x04 \x01(\x04\x12\x17\n\x0fprev_headerhash\x18\x05 \x01(\x0c\x12\x13\n\x0breveal_hash\x18\x06 \x01(\x0c\"@\n\x06\x42KData\x12\x1b\n\x06mrData\x18\x01 \x01(\x0b\x32\x0b.qrl.MRData\x12\x19\n\x05\x62lock\x18\x02 \x01(\x0b\x32\n.qrl.Block\"\x17\n\x06\x46\x42\x44\x61ta\x12\r\n\x05index\x18\x01 \x01(\x04\"#\n\x06PBData\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x19\n\x08SYNCData\x12\r\n\x05state\x18\x01 \x01(\tb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -69,70 +69,54 @@ _LEGACYMESSAGE_FUNCNAME = _descriptor.EnumDescriptor(
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='ST', index=9, number=9,
+      name='TX', index=9, number=9,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DST', index=10, number=10,
+      name='LT', index=10, number=10,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='DT', index=11, number=11,
+      name='EPH', index=11, number=11,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='TX', index=12, number=12,
+      name='MT', index=12, number=12,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='VT', index=13, number=13,
+      name='TK', index=13, number=13,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='LT', index=14, number=14,
+      name='TT', index=14, number=14,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='EPH', index=15, number=15,
+      name='SL', index=15, number=15,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='MT', index=16, number=16,
+      name='SYNC', index=16, number=16,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='TK', index=17, number=17,
+      name='CHAINSTATE', index=17, number=17,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='TT', index=18, number=18,
+      name='HEADERHASHES', index=18, number=18,
       options=None,
       type=None),
     _descriptor.EnumValueDescriptor(
-      name='SL', index=19, number=19,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='SYNC', index=20, number=20,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='CHAINSTATE', index=21, number=21,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='HEADERHASHES', index=22, number=22,
-      options=None,
-      type=None),
-    _descriptor.EnumValueDescriptor(
-      name='P2P_ACK', index=23, number=23,
+      name='P2P_ACK', index=19, number=19,
       options=None,
       type=None),
   ],
   containing_type=None,
   options=None,
-  serialized_start=980,
-  serialized_end=1212,
+  serialized_start=835,
+  serialized_end=1034,
 )
 _sym_db.RegisterEnumDescriptor(_LEGACYMESSAGE_FUNCNAME)
 
@@ -215,106 +199,78 @@ _LEGACYMESSAGE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='stData', full_name='qrl.LegacyMessage.stData', index=10,
+      name='txData', full_name='qrl.LegacyMessage.txData', index=10,
       number=11, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='dstData', full_name='qrl.LegacyMessage.dstData', index=11,
+      name='mtData', full_name='qrl.LegacyMessage.mtData', index=11,
       number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='dtData', full_name='qrl.LegacyMessage.dtData', index=12,
+      name='tkData', full_name='qrl.LegacyMessage.tkData', index=12,
       number=13, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='txData', full_name='qrl.LegacyMessage.txData', index=13,
+      name='ttData', full_name='qrl.LegacyMessage.ttData', index=13,
       number=14, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='vtData', full_name='qrl.LegacyMessage.vtData', index=14,
+      name='ltData', full_name='qrl.LegacyMessage.ltData', index=14,
       number=15, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='mtData', full_name='qrl.LegacyMessage.mtData', index=15,
+      name='slData', full_name='qrl.LegacyMessage.slData', index=15,
       number=16, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='tkData', full_name='qrl.LegacyMessage.tkData', index=16,
+      name='ephData', full_name='qrl.LegacyMessage.ephData', index=16,
       number=17, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ttData', full_name='qrl.LegacyMessage.ttData', index=17,
+      name='syncData', full_name='qrl.LegacyMessage.syncData', index=17,
       number=18, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ltData', full_name='qrl.LegacyMessage.ltData', index=18,
+      name='chainStateData', full_name='qrl.LegacyMessage.chainStateData', index=18,
       number=19, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='slData', full_name='qrl.LegacyMessage.slData', index=19,
+      name='nodeHeaderHash', full_name='qrl.LegacyMessage.nodeHeaderHash', index=19,
       number=20, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ephData', full_name='qrl.LegacyMessage.ephData', index=20,
+      name='p2pAckData', full_name='qrl.LegacyMessage.p2pAckData', index=20,
       number=21, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='syncData', full_name='qrl.LegacyMessage.syncData', index=21,
-      number=22, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='chainStateData', full_name='qrl.LegacyMessage.chainStateData', index=22,
-      number=23, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='nodeHeaderHash', full_name='qrl.LegacyMessage.nodeHeaderHash', index=23,
-      number=24, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='p2pAckData', full_name='qrl.LegacyMessage.p2pAckData', index=24,
-      number=25, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -336,7 +292,7 @@ _LEGACYMESSAGE = _descriptor.Descriptor(
       index=0, containing_type=None, fields=[]),
   ],
   serialized_start=36,
-  serialized_end=1220,
+  serialized_end=1042,
 )
 
 
@@ -359,8 +315,8 @@ _NODATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1222,
-  serialized_end=1230,
+  serialized_start=1044,
+  serialized_end=1052,
 )
 
 
@@ -404,8 +360,8 @@ _VEDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1232,
-  serialized_end=1304,
+  serialized_start=1054,
+  serialized_end=1126,
 )
 
 
@@ -435,8 +391,8 @@ _PLDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1306,
-  serialized_end=1332,
+  serialized_start=1128,
+  serialized_end=1154,
 )
 
 
@@ -459,8 +415,8 @@ _PONGDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1334,
-  serialized_end=1344,
+  serialized_start=1156,
+  serialized_end=1166,
 )
 
 
@@ -525,8 +481,8 @@ _MRDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1347,
-  serialized_end=1504,
+  serialized_start=1169,
+  serialized_end=1326,
 )
 
 
@@ -563,8 +519,8 @@ _BKDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1506,
-  serialized_end=1570,
+  serialized_start=1328,
+  serialized_end=1392,
 )
 
 
@@ -594,8 +550,8 @@ _FBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1572,
-  serialized_end=1595,
+  serialized_start=1394,
+  serialized_end=1417,
 )
 
 
@@ -625,8 +581,8 @@ _PBDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1597,
-  serialized_end=1632,
+  serialized_start=1419,
+  serialized_end=1454,
 )
 
 
@@ -656,8 +612,8 @@ _SYNCDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1634,
-  serialized_end=1659,
+  serialized_start=1456,
+  serialized_end=1481,
 )
 
 _LEGACYMESSAGE.fields_by_name['func_name'].enum_type = _LEGACYMESSAGE_FUNCNAME
@@ -670,11 +626,7 @@ _LEGACYMESSAGE.fields_by_name['block'].message_type = qrl__pb2._BLOCK
 _LEGACYMESSAGE.fields_by_name['fbData'].message_type = _FBDATA
 _LEGACYMESSAGE.fields_by_name['pbData'].message_type = _PBDATA
 _LEGACYMESSAGE.fields_by_name['bhData'].message_type = qrl__pb2._BLOCKHEIGHTDATA
-_LEGACYMESSAGE.fields_by_name['stData'].message_type = qrl__pb2._TRANSACTION
-_LEGACYMESSAGE.fields_by_name['dstData'].message_type = qrl__pb2._TRANSACTION
-_LEGACYMESSAGE.fields_by_name['dtData'].message_type = qrl__pb2._TRANSACTION
 _LEGACYMESSAGE.fields_by_name['txData'].message_type = qrl__pb2._TRANSACTION
-_LEGACYMESSAGE.fields_by_name['vtData'].message_type = qrl__pb2._TRANSACTION
 _LEGACYMESSAGE.fields_by_name['mtData'].message_type = qrl__pb2._TRANSACTION
 _LEGACYMESSAGE.fields_by_name['tkData'].message_type = qrl__pb2._TRANSACTION
 _LEGACYMESSAGE.fields_by_name['ttData'].message_type = qrl__pb2._TRANSACTION
@@ -714,20 +666,8 @@ _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
   _LEGACYMESSAGE.fields_by_name['bhData'])
 _LEGACYMESSAGE.fields_by_name['bhData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
 _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
-  _LEGACYMESSAGE.fields_by_name['stData'])
-_LEGACYMESSAGE.fields_by_name['stData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
-_LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
-  _LEGACYMESSAGE.fields_by_name['dstData'])
-_LEGACYMESSAGE.fields_by_name['dstData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
-_LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
-  _LEGACYMESSAGE.fields_by_name['dtData'])
-_LEGACYMESSAGE.fields_by_name['dtData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
-_LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
   _LEGACYMESSAGE.fields_by_name['txData'])
 _LEGACYMESSAGE.fields_by_name['txData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
-_LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
-  _LEGACYMESSAGE.fields_by_name['vtData'])
-_LEGACYMESSAGE.fields_by_name['vtData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']
 _LEGACYMESSAGE.oneofs_by_name['data'].fields.append(
   _LEGACYMESSAGE.fields_by_name['mtData'])
 _LEGACYMESSAGE.fields_by_name['mtData'].containing_oneof = _LEGACYMESSAGE.oneofs_by_name['data']

@@ -21,21 +21,17 @@ message LegacyMessage {
         PB = 7;             // Push Block
         BH = 8;             // Block Height
 
-        ST = 9;             // Stake Transaction
-        DST = 10;           // Destake Transaction
-        DT = 11;            // Duplicate Transaction
-        TX = 12;            // Transfer Transaction
-        VT = 13;            // Vote
-        LT = 14;            // Lattice Transaction
-        EPH = 15;           // Ephemeral
-        MT = 16;            // Message Transaction
-        TK = 17;            // Token Transaction
-        TT = 18;            // Transfer Token Transaction
-        SL = 19;            // Slave Transaction
-        SYNC = 20;          // Add into synced list, if the node replies
-        CHAINSTATE = 21;    // Chain State
-        HEADERHASHES = 22;  //
-        P2P_ACK = 23;       // P2P Acknowledgement
+        TX = 9;            // Transfer Transaction
+        LT = 10;            // Lattice Transaction
+        EPH = 11;           // Ephemeral
+        MT = 12;            // Message Transaction
+        TK = 13;            // Token Transaction
+        TT = 14;            // Transfer Token Transaction
+        SL = 15;            // Slave Transaction
+        SYNC = 16;          // Add into synced list, if the node replies
+        CHAINSTATE = 17;    // Chain State
+        HEADERHASHES = 18;  //
+        P2P_ACK = 19;       // P2P Acknowledgement
     }
 
     FuncName func_name = 1;
@@ -50,21 +46,17 @@ message LegacyMessage {
         FBData fbData = 8;
         PBData pbData = 9;
         BlockHeightData bhData = 10;
-        Transaction stData = 11;
-        Transaction dstData = 12;
-        Transaction dtData = 13;
-        Transaction txData = 14;
-        Transaction vtData = 15;
-        Transaction mtData = 16;
-        Transaction tkData = 17;
-        Transaction ttData = 18;
-        Transaction ltData = 19;
-        Transaction slData = 20;
-        EncryptedEphemeralMessage ephData = 21;
-        SYNCData syncData = 22;
-        NodeChainState chainStateData = 23;
-        NodeHeaderHash nodeHeaderHash = 24;
-        P2PAcknowledgement p2pAckData = 25;
+        Transaction txData = 11;
+        Transaction mtData = 12;
+        Transaction tkData = 13;
+        Transaction ttData = 14;
+        Transaction ltData = 15;
+        Transaction slData = 16;
+        EncryptedEphemeralMessage ephData = 17;
+        SYNCData syncData = 18;
+        NodeChainState chainStateData = 19;
+        NodeHeaderHash nodeHeaderHash = 20;
+        P2PAcknowledgement p2pAckData = 21;
     }
 }
 
