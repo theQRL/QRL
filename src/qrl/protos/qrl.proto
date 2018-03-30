@@ -334,7 +334,7 @@ message BlockHeader {
     uint64 reward_fee = 6;
     bytes merkle_root = 7;
 
-    uint64 mining_nonce = 8;
+    uint32 mining_nonce = 8;
     uint64 extra_nonce = 9;
 }
 
