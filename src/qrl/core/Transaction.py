@@ -289,6 +289,12 @@ class TransferTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        for amount in self.amounts:
+            if amount == 0:
+                logger.warning('Amount cannot be 0', self.amounts)
+                logger.warning('Invalid TransferTransaction')
+                return False
+
         if self.fee < 0:
             raise ValueError('TransferTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
@@ -664,6 +670,16 @@ class TokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        if len(self.initial_balances) == 0:
+            logger.warning('Invalid Token Transaction, without any initial balance')
+            return False
+
+        for initial_balance in self.initial_balances:
+            if initial_balance.amount == 0:
+                logger.warning('Invalid Initial Amount in Token Transaction')
+                logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
+                return False
+
         if self.fee < 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
@@ -815,6 +831,12 @@ class TransferTokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        for amount in self.amounts:
+            if amount == 0:
+                logger.warning('Amount cannot be 0', self.amounts)
+                logger.warning('TransferTokenTransaction')
+                return False
+
         if self.fee < 0:
             raise ValueError('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
