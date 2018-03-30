@@ -16,14 +16,16 @@ class TestQryptonight(TestCase):
     def test_hash(self):
         qn = Qryptonight()
 
-        input = [0x03, 0x05, 0x07, 0x09]
+        input = [0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09,
+                 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09,
+                 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07, 0x09, 0x03, 0x05, 0x07]
         output = qn.hash(input)
 
         output_expected = (
-            0x3E, 0xE5, 0x3F, 0xE1, 0xAC, 0xF3, 0x55, 0x92,
-            0x66, 0xD8, 0x43, 0x89, 0xCE, 0xDE, 0x99, 0x33,
-            0xC6, 0x8F, 0xC5, 0x1E, 0xD0, 0xA6, 0xC7, 0x91,
-            0xF8, 0xF9, 0xE8, 0x9D, 0xB6, 0x23, 0xF0, 0xF6
+            0x96, 0x76, 0x53, 0x26, 0x2F, 0x9B, 0x15, 0x90,
+            0xB9, 0x88, 0x0F, 0x64, 0xA3, 0x80, 0x8C, 0x4B,
+            0x01, 0xEA, 0x29, 0x2C, 0x48, 0xFC, 0x7C, 0x47,
+            0x0D, 0x25, 0x50, 0x00, 0x57, 0xCA, 0x07, 0x70,
         )
 
         self.assertEqual(output_expected, output)
@@ -34,9 +36,9 @@ class TestQryptonight(TestCase):
         input = [0x03, 0x05, 0x07, 0x09] * 30
         output = qn.hash(input)
 
-        output_expected = (168, 11, 50, 111, 10, 254, 21, 185, 222, 10, 243,
-                           35, 106, 150, 44, 209, 21, 58, 1, 186, 182, 211,
-                           60, 241, 74, 98, 85, 168, 56, 23, 141, 181)
+        output_expected = (255, 253, 83, 78, 29, 24, 160, 224, 30, 240, 158,
+                           39, 233, 125, 90, 170, 78, 59, 157, 146, 97, 86,
+                           205, 161, 160, 155, 48, 144, 51, 148, 155, 99)
 
         self.assertEqual(output_expected, output)
 
@@ -46,9 +48,9 @@ class TestQryptonight(TestCase):
         input = [0x03, 0x05, 0x07, 0x09] * 200
         output = qn.hash(input)
 
-        output_expected = (2, 218, 202, 93, 168, 126, 221, 156, 39,
-                           7, 130, 68, 248, 167, 50, 112, 164, 176,
-                           94, 88, 61, 129, 92, 37, 226, 89, 110,
-                           39, 129, 219, 4, 164)
+        output_expected = (216, 31, 227, 138, 9, 118, 5, 200, 136,
+                           40, 156, 168, 86, 35, 146, 223, 199, 76,
+                           188, 213, 25, 117, 247, 195, 15, 183, 236,
+                           219, 104, 212, 75, 211)
 
         self.assertEqual(output_expected, output)

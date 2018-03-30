@@ -5,6 +5,7 @@ from grpc import StatusCode
 
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core import config
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrlmining_pb2
 from qrl.generated.qrlmining_pb2_grpc import MiningAPIServicer
@@ -60,6 +61,7 @@ class MiningAPIService(MiningAPIServicer):
             response.blocktemplate_blob = blocktemplate_blob_and_difficulty[0]
             response.difficulty = blocktemplate_blob_and_difficulty[1]
             response.height = self.qrlnode.block_height + 1
+            response.reserved_offset = config.dev.extra_nonce_offset
 
         return response
 

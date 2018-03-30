@@ -82,12 +82,14 @@ def main():
     args = parse_arguments()
 
     config.create_path(config.user.wallet_dir)
-    mining_address = get_mining_address(args.mining_address)
+    mining_address = None
+    if config.user.mining_enabled:
+        mining_address = get_mining_address(args.mining_address)
 
-    if not mining_address:
-        logger.warning('Invalid Mining Credit Wallet Address')
-        logger.warning('%s', args.mining_address)
-        return False
+        if not mining_address:
+            logger.warning('Invalid Mining Credit Wallet Address')
+            logger.warning('%s', args.mining_address)
+            return False
 
     logger.debug("=====================================================================================")
     logger.info("Data Path: %s", args.data_dir)
