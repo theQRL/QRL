@@ -65,9 +65,10 @@ def set_logger(args, sync_state):
 
 
 def get_mining_address(mining_address: str):
-    if not mining_address:
-        return config.user.mining_address
     try:
+        if not mining_address:
+            return bytes(hstr2bin(config.user.mining_address[1:]))
+
         mining_address = bytes(hstr2bin(mining_address[1:]))
         if AddressState.address_is_valid(mining_address):
             return mining_address
