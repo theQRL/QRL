@@ -152,7 +152,7 @@ def getblockheaderbyheight(height):
 
 
 @api.dispatcher.add_method
-def getblocktemplate(wallet_address):
+def getblocktemplate(reserve_size, wallet_address):
     stub = get_mining_stub()
     request = qrlmining_pb2.GetBlockToMineReq(wallet_address=wallet_address.encode())
     grpc_response = stub.GetBlockToMine(request=request, timeout=10)
