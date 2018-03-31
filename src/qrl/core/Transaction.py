@@ -670,6 +670,18 @@ class TokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        if len(self.symbol) > config.dev.max_token_symbol_length:
+            logger.warning('Token Symbol Length exceeds maximum limit')
+            logger.warning('Found Symbol Length %s', len(self.symbol))
+            logger.warning('Expected Symbol length %s', config.dev.max_token_symbol_length)
+            return False
+
+        if len(self.name) > config.dev.max_token_name_length:
+            logger.warning('Token Name Length exceeds maximum limit')
+            logger.warning('Found Name Length %s', len(self.symbol))
+            logger.warning('Expected Name length %s', config.dev.max_token_name_length)
+            return False
+
         if len(self.initial_balances) == 0:
             logger.warning('Invalid Token Transaction, without any initial balance')
             return False
