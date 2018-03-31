@@ -115,7 +115,7 @@ class Miner(Qryptominer):
 
         addresses_set = set()
         for tx_set in t_pool2:
-            tx = tx_set[1]
+            tx = tx_set[1].transaction
             tx.set_effected_address(addresses_set)
 
         addresses_state = dict()
@@ -127,7 +127,7 @@ class Miner(Qryptominer):
 
         transactions = []
         for tx_set in t_pool2:
-            tx = tx_set[1]
+            tx = tx_set[1].transaction
             # Skip Transactions for later, which doesn't fit into block
             if block_size + tx.size + config.dev.tx_extra_overhead > block_size_limit:
                 continue

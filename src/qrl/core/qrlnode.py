@@ -350,8 +350,8 @@ class QRLNode:
         if tx is None:
             raise ValueError("The transaction was empty")
 
-        if self._chain_manager.tx_pool.is_full_transaction_pool():
-            raise ValueError("Transaction Pool is full")
+        if self._chain_manager.tx_pool.is_full_pending_transaction_pool():
+            raise ValueError("Pending Transaction Pool is full")
 
         return self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
 

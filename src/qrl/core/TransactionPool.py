@@ -9,19 +9,24 @@ from pyqrllib.pyqrllib import QRLHelper, sha2_256
 from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.Transaction import Transaction
+from qrl.core.TransactionInfo import TransactionInfo
 
 
 class TransactionPool:
     # FIXME: Remove tx pool from all method names
-    def __init__(self):
+    def __init__(self, broadcast_tx):
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = set()
         self.transaction_pool = []  # FIXME: Everyone is touching this
         self.address_ots_hash = set()
+        self.broadcast_tx = broadcast_tx
 
     @property
     def transactions(self):
         return heapq.nlargest(len(self.transaction_pool), self.transaction_pool)
+
+    def set_broadcast_tx(self, broadcast_tx):
+        self.broadcast_tx = broadcast_tx
 
     @staticmethod
     def calc_addr_ots_hash(tx):
@@ -41,7 +46,7 @@ class TransactionPool:
         if len(self.pending_tx_pool_hash) == 0:
             return None
         pending_tx_set = heapq.heappop(self.pending_tx_pool)
-        pending_tx = pending_tx_set[1]
+        pending_tx = pending_tx_set[1].transaction
         self.pending_tx_pool_hash.remove(pending_tx.txhash)
 
         addr_ots_hash = self.calc_addr_ots_hash(pending_tx)
@@ -49,14 +54,25 @@ class TransactionPool:
 
         return pending_tx
 
-    def is_full_transaction_pool(self) -> bool:
-        if len(self.transaction_pool) + len(self.pending_tx_pool) >= config.dev.transaction_pool_size:
+    def is_full_pending_transaction_pool(self, ignore_reserve=True) -> bool:
+        max_pool_size = config.user.pending_transaction_pool_size
+
+        if ignore_reserve:
+            max_pool_size = max_pool_size - config.user.pending_transaction_pool_reserve
+
+        if len(self.pending_tx_pool) >= max_pool_size:
             return True
 
         return False
 
-    def update_pending_tx_pool(self, tx, ip) -> bool:
-        if self.is_full_transaction_pool():
+    def is_full_transaction_pool(self) -> bool:
+        if len(self.transaction_pool) >= config.user.transaction_pool_size:
+            return True
+
+        return False
+
+    def update_pending_tx_pool(self, tx, ip, ignore_reserve=True) -> bool:
+        if self.is_full_pending_transaction_pool(ignore_reserve):
             return False
 
         idx = self.get_tx_index_from_pool(tx.txhash)
@@ -75,7 +91,7 @@ class TransactionPool:
 
         # Since its a min heap giving priority to lower number
         # So -1 multiplied to give higher priority to higher txn
-        heapq.heappush(self.pending_tx_pool, [tx.fee * -1, tx, ip])
+        heapq.heappush(self.pending_tx_pool, [tx.fee * -1, TransactionInfo(tx), ip])
         self.pending_tx_pool_hash.add(tx.txhash)
 
         return True
@@ -84,12 +100,12 @@ class TransactionPool:
         if self.is_full_transaction_pool():
             return False
 
-        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, tx_class_obj])
+        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj)])
         return True
 
     def get_tx_index_from_pool(self, txhash):
         for i in range(len(self.transaction_pool)):
-            txn = self.transaction_pool[i][1]
+            txn = self.transaction_pool[i][1].transaction
             if txhash == txn.txhash:
                 return i
 
@@ -116,3 +132,13 @@ class TransactionPool:
                 self.address_ots_hash.remove(addr_ots_hash)
 
         heapq.heapify(self.transaction_pool)
+
+    def check_stale_txn(self):
+        i = 0
+        while i < len(self.transaction_pool):
+            tx_info = self.transaction_pool[i][1]
+            if tx_info.is_stale:
+                tx_info.update_timestamp()
+                self.broadcast_tx(tx_info.transaction)
+                continue
+            i += 1

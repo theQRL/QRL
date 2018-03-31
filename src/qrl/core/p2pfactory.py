@@ -39,6 +39,7 @@ class P2PFactory(ServerFactory):
         self._ntp = ntp
         self._qrl_node = qrl_node
         self._chain_manager = chain_manager
+        self._chain_manager.set_broadcast_tx(self.broadcast_tx)
 
         self._syncing_enabled = False
         self._target_peer = None

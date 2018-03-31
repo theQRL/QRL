@@ -14,7 +14,7 @@ class TestTransactionPool(TestCase):
         super(TestTransactionPool, self).__init__(*args, **kwargs)
 
     def test_create(self):
-        tp = TransactionPool()
+        tp = TransactionPool(None)
         self.assertIsNotNone(tp)
 
     # TODO: Check what is obsolete and add tests
