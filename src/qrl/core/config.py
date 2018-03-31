@@ -50,6 +50,12 @@ class UserConfig(object):
         self.chain_state_broadcast_period = 30
         # must be less than ping_timeout
 
+        self.transaction_pool_size = 25000
+        self.pending_transaction_pool_size = 25000
+        # 1% of the pending_transaction_pool will be reserved for moving stale txn
+        self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
+        self.stale_transaction_threshold = 60 * 10  # 10 minutes
+
         self.qrl_dir = os.path.join(expanduser("~"), ".qrl")
         self.data_dir = os.path.join(self.qrl_dir, "data")
         self.config_path = os.path.join(self.qrl_dir, "config.yml")
@@ -125,7 +131,6 @@ class DevConfig(object):
         self.message_receipt_timeout = 10  # request timeout for full message
         self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
 
-        self.transaction_pool_size = 25000
         self.max_coin_supply = decimal.Decimal(105000000)
         self.coin_remaning_at_genesis = decimal.Decimal(40000000)
         self.timestamp_error = 5  # Error in second

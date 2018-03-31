@@ -25,7 +25,7 @@ from qrl.generated import qrl_pb2
 class ChainManager:
     def __init__(self, state):
         self.state = state
-        self.tx_pool = TransactionPool()  # TODO: Move to some pool manager
+        self.tx_pool = TransactionPool(None)
         self.last_block = Block.from_json(GenesisBlock().to_json())
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
@@ -34,6 +34,9 @@ class ChainManager:
     @property
     def height(self):
         return self.last_block.block_number
+
+    def set_broadcast_tx(self, broadcast_tx):
+        self.tx_pool.set_broadcast_tx(broadcast_tx)
 
     def get_last_block(self) -> Block:
         return self.last_block
@@ -239,6 +242,7 @@ class ChainManager:
                 self.last_block = block
                 self._update_mainchain(block, batch)
                 self.tx_pool.remove_tx_in_block_from_pool(block)
+                self.tx_pool.check_stale_txn()
                 self.state.update_mainchain_height(block.block_number, batch)
                 self.state.update_tx_metadata(block, batch)
 
@@ -407,7 +411,7 @@ class ChainManager:
 
     def get_transaction(self, transaction_hash) -> list:
         for tx_set in self.tx_pool.transactions:
-            tx = tx_set[1]
+            tx = tx_set[1].transaction
             if tx.txhash == transaction_hash:
                 return [tx, None]
 

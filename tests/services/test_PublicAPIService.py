@@ -14,6 +14,7 @@ from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
+from qrl.core.TransactionInfo import TransactionInfo
 from qrl.core.Transaction import TransferTransaction
 from qrl.core.misc import logger
 from qrl.core.node import SyncState, POW
@@ -232,7 +233,7 @@ class TestPublicAPI(TestCase):
             xmss_pk=sha256(b'pk'),
             master_addr=qrladdress('SOME_ADDR1'))
 
-        chain_manager.tx_pool.transaction_pool = [(0, tx1)]
+        chain_manager.tx_pool.transaction_pool = [(0, TransactionInfo(tx1))]
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
