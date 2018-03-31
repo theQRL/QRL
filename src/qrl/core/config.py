@@ -51,7 +51,7 @@ class UserConfig(object):
         # must be less than ping_timeout
 
         self.transaction_pool_size = 25000
-        self.pending_transaction_pool_size = 25000
+        self.pending_transaction_pool_size = 75000
         # 1% of the pending_transaction_pool will be reserved for moving stale txn
         self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
         self.stale_transaction_threshold = 60 * 10  # 10 minutes
