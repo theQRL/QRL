@@ -282,7 +282,7 @@ def wallet_secret(ctx, wallet_idx):
 
     if 0 <= wallet_idx < len(wallet.address_items):
         address_item = wallet.address_items[wallet_idx]
-        click.echo('Wallet Address  : %s' % (address_item.qaddress))
+        click.echo('Wallet Address  : %s' % (address_item.address))
         click.echo('Mnemonic        : %s' % (address_item.mnemonic))
         click.echo('Hexseed         : %s' % (address_item.hexseed))
     else:
