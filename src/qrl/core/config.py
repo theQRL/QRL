@@ -172,6 +172,12 @@ class DevConfig(object):
         self.transaction_multi_output_limit = 100
 
         # ======================================
+        #          TOKEN TRANSACTION
+        # ======================================
+        self.max_token_symbol_length = 10
+        self.max_token_name_length = 30
+
+        # ======================================
         #       DIFFICULTY CONTROLLER
         # ======================================
         self.N_measurement = 250
