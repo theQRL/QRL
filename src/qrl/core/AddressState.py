@@ -95,6 +95,9 @@ class AddressState(object):
     def add_slave_pks_access_type(self, slave_pk: bytes, access_type: int):
         self._data.slave_pks_access_type[str(slave_pk)] = access_type
 
+    def remove_slave_pks_access_type(self, slave_pk: bytes):
+        del self._data.slave_pks_access_type[str(slave_pk)]
+
     def add_lattice_pk(self, lattice_txn):
         lattice_pk = qrl_pb2.LatticePK(txhash=lattice_txn.txhash,
                                        dilithium_pk=lattice_txn.dilithium_pk,
@@ -102,8 +105,18 @@ class AddressState(object):
 
         self._data.latticePK_list.extend([lattice_pk])
 
+    def remove_lattice_pk(self, lattice_txn):
+        for lattice_pk_idx in range(len(self._data.latticePK_list)):
+            lattice_pk = self._data.latticePK_list[lattice_pk_idx]
+            if lattice_pk.txhash == lattice_txn.txhash:
+                del self._data.latticePK_list[lattice_pk_idx]
+                break
+
     def increase_nonce(self):
         self._data.nonce += 1
+
+    def decrease_nonce(self):
+        self._data.nonce -= 1
 
     def get_slave_permission(self, slave_pk) -> int:
         slave_pk_str = str(slave_pk)
@@ -148,6 +161,19 @@ class AddressState(object):
             self._data.ots_bitfield[offset] = bytes([bitfield[0] | (1 << relative)])
         else:
             self._data.ots_counter = ots_key_index
+
+    def unset_ots_key(self, ots_key_index):
+        if ots_key_index < config.dev.max_ots_tracking_index:
+            offset = ots_key_index >> 3
+            relative = ots_key_index % 8
+            bitfield = bytearray(self._data.ots_bitfield[offset])
+            self._data.ots_bitfield[offset] = bytes([bitfield[0] & ~(1 << relative)])
+        else:
+            if self._data.ots_counter != ots_key_index:
+                raise Exception("ots_counter not equals to the ots_key_index trying to reset %s %s",
+                                self._data.ots_counter,
+                                ots_key_index)
+            self._data.ots_counter -= 1
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:

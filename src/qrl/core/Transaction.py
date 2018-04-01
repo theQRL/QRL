@@ -362,6 +362,27 @@ class TransferTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
+    def unapply_on_state(self, addresses_state):
+        if self.addr_from in addresses_state:
+            addresses_state[self.addr_from].balance += (self.total_amount + self.fee)
+            addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+
+        for index in range(0, len(self.addrs_to)):
+            addr_to = self.addrs_to[index]
+            amount = self.amounts[index]
+            if addr_to in addresses_state:
+                addresses_state[addr_to].balance -= amount
+                if addr_to == self.addr_from:
+                    continue
+                addresses_state[addr_to].transaction_hashes.remove(self.txhash)
+
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        if addr_from_pk in addresses_state:
+            if self.addr_from != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from_pk].decrease_nonce()
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key)
+
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         for addr_to in self.addrs_to:
@@ -435,6 +456,18 @@ class CoinBase(Transaction):
             addresses_state[self.master_addr].balance -= self.amount
             addresses_state[self.master_addr].transaction_hashes.append(self.txhash)
             addresses_state[addr_from].increase_nonce()
+
+    def unapply_on_state(self, addresses_state):
+        if self.addr_to in addresses_state:
+            addresses_state[self.addr_to].balance -= self.amount
+            addresses_state[self.addr_to].transaction_hashes.remove(self.txhash)
+
+        addr_from = config.dev.coinbase_address
+
+        if self.master_addr in addresses_state:
+            addresses_state[self.master_addr].balance += self.amount
+            addresses_state[self.master_addr].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from].decrease_nonce()
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.master_addr)
@@ -520,6 +553,19 @@ class LatticePublicKey(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
+    def unapply_on_state(self, addresses_state):
+        if self.addr_from in addresses_state:
+            addresses_state[self.addr_from].balance += self.fee
+            addresses_state[self.addr_from].remove_lattice_pk(self)
+            addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        if addr_from_pk in addresses_state:
+            if self.addr_from != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from_pk].decrease_nonce()
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key)
+
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
@@ -593,6 +639,18 @@ class MessageTransaction(Transaction):
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
+
+    def unapply_on_state(self, addresses_state):
+        if self.addr_from in addresses_state:
+            addresses_state[self.addr_from].balance += self.fee
+            addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        if addr_from_pk in addresses_state:
+            if self.addr_from != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from_pk].decrease_nonce()
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
@@ -750,7 +808,7 @@ class TokenTransaction(Transaction):
                 addr_from_pk_processed = True
             if initial_balance.address in addresses_state:
                 addresses_state[initial_balance.address].tokens[
-                    bin2hstr(self.txhash).encode()] += initial_balance.amount
+                    bin2hstr(self.txhash)] += initial_balance.amount
                 addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
 
         if self.owner in addresses_state and not owner_processed:
@@ -767,6 +825,42 @@ class TokenTransaction(Transaction):
                     addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
+
+    def unapply_on_state(self, addresses_state):
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        owner_processed = False
+        addr_from_processed = False
+        addr_from_pk_processed = False
+
+        for initial_balance in self.initial_balances:
+            if initial_balance.address == self.owner:
+                owner_processed = True
+            if initial_balance.address == self.addr_from:
+                addr_from_processed = True
+            if initial_balance.address == addr_from_pk:
+                addr_from_pk_processed = True
+            if initial_balance.address in addresses_state:
+                token_tx_hash = bin2hstr(self.txhash)
+                addresses_state[initial_balance.address].tokens[
+                    token_tx_hash] -= initial_balance.amount
+                if addresses_state[initial_balance.address][token_tx_hash] == 0:
+                    del addresses_state[initial_balance.address][token_tx_hash]
+                addresses_state[initial_balance.address].transaction_hashes.remove(self.txhash)
+
+        if self.owner in addresses_state and not owner_processed:
+            addresses_state[self.owner].transaction_hashes.remove(self.txhash)
+
+        if self.addr_from in addresses_state:
+            addresses_state[self.addr_from].balance += self.fee
+            if not addr_from_processed:
+                addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+
+        if addr_from_pk in addresses_state:
+            if self.addr_from != addr_from_pk:
+                if not addr_from_pk_processed:
+                    addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from_pk].decrease_nonce()
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
@@ -925,6 +1019,27 @@ class TransferTokenTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
+    def unapply_on_state(self, addresses_state):
+        if self.addr_from in addresses_state:
+            addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] += self.total_amount
+            addresses_state[self.addr_from].balance += self.fee
+            addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+
+        for index in range(0, len(self.addrs_to)):
+            addr_to = self.addrs_to[index]
+            amount = self.amounts[index]
+            if addr_to in addresses_state:
+                if self.addr_from != addr_to:
+                    addresses_state[addr_to].transaction_hashes.remove(self.txhash)
+                addresses_state[addr_to].tokens[bin2hstr(self.token_txhash).encode()] -= amount
+
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        if addr_from_pk in addresses_state:
+            if self.addr_from != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from_pk].decrease_nonce()
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key)
+
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         for addr_to in self.addrs_to:
@@ -1029,6 +1144,21 @@ class SlaveTransaction(Transaction):
                 addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
+
+    def unapply_on_state(self, addresses_state):
+        if self.addr_from in addresses_state:
+            addresses_state[self.addr_from].balance += self.fee
+            for index in range(0, len(self.slave_pks)):
+                addresses_state[self.addr_from].remove_slave_pks_access_type(self.slave_pks[index],
+                                                                             self.access_types[index])
+            addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        if addr_from_pk in addresses_state:
+            if self.addr_from != addr_from_pk:
+                addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
+            addresses_state[addr_from_pk].decrease_nonce()
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key)
 
     def set_effected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
