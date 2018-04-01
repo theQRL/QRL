@@ -4,8 +4,6 @@
 
 import heapq
 
-from pyqrllib.pyqrllib import QRLHelper, sha2_256
-
 from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.Transaction import Transaction
@@ -18,7 +16,6 @@ class TransactionPool:
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = set()
         self.transaction_pool = []  # FIXME: Everyone is touching this
-        self.address_ots_hash = set()
         self.broadcast_tx = broadcast_tx
 
     @property
@@ -28,29 +25,12 @@ class TransactionPool:
     def set_broadcast_tx(self, broadcast_tx):
         self.broadcast_tx = broadcast_tx
 
-    @staticmethod
-    def calc_addr_ots_hash(tx):
-        addr = tx.master_addr
-        if not addr:
-            addr = bytes(QRLHelper.getAddress(tx.PK))
-
-        addr_ots_hash = sha2_256(addr + tx.ots_key.to_bytes(8, byteorder='big', signed=False))
-
-        return addr_ots_hash
-
-    def append_addr_ots_hash(self, tx: Transaction):
-        addr_ots_hash = self.calc_addr_ots_hash(tx)
-        self.address_ots_hash.add(addr_ots_hash)
-
     def get_pending_transaction(self):
         if len(self.pending_tx_pool_hash) == 0:
             return None
         pending_tx_set = heapq.heappop(self.pending_tx_pool)
         pending_tx = pending_tx_set[1].transaction
         self.pending_tx_pool_hash.remove(pending_tx.txhash)
-
-        addr_ots_hash = self.calc_addr_ots_hash(pending_tx)
-        self.address_ots_hash.remove(addr_ots_hash)
 
         return pending_tx
 
@@ -79,15 +59,8 @@ class TransactionPool:
         if idx > -1:
             return False
 
-        addr_ots_hash = self.calc_addr_ots_hash(tx)
-
-        if addr_ots_hash in self.address_ots_hash:
-            return False
-
         if tx.txhash in self.pending_tx_pool_hash:
             return False
-
-        self.address_ots_hash.add(addr_ots_hash)
 
         # Since its a min heap giving priority to lower number
         # So -1 multiplied to give higher priority to higher txn
@@ -115,21 +88,25 @@ class TransactionPool:
         idx = self.get_tx_index_from_pool(tx.txhash)
         if idx > -1:
             del self.transaction_pool[idx]
-
-            addr_ots_hash = self.calc_addr_ots_hash(tx)
-            self.address_ots_hash.remove(addr_ots_hash)
-
             heapq.heapify(self.transaction_pool)
 
     def remove_tx_in_block_from_pool(self, block_obj: Block):
-        for protobuf_tx in block_obj.transactions:
+        for protobuf_tx in block_obj.transactions[1:]:  # Ignore first transaction, as it is a coinbase txn
             tx = Transaction.from_pbdata(protobuf_tx)
-            idx = self.get_tx_index_from_pool(tx.txhash)
-            if idx > -1:
-                del self.transaction_pool[idx]
-
-                addr_ots_hash = self.calc_addr_ots_hash(tx)
-                self.address_ots_hash.remove(addr_ots_hash)
+            if tx.ots_key < config.dev.max_ots_tracking_index:
+                idx = self.get_tx_index_from_pool(tx.txhash)
+                if idx > -1:
+                    del self.transaction_pool[idx]
+            else:
+                i = 0
+                while i < len(self.transaction_pool):
+                    txn = self.transaction_pool[i][1].transaction
+                    if txn.PK == tx.PK:
+                        if txn.ots_key >= config.dev.max_ots_tracking_index:
+                            if txn.ots_key < tx.ots_key:
+                                del self.transaction_pool[i]
+                                continue
+                    i += 1
 
         heapq.heapify(self.transaction_pool)
 
