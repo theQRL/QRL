@@ -227,11 +227,13 @@ app.add_url_rule('/json_rpc', 'api', api.as_view(), methods=['POST'])
 def main():
     global payment_slaves, payment_xmss
     global mining_stub, public_stub
-    mining_stub = qrlmining_pb2_grpc.MiningAPIStub(grpc.insecure_channel('127.0.0.1:9007'))
-    public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('127.0.0.1:9009'))
+    mining_stub = qrlmining_pb2_grpc.MiningAPIStub(grpc.insecure_channel('{0}:{1}'.format(config.user.mining_api_host,
+                                                                                          config.user.mining_api_port)))
+    public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('{0}:{1}'.format(config.user.public_api_host,
+                                                                                    config.user.public_api_port)))
     payment_xmss = None
     payment_slaves = read_slaves(config.user.mining_pool_payment_wallet_path)
-    app.run(host='127.0.0.1', port=18081)
+    app.run(host=config.user.grpc_proxy_host, port=config.user.grpc_proxy_port)
 
 
 if __name__ == '__main__':
