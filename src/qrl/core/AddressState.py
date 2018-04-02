@@ -169,11 +169,7 @@ class AddressState(object):
             bitfield = bytearray(self._data.ots_bitfield[offset])
             self._data.ots_bitfield[offset] = bytes([bitfield[0] & ~(1 << relative)])
         else:
-            if self._data.ots_counter != ots_key_index:
-                raise Exception("ots_counter not equals to the ots_key_index trying to reset %s %s",
-                                self._data.ots_counter,
-                                ots_key_index)
-            self._data.ots_counter -= 1
+            self._data.ots_counter = ots_key_index - 1
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
