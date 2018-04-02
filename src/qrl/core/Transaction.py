@@ -138,6 +138,14 @@ class Transaction(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def unapply_on_state(self, addresses_state):
+        """
+        This method, unapplies the changes on the state caused by txn.
+        :return:
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def _validate_custom(self) -> bool:
         """
         This is an extension point for derived classes validation
@@ -1149,8 +1157,7 @@ class SlaveTransaction(Transaction):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += self.fee
             for index in range(0, len(self.slave_pks)):
-                addresses_state[self.addr_from].remove_slave_pks_access_type(self.slave_pks[index],
-                                                                             self.access_types[index])
+                addresses_state[self.addr_from].remove_slave_pks_access_type(self.slave_pks[index])
             addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
 
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
