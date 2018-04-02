@@ -851,8 +851,8 @@ class TokenTransaction(Transaction):
                 token_tx_hash = bin2hstr(self.txhash)
                 addresses_state[initial_balance.address].tokens[
                     token_tx_hash] -= initial_balance.amount
-                if addresses_state[initial_balance.address][token_tx_hash] == 0:
-                    del addresses_state[initial_balance.address][token_tx_hash]
+                if addresses_state[initial_balance.address].tokens[token_tx_hash] == 0:
+                    del addresses_state[initial_balance.address].tokens[token_tx_hash]
                 addresses_state[initial_balance.address].transaction_hashes.remove(self.txhash)
 
         if self.owner in addresses_state and not owner_processed:
