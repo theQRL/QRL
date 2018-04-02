@@ -66,6 +66,8 @@ class UserConfig(object):
         self.admin_api_enabled = False
         self.admin_api_host = "127.0.0.1"
         self.admin_api_port = 9008
+        self.admin_api_threads = 1
+        self.admin_api_max_concurrent_rpc = 100
 
         # ======================================
         #        PUBLIC API CONFIGURATION
@@ -73,6 +75,8 @@ class UserConfig(object):
         self.public_api_enabled = True
         self.public_api_host = "0.0.0.0"
         self.public_api_port = 9009
+        self.public_api_threads = 1
+        self.public_api_max_concurrent_rpc = 100
 
         # ======================================
         #        MINING API CONFIGURATION
@@ -80,17 +84,14 @@ class UserConfig(object):
         self.mining_api_enabled = False
         self.mining_api_host = "127.0.0.1"
         self.mining_api_port = 9007
+        self.mining_api_threads = 1
+        self.mining_api_max_concurrent_rpc = 100
 
         # ======================================
         #        GRPC PROXY CONFIGURATION
         # ======================================
         self.grpc_proxy_host = "127.0.0.1"
         self.grpc_proxy_port = 18090
-
-        # ======================================
-        #    MINING WALLET CONFIGURATION
-        # ======================================
-        self.slaves_filename = 'slaves.json'
 
         self.wallet_dir = os.path.join(self.qrl_dir)
 
