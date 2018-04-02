@@ -29,10 +29,6 @@ class UserConfig(object):
         # Ephemeral Configuration
         self.accept_ephemeral = True
 
-        # Cache Size
-        self.lru_state_cache_size = 10
-        self.max_state_limit = 10
-
         # PEER Configuration
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['104.251.219.215',
@@ -63,6 +59,33 @@ class UserConfig(object):
         self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
 
         self.mining_pool_payment_wallet_path = os.path.join(self.qrl_dir, 'payment_slaves.json')  # Only for mining Pool
+
+        # ======================================
+        #        ADMIN API CONFIGURATION
+        # ======================================
+        self.admin_api_enabled = False
+        self.admin_api_host = "127.0.0.1"
+        self.admin_api_port = 9008
+
+        # ======================================
+        #        PUBLIC API CONFIGURATION
+        # ======================================
+        self.public_api_enabled = True
+        self.public_api_host = "0.0.0.0"
+        self.public_api_port = 9009
+
+        # ======================================
+        #        MINING API CONFIGURATION
+        # ======================================
+        self.mining_api_enabled = False
+        self.mining_api_host = "127.0.0.1"
+        self.mining_api_port = 9007
+
+        # ======================================
+        #        GRPC PROXY CONFIGURATION
+        # ======================================
+        self.grpc_proxy_host = "127.0.0.1"
+        self.grpc_proxy_port = 18090
 
         # ======================================
         #    MINING WALLET CONFIGURATION
