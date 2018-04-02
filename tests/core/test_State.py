@@ -4,13 +4,14 @@
 from unittest import TestCase
 import mock
 
-from pyqrllib.pyqrllib import sha2_256, bin2hstr
+from pyqrllib.pyqrllib import sha2_256
 
 from qrl.core import config
-from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.misc import logger, db
 from qrl.core.AddressState import AddressState
-from qrl.core.State import State, StateLoader
+from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.Transaction import Transaction
+from qrl.core.misc import logger
+from qrl.core.State import State
 from qrl.core.Transaction import TransferTokenTransaction
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -26,11 +27,26 @@ def gen_blocks(block_count, state, miner_address):
         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1615270948
             prev_hash = bytes(sha2_256(b'test'))
+            addresses_state = dict()
             for i in range(0, block_count):
-                block = Block.create(block_number=i,
-                                     prevblock_headerhash=prev_hash,
-                                     transactions=[],
-                                     miner_address=miner_address)
+                if i == 0:
+                    block = GenesisBlock()
+                    for genesis_balance in GenesisBlock().genesis_balance:
+                        bytes_addr = genesis_balance.address
+                        addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+                        addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+                else:
+                    block = Block.create(block_number=i,
+                                         prevblock_headerhash=prev_hash,
+                                         transactions=[],
+                                         miner_address=miner_address)
+                    addresses_set = state.prepare_address_list(block)
+                    for address in addresses_set:
+                        addresses_state[address] = state.get_address(address)
+                    for tx_protobuf in block.transactions:
+                        tx = Transaction.from_pbdata(tx_protobuf)
+                        tx.apply_on_state(addresses_state)
+
                 block.set_nonces(10, 0)
                 blocks.append(block)
 
@@ -39,6 +55,11 @@ def gen_blocks(block_count, state, miner_address):
                 state.put_block_metadata(block.headerhash, metadata, None)
 
                 state.put_block(block, None)
+                bm = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
+                                                prev_headerhash=block.prev_headerhash)
+                state.put_block_number_mapping(block.block_number, bm, None)
+                state.update_mainchain_height(block.block_number, None)
+                state.put_addresses_state(addresses_state)
                 prev_hash = bytes(block.headerhash)
 
         return blocks
@@ -170,7 +191,7 @@ class TestState(TestCase):
                 alice_xmss = get_alice_xmss()
                 blocks = gen_blocks(20, state, alice_xmss.address)
 
-                for block in blocks:
+                for block in blocks[1:]:
                     self.assertIn(alice_xmss.address, State.prepare_address_list(block))
 
     def test_get_block_datapoint(self):
@@ -191,9 +212,9 @@ class TestState(TestCase):
                 alice_xmss = get_alice_xmss()
                 blocks = gen_blocks(20, state, alice_xmss.address)
 
-                for i, block in enumerate(blocks):
+                for i, block in enumerate(blocks[1:]):
                     self.assertIn(alice_xmss.address, state.prepare_address_list(block))
-                    address_state = state.get_state(block.headerhash, state.prepare_address_list(block))
+                    address_state, _, _ = state.get_state(block.headerhash, state.prepare_address_list(block))
                     self.assertIn(alice_xmss.address, address_state.keys())
                     self.assertEqual(address_state[config.dev.coinbase_address].nonce, i + 1)
                     with self.assertRaises(Exception):
@@ -229,7 +250,7 @@ class TestState(TestCase):
                 blocks = gen_blocks(20, state, alice_xmss.address)
                 address_set = state.prepare_address_list(blocks[-1])
                 m = state.get_state_mainchain(address_set)
-                state.update_mainchain_state(m, 20, blocks[-1].headerhash)
+                state.update_mainchain_state(m)
                 self.assertIsNotNone(m)
                 self.assertTrue(len(m) > 0)
                 state.update_mainchain_height(5, None)
@@ -245,73 +266,3 @@ class TestState(TestCase):
                 self.assertEqual(state.get_last_txs(), [])
                 state.update_last_tx(blocks[-1], None)
                 self.assertEqual(state.get_txn_count(alice_xmss.address), 0)
-
-    def test_state_loader(self):
-        with set_data_dir('no_data'):
-            alice_xmss = get_alice_xmss()
-            state_loader = StateLoader(b'current_', db.DB())
-            self.assertEqual(state_loader.total_coin_supply, 0)
-            state_loader.update_total_coin_supply(100)
-            self.assertEqual(state_loader.total_coin_supply, 100)
-            self.assertIsNone(state_loader.get_address(alice_xmss.address))
-            state_loader.add_address(alice_xmss.address)
-            self.assertEqual(state_loader._data.addresses, [alice_xmss.address])
-
-    def test_state_object(self):
-        with set_data_dir('no_data'):
-            with State() as state:
-                alice_xmss = get_alice_xmss()
-                blocks = gen_blocks(20, state, alice_xmss.address)
-
-                self.assertEqual(state.state_objects.total_coin_supply(), 0)
-                self.assertEqual(state.state_objects.state_loaders, [])
-                state.state_objects.append_state_loader(StateLoader(b'current_', state._db))
-                self.assertIsNotNone(state.state_objects.get_state_loader_by_index(0))
-                state.state_objects.destroy_state_loader(0)
-                self.assertEqual(state.state_objects.state_loaders, [])
-
-                self.assertIsNone(state.state_objects.get(b'current'))
-                state.state_objects.push(blocks[-1].headerhash, None)
-                self.assertEqual(len(state.state_objects.state_loaders), 1)
-
-                loader = state.state_objects.state_loaders[0]
-                loader.increase_txn_count(state._db, b'', 0, alice_xmss.address)
-                self.assertEqual(loader.get_txn_count(state._db, b'', alice_xmss.address), 1)
-                self.assertEqual(loader.get_last_txs(state._db, b''), [])
-                loader.commit(StateLoader(b'current_', state._db))
-                loader.update_last_tx(blocks[-1], None)
-                loader.commit(StateLoader(b'current_', state._db))
-
-                state.state_objects.update_current_state({alice_xmss.address: state._get_address_state(alice_xmss.address)})
-                self.assertEqual(state.state_objects.get_txn_count(alice_xmss.address), 1)
-                state.state_objects.increase_txn_count(alice_xmss.address)
-                self.assertEqual(state.state_objects.get_last_txs(), [])
-                state.state_objects.update_last_tx(blocks[-1], None)
-                state.state_objects.update_tx_metadata(blocks[-1], None)
-                self.assertEqual(state.state_objects.get_last_txs(), [])
-                state.state_objects.destroy_fork_states(blocks[-1].block_number, blocks[-1].headerhash)
-                state.state_objects.destroy_current_state(None)
-                self.assertIsNone(state.state_objects.get(b'current'))
-
-    def test_destroy_current_state(self):
-        with set_data_dir('no_data'):
-            with State() as state:
-                genesis_block = GenesisBlock()
-                state.put_block(genesis_block, None)
-                dummy_state = StateLoader(bin2hstr(genesis_block.headerhash).encode(), state._db)
-                state.state_objects.append_state_loader(dummy_state)
-
-                alice_xmss = get_alice_xmss()
-                alice_address_state = AddressState.get_default(alice_xmss.address)
-
-                for _ in range(10):
-                    alice_address_state.increase_nonce()
-
-                addresses_state = {alice_xmss.address: alice_address_state}
-                state.state_objects.update_current_state(addresses_state)
-                alice_address_state2 = state.get_address(alice_xmss.address)
-                self.assertEqual(alice_address_state.nonce, alice_address_state2.nonce)
-
-                state.state_objects.destroy_current_state(None)
-                alice_address_state2 = state.get_address(alice_xmss.address)
-                self.assertEqual(0, alice_address_state2.nonce)

@@ -44,6 +44,14 @@ class TokenMetadata(object):
         for transfer_token_txhash in transfer_token_txhashes:
             self._data.transfer_token_tx_hashes.extend([transfer_token_txhash])
 
+    def remove(self, transfer_token_txhash: bytes):
+        i = 0
+        while i < len(self._data.transfer_token_tx_hashes):
+            if self._data.transfer_token_tx_hashes[i] == transfer_token_txhash:
+                del self._data.transfer_token_tx_hashes[i]
+                return
+            i += 1
+
     def to_json(self):
         return MessageToJson(self._data)
 
