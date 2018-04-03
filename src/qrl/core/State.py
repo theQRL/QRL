@@ -162,7 +162,7 @@ class State:
             # Deplay transactions in reverse order, otherwise could result into negative value
             for tx_protobuf in block.transactions[-1::-1]:
                 tx = Transaction.from_pbdata(tx_protobuf)
-                tx.unapply_on_state(addresses_state)
+                tx.unapply_on_state(addresses_state, self)
             block = self.get_block(block.prev_headerhash)
 
         for header_hash in hash_path[-1::-1]:
