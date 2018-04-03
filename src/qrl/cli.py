@@ -600,7 +600,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         if address == '':
             break
         amount = int(click.prompt('Amount ')) * (10 ** int(decimals))
-        initial_balances.append(qrl_pb2.AddressAmount(address=bytes(hstr2bin(address)),
+        initial_balances.append(qrl_pb2.AddressAmount(address=bytes(hstr2bin(address[1:])),
                                                       amount=amount))
 
     try:
