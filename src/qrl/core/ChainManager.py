@@ -256,7 +256,7 @@ class ChainManager:
         addresses_state = self.state.get_state_mainchain(addresses_set)
         for tx_idx in range(len(block.transactions) - 1, 0, -1):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
-            tx.unapply_on_state(addresses_state)
+            tx.unapply_on_state(addresses_state, self.state)
 
         # TODO: Move txn from block to pool
         # self.tx_pool.add_tx_in_block_from_pool(block)
