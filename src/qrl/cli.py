@@ -689,7 +689,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
 
         tx = TransferTokenTransaction.create(token_txhash=bin_token_txhash,
                                              addrs_to=addresses_dst,
-                                             amounts=amounts,
+                                             amounts=shor_amounts,
                                              fee=fee_shor,
                                              xmss_pk=address_src_pk,
                                              master_addr=master.encode())
