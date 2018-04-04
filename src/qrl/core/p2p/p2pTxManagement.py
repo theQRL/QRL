@@ -6,7 +6,7 @@ from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger
-from qrl.core.p2pObserver import P2PBaseObserver
+from qrl.core.p2p.p2pObserver import P2PBaseObserver
 from qrl.generated import qrllegacy_pb2
 
 

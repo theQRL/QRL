@@ -6,7 +6,6 @@ import time
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
-import simplejson as json
 from twisted.internet import reactor
 
 from pyqrllib.pyqrllib import QRLHelper
@@ -22,12 +21,13 @@ from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
     LatticePublicKey
 from qrl.core.misc import ntp
+from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState
-from qrl.core.p2pChainManager import P2PChainManager
-from qrl.core.p2pPeerManager import P2PPeerManager
-from qrl.core.p2pTxManagement import P2PTxManagement
-from qrl.core.p2pfactory import P2PFactory
+from qrl.core.p2p.p2pChainManager import P2PChainManager
+from qrl.core.p2p.p2pPeerManager import P2PPeerManager
+from qrl.core.p2p.p2pTxManagement import P2PTxManagement
+from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.generated import qrl_pb2
 
 
@@ -52,7 +52,9 @@ class QRLNode:
 
         self.mining_address = mining_address
 
-        self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
+        banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
+        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
+                                         filename=banned_peers_filename)
 
         reactor.callLater(10, self.monitor_chain_state)
 
@@ -150,51 +152,28 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-    def _update_banned_peers(self, banned_peers):
-        # FIXME: Move to another class. Group peer banning there
-        current_time = ntp.getTime()
-        ip_list = list(banned_peers.keys())
-
-        for ip in ip_list:
-            if current_time > banned_peers[ip]:
-                del banned_peers[ip]
-
-        self._put_banned_peers(banned_peers)
-
-    def _put_banned_peers(self, banned_peers: dict):
-        # FIXME: Move to another class. Group peer banning there
-        with open(self.banned_peers_filename, 'w') as f:
-            json.dump(banned_peers, f)
-
-    def _get_banned_peers(self) -> dict:
-        # FIXME: Move to another class. Group peer banning there
-        try:
-            with open(self.banned_peers_filename, 'r') as f:
-                banned_peers = json.load(f)
-        except FileNotFoundError:
-            banned_peers = dict()
-            self._put_banned_peers(banned_peers)
-
-        return banned_peers
-
-    def is_banned(self, peer_ip: str):
-        # FIXME: Move to another class. Group peer banning there
-        banned_peers = self._get_banned_peers()
-        self._update_banned_peers(banned_peers)
-
-        if peer_ip in banned_peers:
-            return True
+    def is_banned(self, addr_remote: str):
+        return addr_remote in self._banned_peers
 
     def ban_peer(self, peer_obj):
-        # FIXME: Move to another class. Group peer banning there
-        ip = peer_obj.peer_ip
-        ban_time = ntp.getTime() + (config.user.ban_minutes * 60)
-        banned_peers = self._get_banned_peers()
-        banned_peers[ip] = ban_time
-
-        self._update_banned_peers(banned_peers)
-        logger.warning('Banned %s', peer_obj.peer_ip)
+        self._banned_peers.add(peer_obj.addr_remote)
+        logger.warning('Banned %s', peer_obj.addr_remote)
         peer_obj.loseConnection()
+
+    def add_peer(self, peer_obj):
+        self.peer_manager.add_peer_addr(peer_obj.addr_remote)
+
+    def connect_peers(self):
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
+        for peer_address in self.peer_addresses:
+            if self.is_banned(peer_address):
+                continue
+            self._p2pfactory.connect_peer(peer_address)
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
 
     def monitor_chain_state(self):
         self.peer_manager.monitor_chain_state()
@@ -210,7 +189,7 @@ class QRLNode:
         channel = self.peer_manager.get_better_difficulty(block_metadata.cumulative_difficulty)
         logger.debug('Got better difficulty %s', channel)
         if channel:
-            logger.debug('Connection id >> %s', channel.connection_id)
+            logger.debug('Connection id >> %s', channel.addr_remote)
             channel.get_headerhash_list(self._chain_manager.height)
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
@@ -223,15 +202,7 @@ class QRLNode:
     ####################################################
     ####################################################
 
-    def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer_address in self.peer_addresses:
-            if self.is_banned(peer_address):
-                continue
-            self._p2pfactory.connect_peer(peer_address)
-
     def start_pow(self, mining_thread_count):
-        # FIXME: This seems an unexpected side effect. It should be refactored
         self._pow = POW(chain_manager=self._chain_manager,
                         p2p_factory=self._p2pfactory,
                         sync_state=self._sync_state,
@@ -244,7 +215,7 @@ class QRLNode:
     def start_listening(self):
         self._p2pfactory = P2PFactory(chain_manager=self._chain_manager,
                                       sync_state=self.sync_state,
-                                      qrl_node=self)  # FIXME: Try to avoid cycle references
+                                      qrl_node=self)  # FIXME: Try to avoid cyclic references
 
         self._p2pfactory.start_listening()
 
@@ -263,13 +234,6 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-
-    @staticmethod
-    def get_addr_from(xmss_pk, master_addr):
-        if master_addr:
-            return master_addr
-
-        return bytes(QRLHelper.getAddress(xmss_pk))
 
     @staticmethod
     def create_token_txn(symbol: bytes,
@@ -303,7 +267,6 @@ class QRLNode:
                                                xmss_pk,
                                                master_addr)
 
-    # FIXME: Rename this appropriately
     def create_send_tx(self,
                        addrs_to: list,
                        amounts: list,
@@ -354,6 +317,13 @@ class QRLNode:
             raise ValueError("Pending Transaction Pool is full")
 
         return self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
+
+    @staticmethod
+    def get_addr_from(xmss_pk, master_addr):
+        if master_addr:
+            return master_addr
+
+        return bytes(QRLHelper.getAddress(xmss_pk))
 
     def get_address_is_used(self, address: bytes) -> bool:
         if not AddressState.address_is_valid(address):
@@ -427,8 +397,6 @@ class QRLNode:
         return answer
 
     def get_latest_transactions(self, offset, count):
-        # FIXME: This is incorrect
-        # FIXME: Moved code. Breaking encapsulation. Refactor
         answer = []
         skipped = 0
         for tx in self.db_state.get_last_txs():
@@ -502,6 +470,11 @@ class QRLNode:
 
     def collect_ephemeral_message(self, msg_id):
         return self.db_state.get_ephemeral_metadata(msg_id)
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
 
     def get_blockheader_and_metadata(self, block_number) -> list:
         if block_number == 0:
