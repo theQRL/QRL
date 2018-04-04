@@ -32,12 +32,12 @@ class TxnProcessor:
         if not tx.validate():
             return False
 
-        addr_from_state = self.state.get_address(address=tx.addr_from)
+        addr_from_state = self.state.get_address_state(address=tx.addr_from)
         addr_from_pk_state = addr_from_state
 
         addr_from_pk = Transaction.get_slave(tx)
         if addr_from_pk:
-            addr_from_pk_state = self.state.get_address(address=addr_from_pk)
+            addr_from_pk_state = self.state.get_address_state(address=addr_from_pk)
 
         is_valid_state = tx.validate_extended(addr_from_state=addr_from_state,
                                               addr_from_pk_state=addr_from_pk_state)

@@ -237,7 +237,7 @@ class ChainManager:
                 if self.last_block.headerhash != block.prev_headerhash:
                     self.rollback(rollback_headerhash, hash_path)
 
-                self.state.update_mainchain_state(address_txn)
+                self.state.put_addresses_state(address_txn)
                 self.last_block = block
                 self._update_mainchain(block, batch)
                 self.tx_pool.remove_tx_in_block_from_pool(block)
@@ -278,7 +278,7 @@ class ChainManager:
                 tx = Transaction.from_pbdata(block.transactions[tx_idx])
                 tx.apply_on_state(addresses_state)
 
-            self.state.update_mainchain_state(addresses_state)
+            self.state.put_addresses_state(addresses_state)
             self.last_block = block
             self._update_mainchain(block, None)
             self.tx_pool.remove_tx_in_block_from_pool(block)
@@ -405,7 +405,7 @@ class ChainManager:
         return self.state.get_state(headerhash, set())
 
     def get_address(self, address):
-        return self.state.get_address(address)
+        return self.state.get_address_state(address)
 
     def get_transaction(self, transaction_hash) -> list:
         for tx_set in self.tx_pool.transactions:

@@ -123,9 +123,9 @@ class TestChainManager(TestCase):
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block, block_1)
 
-                bob_addr_state = state.get_address(bob_xmss.address)
-                alice_addr_state = state.get_address(alice_xmss.address)
-                random_addr_state = state.get_address(random_xmss.address)
+                bob_addr_state = state.get_address_state(bob_xmss.address)
+                alice_addr_state = state.get_address_state(alice_xmss.address)
+                random_addr_state = state.get_address_state(random_xmss.address)
 
                 self.assertEqual(bob_addr_state.balance, 0)
                 self.assertEqual(alice_addr_state.balance,

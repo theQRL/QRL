@@ -57,7 +57,7 @@ class DB:
         except Exception as e:
             logger.exception(e)
 
-    def delete(self, key_obj, batch=None):
+    def delete(self, key_obj: bytes, batch=None):
         if batch:
             batch.Delete(key_obj)
         else:
