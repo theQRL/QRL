@@ -160,6 +160,21 @@ class QRLNode:
         logger.warning('Banned %s', peer_obj.addr_remote)
         peer_obj.loseConnection()
 
+    def add_peer(self, peer_obj):
+        self.peer_manager.add_peer_addr(peer_obj.addr_remote)
+
+    def connect_peers(self):
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
+        for peer_address in self.peer_addresses:
+            if self.is_banned(peer_address):
+                continue
+            self._p2pfactory.connect_peer(peer_address)
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+
     def monitor_chain_state(self):
         self.peer_manager.monitor_chain_state()
 
@@ -186,13 +201,6 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-
-    def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer_address in self.peer_addresses:
-            if self.is_banned(peer_address):
-                continue
-            self._p2pfactory.connect_peer(peer_address)
 
     def start_pow(self, mining_thread_count):
         self._pow = POW(chain_manager=self._chain_manager,
@@ -226,13 +234,6 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-
-    @staticmethod
-    def get_addr_from(xmss_pk, master_addr):
-        if master_addr:
-            return master_addr
-
-        return bytes(QRLHelper.getAddress(xmss_pk))
 
     @staticmethod
     def create_token_txn(symbol: bytes,
@@ -316,6 +317,13 @@ class QRLNode:
             raise ValueError("Pending Transaction Pool is full")
 
         return self._p2pfactory.add_unprocessed_txn(tx, ip=None)  # TODO (cyyber): Replace None with IP made API request
+
+    @staticmethod
+    def get_addr_from(xmss_pk, master_addr):
+        if master_addr:
+            return master_addr
+
+        return bytes(QRLHelper.getAddress(xmss_pk))
 
     def get_address_is_used(self, address: bytes) -> bool:
         if not AddressState.address_is_valid(address):
@@ -462,6 +470,11 @@ class QRLNode:
 
     def collect_ephemeral_message(self, msg_id):
         return self.db_state.get_ephemeral_metadata(msg_id)
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
 
     def get_blockheader_and_metadata(self, block_number) -> list:
         if block_number == 0:

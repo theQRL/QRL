@@ -477,8 +477,7 @@ class P2PFactory(ServerFactory):
         logger.debug('Started connecting: %s', connector)
 
     def add_connection(self, conn_protocol) -> bool:
-        # TODO: Most of this can go the peer manager
-
+        # TODO: Most of this can go peer manager
         if self._qrl_node.is_banned(conn_protocol.addr_remote):
             conn_protocol.loseConnection()
             return False
@@ -491,23 +490,14 @@ class P2PFactory(ServerFactory):
 
         if conn_protocol.peer_ip == conn_protocol.host_ip and conn_protocol.peer_ip == config.user.p2p_port:
             peer_list = [p for p in self._qrl_node.peer_addresses if p != conn_protocol.addr_remote]
-            if conn_protocol.peer_ip in peer_list:
-                logger.info('Self in peer_list, removing..')
-                peer_list.remove(conn_protocol.peer_ip)
-                self._qrl_node.peer_manager.update_peer_addresses(peer_list)
-
+            self._qrl_node.peer_manager.update_peer_addresses(peer_list)
             conn_protocol.loseConnection()
             return False
 
         self._peer_connections.append(conn_protocol)
+        self._qrl_node.add_peer(conn_protocol)
 
-        if conn_protocol.peer_ip not in peer_list:
-            logger.debug('Adding to peer_list')
-            peer_list.add(conn_protocol.peer_ip)
-            self._qrl_node.peer_manager.update_peer_addresses(peer_list)
-
-        logger.debug('>>> new peer connection : %s:%s ', conn_protocol.peer_ip, str(conn_protocol.peer_port))
-
+        logger.debug('>>> new connection: %s ', conn_protocol.addr_remote)
         return True
 
     def remove_connection(self, conn_protocol):

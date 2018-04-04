@@ -43,6 +43,12 @@ class P2PPeerManager(P2PBaseObserver):
     def peer_addresses(self):
         return self._peer_addresses
 
+    def add_peer_addr(self, peer_add):
+        if peer_add not in self._peer_addresses:
+            logger.debug('Adding to peer_list')
+            self._peer_addresses.add(peer_add)
+            self.update_peer_addresses(self._peer_addresses)
+
     def load_peer_addresses(self) -> None:
         try:
             if os.path.isfile(self.peers_path):
