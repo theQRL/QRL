@@ -11,7 +11,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 from qrl.core.misc import logger, ntp
 from qrl.core import config
 from qrl.core.OutgoingMessage import OutgoingMessage
-from qrl.core.p2pObservable import P2PObservable
+from qrl.core.p2p.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
@@ -47,8 +47,16 @@ class P2PProtocol(Protocol):
         return self.transport.getHost().host
 
     @property
-    def connection_id(self):
+    def host_port(self):
+        return self.transport.getHost().port
+
+    @property
+    def addr_remote(self):
         return "{}:{}".format(self.peer_ip, self.peer_port)
+
+    @property
+    def addr_local(self):
+        return "{}:{}".format(self.host_ip, self.host_port)
 
     def register(self, message_type, func: Callable):
         self._observable.register(message_type, func)
@@ -69,7 +77,7 @@ class P2PProtocol(Protocol):
 
     def connectionLost(self, reason=connectionDone):
         logger.debug('%s disconnected. remainder connected: %d',
-                     self.peer_ip,
+                     self.addr_remote,
                      self.factory.connections)
 
         self.factory.remove_connection(self)
@@ -81,7 +89,7 @@ class P2PProtocol(Protocol):
         total_read = len(self._buffer)
 
         if total_read > config.dev.max_bytes_out:
-            logger.warning('Disconnecting peer %s', self.peer_ip)
+            logger.warning('Disconnecting peer %s', self.addr_remote)
             logger.warning('Buffer Size %s', len(self._buffer))
             self.loseConnection()
 
@@ -212,8 +220,6 @@ class P2PProtocol(Protocol):
     ###################################################
     ###################################################
 
-    # FIXME: Take this out define the peer or leave as part of the channel object?
-
     def send_version_request(self):
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
         self.send(msg)
@@ -224,12 +230,11 @@ class P2PProtocol(Protocol):
         Sends the peers list.
         :return:
         """
-        peer_ips = self.factory.get_connected_peer_ips()
-
-        logger.debug('<<< Sending connected peers to %s [%s]', self.peer_ip, peer_ips)
+        remote_peers = self.factory.get_connected_peer_addrs()
+        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, remote_peers)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
-                                          plData=qrllegacy_pb2.PLData(peer_ips=peer_ips))
+                                          plData=qrllegacy_pb2.PLData(peer_ips=remote_peers))
 
         self.send(msg)
 
@@ -248,7 +253,7 @@ class P2PProtocol(Protocol):
         Sends request for the block number n.
         :return:
         """
-        logger.info('<<<Fetching block: %s from %s', block_idx, self.connection_id)
+        logger.info('<<<Fetching block: %s from %s', block_idx, self.addr_remote)
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)

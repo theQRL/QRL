@@ -5,8 +5,8 @@ from unittest import TestCase
 
 from qrl.core.misc import logger
 from qrl.core.ChainManager import ChainManager
-from qrl.core.p2pfactory import P2PFactory
-from qrl.core.p2pprotocol import P2PProtocol
+from qrl.core.p2p.p2pfactory import P2PFactory
+from qrl.core.p2p.p2pprotocol import P2PProtocol
 
 logger.initialize_default()
 

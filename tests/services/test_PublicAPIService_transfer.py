@@ -11,7 +11,7 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.State import State
 from qrl.core.misc import logger
 from qrl.core.node import POW
-from qrl.core.p2pfactory import P2PFactory
+from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2

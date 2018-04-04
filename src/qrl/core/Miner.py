@@ -102,9 +102,6 @@ class Miner(Qryptominer):
                      mining_nonce,
                      tx_pool: TransactionPool,
                      miner_address) -> Optional[Block]:
-        # TODO: Persistence will move to rocksdb
-        # FIXME: Difference between this and create block?????????????
-
         dummy_block = Block.create(block_number=last_block.block_number + 1,
                                    prevblock_headerhash=last_block.headerhash,
                                    transactions=[],

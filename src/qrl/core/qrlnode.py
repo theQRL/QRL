@@ -6,7 +6,6 @@ import time
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
-import simplejson as json
 from twisted.internet import reactor
 
 from pyqrllib.pyqrllib import QRLHelper
@@ -25,10 +24,10 @@ from qrl.core.misc import ntp
 from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState
-from qrl.core.p2pChainManager import P2PChainManager
-from qrl.core.p2pPeerManager import P2PPeerManager
-from qrl.core.p2pTxManagement import P2PTxManagement
-from qrl.core.p2pfactory import P2PFactory
+from qrl.core.p2p.p2pChainManager import P2PChainManager
+from qrl.core.p2p.p2pPeerManager import P2PPeerManager
+from qrl.core.p2p.p2pTxManagement import P2PTxManagement
+from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.generated import qrl_pb2
 
 
@@ -153,12 +152,12 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-    def is_banned(self, peer_ip: str):
-        return peer_ip in self._banned_peers
+    def is_banned(self, addr_remote: str):
+        return addr_remote in self._banned_peers
 
     def ban_peer(self, peer_obj):
-        self._banned_peers.add(peer_obj)
-        logger.warning('Banned %s', peer_obj.peer_ip)
+        self._banned_peers.add(peer_obj.addr_remote)
+        logger.warning('Banned %s', peer_obj.addr_remote)
         peer_obj.loseConnection()
 
     def monitor_chain_state(self):
@@ -175,7 +174,7 @@ class QRLNode:
         channel = self.peer_manager.get_better_difficulty(block_metadata.cumulative_difficulty)
         logger.debug('Got better difficulty %s', channel)
         if channel:
-            logger.debug('Connection id >> %s', channel.connection_id)
+            logger.debug('Connection id >> %s', channel.addr_remote)
             channel.get_headerhash_list(self._chain_manager.height)
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
@@ -196,7 +195,6 @@ class QRLNode:
             self._p2pfactory.connect_peer(peer_address)
 
     def start_pow(self, mining_thread_count):
-        # FIXME: This seems an unexpected side effect. It should be refactored
         self._pow = POW(chain_manager=self._chain_manager,
                         p2p_factory=self._p2pfactory,
                         sync_state=self._sync_state,
@@ -209,7 +207,7 @@ class QRLNode:
     def start_listening(self):
         self._p2pfactory = P2PFactory(chain_manager=self._chain_manager,
                                       sync_state=self.sync_state,
-                                      qrl_node=self)  # FIXME: Try to avoid cycle references
+                                      qrl_node=self)  # FIXME: Try to avoid cyclic references
 
         self._p2pfactory.start_listening()
 
@@ -268,7 +266,6 @@ class QRLNode:
                                                xmss_pk,
                                                master_addr)
 
-    # FIXME: Rename this appropriately
     def create_send_tx(self,
                        addrs_to: list,
                        amounts: list,
@@ -392,8 +389,6 @@ class QRLNode:
         return answer
 
     def get_latest_transactions(self, offset, count):
-        # FIXME: This is incorrect
-        # FIXME: Moved code. Breaking encapsulation. Refactor
         answer = []
         skipped = 0
         for tx in self.db_state.get_last_txs():
