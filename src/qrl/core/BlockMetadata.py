@@ -52,6 +52,7 @@ class BlockMetadata(object):
             self._data.child_headerhashes.append(child_headerhash)
 
     def update_last_headerhashes(self, parent_last_N_headerhashes, last_headerhash: bytes):
+        del self._data.last_N_headerhashes[:]
         self._data.last_N_headerhashes.extend(parent_last_N_headerhashes)
         self._data.last_N_headerhashes.append(last_headerhash)
         if len(self._data.last_N_headerhashes) > config.dev.N_measurement:

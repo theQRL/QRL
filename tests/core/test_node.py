@@ -95,7 +95,7 @@ class TestNode(TestCase):
         chain_manager.state.get_block_metadata = MagicMock(return_value=get_block_metadata_response)
 
         alice_xmss = get_alice_xmss()
-        chain_manager.state.get_address = MagicMock(return_value=AddressState.get_default(alice_xmss.address))
+        chain_manager.state.get_address_state = MagicMock(return_value=AddressState.get_default(alice_xmss.address))
         chain_manager.state.get_measurement = MagicMock(return_value=60)
 
         p2p_factory = Mock()

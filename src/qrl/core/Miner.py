@@ -117,7 +117,7 @@ class Miner(Qryptominer):
 
         addresses_state = dict()
         for address in addresses_set:
-            addresses_state[address] = self.state.get_address(address)
+            addresses_state[address] = self.state.get_address_state(address)
 
         block_size = dummy_block.size
         block_size_limit = self.state.get_block_size_limit(last_block)

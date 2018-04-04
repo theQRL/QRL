@@ -83,10 +83,10 @@ class State:
     def remove_blocknumber_mapping(self, block_number, batch):
         self._db.delete(str(block_number).encode(), batch)
 
-    def put_block_number_mapping(self, block_number, block_number_mapping, batch):
+    def put_block_number_mapping(self, block_number: int, block_number_mapping, batch):
         self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping).encode(), batch)
 
-    def get_block_number_mapping(self, block_number: bytes) -> Optional[qrl_pb2.BlockNumberMapping]:
+    def get_block_number_mapping(self, block_number: int) -> Optional[qrl_pb2.BlockNumberMapping]:
         try:
             json_data = self._db.get_raw(str(block_number).encode())
             block_number_mapping = qrl_pb2.BlockNumberMapping()
@@ -98,7 +98,7 @@ class State:
 
         return None
 
-    def get_block_by_number(self, block_number) -> Optional[Block]:
+    def get_block_by_number(self, block_number: int) -> Optional[Block]:
         block_number_mapping = self.get_block_number_mapping(block_number)
         if not block_number_mapping:
             return None
@@ -132,7 +132,7 @@ class State:
     def get_state_mainchain(self, addresses_set: set):
         addresses_state = dict()
         for address in addresses_set:
-            addresses_state[address] = self.get_address(address)
+            addresses_state[address] = self.get_address_state(address)
         return addresses_state
 
     def get_state(self, header_hash: bytes, addresses_set: set):
@@ -155,7 +155,7 @@ class State:
 
         addresses_state = dict()
         for address in addresses_set:
-            addresses_state[address] = self.get_address(address)
+            addresses_state[address] = self.get_address_state(address)
 
         block = self.last_block
         while block.headerhash != rollback_headerhash:
@@ -173,9 +173,6 @@ class State:
                 tx.apply_on_state(addresses_state)
 
         return addresses_state, rollback_headerhash, hash_path
-
-    def update_mainchain_state(self, addresses_state):
-        self.put_addresses_state(addresses_state)
 
     def get_ephemeral_metadata(self, msg_id: bytes):
         try:
@@ -216,19 +213,21 @@ class State:
     def remove_last_tx(self, block, batch):
         if len(block.transactions) == 0:
             return
-        last_txn = []
 
         try:
             last_txn = self._db.get(b'last_txn')
         except:  # noqa
-            pass
+            return
 
         for protobuf_txn in block.transactions:
-            if not last_txn:
-                return
             txn = Transaction.from_pbdata(protobuf_txn)
-            if txn.txhash in last_txn:
-                last_txn.remove(txn.txhash)
+            i = 0
+            while i < len(last_txn):
+                tx = Transaction.from_json(last_txn[i][0])
+                if txn.txhash == tx.txhash:
+                    del last_txn[i]
+                    break
+                i += 1
 
         self._db.put(b'last_txn', last_txn, batch)
 
@@ -297,15 +296,12 @@ class State:
 
     def remove_transfer_token_metadata(self, transfer_token: TransferTokenTransaction):
         token_metadata = self.get_token_metadata(transfer_token.token_txhash)
-        token_metadata.remove([transfer_token.txhash])
+        token_metadata.remove(transfer_token.txhash)
         self._db.put_raw(b'token_' + transfer_token.token_txhash,
                          token_metadata.to_json().encode())
 
     def remove_token_metadata(self, token: TokenTransaction):
         self._db.delete(b'token_' + token.txhash)
-
-    def update_state_version(self, block_number, batch):
-        self._db.put(b'state_version', block_number, batch)
 
     #########################################
     #########################################
@@ -373,7 +369,7 @@ class State:
 
     def remove_tx_metadata(self, txn, batch):
         try:
-            self._db.delete(bin2hstr(txn.txhash), batch)
+            self._db.delete(bin2hstr(txn.txhash).encode(), batch)
         except Exception:
             pass
 
@@ -401,29 +397,18 @@ class State:
     #########################################
     #########################################
 
-    def _get_address_state(self, address: bytes) -> AddressState:
-        try:
-            data = self._db.get_raw(address)
-            pbdata = qrl_pb2.AddressState()
-            pbdata.ParseFromString(bytes(data))
-            address_state = AddressState(pbdata)
-            return address_state
-        except KeyError:
-            return AddressState.get_default(address)
-
     def increase_txn_count(self, last_count: int, addr: bytes):
         # FIXME: This should be transactional
         self._db.put(b'txn_count_' + addr, last_count + 1)
 
     def decrease_txn_count(self, last_count: int, addr: bytes):
         # FIXME: This should be transactional
+        if last_count == 0:
+            raise ValueError('Cannot decrease transaction count last_count: %s, addr %s',
+                             last_count, bin2hstr(addr))
         self._db.put(b'txn_count_' + addr, last_count - 1)
 
-    def _save_address_state(self, address_state: AddressState, batch=None):
-        data = address_state.pbdata.SerializeToString()
-        self._db.put_raw(address_state.address, data, batch)
-
-    def get_address(self, address: bytes) -> AddressState:
+    def get_address_state(self, address: bytes) -> AddressState:
         try:
             data = self._db.get_raw(address)
             pbdata = qrl_pb2.AddressState()
@@ -434,15 +419,15 @@ class State:
             return AddressState.get_default(address)
 
     def nonce(self, addr: bytes) -> int:
-        return self.get_address(addr).nonce
+        return self.get_address_state(addr).nonce
 
     def balance(self, addr: bytes) -> int:
-        return self.get_address(addr).balance
+        return self.get_address_state(addr).balance
 
     def address_used(self, address: bytes):
         # FIXME: Probably obsolete
         try:
-            return self._get_address_state(address)
+            return self.get_address_state(address)
         except KeyError:
             return False
         except Exception as e:

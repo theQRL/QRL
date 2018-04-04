@@ -183,3 +183,6 @@ class AddressState(object):
             return False
 
         return True
+
+    def serialize(self):
+        return self._data.SerializeToString()
