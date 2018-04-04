@@ -22,6 +22,7 @@ from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
     LatticePublicKey
 from qrl.core.misc import ntp
+from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState
 from qrl.core.p2pChainManager import P2PChainManager
@@ -52,7 +53,9 @@ class QRLNode:
 
         self.mining_address = mining_address
 
-        self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
+        banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
+        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
+                                         filename=banned_peers_filename)
 
         reactor.callLater(10, self.monitor_chain_state)
 
@@ -150,49 +153,11 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
-    def _update_banned_peers(self, banned_peers):
-        # FIXME: Move to another class. Group peer banning there
-        current_time = ntp.getTime()
-        ip_list = list(banned_peers.keys())
-
-        for ip in ip_list:
-            if current_time > banned_peers[ip]:
-                del banned_peers[ip]
-
-        self._put_banned_peers(banned_peers)
-
-    def _put_banned_peers(self, banned_peers: dict):
-        # FIXME: Move to another class. Group peer banning there
-        with open(self.banned_peers_filename, 'w') as f:
-            json.dump(banned_peers, f)
-
-    def _get_banned_peers(self) -> dict:
-        # FIXME: Move to another class. Group peer banning there
-        try:
-            with open(self.banned_peers_filename, 'r') as f:
-                banned_peers = json.load(f)
-        except FileNotFoundError:
-            banned_peers = dict()
-            self._put_banned_peers(banned_peers)
-
-        return banned_peers
-
     def is_banned(self, peer_ip: str):
-        # FIXME: Move to another class. Group peer banning there
-        banned_peers = self._get_banned_peers()
-        self._update_banned_peers(banned_peers)
-
-        if peer_ip in banned_peers:
-            return True
+        return peer_ip in self._banned_peers
 
     def ban_peer(self, peer_obj):
-        # FIXME: Move to another class. Group peer banning there
-        ip = peer_obj.peer_ip
-        ban_time = ntp.getTime() + (config.user.ban_minutes * 60)
-        banned_peers = self._get_banned_peers()
-        banned_peers[ip] = ban_time
-
-        self._update_banned_peers(banned_peers)
+        self._banned_peers.add(peer_obj)
         logger.warning('Banned %s', peer_obj.peer_ip)
         peer_obj.loseConnection()
 
