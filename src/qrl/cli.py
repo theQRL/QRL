@@ -206,8 +206,9 @@ def wallet_gen(ctx, height):
 
 
 @qrl.command()
+@click.option('--height', type=int, default=config.dev.xmss_tree_height, prompt=False)
 @click.pass_context
-def wallet_add(ctx):
+def wallet_add(ctx, height):
     """
     Adds an address or generates a new wallet (working directory)
     """
@@ -217,7 +218,7 @@ def wallet_add(ctx):
 
     config.user.wallet_dir = ctx.obj.wallet_dir
     wallet = Wallet()
-    wallet.add_new_address(config.dev.xmss_tree_height)
+    wallet.add_new_address(height)
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
