@@ -30,7 +30,7 @@ class TestWallet(TestCase):
             self.assertFalse(addr_item.encrypted)
 
             self.assertEqual('Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
-                             addr_item.address)
+                             addr_item.qaddress)
 
             xmss0 = wallet.get_xmss_by_index(0)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
@@ -51,7 +51,7 @@ class TestWallet(TestCase):
             addr_item = wallet.address_items[0]
 
             self.assertEqual('Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
-                             addr_item.address)
+                             addr_item.qaddress)
 
             xmss0 = wallet.get_xmss_by_index(0)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
