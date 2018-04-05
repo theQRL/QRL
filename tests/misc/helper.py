@@ -37,7 +37,7 @@ from tests.misc.random_number_generator import RNG
 
 @contextlib.contextmanager
 def set_default_balance_size(new_value=100 * int(config.dev.shor_per_quanta)):
-    old_value = config.dev.block_timeseries_size
+    old_value = config.dev.default_account_balance
     try:
         config.dev.default_account_balance = new_value
         yield

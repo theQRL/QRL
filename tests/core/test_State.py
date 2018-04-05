@@ -17,8 +17,8 @@ from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction, \
-    set_default_balance_size
+from tests.blockchain.MockedBlockchain import MockedBlockchain
+from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
 logger.initialize_default()
 
@@ -123,7 +123,6 @@ class TestState(TestCase):
                 address_state = state.get_address_state(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
 
-    @set_default_balance_size()
     def test_basic_state_funcs(self):
         with set_data_dir('no_data'):
             with State() as state:
@@ -465,18 +464,17 @@ class TestState(TestCase):
                     self.assertEqual(datapoint.header_hash_prev, blocks[i - 1].headerhash)
 
     def test_get_state(self):
-        with set_data_dir('no_data'):
-            with State() as state:
-                alice_xmss = get_alice_xmss()
-                blockchain1 = gen_blocks(20, state, alice_xmss.address)
+        alice_xmss = get_alice_xmss()
+        number_of_blocks = 10
+        alice_balances = [0, 6656349462, 13312697815, 19969045061, 26625391199,
+                          33281736229, 39938080152, 46594422967, 53250764674, 59907105274]
 
-                for i, block in enumerate(blockchain1[1:]):
-                    self.assertIn(alice_xmss.address, state.prepare_address_list(block))
-                    address_state, _, _ = state.get_state(block.headerhash, state.prepare_address_list(block))
-                    self.assertIn(alice_xmss.address, address_state.keys())
-                    self.assertEqual(address_state[config.dev.coinbase_address].nonce, i + 1)
-                    with self.assertRaises(Exception):
-                        state.set_addresses_state({"state": 'test'}, 0)
+        with MockedBlockchain.create(number_of_blocks, alice_xmss.address) as mock_blockchain:
+            state = mock_blockchain.qrlnode._chain_manager.state
+            for i in range(number_of_blocks):
+                block = mock_blockchain.qrlnode.get_block_from_index(i)
+                addresses_state, _, _ = state.get_state(block.headerhash, {alice_xmss.address, })
+                self.assertEqual(addresses_state[alice_xmss.address].balance, alice_balances[i])
 
     def test_put_block_number_mapping(self):
         with set_data_dir('no_data'):
