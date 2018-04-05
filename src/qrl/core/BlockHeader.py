@@ -1,5 +1,6 @@
 # coding=utf-8
 import functools
+
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import shake128
 
@@ -178,12 +179,6 @@ class BlockHeader(object):
             logger.warning('threshold timestamp %s', allowed_timestamp)
             return False
 
-        if self.timestamp < config.dev.genesis_timestamp:
-            logger.warning('Timestamp lower than genesis timestamp')
-            logger.warning('Genesis Timestamp %s', config.dev.genesis_timestamp)
-            logger.warning('Block Timestamp %s', self.timestamp)
-            return False
-
         if self.generate_headerhash() != self.headerhash:
             logger.warning('Headerhash false for block: failed validation')
             return False
@@ -206,7 +201,7 @@ class BlockHeader(object):
 
         return True
 
-    def validate_parent_child_relation(self, parent_block):
+    def validate_parent_child_relation(self, parent_block, median_timestamp):
         if parent_block.block_number != self.block_number - 1:
             logger.warning('Block numbers out of sequence: failed validation')
             return False
@@ -215,11 +210,11 @@ class BlockHeader(object):
             logger.warning('Headerhash not in sequence: failed validation')
             return False
 
-        # if self.timestamp < parent_block.timestamp:
-        #    logger.warning('BLOCK timestamp is less than prev block timestamp')
-        #    logger.warning('block timestamp %s ', self.timestamp)
-        #    logger.warning('must be greater than or equals to %s', parent_block.timestamp)
-        #    return False
+        if self.timestamp < median_timestamp:
+            logger.warning('BLOCK timestamp is less than median timestamp')
+            logger.warning('block timestamp %s ', self.timestamp)
+            logger.warning('must be greater than or equals to %s', median_timestamp)
+            return False
 
         return True
 
