@@ -7,7 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.Wallet import Wallet
 from qrl.core.misc import logger
-from tests.misc.helper import set_wallet_dir
+from tests.misc.helper import set_qrl_dir
 
 logger.initialize_default()
 
@@ -17,12 +17,12 @@ class TestWallet(TestCase):
         super(TestWallet, self).__init__(*args, **kwargs)
 
     def test_init(self):
-        with set_wallet_dir("test_wallet"):
+        with set_qrl_dir("test_wallet"):
             wallet = Wallet()
             self.assertIsNotNone(wallet)
 
     def test_read(self):
-        with set_wallet_dir("test_wallet"):
+        with set_qrl_dir("test_wallet"):
             wallet = Wallet()
             self.assertEqual(1, len(wallet.address_items))
 
@@ -41,7 +41,7 @@ class TestWallet(TestCase):
                              bin2hstr(xmss0b.address))
 
     def test_read_secure(self):
-        with set_wallet_dir("wallet_secure"):
+        with set_qrl_dir("wallet_secure"):
             wallet = Wallet()
             self.assertEqual(1, len(wallet.address_items))
 
@@ -62,7 +62,7 @@ class TestWallet(TestCase):
                              bin2hstr(xmss0b.address))
 
     def test_create(self):
-        with set_wallet_dir("no_data"):
+        with set_qrl_dir("no_data"):
             wallet = Wallet()
             self.assertEqual(0, len(wallet.address_items))
 
@@ -75,7 +75,7 @@ class TestWallet(TestCase):
             self.assertEqual(xmss1.mnemonic, xmss2.mnemonic)
 
     def test_create_load(self):
-        with set_wallet_dir("no_data"):
+        with set_qrl_dir("no_data"):
             wallet = Wallet()
             wallet.add_new_address(height=4)
 
@@ -85,28 +85,27 @@ class TestWallet(TestCase):
             self.assertEqual(wallet.address_items[0], wallet_b.address_items[0])
 
     def test_encrypt(self):
-        with set_wallet_dir("no_data"):
-            with set_wallet_dir("no_data"):
-                wallet = Wallet()
-                wallet.add_new_address(height=4)
+        with set_qrl_dir("no_data"):
+            wallet = Wallet()
+            wallet.add_new_address(height=4)
 
-                wallet_b = Wallet()
+            wallet_b = Wallet()
 
-                self.assertEqual(1, len(wallet_b.address_items))
-                self.assertEqual(wallet.address_items[0], wallet_b.address_items[0])
+            self.assertEqual(1, len(wallet_b.address_items))
+            self.assertEqual(wallet.address_items[0], wallet_b.address_items[0])
 
-                TEST_KEY = 'mytestkey'
+            TEST_KEY = 'mytestkey'
 
-                wallet_b.encrypt(TEST_KEY)
-                wallet_b.save()
+            wallet_b.encrypt(TEST_KEY)
+            wallet_b.save()
 
-                self.assertEqual(1, len(wallet_b.address_items))
-                self.assertNotEqual(wallet.address_items[0], wallet_b.address_items[0])
+            self.assertEqual(1, len(wallet_b.address_items))
+            self.assertNotEqual(wallet.address_items[0], wallet_b.address_items[0])
 
-                wallet_c = Wallet()
-                self.assertEqual(1, len(wallet_c.address_items))
-                self.assertTrue(wallet_c.address_items[0].encrypted)
+            wallet_c = Wallet()
+            self.assertEqual(1, len(wallet_c.address_items))
+            self.assertTrue(wallet_c.address_items[0].encrypted)
 
-                wallet_c.decrypt(TEST_KEY)
-                self.assertFalse(wallet_c.address_items[0].encrypted)
-                self.assertEqual(wallet.address_items[0], wallet_c.address_items[0])
+            wallet_c.decrypt(TEST_KEY)
+            self.assertFalse(wallet_c.address_items[0].encrypted)
+            self.assertEqual(wallet.address_items[0], wallet_c.address_items[0])
