@@ -15,7 +15,7 @@ from qrl.crypto.AESHelper import AESHelper
 from qrl.crypto.xmss import XMSS
 
 AddressItem = namedtuple('AddressItem',
-                         'address pk hexseed mnemonic height hashFunction signatureType index encrypted')
+                         'qaddress pk hexseed mnemonic height hashFunction signatureType index encrypted')
 
 
 class Wallet:
@@ -46,7 +46,7 @@ class Wallet:
         Returns all address items in the wallet
         :return:
         """
-        return [bytes(hstr2bin(item.address[1:])) for item in self._address_items]
+        return [bytes(hstr2bin(item.qaddress[1:])) for item in self._address_items]
 
     @functools.lru_cache(maxsize=20)
     def get_xmss_by_index(self, idx) -> Optional[XMSS]:
@@ -63,7 +63,7 @@ class Wallet:
         tmp_xmss = XMSS.from_extended_seed(extended_seed)
         tmp_xmss.set_ots_index(item.index)
 
-        if item.address != 'Q' + bin2hstr(tmp_xmss.address):
+        if item.qaddress != 'Q' + bin2hstr(tmp_xmss.address):
             raise Exception("Mnemonic and address do not match.")
 
         if item.hexseed != tmp_xmss.hexseed:
@@ -89,7 +89,7 @@ class Wallet:
     @staticmethod
     def _get_address_item_from_xmss(xmss: XMSS) -> AddressItem:
         return AddressItem(
-            address=Wallet._get_Qaddress(xmss.address),
+            qaddress=Wallet._get_Qaddress(xmss.address),
             pk=None,
             hexseed=xmss.hexseed,
             mnemonic=xmss.mnemonic,
@@ -102,12 +102,15 @@ class Wallet:
 
     @staticmethod
     def _get_address_item_from_json(addr_json: dict) -> AddressItem:
+        # address -> qaddress for webwallet compatibility
+        addr_json["qaddress"] = addr_json.pop("address")
+
         return AddressItem(**addr_json)
 
     def get_xmss_by_address(self, search_addr) -> Optional[XMSS]:
         search_addr_str = self._get_Qaddress(search_addr)
         for idx, item in enumerate(self._address_items):
-            if item.address == search_addr_str:
+            if item.qaddress == search_addr_str:
                 return self.get_xmss_by_index(idx)
         return None
 
@@ -138,14 +141,19 @@ class Wallet:
 
     def save_wallet(self, filename):
         with open(filename, "wb") as outfile:
-            data_out = simplejson.dumps(self._address_items).encode('ascii')
+            # qaddress -> address for webwallet compatibility
+            address_items_asdict = [a._asdict() for a in self._address_items]
+            for a in address_items_asdict:
+                a["address"] = a.pop("qaddress")
+
+            data_out = simplejson.dumps(address_items_asdict).encode('ascii')
             outfile.write(data_out)
 
     def decrypt_item(self, index: int, key: str):
         if index < len(self._address_items):
             cipher = AESHelper(key)
             tmp = self._address_items[index]._asdict()  # noqa
-            tmp['address'] = cipher.decrypt(tmp['address']).decode()
+            tmp['qaddress'] = cipher.decrypt(tmp['qaddress']).decode()
             tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
             tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
             tmp['encrypted'] = False
@@ -155,7 +163,7 @@ class Wallet:
         if index < len(self._address_items):
             cipher = AESHelper(key)
             tmp = self._address_items[index]._asdict()  # noqa
-            tmp['address'] = cipher.encrypt(tmp['address'].encode())
+            tmp['qaddress'] = cipher.encrypt(tmp['qaddress'].encode())
             tmp['hexseed'] = cipher.encrypt(tmp['hexseed'].encode())
             tmp['mnemonic'] = cipher.encrypt(tmp['mnemonic'].encode())
             tmp['encrypted'] = True
@@ -188,7 +196,7 @@ class Wallet:
 
     def remove(self, addr):
         for item in self._address_items:
-            if item.address == addr:
+            if item.qaddress == addr:
                 try:
                     self._address_items.remove(item)
                     self.save_wallet(self.wallet_path)
