@@ -215,11 +215,11 @@ class BlockHeader(object):
             logger.warning('Headerhash not in sequence: failed validation')
             return False
 
-        if self.timestamp < parent_block.timestamp:
-            logger.warning('BLOCK timestamp is less than prev block timestamp')
-            logger.warning('block timestamp %s ', self.timestamp)
-            logger.warning('must be greater than or equals to %s', parent_block.timestamp)
-            return False
+        #if self.timestamp < parent_block.timestamp:
+        #    logger.warning('BLOCK timestamp is less than prev block timestamp')
+        #    logger.warning('block timestamp %s ', self.timestamp)
+        #    logger.warning('must be greater than or equals to %s', parent_block.timestamp)
+        #    return False
 
         return True
 
