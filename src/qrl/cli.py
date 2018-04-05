@@ -255,7 +255,7 @@ def wallet_recover(ctx, seed_type):
     recovered_xmss = XMSS.from_extended_seed(bin_seed)
     print('Recovered Wallet Address : %s' % (Wallet._get_Qaddress(recovered_xmss.address),))
     for addr in walletObj.address_items:
-        if recovered_xmss.address == addr.address:
+        if recovered_xmss.hexseed == addr.hexseed:
             print('Wallet Address is already in the wallet list')
             return
 
