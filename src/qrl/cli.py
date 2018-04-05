@@ -78,11 +78,11 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
 
     for pos, item in enumerate(addresses):
         try:
-            balance = Decimal(_public_get_address_balance(ctx, item.address)) / config.dev.shor_per_quanta
-            msg['wallets'].append({'number': pos, 'address': item.address, 'balance': balance})
+            balance = Decimal(_public_get_address_balance(ctx, item.qaddress)) / config.dev.shor_per_quanta
+            msg['wallets'].append({'number': pos, 'address': item.qaddress, 'balance': balance})
         except Exception as e:
                 msg['error'] = str(e)
-                msg['wallets'].append({'number': pos, 'address': item.address, 'balance': '?'})
+                msg['wallets'].append({'number': pos, 'address': item.qaddress, 'balance': '?'})
     return msg
 
 
@@ -133,7 +133,7 @@ def _select_wallet(ctx, src):
 
         elif src.startswith('Q'):
             for i, addr_item in enumerate(wallet.address_items):
-                if src == addr_item.address:
+                if src == addr_item.qaddress:
                     xmss = wallet.get_xmss_by_address(wallet.addresses[i])
                     return wallet.addresses[i], xmss
             click.echo('Source address not found in your wallet', color='yellow')
@@ -283,7 +283,7 @@ def wallet_secret(ctx, wallet_idx):
 
     if 0 <= wallet_idx < len(wallet.address_items):
         address_item = wallet.address_items[wallet_idx]
-        click.echo('Wallet Address  : %s' % (address_item.address))
+        click.echo('Wallet Address  : %s' % (address_item.qaddress))
         click.echo('Mnemonic        : %s' % (address_item.mnemonic))
         click.echo('Hexseed         : %s' % (address_item.hexseed))
     else:
@@ -315,10 +315,10 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
     if 0 <= wallet_idx < len(wallet.address_items):
         addr_item = wallet.address_items[wallet_idx]
         if not skip_confirmation:
-            click.echo('You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_item.address))
+            click.echo('You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_item.qaddress))
             click.echo('Warning! By continuing, you risk complete loss of access to this address if you do not have a recovery Mnemonic/Hexseed.')
             click.confirm('Do you want to continue?', abort=True)
-        wallet.remove(addr_item.address)
+        wallet.remove(addr_item.qaddress)
 
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
