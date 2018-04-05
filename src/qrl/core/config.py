@@ -214,11 +214,12 @@ class DevConfig(object):
         self.kp = 5
 
         # ======================================
-        #       BLOCK SIZE CONTROLLER
+        #            BLOCK CONTROLLER
         # ======================================
         self.number_of_blocks_analyze = 10
         self.size_multiplier = 1.1
         self.block_min_size_limit = 1024 * 1024         # 1 MB - Initial Block Size Limit
+        self.n_block_median_timestamps = 12
 
         # ======================================
         # SHOR PER QUANTA / MAX ALLOWED DECIMALS

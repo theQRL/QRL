@@ -214,7 +214,8 @@ class ChainManager:
 
     def _try_branch_add_block(self, block, batch=None) -> bool:
         parent_block = self.state.get_block(block.prev_headerhash)
-        if not block.validate_parent_child_relation(parent_block):
+        median_timestamp = self.state.get_n_block_median_timestamps(block)
+        if not block.validate_parent_child_relation(parent_block, median_timestamp):
             logger.warning('Failed to validate blocks parent child relation')
             return False
 
