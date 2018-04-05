@@ -14,7 +14,7 @@ from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
 from qrl.core.Transaction import SlaveTransaction
 from qrl.core.qrlnode import QRLNode
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_qrl_dir
 
 
 class MockedBlockchain(object):
@@ -74,7 +74,7 @@ class MockedBlockchain(object):
     def create(num_blocks, mining_address=None):
         start_time = time.time()
         with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
-                set_data_dir('no_data'), \
+                set_qrl_dir('no_data'), \
                 State() as state, \
                 mock.patch('time.time') as time_mock:  # noqa
             time_mock.return_value = start_time

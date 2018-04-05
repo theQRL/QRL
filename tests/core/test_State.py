@@ -18,7 +18,7 @@ from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.generated import qrl_pb2
 from tests.blockchain.MockedBlockchain import MockedBlockchain
-from tests.misc.helper import set_data_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
+from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
 logger.initialize_default()
 
@@ -71,12 +71,12 @@ class TestState(TestCase):
         super(TestState, self).__init__(*args, **kwargs)
 
     def test_create_state(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
     def test_release_state(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
@@ -84,7 +84,7 @@ class TestState(TestCase):
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
     def test_set_block_pos(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 block_number = 123
 
@@ -100,7 +100,7 @@ class TestState(TestCase):
                 self.assertEqual(block_size, read_size)
 
     def test_get_address_state(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
@@ -124,7 +124,7 @@ class TestState(TestCase):
                 self.assertTrue(isinstance(address_state.address, bytes))
 
     def test_basic_state_funcs(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 self.assertTrue(state.address_used(alice_xmss.address))
@@ -135,19 +135,19 @@ class TestState(TestCase):
                 self.assertEqual(state.total_coin_supply(), 0)
 
     def test_nonce(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 self.assertEqual(state.nonce(alice_xmss.address), 0)
 
     def balance(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 self.assertNotEqual(state.balance(alice_xmss.address), 0)
 
     def test_get_address2(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
@@ -162,7 +162,7 @@ class TestState(TestCase):
                 self.assertTrue(isinstance(address_state.address, bytes))
 
     def test_create_token_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
@@ -175,7 +175,7 @@ class TestState(TestCase):
                 self.assertEqual(token_metadata.transfer_token_tx_hashes[0], token_transaction.txhash)
 
     def test_update_token_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
@@ -197,7 +197,7 @@ class TestState(TestCase):
                 self.assertEqual(token_metadata.transfer_token_tx_hashes[1], transfer_token_transaction.txhash)
 
     def test_get_token_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 token_txhash = bytes(sha2_256(b'alpha'))
                 token_metadata = TokenMetadata.create(token_txhash,
@@ -208,7 +208,7 @@ class TestState(TestCase):
                                  token_metadata.to_json())
 
     def test_remove_transfer_token_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
@@ -234,7 +234,7 @@ class TestState(TestCase):
                                  token_metadata.transfer_token_tx_hashes)
 
     def test_remove_token_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 bob_xmss = get_bob_xmss()
@@ -248,23 +248,23 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_token_metadata(token_tx.txhash))
 
     def test_address_used(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 self.assertTrue(state.address_used(alice_xmss.address))
 
     def test_return_all_addresses(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.return_all_addresses(), [])
 
     def test_get_batch(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state.get_batch())
 
     def test_write_batch(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 batch = state.get_batch()
                 block = Block.create(block_number=10,
@@ -278,14 +278,14 @@ class TestState(TestCase):
                 self.assertEqual(block.headerhash, block2.headerhash)
 
     def test_update_total_coin_supply(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.total_coin_supply(), 0)
                 state.update_total_coin_supply(100)
                 self.assertEqual(state.total_coin_supply(), 100)
 
     def test_total_coin_supply(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.total_coin_supply(), 0)
 
@@ -300,7 +300,7 @@ class TestState(TestCase):
                 nth_block.blockheader._data.timestamp_seconds = 90000
             return nth_block
 
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 parent_metadata = BlockMetadata.create(block_difficulty=b'\x00' * 32,
                                                        cumulative_difficulty=b'\x00' * 32,
@@ -347,7 +347,7 @@ class TestState(TestCase):
                                  (100000 - 90000) // 250)
 
     def test_delete(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 block = Block()
                 state.put_block(block, None)
@@ -357,14 +357,14 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_block(block.headerhash))
 
     def test_get_block_size_limit(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 blocks = gen_blocks(20, state, alice_xmss.address)
                 self.assertEqual(state.get_block_size_limit(blocks[-1]), 1048576)
 
     def test_put_block_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 block_metadata = BlockMetadata.create(False)
                 block_metadata.update_last_headerhashes([b'test1', b'test2'], b'test3')
@@ -378,7 +378,7 @@ class TestState(TestCase):
                                  b'{}')
 
     def test_get_block_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_block_metadata(b'test1'))
                 state.put_block_metadata(b'block_headerhash2', BlockMetadata(), None)
@@ -386,7 +386,7 @@ class TestState(TestCase):
                                  b'{}')
 
     def test_prepare_address_list(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 block = Block.create(block_number=10,
                                      prevblock_headerhash=b'',
@@ -415,7 +415,7 @@ class TestState(TestCase):
                                   alice_xmss.address})
 
     def test_put_addresses_state(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 alice_state = AddressState.get_default(alice_xmss.address)
@@ -430,7 +430,7 @@ class TestState(TestCase):
                 self.assertEqual(test_state.serialize(), AddressState.get_default(b'test1').serialize())
 
     def test_get_state_mainchain(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 alice_state = AddressState.get_default(alice_xmss.address)
@@ -449,7 +449,7 @@ class TestState(TestCase):
                                  addresses_state1[b'test1'].serialize())
 
     def test_get_block_datapoint(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 # Test Case: When block not found
                 self.assertIsNone(state.get_block_datapoint(b'test'))
@@ -477,7 +477,7 @@ class TestState(TestCase):
                 self.assertEqual(addresses_state[alice_xmss.address].balance, alice_balances[i])
 
     def test_put_block_number_mapping(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 bm = qrl_pb2.BlockNumberMapping()
                 state.put_block_number_mapping(0, bm, None)
@@ -487,7 +487,7 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_block_by_number(4))
 
     def test_get_block_number_mapping(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_block_number_mapping(0))
                 bm = qrl_pb2.BlockNumberMapping()
@@ -497,20 +497,20 @@ class TestState(TestCase):
                                  read_bm.SerializeToString())
 
     def test_get_block_by_number(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 bm = qrl_pb2.BlockNumberMapping()
                 state.put_block_number_mapping(0, bm, None)
                 self.assertIsNone(state.get_block_by_number(4))
 
     def test_update_mainchain_height(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 state.update_mainchain_height(5, None)
                 self.assertEqual(state.get_mainchain_height(), 5)
 
     def test_get_mainchain_height(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 # Test Case: Check default value
                 self.assertEqual(state.get_mainchain_height(), -1)
@@ -522,7 +522,7 @@ class TestState(TestCase):
                 self.assertEqual(state.get_mainchain_height(), 5)
 
     def test_last_block(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             def get_block_by_number(block_number):
                 block = Block()
                 block.blockheader._data.block_number = block_number
@@ -539,7 +539,7 @@ class TestState(TestCase):
                 self.assertEqual(state.last_block.block_number, 1)
 
     def test_update_last_tx(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 # Test Case: When there is no last txns
@@ -582,7 +582,7 @@ class TestState(TestCase):
                                  tx1.to_json())
 
     def test_get_last_txs(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.get_last_txs(), [])
 
@@ -601,7 +601,7 @@ class TestState(TestCase):
                 self.assertEqual(last_txns[0].to_json(), tx1.to_json())
 
     def test_remove_last_tx(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 # Test Case: When there is no last txns
                 self.assertEqual(state.get_last_txs(), [])
@@ -624,7 +624,7 @@ class TestState(TestCase):
                 self.assertEqual(last_txns, [])
 
     def test_rollback_tx_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
@@ -648,7 +648,7 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_tx_metadata(tx1.txhash))
 
     def test_update_tx_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
                 tx = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
@@ -663,7 +663,7 @@ class TestState(TestCase):
                 self.assertEqual(tx_metadata[1], block_number)
 
     def test_remove_tx_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_tx_metadata(b'test1'))
 
@@ -683,7 +683,7 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_tx_metadata(tx.txhash))
 
     def test_put_tx_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_tx_metadata(b'test1'))
 
@@ -700,7 +700,7 @@ class TestState(TestCase):
                 self.assertEqual(tx_metadata[1], block_number)
 
     def test_get_tx_metadata(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_tx_metadata(b'test1'))
 
@@ -718,7 +718,7 @@ class TestState(TestCase):
                 self.assertEqual(tx_metadata[1], block_number)
 
     def test_increase_txn_count(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.get_txn_count(b'q1'), 0)
 
@@ -729,7 +729,7 @@ class TestState(TestCase):
                 self.assertEqual(state.get_txn_count(b'q1'), 6)
 
     def test_decrease_txn_count(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.get_txn_count(b'q1'), 0)
 
@@ -740,7 +740,7 @@ class TestState(TestCase):
                 self.assertEqual(state.get_txn_count(b'q1'), 4)
 
     def test_get_txn_count(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertEqual(state.get_txn_count(b'q1'), 0)
 

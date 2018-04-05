@@ -62,27 +62,27 @@ def set_wallet_dir(wallet_name):
 
 
 @contextlib.contextmanager
-def set_data_dir(data_name):
+def set_qrl_dir(data_name):
     dst_dir = tempfile.mkdtemp()
-    prev_val = config.user.data_dir
+    prev_val = config.user.qrl_dir
     try:
 
         test_path = os.path.dirname(os.path.abspath(__file__))
         src_dir = os.path.join(test_path, "..", "data", data_name)
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
-        config.user.data_dir = dst_dir
+        config.user.qrl_dir = dst_dir
         yield
     finally:
         shutil.rmtree(dst_dir)
-        config.user.data_dir = prev_val
+        config.user.qrl_dir = prev_val
 
 
 @contextlib.contextmanager
 def qrlnode_with_mock_blockchain(num_blocks):
     start_time = time.time()
     with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
-            set_data_dir('no_data'), \
+            set_qrl_dir('no_data'), \
             State() as state, \
             mock.patch('time.time') as time_mock:  # noqa
         time_mock.return_value = start_time
