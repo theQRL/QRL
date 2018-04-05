@@ -174,7 +174,7 @@ Add the following to the file. These are all default settings, uncomment to edit
 #ntp_servers: pool.ntp.org
 #
 # ====================================== 
-## Default Locations  
+## Default Location
 # ====================================== 
 ## This is where the program will look for files  
 ## Only change these if you must! You HAVE to use full path for location.  
@@ -182,15 +182,6 @@ Add the following to the file. These are all default settings, uncomment to edit
 #  
 ## The users ~/.qrl/ directory  
 #qrl_dir : /home/{USER}/.qrl  
-#  
-## The users ~/.qrl/data/ directory  
-#data_dir : /home/{USER}/.qrl/data  
-#  
-## QRL Loging location ~/.qrl/qrl.log  
-#log_path : /home/{USER}/.qrl/qrl.log  
-#  
-## The users ~/.qrl/wallet/ directory  
-#wallet_staking_dir : /home/{USER}/.qrl/wallet  
 #
 # ======================================  
 ## Ephemeral Configuration 

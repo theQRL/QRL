@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import logging
+from os.path import expanduser
 
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import hstr2bin
@@ -38,8 +39,8 @@ def parse_arguments():
                         default=config.user.mining_thread_count, help="Number of threads for mining")
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
-    parser.add_argument('--datadir', '-d', dest='data_dir', default=config.user.data_dir,
-                        help="Retrieve data from a different path")
+    parser.add_argument('--qrldir', '-d', dest='qrl_dir', default=config.user.qrl_dir,
+                        help="Use a different directory for node data/configuration")
     parser.add_argument('--no-colors', dest='no_colors', action='store_true', default=False,
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -92,10 +93,10 @@ def main():
             return False
 
     logger.debug("=====================================================================================")
-    logger.info("Data Path: %s", args.data_dir)
-
-    config.user.data_dir = args.data_dir
-    config.create_path(config.user.data_dir)
+    logger.info("QRL Path: %s", args.qrl_dir)
+    config.user.qrl_dir = expanduser(args.qrl_dir)
+    config.create_path(config.user.qrl_dir)
+    logger.debug("=====================================================================================")
 
     ntp.setDrift()
 
