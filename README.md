@@ -47,8 +47,16 @@ sudo apt update && sudo apt upgrade -y
 
 ```bash
 # Install the required packages for QRL
-sudo apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev
+sudo apt-get -y install swig3.0 python3-dev python3-pip build-essential cmake pkg-config libssl-dev libffi-dev libhwloc-dev libboost-dev python3-setuptools
 ```
+
+```bash
+# Upgrade pip and setuptools
+pip3 install --upgrade pip
+pip3 install -U setuptools
+```
+
+
 * * * 
 
 ### OSX
