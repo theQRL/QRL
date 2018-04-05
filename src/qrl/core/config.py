@@ -53,13 +53,7 @@ class UserConfig(object):
         self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
         self.stale_transaction_threshold = 60 * 10  # 10 minutes
 
-        self.qrl_dir = os.path.join(expanduser("~"), ".qrl")
-        self.data_dir = os.path.join(self.qrl_dir, "data")
-        self.config_path = os.path.join(self.qrl_dir, "config.yml")
-        self.log_path = os.path.join(self.qrl_dir, "qrl.log")
-        self.wallet_staking_dir = os.path.join(self.qrl_dir, "wallet")
-
-        self.mining_pool_payment_wallet_path = os.path.join(self.qrl_dir, 'payment_slaves.json')  # Only for mining Pool
+        self.qrl_dir = expanduser(os.path.join("~/qrl"))
 
         # ======================================
         #        ADMIN API CONFIGURATION
@@ -100,6 +94,22 @@ class UserConfig(object):
 
         self.p2p_q_size = 1000
         self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
+
+    @property
+    def data_dir(self):
+        return os.path.join(self.qrl_dir, "data")
+
+    @property
+    def config_path(self):
+        return os.path.join(self.qrl_dir, "config.yml")
+
+    @property
+    def log_path(self):
+        return os.path.join(self.qrl_dir, "qrl.log")
+
+    @property
+    def mining_pool_payment_wallet_path(self):
+        return os.path.join(self.qrl_dir, 'payment_slaves.json')
 
     @staticmethod
     def getInstance():

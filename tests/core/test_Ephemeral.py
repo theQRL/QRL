@@ -22,8 +22,8 @@ from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from tests.misc.EphemeralPayload import EphemeralChannelPayload
 from tests.misc.aes import AES
-from tests.misc.helper import set_data_dir
-from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel
+from tests.misc.helper import set_wallet_dir, get_alice_xmss, get_random_xmss, mocked_genesis, create_ephemeral_channel, \
+    set_qrl_dir
 
 logger.initialize_default()
 
@@ -39,7 +39,7 @@ class TestEphemeral(TestCase):
 
     @mock.patch("qrl.core.DifficultyTracker.DifficultyTracker.get")
     def test_add_4(self, mock_difficulty_tracker_get):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 with set_wallet_dir("test_wallet"):
                     with mocked_genesis() as custom_genesis:

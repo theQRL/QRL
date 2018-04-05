@@ -8,7 +8,7 @@ from mock import Mock, mock
 from qrl.core import config
 from qrl.core.State import State
 from qrl.core.misc import logger
-from tests.misc.helper import set_data_dir
+from tests.misc.helper import set_qrl_dir
 
 logger.initialize_default()
 
@@ -59,7 +59,7 @@ class TestStateMeasurement(TestCase):
         return None
 
     def test_check_mock(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
@@ -74,7 +74,7 @@ class TestStateMeasurement(TestCase):
                 self.assertEqual(b'0', block.headerhash)
 
     def test_check_mock_get(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
@@ -93,7 +93,7 @@ class TestStateMeasurement(TestCase):
                 self.assertEqual(10, block.timestamp)
 
     def test_measurement_0(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
                 state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
@@ -110,7 +110,7 @@ class TestStateMeasurement(TestCase):
                 self.assertEqual(60, measurement)
 
     def test_measurement_1(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
                 state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
@@ -128,7 +128,7 @@ class TestStateMeasurement(TestCase):
         with mock.patch('qrl.core.config.dev') as devconfig:
             devconfig.N_measurement = 2
             devconfig.db_name = db_name
-            with set_data_dir('no_data'):
+            with set_qrl_dir('no_data'):
                 with State() as state:
                     self.assertIsNotNone(state)  # to avoid warning (unused variable)
                     state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)
@@ -146,7 +146,7 @@ class TestStateMeasurement(TestCase):
         with mock.patch('qrl.core.config.dev') as devconfig:
             devconfig.N_measurement = 3
             devconfig.db_name = db_name
-            with set_data_dir('no_data'):
+            with set_qrl_dir('no_data'):
                 with State() as state:
                     self.assertIsNotNone(state)  # to avoid warning (unused variable)
                     state.get_block = Mock(side_effect=TestStateMeasurement.get_block_example1)

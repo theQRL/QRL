@@ -16,7 +16,7 @@ from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from tests.misc.helper import get_alice_xmss, set_data_dir, set_wallet_dir, get_bob_xmss, set_default_balance_size
+from tests.misc.helper import get_alice_xmss, set_wallet_dir, get_bob_xmss, set_default_balance_size, set_qrl_dir
 
 logger.initialize_default()
 
@@ -27,7 +27,7 @@ class TestPublicAPI(TestCase):
 
     @set_default_balance_size()
     def test_transferCoins_get_unsigned(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as db_state:
                 with set_wallet_dir("test_wallet"):
                     p2p_factory = Mock(spec=P2PFactory)
@@ -75,7 +75,7 @@ class TestPublicAPI(TestCase):
 
     @set_default_balance_size()
     def test_transferCoins_push_unsigned(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as db_state:
                 with set_wallet_dir("test_wallet"):
                     p2p_factory = Mock(spec=P2PFactory)
@@ -130,7 +130,7 @@ class TestPublicAPI(TestCase):
 
     @set_default_balance_size()
     def test_transferCoins_sign(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as db_state:
                 with set_wallet_dir("test_wallet"):
                     p2p_factory = Mock(spec=P2PFactory)

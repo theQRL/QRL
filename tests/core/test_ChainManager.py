@@ -15,7 +15,7 @@ from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.Transaction import SlaveTransaction, TransferTransaction
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_data_dir, set_default_balance_size
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_qrl_dir
 
 
 class TestChainManager(TestCase):
@@ -23,7 +23,7 @@ class TestChainManager(TestCase):
         super(TestChainManager, self).__init__(*args, **kwargs)
 
     def test_load(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
@@ -32,7 +32,7 @@ class TestChainManager(TestCase):
                 self.assertIsNotNone(block)
 
     def test_simple_add_block(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 state.get_measurement = MagicMock(return_value=10000000)
                 alice_xmss = get_alice_xmss()
@@ -73,7 +73,7 @@ class TestChainManager(TestCase):
 
     @set_default_balance_size()
     def test_multi_output_transaction_add_block(self):
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 state.get_measurement = MagicMock(return_value=10000000)
                 alice_xmss = get_alice_xmss()
@@ -138,7 +138,7 @@ class TestChainManager(TestCase):
         Testing add_block, with fork logic
         :return:
         """
-        with set_data_dir('no_data'):
+        with set_qrl_dir('no_data'):
             with State() as state:
                 state.get_measurement = MagicMock(return_value=10000000)
 
@@ -333,7 +333,7 @@ class TestChainManager(TestCase):
         with mock.patch('qrl.core.config.DevConfig') as devconfig:
             devconfig.genesis_difficulty = 2
             devconfig.minimum_minting_delay = 10
-            with set_data_dir('no_data'):
+            with set_qrl_dir('no_data'):
                 with State() as state:  # FIXME: Move state to temporary directory
                     state.get_measurement = MagicMock(return_value=10000000)
                     genesis_block = GenesisBlock()
