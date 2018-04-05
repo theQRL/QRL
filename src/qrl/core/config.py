@@ -87,29 +87,32 @@ class UserConfig(object):
         # ======================================
         self.grpc_proxy_host = "127.0.0.1"
         self.grpc_proxy_port = 18090
-
-        self.wallet_dir = os.path.join(self.qrl_dir)
-
-        self.load_yaml(self.config_path)
-
         self.p2p_q_size = 1000
         self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
 
+        # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
+        self.load_yaml(self.config_path)
+        # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
+
+    @property
+    def wallet_dir(self):
+        return expanduser(self.qrl_dir)
+
     @property
     def data_dir(self):
-        return os.path.join(self.qrl_dir, "data")
+        return expanduser(os.path.join(self.qrl_dir, "data"))
 
     @property
     def config_path(self):
-        return os.path.join(self.qrl_dir, "config.yml")
+        return expanduser(os.path.join(self.qrl_dir, "config.yml"))
 
     @property
     def log_path(self):
-        return os.path.join(self.qrl_dir, "qrl.log")
+        return expanduser(os.path.join(self.qrl_dir, "qrl.log"))
 
     @property
     def mining_pool_payment_wallet_path(self):
-        return os.path.join(self.qrl_dir, 'payment_slaves.json')
+        return expanduser(os.path.join(self.qrl_dir, 'payment_slaves.json'))
 
     @staticmethod
     def getInstance():
