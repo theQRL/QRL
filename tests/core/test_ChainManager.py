@@ -228,6 +228,102 @@ class TestChainManager(TestCase):
                 self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
                 self.assertEqual(chain_manager.last_block.to_json(), block_2.to_json())
 
+    @mock.patch("qrl.core.DifficultyTracker.DifficultyTracker.get")
+    def test_add_block_below_median(self, mock_difficulty_tracker_get):
+        """
+        Testing add_block, below median value
+        :return:
+        """
+        with set_data_dir('no_data'):
+            with State() as state:
+                state.get_measurement = MagicMock(return_value=10000000)
+
+                alice_xmss = get_alice_xmss()
+                bob_xmss = get_bob_xmss()
+
+                genesis_block = GenesisBlock()
+                chain_manager = ChainManager(state)
+                mock_difficulty_tracker_get.return_value = [config.dev.mining_setpoint_blocktime, 2]
+                chain_manager.load(genesis_block)
+
+                chain_manager._difficulty_tracker = Mock()
+                tmp_difficulty = StringToUInt256('2')
+                tmp_target = DifficultyTracker.get_target(tmp_difficulty)
+                mock_difficulty_tracker_get.return_value = [tmp_difficulty, tmp_target]
+
+                block = state.get_block(genesis_block.headerhash)
+                self.assertIsNotNone(block)
+
+                slave_tx = SlaveTransaction.create(slave_pks=[bob_xmss.pk],
+                                                   access_types=[0],
+                                                   fee=0,
+                                                   xmss_pk=alice_xmss.pk)
+                slave_tx.sign(alice_xmss)
+                slave_tx._data.nonce = 1
+                self.assertTrue(slave_tx.validate())
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1615270948  # Very high to get an easy difficulty
+
+                    block_1 = Block.create(block_number=1,
+                                           prevblock_headerhash=genesis_block.headerhash,
+                                           transactions=[slave_tx],
+                                           miner_address=alice_xmss.address)
+                    block_1.set_nonces(0, 0)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # from qrl.core.PoWValidator import PoWValidator
+                    # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+                    #     block_1.set_mining_nonce(block_1.mining_nonce + 1)
+                    #     print(block_1.mining_nonce)
+                    result = chain_manager.add_block(block_1)
+
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
+
+                alice_state = chain_manager.get_address(alice_xmss.address)
+
+                self.assertEqual(len(alice_state.slave_pks_access_type), 1)
+                self.assertTrue(str(bob_xmss.pk) in alice_state.slave_pks_access_type)
+
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1715270948  # Very high to get an easy difficulty
+                    block = Block.create(block_number=1,
+                                         prevblock_headerhash=genesis_block.headerhash,
+                                         transactions=[],
+                                         miner_address=bob_xmss.address)
+
+                    block.set_nonces(2, 0)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # from qrl.core.PoWValidator import PoWValidator
+                    # while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
+                    #     block.set_nonces(block.mining_nonce + 1)
+                    #     print(block.mining_nonce)
+                    result = chain_manager.add_block(block)
+
+                self.assertTrue(result)
+                self.assertEqual(chain_manager.last_block, block_1)
+
+                block = state.get_block(block.headerhash)
+                self.assertIsNotNone(block)
+
+                with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+                    time_mock.return_value = 1815270948  # Very high to get an easy difficulty
+                    block_2 = Block.create(block_number=2,
+                                           prevblock_headerhash=block.headerhash,
+                                           transactions=[],
+                                           miner_address=bob_xmss.address)
+                    block_2.blockheader._data.timestamp_seconds = 5
+                    block_2.set_nonces(2, 0)
+                    # Uncomment only to determine the correct mining_nonce of above blocks
+                    # from qrl.core.PoWValidator import PoWValidator
+                    # while not PoWValidator().validate_mining_nonce(state, block_2.blockheader, False):
+                    #     block_2.set_nonces(block_2.mining_nonce + 1, 0)
+                    #     print(block_2.mining_nonce)
+                    result = chain_manager.add_block(block_2)
+
+                self.assertFalse(result)
+                self.assertEqual(chain_manager.last_block.block_number, block_1.block_number)
+                self.assertEqual(chain_manager.last_block.to_json(), block_1.to_json())
+
     def test_orphan_block(self):
         """
         Testing add_block logic in case of orphan_blocks.

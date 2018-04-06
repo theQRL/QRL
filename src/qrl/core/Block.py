@@ -154,8 +154,8 @@ class Block(object):
 
         return self.blockheader.validate(fee_reward, coinbase_amount)
 
-    def validate_parent_child_relation(self, parent_block) -> bool:
-        return self.blockheader.validate_parent_child_relation(parent_block)
+    def validate_parent_child_relation(self, parent_block, median_timestamp) -> bool:
+        return self.blockheader.validate_parent_child_relation(parent_block, median_timestamp)
 
     def add_transaction(self, tx: Transaction):
         # TODO: Verify something basic here?

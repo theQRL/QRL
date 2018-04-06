@@ -523,3 +523,15 @@ class State:
                 data_point.hash_power = 0
 
         return data_point
+
+    def get_n_block_median_timestamps(self, current_block: Block):
+        timestamps = list()
+        block = current_block
+        i = 0
+        while i < config.dev.n_block_median_timestamps:
+            block = self.get_block(block.prev_headerhash)
+            timestamps.append(block.timestamp)
+            if block.block_number == 0:
+                break
+            i += 1
+        return int(median(timestamps))
