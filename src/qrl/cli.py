@@ -35,6 +35,7 @@ class CLIContext(object):
         self.port_admin = port_admin
 
         self.wallet_dir = os.path.abspath(wallet_dir)
+        self.wallet_path = os.path.join(self.wallet_dir, 'wallet.json')
         self.json = json
 
         self.channel_public = grpc.insecure_channel(self.node_public_address)
@@ -115,8 +116,8 @@ def _public_get_address_balance(ctx, address):
 
 def _select_wallet(ctx, src):
     try:
-        config.user.wallet_dir = ctx.obj.wallet_dir
-        wallet = Wallet()
+
+        wallet = Wallet(wallet_path=ctx.obj.wallet_path)
         if not wallet.addresses:
             click.echo('This command requires a local wallet')
             return
@@ -177,9 +178,9 @@ def wallet_ls(ctx):
     """
     Lists available wallets
     """
-    config.user.wallet_dir = ctx.obj.wallet_dir
-    wallet = Wallet()
-    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
 
 @qrl.command()
@@ -194,9 +195,8 @@ def wallet_gen(ctx, height):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_dir = ctx.obj.wallet_dir
     # FIXME: If the wallet is there, it should fail
-    wallet = Wallet()
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     if len(wallet.address_items) == 0:
         wallet.add_new_address(height)
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
@@ -216,8 +216,7 @@ def wallet_add(ctx, height):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_dir = ctx.obj.wallet_dir
-    wallet = Wallet()
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     wallet.add_new_address(height)
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
@@ -250,8 +249,7 @@ def wallet_recover(ctx, seed_type):
             return
         bin_seed = hstr2bin(seed)
 
-    config.user.wallet_dir = ctx.obj.wallet_dir
-    walletObj = Wallet()
+    walletObj = Wallet(wallet_path=ctx.obj.wallet_path)
     recovered_xmss = XMSS.from_extended_seed(bin_seed)
     print('Recovered Wallet Address : %s' % (Wallet._get_Qaddress(recovered_xmss.address),))
     for addr in walletObj.address_items:
@@ -277,9 +275,7 @@ def wallet_secret(ctx, wallet_idx):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_dir = ctx.obj.wallet_dir
-
-    wallet = Wallet()
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
 
     if 0 <= wallet_idx < len(wallet.address_items):
         address_item = wallet.address_items[wallet_idx]
@@ -308,9 +304,7 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    config.user.wallet_dir = ctx.obj.wallet_dir
-
-    wallet = Wallet()
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
 
     if 0 <= wallet_idx < len(wallet.address_items):
         addr_item = wallet.address_items[wallet_idx]
