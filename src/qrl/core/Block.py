@@ -7,7 +7,7 @@ from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.BlockHeader import BlockHeader
-from qrl.crypto.misc import sha256, merkle_tx_hash
+from qrl.crypto.misc import merkle_tx_hash
 from qrl.generated import qrl_pb2
 
 
@@ -121,9 +121,6 @@ class Block(object):
             hashedtransactions.append(tx.txhash)
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
-        if not hashedtransactions:
-            hashedtransactions = [sha256(b'')]
-
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
@@ -136,6 +133,20 @@ class Block(object):
         block.set_nonces(0, 0)
 
         return block
+
+    def update_mining_address(self, mining_address: bytes):
+        self.transactions[0].update_mining_address(mining_address)
+        hashedtransactions = []
+
+        for tx in self.transactions:
+            hashedtransactions.append(tx.transaction_hash)
+
+        tmp_blockheader = BlockHeader.create(blocknumber=self.block_number,
+                                             prev_blockheaderhash=self.prev_headerhash,
+                                             hashedtransactions=merkle_tx_hash(hashedtransactions),
+                                             fee_reward=self.fee_reward)
+
+        self._data.header.MergeFrom(tmp_blockheader.pbdata)
 
     def validate(self) -> bool:
         fee_reward = 0
@@ -156,7 +167,3 @@ class Block(object):
 
     def validate_parent_child_relation(self, parent_block) -> bool:
         return self.blockheader.validate_parent_child_relation(parent_block)
-
-    def add_transaction(self, tx: Transaction):
-        # TODO: Verify something basic here?
-        self._data.transactions.extend(tx.pbdata)
