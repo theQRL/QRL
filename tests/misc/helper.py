@@ -6,28 +6,19 @@ import os
 import shutil
 import tempfile
 from copy import deepcopy
-from math import log, ceil
 
-import simplejson as json
-import time
-from mock import mock, MagicMock, Mock
 import pyqrllib
+import simplejson as json
+from mock import mock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
 from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256, XmssFast
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
-from qrl.core.Block import Block
-from qrl.core.ChainManager import ChainManager
-from qrl.core.PoWValidator import PoWValidator
-from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.State import State
 from qrl.core.Transaction import TokenTransaction, SlaveTransaction
-from qrl.core.qrlnode import QRLNode
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from tests.misc.EphemeralPayload import EphemeralMessagePayload, EphemeralChannelPayload
@@ -76,6 +67,7 @@ def set_qrl_dir(data_name):
     finally:
         shutil.rmtree(dst_dir)
         config.user.qrl_dir = prev_val
+
 
 def read_data_file(filename):
     test_path = os.path.dirname(os.path.abspath(__file__))

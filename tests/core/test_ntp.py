@@ -27,7 +27,6 @@ class TestNTP(TestCase):
     def test_set_drift(self):
         ntp.drift = 0
         setDrift()
-        print(ntp.drift)
         self.assertNotEqual(0, ntp.drift)
 
     def test_getTime(self):

@@ -39,7 +39,6 @@ class TestQryptominer(TestCase):
                 self._solution_lock.release()
 
             def solutionEvent(self, nonce):
-                print('Solution Found %s', nonce)
                 self.nonce = nonce
                 self.solution_blob = self.solutionInput()
                 self._solution_lock.release()
