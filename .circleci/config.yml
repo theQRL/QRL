@@ -15,4 +15,3 @@ workflows:
   build_all:
     jobs:
       - build
-      - build_ledger

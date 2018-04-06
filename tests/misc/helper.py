@@ -6,28 +6,19 @@ import os
 import shutil
 import tempfile
 from copy import deepcopy
-from math import log, ceil
 
-import simplejson as json
-import time
-from mock import mock, MagicMock, Mock
 import pyqrllib
+import simplejson as json
+from mock import mock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
 from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256, XmssFast
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
-from qrl.core.Block import Block
-from qrl.core.ChainManager import ChainManager
-from qrl.core.PoWValidator import PoWValidator
-from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.State import State
 from qrl.core.Transaction import TokenTransaction, SlaveTransaction
-from qrl.core.qrlnode import QRLNode
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from tests.misc.EphemeralPayload import EphemeralMessagePayload, EphemeralChannelPayload
@@ -76,68 +67,6 @@ def set_qrl_dir(data_name):
     finally:
         shutil.rmtree(dst_dir)
         config.user.qrl_dir = prev_val
-
-
-@contextlib.contextmanager
-def qrlnode_with_mock_blockchain(num_blocks):
-    start_time = time.time()
-    with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
-            set_qrl_dir('no_data'), \
-            State() as state, \
-            mock.patch('time.time') as time_mock:  # noqa
-        time_mock.return_value = start_time
-        ntp_mock.return_value = start_time
-
-        state.get_measurement = MagicMock(return_value=10000000)
-
-        required_height = ceil(log(num_blocks, 2))
-        required_height = int(required_height + required_height % 2)
-
-        alice_xmss = get_alice_xmss(xmss_height=required_height)
-        bob_xmss = get_bob_xmss()
-
-        genesis_block = GenesisBlock()
-        chain_manager = ChainManager(state)
-        chain_manager.load(genesis_block)
-
-        chain_manager._difficulty_tracker = Mock()
-        dt = DifficultyTracker()
-        tmp_difficulty = StringToUInt256('2')
-        tmp_target = dt.get_target(tmp_difficulty)
-
-        chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
-
-        block_prev = state.get_block(genesis_block.headerhash)
-
-        for block_idx in range(1, num_blocks):
-            transactions = []
-            if block_idx == 1:
-                slave_tx = SlaveTransaction.create(slave_pks=[bob_xmss.pk],
-                                                   access_types=[0],
-                                                   fee=0,
-                                                   xmss_pk=alice_xmss.pk)
-                slave_tx.sign(alice_xmss)
-                slave_tx._data.nonce = 2
-                transactions = [slave_tx]
-
-            time_mock.return_value = time_mock.return_value + 60
-            ntp_mock.return_value = ntp_mock.return_value + 60
-
-            block_new = Block.create(block_number=block_idx,
-                                     prevblock_headerhash=block_prev.headerhash,
-                                     transactions=transactions,
-                                     miner_address=alice_xmss.address)
-
-            while not PoWValidator().validate_mining_nonce(state, block_new.blockheader, False):
-                block_new.set_nonces(block_new.mining_nonce + 1, 0)
-
-            chain_manager.add_block(block_new)
-            block_prev = block_new
-
-        qrlnode = QRLNode(state, mining_credit_wallet=alice_xmss.address)
-        qrlnode.set_chain_manager(chain_manager)
-
-        yield qrlnode
 
 
 def read_data_file(filename):
