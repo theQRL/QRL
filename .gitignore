@@ -59,3 +59,5 @@ venv/
 \.idea/libraries/R_User_Library\.xml
 
 \.idea/QRL\.iml
+
+\.idea/dictionaries/
