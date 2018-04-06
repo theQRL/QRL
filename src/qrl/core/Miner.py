@@ -4,7 +4,7 @@
 import copy
 from typing import Optional
 
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString
 
 from qrl.core import config
@@ -39,13 +39,13 @@ class Miner(Qryptominer):
         self._mining_thread_count = mining_thread_count
         self._dummy_xmss = None
 
-    def prepare_next_unmined_block_template(self, tx_pool, parent_block: Block, parent_difficulty):
+    def prepare_next_unmined_block_template(self, mining_address, tx_pool, parent_block: Block, parent_difficulty):
         try:
             self.cancel()
             self._mining_block = self.create_block(last_block=parent_block,
                                                    mining_nonce=0,
                                                    tx_pool=tx_pool,
-                                                   miner_address=self._mining_address)
+                                                   miner_address=mining_address)
 
             parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
             self._measurement = self.state.get_measurement(self._mining_block.timestamp,
@@ -152,10 +152,17 @@ class Miner(Qryptominer):
 
         return block
 
-    def get_block_to_mine(self, wallet_address) -> list:
-        # TODO: use wallet_address to track the share
-        if not self._mining_block:
-            return []
+    def get_block_to_mine(self, wallet_address, tx_pool, last_block, last_block_difficulty) -> list:
+        mining_address = bytes(hstr2bin(wallet_address[1:]))
+        if self._mining_block:
+            if last_block.headerhash == self._mining_block.prev_headerhash:
+                if last_block.transactions[0].addr_to == mining_address:
+                    return [bin2hstr(self._mining_block.mining_blob),
+                            int(bin2hstr(self._current_difficulty), 16)]
+                else:
+                    self._mining_block.update_mining_address(mining_address)  # Updates only Miner Address
+
+        self.prepare_next_unmined_block_template(mining_address, tx_pool, last_block, last_block_difficulty)
 
         return [bin2hstr(self._mining_block.mining_blob),
                 int(bin2hstr(self._current_difficulty), 16)]

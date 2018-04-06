@@ -435,6 +435,10 @@ class CoinBase(Transaction):
 
         return transaction
 
+    def update_mining_address(self, mining_address: bytes):
+        self._data.coinbase.addr_to = mining_address
+        self._data.transaction_hash = self.get_hashable_bytes()
+
     def _validate_custom(self):
         if self.fee != 0:
             logger.warning('Fee for coinbase transaction should be 0')
