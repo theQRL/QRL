@@ -464,7 +464,7 @@ class P2PFactory(ServerFactory):
     # Event handlers / Comms related
 
     def start_listening(self):
-        reactor.listenTCP(config.user.p2p_listen_port, self)
+        reactor.listenTCP(config.user.p2p_local_port, self)
 
     # NOTE: No need to refactor, it is obsolete
     def clientConnectionLost(self, connector, reason):  # noqa
@@ -488,7 +488,7 @@ class P2PFactory(ServerFactory):
             conn_protocol.loseConnection()
             return False
 
-        if conn_protocol.peer_ip == conn_protocol.host_ip and conn_protocol.peer_port == config.user.p2p_listen_port:
+        if conn_protocol.peer_ip == conn_protocol.host_ip and conn_protocol.peer_port == config.user.p2p_public_port:
             peer_list = [p for p in self._qrl_node.peer_addresses if p != conn_protocol.addr_remote]
             self._qrl_node.peer_manager.update_peer_addresses(peer_list)
             conn_protocol.loseConnection()

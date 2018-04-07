@@ -133,8 +133,7 @@ class P2PPeerManager(P2PBaseObserver):
                 func_name=qrllegacy_pb2.LegacyMessage.VE,
                 veData=qrllegacy_pb2.VEData(version=config.dev.version,
                                             genesis_prev_hash=config.dev.genesis_prev_headerhash,
-                                            rate_limit=config.user.peer_rate_limit,
-                                            p2p_listen_port=config.user.p2p_listen_port))
+                                            rate_limit=config.user.peer_rate_limit))
 
             source.send(msg)
             return
@@ -166,6 +165,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         new_peers = set(ip for ip in message.plData.peer_ips)
         new_peers.discard(source.host_ip)  # Remove local address
+        new_peers.add("{0}:{1}".format(source.peer_ip, message.plData.public_port))
         logger.info('%s peers data received: %s', source.peer_ip, new_peers)
         self.update_peer_addresses(new_peers)
 

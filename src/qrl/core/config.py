@@ -36,7 +36,9 @@ class UserConfig(object):
                           '104.251.219.40',
                           '104.237.3.185',
                           '35.177.60.137']
-        self.p2p_listen_port = 9000  # Port at which node will listen for connection
+        self.p2p_local_port = 9000   # Locally binded port at which node will listen for connection
+        self.p2p_public_port = 9000  # Public port forwarding connections to server
+
         self.peer_rate_limit = 500   # Max Number of messages per minute per peer
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
