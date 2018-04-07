@@ -464,7 +464,7 @@ class P2PFactory(ServerFactory):
     # Event handlers / Comms related
 
     def start_listening(self):
-        reactor.listenTCP(9000, self)
+        reactor.listenTCP(config.user.p2p_listen_port, self)
 
     # NOTE: No need to refactor, it is obsolete
     def clientConnectionLost(self, connector, reason):  # noqa
