@@ -133,7 +133,8 @@ class P2PPeerManager(P2PBaseObserver):
                 func_name=qrllegacy_pb2.LegacyMessage.VE,
                 veData=qrllegacy_pb2.VEData(version=config.dev.version,
                                             genesis_prev_hash=config.dev.genesis_prev_headerhash,
-                                            rate_limit=config.user.peer_rate_limit))
+                                            rate_limit=config.user.peer_rate_limit,
+                                            p2p_listen_port=config.user.p2p_listen_port))
 
             source.send(msg)
             return
