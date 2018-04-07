@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from ipaddress import IPv4Address
 from enum import Enum
 
 import time
@@ -72,6 +73,21 @@ class P2PPeerManager(P2PBaseObserver):
         self.update_peer_addresses(config.user.peer_list)
 
         logger.info('Known Peers: %s', self._peer_addresses)
+
+    @staticmethod
+    def get_valid_peers(peer_ips, peer_ip, public_port):
+        new_peers = set()
+
+        for ip_port in peer_ips:
+            ip, port = ip_port.split(':')
+            if IPv4Address(ip).is_global:  # Check for Global IP
+                if 0 < port <= 65535:  # Validate port number
+                    new_peers.add(ip_port)
+
+        if 0 < public_port <= 65535:
+            new_peers.add("{0}:{1}".format(peer_ip, public_port))
+
+        return new_peers
 
     def update_peer_addresses(self, peer_addresses: set) -> None:
         new_addresses = self._peer_addresses - set(peer_addresses)
@@ -163,9 +179,11 @@ class P2PPeerManager(P2PBaseObserver):
         if message.plData.peer_ips is None:
             return
 
-        new_peers = set(ip for ip in message.plData.peer_ips)
+        new_peers = self.get_valid_peers(message.plData.peer_ips,
+                                         source.peer_ip,
+                                         message.plData.public_port)
         new_peers.discard(source.host_ip)  # Remove local address
-        new_peers.add("{0}:{1}".format(source.peer_ip, message.plData.public_port))
+
         logger.info('%s peers data received: %s', source.peer_ip, new_peers)
         self.update_peer_addresses(new_peers)
 
