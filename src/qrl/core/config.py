@@ -53,7 +53,7 @@ class UserConfig(object):
         self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
         self.stale_transaction_threshold = 60 * 10  # 10 minutes
 
-        self.qrl_dir = expanduser(os.path.join("~/qrl"))
+        self.qrl_dir = expanduser(os.path.join("~/.qrl"))
 
         # ======================================
         #        ADMIN API CONFIGURATION
