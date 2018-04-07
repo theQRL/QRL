@@ -67,6 +67,7 @@ message VEData
     string version = 1;
     bytes genesis_prev_hash = 2;
     uint64 rate_limit = 3;
+    uint32 p2p_listen_port = 4;
 }
 
 message PLData
