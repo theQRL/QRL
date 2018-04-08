@@ -426,7 +426,7 @@ class QRLNode:
         info.num_known_peers = self.num_known_peers
         info.uptime = self.uptime
         info.block_height = self.block_height
-        info.block_last_hash = b''  # FIXME
+        info.block_last_hash = self._chain_manager.get_last_block().headerhash  # FIXME
         info.network_id = config.dev.genesis_prev_headerhash  # FIXME
         return info
 
