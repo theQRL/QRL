@@ -50,7 +50,6 @@ class TxnProcessor:
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
         self.transaction_pool_obj.add_tx_to_pool(tx)
-        self.transaction_pool_obj.append_addr_ots_hash(tx)
         self.broadcast_tx(tx)
 
         return True
