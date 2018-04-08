@@ -495,7 +495,6 @@ class P2PFactory(ServerFactory):
             return False
 
         self._peer_connections.append(conn_protocol)
-        self._qrl_node.add_peer(conn_protocol)
 
         logger.debug('>>> new connection: %s ', conn_protocol.addr_remote)
         return True
