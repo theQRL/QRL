@@ -160,9 +160,6 @@ class QRLNode:
         logger.warning('Banned %s', peer_obj.addr_remote)
         peer_obj.loseConnection()
 
-    def add_peer(self, peer_obj):
-        self.peer_manager.add_peer_addr(peer_obj.addr_remote)
-
     def connect_peers(self):
         logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
         for peer_address in self.peer_addresses:
