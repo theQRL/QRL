@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from ipaddress import IPv4Address
 from enum import Enum
 
 import time
@@ -12,6 +11,7 @@ from typing import Callable
 from pyqryptonight.pyqryptonight import UInt256ToString
 from qrl.core import config
 from qrl.core.misc import logger
+from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
@@ -73,10 +73,13 @@ class P2PPeerManager(P2PBaseObserver):
         new_peers = set()
 
         for ip_port in peer_ips:
-            ip, port = ip_port.split(':')
-            if IPv4Address(ip).is_global:  # Check for Global IP
-                if 0 < port <= 65535:  # Validate port number
-                    new_peers.add(ip_port)
+            try:
+                parse_peer_addr(ip_port)
+                new_peers.add(ip_port)
+            except Exception as e:
+                logger.warning("Invalid Peer Address %s", ip_port)
+                logger.warning("Sent by %s", peer_ip)
+                logger.exception(e)
 
         if 0 < public_port <= 65535:
             new_peers.add("{0}:{1}".format(peer_ip, public_port))
