@@ -11,6 +11,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
+from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
@@ -524,18 +525,9 @@ class P2PFactory(ServerFactory):
             if ip not in connected_peers_set:
                 self.connect_peer(ip)
 
-    def _parse_peer_addr(self, s: str):
-        if s is not None:
-            parts = s.split(':')
-            if len(parts) == 2:
-                return parts[0], int(parts[1])
-            if len(parts) == 1:
-                return s, 9000
-        raise ValueError('invalid peer addr')
-
     def connect_peer(self, peer_address):
         try:
-            ip_addr, ip_port = self._parse_peer_addr(peer_address)
+            ip_addr, ip_port = parse_peer_addr(peer_address)
             if peer_address not in self.get_connected_peer_addrs():
                 reactor.connectTCP(ip_addr, ip_port, self)
         except Exception as e:
