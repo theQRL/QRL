@@ -55,7 +55,7 @@ class UserConfig(object):
         self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
         self.stale_transaction_threshold = 60 * 10  # 10 minutes
 
-        self.qrl_dir = expanduser(os.path.join("~/.qrl"))
+        self._qrl_dir = expanduser(os.path.join("~/.qrl"))
 
         # ======================================
         #        ADMIN API CONFIGURATION
@@ -95,6 +95,15 @@ class UserConfig(object):
         # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
         self.load_yaml(self.config_path)
         # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
+
+    @property
+    def qrl_dir(self):
+        return self._qrl_dir
+
+    @qrl_dir.setter
+    def qrl_dir(self, new_qrl_dir):
+        self._qrl_dir = new_qrl_dir
+        self.load_yaml(self.config_path)
 
     @property
     def wallet_dir(self):
