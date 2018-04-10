@@ -41,6 +41,9 @@ class CLIContext(object):
         self.channel_public = grpc.insecure_channel(self.node_public_address)
         self.channel_admin = grpc.insecure_channel(self.node_admin_address)
 
+        self.stub_admin_api = qrl_pb2_grpc.AdminAPIStub(self.channel_admin)
+        self.stub_public_api = qrl_pb2_grpc.PublicAPIStub(self.channel_public)
+
     @property
     def node_public_address(self):
         return '{}:{}'.format(self.host, self.port_public)
@@ -52,8 +55,7 @@ class CLIContext(object):
 
 def _admin_get_local_addresses(ctx):
     try:
-        stub = qrl_pb2_grpc.AdminAPIStub(ctx.obj.channel_admin)
-        getAddressStateResp = stub.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=5)
+        getAddressStateResp = ctx.obj.stub_admin_api.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=5)
         return getAddressStateResp.addresses
     except Exception as e:
         click.echo('Error connecting to node', color='red')
@@ -107,10 +109,8 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 
 
 def _public_get_address_balance(ctx, address):
-    address = address[1:]
-    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(address)))
-    getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=_parse_qaddress(address))
+    getAddressStateResp = ctx.obj.stub_public_api.GetAddressState(getAddressStateReq, timeout=1)
     return getAddressStateResp.state.balance
 
 
@@ -140,10 +140,22 @@ def _select_wallet(ctx, src):
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return bytes(hstr2bin(src)), None
+        return _parse_qaddress(src), None
     except Exception as e:
         click.echo("Error selecting wallet")
         quit(1)
+
+def _parse_qaddress(qaddress: str) -> bytes:
+    """
+    qaddress: 'Q' + hexstring representation of an XMSS tree's address
+    address: binary representation, the Q is ignored when transforming from qaddress.
+    :param qaddress:
+    :return:
+    """
+    return bytes(hstr2bin(qaddress[1:]))
+
+def _validate_dsts_amounts(dsts, amounts):
+    pass
 
 
 ########################
@@ -340,7 +352,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
 
         addresses_dst = []
         for addr in dst.split(' '):
-            addresses_dst.append(bytes(hstr2bin(addr[1:])))
+            addresses_dst.append(_parse_qaddress(addr))
 
         shor_amounts = []
         for amount in amounts.split(' '):
@@ -350,8 +362,6 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         click.echo("Error validating arguments")
         quit(1)
 
-    channel = grpc.insecure_channel(ctx.obj.node_public_address)
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
     transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
                                                 amounts=shor_amounts,
@@ -360,7 +370,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
                                                 master_addr=master.encode())
 
     try:
-        transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
+        transferCoinsResp = ctx.obj.stub_public_api.TransferCoins(transferCoinsReq, timeout=5)
     except grpc.RpcError as e:
         click.echo(e.details())
         quit(1)
@@ -415,8 +425,6 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         access_types.append(access_type)
         print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
 
-    channel = grpc.insecure_channel(ctx.obj.node_public_address)
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
     # FIXME: This could be problematic. Check
     slaveTxnReq = qrl_pb2.SlaveTxnReq(slave_pks=slave_pks,
                                       access_types=access_types,
@@ -425,7 +433,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
                                       master_addr=master.encode())
 
     try:
-        slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
+        slaveTxnResp = ctx.obj.stub_public_api.GetSlaveTxn(slaveTxnReq, timeout=5)
         tx = Transaction.from_pbdata(slaveTxnResp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
@@ -503,10 +511,8 @@ def tx_push(ctx, txblob):
         click.echo('Signature missing')
         quit(1)
 
-    channel = grpc.insecure_channel(ctx.obj.node_public_address)
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
     pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-    pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+    pushTransactionResp = ctx.obj.stub_public_api.PushTransaction(pushTransactionReq, timeout=5)
     print(pushTransactionResp.error_code)
 
 
@@ -536,7 +542,7 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
         src_xmss.set_ots_index(ots_key_index)
         addresses_dst = []
         for addr in dst.split(' '):
-            addresses_dst.append(bytes(hstr2bin(addr[1:])))
+            addresses_dst.append(_parse_qaddress(addr))
 
         shor_amounts = []
         for amount in amounts.split(' '):
@@ -548,21 +554,19 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
         quit(1)
 
     try:
-        channel = grpc.insecure_channel(ctx.obj.node_public_address)
-        stub = qrl_pb2_grpc.PublicAPIStub(channel)
         transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
                                                     amounts=shor_amounts,
                                                     fee=fee_shor,
                                                     xmss_pk=address_src_pk,
                                                     master_addr=master.encode())
 
-        transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
+        transferCoinsResp = ctx.obj.stub_public_api.TransferCoins(transferCoinsReq, timeout=5)
 
         tx = Transaction.from_pbdata(transferCoinsResp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        pushTransactionResp = ctx.obj.stub_public_api.PushTransaction(pushTransactionReq, timeout=5)
 
         print(pushTransactionResp)
     except Exception as e:
@@ -595,7 +599,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         if address == '':
             break
         amount = int(click.prompt('Amount ')) * (10 ** int(decimals))
-        initial_balances.append(qrl_pb2.AddressAmount(address=bytes(hstr2bin(address[1:])),
+        initial_balances.append(qrl_pb2.AddressAmount(address=_parse_qaddress(address),
                                                       amount=amount))
 
     try:
@@ -606,7 +610,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
-        address_owner = bytes(hstr2bin(owner[1:]))
+        address_owner = _parse_qaddress(owner)
         # FIXME: This could be problematic. Check
         fee_shor = int(fee * 1.e9)
     except KeyboardInterrupt:
@@ -614,9 +618,6 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         quit(1)
 
     try:
-        channel = grpc.insecure_channel(ctx.obj.node_public_address)
-        stub = qrl_pb2_grpc.PublicAPIStub(channel)
-
         tx = TokenTransaction.create(symbol=symbol.encode(),
                                      name=name.encode(),
                                      owner=address_owner,
@@ -629,7 +630,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        pushTransactionResp = ctx.obj.stub_public_api.PushTransaction(pushTransactionReq, timeout=5)
 
         print(pushTransactionResp.error_code)
     except Exception as e:
@@ -665,7 +666,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
         src_xmss.set_ots_index(int(ots_key_index))
         addresses_dst = []
         for addr in dst.split(' '):
-            addresses_dst.append(bytes(hstr2bin(addr[1:])))
+            addresses_dst.append(_parse_qaddress(addr))
 
         shor_amounts = []
         for amount in amounts.split(' '):
@@ -679,9 +680,6 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
         quit(1)
 
     try:
-        channel = grpc.insecure_channel(ctx.obj.node_public_address)
-        stub = qrl_pb2_grpc.PublicAPIStub(channel)
-
         tx = TransferTokenTransaction.create(token_txhash=bin_token_txhash,
                                              addrs_to=addresses_dst,
                                              amounts=shor_amounts,
@@ -691,7 +689,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        pushTransactionResp = ctx.obj.stub_public_api.PushTransaction(pushTransactionReq, timeout=5)
 
         print(pushTransactionResp.error_code)
     except Exception as e:
@@ -711,11 +709,8 @@ def token_list(ctx, owner):
         return
 
     try:
-
-        channel = grpc.insecure_channel(ctx.obj.node_public_address)
-        stub = qrl_pb2_grpc.PublicAPIStub(channel)
-        addressStateReq = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(owner[1:])))
-        addressStateResp = stub.GetAddressState(addressStateReq, timeout=5)
+        addressStateReq = qrl_pb2.GetAddressStateReq(address=_parse_qaddress(owner))
+        addressStateResp = ctx.obj.stub_public_api.GetAddressState(addressStateReq, timeout=5)
 
         for token_hash in addressStateResp.state.tokens:
             click.echo('Hash: %s' % (token_hash,))
@@ -738,11 +733,9 @@ def collect(ctx, msg_id):
         click.echo('This command is unsupported for local wallets')
         return
 
-    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-
     try:
         collectEphemeralMessageReq = qrl_pb2.CollectEphemeralMessageReq(msg_id=bytes(hstr2bin(msg_id)))
-        collectEphemeralMessageResp = stub.CollectEphemeralMessage(collectEphemeralMessageReq, timeout=5)
+        collectEphemeralMessageResp = ctx.obj.stub_public_api.CollectEphemeralMessage(collectEphemeralMessageReq, timeout=5)
 
         print(len(collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list))
         for message in collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list:
@@ -775,8 +768,6 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
         click.echo('This command is unsupported for local wallets')
         return
 
-    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
-
     if len(enc_aes256_symkey):
         enc_aes256_symkey = enc_aes256_symkey.encode()
 
@@ -791,7 +782,7 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
 
     try:
         ephemeralMessageReq = qrl_pb2.PushEphemeralMessageReq(ephemeral_message=encrypted_ephemeral_msg.pbdata)
-        ephemeralMessageResp = stub.PushEphemeralMessage(ephemeralMessageReq, timeout=5)
+        ephemeralMessageResp = ctx.obj.stub_public_api.PushEphemeralMessage(ephemeralMessageReq, timeout=5)
 
         print(ephemeralMessageResp.error_code)
     except Exception as e:
@@ -813,8 +804,6 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
     if not ctx.obj.remote:
         click.echo('This command is unsupported for local wallets')
         return
-
-    stub = qrl_pb2_grpc.PublicAPIStub(ctx.obj.channel_public)
 
     try:
         _, src_xmss = _select_wallet(ctx, src)
@@ -841,7 +830,7 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        pushTransactionResp = ctx.obj.stub_public_api.PushTransaction(pushTransactionReq, timeout=5)
 
         print(pushTransactionResp.error_code)
     except Exception as e:
@@ -854,10 +843,7 @@ def state(ctx):
     """
     Shows Information about a Node's State
     """
-    channel = grpc.insecure_channel(ctx.obj.node_public_address)
-    stub = qrl_pb2_grpc.PublicAPIStub(channel)
-
-    nodeStateResp = stub.GetNodeState(qrl_pb2.GetNodeStateReq())
+    nodeStateResp = ctx.obj.stub_public_api.GetNodeState(qrl_pb2.GetNodeStateReq())
 
     if ctx.obj.json:
         click.echo(MessageToJson(nodeStateResp))
