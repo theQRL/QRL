@@ -216,7 +216,6 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_prepare(self, mock_stub):
-        """Creating a TX to one recipient should work"""
         mock_transferCoinsResp = mock.MagicMock(name='this should be transferCoinsResp')
         mock_transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString = mock.MagicMock(
             return_value=unsigned_tx)
@@ -227,6 +226,7 @@ class TestCLI(TestCase):
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
 
+        # Creating a TX to one recipient should work
         result = self.runner.invoke(qrl_cli,
                                     ["tx_prepare",
                                      "--src=0",
@@ -295,20 +295,20 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
 
-        # """Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work"""
-        # master = "\n"
-        # dsts = [qaddr_1, qaddr_2, qaddr_3]
-        # amounts = ["1", "2"]
-        # result = self.runner.invoke(qrl_cli,
-        #                             ["tx_prepare",
-        #                              "--src=0",
-        #                              "--master={}".format(master),
-        #                              "--dst={}".format(" ".join(dsts)),
-        #                              "--amounts={}".format(" ".join(amounts)),
-        #                              "--fee=0",
-        #                              ]
-        #                             )
-        # self.assertNotEqual(result.exit_code, 0)
+        # Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work
+        master = "\n"
+        dsts = [qaddr_1, qaddr_2, qaddr_3]
+        amounts = ["1", "2"]
+        result = self.runner.invoke(qrl_cli,
+                                    ["tx_prepare",
+                                     "--src=0",
+                                     "--master={}".format(master),
+                                     "--dst={}".format(" ".join(dsts)),
+                                     "--amounts={}".format(" ".join(amounts)),
+                                     "--fee=0",
+                                     ]
+                                    )
+        self.assertNotEqual(result.exit_code, 0)
 
         # An invalid src index shouldn't work
         master = "\n"
@@ -658,13 +658,14 @@ class TestCLI(TestCase):
         self.assertEqual(result.exit_code, 1)
         self.assertEqual(result.output.strip(), 'Error validating arguments')
 
-        # # dsts and amounts with different lengths should fail
-        # dsts = [qaddr_1, qaddr_2, qaddr_3]
-        # amounts = ["1", "2"]
-        # result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
-        #                                       "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
-        # self.assertEqual(result.exit_code, 1)
-        # self.assertEqual(result.output.strip(), 'Error validating arguments')
+        # dsts and amounts with different lengths should fail
+        dsts = [qaddr_1, qaddr_2, qaddr_3]
+        amounts = ["1", "2"]
+        result = self.runner.invoke(qrl_cli,
+                                    ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
+                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(result.output.strip(), 'Error validating arguments')
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token(self, mock_stub):

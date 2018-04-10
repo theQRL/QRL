@@ -382,13 +382,8 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         else:
             address_src_pk = pk.encode()
 
-        addresses_dst = []
-        for addr in dst.split(' '):
-            addresses_dst.append(_parse_qaddress(addr))
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
 
-        shor_amounts = []
-        for amount in amounts.split(' '):
-            shor_amounts.append(int(float(amount) * 1.e9))
         fee_shor = int(fee * 1.e9)
     except Exception as e:
         click.echo("Error validating arguments")
@@ -572,13 +567,8 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(ots_key_index)
-        addresses_dst = []
-        for addr in dst.split(' '):
-            addresses_dst.append(_parse_qaddress(addr))
 
-        shor_amounts = []
-        for amount in amounts.split(' '):
-            shor_amounts.append(int(float(amount) * 1.e9))
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
 
         fee_shor = int(fee * 1.e9)
     except Exception:
@@ -703,6 +693,10 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
         shor_amounts = []
         for amount in amounts.split(' '):
             shor_amounts.append(int(float(amount) * (10 ** int(decimals))))
+
+        if len(addresses_dst) != len(shor_amounts):
+            raise Exception("{} destination addresses specified but only {} amounts given".format(len(addresses_dst),
+                                                                                                  len(shor_amounts)))
 
         bin_token_txhash = bytes(hstr2bin(token_txhash))
         # FIXME: This could be problematic. Check
