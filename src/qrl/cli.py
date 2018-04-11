@@ -638,6 +638,12 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         master_addr = _parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
+
+        if len(name) > config.dev.max_token_name_length:
+            raise Exception("Token name must be shorter than {} chars".format(config.dev.max_token_name_length))
+        if len(symbol) > config.dev.max_token_name_length:
+            raise Exception("Token symbol must be shorter than {} chars".format(config.dev.max_token_name_length))
+
     except KeyboardInterrupt:
         click.echo("Terminated by user")
         quit(1)

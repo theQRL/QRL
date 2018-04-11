@@ -686,7 +686,6 @@ class TestCLI(TestCase):
                                     )
         self.assertIn('This was a test', result.output)
 
-    @expectedFailure
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token_invalid_input(self, mock_stub):
         m_pushTransactionResp = mock.MagicMock(name='mock pushTransactionResp')
@@ -714,7 +713,7 @@ class TestCLI(TestCase):
                                     input=typed_in_input
                                     )
         self.assertEqual(result.exit_code, 1)
-        self.assertNotIn('This was a test', result.output.strip())
+        self.assertIn('must be shorter than', result.output.strip())
 
         # An outrageous decimal precision shouldn't work either
         # Currently this causes the CLI to hang, as it tries to do 10^1000000000
