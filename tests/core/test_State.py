@@ -46,7 +46,7 @@ def gen_blocks(block_count, state, miner_address):
                         addresses_state[address] = state.get_address_state(address)
                     for tx_protobuf in block.transactions:
                         tx = Transaction.from_pbdata(tx_protobuf)
-                        tx.apply_on_state(addresses_state)
+                        tx.apply_state_changes(addresses_state)
 
                 block.set_nonces(10, 0)
                 blocks.append(block)

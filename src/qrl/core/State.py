@@ -109,7 +109,7 @@ class State:
         addresses = set()
         for proto_tx in block.transactions:
             tx = Transaction.from_pbdata(proto_tx)
-            tx.set_effected_address(addresses)
+            tx.set_affected_address(addresses)
 
         for genesis_balance in GenesisBlock().genesis_balance:
             bytes_addr = genesis_balance.address
@@ -162,7 +162,7 @@ class State:
             # Deplay transactions in reverse order, otherwise could result into negative value
             for tx_protobuf in block.transactions[-1::-1]:
                 tx = Transaction.from_pbdata(tx_protobuf)
-                tx.unapply_on_state(addresses_state, self)
+                tx.revert_state_changes(addresses_state, self)
             block = self.get_block(block.prev_headerhash)
 
         for header_hash in hash_path[-1::-1]:
@@ -170,7 +170,7 @@ class State:
 
             for tx_pbdata in block.transactions:
                 tx = Transaction.from_pbdata(tx_pbdata)
-                tx.apply_on_state(addresses_state)
+                tx.apply_state_changes(addresses_state)
 
         return addresses_state, rollback_headerhash, hash_path
 
