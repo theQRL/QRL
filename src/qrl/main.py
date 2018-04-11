@@ -82,6 +82,12 @@ def get_mining_address(mining_address: str):
 def main():
     args = parse_arguments()
 
+    logger.debug("=====================================================================================")
+    logger.info("QRL Path: %s", args.qrl_dir)
+    config.user.qrl_dir = expanduser(args.qrl_dir)
+    config.create_path(config.user.qrl_dir)
+    logger.debug("=====================================================================================")
+
     config.create_path(config.user.wallet_dir)
     mining_address = None
     if config.user.mining_enabled:
@@ -91,12 +97,6 @@ def main():
             logger.warning('Invalid Mining Credit Wallet Address')
             logger.warning('%s', args.mining_address)
             return False
-
-    logger.debug("=====================================================================================")
-    logger.info("QRL Path: %s", args.qrl_dir)
-    config.user.qrl_dir = expanduser(args.qrl_dir)
-    config.create_path(config.user.qrl_dir)
-    logger.debug("=====================================================================================")
 
     ntp.setDrift()
 
