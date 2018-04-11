@@ -145,8 +145,8 @@ def _select_wallet(ctx, src):
         quit(1)
 
 
-def _shorize(x: float) -> int:
-    return int(x * 1.e9)
+def _shorize(x: Decimal) -> int:
+    return int(x * 10**9)
 
 
 def _parse_hexblob(blob: str) -> bytes:
@@ -364,11 +364,11 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='source address or index')
-@click.option('--master', default='', prompt=True, help='master QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='source address or index')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
-@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.pass_context
 def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
@@ -383,8 +383,9 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
             address_src_pk = pk.encode()
 
         addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
+        master_addr = _parse_qaddress(master)
 
-        fee_shor = int(fee * 1.e9)
+        fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments")
         quit(1)
@@ -394,7 +395,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
                                                 amounts=shor_amounts,
                                                 fee=fee_shor,
                                                 xmss_pk=address_src_pk,
-                                                master_addr=master.encode())
+                                                master_addr=master_addr)
 
     try:
         transferCoinsResp = ctx.obj.stub_public_api.TransferCoins(transferCoinsReq, timeout=5)
@@ -410,11 +411,11 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='source address or index')
-@click.option('--master', default='', prompt=True, help='master QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='source address or index')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
 @click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
-@click.option('--fee', default=0.0, type=float, prompt=True, help='fee (Quanta)')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
 @click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
@@ -430,7 +431,8 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         else:
             address_src_pk = pk.encode()
 
-        fee_shor = int(fee * 1.e9)
+        master_addr = _parse_qaddress(master)
+        fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments")
         quit(1)
@@ -457,7 +459,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
                                       access_types=access_types,
                                       fee=fee_shor,
                                       xmss_pk=address_src_pk,
-                                      master_addr=master.encode())
+                                      master_addr=master_addr)
 
     try:
         slaveTxnResp = ctx.obj.stub_public_api.GetSlaveTxn(slaveTxnReq, timeout=5)
@@ -476,8 +478,8 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='signing address index')
-@click.option('--txblob', default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--src', type=str, default='', prompt=True, help='signing address index')
+@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
 @click.pass_context
 def tx_sign(ctx, src, txblob):
     """
@@ -496,7 +498,7 @@ def tx_sign(ctx, src, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
 @click.pass_context
 def tx_inspect(ctx, txblob):
     """
@@ -518,7 +520,7 @@ def tx_inspect(ctx, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
 @click.pass_context
 def tx_push(ctx, txblob):
     tx = None
@@ -544,11 +546,11 @@ def tx_push(ctx, txblob):
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='signer QRL address')
-@click.option('--master', default='', prompt=True, help='master QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
-@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
@@ -569,8 +571,8 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
         src_xmss.set_ots_index(ots_key_index)
 
         addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
-
-        fee_shor = int(fee * 1.e9)
+        master_addr = _parse_qaddress(master)
+        fee_shor = _shorize(fee)
     except Exception:
         click.echo("Error validating arguments")
         quit(1)
@@ -580,7 +582,7 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
                                                     amounts=shor_amounts,
                                                     fee=fee_shor,
                                                     xmss_pk=address_src_pk,
-                                                    master_addr=master.encode())
+                                                    master_addr=master_addr)
 
         transferCoinsResp = ctx.obj.stub_public_api.TransferCoins(transferCoinsReq, timeout=5)
 
@@ -596,13 +598,13 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='source QRL address')
-@click.option('--master', default='', prompt=True, help='master QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='source QRL address')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--symbol', default='', prompt=True, help='Symbol Name')
 @click.option('--name', default='', prompt=True, help='Token Name')
 @click.option('--owner', default='', prompt=True, help='Owner QRL address')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
-@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index):
@@ -633,8 +635,9 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
         address_owner = _parse_qaddress(owner)
+        master_addr = _parse_qaddress(master)
         # FIXME: This could be problematic. Check
-        fee_shor = int(fee * 1.e9)
+        fee_shor = _shorize(fee)
     except KeyboardInterrupt:
         click.echo("Error validating arguments")
         quit(1)
@@ -647,7 +650,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
                                      initial_balances=initial_balances,
                                      fee=fee_shor,
                                      xmss_pk=address_src_pk,
-                                     master_addr=master.encode())
+                                     master_addr=master_addr)
 
         tx.sign(src_xmss)
 
@@ -660,13 +663,13 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='source QRL address')
-@click.option('--master', default='', prompt=True, help='master QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='source QRL address')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
-@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee, ots_key_index):
@@ -699,8 +702,9 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
                                                                                                   len(shor_amounts)))
 
         bin_token_txhash = bytes(hstr2bin(token_txhash))
+        master_addr = _parse_qaddress(master)
         # FIXME: This could be problematic. Check
-        fee_shor = int(fee * 1.e9)
+        fee_shor = _shorize(fee)
     except KeyboardInterrupt as e:
         click.echo("Error validating arguments")
         quit(1)
@@ -711,7 +715,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
                                              amounts=shor_amounts,
                                              fee=fee_shor,
                                              xmss_pk=address_src_pk,
-                                             master_addr=master.encode())
+                                             master_addr=master_addr)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
@@ -816,11 +820,11 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
 
 
 @qrl.command()
-@click.option('--src', default='', prompt=True, help='source QRL address')
-@click.option('--master', default='', prompt=True, help='master QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='source QRL address')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
 @click.option('--dilithium-pk', default='', prompt=True, help='dilithium public key')
-@click.option('--fee', default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
 @click.pass_context
 def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
@@ -841,8 +845,9 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         src_xmss.set_ots_index(ots_key_index)
         kyber_pk = kyber_pk.encode()
         dilithium_pk = dilithium_pk.encode()
+        master_addr = _parse_qaddress(master)
         # FIXME: This could be problematic. Check
-        fee_shor = int(fee * 1.e9)
+        fee_shor = _shorize(fee)
     except Exception:
         click.echo("Error validating arguments")
         quit(1)
@@ -852,7 +857,7 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
                                      kyber_pk=kyber_pk,
                                      dilithium_pk=dilithium_pk,
                                      xmss_pk=address_src_pk,
-                                     master_addr=master.encode())
+                                     master_addr=master_addr)
         tx.sign(src_xmss)
 
         pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
