@@ -116,7 +116,6 @@ def _public_get_address_balance(ctx, address):
 
 def _select_wallet(ctx, src):
     try:
-
         wallet = Wallet(wallet_path=ctx.obj.wallet_path)
         if not wallet.addresses:
             click.echo('This command requires a local wallet')
@@ -145,17 +144,50 @@ def _select_wallet(ctx, src):
         click.echo("Error selecting wallet")
         quit(1)
 
+
+def _shorize(x: float) -> int:
+    return int(x * 1.e9)
+
+
+def _parse_hexblob(blob: str) -> bytes:
+    """
+    Binary conversions from hexstring are handled by bytes(hstr2bin()).
+    :param blob:
+    :return:
+    """
+    return bytes(hstr2bin(blob))
+
+
 def _parse_qaddress(qaddress: str) -> bytes:
     """
+    Converts from a Qaddress to an Address.
     qaddress: 'Q' + hexstring representation of an XMSS tree's address
     address: binary representation, the Q is ignored when transforming from qaddress.
     :param qaddress:
     :return:
     """
-    return bytes(hstr2bin(qaddress[1:]))
+    return _parse_hexblob(qaddress[1:])
 
-def _validate_dsts_amounts(dsts, amounts):
-    pass
+
+def _parse_dsts_amounts(addresses: str, amounts: str):
+    """
+    'Qaddr1 Qaddr2...' -> [\\xcx3\\xc2, \\xc2d\\xc3]
+    '10 10' -> [10e9, 10e9] (in shor)
+    :param addresses:
+    :param amounts:
+    :return:
+    """
+    addresses_split = []
+    for addr in addresses.split(' '):
+        addresses_split.append(_parse_qaddress(addr))
+
+    shor_amounts = []
+    for amount in amounts.split(' '):
+        shor_amounts.append(_shorize(float(amount)))
+
+    if len(addresses_split) != len(shor_amounts):
+        raise Exception("dsts and amounts should be the same length")
+    return addresses_split, shor_amounts
 
 
 ########################
@@ -456,7 +488,7 @@ def tx_sign(ctx, src, txblob):
     """
     Sign a tx blob
     """
-    txbin = bytes(hstr2bin(txblob))
+    txbin = _parse_hexblob(txblob)
     pbdata = qrl_pb2.Transaction()
     pbdata.ParseFromString(txbin)
     tx = Transaction.from_pbdata(pbdata)
@@ -477,7 +509,7 @@ def tx_inspect(ctx, txblob):
     """
     tx = None
     try:
-        txbin = bytes(hstr2bin(txblob))
+        txbin = _parse_hexblob(txblob)
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
@@ -496,7 +528,7 @@ def tx_inspect(ctx, txblob):
 def tx_push(ctx, txblob):
     tx = None
     try:
-        txbin = bytes(hstr2bin(txblob))
+        txbin = _parse_hexblob(txblob)
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
@@ -734,7 +766,7 @@ def collect(ctx, msg_id):
         return
 
     try:
-        collectEphemeralMessageReq = qrl_pb2.CollectEphemeralMessageReq(msg_id=bytes(hstr2bin(msg_id)))
+        collectEphemeralMessageReq = qrl_pb2.CollectEphemeralMessageReq(msg_id=_parse_hexblob(msg_id))
         collectEphemeralMessageResp = ctx.obj.stub_public_api.CollectEphemeralMessage(collectEphemeralMessageReq, timeout=5)
 
         print(len(collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list))
@@ -773,7 +805,7 @@ def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
 
     payload = payload.encode()
 
-    encrypted_ephemeral_msg = EncryptedEphemeralMessage.create(bytes(hstr2bin(msg_id)),
+    encrypted_ephemeral_msg = EncryptedEphemeralMessage.create(_parse_hexblob(msg_id),
                                                                ttl,
                                                                ttr,
                                                                nonce,
