@@ -10,7 +10,7 @@ jobs:
       - run: pip install -U -r test-requirements.txt
       - run: python3 setup.py test --addopts "--cov . --cov-report term-missing --cov-report xml"
       - run: sudo pip install -U coverage codacy-coverage
-      - run: if [[ "$TRAVIS_BRANCH" == "master" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+      - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
 
 workflows:
   version: 2
