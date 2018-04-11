@@ -113,7 +113,7 @@ class Miner(Qryptominer):
         addresses_set = set()
         for tx_set in t_pool2:
             tx = tx_set[1].transaction
-            tx.set_effected_address(addresses_set)
+            tx.set_affected_address(addresses_set)
 
         addresses_state = dict()
         for address in addresses_set:

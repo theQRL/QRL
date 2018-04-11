@@ -154,9 +154,9 @@ class Transaction(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         """
-        Set all addresses which are being effected by the transaction
+        Set all addresses which are being affected by the transaction
         :param addresses_set:
         :return:
         """
@@ -391,7 +391,7 @@ class TransferTransaction(Transaction):
             addresses_state[addr_from_pk].decrease_nonce()
             addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         for addr_to in self.addrs_to:
             addresses_set.add(addr_to)
@@ -481,7 +481,7 @@ class CoinBase(Transaction):
             addresses_state[self.master_addr].transaction_hashes.remove(self.txhash)
             addresses_state[addr_from].decrease_nonce()
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.master_addr)
         addresses_set.add(self.addr_to)
 
@@ -578,7 +578,7 @@ class LatticePublicKey(Transaction):
             addresses_state[addr_from_pk].decrease_nonce()
             addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
@@ -664,7 +664,7 @@ class MessageTransaction(Transaction):
             addresses_state[addr_from_pk].decrease_nonce()
             addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 
@@ -874,7 +874,7 @@ class TokenTransaction(Transaction):
             addresses_state[addr_from_pk].decrease_nonce()
             addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         addresses_set.add(self.owner)
         for initial_balance in self.initial_balances:
@@ -1052,7 +1052,7 @@ class TransferTokenTransaction(Transaction):
             addresses_state[addr_from_pk].decrease_nonce()
             addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         for addr_to in self.addrs_to:
             addresses_set.add(addr_to)
@@ -1171,7 +1171,7 @@ class SlaveTransaction(Transaction):
             addresses_state[addr_from_pk].decrease_nonce()
             addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
 
-    def set_effected_address(self, addresses_set: set):
+    def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
 

@@ -109,7 +109,7 @@ class State:
         addresses = set()
         for proto_tx in block.transactions:
             tx = Transaction.from_pbdata(proto_tx)
-            tx.set_effected_address(addresses)
+            tx.set_affected_address(addresses)
 
         for genesis_balance in GenesisBlock().genesis_balance:
             bytes_addr = genesis_balance.address
