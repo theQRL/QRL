@@ -16,29 +16,14 @@ jobs:
     - stage: build+test
       os: linux
       env:
-      - D="STYLE"
-      - STYLECHECK='TRUE'
-      - PLATFORM='xenial'
-      install:
-      - python --version
-      - echo "Skip installing requirements.txt"
-      script:
-      - "./travis/build.sh"
-
-    - stage: build+test
-      os: linux
-      env:
       - D="UNITTESTS"
       - TEST='TRUE'
       - PLATFORM='xenial'
-      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
       install:
       - python --version
       - echo "Skip installing requirements.txt when running integration tests"
       script:
       - "./travis/build.sh"
-      - sudo pip install -U coverage codacy-coverage | cat
-      - if [[ "$TRAVIS_BRANCH" == "master" ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
 
     - stage: build+test
       os: linux
@@ -46,7 +31,6 @@ jobs:
       - D="UNITTESTS"
       - TEST='TRUE'
       - PLATFORM='stretch'
-      - CODACY_PROJECT_TOKEN=$CODACY_PROJECT_TOKEN
       install:
       - python --version
       - echo "Skip installing requirements.txt when running integration tests"
