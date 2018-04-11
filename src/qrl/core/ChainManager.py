@@ -263,6 +263,7 @@ class ChainManager:
         self.state.update_mainchain_height(block.block_number - 1, batch)
         self.state.rollback_tx_metadata(block, batch)
         self.state.remove_blocknumber_mapping(block.block_number, batch)
+        self.state.put_addresses_state(addresses_state, batch)
 
     def rollback(self, rollback_headerhash, hash_path):
         while self.last_block.headerhash != rollback_headerhash:
