@@ -130,7 +130,7 @@ class Transaction(object, metaclass=ABCMeta):
         self.update_txhash()
 
     @abstractmethod
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         """
         This method, applies the changes on the state caused by txn.
         :return:
@@ -138,7 +138,7 @@ class Transaction(object, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         """
         This method, unapplies the changes on the state caused by txn.
         :return:
@@ -349,7 +349,7 @@ class TransferTransaction(Transaction):
 
         return True
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance -= (self.total_amount + self.fee)
             addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
@@ -370,7 +370,7 @@ class TransferTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += (self.total_amount + self.fee)
             addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
@@ -457,7 +457,7 @@ class CoinBase(Transaction):
 
         return self._validate_custom()
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         if self.addr_to in addresses_state:
             addresses_state[self.addr_to].balance += self.amount
             addresses_state[self.addr_to].transaction_hashes.append(self.txhash)
@@ -469,7 +469,7 @@ class CoinBase(Transaction):
             addresses_state[self.master_addr].transaction_hashes.append(self.txhash)
             addresses_state[addr_from].increase_nonce()
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         if self.addr_to in addresses_state:
             addresses_state[self.addr_to].balance -= self.amount
             addresses_state[self.addr_to].transaction_hashes.remove(self.txhash)
@@ -552,7 +552,7 @@ class LatticePublicKey(Transaction):
         # FIXME: This is missing
         return True
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance -= self.fee
             addresses_state[self.addr_from].add_lattice_pk(self)
@@ -565,7 +565,7 @@ class LatticePublicKey(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += self.fee
             addresses_state[self.addr_from].remove_lattice_pk(self)
@@ -640,7 +640,7 @@ class MessageTransaction(Transaction):
 
         return True
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance -= self.fee
             addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
@@ -652,7 +652,7 @@ class MessageTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += self.fee
             addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
@@ -805,7 +805,7 @@ class TokenTransaction(Transaction):
 
         return True
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         owner_processed = False
         addr_from_processed = False
@@ -838,7 +838,7 @@ class TokenTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         owner_processed = False
         addr_from_processed = False
@@ -1008,7 +1008,7 @@ class TransferTokenTransaction(Transaction):
 
         return True
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] -= self.total_amount
             if addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] == 0:
@@ -1031,7 +1031,7 @@ class TransferTokenTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] += self.total_amount
             addresses_state[self.addr_from].balance += self.fee
@@ -1142,7 +1142,7 @@ class SlaveTransaction(Transaction):
 
         return True
 
-    def apply_on_state(self, addresses_state):
+    def apply_state_changes(self, addresses_state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance -= self.fee
             for index in range(0, len(self.slave_pks)):
@@ -1157,7 +1157,7 @@ class SlaveTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def unapply_on_state(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, state):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += self.fee
             for index in range(0, len(self.slave_pks)):

@@ -88,11 +88,11 @@ class ChainManager:
             if not coinbase_tx.validate_extended():
                 return False
 
-            coinbase_tx.apply_on_state(addresses_state)
+            coinbase_tx.apply_state_changes(addresses_state)
 
             for tx_idx in range(1, len(genesis_block.transactions)):
                 tx = Transaction.from_pbdata(genesis_block.transactions[tx_idx])
-                tx.apply_on_state(addresses_state)
+                tx.apply_state_changes(addresses_state)
 
             self.state.put_addresses_state(addresses_state)
             self.state.update_tx_metadata(genesis_block, None)
@@ -151,7 +151,7 @@ class ChainManager:
         if not PoWValidator().validate_mining_nonce(self.state, block.blockheader):
             return False
 
-        coinbase_tx.apply_on_state(address_txn)
+        coinbase_tx.apply_state_changes(address_txn)
 
         # TODO: check block reward must be equal to coinbase amount
 
@@ -185,7 +185,7 @@ class ChainManager:
                 logger.warning('subtype: %s', tx.type)
                 return False
 
-            tx.apply_on_state(address_txn)
+            tx.apply_state_changes(address_txn)
 
         return True
 
@@ -256,7 +256,7 @@ class ChainManager:
         addresses_state = self.state.get_state_mainchain(addresses_set)
         for tx_idx in range(len(block.transactions) - 1, 0, -1):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
-            tx.unapply_on_state(addresses_state, self.state)
+            tx.revert_state_changes(addresses_state, self.state)
 
         # TODO: Move txn from block to pool
         # self.tx_pool.add_tx_in_block_from_pool(block)
@@ -276,7 +276,7 @@ class ChainManager:
 
             for tx_idx in range(0, len(block.transactions)):
                 tx = Transaction.from_pbdata(block.transactions[tx_idx])
-                tx.apply_on_state(addresses_state)
+                tx.apply_state_changes(addresses_state)
 
             self.state.put_addresses_state(addresses_state)
             self.last_block = block

@@ -139,7 +139,7 @@ class Miner(Qryptominer):
                 tx_pool.remove_tx_from_pool(tx)
                 continue
 
-            tx.apply_on_state(addresses_state)
+            tx.apply_state_changes(addresses_state)
 
             tx._data.nonce = addr_from_pk_state.nonce
             block_size += tx.size + config.dev.tx_extra_overhead
