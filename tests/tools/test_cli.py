@@ -656,7 +656,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=17"])
         self.assertEqual(result.exit_code, 1)
-        self.assertEqual(result.output.strip(), 'Error validating arguments')
+        self.assertIn('Error validating arguments', result.output.strip())
 
         # dsts and amounts with different lengths should fail
         dsts = [qaddr_1, qaddr_2, qaddr_3]
@@ -665,7 +665,7 @@ class TestCLI(TestCase):
                                     ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 1)
-        self.assertEqual(result.output.strip(), 'Error validating arguments')
+        self.assertIn('dsts and amounts should be the same length', result.output.strip())
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token(self, mock_stub):
@@ -772,8 +772,8 @@ class TestCLI(TestCase):
                                      "--token_txhash={}".format(txhash[3:]), "--dst={}".format(qaddr_1), "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=0"],
                                     )
-        self.assertEqual(result.exit_code, -1)
-        self.assertTrue(isinstance(result.exception, ValueError))
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
 
         # If decimals is different from the original token_txhash definition, it shouldn't work either.
         # But maybe this is for integration tests.

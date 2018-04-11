@@ -387,7 +387,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
 
         fee_shor = _shorize(fee)
     except Exception as e:
-        click.echo("Error validating arguments")
+        click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     # FIXME: This could be problematic. Check
@@ -434,7 +434,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         master_addr = _parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
-        click.echo("Error validating arguments")
+        click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     slave_xmss = []
@@ -573,8 +573,8 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
         addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
         master_addr = _parse_qaddress(master)
         fee_shor = _shorize(fee)
-    except Exception:
-        click.echo("Error validating arguments")
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     try:
@@ -639,7 +639,10 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
     except KeyboardInterrupt:
-        click.echo("Error validating arguments")
+        click.echo("Terminated by user")
+        quit(1)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     try:
@@ -701,12 +704,15 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
             raise Exception("{} destination addresses specified but only {} amounts given".format(len(addresses_dst),
                                                                                                   len(shor_amounts)))
 
-        bin_token_txhash = bytes(hstr2bin(token_txhash))
+        bin_token_txhash = _parse_hexblob(token_txhash)
         master_addr = _parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
-    except KeyboardInterrupt as e:
-        click.echo("Error validating arguments")
+    except KeyboardInterrupt:
+        click.echo("Terminated by user")
+        quit(1)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     try:
@@ -848,8 +854,8 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         master_addr = _parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
-    except Exception:
-        click.echo("Error validating arguments")
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     try:
