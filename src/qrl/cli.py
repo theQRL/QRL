@@ -745,7 +745,13 @@ def token_list(ctx, owner):
         return
 
     try:
-        addressStateReq = qrl_pb2.GetAddressStateReq(address=_parse_qaddress(owner))
+        owner_address = _parse_qaddress(owner)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
+        quit(1)
+
+    try:
+        addressStateReq = qrl_pb2.GetAddressStateReq(address=owner_address)
         addressStateResp = ctx.obj.stub_public_api.GetAddressState(addressStateReq, timeout=5)
 
         for token_hash in addressStateResp.state.tokens:

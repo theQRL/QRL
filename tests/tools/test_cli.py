@@ -797,7 +797,6 @@ class TestCLI(TestCase):
         self.assertIn('Hash: {}\nBalance: 10'.format(qaddr_1), result.output)
         self.assertIn('Hash: {}\nBalance: 100'.format(qaddr_2), result.output)
 
-    @expectedFailure
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list_invalid_input(self, mock_stub):
         m_addressStateResp = mock.MagicMock(name='this should be the addressStateResp')
@@ -810,9 +809,10 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         # Malformed Qaddress should fail!
-        result = self.runner.invoke(qrl_cli, ["-r", "token_list", "--owner={}".format(qaddr_1[-1])])
+        result = self.runner.invoke(qrl_cli, ["-r", "token_list", "--owner={}".format(qaddr_1[:-1])])
 
         self.assertEqual(result.exit_code, 1)
+        self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_collect(self, mock_stub):
