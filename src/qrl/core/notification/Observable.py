@@ -13,13 +13,21 @@ class Observable(object):
         self.source = source
         self._observers = dict()
 
+    @property
+    def observers_count(self):
+        return len(self._observers)
+
     def register(self, message_type, func: Callable):
         # FIXME: Add mutexes
         self._observers.setdefault(message_type, []).append(func)
 
-    def notify(self, message):
+    def notify(self, message, force_delivery=False):
         # FIXME: Add mutexes
         observers = self._observers.get(message.func_name, [])
+
+        if force_delivery and not observers:
+            raise RuntimeError("Observer not registered for: %s" % message.func_name)
+
         for o in observers:
             try:
                 o(self.source, message)

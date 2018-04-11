@@ -26,7 +26,8 @@ class P2PTxManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.SL, self.handle_slave)
         channel.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
 
-    def handle_message_received(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_message_received(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Message Receipt
         This function accepts message receipt from peer,
@@ -69,7 +70,8 @@ class P2PTxManagement(P2PBaseObserver):
 
         source.factory.request_full_message(mr_data)
 
-    def handle_full_message_request(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_full_message_request(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Send Full Message
         This function serves the request made for the full message.
@@ -84,14 +86,32 @@ class P2PTxManagement(P2PBaseObserver):
     ###################################################
     ###################################################
 
-    def handle_tx(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def _parse_tx_object(source, message: qrllegacy_pb2.LegacyMessage, kind):
+        tx = None
+        try:
+            tx = Transaction.from_pbdata(message.mtData)
+        except Exception as e:
+            logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            source.loseConnection()
+        return tx
+
+    @staticmethod
+    def handle_tx(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Transaction
         Executed whenever a new TX type message is received.
         :return:
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
-        tx = Transaction.from_pbdata(message.txData)
+        try:
+            tx = Transaction.from_pbdata(message.txData)
+        except Exception as e:
+            logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            source.loseConnection()
+            return
 
         # NOTE: Connects to MR
         if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
@@ -99,7 +119,8 @@ class P2PTxManagement(P2PBaseObserver):
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
-    def handle_message_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_message_transaction(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Message Transaction
         This function processes whenever a Transaction having
@@ -123,7 +144,8 @@ class P2PTxManagement(P2PBaseObserver):
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
-    def handle_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_token_transaction(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Token Transaction
         This function processes whenever a Transaction having
@@ -144,7 +166,8 @@ class P2PTxManagement(P2PBaseObserver):
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
-    def handle_transfer_token_transaction(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_transfer_token_transaction(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Transfer Token Transaction
         This function processes whenever a Transaction having
@@ -168,6 +191,7 @@ class P2PTxManagement(P2PBaseObserver):
     def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Ephemeral Message
+        :param source:
         :param message:
         :return:
         """
@@ -187,9 +211,11 @@ class P2PTxManagement(P2PBaseObserver):
 
         source.factory.broadcast_ephemeral_message(encrypted_ephemeral)  # FIXME(cyyber) : Fix broken link
 
-    def handle_lattice(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_lattice(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Lattice Public Key Transaction
+        :param source:
         :param message:
         :return:
         """
@@ -211,9 +237,11 @@ class P2PTxManagement(P2PBaseObserver):
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
-    def handle_slave(self, source, message: qrllegacy_pb2.LegacyMessage):
+    @staticmethod
+    def handle_slave(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Receives Lattice Public Key Transaction
+        :param source:
         :param message:
         :return:
         """
