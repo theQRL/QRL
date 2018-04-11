@@ -46,6 +46,7 @@ class TestCLI_Wallet_Gen(TestCase):
         os.chdir(self.temp_dir)
 
     def tearDown(self):
+        del self.runner  # running this test suite often results in leaked pipe handles. This could mitigate that.
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
@@ -70,12 +71,6 @@ class TestCLI(TestCase):
         super(TestCLI, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        """
-        If you run `with self.runner.isolated_filesystem(): qrl wallet_gen`
-        in this setUp() function, the tmp dir will not carry over to the test functions,
-        which will run in the shell's pwd instead.
-        So the temp wallet generation has to be duplicated in each function.
-        """
         self.runner = CliRunner(env={"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"})
         self.prev_dir = os.getcwd()
         self.temp_dir = tempfile.mkdtemp()
@@ -83,6 +78,7 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
 
     def tearDown(self):
+        del self.runner  # running this test suite often results in leaked pipe handles. This could mitigate that.
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
