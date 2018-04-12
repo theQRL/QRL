@@ -5,6 +5,7 @@ import argparse
 import logging
 from os.path import expanduser
 
+from mock import MagicMock
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import hstr2bin
 
@@ -47,6 +48,8 @@ def parse_arguments():
                         help="Set the logging level")
     parser.add_argument('--miningAddress', dest='mining_address', required=False,
                         help="QRL Wallet address on which mining reward has to be credited.")
+    parser.add_argument('--mockGetMeasurement', dest='measurement', required=False, type=int, default=-1,
+                        help="Warning: Only for integration test, to mock get_measurement")
     return parser.parse_args()
 
 
@@ -102,6 +105,10 @@ def main():
 
     logger.info('Initializing chain..')
     persistent_state = State()
+
+    if args.measurement > -1:
+        persistent_state.get_measurement = MagicMock(return_value=args.measurement)
+
     chain_manager = ChainManager(state=persistent_state)
     chain_manager.load(Block.from_json(GenesisBlock().to_json()))
 
