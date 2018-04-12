@@ -14,7 +14,7 @@ from qrl.core import config
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.Wallet import Wallet
-from qrl.crypto.xmss import XMSS
+from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
@@ -231,7 +231,10 @@ def wallet_ls(ctx):
 @click.pass_context
 @click.option('--height', default=config.dev.xmss_tree_height,
               help='XMSS tree height. The resulting tree will be good for 2^height signatures')
-def wallet_gen(ctx, height):
+@click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
+              help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
+                   'is found cryptographically vulnerable in the future.')
+def wallet_gen(ctx, height, hash_function):
     """
     Generates a new wallet with one address
     """
@@ -242,7 +245,7 @@ def wallet_gen(ctx, height):
     # FIXME: If the wallet is there, it should fail
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     if len(wallet.address_items) == 0:
-        wallet.add_new_address(height)
+        wallet.add_new_address(height, hash_function)
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
         # FIXME: !!!!!
@@ -251,8 +254,11 @@ def wallet_gen(ctx, height):
 
 @qrl.command()
 @click.option('--height', type=int, default=config.dev.xmss_tree_height, prompt=False)
+@click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
+              help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
+                   'is found cryptographically vulnerable in the future.')
 @click.pass_context
-def wallet_add(ctx, height):
+def wallet_add(ctx, height, hash_function):
     """
     Adds an address or generates a new wallet (working directory)
     """
@@ -261,7 +267,7 @@ def wallet_add(ctx, height):
         return
 
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
-    wallet.add_new_address(height)
+    wallet.add_new_address(height, hash_function)
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 

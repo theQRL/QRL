@@ -61,6 +61,11 @@ class TestCLI_Wallet_Gen(TestCase):
         wallet = open_wallet()
         self.assertEqual(wallet[0]["height"], 4)
 
+    def test_wallet_gen_different_hash_function(self):
+        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--hash_function=sha2_256"])
+        wallet = open_wallet()
+        self.assertEqual(wallet[0]["hashFunction"], "sha2_256")
+
     def test_wallet_gen_json(self):
         result = self.runner.invoke(qrl_cli, ["--json", "wallet_gen", "--height=4"])
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
@@ -105,6 +110,12 @@ class TestCLI(TestCase):
         wallet = open_wallet()
         self.assertIn(wallet[1]["address"], result.output)
         self.assertEqual(wallet[1]["height"], 4)
+
+    def test_wallet_add_different_hash_function(self):
+        self.runner.invoke(qrl_cli, ["wallet_add", "--height=4", "--hash_function=shake256"])
+        wallet = open_wallet()
+        self.assertEqual(wallet[0]["hashFunction"], "shake128")
+        self.assertEqual(wallet[1]["hashFunction"], "shake256")
 
     def test_wallet_recover_hexseed(self):
         os.rename("wallet.json", "wallet_orig.json")

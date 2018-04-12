@@ -94,8 +94,8 @@ class Wallet:
             hexseed=xmss.hexseed,
             mnemonic=xmss.mnemonic,
             height=xmss.height,
-            hashFunction=None,
-            signatureType=None,
+            hashFunction=xmss.hash_function,
+            signatureType=xmss.signature_type,
             index=xmss.ots_index,
             encrypted=False
         )
@@ -189,8 +189,9 @@ class Wallet:
             self._address_items.append(tmp_item)
             self.save_wallet(self.wallet_path)
 
-    def add_new_address(self, height):
-        tmp_xmss = XMSS.from_height(height)
+    def add_new_address(self, height, hash_function="shake128"):
+        tmp_xmss = XMSS.from_height(height, hash_function)
+
         self.append_xmss(tmp_xmss)
         return tmp_xmss
 
