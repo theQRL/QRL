@@ -46,6 +46,7 @@ class TestCLI_Wallet_Gen(TestCase):
         os.chdir(self.temp_dir)
 
     def tearDown(self):
+        del self.runner  # running this test suite often results in leaked pipe handles. This could mitigate that.
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
@@ -70,12 +71,6 @@ class TestCLI(TestCase):
         super(TestCLI, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        """
-        If you run `with self.runner.isolated_filesystem(): qrl wallet_gen`
-        in this setUp() function, the tmp dir will not carry over to the test functions,
-        which will run in the shell's pwd instead.
-        So the temp wallet generation has to be duplicated in each function.
-        """
         self.runner = CliRunner(env={"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"})
         self.prev_dir = os.getcwd()
         self.temp_dir = tempfile.mkdtemp()
@@ -83,6 +78,7 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
 
     def tearDown(self):
+        del self.runner  # running this test suite often results in leaked pipe handles. This could mitigate that.
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
@@ -216,7 +212,6 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_prepare(self, mock_stub):
-        """Creating a TX to one recipient should work"""
         mock_transferCoinsResp = mock.MagicMock(name='this should be transferCoinsResp')
         mock_transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString = mock.MagicMock(
             return_value=unsigned_tx)
@@ -227,6 +222,7 @@ class TestCLI(TestCase):
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
 
+        # Creating a TX to one recipient should work
         result = self.runner.invoke(qrl_cli,
                                     ["tx_prepare",
                                      "--src=0",
@@ -295,20 +291,20 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
 
-        # """Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work"""
-        # master = "\n"
-        # dsts = [qaddr_1, qaddr_2, qaddr_3]
-        # amounts = ["1", "2"]
-        # result = self.runner.invoke(qrl_cli,
-        #                             ["tx_prepare",
-        #                              "--src=0",
-        #                              "--master={}".format(master),
-        #                              "--dst={}".format(" ".join(dsts)),
-        #                              "--amounts={}".format(" ".join(amounts)),
-        #                              "--fee=0",
-        #                              ]
-        #                             )
-        # self.assertNotEqual(result.exit_code, 0)
+        # Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work
+        master = "\n"
+        dsts = [qaddr_1, qaddr_2, qaddr_3]
+        amounts = ["1", "2"]
+        result = self.runner.invoke(qrl_cli,
+                                    ["tx_prepare",
+                                     "--src=0",
+                                     "--master={}".format(master),
+                                     "--dst={}".format(" ".join(dsts)),
+                                     "--amounts={}".format(" ".join(amounts)),
+                                     "--fee=0",
+                                     ]
+                                    )
+        self.assertNotEqual(result.exit_code, 0)
 
         # An invalid src index shouldn't work
         master = "\n"
@@ -656,15 +652,16 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=17"])
         self.assertEqual(result.exit_code, 1)
-        self.assertEqual(result.output.strip(), 'Error validating arguments')
+        self.assertIn('Error validating arguments', result.output.strip())
 
-        # # dsts and amounts with different lengths should fail
-        # dsts = [qaddr_1, qaddr_2, qaddr_3]
-        # amounts = ["1", "2"]
-        # result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
-        #                                       "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
-        # self.assertEqual(result.exit_code, 1)
-        # self.assertEqual(result.output.strip(), 'Error validating arguments')
+        # dsts and amounts with different lengths should fail
+        dsts = [qaddr_1, qaddr_2, qaddr_3]
+        amounts = ["1", "2"]
+        result = self.runner.invoke(qrl_cli,
+                                    ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
+                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn('dsts and amounts should be the same length', result.output.strip())
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token(self, mock_stub):
@@ -689,7 +686,6 @@ class TestCLI(TestCase):
                                     )
         self.assertIn('This was a test', result.output)
 
-    @expectedFailure
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token_invalid_input(self, mock_stub):
         m_pushTransactionResp = mock.MagicMock(name='mock pushTransactionResp')
@@ -717,7 +713,7 @@ class TestCLI(TestCase):
                                     input=typed_in_input
                                     )
         self.assertEqual(result.exit_code, 1)
-        self.assertNotIn('This was a test', result.output.strip())
+        self.assertIn('must be shorter than', result.output.strip())
 
         # An outrageous decimal precision shouldn't work either
         # Currently this causes the CLI to hang, as it tries to do 10^1000000000
@@ -771,8 +767,8 @@ class TestCLI(TestCase):
                                      "--token_txhash={}".format(txhash[3:]), "--dst={}".format(qaddr_1), "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=0"],
                                     )
-        self.assertEqual(result.exit_code, -1)
-        self.assertTrue(isinstance(result.exception, ValueError))
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
 
         # If decimals is different from the original token_txhash definition, it shouldn't work either.
         # But maybe this is for integration tests.
@@ -800,7 +796,6 @@ class TestCLI(TestCase):
         self.assertIn('Hash: {}\nBalance: 10'.format(qaddr_1), result.output)
         self.assertIn('Hash: {}\nBalance: 100'.format(qaddr_2), result.output)
 
-    @expectedFailure
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list_invalid_input(self, mock_stub):
         m_addressStateResp = mock.MagicMock(name='this should be the addressStateResp')
@@ -813,9 +808,10 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         # Malformed Qaddress should fail!
-        result = self.runner.invoke(qrl_cli, ["-r", "token_list", "--owner={}".format(qaddr_1[-1])])
+        result = self.runner.invoke(qrl_cli, ["-r", "token_list", "--owner={}".format(qaddr_1[:-1])])
 
         self.assertEqual(result.exit_code, 1)
+        self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_collect(self, mock_stub):
