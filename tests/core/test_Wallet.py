@@ -84,6 +84,21 @@ class TestWallet(TestCase):
 
             self.assertEqual(wallet.address_items[0], wallet_b.address_items[0])
 
+    def test_create_custom_hash_function(self):
+        with set_qrl_dir("no_data"):
+            wallet = Wallet()
+            xmss = wallet.add_new_address(height=4, hash_function="sha2_256")
+            self.assertEqual("sha2_256", xmss.hash_function)
+
+    def test_create_custom_hash_function_load(self):
+        with set_qrl_dir("no_data"):
+            wallet = Wallet()
+            xmss = wallet.add_new_address(height=4, hash_function="sha2_256")
+            self.assertEqual("sha2_256", xmss.hash_function)
+
+            wallet_reloaded = Wallet()
+            self.assertEqual("sha2_256", wallet_reloaded.address_items[0].hashFunction)
+
     def test_encrypt(self):
         with set_qrl_dir("no_data"):
             wallet = Wallet()

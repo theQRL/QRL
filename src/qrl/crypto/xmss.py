@@ -5,6 +5,13 @@ from pyqrllib import pyqrllib
 from pyqrllib.pyqrllib import bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin  # noqa
 from pyqrllib.pyqrllib import XmssFast, QRLDescriptor
 
+hash_functions = {
+    "shake128": pyqrllib.SHAKE_128,
+    "shake256": pyqrllib.SHAKE_256,
+    "sha2_256": pyqrllib.SHA2_256
+}
+hash_functions_reverse = {v: k for k, v in hash_functions.items()}
+
 
 class XMSS(object):
     @staticmethod
@@ -22,9 +29,12 @@ class XMSS(object):
         return XMSS(tmp)
 
     @staticmethod
-    def from_height(tree_height: int):
+    def from_height(tree_height: int, hash_function="shake128"):
+        if hash_function not in hash_functions:
+            raise Exception("XMSS does not support this hash function!")
+
         seed = getRandomSeed(48, '')
-        return XMSS(XmssFast(seed, tree_height, pyqrllib.SHAKE_128))
+        return XMSS(XmssFast(seed, tree_height, hash_functions[hash_function]))
 
     def __init__(self, _xmssfast):
         """
@@ -88,6 +98,22 @@ class XMSS(object):
         '00020096e5c065cf961565169e795803c1e60f521af7a3ea0326b42aa40c0e75390e5d8f4336de'
         """
         self._xmss = _xmssfast
+
+    @property
+    def hash_function(self) -> str:
+        descr = self._xmss.getDescriptor()
+        function_num = descr.getHashFunction()
+        function_name = hash_functions_reverse[function_num]
+        if not function_name:
+            raise Exception("Could not reverse-lookup the hash function")
+
+        return function_name
+
+    @property
+    def signature_type(self):
+        descr = self._xmss.getDescriptor()
+        answer = descr.getSignatureType()
+        return answer
 
     @property
     def height(self):
