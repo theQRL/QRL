@@ -232,7 +232,7 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if not tx.validate():
-            logger.warning('>>>Lattice Public Key %s invalid state validation failed..', tx.hash)
+            logger.warning('>>>Lattice Public Key %s invalid state validation failed..', bin2hstr(tx.hash))
             return
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
@@ -258,7 +258,7 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if not tx.validate():
-            logger.warning('>>>Slave Txn %s invalid state validation failed..', tx.hash)
+            logger.warning('>>>Slave Txn %s invalid state validation failed..', bin2hstr(tx.hash))
             return
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
