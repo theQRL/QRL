@@ -156,7 +156,7 @@ class Miner(Qryptominer):
         mining_address = bytes(hstr2bin(wallet_address[1:]))
         if self._mining_block:
             if last_block.headerhash == self._mining_block.prev_headerhash:
-                if last_block.transactions[0].addr_to == mining_address:
+                if last_block.transactions[0].coinbase.addr_to == mining_address:
                     return [bin2hstr(self._mining_block.mining_blob),
                             int(bin2hstr(self._current_difficulty), 16)]
                 else:
