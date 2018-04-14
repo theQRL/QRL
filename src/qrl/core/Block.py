@@ -91,6 +91,7 @@ class Block(object):
 
     def set_nonces(self, mining_nonce, extra_nonce=0):
         self.blockheader.set_nonces(mining_nonce, extra_nonce)
+        self._data.header.MergeFrom(self.blockheader.pbdata)
 
     def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf
@@ -127,6 +128,8 @@ class Block(object):
                                              prev_blockheaderhash=prevblock_headerhash,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
+
+        block.blockheader = tmp_blockheader
 
         block._data.header.MergeFrom(tmp_blockheader.pbdata)
 
