@@ -188,7 +188,7 @@ def getblockminingcompatible(height):
 @api.dispatcher.add_method
 def transfer(destinations, fee, mixin, unlock_time):
     if len(destinations) > config.dev.transaction_multi_output_limit:
-        return None
+        raise Exception('Payment Failed: Amount exceeds the allowed limit')
 
     addrs_to = []
     amounts = []
@@ -201,7 +201,7 @@ def transfer(destinations, fee, mixin, unlock_time):
 
     xmss = get_unused_payment_xmss(stub)
     if not xmss:
-        return None
+        raise Exception('Payment Failed: No Unused Payment XMSS found')
 
     tx = TransferTransaction.create(addrs_to=addrs_to,
                                     amounts=amounts,
@@ -214,7 +214,7 @@ def transfer(destinations, fee, mixin, unlock_time):
     response = stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
 
     if response.error_code != 3:
-        return None
+        raise Exception('Transaction Submission Failed, Response Code: %s', response.error_code)
 
     response = {'tx_hash': bin2hstr(tx.txhash)}
 
