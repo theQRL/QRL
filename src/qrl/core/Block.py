@@ -135,8 +135,9 @@ class Block(object):
         return block
 
     def update_mining_address(self, mining_address: bytes):
-        self.transactions[0].update_mining_address(mining_address)
-        hashedtransactions = []
+        coinbase_tx = Transaction.from_pbdata(self.transactions[0])
+        coinbase_tx.update_mining_address(mining_address)
+        hashedtransactions = [coinbase_tx.txhash]
 
         for tx in self.transactions:
             hashedtransactions.append(tx.transaction_hash)
