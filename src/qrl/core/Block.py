@@ -142,12 +142,9 @@ class Block(object):
         for tx in self.transactions:
             hashedtransactions.append(tx.transaction_hash)
 
-        tmp_blockheader = BlockHeader.create(blocknumber=self.block_number,
-                                             prev_blockheaderhash=self.prev_headerhash,
-                                             hashedtransactions=merkle_tx_hash(hashedtransactions),
-                                             fee_reward=self.fee_reward)
+        self.blockheader.update_merkle_root(merkle_tx_hash(hashedtransactions))
 
-        self._data.header.MergeFrom(tmp_blockheader.pbdata)
+        self._data.header.MergeFrom(self.blockheader.pbdata)
 
     def validate(self) -> bool:
         fee_reward = 0
