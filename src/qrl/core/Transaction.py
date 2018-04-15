@@ -183,7 +183,7 @@ class Transaction(object, metaclass=ABCMeta):
                 continue
 
             if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+                logger.info('State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
                 logger.info('Subtype %s', type(self))
                 return False
 
@@ -350,12 +350,12 @@ class TransferTransaction(Transaction):
         total_amount = self.total_amount
 
         if tx_balance < total_amount + self.fee:
-            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
             logger.info('balance: %s, fee: %s, amount: %s', tx_balance, self.fee, total_amount)
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
             return False
 
         return True
@@ -534,16 +534,16 @@ class LatticePublicKey(Transaction):
         tx_balance = addr_from_state.balance
 
         if self.fee < 0:
-            logger.info('Lattice Txn: State validation failed %s : Negative fee %s', self.txhash, self.fee)
+            logger.info('Lattice Txn: State validation failed %s : Negative fee %s', bin2hstr(self.txhash), self.fee)
             return False
 
         if tx_balance < self.fee:
-            logger.info('Lattice Txn: State validation failed %s : Insufficient funds', self.txhash)
+            logger.info('Lattice Txn: State validation failed %s : Insufficient funds', bin2hstr(self.txhash))
             logger.info('balance: %s, fee: %s', tx_balance, self.fee)
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('Lattice Txn: OTS Public key re-use detected %s', self.txhash)
+            logger.info('Lattice Txn: OTS Public key re-use detected %s', bin2hstr(self.txhash))
             return False
 
         return True
@@ -612,16 +612,16 @@ class MessageTransaction(Transaction):
         tx_balance = addr_from_state.balance
 
         if self.fee < 0:
-            logger.info('State validation failed for %s because: Negative send', self.txhash)
+            logger.info('State validation failed for %s because: Negative send', bin2hstr(self.txhash))
             return False
 
         if tx_balance < self.fee:
-            logger.info('State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            logger.info('State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
             return False
 
         return True
@@ -767,12 +767,12 @@ class TokenTransaction(Transaction):
                 return False
 
         if tx_balance < self.fee:
-            logger.info('TokenTxn State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('TokenTxn State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
             return False
 
         return True
@@ -961,20 +961,20 @@ class TransferTokenTransaction(Transaction):
         tx_balance = addr_from_state.balance
         total_amount = self.total_amount
         if self.fee < 0 or total_amount < 0:
-            logger.info('TransferTokenTransaction State validation failed for %s because: ', self.txhash)
+            logger.info('TransferTokenTransaction State validation failed for %s because: ', bin2hstr(self.txhash))
             logger.info('Txn amount: %s, Fee: %s', total_amount, self.fee)
             return False
 
         if tx_balance < self.fee:
             logger.info('TransferTokenTransaction State validation failed for %s because: Insufficient funds',
-                        self.txhash)
+                        bin2hstr(self.txhash))
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info(
                 'TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
-                self.txhash)
+                bin2hstr(self.txhash))
             return False
 
         return True
@@ -1088,16 +1088,16 @@ class SlaveTransaction(Transaction):
         tx_balance = addr_from_state.balance
 
         if self.fee < 0:
-            logger.info('Slave: State validation failed for %s because: Negative send', self.txhash)
+            logger.info('Slave: State validation failed for %s because: Negative send', bin2hstr(self.txhash))
             return False
 
         if tx_balance < self.fee:
-            logger.info('Slave: State validation failed for %s because: Insufficient funds', self.txhash)
+            logger.info('Slave: State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', self.txhash)
+            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
             return False
 
         return True
