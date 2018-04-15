@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: zondax/qrl-build-images:xenial
+      - image: qrledger/qrl-docker:xenial
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -12,8 +12,32 @@ jobs:
       - run: sudo pip install -U coverage codacy-coverage
       - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
 
+  build_trusty:
+    docker:
+      - image: qrledger/qrl-docker:trusty
+    steps:
+      - checkout
+      - run: pip install -U setuptools
+      - run: pip install -U -r requirements.txt
+      - run: pip install -U -r test-requirements.txt
+      - run: python3 --version
+      - run: python3 setup.py test
+
+  build_bionic:
+    docker:
+      - image: qrledger/qrl-docker:bionic
+    steps:
+      - checkout
+      - run: pip install -U setuptools
+      - run: pip install -U -r requirements.txt
+      - run: pip install -U -r test-requirements.txt
+      - run: python3 setup.py test
+
 workflows:
   version: 2
   build_all:
     jobs:
       - build
+#      - build_trusty
+      - build_bionic
+
