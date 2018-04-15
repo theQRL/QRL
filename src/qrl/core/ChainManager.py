@@ -149,6 +149,7 @@ class ChainManager:
             return False
 
         if not PoWValidator().validate_mining_nonce(self.state, block.blockheader):
+            logger.warning('Failed PoW Validation')
             return False
 
         coinbase_tx.apply_state_changes(address_txn)
@@ -159,6 +160,7 @@ class ChainManager:
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
 
             if isinstance(tx, CoinBase):
+                logger.warning('Found another coinbase transaction')
                 return False
 
             if not tx.validate():  # TODO: Move this validation, before adding txn to pool
@@ -191,9 +193,11 @@ class ChainManager:
 
     def _pre_check(self, block, ignore_duplicate):
         if block.block_number < 1:
+            logger.warning('Block Number less than 1 #%s', block.block_number)
             return False
 
         if not block.validate():
+            logger.warning('Block Validation Failed')
             return False
 
         if (not ignore_duplicate) and self.state.get_block(block.headerhash):  # Duplicate block check

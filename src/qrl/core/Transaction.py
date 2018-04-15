@@ -453,6 +453,8 @@ class CoinBase(Transaction):
     # noinspection PyBroadException
     def validate_extended(self):
         if self.master_addr != config.dev.coinbase_address:
+            logger.warning('Master address doesnt match with coinbase_address')
+            logger.warning('%s %s', self.master_addr, config.dev.coinbase_address)
             return False
 
         if not (AddressState.address_is_valid(self.master_addr) and AddressState.address_is_valid(self.addr_to)):
