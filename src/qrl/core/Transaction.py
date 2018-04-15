@@ -232,6 +232,10 @@ class Transaction(object, metaclass=ABCMeta):
             master_address = self.addr_from
             allowed_access_types = [0]
 
+        if self.master_addr == addr_from_pk:
+            logger.warning('Matching master_addr field and address from PK')
+            return False
+
         if addr_from_pk != master_address:
             if str(self.PK) not in addr_from_state.slave_pks_access_type:
                 logger.warning("Public key and address don't match")
