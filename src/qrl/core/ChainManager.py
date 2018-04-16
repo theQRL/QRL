@@ -320,7 +320,8 @@ class ChainManager:
         batch = self.state.get_batch()
         if self._add_block(block, batch=batch):
             self.state.write_batch(batch)
-            self.update_child_metadata(block.headerhash)
+            self.update_child_metadata(block.headerhash)  # TODO: Not needed to execute when an orphan block is added
+            logger.info('Added Block #%s %s', block.block_number, bin2hstr(block.headerhash))
             return True
 
         return False
