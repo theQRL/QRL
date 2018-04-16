@@ -93,6 +93,11 @@ class TestCLI(TestCase):
         self.assertIn(wallet[0]["address"], result.output)
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
+    def test_wallet_ls_verbose(self):
+        result = self.runner.invoke(qrl_cli, ["-v", "wallet_ls"])
+        wallet = open_wallet()
+        self.assertIn(wallet[0]["hashFunction"], result.output)
+
     def test_wallet_ls_empty(self):
         os.remove("wallet.json")
         result = self.runner.invoke(qrl_cli, ["wallet_ls"])
