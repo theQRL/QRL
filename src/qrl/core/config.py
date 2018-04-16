@@ -22,7 +22,7 @@ class UserConfig(object):
         UserConfig.__instance = self
 
         # Default configuration
-        self.mining_enabled = True
+        self.mining_enabled = False
         self.mining_address = ''
         self.mining_thread_count = 0  # 0 to auto detect thread count based on CPU/GPU number of processors
 

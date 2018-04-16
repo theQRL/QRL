@@ -145,6 +145,10 @@ class BlockHeader(object):
         bh.set_nonces(0, 0)
         return bh
 
+    def update_merkle_root(self, hashedtransactions: bytes):
+        self._data.merkle_root = hashedtransactions
+        self.set_nonces(0, 0)
+
     def set_nonces(self, mining_nonce, extra_nonce=0):
         self._data.mining_nonce = mining_nonce
         self._data.extra_nonce = extra_nonce

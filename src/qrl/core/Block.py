@@ -91,6 +91,7 @@ class Block(object):
 
     def set_nonces(self, mining_nonce, extra_nonce=0):
         self.blockheader.set_nonces(mining_nonce, extra_nonce)
+        self._data.header.MergeFrom(self.blockheader.pbdata)
 
     def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf
@@ -128,6 +129,8 @@ class Block(object):
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
 
+        block.blockheader = tmp_blockheader
+
         block._data.header.MergeFrom(tmp_blockheader.pbdata)
 
         block.set_nonces(0, 0)
@@ -135,18 +138,16 @@ class Block(object):
         return block
 
     def update_mining_address(self, mining_address: bytes):
-        self.transactions[0].update_mining_address(mining_address)
-        hashedtransactions = []
+        coinbase_tx = Transaction.from_pbdata(self.transactions[0])
+        coinbase_tx.update_mining_address(mining_address)
+        hashedtransactions = [coinbase_tx.txhash]
 
         for tx in self.transactions:
             hashedtransactions.append(tx.transaction_hash)
 
-        tmp_blockheader = BlockHeader.create(blocknumber=self.block_number,
-                                             prev_blockheaderhash=self.prev_headerhash,
-                                             hashedtransactions=merkle_tx_hash(hashedtransactions),
-                                             fee_reward=self.fee_reward)
+        self.blockheader.update_merkle_root(merkle_tx_hash(hashedtransactions))
 
-        self._data.header.MergeFrom(tmp_blockheader.pbdata)
+        self._data.header.MergeFrom(self.blockheader.pbdata)
 
     def validate(self) -> bool:
         fee_reward = 0
