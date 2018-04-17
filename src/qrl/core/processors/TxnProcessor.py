@@ -45,7 +45,7 @@ class TxnProcessor:
         is_valid_pool_state = tx.validate_transaction_pool(self.transaction_pool_obj.transaction_pool)
 
         if not (is_valid_state and is_valid_pool_state):
-            logger.info('>>>TX %s failed state_validate', tx.txhash)
+            logger.info('>>>TX %s failed state_validate', bin2hstr(tx.txhash))
             return False
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))

@@ -183,7 +183,7 @@ class ChainManager:
                 return False
 
             if addr_from_pk_state.ots_key_reuse(tx.ots_key):
-                logger.warning('pubkey reuse detected: invalid tx %s', tx.txhash)
+                logger.warning('pubkey reuse detected: invalid tx %s', bin2hstr(tx.txhash))
                 logger.warning('subtype: %s', tx.type)
                 return False
 

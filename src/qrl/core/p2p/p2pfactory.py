@@ -376,7 +376,7 @@ class P2PFactory(ServerFactory):
         return True
 
     def broadcast_tx(self, tx: TransferTransaction):
-        logger.info('<<<Transmitting TX: %s', tx.txhash)
+        logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
 
         if isinstance(tx, MessageTransaction):
             legacy_type = qrllegacy_pb2.LegacyMessage.MT
