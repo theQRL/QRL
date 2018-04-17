@@ -14,7 +14,7 @@ from qrl.core import config
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.Wallet import Wallet
-from qrl.crypto.xmss import XMSS
+from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
@@ -28,8 +28,9 @@ BalanceItem = namedtuple('BalanceItem',
 
 class CLIContext(object):
 
-    def __init__(self, remote, host, port_public, port_admin, wallet_dir, json):
+    def __init__(self, remote, verbose, host, port_public, port_admin, wallet_dir, json):
         self.remote = remote
+        self.verbose = verbose
         self.host = host
         self.port_public = port_public
         self.port_admin = port_admin
@@ -81,15 +82,29 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
 
     for pos, item in enumerate(addresses):
         try:
-            balance = Decimal(_public_get_address_balance(ctx, item.qaddress)) / config.dev.shor_per_quanta
-            msg['wallets'].append({'number': pos, 'address': item.qaddress, 'balance': balance})
+            balance_unshored = Decimal(_public_get_address_balance(ctx, item.qaddress)) / config.dev.shor_per_quanta
+            balance = '{:5.8f}'.format(balance_unshored)
         except Exception as e:
-                msg['error'] = str(e)
-                msg['wallets'].append({'number': pos, 'address': item.qaddress, 'balance': '?'})
+            msg['error'] = str(e)
+            balance = '?'
+
+        msg['wallets'].append({
+            'number': pos,
+            'address': item.qaddress,
+            'balance': balance,
+            'hash_function': item.hashFunction
+        })
     return msg
 
 
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
+    def _normal(wallet):
+        return "{:<8}{:<83}{:<13}".format(wallet['number'], wallet['address'], wallet['balance'])
+
+    def _verbose(wallet):
+        return "{:<8}{:<83}{:<13}{}".format(
+            wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function']
+        )
     output = _serialize_output(ctx, addresses, source_description)
     if ctx.obj.json:
         output["location"] = source_description
@@ -99,13 +114,20 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
             click.echo(output['error'])
         else:
             click.echo("Wallet at          : {}".format(source_description))
-            click.echo("{:<8}{:<83}{}".format('Number', 'Address', 'Balance'))
-            click.echo('-' * 99)
+            if ctx.obj.verbose:
+                header = "{:<8}{:<83}{:<13}{:<8}".format('Number', 'Address', 'Balance', 'Hash')
+                divider = ('-' * 112)
+            else:
+                header = "{:<8}{:<83}{:<13}".format('Number', 'Address', 'Balance')
+                divider = ('-' * 101)
+            click.echo(header)
+            click.echo(divider)
+
             for wallet in output['wallets']:
-                if isinstance(wallet['balance'], str):
-                    click.echo("{:<8}{:<83} {}".format(wallet['number'], wallet['address'], wallet['balance']))
+                if ctx.obj.verbose:
+                    click.echo(_verbose(wallet))
                 else:
-                    click.echo("{:<8}{:<83}{:5.8f}".format(wallet['number'], wallet['address'], wallet['balance']))
+                    click.echo(_normal(wallet))
 
 
 def _public_get_address_balance(ctx, address):
@@ -198,17 +220,19 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
 @click.version_option(version=config.dev.version, prog_name='QRL Command Line Interface')
 @click.group()
 @click.option('--remote', '-r', default=False, is_flag=True, help='connect to remote node')
+@click.option('--verbose', '-v', default=False, is_flag=True, help='verbose output whenever possible')
 @click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
 @click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
 @click.option('--port_adm', default=9008, help='remote port number (admin api)  [9009]* will change')
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
 @click.option('--json', default=False, is_flag=True, help='output in json')
 @click.pass_context
-def qrl(ctx, remote, host, port_pub, port_adm, wallet_dir, json):
+def qrl(ctx, remote, verbose, host, port_pub, port_adm, wallet_dir, json):
     """
     QRL Command Line Interface
     """
     ctx.obj = CLIContext(remote=remote,
+                         verbose=verbose,
                          host=host,
                          port_public=port_pub,
                          port_admin=port_adm,
@@ -231,7 +255,10 @@ def wallet_ls(ctx):
 @click.pass_context
 @click.option('--height', default=config.dev.xmss_tree_height,
               help='XMSS tree height. The resulting tree will be good for 2^height signatures')
-def wallet_gen(ctx, height):
+@click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
+              help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
+                   'is found cryptographically vulnerable in the future.')
+def wallet_gen(ctx, height, hash_function):
     """
     Generates a new wallet with one address
     """
@@ -242,7 +269,7 @@ def wallet_gen(ctx, height):
     # FIXME: If the wallet is there, it should fail
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     if len(wallet.address_items) == 0:
-        wallet.add_new_address(height)
+        wallet.add_new_address(height, hash_function)
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
         # FIXME: !!!!!
@@ -251,8 +278,11 @@ def wallet_gen(ctx, height):
 
 @qrl.command()
 @click.option('--height', type=int, default=config.dev.xmss_tree_height, prompt=False)
+@click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
+              help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
+                   'is found cryptographically vulnerable in the future.')
 @click.pass_context
-def wallet_add(ctx, height):
+def wallet_add(ctx, height, hash_function):
     """
     Adds an address or generates a new wallet (working directory)
     """
@@ -261,7 +291,7 @@ def wallet_add(ctx, height):
         return
 
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
-    wallet.add_new_address(height)
+    wallet.add_new_address(height, hash_function)
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 

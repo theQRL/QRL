@@ -44,6 +44,7 @@ class UserConfig(object):
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ban_minutes = 20              # Allows to ban a peer's IP who is breaking protocol
 
+        self.monitor_connections_interval = 30  # Monitor connection every 30 seconds
         self.max_peers_limit = 100  # Number of allowed peers
         self.chain_state_timeout = 180
         self.chain_state_broadcast_period = 30
