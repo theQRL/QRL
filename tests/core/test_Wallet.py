@@ -78,6 +78,7 @@ class TestWallet(TestCase):
         with set_qrl_dir("no_data"):
             wallet = Wallet()
             wallet.add_new_address(height=4)
+            wallet.save()
 
             wallet_b = Wallet()
             self.assertEqual(1, len(wallet_b.address_items))
@@ -94,6 +95,8 @@ class TestWallet(TestCase):
         with set_qrl_dir("no_data"):
             wallet = Wallet()
             xmss = wallet.add_new_address(height=4, hash_function="sha2_256")
+            wallet.save()
+
             self.assertEqual("sha2_256", xmss.hash_function)
 
             wallet_reloaded = Wallet()
@@ -103,6 +106,7 @@ class TestWallet(TestCase):
         with set_qrl_dir("no_data"):
             wallet = Wallet()
             wallet.add_new_address(height=4)
+            wallet.save()
 
             wallet_b = Wallet()
 

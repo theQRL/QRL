@@ -280,6 +280,7 @@ def wallet_gen(ctx, height, hash_function):
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     if len(wallet.address_items) == 0:
         wallet.add_new_address(height, hash_function)
+        wallet.save()
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
         # FIXME: !!!!!
@@ -302,6 +303,7 @@ def wallet_add(ctx, height, hash_function):
 
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     wallet.add_new_address(height, hash_function)
+    wallet.save()
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
@@ -344,6 +346,7 @@ def wallet_recover(ctx, seed_type):
     if click.confirm('Do you want to save the recovered wallet?'):
         click.echo('Saving...')
         walletObj.append_xmss(recovered_xmss)
+        walletObj.save()
         click.echo('Done')
         _print_addresses(ctx, walletObj.address_items, config.user.wallet_dir)
 

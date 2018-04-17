@@ -187,7 +187,6 @@ class Wallet:
         if xmss:
             tmp_item = self._get_address_item_from_xmss(xmss)
             self._address_items.append(tmp_item)
-            self.save_wallet(self.wallet_path)
 
     def add_new_address(self, height, hash_function="shake128"):
         tmp_xmss = XMSS.from_height(height, hash_function)
