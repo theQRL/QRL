@@ -54,7 +54,7 @@ class P2PFactory(ServerFactory):
 
         self.peer_blockheight = dict()
 
-        reactor.callLater(180, self.monitor_connections)
+        reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)
 
         self.p2p_msg_priority = {
             qrllegacy_pb2.LegacyMessage.VE: 0,
@@ -510,7 +510,7 @@ class P2PFactory(ServerFactory):
         self._synced_peers_protocol.discard(conn_protocol)
 
     def monitor_connections(self):
-        reactor.callLater(180, self.monitor_connections)
+        reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)
 
         if len(self._peer_connections) == 0:
             logger.warning('No Connected Peer Found')
