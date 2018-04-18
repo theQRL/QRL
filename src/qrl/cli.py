@@ -198,6 +198,7 @@ def _parse_qaddress(qaddress: str) -> bytes:
     :param qaddress:
     :return:
     """
+
     return _parse_hexblob(qaddress[1:])
 
 
@@ -268,7 +269,8 @@ def wallet_ls(ctx):
 @click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
               help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
                    'is found cryptographically vulnerable in the future.')
-def wallet_gen(ctx, height, hash_function):
+@click.option('--encrypt', default=False, is_flag=True, help='Encrypts important fields with AES')
+def wallet_gen(ctx, height, hash_function, encrypt):
     """
     Generates a new wallet with one address
     """
@@ -276,15 +278,20 @@ def wallet_gen(ctx, height, hash_function):
         click.echo('This command is unsupported for remote wallets')
         return
 
-    # FIXME: If the wallet is there, it should fail
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
-    if len(wallet.address_items) == 0:
-        wallet.add_new_address(height, hash_function)
-        wallet.save()
-        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
-    else:
-        # FIXME: !!!!!
+    if len(wallet.address_items) > 0:
         click.echo("Wallet already exists")
+        return
+
+    wallet.add_new_address(height, hash_function)
+
+    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+
+    if encrypt:
+        secret = click.prompt('Enter password to encrypt address with', hide_input=True, confirmation_prompt=True)
+        wallet.encrypt(secret)
+
+    wallet.save()
 
 
 @qrl.command()
@@ -292,8 +299,9 @@ def wallet_gen(ctx, height, hash_function):
 @click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
               help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
                    'is found cryptographically vulnerable in the future.')
+@click.option('--encrypt', default=False, is_flag=True, help='Encrypts important fields with AES')
 @click.pass_context
-def wallet_add(ctx, height, hash_function):
+def wallet_add(ctx, height, hash_function, encrypt):
     """
     Adds an address or generates a new wallet (working directory)
     """
@@ -303,8 +311,14 @@ def wallet_add(ctx, height, hash_function):
 
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     wallet.add_new_address(height, hash_function)
-    wallet.save()
+
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+
+    if encrypt:
+        secret = click.prompt('Enter password to encrypt address with', hide_input=True, confirmation_prompt=True)
+        wallet.encrypt(secret)
+
+    wallet.save()
 
 
 @qrl.command()

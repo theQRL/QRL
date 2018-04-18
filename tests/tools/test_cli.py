@@ -70,6 +70,11 @@ class TestCLI_Wallet_Gen(TestCase):
         result = self.runner.invoke(qrl_cli, ["--json", "wallet_gen", "--height=4"])
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
 
+    def test_wallet_gen_encrypt(self):
+        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--encrypt"], input='password\npassword\n')
+        wallet = open_wallet()
+        self.assertTrue(wallet[0]["encrypted"])
+
 
 @mock.patch('qrl.cli.grpc.insecure_channel', new=mock.MagicMock())
 class TestCLI(TestCase):
@@ -115,6 +120,11 @@ class TestCLI(TestCase):
         wallet = open_wallet()
         self.assertIn(wallet[1]["address"], result.output)
         self.assertEqual(wallet[1]["height"], 4)
+
+    def test_wallet_add_encrypt(self):
+        self.runner.invoke(qrl_cli, ["wallet_add", "--height=4", "--encrypt"], input='password\npassword\n')
+        wallet = open_wallet()
+        self.assertTrue(wallet[1]["encrypted"])
 
     def test_wallet_add_different_hash_function(self):
         self.runner.invoke(qrl_cli, ["wallet_add", "--height=4", "--hash_function=shake256"])
