@@ -1,8 +1,10 @@
 
 [![PyPI version](https://badge.fury.io/py/qrl.svg)](https://badge.fury.io/py/qrl)
+
 [![CircleCI](https://circleci.com/gh/theQRL/QRL.svg?style=shield)](https://circleci.com/gh/theQRL/QRL)
 [![Build Status](https://travis-ci.org/theQRL/QRL.svg?branch=master)](https://travis-ci.org/theQRL/QRL) 
 [![CircleCI](https://img.shields.io/circleci/project/github/theQRL/integration_tests/master.svg?label=integration)](https://circleci.com/gh/theQRL/integration_tests)
+
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/37ffe8d11be94eb5aeb5d29379dd3543)](https://www.codacy.com/app/jleni/QRL?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=theQRL/QRL&amp;utm_campaign=Badge_Coverage) 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/37ffe8d11be94eb5aeb5d29379dd3543)](https://www.codacy.com/app/jleni/QRL?utm_source=github.com&utm_medium=referral&utm_content=theQRL/QRL&utm_campaign=badger) [![codebeat badge](https://codebeat.co/badges/9a0c8cad-bfa0-4ea7-89bf-bcb80859ce43)](https://codebeat.co/projects/github-com-theqrl-qrl-master)
 [![Snyk Vulnerability Analysis](https://snyk.io/test/github/theQRL/QRL/badge.svg)](https://snyk.io/test/github/theQRL/QRL)
