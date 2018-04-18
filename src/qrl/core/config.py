@@ -163,7 +163,6 @@ class DevConfig(object):
         DevConfig.__instance = self
 
         self.version = version
-        self.required_version = '0.0.'
         self.genesis_prev_headerhash = b'Excession'
 
         ################################################################
