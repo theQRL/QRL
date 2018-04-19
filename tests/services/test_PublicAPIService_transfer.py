@@ -27,7 +27,7 @@ class TestPublicAPI(TestCase):
 
     @set_default_balance_size()
     def test_transferCoins_get_unsigned(self):
-        with set_qrl_dir('test_wallet'):
+        with set_qrl_dir('wallet_ver1'):
             with State() as db_state:
                 p2p_factory = Mock(spec=P2PFactory)
                 p2p_factory.pow = Mock(spec=POW)
@@ -74,7 +74,7 @@ class TestPublicAPI(TestCase):
 
     @set_default_balance_size()
     def test_transferCoins_push_unsigned(self):
-        with set_qrl_dir('test_wallet'):
+        with set_qrl_dir('wallet_ver1'):
             with State() as db_state:
                 p2p_factory = Mock(spec=P2PFactory)
                 p2p_factory.pow = Mock(spec=POW)
@@ -128,7 +128,7 @@ class TestPublicAPI(TestCase):
 
     @set_default_balance_size()
     def test_transferCoins_sign(self):
-        with set_qrl_dir('test_wallet'):
+        with set_qrl_dir('wallet_ver1'):
             with State() as db_state:
                 p2p_factory = Mock(spec=P2PFactory)
                 p2p_factory.pow = Mock(spec=POW)

@@ -1,0 +1,16 @@
+{
+  "addresses": [
+    {
+      "address": "Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f",
+      "pk": null,
+      "hexseed": "2d7mAGSaH80GdtdVacUpKETU0ioAPl50eKC11535WviowD6mzQfkPaXTDP5nsoSz14xQYa87ZHIyM5TSgeXXqtLGqDPxvuQXdX9fqtD20A7WxNPHSf/hEjfXHYkdSAl+xNYTsLubvMfiKszAU+nBTsimC55r5w==",
+      "mnemonic": "FHpTZkPTXKT0nLfwsTrlDA7rRQgT1f+MJAXcRq9ITRndWpTvf+M6I0DaXwWRxPI0dn4Lt2r1SUkgD71rUlFNi/M5B05AkwfOGiCiF2PIHpUxhj9uq2fVTjDbx0FqjgKrv8uDuSHUZE91IXdt7Itn+l7LArrDTSUsiKZy23nOM7awAEu8o/J2VEt3DShYQMHxmUIv6HGz0TO8j4ExZKTUOe0ORYtTZ+avrlK5AokdGzBpAMZCD2P4nrAp9UGLUOuXENmYHLyteyAAQmzKT95SiiGx3KECccbvDg==",
+      "height": 8,
+      "hashFunction": null,
+      "signatureType": null,
+      "index": 0
+    }
+  ],
+  "encrypted": true,
+  "version": 1
+}
