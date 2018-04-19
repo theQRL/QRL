@@ -230,7 +230,7 @@ class P2PFactory(ServerFactory):
         return self._syncing_enabled
 
     def is_syncing_finished(self, force_finish=False):
-        curr_index = self._last_requested_block_idx - self._target_node_header_hash.block_number + 1
+        curr_index = self._last_requested_block_idx - self._target_node_header_hash.block_number
         if curr_index == len(self._target_node_header_hash.headerhashes) or force_finish:
             self._last_requested_block_idx = None
             self._target_node_header_hash = None
