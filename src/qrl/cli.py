@@ -153,6 +153,10 @@ def _select_wallet(ctx, src):
             click.echo('This command requires a local wallet')
             return
 
+        if wallet.encrypted:
+            secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
+            wallet.decrypt(secret)
+
         if src.isdigit():
             src = int(src)
             try:
@@ -288,7 +292,7 @@ def wallet_gen(ctx, height, hash_function, encrypt):
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
     if encrypt:
-        secret = click.prompt('Enter password to encrypt address with', hide_input=True, confirmation_prompt=True)
+        secret = click.prompt('Enter password to encrypt wallet with', hide_input=True, confirmation_prompt=True)
         wallet.encrypt(secret)
 
     wallet.save()
@@ -299,9 +303,8 @@ def wallet_gen(ctx, height, hash_function, encrypt):
 @click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
               help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
                    'is found cryptographically vulnerable in the future.')
-@click.option('--encrypt', default=False, is_flag=True, help='Encrypts important fields with AES')
 @click.pass_context
-def wallet_add(ctx, height, hash_function, encrypt):
+def wallet_add(ctx, height, hash_function):
     """
     Adds an address or generates a new wallet (working directory)
     """
@@ -310,12 +313,16 @@ def wallet_add(ctx, height, hash_function, encrypt):
         return
 
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet_was_encrypted = wallet.encrypted
+    if wallet.encrypted:
+        secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
+        wallet.decrypt(secret)
+
     wallet.add_new_address(height, hash_function)
 
     _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
-    if encrypt:
-        secret = click.prompt('Enter password to encrypt address with', hide_input=True, confirmation_prompt=True)
+    if wallet_was_encrypted:
         wallet.encrypt(secret)
 
     wallet.save()
@@ -350,6 +357,7 @@ def wallet_recover(ctx, seed_type):
         bin_seed = hstr2bin(seed)
 
     walletObj = Wallet(wallet_path=ctx.obj.wallet_path)
+
     recovered_xmss = XMSS.from_extended_seed(bin_seed)
     print('Recovered Wallet Address : %s' % (Wallet._get_Qaddress(recovered_xmss.address),))
     for addr in walletObj.address_items:
@@ -377,6 +385,9 @@ def wallet_secret(ctx, wallet_idx):
         return
 
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    if wallet.encrypted:
+        secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
+        wallet.decrypt(secret)
 
     if 0 <= wallet_idx < len(wallet.address_items):
         address_item = wallet.address_items[wallet_idx]
@@ -418,6 +429,28 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
     else:
         click.echo('Wallet index not found', color='yellow')
+
+
+@qrl.command()
+@click.pass_context
+def wallet_encrypt(ctx):
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    click.echo('Encrypting wallet at {}'.format(wallet.wallet_path))
+
+    secret = click.prompt('Enter password', hide_input=True, confirmation_prompt=True)
+    wallet.encrypt(secret)
+    wallet.save()
+
+
+@qrl.command()
+@click.pass_context
+def wallet_decrypt(ctx):
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    click.echo('Decrypting wallet at {}'.format(wallet.wallet_path))
+
+    secret = click.prompt('Enter password', hide_input=True, confirmation_prompt=True)
+    wallet.decrypt(secret)
+    wallet.save()
 
 
 @qrl.command()

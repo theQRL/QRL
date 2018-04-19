@@ -121,8 +121,9 @@ class TestCLI(TestCase):
         self.assertIn(wallet["addresses"][1]["address"], result.output)
         self.assertEqual(wallet["addresses"][1]["height"], 4)
 
-    def test_wallet_add_encrypt(self):
-        self.runner.invoke(qrl_cli, ["wallet_add", "--height=4", "--encrypt"], input='password\npassword\n')
+    def test_wallet_add_inherit_encryption_status(self):
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"], input='password\n')
         wallet = open_wallet()
         self.assertTrue(wallet["encrypted"])
 
@@ -183,6 +184,14 @@ class TestCLI(TestCase):
     def test_wallet_secret(self):
         wallet = open_wallet()
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"])
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
+        self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
+
+    def test_wallet_secret_encrypted(self):
+        wallet = open_wallet()
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
         self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
@@ -650,6 +659,35 @@ class TestCLI(TestCase):
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
                                               "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('a fake pushTransactionResp', result.output.strip())
+
+    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
+    def test_tx_transfer_encrypted_wallet(self, mock_stub):
+        tx_pbdata_serialized_to_string = b"\n\x02\\n\x1aC\x01\x02\x00\x80\x9dg/U\xb1N\xf2_\x0e~j%\xb2\x15\x05\xa7y\x19\x8f\xc0>\x05`\x90\xe3>\xaa\x9a(\xd3\xc7U\x91\xbab\x90{\xaa^\xadQ\xca\xbf\xd3\xbc\xd9\x93\xf0:D\xca\xd8v\x97\x08\xa8x\x9c-\n4\xd6e:,\n'\x01\x06\x00\x95O\x16\xafx\xe3\x94Y\rc\x7f\x10D\xcd\x9f\xaf<\xc7\xf4\xa2\x93f\xaa\r\x8c\xa3 \xe40\x0bZ\xfe\xb0xy\xbb\x12\x01\x00"  # noqa
+        mock_tx = qrl_pb2.Transaction()
+        mock_tx.ParseFromString(tx_pbdata_serialized_to_string)
+
+        m_transferCoinsResp = mock.MagicMock(name='a fake transferCoinsResp')
+        m_transferCoinsResp.extended_transaction_unsigned.tx = mock_tx
+
+        m_pushTransactionResp = mock.MagicMock(name='a fake pushTransactionResp', error_code=3)
+
+        attrs = {
+            "name": "my fake stub",
+            "TransferCoins.return_value": m_transferCoinsResp,
+            "PushTransaction.return_value": m_pushTransactionResp
+        }
+        mock_stub_instance = mock.MagicMock(**attrs)
+
+        mock_stub.name = 'a fake qrl_pb2_grpc.PublicAPIStub'
+        mock_stub.return_value = mock_stub_instance
+
+        # Simplest use case
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
+                                              "--amounts=1", "--fee=0", "--ots_key_index=0"],
+                                    input='password\n')
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
