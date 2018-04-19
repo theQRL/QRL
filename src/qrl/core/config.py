@@ -255,6 +255,7 @@ class DevConfig(object):
         self.max_receivable_bytes = 10 * 1024 * 1024           # 10 MB [Temporary Restriction]
         self.reserved_quota = 1024                             # 1 KB
         self.max_bytes_out = self.max_receivable_bytes - self.reserved_quota
+        self.sync_delay_mining = 60  # Delay mining by 60 seconds while syncing blocks to mainchain
 
         # ======================================
         #            API SETTINGS
