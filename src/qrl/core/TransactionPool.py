@@ -4,7 +4,10 @@
 
 import heapq
 
+from pyqrllib.pyqrllib import bin2hstr
+
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.Transaction import Transaction
 from qrl.core.TransactionInfo import TransactionInfo
@@ -109,6 +112,18 @@ class TransactionPool:
                     i += 1
 
         heapq.heapify(self.transaction_pool)
+
+    def add_tx_from_block_to_pool(self, block: Block):
+        """
+        Move all transactions from block to transaction pool.
+        :param block:
+        :return:
+        """
+        for protobuf_tx in block.transactions[1:]:
+            if not self.add_tx_to_pool(Transaction.from_pbdata(protobuf_tx)):
+                logger.warning('Failed to Add transaction into transaction pool')
+                logger.warning('Block #%s %s', block.block_number, bin2hstr(block.headerhash))
+                return
 
     def check_stale_txn(self):
         i = 0

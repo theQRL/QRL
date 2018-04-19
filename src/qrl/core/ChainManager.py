@@ -262,8 +262,7 @@ class ChainManager:
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
             tx.revert_state_changes(addresses_state, self.state)
 
-        # TODO: Move txn from block to pool
-        # self.tx_pool.add_tx_in_block_from_pool(block)
+        self.tx_pool.add_tx_from_block_to_pool(block)
         self.state.update_mainchain_height(block.block_number - 1, batch)
         self.state.rollback_tx_metadata(block, batch)
         self.state.remove_blocknumber_mapping(block.block_number, batch)
