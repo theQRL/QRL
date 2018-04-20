@@ -54,7 +54,7 @@ class UserConfig(object):
         self.pending_transaction_pool_size = 75000
         # 1% of the pending_transaction_pool will be reserved for moving stale txn
         self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
-        self.stale_transaction_threshold = 60 * 10  # 10 minutes
+        self.stale_transaction_threshold = 15  # 15 Blocks
 
         self._qrl_dir = expanduser(os.path.join("~/.qrl"))
 

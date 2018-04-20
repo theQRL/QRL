@@ -235,7 +235,7 @@ class TestPublicAPI(TestCase):
             xmss_pk=sha256(b'pk'),
             master_addr=qrladdress('SOME_ADDR1'))
 
-        chain_manager.tx_pool.transaction_pool = [(0, TransactionInfo(tx1))]
+        chain_manager.tx_pool.transaction_pool = [(0, TransactionInfo(tx1, 0))]
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetObjectReq()
