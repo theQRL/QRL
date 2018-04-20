@@ -730,6 +730,14 @@ class TokenTransaction(Transaction):
             logger.warning('Expected Name length %s', config.dev.max_token_name_length)
             return False
 
+        if len(self.symbol) == 0:
+            logger.warning('Missing Token Symbol')
+            return False
+
+        if len(self.name) == 0:
+            logger.warning('Missing Token Name')
+            return False
+
         if len(self.initial_balances) == 0:
             logger.warning('Invalid Token Transaction, without any initial balance')
             return False
