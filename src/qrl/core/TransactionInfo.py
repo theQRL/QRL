@@ -4,32 +4,35 @@
 
 from qrl.core import config
 from qrl.core.Transaction import Transaction
-from qrl.core.misc import ntp
 
 
 class TransactionInfo:
 
-    def __init__(self, tx: Transaction):
+    def __init__(self, tx: Transaction, block_number: int):
         self._transaction = tx
-        self._timestamp = ntp.getTime()
+        self._block_number = block_number
 
     @property
     def transaction(self):
         return self._transaction
 
     @property
-    def timestamp(self):
-        return self._timestamp
+    def block_number(self):
+        return self._block_number
 
-    @property
-    def is_stale(self):
-        if self.timestamp + config.user.stale_transaction_threshold < ntp.getTime():
+    def is_stale(self, current_block_number: int):
+        if current_block_number > self._block_number + config.user.stale_transaction_threshold:
             return True
+
+        # If chain recovered from a fork where chain height is reduced
+        # then update block_number of the transactions in pool
+        if current_block_number < self._block_number:
+            self.update_block_number(current_block_number)
 
         return False
 
-    def update_timestamp(self):
-        self._timestamp = ntp.getTime()
+    def update_block_number(self, current_block_number: int):
+        self._block_number = current_block_number
 
     def __lt__(self, tx_info):
         if self.transaction.fee < tx_info.transaction.fee:

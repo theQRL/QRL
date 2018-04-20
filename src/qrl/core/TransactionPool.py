@@ -67,16 +67,16 @@ class TransactionPool:
 
         # Since its a min heap giving priority to lower number
         # So -1 multiplied to give higher priority to higher txn
-        heapq.heappush(self.pending_tx_pool, [tx.fee * -1, TransactionInfo(tx), ip])
+        heapq.heappush(self.pending_tx_pool, [tx.fee * -1, TransactionInfo(tx, -1), ip])
         self.pending_tx_pool_hash.add(tx.txhash)
 
         return True
 
-    def add_tx_to_pool(self, tx_class_obj) -> bool:
+    def add_tx_to_pool(self, tx_class_obj, block_number) -> bool:
         if self.is_full_transaction_pool():
             return False
 
-        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj)])
+        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj, block_number)])
         return True
 
     def get_tx_index_from_pool(self, txhash):
@@ -113,24 +113,24 @@ class TransactionPool:
 
         heapq.heapify(self.transaction_pool)
 
-    def add_tx_from_block_to_pool(self, block: Block):
+    def add_tx_from_block_to_pool(self, block: Block, current_block_number):
         """
         Move all transactions from block to transaction pool.
         :param block:
         :return:
         """
         for protobuf_tx in block.transactions[1:]:
-            if not self.add_tx_to_pool(Transaction.from_pbdata(protobuf_tx)):
+            if not self.add_tx_to_pool(Transaction.from_pbdata(protobuf_tx), current_block_number):
                 logger.warning('Failed to Add transaction into transaction pool')
                 logger.warning('Block #%s %s', block.block_number, bin2hstr(block.headerhash))
                 return
 
-    def check_stale_txn(self):
+    def check_stale_txn(self, current_block_number):
         i = 0
         while i < len(self.transaction_pool):
             tx_info = self.transaction_pool[i][1]
-            if tx_info.is_stale:
-                tx_info.update_timestamp()
+            if tx_info.is_stale(current_block_number):
+                tx_info.update_block_number(current_block_number)
                 self.broadcast_tx(tx_info.transaction)
                 continue
             i += 1

@@ -49,7 +49,7 @@ class TxnProcessor:
             return False
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
-        self.transaction_pool_obj.add_tx_to_pool(tx)
+        self.transaction_pool_obj.add_tx_to_pool(tx, self.state.last_block.block_number)
         self.broadcast_tx(tx)
 
         return True

@@ -239,13 +239,13 @@ class ChainManager:
 
             if new_block_difficulty > last_block_difficulty:
                 if self.last_block.headerhash != block.prev_headerhash:
-                    self.rollback(rollback_headerhash, hash_path)
+                    self.rollback(rollback_headerhash, hash_path, block.block_number)
 
                 self.state.put_addresses_state(address_txn)
                 self.last_block = block
                 self._update_mainchain(block, batch)
                 self.tx_pool.remove_tx_in_block_from_pool(block)
-                self.tx_pool.check_stale_txn()
+                self.tx_pool.check_stale_txn(block.block_number)
                 self.state.update_mainchain_height(block.block_number, batch)
                 self.state.update_tx_metadata(block, batch)
 
@@ -255,22 +255,22 @@ class ChainManager:
 
         return False
 
-    def remove_block_from_mainchain(self, block: Block, batch):
+    def remove_block_from_mainchain(self, block: Block, latest_block_number: int, batch):
         addresses_set = self.state.prepare_address_list(block)
         addresses_state = self.state.get_state_mainchain(addresses_set)
         for tx_idx in range(len(block.transactions) - 1, 0, -1):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
             tx.revert_state_changes(addresses_state, self.state)
 
-        self.tx_pool.add_tx_from_block_to_pool(block)
+        self.tx_pool.add_tx_from_block_to_pool(block, latest_block_number)
         self.state.update_mainchain_height(block.block_number - 1, batch)
         self.state.rollback_tx_metadata(block, batch)
         self.state.remove_blocknumber_mapping(block.block_number, batch)
         self.state.put_addresses_state(addresses_state, batch)
 
-    def rollback(self, rollback_headerhash, hash_path):
+    def rollback(self, rollback_headerhash, hash_path, latest_block_number):
         while self.last_block.headerhash != rollback_headerhash:
-            self.remove_block_from_mainchain(self.last_block, None)
+            self.remove_block_from_mainchain(self.last_block, latest_block_number, None)
             self.last_block = self.state.get_block(self.last_block.prev_headerhash)
 
         for header_hash in hash_path[-1::-1]:
