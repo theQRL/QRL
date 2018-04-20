@@ -153,7 +153,7 @@ class Miner(Qryptominer):
         return block
 
     def get_block_to_mine(self, wallet_address, tx_pool, last_block, last_block_difficulty) -> list:
-        mining_address = bytes(hstr2bin(wallet_address[1:]))
+        mining_address = bytes(hstr2bin(wallet_address[1:].decode()))
         if self._mining_block:
             if last_block.headerhash == self._mining_block.prev_headerhash:
                 if self._mining_block.transactions[0].coinbase.addr_to == mining_address:
