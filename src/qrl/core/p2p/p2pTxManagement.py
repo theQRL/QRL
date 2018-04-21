@@ -48,7 +48,7 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
-            if len(source.factory._chain_manager.tx_pool.pending_tx_pool) >= config.dev.transaction_pool_size:
+            if len(source.factory._chain_manager.tx_pool.pending_tx_pool) >= config.user.transaction_pool_size:
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
