@@ -293,7 +293,7 @@ class TestPublicAPI(TestCase):
                                             amounts=[1000 + j],
                                             fee=j,
                                             xmss_pk=get_alice_xmss().pk)
-            txpool.append((tx.fee, tx))
+            txpool.append((tx.fee, TransactionInfo(tx, 0)))
 
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)
