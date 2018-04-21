@@ -175,7 +175,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def validate_transaction_pool(self, transaction_pool):
         for tx_set in transaction_pool:
-            txn = tx_set[1]
+            txn = tx_set[1].transaction
             if txn.txhash == self.txhash:
                 continue
 
