@@ -12,6 +12,12 @@ class TransactionInfo:
         self._transaction = tx
         self._block_number = block_number
 
+    def __lt__(self, tx_info):
+        if self.transaction.fee < tx_info.transaction.fee:
+            return True
+
+        return False
+
     @property
     def transaction(self):
         return self._transaction
@@ -33,9 +39,3 @@ class TransactionInfo:
 
     def update_block_number(self, current_block_number: int):
         self._block_number = current_block_number
-
-    def __lt__(self, tx_info):
-        if self.transaction.fee < tx_info.transaction.fee:
-            return True
-
-        return False
