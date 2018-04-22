@@ -43,7 +43,7 @@ class TestBlock(TestCase):
         mining_blob = block.mining_blob
         self.assertEqual(len(mining_blob), config.dev.mining_blob_size)
         mining_nonce_bytes = mining_blob[config.dev.mining_nonce_offset:config.dev.mining_nonce_offset + 4]
-        extra_nonce_bytes = mining_blob[config.dev.extra_nonce_offset:config.dev.extra_nonce_offset + 8]
+        extra_nonce_bytes = mining_blob[config.dev.extra_nonce_offset:config.dev.extra_nonce_offset + 4]
 
         mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
         extra_nonce = int.from_bytes(extra_nonce_bytes, byteorder='big', signed=False)
