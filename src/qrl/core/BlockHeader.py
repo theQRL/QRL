@@ -86,8 +86,8 @@ class BlockHeader(object):
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
 
-        # reduce mining blob: 1 byte zero + 4 bytes nonce + 4 bytes extra_nonce (9 bytes)
-        blob = bytes(shake128(config.dev.mining_blob_size - 9, blob))
+        # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool (13 bytes)
+        blob = bytes(shake128(config.dev.mining_blob_size - 13, blob))
 
         zero = 0
         blob = zero.to_bytes(1, byteorder='big', signed=False) + blob
@@ -97,7 +97,7 @@ class BlockHeader(object):
 
         # Now insert mining nonce and extra nonce in offset 39 for compatibility
         mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False) \
-            + self.extra_nonce.to_bytes(4, byteorder='big', signed=False)
+            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False)
 
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
 
@@ -161,7 +161,7 @@ class BlockHeader(object):
         mining_nonce_bytes = blob[self.nonce_offset: self.nonce_offset + 4]
         mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
 
-        extra_nonce_bytes = blob[self.extra_nonce_offset: self.extra_nonce_offset + 4]
+        extra_nonce_bytes = blob[self.extra_nonce_offset: self.extra_nonce_offset + 8]
         extra_nonce = int.from_bytes(extra_nonce_bytes, byteorder='big', signed=False)
 
         self.set_nonces(mining_nonce, extra_nonce)
@@ -238,10 +238,10 @@ class BlockHeader(object):
 
     def verify_blob(self, blob: bytes) -> bool:
         mining_nonce_offset = config.dev.mining_nonce_offset
-        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 8:]
+        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 12:]
 
         actual_blob = self.mining_blob
-        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 8:]
+        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 12:]
 
         if blob != actual_blob:
             return False
