@@ -57,7 +57,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(2, 0)
+                    block_1.set_nonces(129, 0)
                     from pyqrllib.pyqrllib import bin2hstr
                     print(bin2hstr(block.headerhash))
                     # Uncomment only to determine the correct mining_nonce of above blocks
@@ -110,7 +110,7 @@ class TestChainManager(TestCase):
                                            prevblock_headerhash=genesis_block.headerhash,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(75, 0)
+                    block_1.set_nonces(326, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -195,7 +195,7 @@ class TestChainManager(TestCase):
                                          transactions=[],
                                          miner_address=bob_xmss.address)
 
-                    block.set_nonces(2, 0)
+                    block.set_nonces(5, 0)
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
                     # while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
@@ -261,7 +261,7 @@ class TestChainManager(TestCase):
                                                prevblock_headerhash=genesis_block.headerhash,
                                                transactions=[],
                                                miner_address=alice_xmss.address)
-                        block_1.set_nonces(135, 0)
+                        block_1.set_nonces(19, 0)
                         # Uncomment only to determine the correct mining_nonce of above blocks
                         # from qrl.core.PoWValidator import PoWValidator
                         # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
@@ -280,7 +280,7 @@ class TestChainManager(TestCase):
                                              prevblock_headerhash=genesis_block.headerhash,
                                              transactions=[],
                                              miner_address=bob_xmss.address)
-                        block.set_nonces(120, 0)
+                        block.set_nonces(107, 0)
 
                         # Uncomment only to determine the correct mining_nonce of above blocks
                         # from qrl.core.PoWValidator import PoWValidator
