@@ -18,13 +18,24 @@ AddressItem = namedtuple('AddressItem',
                          'qaddress pk hexseed mnemonic height hashFunction signatureType index encrypted')
 
 
+class WalletEncryptionError(Exception):
+    pass
+
+
+class WalletVersionError(Exception):
+    pass
+
+
 class Wallet:
     def __init__(self, wallet_path=None):
         if wallet_path is None:
             wallet_path = self.get_default_wallet_path()
 
         self.wallet_path = wallet_path
-        self._address_items = self._read_wallet(self.wallet_path)
+        self._address_items = []
+        self.version = 1
+
+        self.load()
 
     @staticmethod
     def get_default_wallet_path() -> str:
@@ -47,6 +58,17 @@ class Wallet:
         :return:
         """
         return [bytes(hstr2bin(item.qaddress[1:])) for item in self._address_items]
+
+    @property
+    def encrypted(self) -> bool:
+        if len(self.address_items) == 0:
+            return False
+        return all([item.encrypted for item in self.address_items])
+
+    @property
+    def encrypted_partially(self) -> bool:
+        # FIXME: slow, makes 2 passes over address_items.
+        return any([item.encrypted for item in self.address_items]) and not self.encrypted
 
     @functools.lru_cache(maxsize=20)
     def get_xmss_by_index(self, idx) -> Optional[XMSS]:
@@ -100,13 +122,6 @@ class Wallet:
             encrypted=False
         )
 
-    @staticmethod
-    def _get_address_item_from_json(addr_json: dict) -> AddressItem:
-        # address -> qaddress for webwallet compatibility
-        addr_json["qaddress"] = addr_json.pop("address")
-
-        return AddressItem(**addr_json)
-
     def get_xmss_by_address(self, search_addr) -> Optional[XMSS]:
         search_addr_str = self._get_Qaddress(search_addr)
         for idx, item in enumerate(self._address_items):
@@ -123,73 +138,129 @@ class Wallet:
         """
         return True
 
-    def _read_wallet(self, filename) -> List[AddressItem]:
-        answer = []
-
-        if not os.path.isfile(filename):
-            return answer
+    def _read_wallet_ver0(self, filename) -> None:
+        def get_address_item_from_json(addr_json: dict) -> AddressItem:
+            # address -> qaddress for webwallet compatibility
+            addr_json["qaddress"] = addr_json.pop("address")
+            return AddressItem(**addr_json)
 
         try:
             with open(filename, "rb") as infile:
                 data = simplejson.loads(infile.read())
-                answer = [self._get_address_item_from_json(d) for d in data]
+                answer = [get_address_item_from_json(d) for d in data]
+            self._address_items = answer
+            self.version = 0
+        except FileNotFoundError:
+            return
 
-        except Exception as e:
-            logger.warning("ReadWallet: %s", e)
+    def _read_wallet_ver1(self, filename) -> None:
+        def get_address_item_from_json(addr_json: dict, encrypted: bool) -> AddressItem:
+            # address -> qaddress for webwallet compatibility
+            addr_json["qaddress"] = addr_json.pop("address")
+            return AddressItem(encrypted=encrypted, **addr_json)
 
-        return answer
+        try:
+            with open(filename, "rb") as infile:
+                data = simplejson.loads(infile.read())
+                answer = [get_address_item_from_json(d, data["encrypted"]) for d in data["addresses"]]
+            self._address_items = answer
+            self.version = 1
+        except FileNotFoundError:
+            return
 
     def save_wallet(self, filename):
         with open(filename, "wb") as outfile:
-            # qaddress -> address for webwallet compatibility
             address_items_asdict = [a._asdict() for a in self._address_items]
             for a in address_items_asdict:
-                a["address"] = a.pop("qaddress")
+                a["address"] = a.pop("qaddress")  # for backwards compatibility with webwallet
+                a.pop('encrypted')  # ver1 wallet AddressItems do not have encrypted field.
 
-            data_out = simplejson.dumps(address_items_asdict).encode('ascii')
+            output = {
+                "addresses": address_items_asdict,
+                "encrypted": self.encrypted,
+                "version": 1
+            }
+            data_out = simplejson.dumps(output).encode('ascii')
             outfile.write(data_out)
 
     def decrypt_item(self, index: int, key: str):
-        if index < len(self._address_items):
-            cipher = AESHelper(key)
-            tmp = self._address_items[index]._asdict()  # noqa
-            tmp['qaddress'] = cipher.decrypt(tmp['qaddress']).decode()
-            tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
-            tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
-            tmp['encrypted'] = False
-            self._address_items[index] = AddressItem(**tmp)
+        cipher = AESHelper(key)
+        tmp = self._address_items[index]._asdict()  # noqa
+        tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
+        tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
+        tmp['encrypted'] = False
+        self._address_items[index] = AddressItem(**tmp)
+
+    def decrypt_item_ver0(self, index: int, key: str):
+        cipher = AESHelper(key)
+        tmp = self._address_items[index]._asdict()  # noqa
+        tmp['qaddress'] = cipher.decrypt(tmp['qaddress']).decode()
+        tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
+        tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
+        tmp['encrypted'] = False
+        self._address_items[index] = AddressItem(**tmp)
 
     def encrypt_item(self, index: int, key: str):
-        if index < len(self._address_items):
-            cipher = AESHelper(key)
-            tmp = self._address_items[index]._asdict()  # noqa
-            tmp['qaddress'] = cipher.encrypt(tmp['qaddress'].encode())
-            tmp['hexseed'] = cipher.encrypt(tmp['hexseed'].encode())
-            tmp['mnemonic'] = cipher.encrypt(tmp['mnemonic'].encode())
-            tmp['encrypted'] = True
-            self._address_items[index] = AddressItem(**tmp)
+        cipher = AESHelper(key)
+        tmp = self._address_items[index]._asdict()  # noqa
+        tmp['hexseed'] = cipher.encrypt(tmp['hexseed'].encode())
+        tmp['mnemonic'] = cipher.encrypt(tmp['mnemonic'].encode())
+        tmp['encrypted'] = True
+        self._address_items[index] = AddressItem(**tmp)
 
     def decrypt(self, key: str):
+        if self.encrypted_partially:
+            raise WalletEncryptionError("Some addresses are already decrypted. Please re-encrypt all addresses before"
+                                        "running decrypt().")
+        elif not self.encrypted:
+            raise WalletEncryptionError("Wallet is already unencrypted.")
+
+        if self.version == 0:
+            decryptor = self.decrypt_item_ver0
+        elif self.version == 1:
+            decryptor = self.decrypt_item
+        else:
+            raise WalletVersionError("Wallet.decrypt() can only decrypt wallet.jsons of version 0/1")
+
         for i in range(len(self._address_items)):
-            self.decrypt_item(i, key)
+            decryptor(i, key)
 
     def encrypt(self, key: str):
+        if self.encrypted_partially:
+            raise WalletEncryptionError("Please decrypt all addresses before adding a new one to the wallet."
+                                        "This is to ensure they are all encrypted with the same key.")
+        elif self.encrypted:
+            raise WalletEncryptionError("Wallet is already encrypted.")
+
         for i in range(len(self._address_items)):
             self.encrypt_item(i, key)
 
     def save(self):
+        if self.version == 0:
+            raise WalletVersionError("Your wallet.json is version 0. Saving will transform it to version 1."
+                                     "Please decrypt your wallet before proceeding.")
+
+        if self.encrypted_partially:
+            raise WalletEncryptionError("Not all addresses are encrypted! Please ensure everything is "
+                                        "decrypted/encrypted before saving it.")
+
         self.save_wallet(self.wallet_path)
 
     def load(self):
-        self._read_wallet(self.wallet_path)
+        try:
+            self._read_wallet_ver1(self.wallet_path)
+        except TypeError:
+            logger.info("ReadWallet: reading ver1 wallet failed, this must be an old wallet")
+            self._read_wallet_ver0(self.wallet_path)
 
     def append_xmss(self, xmss):
-        if xmss:
-            tmp_item = self._get_address_item_from_xmss(xmss)
-            self._address_items.append(tmp_item)
-            self.save_wallet(self.wallet_path)
+        tmp_item = self._get_address_item_from_xmss(xmss)
+        self._address_items.append(tmp_item)
 
     def add_new_address(self, height, hash_function="shake128"):
+        if self.encrypted or self.encrypted_partially:
+            raise WalletEncryptionError("Please decrypt all addresses in this wallet before adding a new address!")
+
         tmp_xmss = XMSS.from_height(height, hash_function)
 
         self.append_xmss(tmp_xmss)

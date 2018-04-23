@@ -54,21 +54,26 @@ class TestCLI_Wallet_Gen(TestCase):
     def test_wallet_gen_default_height(self):
         self.runner.invoke(qrl_cli, ["wallet_gen"])
         wallet = open_wallet()
-        self.assertEqual(wallet[0]["height"], 12)
+        self.assertEqual(wallet["addresses"][0]["height"], 12)
 
     def test_wallet_gen_different_height(self):
         self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
         wallet = open_wallet()
-        self.assertEqual(wallet[0]["height"], 4)
+        self.assertEqual(wallet["addresses"][0]["height"], 4)
 
     def test_wallet_gen_different_hash_function(self):
         self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--hash_function=sha2_256"])
         wallet = open_wallet()
-        self.assertEqual(wallet[0]["hashFunction"], "sha2_256")
+        self.assertEqual(wallet["addresses"][0]["hashFunction"], "sha2_256")
 
     def test_wallet_gen_json(self):
         result = self.runner.invoke(qrl_cli, ["--json", "wallet_gen", "--height=4"])
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
+
+    def test_wallet_gen_encrypt(self):
+        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--encrypt"], input='password\npassword\n')
+        wallet = open_wallet()
+        self.assertTrue(wallet["encrypted"])
 
 
 @mock.patch('qrl.cli.grpc.insecure_channel', new=mock.MagicMock())
@@ -90,13 +95,13 @@ class TestCLI(TestCase):
     def test_wallet_ls(self):
         result = self.runner.invoke(qrl_cli, ["wallet_ls"])
         wallet = open_wallet()
-        self.assertIn(wallet[0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
     def test_wallet_ls_verbose(self):
         result = self.runner.invoke(qrl_cli, ["-v", "wallet_ls"])
         wallet = open_wallet()
-        self.assertIn(wallet[0]["hashFunction"], result.output)
+        self.assertIn(wallet["addresses"][0]["hashFunction"], result.output)
 
     def test_wallet_ls_empty(self):
         os.remove("wallet.json")
@@ -107,26 +112,32 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli, ["--json", "wallet_ls"])
         wallet = open_wallet()
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
-        self.assertIn(wallet[0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
     def test_wallet_add(self):
         result = self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
         wallet = open_wallet()
-        self.assertIn(wallet[1]["address"], result.output)
-        self.assertEqual(wallet[1]["height"], 4)
+        self.assertIn(wallet["addresses"][1]["address"], result.output)
+        self.assertEqual(wallet["addresses"][1]["height"], 4)
+
+    def test_wallet_add_inherit_encryption_status(self):
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"], input='password\n')
+        wallet = open_wallet()
+        self.assertTrue(wallet["encrypted"])
 
     def test_wallet_add_different_hash_function(self):
         self.runner.invoke(qrl_cli, ["wallet_add", "--height=4", "--hash_function=shake256"])
         wallet = open_wallet()
-        self.assertEqual(wallet[0]["hashFunction"], "shake128")
-        self.assertEqual(wallet[1]["hashFunction"], "shake256")
+        self.assertEqual(wallet["addresses"][0]["hashFunction"], "shake128")
+        self.assertEqual(wallet["addresses"][1]["hashFunction"], "shake256")
 
     def test_wallet_recover_hexseed(self):
         os.rename("wallet.json", "wallet_orig.json")
         wallet_orig = open_wallet("wallet_orig.json")
         self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=hexseed"],
-                           input='\n'.join([wallet_orig[0]["hexseed"], 'y']))
+                           input='\n'.join([wallet_orig["addresses"][0]["hexseed"], 'y']))
         wallet_recovered = open_wallet()
         self.assertEqual(wallet_recovered, wallet_orig)
 
@@ -134,15 +145,15 @@ class TestCLI(TestCase):
         os.rename("wallet.json", "wallet_orig.json")
         wallet_orig = open_wallet("wallet_orig.json")
         result = self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=hexseed"],
-                                    input='\n'.join([wallet_orig[0]["hexseed"] + "deadbeef", 'y']))
+                                    input='\n'.join([wallet_orig["addresses"][0]["hexseed"] + "deadbeef", 'y']))
         self.assertIn('Hexseed must be of only', result.output)
         self.assertFalse(os.path.exists("wallet.json"))
 
         # If the recovered address is already in the wallet, it should react in this way.
         self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=hexseed"],
-                           input='\n'.join([wallet_orig[0]["hexseed"], 'y']))
+                           input='\n'.join([wallet_orig["addresses"][0]["hexseed"], 'y']))
         result = self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=hexseed"],
-                                    input='\n'.join([wallet_orig[0]["hexseed"], 'y']))
+                                    input='\n'.join([wallet_orig["addresses"][0]["hexseed"], 'y']))
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Wallet Address is already in the wallet list', result.output.strip())
 
@@ -150,7 +161,7 @@ class TestCLI(TestCase):
         os.rename("wallet.json", "wallet_orig.json")
         wallet_orig = open_wallet("wallet_orig.json")
         self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=mnemonic"],
-                           input='\n'.join([wallet_orig[0]["mnemonic"], 'y']))
+                           input='\n'.join([wallet_orig["addresses"][0]["mnemonic"], 'y']))
         wallet_recovered = open_wallet()
         self.assertEqual(wallet_recovered, wallet_orig)
 
@@ -158,24 +169,32 @@ class TestCLI(TestCase):
         os.rename("wallet.json", "wallet_orig.json")
         wallet_orig = open_wallet("wallet_orig.json")
         result = self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=mnemonic"],
-                                    input='\n'.join([wallet_orig[0]["mnemonic"] + " bad", 'y']))
+                                    input='\n'.join([wallet_orig["addresses"][0]["mnemonic"] + " bad", 'y']))
         self.assertIn('Mnemonic seed must contain only 34 words', result.output)
         self.assertFalse(os.path.exists("wallet.json"))
 
         # If the recovered address is already in the wallet, it should react in this way.
         self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=mnemonic"],
-                           input='\n'.join([wallet_orig[0]["mnemonic"], 'y']))
+                           input='\n'.join([wallet_orig["addresses"][0]["mnemonic"], 'y']))
         result = self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=mnemonic"],
-                                    input='\n'.join([wallet_orig[0]["mnemonic"], 'y']))
+                                    input='\n'.join([wallet_orig["addresses"][0]["mnemonic"], 'y']))
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Wallet Address is already in the wallet list', result.output.strip())
 
     def test_wallet_secret(self):
         wallet = open_wallet()
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"])
-        self.assertIn(wallet[0]["address"], result.output)
-        self.assertIn(wallet[0]["mnemonic"], result.output)
-        self.assertIn(wallet[0]["hexseed"], result.output)
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
+        self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
+
+    def test_wallet_secret_encrypted(self):
+        wallet = open_wallet()
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
+        self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
     def test_wallet_secret_invalid_input(self):
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"])
@@ -185,7 +204,7 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
         wallet = open_wallet()
         result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=1", "--skip-confirmation"], input='y\n')
-        self.assertNotIn(wallet[1]["address"], result.output)
+        self.assertNotIn(wallet["addresses"][1]["address"], result.output)
         result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=0"], input='y\n')
         self.assertIn("No wallet found", result.output)
 
@@ -255,7 +274,7 @@ class TestCLI(TestCase):
         wallet = open_wallet()
         result = self.runner.invoke(qrl_cli,
                                     ["tx_prepare",
-                                     "--src={}".format(wallet[0]["address"]),
+                                     "--src={}".format(wallet["addresses"][0]["address"]),
                                      "--master={}".format(qaddr_1),
                                      "--dst={}".format(qaddr_2),
                                      "--amounts=0",
@@ -343,7 +362,7 @@ class TestCLI(TestCase):
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli,
                                     ["tx_prepare",
-                                     "--src={}".format(wallet[0]["address"][1:]),
+                                     "--src={}".format(wallet["addresses"][0]["address"][1:]),
                                      "--master={}".format(master),
                                      "--dst={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)),
@@ -431,7 +450,7 @@ class TestCLI(TestCase):
 
         # works with src=Qaddr as well
         wallet = open_wallet()
-        result = self.runner.invoke(qrl_cli, ["tx_sign", "--src={}".format(wallet[0]["address"]),
+        result = self.runner.invoke(qrl_cli, ["tx_sign", "--src={}".format(wallet["addresses"][0]["address"]),
                                               "--txblob={}".format(bin2hstr_unsigned_tx)])
         self.assertEqual(result.exit_code, 0)
 
@@ -468,7 +487,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         wallet = open_wallet()
-        master_address = wallet[0]["address"]
+        master_address = wallet["addresses"][0]["address"]
 
         # Simplest use case
         result = self.runner.invoke(qrl_cli, [
@@ -519,7 +538,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         wallet = open_wallet()
-        master_address = wallet[0]["address"]
+        master_address = wallet["addresses"][0]["address"]
 
         # It shouldn't allow > 100 slaves.
         result = self.runner.invoke(qrl_cli, [
@@ -622,14 +641,14 @@ class TestCLI(TestCase):
 
         # Should work with src=Qaddress as well
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src={}".format(wallet[0]["address"]), "--master=\n",
+                                    ["-r", "tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]), "--master=\n",
                                      "--dst={}".format(qaddr_1), "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
         # Master should also work with a Qaddress.
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src={}".format(wallet[0]["address"]),
+                                    ["-r", "tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
                                      "--master={}".format(qaddr_2), "--dst={}".format(qaddr_1),
                                      "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
@@ -640,6 +659,35 @@ class TestCLI(TestCase):
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
                                               "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('a fake pushTransactionResp', result.output.strip())
+
+    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
+    def test_tx_transfer_encrypted_wallet(self, mock_stub):
+        tx_pbdata_serialized_to_string = b"\n\x02\\n\x1aC\x01\x02\x00\x80\x9dg/U\xb1N\xf2_\x0e~j%\xb2\x15\x05\xa7y\x19\x8f\xc0>\x05`\x90\xe3>\xaa\x9a(\xd3\xc7U\x91\xbab\x90{\xaa^\xadQ\xca\xbf\xd3\xbc\xd9\x93\xf0:D\xca\xd8v\x97\x08\xa8x\x9c-\n4\xd6e:,\n'\x01\x06\x00\x95O\x16\xafx\xe3\x94Y\rc\x7f\x10D\xcd\x9f\xaf<\xc7\xf4\xa2\x93f\xaa\r\x8c\xa3 \xe40\x0bZ\xfe\xb0xy\xbb\x12\x01\x00"  # noqa
+        mock_tx = qrl_pb2.Transaction()
+        mock_tx.ParseFromString(tx_pbdata_serialized_to_string)
+
+        m_transferCoinsResp = mock.MagicMock(name='a fake transferCoinsResp')
+        m_transferCoinsResp.extended_transaction_unsigned.tx = mock_tx
+
+        m_pushTransactionResp = mock.MagicMock(name='a fake pushTransactionResp', error_code=3)
+
+        attrs = {
+            "name": "my fake stub",
+            "TransferCoins.return_value": m_transferCoinsResp,
+            "PushTransaction.return_value": m_pushTransactionResp
+        }
+        mock_stub_instance = mock.MagicMock(**attrs)
+
+        mock_stub.name = 'a fake qrl_pb2_grpc.PublicAPIStub'
+        mock_stub.return_value = mock_stub_instance
+
+        # Simplest use case
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
+                                              "--amounts=1", "--fee=0", "--ots_key_index=0"],
+                                    input='password\n')
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
@@ -692,7 +740,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         wallet = open_wallet()
-        owner_address = wallet[0]["address"]
+        owner_address = wallet["addresses"][0]["address"]
         typed_in_input = '\n'.join([owner_address, '100']) + '\n'
         result = self.runner.invoke(qrl_cli,
                                     ["-r", "tx_token", "--src=0", "--master=\n", "--symbol=TST", "--name=TEST",
@@ -715,7 +763,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         wallet = open_wallet()
-        owner_address = wallet[0]["address"]
+        owner_address = wallet["addresses"][0]["address"]
         typed_in_input = '\n'.join([owner_address, '100']) + '\n'
 
         # Weird token names and symbols shouldn't work

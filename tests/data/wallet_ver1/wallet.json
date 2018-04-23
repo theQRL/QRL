@@ -1,0 +1,16 @@
+{
+  "addresses": [
+    {
+      "address": "Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f",
+      "pk": null,
+      "hexseed": "010400589c3e0bf438bcdc5575c9cb367e9dbb96c7182c9ed5fd6711f832b94d1d5782b345f77d71c1f2f4fa4aa609f040b69f",
+      "mnemonic": "absorb drank fruity set aside earth sacred she junior over daisy trend rude huge blew size stem sticky baron lowest robert spicy friar clear elude knack invoke buggy volume pit plead paris drift highly",
+      "height": 8,
+      "hashFunction": null,
+      "signatureType": null,
+      "index": 0
+    }
+  ],
+  "encrypted": false,
+  "version": 1
+}

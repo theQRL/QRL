@@ -39,7 +39,7 @@ class TestEphemeral(TestCase):
 
     @mock.patch("qrl.core.DifficultyTracker.DifficultyTracker.get")
     def test_add_4(self, mock_difficulty_tracker_get):
-        with set_qrl_dir('test_wallet'):
+        with set_qrl_dir('wallet_ver1'):
             with State() as state:
                 with mocked_genesis() as custom_genesis:
                     chain_manager = ChainManager(state)
