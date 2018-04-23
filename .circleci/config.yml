@@ -12,6 +12,17 @@ jobs:
       - run: sudo pip install -U coverage codacy-coverage
       - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
 
+  test_leaks_CLI:
+    docker:
+      - image: qrledger/qrl-docker:xenial
+    steps:
+      - checkout
+      - run: pip install -U setuptools
+      - run: pip install -U -r requirements.txt
+      - run: pip install -U -r test-requirements.txt
+      - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
+      - run: python3 setup.py test --addopts "tests/tools/ --open-files --threadleak"
+
   test_leaks_other:
     docker:
       - image: qrledger/qrl-docker:xenial
@@ -51,5 +62,5 @@ workflows:
       - build
 #      - build_trusty
       - build_bionic
-
+      - test_leaks_CLI
       - test_leaks_other
