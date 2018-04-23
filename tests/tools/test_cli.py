@@ -34,6 +34,7 @@ def open_wallet(filename="wallet.json"):
         return json.load(f)
 
 
+@mock.patch('qrl.cli.grpc.insecure_channel', new=mock.MagicMock())
 class TestCLI_Wallet_Gen(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCLI_Wallet_Gen, self).__init__(*args, **kwargs)
