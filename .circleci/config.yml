@@ -21,7 +21,7 @@ jobs:
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
-      - run: python3 setup.py test --addopts "tests/tools/ --open-files --threadleak"
+      - run: python3 setup.py test --addopts "tests/tools/ --open-files --threadleak -n0"
 
   test_leaks_other:
     docker:
@@ -32,7 +32,7 @@ jobs:
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
-      - run: python3 setup.py test --addopts "--ignore=tests/tools/ --open-files --threadleak"
+      - run: python3 setup.py test --addopts "--ignore=tests/tools/ --open-files --threadleak -n0"
 
   build_trusty:
     docker:
