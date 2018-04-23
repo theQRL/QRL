@@ -9,7 +9,7 @@ from qrl.core import config
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrlmining_pb2
 from qrl.generated.qrlmining_pb2_grpc import MiningAPIServicer
-from qrl.services.grpcHelper import Grpc_exception_wrapper
+from qrl.services.grpcHelper import GrpcExceptionWrapper
 
 
 class MiningAPIService(MiningAPIServicer):
@@ -18,7 +18,7 @@ class MiningAPIService(MiningAPIServicer):
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
 
-    @Grpc_exception_wrapper(qrlmining_pb2.GetBlockMiningCompatibleResp, StatusCode.UNKNOWN)
+    @GrpcExceptionWrapper(qrlmining_pb2.GetBlockMiningCompatibleResp, StatusCode.UNKNOWN)
     def GetBlockMiningCompatible(self,
                                  request: qrlmining_pb2.GetBlockMiningCompatibleReq,
                                  context) -> qrlmining_pb2.GetBlockMiningCompatibleResp:
@@ -31,7 +31,7 @@ class MiningAPIService(MiningAPIServicer):
 
         return response
 
-    @Grpc_exception_wrapper(qrlmining_pb2.GetLastBlockHeaderResp, StatusCode.UNKNOWN)
+    @GrpcExceptionWrapper(qrlmining_pb2.GetLastBlockHeaderResp, StatusCode.UNKNOWN)
     def GetLastBlockHeader(self,
                            request: qrlmining_pb2.GetLastBlockHeaderReq,
                            context) -> qrlmining_pb2.GetLastBlockHeaderResp:
@@ -49,7 +49,7 @@ class MiningAPIService(MiningAPIServicer):
 
         return response
 
-    @Grpc_exception_wrapper(qrlmining_pb2.GetBlockToMineResp, StatusCode.UNKNOWN)
+    @GrpcExceptionWrapper(qrlmining_pb2.GetBlockToMineResp, StatusCode.UNKNOWN)
     def GetBlockToMine(self,
                        request: qrlmining_pb2.GetBlockToMineReq,
                        context) -> qrlmining_pb2.GetBlockToMineResp:
@@ -65,7 +65,7 @@ class MiningAPIService(MiningAPIServicer):
 
         return response
 
-    @Grpc_exception_wrapper(qrlmining_pb2.GetBlockToMineResp, StatusCode.UNKNOWN)
+    @GrpcExceptionWrapper(qrlmining_pb2.GetBlockToMineResp, StatusCode.UNKNOWN)
     def SubmitMinedBlock(self,
                          request: qrlmining_pb2.SubmitMinedBlockReq,
                          context) -> qrlmining_pb2.SubmitMinedBlockResp:
