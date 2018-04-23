@@ -533,6 +533,47 @@ class TestTokenTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
+    def test_validate_tx2(self):
+        initial_balances = list()
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
+                                                      amount=10000000000000000000))
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
+                                                      amount=10000000000000000000))
+        tx = TokenTransaction.create(symbol=b'QRL',
+                                     name=b'Quantum Resistant Ledger',
+                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
+                                     decimals=4,
+                                     initial_balances=initial_balances,
+                                     fee=1,
+                                     xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # Transaction Validation should fail as the decimals is higher than the possible decimals
+        with self.assertRaises(ValueError):
+            self.assertFalse(tx.validate_or_raise())
+
+    def test_validate_tx3(self):
+        initial_balances = list()
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
+                                                      amount=1000))
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
+                                                      amount=1000))
+        tx = TokenTransaction.create(symbol=b'QRL',
+                                     name=b'Quantum Resistant Ledger',
+                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
+                                     decimals=15,
+                                     initial_balances=initial_balances,
+                                     fee=1,
+                                     xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # We have not touched the tx: validation should pass.
+        self.assertTrue(tx.validate_or_raise())
+
     def test_state_validate_tx(self):
         # Test balance not enough
         # Test negative tx amounts

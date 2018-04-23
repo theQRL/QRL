@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+from math import log, floor
 from abc import ABCMeta, abstractmethod
 
 from google.protobuf.json_format import MessageToJson, Parse
@@ -80,6 +81,16 @@ class Transaction(object, metaclass=ABCMeta):
             return int(bin2hstr(signature)[0:8], 16)
         except ValueError:
             raise ValueError('OTS Key Index: First 4 bytes of signature are invalid')
+
+    @staticmethod
+    def calc_allowed_decimals(value):
+        if not isinstance(value, int):
+            raise ValueError('value should be of integer type')
+        if value == 0:
+            raise ValueError('Invalid input 0')
+
+        # floor value could be negative, so return 0 when the floor value is negative
+        return max(floor(19 - log(value, 10)), 0)
 
     @property
     def PK(self):
@@ -742,11 +753,21 @@ class TokenTransaction(Transaction):
             logger.warning('Invalid Token Transaction, without any initial balance')
             return False
 
+        sum_of_initial_balances = 0
         for initial_balance in self.initial_balances:
+            sum_of_initial_balances += initial_balance.amount
             if initial_balance.amount == 0:
                 logger.warning('Invalid Initial Amount in Token Transaction')
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
+
+        allowed_decimals = self.calc_allowed_decimals(sum_of_initial_balances)
+
+        if self.decimals > allowed_decimals:
+            logger.warning('Decimal is greater than maximum allowed decimal')
+            logger.warning('Allowed Decimal %s', allowed_decimals)
+            logger.warning('Decimals Found %s', self.decimals)
+            return False
 
         if self.fee < 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
