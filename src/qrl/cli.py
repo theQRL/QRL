@@ -271,8 +271,7 @@ def wallet_ls(ctx):
 @click.option('--height', default=config.dev.xmss_tree_height,
               help='XMSS tree height. The resulting tree will be good for 2^height signatures')
 @click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
-              help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
-                   'is found cryptographically vulnerable in the future.')
+              help='Hash function used to build the XMSS tree [default=shake128]')
 @click.option('--encrypt', default=False, is_flag=True, help='Encrypts important fields with AES')
 def wallet_gen(ctx, height, hash_function, encrypt):
     """
@@ -301,8 +300,7 @@ def wallet_gen(ctx, height, hash_function, encrypt):
 @qrl.command()
 @click.option('--height', type=int, default=config.dev.xmss_tree_height, prompt=False)
 @click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
-              help='The hash function used to build the XMSS tree. Defaults to shake128. Useful if one hashing function'
-                   'is found cryptographically vulnerable in the future.')
+              help='Hash function used to build the XMSS tree [default=shake128]')
 @click.pass_context
 def wallet_add(ctx, height, hash_function):
     """
