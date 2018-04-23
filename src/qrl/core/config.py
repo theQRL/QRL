@@ -194,7 +194,7 @@ class DevConfig(object):
         self.max_ots_tracking_index = 4096                                  #
         self.mining_nonce_offset = 39
         self.extra_nonce_offset = 43
-        self.mining_blob_size = 84
+        self.mining_blob_size = 76
 
         self.ots_bitfield_size = ceil(self.max_ots_tracking_index / 8)
 
