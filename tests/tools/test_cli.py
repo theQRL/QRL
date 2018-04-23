@@ -71,6 +71,7 @@ class TestCLI_Wallet_Gen(TestCase):
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
 
 
+@mock.patch('qrl.cli.grpc.insecure_channel', new=mock.MagicMock())
 class TestCLI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCLI, self).__init__(*args, **kwargs)
@@ -83,7 +84,6 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
 
     def tearDown(self):
-        del self.runner  # running this test suite often results in leaked pipe handles. This could mitigate that.
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
