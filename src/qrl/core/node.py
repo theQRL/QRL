@@ -69,7 +69,7 @@ class POW(ConsensusMechanism):
 
     def start(self):
         self.restart_monitor_bk(80)
-        reactor.callLater(20, self.initialize_pow)
+        reactor.callLater(1, self.initialize_pow)
 
     def _handler_state_unsynced(self):
         self.miner.cancel()
