@@ -31,8 +31,8 @@ class TestBlockHeader(TestCase):
             time_mock.return_value = 1615270948
 
             block_header = BlockHeader.create(1, sha256(b'prev'), sha256(b'txs'), 10)
-            self.assertEquals('74aa496ffe19107faaf418b720fb5b8446ba4b595c178fcf099c99b3dee99860d788c77910a9ed000000'
-                              '000000000000000000e0d022b37421b81b7bbcf5b497fb89408c05c7d713c5e1e5187b02aa9344cf83bb',
+            self.assertEquals('0074aa496ffe19107faaf418b720fb5b8446ba4b595c178fcf099c99b3dee99860d788c77910a9000000'
+                              '000000000000000000ede0d022b37421b81b7bbcf5b497fb89408c05c7d713c5e1e5187b02aa9344cf83',
                               bin2hstr(block_header.mining_blob))
             self.assertEquals(config.dev.mining_blob_size, len(block_header.mining_blob))
 
@@ -43,7 +43,7 @@ class TestBlockHeader(TestCase):
             block_header = BlockHeader.create(1, sha256(b'prev'), sha256(b'txs'), 10)
             header_hash = block_header.generate_headerhash()
 
-            self.assertEquals('584f898a54269d0651cca3403843d4cdb764e5a31655bf51db39bbf8c4883b01',
+            self.assertEquals('d41ae9dede611316d9605547e3429ae777a28ec0e39b371acf7ea938b94a4a86',
                               bin2hstr(header_hash))
 
             self.assertEquals(bin2hstr(header_hash),
@@ -61,7 +61,7 @@ class TestBlockHeader(TestCase):
 
             header_hash = block_header.generate_headerhash()
 
-            self.assertEquals('28556460d0b3b4830ef3d74fab1cd52bca25ee00d1a6396a7f053d53549f73ba',
+            self.assertEquals('8828d59f5bd3a2eae84b5d5b603d90236bc85f8edfd90adf77d64cb109f55f34',
                               bin2hstr(header_hash))
 
             self.assertEquals(bin2hstr(header_hash),

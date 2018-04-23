@@ -86,8 +86,11 @@ class BlockHeader(object):
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
 
-        # reduce mining blob considering nonce + extra_nonce (12 bytes)
-        blob = bytes(shake128(config.dev.mining_blob_size - 12, blob))
+        # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool (13 bytes)
+        blob = bytes(shake128(config.dev.mining_blob_size - 13, blob))
+
+        zero = 0
+        blob = zero.to_bytes(1, byteorder='big', signed=False) + blob
 
         if len(blob) < self.nonce_offset:
             raise Exception("Mining blob size below 39 bytes")
@@ -235,11 +238,10 @@ class BlockHeader(object):
 
     def verify_blob(self, blob: bytes) -> bool:
         mining_nonce_offset = config.dev.mining_nonce_offset
-        extra_nonce_offset = config.dev.extra_nonce_offset
-        blob = blob[:mining_nonce_offset] + blob[extra_nonce_offset + 8:]
+        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 12:]
 
         actual_blob = self.mining_blob
-        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[extra_nonce_offset + 8:]
+        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 12:]
 
         if blob != actual_blob:
             return False
