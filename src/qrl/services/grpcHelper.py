@@ -1,11 +1,12 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from grpc import StatusCode
 from qrl.core.misc import logger
 
 
-class Grpc_exception_wrapper(object):
-    def __init__(self, response_type, state_code):
+class GrpcExceptionWrapper(object):
+    def __init__(self, response_type, state_code=StatusCode.UNKNOWN):
         self.response_type = response_type
         self.state_code = state_code
 
