@@ -308,6 +308,21 @@ wrap_message_expected1 = bytearray(b'\xff\x00\x0000000027\x00{"data": 12345, "ty
 wrap_message_expected1b = bytearray(b'\xff\x00\x0000000027\x00{"type": "TESTKEY_1234", "data": 12345}\x00\x00\xff')
 
 
+class TestTransaction(TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestTransaction, self).__init__(*args, **kwargs)
+
+    def test_calc_allowed_decimals(self):
+        decimal = Transaction.calc_allowed_decimals(10000000000000000000)
+        self.assertEqual(decimal, 0)
+
+        decimal = Transaction.calc_allowed_decimals(1)
+        self.assertEqual(decimal, 19)
+
+        decimal = Transaction.calc_allowed_decimals(2)
+        self.assertEqual(decimal, 18)
+
+
 class TestSimpleTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
