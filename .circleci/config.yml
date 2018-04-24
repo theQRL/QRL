@@ -83,13 +83,54 @@ jobs:
       - run: pip install git+https://github.com/CurataEng/hypothesis-protobuf.git
       - run: pytest tests_integration/tests/python/fuzzing
 
+  deploy-pypi:
+    docker:
+      - image: qrledger/qrl-docker:xenial
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: python3 setup.py build sdist
+      - run: pip install twine
+      - run: twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
+
 workflows:
   version: 2
   build_all:
     jobs:
-      - build
-#      - build_trusty
-      - build_bionic
-      - test_leaks_CLI
-      - test_leaks_other
-      - integration_smoke
+      - build:
+          filters:
+            tags:
+              only: /.*/
+
+      - build_bionic:
+          filters:
+            tags:
+              only: /.*/
+
+      - test_leaks_CLI:
+          filters:
+            tags:
+              only: /.*/
+
+      - test_leaks_other:
+          filters:
+            tags:
+              only: /.*/
+
+      - integration_smoke:
+          filters:
+            tags:
+              only: /.*/
+
+      - deploy-pypi:
+          requires:
+            - build
+            - build_bionic
+            - test_leaks_CLI
+            - test_leaks_other
+            - integration_smoke
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*/
