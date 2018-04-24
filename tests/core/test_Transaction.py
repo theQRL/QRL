@@ -308,6 +308,21 @@ wrap_message_expected1 = bytearray(b'\xff\x00\x0000000027\x00{"data": 12345, "ty
 wrap_message_expected1b = bytearray(b'\xff\x00\x0000000027\x00{"type": "TESTKEY_1234", "data": 12345}\x00\x00\xff')
 
 
+class TestTransaction(TestCase):
+    def __init__(self, *args, **kwargs):
+        super(TestTransaction, self).__init__(*args, **kwargs)
+
+    def test_calc_allowed_decimals(self):
+        decimal = Transaction.calc_allowed_decimals(10000000000000000000)
+        self.assertEqual(decimal, 0)
+
+        decimal = Transaction.calc_allowed_decimals(1)
+        self.assertEqual(decimal, 19)
+
+        decimal = Transaction.calc_allowed_decimals(2)
+        self.assertEqual(decimal, 18)
+
+
 class TestSimpleTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -523,6 +538,47 @@ class TestTokenTransaction(TestCase):
                                      name=b'Quantum Resistant Ledger',
                                      owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
                                      decimals=4,
+                                     initial_balances=initial_balances,
+                                     fee=1,
+                                     xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # We have not touched the tx: validation should pass.
+        self.assertTrue(tx.validate_or_raise())
+
+    def test_validate_tx2(self):
+        initial_balances = list()
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
+                                                      amount=10000000000000000000))
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
+                                                      amount=10000000000000000000))
+        tx = TokenTransaction.create(symbol=b'QRL',
+                                     name=b'Quantum Resistant Ledger',
+                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
+                                     decimals=4,
+                                     initial_balances=initial_balances,
+                                     fee=1,
+                                     xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # Transaction Validation should fail as the decimals is higher than the possible decimals
+        with self.assertRaises(ValueError):
+            self.assertFalse(tx.validate_or_raise())
+
+    def test_validate_tx3(self):
+        initial_balances = list()
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
+                                                      amount=1000))
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
+                                                      amount=1000))
+        tx = TokenTransaction.create(symbol=b'QRL',
+                                     name=b'Quantum Resistant Ledger',
+                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
+                                     decimals=15,
                                      initial_balances=initial_balances,
                                      fee=1,
                                      xmss_pk=self.alice.pk)
