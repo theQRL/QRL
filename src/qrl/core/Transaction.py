@@ -618,8 +618,14 @@ class MessageTransaction(Transaction):
 
     def _validate_custom(self) -> bool:
         if len(self.message_hash) > 80:
-            logger.warning('Message hash length more than 80, %s', len(self.message_hash))
+            logger.warning('Message length cannot be more than 80')
+            logger.warning('Found message length %s', len(self.message_hash))
             return False
+
+        if len(self.message_hash) == 0:
+            logger.warning('Message cannot be empty')
+            return False
+
         return True
 
     def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState) -> bool:

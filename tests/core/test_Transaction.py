@@ -813,7 +813,14 @@ class TestMessageTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
+    def test_validate_tx2(self):
+        tx = MessageTransaction.create(message_hash=b'T' * 81,
+                                       fee=1,
+                                       xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # Validation should fail, as we have entered a message of more than 80 lengths
+        with self.assertRaises(ValueError):
+            self.assertFalse(tx.validate_or_raise())
