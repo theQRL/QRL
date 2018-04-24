@@ -6,7 +6,8 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.misc import logger
 from qrl.core.BlockHeader import BlockHeader
-from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, TokenTransaction, TransferTokenTransaction
+from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, TokenTransaction, \
+    TransferTokenTransaction, MessageTransaction
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from tests.misc.helper import get_alice_xmss, get_bob_xmss
@@ -68,6 +69,14 @@ test_json_TransferToken = """{
     "amounts": [
       "200000"
     ]
+  }
+}"""
+
+test_json_MessageTransaction = """{
+  "fee": "1",
+  "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
+  "message": {
+    "messageHash": "VGVzdCBNZXNzYWdl"
   }
 }"""
 
@@ -298,6 +307,82 @@ test_signature_TransferToken = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad
                                "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
                                "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
                                "98675eed"
+
+test_signature_MessageTransaction = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
+                                    "3c3f3f6c870ead6e875c470543e9e91ab30e6119251698511ddd403c98167317" \
+                                    "78adc7495d8f176dc9d0d5b9e08bf6314933cd1fc630ee0e0deddf477c22220d" \
+                                    "61b3a78be588ce819a27523ef24066365a4156a1f809d7a47e047f99888a4998" \
+                                    "43fbbab755571dc4bd2201c87488c1c68162ebf51b59576a4c0cfdf034f2ab32" \
+                                    "9dc15734ae64db7bfde2193accc7c7d2befc43db6aabd428dc25d79d8e10f837" \
+                                    "cc1c47bfcda52aaeabc57d1f3e7e741144616fff91ffd7c511f62e2980e32480" \
+                                    "9d8afa822d1c1eac26d137e6b395b3deec26b1e66b543cbcb261eab981f5ac7b" \
+                                    "e9d210fa04db6e0b5a72fee9ec7b3d561ebad1957ddd05b357e0bc4bd5b383c2" \
+                                    "f7c76bd023081d4cf81a48f903b3218df7284e06d2b65b2083a472ca7888ffbc" \
+                                    "c9ebaf6fc725a36fb4e60a6a2cf3d7ebc0a9c28e13669b8cd11c6e51abc66167" \
+                                    "35ec866a0061c1db1c98a647fc68b783de0d226a47cc0305feea9d5611301611" \
+                                    "b133ef6a3f44e75e5ec8b4f579e8b7795d61885ad5cc9f0d217eb494607ef7b2" \
+                                    "d058fe304b59740ee4218418de0e1ca08a998017c7a2e3325331da38354b58a2" \
+                                    "35b6734f6d6f52a2499a97a278ace169e897f98260c4342c9595d33897b838fe" \
+                                    "4a320f42f407cdafe217809d5829b6ada1156691ee5421d23a1df25e0fda84fa" \
+                                    "98fabd432e354a339e4e4526da6a79fe77c30ba86ef988c57832dded50efd9b7" \
+                                    "3788c077fa8e049cb717eb8e241381048a14ef790a218d3ae02ca8aac3d33832" \
+                                    "27cd2ae97da6a2c091f82a98cb7ab34c2e49541714ee9f55b3963d7ee8f1f870" \
+                                    "73fbc5c72c4a070a10873e47477fd5dc35362de92cb72f9becf1e67a9130473f" \
+                                    "91ad4e12ae89ec1c00c2805c0615cfccc2dfbb47cfd6340478ce75955e93b16e" \
+                                    "a0ee11b72d3c9f0eac99611115c52e002470e43f95a1fa7b666263eebdc3433e" \
+                                    "68be9534c2e46ab5d70bc9647f4f39bdae35ad32bcebaf7548b5de91eca8126d" \
+                                    "04f350e97f8aaca80dc5a1fa74681f4afd38568b123ef00b90da1c5853009e95" \
+                                    "d81ece892977c1f43367acc0895af37a68753aee0a1f06548a2f46f448b92915" \
+                                    "5511821bcd66230cc66762902dd7c2c103738c6f4d3c263509b817bda60cf058" \
+                                    "e93a814101f3129f705ec5c39cda0a7dce4616631b044089645245caecec689f" \
+                                    "e59e3efb3e1a9028d2732b0058616706d79cb9169044072922c8cbad8cc56b5b" \
+                                    "2a14dfd653fe1a494534e4c9117c48b3916843dc5252b5bdb56bb5d9effe5819" \
+                                    "d22174e563effe6799809f08a464c9aa564992b412baa6578dc2f1f91697672f" \
+                                    "7c9015ccc4f291c54c0e2e8b100579663f61fbe5adc5e2c4e295244bd58e6e75" \
+                                    "b6df3284547f331d3af8842d333d24b0e4e80a2b49c284e83161035740dbd228" \
+                                    "4ba98bdc97498ad0084139243cc3b553a38dde0855c5d487d8c4ecbaebf75186" \
+                                    "e40deeee8a3d7a27b8cf486226d24253577d374cffa7a2a8172464249e0cc00d" \
+                                    "a1f83a0b45df768c4cbe929cabe866e19c6fb7fbbf6c3e9cd6c72e38cef02aef" \
+                                    "10aec1d53f92c5df896df6010091c6d6fdd30621c9ac62225e38abfe6757830b" \
+                                    "d2019a58653524a6be818e1b7b55021a579dacacfdde0854959da4e844f89381" \
+                                    "a36aaa61f5dc742c7539f8cfd3097e0c717046dd0bd3a181fe0f04efe03ed445" \
+                                    "f35b75629d72c4e561591279bf5373aa44ae6b71aee6dc0c29c2604af7f09758" \
+                                    "ff7616a30c7a84744d291a259b6a44d739261311f570bd2721336adfb5189a8a" \
+                                    "103a928e7edf9560143cb7f5a48feb24a6269452f0f0e1873c2ecf33c4812bdf" \
+                                    "89ab96f53505c6d74f4f68517e012cc08b22df1c152edb71b441690b6b668639" \
+                                    "ef22c9efb6f9db8b1a82d44b515f8ac08242cb09a994991403b4a593d5e4954d" \
+                                    "50a36a57828701592686b846062f9672acecebed48b0e845e4aa4d0bb477a280" \
+                                    "ac5af201b9b1e4ee22b4602b1360c30888a898ac43fcec032b803972a9e3dd11" \
+                                    "bb120e66f74054f47d4c8ff621b8057bb6a3e4b58c6557f1bd9294cdcf65a8eb" \
+                                    "a149ab71a2784ba462a8e0856890d9bce6d2dab26ac4e8dbf6f09fba7e06516e" \
+                                    "04dfc4fa080fcdb9d01851cbd8b3986edb072ceb3e86cf18d01b52bffc2ba338" \
+                                    "a8e4f8a2b8f3a1062ab65f2f70441d216d61e0eea7ba860ec539376ae0899f51" \
+                                    "e784efa6bfc87d4c75c0b736acc124f9d0246b5ab407914add2388a1e5c4840e" \
+                                    "a812da2e50a73e1448d89f79f3e2d6d20568bb9570b601484c9c61df1a688fe0" \
+                                    "ec19dfe66890ab5896a05d9cfd117254ea34117b0ae6eeff576edb35b6e30acb" \
+                                    "5c1cfb45846ca40249e396ad31b467eef233c0556dd0edf50ff06e2d9bdf622e" \
+                                    "0a69b4da1be4bc00f55f559b4fc6c88d929268fc17d4ecf2764439f5c876e592" \
+                                    "e911e3304c865738003144d26d6bf41afecba096b8e9994a4d39bcf6d2aad4ff" \
+                                    "5d928027c07922d4cf4b3a04acfb552c502f17efc652606009fcc255ed89af79" \
+                                    "d3545f1f56e316ccfb89d26dc9012461bb838f90e179e6e08ece20d97ee60a1c" \
+                                    "576fba51c174746b3155dd65f4b5b240621f186092f30bd3ae5cf98c15747a47" \
+                                    "67c87a53cbafb7a0f79cf25765fd2c32e54481111b0ea5f625031788bcfcafa9" \
+                                    "e6645409415a1c56c217c26149fd945c6b6f702637333950a3e441656daf460a" \
+                                    "782ded93a118a09b25fde1e26d467d1e5f7c81511c4aee2e61f5c0bc263ec5ac" \
+                                    "0f9c4b1dd7d7cc5d477b36534b92ac64f148cda22642434e4f72100729b4582f" \
+                                    "8877ae4370fd0c5e4d131487e738a50ed0ff9e96b8d35110503d06b7960c0d01" \
+                                    "a955d51063c1eb1088e8abd247c2aa2602c7e4f3c770cff184cef51c0b2a79aa" \
+                                    "ceb82c7ab641bc5e699b5bb6862c5ddf3630c1d48260147be335595b1d96dcc5" \
+                                    "bf3387112111ea986fd011fe4b0d9c728c5ef5d30eb1e175aed1b8881c7fc396" \
+                                    "9da0ba072b95661816920f809e6dd85a25918405e531860ce3f905fe41cc0552" \
+                                    "1885294e4c7471870ca5410593692f9cbd06d82cd86dc9cef94339cee4bd1548" \
+                                    "f91ecc21e9bc647fcd24bc50d3d0ab41b9997cc3371db8c742bde679e67ed775" \
+                                    "e14296218d9e075ae892eb5bb3e8e41568ab594809f2bc173a38649123a86dc6" \
+                                    "a9f58e48ef5c2c90feccc6a6b1f3f90bcbf233bd0347d4c95b1818c93fe7f250" \
+                                    "5252d9176958b64cc5a7a6c2b99b6adebc3a66e3c07d2343ec0072fc32645100" \
+                                    "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
+                                    "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
+                                    "98675eed"
 
 # TODO: Do the same for Lattice and Duplicate
 # TODO: Write test to check after signing (before is there)
@@ -671,3 +756,71 @@ class TestTransferTokenTransaction(TestCase):
         # Test balance not enough
         # Test negative tx amounts
         pass
+
+
+class TestMessageTransaction(TestCase):
+
+    def __init__(self, *args, **kwargs):
+        super(TestMessageTransaction, self).__init__(*args, **kwargs)
+        self.alice = get_alice_xmss()
+        self.bob = get_bob_xmss()
+
+        self.alice.set_ots_index(10)
+        self.maxDiff = None
+
+    def test_create(self):
+        tx = MessageTransaction.create(message_hash=b'Test Message',
+                                       fee=1,
+                                       xmss_pk=self.alice.pk)
+        self.assertTrue(tx)
+
+    def test_to_json(self):
+        tx = MessageTransaction.create(message_hash=b'Test Message',
+                                       fee=1,
+                                       xmss_pk=self.alice.pk)
+        txjson = tx.to_json()
+
+        self.assertEqual(json.loads(test_json_MessageTransaction), json.loads(txjson))
+
+    def test_from_json(self):
+        tx = Transaction.from_json(test_json_MessageTransaction)
+        tx.sign(self.alice)
+
+        self.assertIsInstance(tx, MessageTransaction)
+
+        # Test that common Transaction components were copied over.
+        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
+                         bin2hstr(tx.addr_from))
+        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
+                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
+                         bin2hstr(tx.PK))
+        self.assertEqual(b'Test Message', tx.message_hash)
+        self.assertEqual('cbe7c40a86e82b8b6ac4e7df812f882183bd85d60f335cd83483d6831e61f4ec', bin2hstr(tx.txhash))
+        self.assertEqual(10, tx.ots_key)
+
+        self.assertEqual(test_signature_MessageTransaction, bin2hstr(tx.signature))
+
+        self.assertEqual(1, tx.fee)
+
+    def test_validate_tx(self):
+        tx = MessageTransaction.create(message_hash=b'Test Message',
+                                       fee=1,
+                                       xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # We have not touched the tx: validation should pass.
+        self.assertTrue(tx.validate_or_raise())
+
+    def test_validate_tx2(self):
+        tx = MessageTransaction.create(message_hash=b'T' * 81,
+                                       fee=1,
+                                       xmss_pk=self.alice.pk)
+
+        # We must sign the tx before validation will work.
+        tx.sign(self.alice)
+
+        # Validation should fail, as we have entered a message of more than 80 lengths
+        with self.assertRaises(ValueError):
+            self.assertFalse(tx.validate_or_raise())
