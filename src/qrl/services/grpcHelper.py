@@ -20,6 +20,7 @@ class GrpcExceptionWrapper(object):
             try:
                 return f(caller_self, request, context)
             except ValueError as e:
+                context.set_code(StatusCode.INVALID_ARGUMENT)
                 self._set_context(context, e)
                 logger.info(str(e))
                 return self.response_type()
