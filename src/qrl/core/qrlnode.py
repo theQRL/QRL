@@ -123,7 +123,11 @@ class QRLNode:
     @property
     def block_time_mean(self):
         block = self._chain_manager.get_last_block()
+
         prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
+        if prev_block_metadata is None:
+            return config.dev.mining_setpoint_blocktime
+
         movavg = self._chain_manager.state.get_measurement(block.timestamp,
                                                            block.prev_headerhash,
                                                            prev_block_metadata)
@@ -273,7 +277,7 @@ class QRLNode:
         addr_from = self.get_addr_from(xmss_pk, master_addr)
         balance = self.db_state.balance(addr_from)
         if sum(amounts) + fee > balance:
-            raise RuntimeError("Not enough funds in the source address")
+            raise ValueError("Not enough funds in the source address")
 
         return TransferTransaction.create(addrs_to=addrs_to,
                                           amounts=amounts,
