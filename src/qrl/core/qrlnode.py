@@ -277,7 +277,7 @@ class QRLNode:
         addr_from = self.get_addr_from(xmss_pk, master_addr)
         balance = self.db_state.balance(addr_from)
         if sum(amounts) + fee > balance:
-            raise RuntimeError("Not enough funds in the source address")
+            raise ValueError("Not enough funds in the source address")
 
         return TransferTransaction.create(addrs_to=addrs_to,
                                           amounts=amounts,
