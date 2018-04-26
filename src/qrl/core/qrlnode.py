@@ -126,7 +126,7 @@ class QRLNode:
 
         prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
         if prev_block_metadata is None:
-            return 0
+            return config.dev.mining_setpoint_blocktime
 
         movavg = self._chain_manager.state.get_measurement(block.timestamp,
                                                            block.prev_headerhash,
