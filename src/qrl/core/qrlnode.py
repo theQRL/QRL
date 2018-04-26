@@ -123,7 +123,11 @@ class QRLNode:
     @property
     def block_time_mean(self):
         block = self._chain_manager.get_last_block()
+
         prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
+        if prev_block_metadata is None:
+            return 0
+
         movavg = self._chain_manager.state.get_measurement(block.timestamp,
                                                            block.prev_headerhash,
                                                            prev_block_metadata)
