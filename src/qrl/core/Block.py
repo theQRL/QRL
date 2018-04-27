@@ -227,5 +227,11 @@ class Block(object):
 
         return True
 
+    def is_duplicate(self, state) -> bool:
+        if state.get_block(self.headerhash):
+            return True
+
+        return False
+
     def validate_parent_child_relation(self, parent_block) -> bool:
         return self.blockheader.validate_parent_child_relation(parent_block)
