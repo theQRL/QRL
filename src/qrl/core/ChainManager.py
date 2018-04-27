@@ -3,12 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import Optional
 
-import functools
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper
+from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
 
 from qrl.core import config
-from qrl.crypto.Qryptonight import Qryptonight
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -99,47 +97,6 @@ class ChainManager:
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
-
-    def validate_mining_nonce(self, block, enable_logging=False):
-        parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
-        parent_block = self.state.get_block(block.prev_headerhash)
-
-        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash, parent_metadata)
-        diff, target = DifficultyTracker.get(
-            measurement=measurement,
-            parent_difficulty=parent_metadata.block_difficulty)
-
-        if enable_logging:
-            logger.debug('-----------------START--------------------')
-            logger.debug('Validate #%s', block.block_number)
-            logger.debug('block.timestamp %s', block.timestamp)
-            logger.debug('parent_block.timestamp %s', parent_block.timestamp)
-            logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
-            logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
-            logger.debug('-------------------END--------------------')
-
-        if not self.verify_input_cached(block.mining_blob, target):
-            if enable_logging:
-                logger.warning("PoW verification failed")
-                qn = Qryptonight()
-                tmp_hash = qn.hash(block.mining_blob)
-                logger.warning("{}".format(tmp_hash))
-                logger.debug('%s', block.to_json())
-            return False
-
-        return True
-
-    @functools.lru_cache(maxsize=5)
-    def verify_input_cached(self, mining_blob, target):
-        return PoWHelper.verifyInput(mining_blob, target)
-
-    def _pre_check(self, block):
-
-        if self.state.get_block(block.headerhash):  # Duplicate block check
-            logger.info('Duplicate block %s %s', block.block_number, bin2hstr(block.headerhash))
-            return False
-
-        return True
 
     def _try_orphan_add_block(self, block, batch):
         prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
