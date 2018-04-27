@@ -23,14 +23,16 @@ class TestBlockHeader(TestCase):
         self.assertIsNotNone(block_header)  # just to avoid warnings
 
     def test_init2(self):
-        block_header = BlockHeader.create(1, sha256(b'prev'), sha256(b'txs'), 10)
-        self.assertIsNotNone(block_header)  # just to avoid warnings
+        with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+            time_mock.return_value = 1615270948
+            block_header = BlockHeader.create(1, sha256(b'prev'), time_mock.return_value, sha256(b'txs'), 10)
+            self.assertIsNotNone(block_header)  # just to avoid warnings
 
     def test_blob(self):
         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1615270948
 
-            block_header = BlockHeader.create(1, sha256(b'prev'), sha256(b'txs'), 10)
+            block_header = BlockHeader.create(1, sha256(b'prev'), time_mock.return_value, sha256(b'txs'), 10)
             self.assertEquals('0074aa496ffe19107faaf418b720fb5b8446ba4b595c178fcf099c99b3dee99860d788c77910'
                               'a9000000000000000000000000ede0d022b37421b81b7bbcf5b497fb89408c05c7d713c5e1e5',
                               bin2hstr(block_header.mining_blob))
@@ -40,7 +42,7 @@ class TestBlockHeader(TestCase):
         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1615270948
 
-            block_header = BlockHeader.create(1, sha256(b'prev'), sha256(b'txs'), 10)
+            block_header = BlockHeader.create(1, sha256(b'prev'), time_mock.return_value, sha256(b'txs'), 10)
             header_hash = block_header.generate_headerhash()
 
             self.assertEquals('eb2364355673f1d4384008dbc53a19050c6d1aaea01c724943c9a8f5d01fdece',
@@ -55,7 +57,7 @@ class TestBlockHeader(TestCase):
         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1615270948
 
-            block_header = BlockHeader.create(1, sha256(b'prev'), sha256(b'txs'), 10)
+            block_header = BlockHeader.create(1, sha256(b'prev'), time_mock.return_value, sha256(b'txs'), 10)
 
             block_header.set_nonces(100, 0)
 

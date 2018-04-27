@@ -113,18 +113,21 @@ class BlockHeader(object):
 
     @staticmethod
     def create(blocknumber: int,
-               prev_blockheaderhash: bytes,
+               prev_block_headerhash: bytes,
+               prev_block_timestamp: int,
                hashedtransactions: bytes,
                fee_reward: int):
         """
         Create a block header based on the parameters
 
         >>> BlockHeader.create(blocknumber=1,
-        ...                    prev_blockheaderhash=b'headerhash',
+        ...                    prev_block_headerhash=b'headerhash',
+        ...                    prev_block_timestamp=10,
         ...                    hashedtransactions=b'some_data', fee_reward=1) is not None
         True
         >>> b=BlockHeader.create(blocknumber=1,
-        ...                      prev_blockheaderhash=b'headerhash',
+        ...                      prev_block_headerhash=b'headerhash',
+        ...                      prev_block_timestamp=10,
         ...                      hashedtransactions=b'some_data', fee_reward=1)
         >>> b.epoch
         0
@@ -135,11 +138,15 @@ class BlockHeader(object):
 
         if bh._data.block_number != 0:
             bh._data.timestamp_seconds = int(ntp.getTime())
+            # If current block timestamp is less than the previous block timestamp
+            # then set current block timestamp 1 sec higher than prev_block_timestamp
+            if bh._data.timestamp_seconds < prev_block_timestamp:
+                bh._data.timestamp_seconds = prev_block_timestamp + 1
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
 
-        bh._data.hash_header_prev = prev_blockheaderhash
+        bh._data.hash_header_prev = prev_block_headerhash
         bh._data.merkle_root = hashedtransactions
         bh._data.reward_fee = fee_reward
 

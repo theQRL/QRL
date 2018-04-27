@@ -27,7 +27,6 @@ def gen_blocks(block_count, state, miner_address):
         blocks = []
         with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1615270948
-            prev_hash = bytes(sha2_256(b'test'))
             addresses_state = dict()
             for i in range(0, block_count):
                 if i == 0:
@@ -38,7 +37,8 @@ def gen_blocks(block_count, state, miner_address):
                         addresses_state[bytes_addr]._data.balance = genesis_balance.balance
                 else:
                     block = Block.create(block_number=i,
-                                         prevblock_headerhash=prev_hash,
+                                         prev_block_headerhash=block.headerhash,
+                                         prev_block_timestamp=block.timestamp,
                                          transactions=[],
                                          miner_address=miner_address)
                     addresses_set = state.prepare_address_list(block)
@@ -61,7 +61,6 @@ def gen_blocks(block_count, state, miner_address):
                 state.put_block_number_mapping(block.block_number, bm, None)
                 state.update_mainchain_height(block.block_number, None)
                 state.put_addresses_state(addresses_state)
-                prev_hash = bytes(block.headerhash)
 
         return blocks
 
@@ -268,7 +267,8 @@ class TestState(TestCase):
             with State() as state:
                 batch = state.get_batch()
                 block = Block.create(block_number=10,
-                                     prevblock_headerhash=b'aa',
+                                     prev_block_headerhash=b'aa',
+                                     prev_block_timestamp=10,
                                      transactions=[],
                                      miner_address=b'aa')
                 state.put_block(block, batch)
@@ -389,7 +389,8 @@ class TestState(TestCase):
         with set_qrl_dir('no_data'):
             with State() as state:
                 block = Block.create(block_number=10,
-                                     prevblock_headerhash=b'',
+                                     prev_block_headerhash=b'',
+                                     prev_block_timestamp=10,
                                      transactions=[],
                                      miner_address=b'addr1')
                 # Test Case: without any transactions of block
@@ -398,7 +399,8 @@ class TestState(TestCase):
 
                 alice_xmss = get_alice_xmss()
                 block = Block.create(block_number=10,
-                                     prevblock_headerhash=b'',
+                                     prev_block_headerhash=b'',
+                                     prev_block_timestamp=10,
                                      transactions=[TransferTransaction.create(addrs_to=[b'addr2',
                                                                                         b'addr3'],
                                                                               amounts=[100, 100],
@@ -634,7 +636,8 @@ class TestState(TestCase):
                                                  xmss_pk=alice_xmss.pk)
 
                 block = Block.create(block_number=5,
-                                     prevblock_headerhash=b'',
+                                     prev_block_headerhash=b'',
+                                     prev_block_timestamp=10,
                                      transactions=[tx1],
                                      miner_address=b'')
 
