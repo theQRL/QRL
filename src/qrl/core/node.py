@@ -202,6 +202,10 @@ class POW(ConsensusMechanism):
     def pre_block_logic(self, block: Block):
         logger.debug('Checking miner lock')
         with self._miner_lock:
+            if not block.validate(self.chain_manager.state):
+                logger.warning('Block Validation failed for #%s %s', block.block_number, bin2hstr(block.headerhash))
+                return
+
             logger.debug('Inside add_block')
             result = self.chain_manager.add_block(block)
 

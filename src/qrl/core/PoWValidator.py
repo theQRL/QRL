@@ -8,7 +8,6 @@ from pyqryptonight.pyqryptonight import UInt256ToString, Qryptonight, PoWHelper
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.Singleton import Singleton
-from qrl.core.State import State
 from qrl.core.misc import logger
 
 
@@ -16,7 +15,7 @@ class PoWValidator(object, metaclass=Singleton):
     def __init__(self):
         self._powv = PoWHelper()
 
-    def validate_mining_nonce(self, state: State, blockheader: BlockHeader, enable_logging=False):
+    def validate_mining_nonce(self, state, blockheader: BlockHeader, enable_logging=False):
         parent_metadata = state.get_block_metadata(blockheader.prev_blockheaderhash)
         parent_block = state.get_block(blockheader.prev_blockheaderhash)
 
