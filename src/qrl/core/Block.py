@@ -154,6 +154,10 @@ class Block(object):
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
     def validate(self, state) -> bool:
+        if self.is_duplicate(state):
+            logger.warning('Duplicate Block #%s %s', self.block_number, bin2hstr(self.headerhash))
+            return False
+
         if not PoWValidator().validate_mining_nonce(state, self.blockheader):
             logger.warning('Failed PoW Validation')
             return False
