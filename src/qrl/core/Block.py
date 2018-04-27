@@ -2,9 +2,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from google.protobuf.json_format import MessageToJson, Parse
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.misc import logger
+from qrl.core.PoWValidator import PoWValidator
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import merkle_tx_hash
@@ -151,7 +153,11 @@ class Block(object):
 
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
-    def validate(self) -> bool:
+    def validate(self, state) -> bool:
+        if not PoWValidator().validate_mining_nonce(state, self.blockheader):
+            logger.warning('Failed PoW Validation')
+            return False
+
         fee_reward = 0
         for index in range(1, len(self.transactions)):
             fee_reward += self.transactions[index].fee
@@ -162,11 +168,64 @@ class Block(object):
         try:
             coinbase_txn = Transaction.from_pbdata(self.transactions[0])
             coinbase_amount = coinbase_txn.amount
+
+            if not coinbase_txn.validate_extended():
+                return False
+
         except Exception as e:
             logger.warning('Exception %s', e)
             return False
 
-        return self.blockheader.validate(fee_reward, coinbase_amount)
+        if not self.blockheader.validate(fee_reward, coinbase_amount):
+            return False
+
+        parent_block = state.get_block(self.prev_headerhash)
+        if not self.validate_parent_child_relation(parent_block):
+            logger.warning('Failed to validate blocks parent child relation')
+            return False
+
+        return True
+
+    def apply_state_changes(self, address_txn) -> bool:
+        coinbase_tx = Transaction.from_pbdata(self.transactions[0])
+
+        coinbase_tx.apply_state_changes(address_txn)
+
+        len_transactions = len(self.transactions)
+        for tx_idx in range(1, len_transactions):
+            tx = Transaction.from_pbdata(self.transactions[tx_idx])
+
+            if isinstance(tx, CoinBase):
+                logger.warning('Found another coinbase transaction')
+                return False
+
+            if not tx.validate():
+                return False
+
+            addr_from_pk_state = address_txn[tx.addr_from]
+            addr_from_pk = Transaction.get_slave(tx)
+            if addr_from_pk:
+                addr_from_pk_state = address_txn[addr_from_pk]
+
+            if not tx.validate_extended(address_txn[tx.addr_from], addr_from_pk_state):
+                return False
+
+            expected_nonce = addr_from_pk_state.nonce + 1
+
+            if tx.nonce != expected_nonce:
+                logger.warning('nonce incorrect, invalid tx')
+                logger.warning('subtype: %s', tx.type)
+                logger.warning('%s actual: %s expected: %s', tx.addr_from, tx.nonce, expected_nonce)
+                return False
+
+            if addr_from_pk_state.ots_key_reuse(tx.ots_key):
+                logger.warning('pubkey reuse detected: invalid tx %s', bin2hstr(tx.txhash))
+                logger.warning('subtype: %s', tx.type)
+                return False
+
+            tx.apply_state_changes(address_txn)
+
+        return True
 
     def validate_parent_child_relation(self, parent_block) -> bool:
         return self.blockheader.validate_parent_child_relation(parent_block)
