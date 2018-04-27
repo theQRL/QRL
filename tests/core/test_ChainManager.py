@@ -54,7 +54,8 @@ class TestChainManager(TestCase):
                     time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
                     block_1 = Block.create(block_number=1,
-                                           prevblock_headerhash=genesis_block.headerhash,
+                                           prev_block_headerhash=genesis_block.headerhash,
+                                           prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
                     block_1.set_nonces(258, 0)
@@ -106,7 +107,8 @@ class TestChainManager(TestCase):
                     time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
                     block_1 = Block.create(block_number=1,
-                                           prevblock_headerhash=genesis_block.headerhash,
+                                           prev_block_headerhash=genesis_block.headerhash,
+                                           prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
                     block_1.set_nonces(0, 0)
@@ -168,7 +170,8 @@ class TestChainManager(TestCase):
                     time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
                     block_1 = Block.create(block_number=1,
-                                           prevblock_headerhash=genesis_block.headerhash,
+                                           prev_block_headerhash=genesis_block.headerhash,
+                                           prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[slave_tx],
                                            miner_address=alice_xmss.address)
                     block_1.set_nonces(3, 0)
@@ -190,7 +193,8 @@ class TestChainManager(TestCase):
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1715270948  # Very high to get an easy difficulty
                     block = Block.create(block_number=1,
-                                         prevblock_headerhash=genesis_block.headerhash,
+                                         prev_block_headerhash=genesis_block.headerhash,
+                                         prev_block_timestamp=genesis_block.timestamp,
                                          transactions=[],
                                          miner_address=bob_xmss.address)
 
@@ -211,7 +215,8 @@ class TestChainManager(TestCase):
                 with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                     time_mock.return_value = 1815270948  # Very high to get an easy difficulty
                     block_2 = Block.create(block_number=2,
-                                           prevblock_headerhash=block.headerhash,
+                                           prev_block_headerhash=block.headerhash,
+                                           prev_block_timestamp=block.timestamp,
                                            transactions=[],
                                            miner_address=bob_xmss.address)
 
@@ -257,7 +262,8 @@ class TestChainManager(TestCase):
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1521889325  # Very high to get an easy difficulty
                         block_1 = Block.create(block_number=1,
-                                               prevblock_headerhash=genesis_block.headerhash,
+                                               prev_block_headerhash=genesis_block.headerhash,
+                                               prev_block_timestamp=genesis_block.timestamp,
                                                transactions=[],
                                                miner_address=alice_xmss.address)
                         block_1.set_nonces(21, 0)
@@ -276,7 +282,8 @@ class TestChainManager(TestCase):
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1521889326 + devconfig.minimum_minting_delay * 2
                         block = Block.create(block_number=1,
-                                             prevblock_headerhash=genesis_block.headerhash,
+                                             prev_block_headerhash=genesis_block.headerhash,
+                                             prev_block_timestamp=genesis_block.timestamp,
                                              transactions=[],
                                              miner_address=bob_xmss.address)
                         block.set_nonces(148, 0)
@@ -290,7 +297,8 @@ class TestChainManager(TestCase):
                     with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
                         time_mock.return_value = 1521889327 + devconfig.minimum_minting_delay * 3
                         block_2 = Block.create(block_number=2,
-                                               prevblock_headerhash=block.headerhash,
+                                               prev_block_headerhash=block.headerhash,
+                                               prev_block_timestamp=genesis_block.timestamp,
                                                transactions=[],
                                                miner_address=bob_xmss.address)
                         block_2.set_nonces(7, 0)

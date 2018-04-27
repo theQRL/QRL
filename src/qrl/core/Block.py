@@ -99,7 +99,8 @@ class Block(object):
 
     @staticmethod
     def create(block_number: int,
-               prevblock_headerhash: bytes,
+               prev_block_headerhash: bytes,
+               prev_block_timestamp: int,
                transactions: list,
                miner_address: bytes):
 
@@ -125,7 +126,8 @@ class Block(object):
         txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
-                                             prev_blockheaderhash=prevblock_headerhash,
+                                             prev_block_headerhash=prev_block_headerhash,
+                                             prev_block_timestamp=prev_block_timestamp,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
 

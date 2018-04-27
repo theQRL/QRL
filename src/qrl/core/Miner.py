@@ -103,7 +103,8 @@ class Miner(Qryptominer):
                      tx_pool: TransactionPool,
                      miner_address) -> Optional[Block]:
         dummy_block = Block.create(block_number=last_block.block_number + 1,
-                                   prevblock_headerhash=last_block.headerhash,
+                                   prev_block_headerhash=last_block.headerhash,
+                                   prev_block_timestamp=last_block.timestamp,
                                    transactions=[],
                                    miner_address=miner_address)
         dummy_block.set_nonces(mining_nonce, 0)
@@ -146,7 +147,8 @@ class Miner(Qryptominer):
             transactions.append(tx)
 
         block = Block.create(block_number=last_block.block_number + 1,
-                             prevblock_headerhash=last_block.headerhash,
+                             prev_block_headerhash=last_block.headerhash,
+                             prev_block_timestamp=last_block.timestamp,
                              transactions=transactions,
                              miner_address=miner_address)
 
