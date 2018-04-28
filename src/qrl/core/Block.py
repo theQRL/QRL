@@ -160,6 +160,19 @@ class Block(object):
             logger.warning('Duplicate Block #%s %s', self.block_number, bin2hstr(self.headerhash))
             return False
 
+        parent_block = state.get_block(self.prev_headerhash)
+
+        # If parent block not found in state, then check if its in the future block list
+        if not parent_block:
+            try:
+                parent_block = future_blocks[self.prev_headerhash]
+            except KeyError:
+                return False
+
+        if not self.validate_parent_child_relation(parent_block):
+            logger.warning('Failed to validate blocks parent child relation')
+            return False
+
         if not PoWValidator().validate_mining_nonce(state, self.blockheader):
             logger.warning('Failed PoW Validation')
             return False
@@ -183,19 +196,6 @@ class Block(object):
             return False
 
         if not self.blockheader.validate(fee_reward, coinbase_amount):
-            return False
-
-        parent_block = state.get_block(self.prev_headerhash)
-
-        # If parent block not found in state, then check if its in the future block list
-        if not parent_block:
-            try:
-                parent_block = future_blocks[self.prev_headerhash]
-            except KeyError:
-                return False
-
-        if not self.validate_parent_child_relation(parent_block):
-            logger.warning('Failed to validate blocks parent child relation')
             return False
 
         return True
