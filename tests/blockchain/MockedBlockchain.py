@@ -62,13 +62,20 @@ class MockedBlockchain(object):
 
         return block_new
 
+    def validate(self, block):
+        if not block.validate(self.qrlnode._chain_manager.state, {}):
+            raise Exception('Block Validation Failed')
+
+        return True
+
     def add_block(self, block):
+        self.validate(block)
         return self.qrlnode._chain_manager.add_block(block)
 
     def add_new_block(self, mining_address=None):
         block_prev = self.qrlnode.get_block_last()
         block_new = self.create_block(prev_hash=block_prev.headerhash, mining_address=mining_address)
-        self.qrlnode._chain_manager.add_block(block_new)
+        self.add_block(block_new)
 
     @staticmethod
     @contextlib.contextmanager
