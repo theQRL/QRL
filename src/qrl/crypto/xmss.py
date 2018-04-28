@@ -19,7 +19,7 @@ class XMSS(object):
         if len(extended_seed) != 51:
             raise Exception('Extended seed should be 51 bytes long')
 
-        descr = QRLDescriptor.fromBytes(extended_seed[0], extended_seed[1], extended_seed[2])
+        descr = QRLDescriptor.fromBytes(extended_seed[0:3])
         if descr.getSignatureType() != pyqrllib.XMSS:
             raise Exception('Signature type nor supported')
 
