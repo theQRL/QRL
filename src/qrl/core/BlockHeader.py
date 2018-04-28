@@ -221,6 +221,10 @@ class BlockHeader(object):
         return True
 
     def validate_parent_child_relation(self, parent_block):
+        if not parent_block:
+            logger.warning('Parent Block not found')
+            return False
+
         if parent_block.block_number != self.block_number - 1:
             logger.warning('Block numbers out of sequence: failed validation')
             return False

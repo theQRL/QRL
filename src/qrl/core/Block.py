@@ -1,11 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from collections import OrderedDict
+
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
-from qrl.core.misc import logger
+from qrl.core.misc import logger, ntp
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.Transaction import CoinBase, Transaction
 from qrl.core.BlockHeader import BlockHeader
@@ -153,7 +155,7 @@ class Block(object):
 
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
-    def validate(self, state) -> bool:
+    def validate(self, state, future_blocks: OrderedDict) -> bool:
         if self.is_duplicate(state):
             logger.warning('Duplicate Block #%s %s', self.block_number, bin2hstr(self.headerhash))
             return False
@@ -184,6 +186,14 @@ class Block(object):
             return False
 
         parent_block = state.get_block(self.prev_headerhash)
+
+        # If parent block not found in state, then check if its in the future block list
+        if not parent_block:
+            try:
+                parent_block = future_blocks[self.prev_headerhash]
+            except KeyError:
+                return False
+
         if not self.validate_parent_child_relation(parent_block):
             logger.warning('Failed to validate blocks parent child relation')
             return False
@@ -233,6 +243,12 @@ class Block(object):
 
     def is_duplicate(self, state) -> bool:
         if state.get_block(self.headerhash):
+            return True
+
+        return False
+
+    def is_future_block(self) -> bool:
+        if self.timestamp > ntp.getTime() + config.dev.block_max_drift:
             return True
 
         return False
