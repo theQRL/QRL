@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import threading
 import time
+from collections import OrderedDict
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import bin2hstr
 
@@ -59,6 +60,8 @@ class POW(ConsensusMechanism):
         self.last_bk_time = 0
         self.last_pb_time = 0
         self.suspend_mining_timestamp = 0
+
+        self.future_blocks = OrderedDict()  # Keeps the list of future blocks, which has to be processed later
 
         self.epoch_diff = None
 
@@ -199,11 +202,31 @@ class POW(ConsensusMechanism):
         else:
             self.miner_toggler = False
 
+    def add_future_block(self, block):
+        self.future_blocks[block.headerhash] = block
+        if len(self.future_blocks) > config.dev.max_future_blocks_length:
+            self.future_blocks.popitem(False)
+
+    def process_future_blocks(self):
+        keys = self.future_blocks.keys()
+        for key in keys:
+            block = self.future_blocks[key]
+            if block.is_future_block():
+                return
+            self.pre_block_logic(block)
+            del self.future_blocks[key]
+
     def pre_block_logic(self, block: Block):
         logger.debug('Checking miner lock')
         with self._miner_lock:
-            if not block.validate(self.chain_manager.state):
+            if not block.validate(self.chain_manager.state, self.future_blocks):
                 logger.warning('Block Validation failed for #%s %s', block.block_number, bin2hstr(block.headerhash))
+                return
+
+            if block.is_future_block():
+                delay = abs(block.timestamp - ntp.getTime()) + 1
+                reactor.callLater(delay, self.process_future_blocks)
+                self.add_future_block(block)
                 return
 
             logger.debug('Inside add_block')
