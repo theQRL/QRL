@@ -5,7 +5,7 @@ import copy
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-from pyqryptonight.pyqryptonight import Qryptominer, StringToUInt256, UInt256ToString
+from pyqryptonight.pyqryptonight import Qryptominer, UInt256ToString
 
 from qrl.core import config
 from qrl.core.Block import Block
@@ -89,7 +89,7 @@ class Miner(Qryptominer):
         try:
             logger.debug('Solution Found %s', nonce)
             self._mining_block.set_nonces(nonce, 0)
-            logger.info('Block #%s nonce: %s', self._mining_block.block_number, StringToUInt256(str(nonce))[-4:])
+            logger.info('Block #%s nonce: %s', self._mining_block.block_number, nonce)
             logger.info('Hash Rate: %s H/s', self.hashRate())
             cloned_block = copy.deepcopy(self._mining_block)
             self.pre_block_logic(cloned_block)
