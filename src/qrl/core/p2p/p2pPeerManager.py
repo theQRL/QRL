@@ -44,6 +44,10 @@ class P2PPeerManager(P2PBaseObserver):
     def peer_addresses(self):
         return self._peer_addresses
 
+    @property
+    def peer_node_status(self):
+        return self._peer_node_status
+
     def load_peer_addresses(self) -> None:
         try:
             if os.path.isfile(self.peers_path):
