@@ -163,7 +163,7 @@ class DevConfig(object):
         DevConfig.__instance = self
 
         self.version = version
-        self.genesis_prev_headerhash = b'Excession'
+        self.genesis_prev_headerhash = b'Outside Context Problem'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -194,7 +194,7 @@ class DevConfig(object):
 
         # Maximum number of ots index upto which OTS index should be tracked. Any OTS index above the specified value
         # will be managed by OTS Counter
-        self.max_ots_tracking_index = 4096                                  #
+        self.max_ots_tracking_index = 4096
         self.mining_nonce_offset = 39
         self.extra_nonce_offset = 43
         self.mining_blob_size = 76
@@ -218,7 +218,7 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.genesis_timestamp = 1521888567
+        self.genesis_timestamp = 1524928900
 
         self.supplied_coins = 65000000 * (10 ** 9)
 
