@@ -19,7 +19,7 @@ from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.State import State
 from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
-    LatticePublicKey
+    LatticePublicKey, MessageTransaction
 from qrl.core.misc import ntp
 from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
@@ -244,6 +244,16 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
+
+    @staticmethod
+    def create_message_txn(message: bytes,
+                           fee: int,
+                           xmss_pk: bytes,
+                           master_addr: bytes):
+        return MessageTransaction.create(message_hash=message,
+                                         fee=fee,
+                                         xmss_pk=xmss_pk,
+                                         master_addr=master_addr)
 
     @staticmethod
     def create_token_txn(symbol: bytes,

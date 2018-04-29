@@ -67,6 +67,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.PushTransactionReq.SerializeToString,
         response_deserializer=qrl__pb2.PushTransactionResp.FromString,
         )
+    self.GetMessageTxn = channel.unary_unary(
+        '/qrl.PublicAPI/GetMessageTxn',
+        request_serializer=qrl__pb2.MessageTxnReq.SerializeToString,
+        response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
+        )
     self.GetTokenTxn = channel.unary_unary(
         '/qrl.PublicAPI/GetTokenTxn',
         request_serializer=qrl__pb2.TokenTxnReq.SerializeToString,
@@ -175,6 +180,12 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetMessageTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def GetTokenTxn(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -272,6 +283,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.PushTransaction,
           request_deserializer=qrl__pb2.PushTransactionReq.FromString,
           response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
+      ),
+      'GetMessageTxn': grpc.unary_unary_rpc_method_handler(
+          servicer.GetMessageTxn,
+          request_deserializer=qrl__pb2.MessageTxnReq.FromString,
+          response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
       'GetTokenTxn': grpc.unary_unary_rpc_method_handler(
           servicer.GetTokenTxn,
