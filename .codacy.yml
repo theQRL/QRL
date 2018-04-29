@@ -1,4 +1,4 @@
 ---
 exclude_paths:
-  - './src/qrl/generated/**'
-  - './src/qrl/protos/**'
+  - 'src/qrl/generated/*.py'
+  - 'src/qrl/protos/**'

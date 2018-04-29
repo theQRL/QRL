@@ -150,7 +150,7 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetAddressStateReq()
-        response = service.GetAddressState(request=request, context=context)
+        service.GetAddressState(request=request, context=context)
         context.set_code.assert_called()
         context.set_details.assert_called()
 

@@ -113,6 +113,19 @@ class PublicAPIService(PublicAPIServicer):
         return answer
 
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetMessageTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetMessageTxn")
+        tx = self.qrlnode.create_message_txn(message=request.message,
+                                             fee=request.fee,
+                                             xmss_pk=request.xmss_pk,
+                                             master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
     def GetTokenTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetTokenTxn")
         tx = self.qrlnode.create_token_txn(symbol=request.symbol,

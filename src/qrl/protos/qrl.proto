@@ -30,6 +30,8 @@ service PublicAPI
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
+    rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
+
     rpc GetTokenTxn (TokenTxnReq) returns (TransferCoinsResp);
 
     rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp);
@@ -226,6 +228,13 @@ message PushTransactionResp {
     ResponseCode error_code = 1;
     string error_description = 2;
     bytes tx_hash = 3;
+}
+
+message MessageTxnReq {
+    bytes master_addr = 1;
+    bytes message = 2;
+    uint64 fee = 3;
+    bytes xmss_pk = 4;
 }
 
 message TokenTxnReq {

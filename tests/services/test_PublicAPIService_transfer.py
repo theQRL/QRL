@@ -8,6 +8,7 @@ from mock import Mock
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core.ChainManager import ChainManager
+from qrl.core.Transaction import Transaction
 from qrl.core.State import State
 from qrl.core.misc import logger
 from qrl.core.node import POW
@@ -24,6 +25,73 @@ logger.initialize_default()
 class TestPublicAPI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestPublicAPI, self).__init__(*args, **kwargs)
+
+    @set_default_balance_size()
+    def test_messageTxn_sign(self):
+        with set_qrl_dir('wallet_ver1'):
+            with State() as db_state:
+                p2p_factory = Mock(spec=P2PFactory)
+                p2p_factory.pow = Mock(spec=POW)
+                chain_manager = ChainManager(db_state)
+
+                qrlnode = QRLNode(db_state, mining_address=b'')
+                qrlnode.set_chain_manager(chain_manager)
+                qrlnode._p2pfactory = p2p_factory
+                qrlnode._pow = p2p_factory.pow
+                qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+                service = PublicAPIService(qrlnode)
+
+                context = Mock(spec=ServicerContext)
+
+                alice = get_alice_xmss()
+                my_message = b'Hello QRL!'
+
+                request = qrl_pb2.MessageTxnReq(
+                    message=my_message,
+                    fee=12,
+                    xmss_pk=alice.pk
+                )
+
+                response = service.GetMessageTxn(request=request, context=context)
+                context.set_code.assert_not_called()
+                context.set_details.assert_not_called()
+
+                self.assertIsNotNone(response)
+                self.assertIsNotNone(response.extended_transaction_unsigned.tx)
+                self.assertEqual('message', response.extended_transaction_unsigned.tx.WhichOneof('transactionType'))
+
+                self.assertEqual(12, response.extended_transaction_unsigned.tx.fee)
+                self.assertEqual(alice.pk, response.extended_transaction_unsigned.tx.public_key)
+                self.assertEqual(0, response.extended_transaction_unsigned.tx.nonce)
+                self.assertEqual(b'', response.extended_transaction_unsigned.tx.signature)
+                self.assertEqual(b'', response.extended_transaction_unsigned.tx.transaction_hash)
+                self.assertEqual(my_message, response.extended_transaction_unsigned.tx.message.message_hash)
+
+                tmp_hash_pre = response.extended_transaction_unsigned.tx.master_addr
+                tmp_hash_pre += response.extended_transaction_unsigned.tx.fee.to_bytes(8, byteorder='big', signed=False)
+                tmp_hash_pre += response.extended_transaction_unsigned.tx.message.message_hash
+
+                tmp_hash = sha256(tmp_hash_pre)
+                hash_found = bin2hstr(Transaction.from_pbdata(response.extended_transaction_unsigned.tx).
+                                      get_hashable_bytes())
+                self.assertEqual(hash_found,
+                                 bin2hstr(tmp_hash))
+
+                signed_transaction = response.extended_transaction_unsigned.tx
+                signed_transaction.signature = alice.sign(tmp_hash)
+
+                req_push = qrl_pb2.PushTransactionReq(transaction_signed=signed_transaction)
+
+                resp_push = service.PushTransaction(req_push, context=context)
+                context.set_code.assert_not_called()
+                context.set_details.assert_not_called()
+
+                self.assertIsNotNone(resp_push)
+                self.assertEqual(qrl_pb2.PushTransactionResp.SUBMITTED,
+                                 resp_push.error_code)
+                self.assertEqual('b7ee814a548a6bbb8d97b2d3a0eb9e1f8b6ceee49b764e3c7b23d104aca6abeb',
+                                 bin2hstr(resp_push.tx_hash))
 
     @set_default_balance_size()
     def test_transferCoins_get_unsigned(self):
