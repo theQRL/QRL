@@ -205,6 +205,10 @@ class Block(object):
     def apply_state_changes(self, address_txn) -> bool:
         coinbase_tx = Transaction.from_pbdata(self.transactions[0])
 
+        if not coinbase_tx.validate_extended():
+            logger.warning('Coinbase transaction failed')
+            return False
+
         coinbase_tx.apply_state_changes(address_txn)
 
         len_transactions = len(self.transactions)
