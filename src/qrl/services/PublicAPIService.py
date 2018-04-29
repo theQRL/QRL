@@ -45,7 +45,7 @@ class PublicAPIService(PublicAPIServicer):
     def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
         response = qrl_pb2.GetKnownPeersResp()
         response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
-        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode._peer_addresses])
+        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
 
         return response
 
