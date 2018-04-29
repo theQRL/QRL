@@ -6,9 +6,8 @@ import time
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
-from twisted.internet import reactor
-
 from pyqrllib.pyqrllib import QRLHelper
+from twisted.internet import reactor
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -17,7 +16,6 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.State import State
-from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
     LatticePublicKey, MessageTransaction
 from qrl.core.misc import ntp
@@ -397,15 +395,7 @@ class QRLNode:
         return None
 
     def get_token_detailed_list(self):
-        pbdata = self.db_state.get_token_list()
-        token_list = TokenList.from_json(pbdata)
-        token_detailed_list = qrl_pb2.TokenDetailedList()
-        for token_txhash in token_list.token_txhash:
-            token_txn, _ = self.db_state.get_tx_metadata(token_txhash)
-            transaction_extended = qrl_pb2.TransactionExtended(tx=token_txn.pbdata,
-                                                               addr_from=token_txhash.addr_from)
-            token_detailed_list.extended_tokens.extend([transaction_extended])
-        return token_detailed_list
+        pass
 
     def get_latest_blocks(self, offset, count) -> List[Block]:
         answer = []
