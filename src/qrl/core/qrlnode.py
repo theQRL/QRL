@@ -394,9 +394,6 @@ class QRLNode:
             return result[1]
         return None
 
-    def get_token_detailed_list(self):
-        pass
-
     def get_latest_blocks(self, offset, count) -> List[Block]:
         answer = []
         end = self.block_height - offset

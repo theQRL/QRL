@@ -46,8 +46,6 @@ service PublicAPI
     rpc PushEphemeralMessage (PushEphemeralMessageReq) returns (PushTransactionResp);
     rpc CollectEphemeralMessage (CollectEphemeralMessageReq) returns (CollectEphemeralMessageResp);
     // ------------------------------
-
-    rpc GetTokenDetailedList (Empty) returns (TokenDetailedList);
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -464,10 +462,6 @@ message Transaction {
 
 message TokenList {
     repeated bytes token_txhash = 1;
-}
-
-message TokenDetailedList {
-    repeated TransactionExtended extended_tokens = 1;
 }
 
 message TokenMetadata {

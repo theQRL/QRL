@@ -246,11 +246,6 @@ class PublicAPIService(PublicAPIServicer):
 
         return answer
 
-    @GrpcExceptionWrapper(qrl_pb2.TokenDetailedList)
-    def GetTokenDetailedList(self, request: qrl_pb2.Empty, context) -> qrl_pb2.TokenDetailedList:
-        # TODO To be removed
-        return None
-
     @GrpcExceptionWrapper(qrl_pb2.GetLatestDataResp)
     def GetLatestData(self, request: qrl_pb2.GetLatestDataReq, context) -> qrl_pb2.GetLatestDataResp:
         logger.debug("[PublicAPI] GetLatestData")
