@@ -639,6 +639,58 @@ def tx_push(ctx, txblob):
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
+@click.option('--message', type=str, prompt=True, help='Message (max 80 bytes)')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.pass_context
+def tx_message(ctx, src, master, message, fee, ots_key_index):
+    """
+    Transfer coins from src to dst
+    """
+    if not ctx.obj.remote:
+        click.echo('This command is unsupported for local wallets')
+        return
+
+    try:
+        _, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        address_src_pk = src_xmss.pk
+        src_xmss.set_ots_index(ots_key_index)
+
+        message = message.encode()
+
+        master_addr = _parse_qaddress(master)
+        fee_shor = _shorize(fee)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
+        quit(1)
+
+    try:
+        stub = ctx.obj.get_stub_public_api()
+        messageTxnReq = qrl_pb2.MessageTxnReq(message=message,
+                                              fee=fee_shor,
+                                              xmss_pk=address_src_pk,
+                                              master_addr=master_addr)
+
+        transferCoinsResp = stub.GetMessageTxn(messageTxnReq, timeout=5)
+
+        tx = Transaction.from_pbdata(transferCoinsResp.extended_transaction_unsigned.tx)
+        tx.sign(src_xmss)
+
+        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+
+        print(pushTransactionResp)
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+@qrl.command()
+@click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--dst', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
