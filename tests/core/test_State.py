@@ -461,7 +461,7 @@ class TestState(TestCase):
                 for i in range(1, 20):
                     datapoint = state.get_block_datapoint(blocks[i].headerhash)
                     self.assertEqual(datapoint.difficulty, "0")
-                    self.assertEqual(datapoint.timestamp, 1615270948)
+                    self.assertEqual(datapoint.timestamp, 1615270947 + i)
                     self.assertEqual(datapoint.header_hash, blocks[i].headerhash)
                     self.assertEqual(datapoint.header_hash_prev, blocks[i - 1].headerhash)
 

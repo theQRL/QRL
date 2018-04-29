@@ -167,6 +167,8 @@ class Block(object):
             try:
                 parent_block = future_blocks[self.prev_headerhash]
             except KeyError:
+                logger.warning('Parent block not found')
+                logger.warning('Parent block headerhash %s', bin2hstr(self.prev_headerhash))
                 return False
 
         if not self.validate_parent_child_relation(parent_block):
