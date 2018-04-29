@@ -298,7 +298,10 @@ class PublicAPIService(PublicAPIServicer):
             submitted = self.qrlnode.broadcast_ephemeral_message(encrypted_ephemeral_message)
 
         answer = qrl_pb2.PushTransactionResp()
-        answer.some_response = str(submitted)
+        answer.error_code = qrl_pb2.PushTransactionResp.ERROR
+        if submitted:
+            answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
+
         return answer
 
     @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)
