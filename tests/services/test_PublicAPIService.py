@@ -71,7 +71,8 @@ class TestPublicAPI(TestCase):
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
-        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+        qrlnode.peer_manager = Mock()
+        qrlnode.peer_manager.peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
         response = service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
