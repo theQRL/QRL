@@ -150,7 +150,16 @@ class QRLNode:
 
     @property
     def peer_addresses(self):
-        return self.peer_manager._peer_addresses
+        return self.peer_manager.peer_addresses
+
+    def get_peers_stat(self) -> list:
+        peers_stat = []
+        for source in self.peer_manager.peer_node_status:
+            peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
+                                         port=source.peer_port,
+                                         node_chain_state=self.peer_manager.peer_node_status[source])
+            peers_stat.append(peer_stat)
+        return peers_stat
 
     ####################################################
     ####################################################

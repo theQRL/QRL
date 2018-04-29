@@ -50,7 +50,8 @@ class MockedBlockchain(object):
         self.ntp_mock.return_value = self.ntp_mock.return_value + 60
 
         block_new = Block.create(block_number=block_idx,
-                                 prevblock_headerhash=block_prev.headerhash,
+                                 prev_block_headerhash=block_prev.headerhash,
+                                 prev_block_timestamp=block_prev.timestamp,
                                  transactions=transactions,
                                  miner_address=mining_address)
 
@@ -61,13 +62,20 @@ class MockedBlockchain(object):
 
         return block_new
 
+    def validate(self, block):
+        if not block.validate(self.qrlnode._chain_manager.state, {}):
+            raise Exception('Block Validation Failed')
+
+        return True
+
     def add_block(self, block):
+        self.validate(block)
         return self.qrlnode._chain_manager.add_block(block)
 
     def add_new_block(self, mining_address=None):
         block_prev = self.qrlnode.get_block_last()
         block_new = self.create_block(prev_hash=block_prev.headerhash, mining_address=mining_address)
-        self.qrlnode._chain_manager.add_block(block_new)
+        self.add_block(block_new)
 
     @staticmethod
     @contextlib.contextmanager

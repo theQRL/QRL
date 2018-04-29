@@ -27,6 +27,16 @@ class PublicAPIService(PublicAPIServicer):
     def GetAddressFromPK(self, request: qrl_pb2.GetAddressFromPKReq, context) -> qrl_pb2.GetAddressFromPKResp:
         return qrl_pb2.GetAddressFromPKResp(address=bytes(QRLHelper.getAddress(request.pk)))
 
+    @GrpcExceptionWrapper(qrl_pb2.GetPeersStatResp)
+    def GetPeersStat(self, request: qrl_pb2.GetPeersStatReq, context) -> qrl_pb2.GetPeersStatResp:
+        peers_stat_resp = qrl_pb2.GetPeersStatResp()
+        peers_stat = self.qrlnode.get_peers_stat()
+
+        for stat in peers_stat:
+            peers_stat_resp.peers_stat.extend([stat])
+
+        return peers_stat_resp
+
     @GrpcExceptionWrapper(qrl_pb2.GetNodeStateResp)
     def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
         return qrl_pb2.GetNodeStateResp(info=self.qrlnode.getNodeInfo())
@@ -172,13 +182,16 @@ class PublicAPIService(PublicAPIServicer):
         # FIXME: We need a unified way to access and validate data.
         query = bytes(request.query)  # query will be as a string, if Q is detected convert, etc.
 
-        if AddressState.address_is_valid(query):
-            if self.qrlnode.get_address_is_used(query):
-                address_state = self.qrlnode.get_address_state(query)
-                if address_state is not None:
-                    answer.found = True
-                    answer.address_state.CopyFrom(address_state.pbdata)
-                    return answer
+        try:
+            if AddressState.address_is_valid(query):
+                if self.qrlnode.get_address_is_used(query):
+                    address_state = self.qrlnode.get_address_state(query)
+                    if address_state is not None:
+                        answer.found = True
+                        answer.address_state.CopyFrom(address_state.pbdata)
+                        return answer
+        except ValueError:
+            pass
 
         transaction, block_number = self.qrlnode.get_transaction(query)
         if transaction is not None:

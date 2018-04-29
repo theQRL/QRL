@@ -76,9 +76,10 @@ class TestEphemeral(TestCase):
                                                                          xmss_pk=random_xmss1.pk)
                         lattice_public_key_txn._data.nonce = 1
                         lattice_public_key_txn.sign(random_xmss1)
-
+                        genesis_block = GenesisBlock()
                         tmp_block1 = Block.create(block_number=1,
-                                                  prevblock_headerhash=GenesisBlock().headerhash,
+                                                  prev_block_headerhash=genesis_block.headerhash,
+                                                  prev_block_timestamp=genesis_block.timestamp,
                                                   transactions=[lattice_public_key_txn],
                                                   miner_address=slave_xmss.address)
 
@@ -86,6 +87,7 @@ class TestEphemeral(TestCase):
                         while not PoWValidator().validate_mining_nonce(state, tmp_block1.blockheader, False):
                             tmp_block1.set_nonces(tmp_block1.mining_nonce + 1, 0)
 
+                        self.assertTrue(tmp_block1.validate(state, {}))
                         res = chain_manager.add_block(block=tmp_block1)
                         self.assertTrue(res)
 
@@ -125,7 +127,8 @@ class TestEphemeral(TestCase):
                         # TODO (cyyber): Add Ephemeral Testing code using Naive RNG
 
                         tmp_block2 = Block.create(block_number=2,
-                                                  prevblock_headerhash=tmp_block1.headerhash,
+                                                  prev_block_headerhash=tmp_block1.headerhash,
+                                                  prev_block_timestamp=tmp_block1.timestamp,
                                                   transactions=[],
                                                   miner_address=slave_xmss.address)
 
@@ -133,6 +136,7 @@ class TestEphemeral(TestCase):
                         while not PoWValidator().validate_mining_nonce(state, tmp_block2.blockheader, False):
                             tmp_block2.set_nonces(tmp_block2.mining_nonce + 1, 0)
 
+                        self.assertTrue(tmp_block2.validate(state, {}))
                         res = chain_manager.add_block(block=tmp_block2)
                         self.assertTrue(res)
 
@@ -140,7 +144,8 @@ class TestEphemeral(TestCase):
                         time_mock.return_value += config.dev.minimum_minting_delay * 2
 
                         tmp_block3 = Block.create(block_number=3,
-                                                  prevblock_headerhash=tmp_block2.headerhash,
+                                                  prev_block_headerhash=tmp_block2.headerhash,
+                                                  prev_block_timestamp=tmp_block1.timestamp,
                                                   transactions=[],
                                                   miner_address=slave_xmss.address)
 
@@ -148,13 +153,15 @@ class TestEphemeral(TestCase):
                         while not PoWValidator().validate_mining_nonce(state, tmp_block3.blockheader, False):
                             tmp_block3.set_nonces(tmp_block3.mining_nonce + 1, 0)
 
+                        self.assertTrue(tmp_block3.validate(state, {}))
                         res = chain_manager.add_block(block=tmp_block3)
                         self.assertTrue(res)
 
                         time_mock.return_value += config.dev.minimum_minting_delay
 
                         tmp_block4 = Block.create(block_number=4,
-                                                  prevblock_headerhash=tmp_block3.headerhash,
+                                                  prev_block_headerhash=tmp_block3.headerhash,
+                                                  prev_block_timestamp=tmp_block1.timestamp,
                                                   transactions=[],
                                                   miner_address=slave_xmss.address)
 
@@ -162,6 +169,7 @@ class TestEphemeral(TestCase):
                         while not PoWValidator().validate_mining_nonce(state, tmp_block4.blockheader, False):
                             tmp_block4.set_nonces(tmp_block4.mining_nonce + 1, 0)
 
+                        self.assertTrue(tmp_block4.validate(state, {}))
                         res = chain_manager.add_block(block=tmp_block4)
                         self.assertTrue(res)
 

@@ -113,18 +113,21 @@ class BlockHeader(object):
 
     @staticmethod
     def create(blocknumber: int,
-               prev_blockheaderhash: bytes,
+               prev_block_headerhash: bytes,
+               prev_block_timestamp: int,
                hashedtransactions: bytes,
                fee_reward: int):
         """
         Create a block header based on the parameters
 
         >>> BlockHeader.create(blocknumber=1,
-        ...                    prev_blockheaderhash=b'headerhash',
+        ...                    prev_block_headerhash=b'headerhash',
+        ...                    prev_block_timestamp=10,
         ...                    hashedtransactions=b'some_data', fee_reward=1) is not None
         True
         >>> b=BlockHeader.create(blocknumber=1,
-        ...                      prev_blockheaderhash=b'headerhash',
+        ...                      prev_block_headerhash=b'headerhash',
+        ...                      prev_block_timestamp=10,
         ...                      hashedtransactions=b'some_data', fee_reward=1)
         >>> b.epoch
         0
@@ -135,11 +138,15 @@ class BlockHeader(object):
 
         if bh._data.block_number != 0:
             bh._data.timestamp_seconds = int(ntp.getTime())
+            # If current block timestamp is less than the previous block timestamp
+            # then set current block timestamp 1 sec higher than prev_block_timestamp
+            if bh._data.timestamp_seconds < prev_block_timestamp:
+                bh._data.timestamp_seconds = prev_block_timestamp + 1
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
 
-        bh._data.hash_header_prev = prev_blockheaderhash
+        bh._data.hash_header_prev = prev_block_headerhash
         bh._data.merkle_root = hashedtransactions
         bh._data.reward_fee = fee_reward
 
@@ -214,6 +221,10 @@ class BlockHeader(object):
         return True
 
     def validate_parent_child_relation(self, parent_block):
+        if not parent_block:
+            logger.warning('Parent Block not found')
+            return False
+
         if parent_block.block_number != self.block_number - 1:
             logger.warning('Block numbers out of sequence: failed validation')
             return False
@@ -222,10 +233,10 @@ class BlockHeader(object):
             logger.warning('Headerhash not in sequence: failed validation')
             return False
 
-        if self.timestamp < parent_block.timestamp:
-            logger.warning('BLOCK timestamp is less than prev block timestamp')
+        if self.timestamp <= parent_block.timestamp:
+            logger.warning('BLOCK timestamp must be greater than parent block timestamp')
             logger.warning('block timestamp %s ', self.timestamp)
-            logger.warning('must be greater than or equals to %s', parent_block.timestamp)
+            logger.warning('must be greater than %s', parent_block.timestamp)
             return False
 
         return True

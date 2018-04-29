@@ -19,6 +19,8 @@ service PublicAPI
     rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
 
+    rpc GetPeersStat (GetPeersStatReq) returns (GetPeersStatResp);
+
     rpc GetStats (GetStatsReq) returns (GetStatsResp);
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
     rpc GetObject(GetObjectReq) returns (GetObjectResp);
@@ -87,6 +89,18 @@ message GetKnownPeersReq { }
 message GetKnownPeersResp {
     NodeInfo node_info = 1;             // NodeInfo object containing node state information
     repeated Peer known_peers = 2;      // List of Peer objects containing peer nodes detailed information
+}
+
+/**
+ * Represents a query to get connected peers stat
+*/
+message GetPeersStatReq { }
+
+/**
+ * Represents the reply message to peers stat query
+*/
+message GetPeersStatResp {
+    repeated PeerStat peers_stat = 1;    // PeerState object contains peer_ip, port and peer state information
 }
 
 /**
@@ -542,6 +556,12 @@ message StateObjects {
 
 message LRUStateCache {
 
+}
+
+message PeerStat {
+    bytes peer_ip = 1;
+    uint32 port = 2;
+    NodeChainState node_chain_state = 3;
 }
 
 message NodeChainState {

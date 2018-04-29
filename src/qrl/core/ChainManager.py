@@ -3,13 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from typing import Optional
 
-import functools
 from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString, PoWHelper
+from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
 
 from qrl.core import config
-from qrl.core.PoWValidator import PoWValidator
-from qrl.crypto.Qryptonight import Qryptonight
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -101,111 +98,6 @@ class ChainManager:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
 
-    def validate_mining_nonce(self, block, enable_logging=False):
-        parent_metadata = self.state.get_block_metadata(block.prev_headerhash)
-        parent_block = self.state.get_block(block.prev_headerhash)
-
-        measurement = self.state.get_measurement(block.timestamp, block.prev_headerhash, parent_metadata)
-        diff, target = DifficultyTracker.get(
-            measurement=measurement,
-            parent_difficulty=parent_metadata.block_difficulty)
-
-        if enable_logging:
-            logger.debug('-----------------START--------------------')
-            logger.debug('Validate #%s', block.block_number)
-            logger.debug('block.timestamp %s', block.timestamp)
-            logger.debug('parent_block.timestamp %s', parent_block.timestamp)
-            logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
-            logger.debug('diff : %s | target : %s', UInt256ToString(diff), target)
-            logger.debug('-------------------END--------------------')
-
-        if not self.verify_input_cached(block.mining_blob, target):
-            if enable_logging:
-                logger.warning("PoW verification failed")
-                qn = Qryptonight()
-                tmp_hash = qn.hash(block.mining_blob)
-                logger.warning("{}".format(tmp_hash))
-                logger.debug('%s', block.to_json())
-            return False
-
-        return True
-
-    @functools.lru_cache(maxsize=5)
-    def verify_input_cached(self, mining_blob, target):
-        return PoWHelper.verifyInput(mining_blob, target)
-
-    def validate_block(self, block, address_txn) -> bool:
-        len_transactions = len(block.transactions)
-
-        if len_transactions < 1:
-            return False
-
-        coinbase_tx = Transaction.from_pbdata(block.transactions[0])
-
-        if not isinstance(coinbase_tx, CoinBase):
-            return False
-
-        if not coinbase_tx.validate_extended():
-            return False
-
-        if not PoWValidator().validate_mining_nonce(self.state, block.blockheader):
-            logger.warning('Failed PoW Validation')
-            return False
-
-        coinbase_tx.apply_state_changes(address_txn)
-
-        # TODO: check block reward must be equal to coinbase amount
-
-        for tx_idx in range(1, len_transactions):
-            tx = Transaction.from_pbdata(block.transactions[tx_idx])
-
-            if isinstance(tx, CoinBase):
-                logger.warning('Found another coinbase transaction')
-                return False
-
-            if not tx.validate():  # TODO: Move this validation, before adding txn to pool
-                return False
-
-            addr_from_pk_state = address_txn[tx.addr_from]
-            addr_from_pk = Transaction.get_slave(tx)
-            if addr_from_pk:
-                addr_from_pk_state = address_txn[addr_from_pk]
-
-            if not tx.validate_extended(address_txn[tx.addr_from], addr_from_pk_state):
-                return False
-
-            expected_nonce = addr_from_pk_state.nonce + 1
-
-            if tx.nonce != expected_nonce:
-                logger.warning('nonce incorrect, invalid tx')
-                logger.warning('subtype: %s', tx.type)
-                logger.warning('%s actual: %s expected: %s', tx.addr_from, tx.nonce, expected_nonce)
-                return False
-
-            if addr_from_pk_state.ots_key_reuse(tx.ots_key):
-                logger.warning('pubkey reuse detected: invalid tx %s', bin2hstr(tx.txhash))
-                logger.warning('subtype: %s', tx.type)
-                return False
-
-            tx.apply_state_changes(address_txn)
-
-        return True
-
-    def _pre_check(self, block, ignore_duplicate):
-        if block.block_number < 1:
-            logger.warning('Block Number less than 1 #%s', block.block_number)
-            return False
-
-        if not block.validate():
-            logger.warning('Block Validation Failed')
-            return False
-
-        if (not ignore_duplicate) and self.state.get_block(block.headerhash):  # Duplicate block check
-            logger.info('Duplicate block %s %s', block.block_number, bin2hstr(block.headerhash))
-            return False
-
-        return True
-
     def _try_orphan_add_block(self, block, batch):
         prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
 
@@ -217,18 +109,13 @@ class ChainManager:
         return False
 
     def _try_branch_add_block(self, block, batch=None) -> bool:
-        parent_block = self.state.get_block(block.prev_headerhash)
-        if not block.validate_parent_child_relation(parent_block):
-            logger.warning('Failed to validate blocks parent child relation')
-            return False
-
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
         if self.last_block.headerhash == block.prev_headerhash:
             address_txn = self.state.get_state_mainchain(address_set)
         else:
             address_txn, rollback_headerhash, hash_path = self.state.get_state(block.prev_headerhash, address_set)
 
-        if self.validate_block(block, address_txn):
+        if block.apply_state_changes(address_txn):
             self.state.put_block(block, None)
             self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
 
@@ -291,16 +178,12 @@ class ChainManager:
 
         self.trigger_miner = True
 
-    def _add_block(self, block, ignore_duplicate=False, batch=None):
+    def _add_block(self, block, batch=None):
         self.trigger_miner = False
 
         block_size_limit = self.state.get_block_size_limit(block)
         if block_size_limit and block.size > block_size_limit:
             logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
-            return False
-
-        if not self._pre_check(block, ignore_duplicate):
-            logger.debug('Failed pre_check')
             return False
 
         if self._try_orphan_add_block(block, batch):
@@ -335,7 +218,7 @@ class ChainManager:
             block = self.state.get_block(child_headerhash)
             if not block:
                 continue
-            if not self._add_block(block, True):
+            if not self._add_block(block):
                 self._prune([block.headerhash], None)
                 continue
             block_metadata = self.state.get_block_metadata(child_headerhash)

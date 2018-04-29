@@ -32,6 +32,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetKnownPeersReq.SerializeToString,
         response_deserializer=qrl__pb2.GetKnownPeersResp.FromString,
         )
+    self.GetPeersStat = channel.unary_unary(
+        '/qrl.PublicAPI/GetPeersStat',
+        request_serializer=qrl__pb2.GetPeersStatReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetPeersStatResp.FromString,
+        )
     self.GetStats = channel.unary_unary(
         '/qrl.PublicAPI/GetStats',
         request_serializer=qrl__pb2.GetStatsReq.SerializeToString,
@@ -123,6 +128,12 @@ class PublicAPIServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetKnownPeers(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetPeersStat(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -226,6 +237,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetKnownPeers,
           request_deserializer=qrl__pb2.GetKnownPeersReq.FromString,
           response_serializer=qrl__pb2.GetKnownPeersResp.SerializeToString,
+      ),
+      'GetPeersStat': grpc.unary_unary_rpc_method_handler(
+          servicer.GetPeersStat,
+          request_deserializer=qrl__pb2.GetPeersStatReq.FromString,
+          response_serializer=qrl__pb2.GetPeersStatResp.SerializeToString,
       ),
       'GetStats': grpc.unary_unary_rpc_method_handler(
           servicer.GetStats,
