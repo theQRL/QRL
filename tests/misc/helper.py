@@ -7,12 +7,11 @@ import shutil
 import tempfile
 from copy import deepcopy
 
-import pyqrllib
 import simplejson as json
 from mock import mock
 from pyqrllib.dilithium import Dilithium
 from pyqrllib.kyber import Kyber
-from pyqrllib.pyqrllib import QRLHelper, shake128, QRLDescriptor, SHA2_256, XmssFast
+from pyqrllib.pyqrllib import XmssFast
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
@@ -123,12 +122,6 @@ def get_slave_xmss() -> XMSS:
 
 def get_random_xmss(xmss_height=6) -> XMSS:
     return XMSS.from_height(xmss_height)
-
-
-def qrladdress(address_seed_str: str) -> bytes:
-    extended_seed = QRLDescriptor(SHA2_256, pyqrllib.pyqrllib.XMSS, 4, 0).getBytes() + \
-                    shake128(48, address_seed_str.encode())
-    return bytes(QRLHelper.getAddress(extended_seed))
 
 
 def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fee=1) -> TokenTransaction:

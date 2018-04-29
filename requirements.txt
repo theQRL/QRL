@@ -13,8 +13,8 @@ protobuf
 pyopenssl>=17.3.0
 six>=1.9
 click==6.7
-pyqrllib>=0.8.21,<0.9.0
-pyqryptonight>=0.9.0,<0.10.0
+pyqrllib>=0.9.0,<0.10.0
+pyqryptonight>=0.10.0,<0.11.0
 Flask==0.12.2
 json-rpc==1.10.8
 cryptography
