@@ -387,15 +387,7 @@ class QRLNode:
         return None
 
     def get_token_detailed_list(self):
-        pbdata = self.db_state.get_token_list()
-        token_list = TokenList.from_json(pbdata)
-        token_detailed_list = qrl_pb2.TokenDetailedList()
-        for token_txhash in token_list.token_txhash:
-            token_txn, _ = self.db_state.get_tx_metadata(token_txhash)
-            transaction_extended = qrl_pb2.TransactionExtended(tx=token_txn.pbdata,
-                                                               addr_from=token_txhash.addr_from)
-            token_detailed_list.extended_tokens.extend([transaction_extended])
-        return token_detailed_list
+        pass
 
     def get_latest_blocks(self, offset, count) -> List[Block]:
         answer = []
