@@ -10,7 +10,7 @@ class GrpcExceptionWrapper(object):
         self.response_type = response_type
         self.state_code = state_code
 
-    def _set_context(self, context, exception, code = None):
+    def _set_context(self, context, exception, code=None):
         if context is not None:
             if code is None:
                 context.set_code(self.state_code)

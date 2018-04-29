@@ -402,5 +402,5 @@ class TestPublicAPI(TestCase):
         context = Mock(spec=ServicerContext)
         context.set_code = MagicMock()
 
-        response = service.GetTokenTxn(request=request, context=context)
+        service.GetTokenTxn(request=request, context=context)
         context.set_code.assert_called_with(StatusCode.INVALID_ARGUMENT)

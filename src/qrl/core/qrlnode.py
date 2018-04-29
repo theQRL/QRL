@@ -6,9 +6,8 @@ import time
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
-from twisted.internet import reactor
-
 from pyqrllib.pyqrllib import QRLHelper
+from twisted.internet import reactor
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -17,7 +16,6 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
 from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.State import State
-from qrl.core.TokenList import TokenList
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
     LatticePublicKey
 from qrl.core.misc import ntp
