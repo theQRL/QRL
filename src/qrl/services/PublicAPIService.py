@@ -45,7 +45,7 @@ class PublicAPIService(PublicAPIServicer):
     def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
         response = qrl_pb2.GetKnownPeersResp()
         response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
-        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode._peer_addresses])
+        response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
 
         return response
 
@@ -90,12 +90,12 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
-        tx = Transaction.from_pbdata(request.transaction_signed)
-        tx.update_txhash()
-
         answer = qrl_pb2.PushTransactionResp()
 
         try:
+            tx = Transaction.from_pbdata(request.transaction_signed)
+            tx.update_txhash()
+
             # FIXME: Full validation takes too much time. At least verify there is a signature
             # the validation happens later in the tx pool
             if len(tx.signature) > 1000:
@@ -235,10 +235,8 @@ class PublicAPIService(PublicAPIServicer):
 
     @GrpcExceptionWrapper(qrl_pb2.TokenDetailedList)
     def GetTokenDetailedList(self, request: qrl_pb2.Empty, context) -> qrl_pb2.TokenDetailedList:
-        logger.debug("[PublicAPI] TokenDetailedList")
-        token_detailed_list = self.qrlnode.get_token_detailed_list()
-
-        return token_detailed_list
+        # TODO To be removed
+        return None
 
     @GrpcExceptionWrapper(qrl_pb2.GetLatestDataResp)
     def GetLatestData(self, request: qrl_pb2.GetLatestDataReq, context) -> qrl_pb2.GetLatestDataResp:
@@ -298,7 +296,10 @@ class PublicAPIService(PublicAPIServicer):
             submitted = self.qrlnode.broadcast_ephemeral_message(encrypted_ephemeral_message)
 
         answer = qrl_pb2.PushTransactionResp()
-        answer.some_response = str(submitted)
+        answer.error_code = qrl_pb2.PushTransactionResp.ERROR
+        if submitted:
+            answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
+
         return answer
 
     @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)

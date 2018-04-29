@@ -4,7 +4,7 @@
 import heapq
 from unittest import TestCase
 
-from grpc import ServicerContext
+from grpc import ServicerContext, StatusCode
 from mock import Mock, MagicMock
 from pyqrllib.pyqrllib import str2bin, hstr2bin, bin2hstr
 
@@ -71,7 +71,8 @@ class TestPublicAPI(TestCase):
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
-        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+        qrlnode.peer_manager = Mock()
+        qrlnode.peer_manager.peer_addresses = ['127.0.0.1', '192.168.1.1']
 
         service = PublicAPIService(qrlnode)
         response = service.GetKnownPeers(request=qrl_pb2.GetKnownPeersReq, context=None)
@@ -380,3 +381,26 @@ class TestPublicAPI(TestCase):
         response = service.GetAddressFromPK(request=request, context=None)
         self.assertEqual('010600b56d161c7de8aa741962e3e49b973b7e53456fa47f2443d69f17c632f29c8b1aab7d2491',
                          bin2hstr(response.address))
+
+    def test_GetTokenTxn_Error(self):
+        db_state = Mock(spec=State)
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.sync_state = SyncState()
+        p2p_factory.connections = 23
+        p2p_factory.pow = Mock()
+
+        chain_manager = Mock(spec=ChainManager)
+        chain_manager.height = 0
+
+        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+
+        service = PublicAPIService(qrlnode)
+        request = qrl_pb2.TokenTxnReq()
+        context = Mock(spec=ServicerContext)
+        context.set_code = MagicMock()
+
+        service.GetTokenTxn(request=request, context=context)
+        context.set_code.assert_called_with(StatusCode.INVALID_ARGUMENT)
