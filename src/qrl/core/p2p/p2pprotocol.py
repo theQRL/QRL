@@ -112,6 +112,7 @@ class P2PProtocol(Protocol):
         if ntp.getTime() - self.last_rate_limit_update > 60:
             self.out_counter = 0
             self.in_counter = 0
+            self.last_rate_limit_update = ntp.getTime()
             return
 
     def send_next(self):
