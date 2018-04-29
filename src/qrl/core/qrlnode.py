@@ -155,8 +155,8 @@ class QRLNode:
     def get_peers_stat(self) -> list:
         peers_stat = []
         for source in self.peer_manager.peer_node_status:
-            peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip,
-                                         peer_port=source.peer_port,
+            peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
+                                         port=source.peer_port,
                                          node_chain_state=self.peer_manager.peer_node_status[source])
             peers_stat.append(peer_stat)
         return peers_stat
