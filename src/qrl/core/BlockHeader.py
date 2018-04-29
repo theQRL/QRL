@@ -138,9 +138,9 @@ class BlockHeader(object):
 
         if bh._data.block_number != 0:
             bh._data.timestamp_seconds = int(ntp.getTime())
-            # If current block timestamp is less than the previous block timestamp
+            # If current block timestamp is less than or equals to the previous block timestamp
             # then set current block timestamp 1 sec higher than prev_block_timestamp
-            if bh._data.timestamp_seconds < prev_block_timestamp:
+            if bh._data.timestamp_seconds <= prev_block_timestamp:
                 bh._data.timestamp_seconds = prev_block_timestamp + 1
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
