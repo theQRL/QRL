@@ -90,12 +90,12 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
-        tx = Transaction.from_pbdata(request.transaction_signed)
-        tx.update_txhash()
-
         answer = qrl_pb2.PushTransactionResp()
 
         try:
+            tx = Transaction.from_pbdata(request.transaction_signed)
+            tx.update_txhash()
+
             # FIXME: Full validation takes too much time. At least verify there is a signature
             # the validation happens later in the tx pool
             if len(tx.signature) > 1000:
