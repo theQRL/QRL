@@ -182,13 +182,16 @@ class PublicAPIService(PublicAPIServicer):
         # FIXME: We need a unified way to access and validate data.
         query = bytes(request.query)  # query will be as a string, if Q is detected convert, etc.
 
-        if AddressState.address_is_valid(query):
-            if self.qrlnode.get_address_is_used(query):
-                address_state = self.qrlnode.get_address_state(query)
-                if address_state is not None:
-                    answer.found = True
-                    answer.address_state.CopyFrom(address_state.pbdata)
-                    return answer
+        try:
+            if AddressState.address_is_valid(query):
+                if self.qrlnode.get_address_is_used(query):
+                    address_state = self.qrlnode.get_address_state(query)
+                    if address_state is not None:
+                        answer.found = True
+                        answer.address_state.CopyFrom(address_state.pbdata)
+                        return answer
+        except ValueError:
+            pass
 
         transaction, block_number = self.qrlnode.get_transaction(query)
         if transaction is not None:
