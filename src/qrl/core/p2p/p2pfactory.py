@@ -23,6 +23,36 @@ from qrl.core.node import SyncState
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
+p2p_msg_priority = {
+            qrllegacy_pb2.LegacyMessage.VE: 0,
+            qrllegacy_pb2.LegacyMessage.PL: 0,
+            qrllegacy_pb2.LegacyMessage.PONG: 0,
+
+            ######################
+            qrllegacy_pb2.LegacyMessage.MR: 2,
+            qrllegacy_pb2.LegacyMessage.SFM: 1,
+
+            qrllegacy_pb2.LegacyMessage.BK: 1,
+            qrllegacy_pb2.LegacyMessage.FB: 1,
+            qrllegacy_pb2.LegacyMessage.PB: 1,
+            qrllegacy_pb2.LegacyMessage.BH: 1,
+
+            ############################
+            qrllegacy_pb2.LegacyMessage.TX: 1,
+            qrllegacy_pb2.LegacyMessage.MT: 1,
+            qrllegacy_pb2.LegacyMessage.TK: 1,
+            qrllegacy_pb2.LegacyMessage.TT: 1,
+            qrllegacy_pb2.LegacyMessage.LT: 1,
+            qrllegacy_pb2.LegacyMessage.SL: 1,
+
+            qrllegacy_pb2.LegacyMessage.EPH: 3,
+
+            qrllegacy_pb2.LegacyMessage.SYNC: 0,
+            qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
+            qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
+            qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
+        }
+
 
 class P2PFactory(ServerFactory):
     protocol = P2PProtocol
@@ -55,35 +85,7 @@ class P2PFactory(ServerFactory):
 
         reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)
 
-        self.p2p_msg_priority = {
-            qrllegacy_pb2.LegacyMessage.VE: 0,
-            qrllegacy_pb2.LegacyMessage.PL: 0,
-            qrllegacy_pb2.LegacyMessage.PONG: 0,
-
-            ######################
-            qrllegacy_pb2.LegacyMessage.MR: 2,
-            qrllegacy_pb2.LegacyMessage.SFM: 1,
-
-            qrllegacy_pb2.LegacyMessage.BK: 1,
-            qrllegacy_pb2.LegacyMessage.FB: 1,
-            qrllegacy_pb2.LegacyMessage.PB: 1,
-            qrllegacy_pb2.LegacyMessage.BH: 1,
-
-            ############################
-            qrllegacy_pb2.LegacyMessage.TX: 1,
-            qrllegacy_pb2.LegacyMessage.MT: 1,
-            qrllegacy_pb2.LegacyMessage.TK: 1,
-            qrllegacy_pb2.LegacyMessage.TT: 1,
-            qrllegacy_pb2.LegacyMessage.LT: 1,
-            qrllegacy_pb2.LegacyMessage.SL: 1,
-
-            qrllegacy_pb2.LegacyMessage.EPH: 3,
-
-            qrllegacy_pb2.LegacyMessage.SYNC: 0,
-            qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
-            qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
-            qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
-        }
+        self.p2p_msg_priority = p2p_msg_priority
 
     ###################################################
     ###################################################
