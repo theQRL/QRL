@@ -102,7 +102,7 @@ class P2PProtocol(Protocol):
                 self.factory.ban_peer(self)
             self._observable.notify(msg)
 
-        if read_bytes[0]:
+        if read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
             p2p_ack = qrl_pb2.P2PAcknowledgement(bytes_processed=read_bytes[0])
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.P2P_ACK,
                                               p2pAckData=p2p_ack)
