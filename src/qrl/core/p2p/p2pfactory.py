@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import time
 import random
 
 from twisted.internet import reactor
@@ -183,7 +182,7 @@ class P2PFactory(ServerFactory):
         return self._chain_manager.get_block_by_number(block_number)
 
     def block_received(self, source, block: Block):
-        self.pow.last_pb_time = time.time()
+        self.pow.last_pb_time = ntp.getTime()
         logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))
 
         if source != self._target_peer:

@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import threading
-import time
 from collections import OrderedDict
 from twisted.internet import reactor
 from pyqrllib.pyqrllib import bin2hstr
@@ -76,14 +75,14 @@ class POW(ConsensusMechanism):
 
     def _handler_state_unsynced(self):
         self.miner.cancel()
-        self.last_bk_time = time.time()
+        self.last_bk_time = ntp.getTime()
         self.restart_unsynced_logic()
 
     def _handler_state_syncing(self):
-        self.last_pb_time = time.time()
+        self.last_pb_time = ntp.getTime()
 
     def _handler_state_synced(self):
-        self.last_pow_cycle = time.time()
+        self.last_pow_cycle = ntp.getTime()
         last_block = self.chain_manager.last_block
         self.mine_next(last_block)
 
@@ -116,17 +115,17 @@ class POW(ConsensusMechanism):
     def monitor_bk(self):
         # FIXME: Too many magic numbers / timing constants
         # FIXME: This is obsolete
-        time_diff1 = time.time() - self.last_pow_cycle
+        time_diff1 = ntp.getTime() - self.last_pow_cycle
         if 90 < time_diff1:
             if self.sync_state.state == ESyncState.unsynced:
-                if time.time() - self.last_bk_time > 120:
-                    self.last_pow_cycle = time.time()
+                if ntp.getTime() - self.last_bk_time > 120:
+                    self.last_pow_cycle = ntp.getTime()
                     logger.info(' POW cycle activated by monitor_bk() ')
                     self.update_node_state(ESyncState.synced)
                 reactor.monitor_bk = reactor.callLater(60, self.monitor_bk)
                 return
 
-        time_diff2 = time.time() - self.last_pb_time
+        time_diff2 = ntp.getTime() - self.last_pb_time
         if self.sync_state.state == ESyncState.syncing and time_diff2 > 60:
             self.update_node_state(ESyncState.unsynced)
             self.epoch_diff = -1
