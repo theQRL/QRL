@@ -160,9 +160,6 @@ class P2PPeerManager(P2PBaseObserver):
                     message.veData.version,
                     message.veData.genesis_prev_hash)
 
-        if source.last_rate_limit_update > 0:
-            source.factory.ban_peer(source)  # Peer Breaking protocol, disconnect & Ban
-
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
 
         if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:

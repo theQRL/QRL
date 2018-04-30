@@ -5,7 +5,7 @@ import copy
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
-from pyqryptonight.pyqryptonight import Qryptominer, UInt256ToString
+from pyqryptonight.pyqryptonight import Qryptominer, UInt256ToString, SOLUTION
 
 from qrl.core import config
 from qrl.core.Block import Block
@@ -84,15 +84,17 @@ class Miner(Qryptominer):
             logger.warning("Exception in start_mining")
             logger.exception(e)
 
-    def solutionEvent(self, nonce):
+    def handleEvent(self, event):
         # NOTE: This function usually runs in the context of a C++ thread
         try:
-            logger.debug('Solution Found %s', nonce)
-            self._mining_block.set_nonces(nonce, 0)
-            logger.info('Block #%s nonce: %s', self._mining_block.block_number, nonce)
-            logger.info('Hash Rate: %s H/s', self.hashRate())
-            cloned_block = copy.deepcopy(self._mining_block)
-            self.pre_block_logic(cloned_block)
+            if event.type == SOLUTION:
+                nonce = event.nonce
+                self._mining_block.set_nonces(nonce, 0)
+                logger.debug('Solution Found %s', nonce)
+                logger.info('Block #%s nonce: %s', self._mining_block.block_number, nonce)
+                logger.info('Hash Rate: %s H/s', self.hashRate())
+                cloned_block = copy.deepcopy(self._mining_block)
+                self.pre_block_logic(cloned_block)
         except Exception as e:
             logger.warning("Exception in solutionEvent")
             logger.exception(e)
