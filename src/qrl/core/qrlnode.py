@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
-import time
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
@@ -31,7 +30,7 @@ from qrl.generated import qrl_pb2
 
 class QRLNode:
     def __init__(self, db_state: State, mining_address: bytes):
-        self.start_time = time.time()
+        self.start_time = ntp.getTime()
         self.db_state = db_state
         self._sync_state = SyncState()
 
@@ -91,7 +90,7 @@ class QRLNode:
 
     @property
     def uptime(self):
-        return int(time.time() - self.start_time)
+        return ntp.getTime() - self.start_time
 
     @property
     def block_height(self):
@@ -108,7 +107,7 @@ class QRLNode:
         block_one = self._chain_manager.get_block_by_number(1)
         network_uptime = 0
         if block_one:
-            network_uptime = int(time.time() - block_one.timestamp)
+            network_uptime = ntp.getTime() - block_one.timestamp
         return network_uptime
 
     @property
@@ -191,7 +190,7 @@ class QRLNode:
         node_chain_state = qrl_pb2.NodeChainState(block_number=last_block.block_number,
                                                   header_hash=last_block.headerhash,
                                                   cumulative_difficulty=bytes(block_metadata.cumulative_difficulty),
-                                                  timestamp=int(time.time()))
+                                                  timestamp=ntp.getTime())
 
         self.peer_manager.broadcast_chain_state(node_chain_state=node_chain_state)
         channel = self.peer_manager.get_better_difficulty(block_metadata.cumulative_difficulty)

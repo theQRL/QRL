@@ -3,14 +3,13 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from enum import Enum
 
-import time
 import os
 
 from typing import Callable
 
 from pyqryptonight.pyqryptonight import UInt256ToString
 from qrl.core import config
-from qrl.core.misc import logger
+from qrl.core.misc import logger, ntp
 from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
@@ -129,7 +128,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._peer_node_status[channel] = qrl_pb2.NodeChainState(block_number=0,
                                                                  header_hash=b'',
                                                                  cumulative_difficulty=b'\x00' * 32,
-                                                                 timestamp=int(time.time()))
+                                                                 timestamp=ntp.getTime())
         channel.register(qrllegacy_pb2.LegacyMessage.VE, self.handle_version)
         channel.register(qrllegacy_pb2.LegacyMessage.PL, self.handle_peer_list)
         channel.register(qrllegacy_pb2.LegacyMessage.CHAINSTATE, self.handle_chain_state)
@@ -203,7 +202,7 @@ class P2PPeerManager(P2PBaseObserver):
         dest_channel.send(msg)
 
     def monitor_chain_state(self):
-        current_timestamp = time.time()
+        current_timestamp = ntp.getTime()
         for channel in self._channels:
             if channel not in self._peer_node_status:
                 channel.loseConnection()
@@ -225,7 +224,7 @@ class P2PPeerManager(P2PBaseObserver):
     def handle_chain_state(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.CHAINSTATE)
 
-        message.chainStateData.timestamp = int(time.time())  # Receiving time
+        message.chainStateData.timestamp = ntp.getTime()  # Receiving time
         self._peer_node_status[source] = message.chainStateData
 
     def handle_p2p_acknowledgement(self, source, message: qrllegacy_pb2.LegacyMessage):
