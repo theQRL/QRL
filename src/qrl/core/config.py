@@ -173,7 +173,8 @@ class DevConfig(object):
         self.block_lead_timestamp = 30
         self.block_max_drift = 15
         self.max_future_blocks_length = 256
-        self.max_margin_block_number = 125
+        self.max_margin_block_number = 32
+        self.min_margin_block_number = 7
 
         self.public_ip = None
         self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour

@@ -181,6 +181,13 @@ class P2PFactory(ServerFactory):
     def get_block(self, block_number):
         return self._chain_manager.get_block_by_number(block_number)
 
+    def is_block_present(self, header_hash: bytes) -> bool:
+        if not self._chain_manager.state.get_block(header_hash):
+            if header_hash not in self.pow.future_blocks:
+                return False
+
+        return True
+
     def block_received(self, source, block: Block):
         self.pow.last_pb_time = ntp.getTime()
         logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))

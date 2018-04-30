@@ -56,8 +56,12 @@ class P2PTxManagement(P2PBaseObserver):
             if mr_data.block_number > source.factory.chain_height + config.dev.max_margin_block_number:
                 logger.debug('Skipping block #%s as beyond lead limit', mr_data.block_number)
                 return
-            if mr_data.block_number < source.factory.chain_height - config.dev.reorg_limit:
-                logger.debug('Skipping block #%s as beyond re-org limit', mr_data.block_number)
+            if mr_data.block_number < source.factory.chain_height - config.dev.min_margin_block_number:
+                logger.debug('Skipping block #%s as beyond the limit', mr_data.block_number)
+                return
+
+            if not source.factory.is_block_present(mr_data.prev_headerhash):
+                logger.debug('Skipping block #%s as prev_headerhash not found', mr_data.block_number)
                 return
 
         if source.factory.master_mr.contains(msg_hash, mr_data.type):
