@@ -80,7 +80,7 @@ class MockedBlockchain(object):
     @staticmethod
     @contextlib.contextmanager
     def create(num_blocks, mining_address=None):
-        start_time = time.time()
+        start_time = int(time.time())
         with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
                 set_qrl_dir('no_data'), \
                 State() as state, \
