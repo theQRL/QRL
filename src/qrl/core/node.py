@@ -207,7 +207,7 @@ class POW(ConsensusMechanism):
             self.future_blocks.popitem(False)
 
     def process_future_blocks(self):
-        keys = self.future_blocks.keys()
+        keys = list(self.future_blocks.keys())
         for key in keys:
             block = self.future_blocks[key]
             if block.is_future_block():
