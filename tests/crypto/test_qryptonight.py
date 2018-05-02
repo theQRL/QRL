@@ -2,7 +2,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from pyqryptonight.pyqryptonight import Qryptonight
+from pyqryptonight.pyqryptonight import Qryptonight, UInt256ToString
 
 
 class TestQryptonight(TestCase):
@@ -54,3 +54,9 @@ class TestQryptonight(TestCase):
                            219, 104, 212, 75, 211)
 
         self.assertEqual(output_expected, output)
+
+    def test_empty(self):
+        with self.assertRaises(TypeError):
+            UInt256ToString(None)
+        with self.assertRaises(ValueError):
+            UInt256ToString(b'')
