@@ -2,10 +2,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqryptonight.pyqryptonight import StringToUInt256
 
-from qrl.generated import qrl_pb2
 from qrl.core import config
+from qrl.generated import qrl_pb2
 
 
 class BlockMetadata(object):
@@ -14,6 +13,8 @@ class BlockMetadata(object):
         self._data = pbdata
         if not pbdata:
             self._data = qrl_pb2.BlockMetaData()
+            self._data.block_difficulty = bytes([0] * 32)
+            self._data.cumulative_difficulty = bytes([0] * 32)
         else:
             # TODO: Improve validation
             if len(self.cumulative_difficulty) != 32:
@@ -79,8 +80,8 @@ class BlockMetadata(object):
 
     @staticmethod
     def create(is_orphan=True,
-               block_difficulty=bytes([0]*32),
-               cumulative_difficulty=bytes([0]*32),
+               block_difficulty=bytes([0] * 32),
+               cumulative_difficulty=bytes([0] * 32),
                child_headerhashes=None):
         block_meta_data = BlockMetadata()
         block_meta_data._data.is_orphan = is_orphan
