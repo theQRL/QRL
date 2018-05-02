@@ -3,8 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from google.protobuf.json_format import MessageToJson, Parse
 
-from qrl.generated import qrl_pb2
 from qrl.core import config
+from qrl.generated import qrl_pb2
 
 
 class BlockMetadata(object):
@@ -13,6 +13,15 @@ class BlockMetadata(object):
         self._data = pbdata
         if not pbdata:
             self._data = qrl_pb2.BlockMetaData()
+            self._data.block_difficulty = bytes([0] * 32)
+            self._data.cumulative_difficulty = bytes([0] * 32)
+        else:
+            # TODO: Improve validation
+            if len(self.cumulative_difficulty) != 32:
+                raise ValueError("Invalid cumulative_difficulty")
+
+            if len(self.block_difficulty) != 32:
+                raise ValueError("Invalid block_difficulty")
 
     @property
     def pbdata(self):
@@ -42,9 +51,15 @@ class BlockMetadata(object):
         self._data.is_orphan = value
 
     def set_block_difficulty(self, value):
+
+        if len(value) != 32:
+            raise ValueError("Invalid block_difficulty")
+
         self._data.block_difficulty = bytes(value)
 
     def set_cumulative_difficulty(self, value):
+        if len(value) != 32:
+            raise ValueError("Invalid cumulative_difficulty")
         self._data.cumulative_difficulty = bytes(value)
 
     def add_child_headerhash(self, child_headerhash: bytes):
@@ -65,8 +80,8 @@ class BlockMetadata(object):
 
     @staticmethod
     def create(is_orphan=True,
-               block_difficulty=b'\x00' * 32,
-               cumulative_difficulty=b'\x00' * 32,
+               block_difficulty=bytes([0] * 32),
+               cumulative_difficulty=bytes([0] * 32),
                child_headerhashes=None):
         block_meta_data = BlockMetadata()
         block_meta_data._data.is_orphan = is_orphan
