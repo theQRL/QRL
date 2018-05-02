@@ -25,47 +25,47 @@ logger.initialize_default()
 
 
 def gen_blocks(block_count, state, miner_address):
-        blocks = []
-        block = None
-        with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
-            time_mock.return_value = 1615270948
-            addresses_state = dict()
-            for i in range(0, block_count):
-                if i == 0:
-                    block = GenesisBlock()
-                    for genesis_balance in GenesisBlock().genesis_balance:
-                        bytes_addr = genesis_balance.address
-                        addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
-                        addresses_state[bytes_addr]._data.balance = genesis_balance.balance
-                else:
-                    block = Block.create(block_number=i,
-                                         prev_block_headerhash=block.headerhash,
-                                         prev_block_timestamp=block.timestamp,
-                                         transactions=[],
-                                         miner_address=miner_address)
-                    addresses_set = state.prepare_address_list(block)
-                    for address in addresses_set:
-                        addresses_state[address] = state.get_address_state(address)
-                    for tx_protobuf in block.transactions:
-                        tx = Transaction.from_pbdata(tx_protobuf)
-                        tx.apply_state_changes(addresses_state)
+    blocks = []
+    block = None
+    with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+        time_mock.return_value = 1615270948
+        addresses_state = dict()
+        for i in range(0, block_count):
+            if i == 0:
+                block = GenesisBlock()
+                for genesis_balance in GenesisBlock().genesis_balance:
+                    bytes_addr = genesis_balance.address
+                    addresses_state[bytes_addr] = AddressState.get_default(bytes_addr)
+                    addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+            else:
+                block = Block.create(block_number=i,
+                                     prev_block_headerhash=block.headerhash,
+                                     prev_block_timestamp=block.timestamp,
+                                     transactions=[],
+                                     miner_address=miner_address)
+                addresses_set = state.prepare_address_list(block)
+                for address in addresses_set:
+                    addresses_state[address] = state.get_address_state(address)
+                for tx_protobuf in block.transactions:
+                    tx = Transaction.from_pbdata(tx_protobuf)
+                    tx.apply_state_changes(addresses_state)
 
-                    block.set_nonces(10, 0)
-                blocks.append(block)
+                block.set_nonces(10, 0)
+            blocks.append(block)
 
-                metadata = BlockMetadata()
-                metadata.set_block_difficulty(StringToUInt256('256'))
-                state.put_block_metadata(block.headerhash, metadata, None)
+            metadata = BlockMetadata()
+            metadata.set_block_difficulty(StringToUInt256('256'))
+            state.put_block_metadata(block.headerhash, metadata, None)
 
-                state.put_block(block, None)
-                bm = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
-                                                prev_headerhash=block.prev_headerhash)
+            state.put_block(block, None)
+            bm = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
+                                            prev_headerhash=block.prev_headerhash)
 
-                state.put_block_number_mapping(block.block_number, bm, None)
-                state.update_mainchain_height(block.block_number, None)
-                state.put_addresses_state(addresses_state)
+            state.put_block_number_mapping(block.block_number, bm, None)
+            state.update_mainchain_height(block.block_number, None)
+            state.put_addresses_state(addresses_state)
 
-        return blocks
+    return blocks
 
 
 class TestState(TestCase):
@@ -378,9 +378,9 @@ class TestState(TestCase):
                 self.assertEqual(state.get_block_metadata(b'block_headerhash').to_json(),
                                  block_metadata.to_json())
 
-                expected_json = b'{\n  "isOrphan": true,\n' \
-                                b'  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n' \
-                                b'  "cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
+                expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
+                                b'"isOrphan": true\n}'
 
                 self.assertEqual(state.get_block_metadata(b'block_headerhash2').to_json(),
                                  expected_json)
@@ -392,9 +392,11 @@ class TestState(TestCase):
                 state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(), None)
 
                 tmp_json = state.get_block_metadata(b'block_headerhash2').to_json()
-                expected_json = b'{\n  "isOrphan": true,\n' \
-                                b'  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n' \
-                                b'  "cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
+
+                expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
+                                b'"isOrphan": true\n}'
+
                 self.assertEqual(tmp_json, expected_json)
 
     def test_prepare_address_list(self):

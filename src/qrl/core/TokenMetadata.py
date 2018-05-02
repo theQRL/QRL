@@ -53,7 +53,7 @@ class TokenMetadata(object):
             i += 1
 
     def to_json(self):
-        return MessageToJson(self._data)
+        return MessageToJson(self._data, sort_keys=True)
 
     @staticmethod
     def from_json(json_data):

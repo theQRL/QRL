@@ -101,4 +101,4 @@ class BlockMetadata(object):
         return BlockMetadata(pbdata)
 
     def to_json(self) -> str:
-        return MessageToJson(self._data).encode()
+        return MessageToJson(self._data, sort_keys=True).encode()

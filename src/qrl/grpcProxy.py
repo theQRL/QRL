@@ -111,7 +111,7 @@ def api_proxy(api_method_name):
         setattr(api_request, arg, value)
 
     resp = getattr(stub, api_method_name)(api_request, timeout=10)
-    return Response(response=MessageToJson(resp), status=200, mimetype='application/json')
+    return Response(response=MessageToJson(resp, sort_keys=True), status=200, mimetype='application/json')
 
 
 def get_mining_stub():
@@ -174,7 +174,7 @@ def submitblock(blob):
     response = stub.SubmitMinedBlock(request=request, timeout=10)
     if response.error:
         raise Exception  # Mining pool expected exception when block submission fails
-    return MessageToJson(response)
+    return MessageToJson(response, sort_keys=True)
 
 
 @api.dispatcher.add_method
@@ -182,7 +182,7 @@ def getblockminingcompatible(height):
     stub = get_mining_stub()
     request = qrlmining_pb2.GetBlockMiningCompatibleReq(height=height)
     response = stub.GetBlockMiningCompatible(request=request, timeout=10)
-    return MessageToJson(response)
+    return MessageToJson(response, sort_keys=True)
 
 
 @api.dispatcher.add_method
