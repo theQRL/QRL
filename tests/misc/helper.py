@@ -45,7 +45,7 @@ def set_wallet_dir(wallet_name):
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
         config.user.wallet_dir = dst_dir
-        yield
+        yield dst_dir
     finally:
         shutil.rmtree(dst_dir)
         config.user.wallet_dir = prev_val
@@ -62,7 +62,7 @@ def set_qrl_dir(data_name):
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
         config.user.qrl_dir = dst_dir
-        yield
+        yield dst_dir
     finally:
         shutil.rmtree(dst_dir)
         config.user.qrl_dir = prev_val
