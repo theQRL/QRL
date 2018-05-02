@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
+import faulthandler
 import logging
 from os.path import expanduser
 
@@ -50,6 +51,8 @@ def parse_arguments():
                         help="QRL Wallet address on which mining reward has to be credited.")
     parser.add_argument('--mockGetMeasurement', dest='measurement', required=False, type=int, default=-1,
                         help="Warning: Only for integration test, to mock get_measurement")
+    parser.add_argument('--debug', dest='debug', action='store_true', default=False,
+                        help="Enables fault handler")
     return parser.parse_args()
 
 
@@ -102,6 +105,10 @@ def main():
             return False
 
     ntp.setDrift()
+
+    if args.debug:
+        logger.warning("FAULT HANDLER ENABLED")
+        faulthandler.enable()
 
     logger.info('Initializing chain..')
     persistent_state = State()
