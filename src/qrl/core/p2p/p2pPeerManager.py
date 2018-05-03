@@ -77,12 +77,11 @@ class P2PPeerManager(P2PBaseObserver):
 
         for ip_port in peer_ips:
             try:
-                parse_peer_addr(ip_port)
+                parse_peer_addr(ip_port, True)
                 new_peers.add(ip_port)
             except Exception as e:
                 logger.warning("Invalid Peer Address %s", ip_port)
                 logger.warning("Sent by %s", peer_ip)
-                logger.exception(e)
 
         if 0 < public_port <= 65535:
             new_peers.add("{0}:{1}".format(peer_ip, public_port))
