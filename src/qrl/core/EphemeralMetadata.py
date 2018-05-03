@@ -38,7 +38,7 @@ class EphemeralMetadata:
         return EphemeralMetadata(pbdata)
 
     def to_json(self):
-        return MessageToJson(self._data)
+        return MessageToJson(self._data, sort_keys=True)
 
     def update(self):
         total_len = len(self.encrypted_ephemeral_message_list)
