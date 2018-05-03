@@ -106,7 +106,7 @@ class TestP2PPeerManager(TestCase):
         self.assertEqual(result, {'127.0.0.1:1000'})
 
         result_2 = self.peer_manager.get_valid_peers(result, '127.0.0.1', 2000)
-        self.assertEqual(result_2, {'127.0.0.1:1000', '127.0.0.1:2000'})
+        self.assertEqual(result_2, {'127.0.0.1:2000'})
 
     @expectedFailure
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
@@ -274,8 +274,7 @@ class TestP2PPeerManager(TestCase):
         # handle_peer_list() will call update_peer_addresses(), so we gotta mock it out. It's tested elsewhere anyway.
         self.peer_manager.update_peer_addresses = Mock(autospec=P2PPeerManager.update_peer_addresses)
         self.peer_manager.handle_peer_list(channel, peer_list_message)
-        self.peer_manager.update_peer_addresses.assert_called_once_with(
-            {'127.0.0.2:9000', '127.0.0.3:5000', '127.0.0.4:5001'})
+        self.peer_manager.update_peer_addresses.assert_called_once_with({"{0}:{1}".format(channel.peer_ip, 9000)})
 
     @expectedFailure
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
