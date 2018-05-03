@@ -155,7 +155,7 @@ class TestP2PTxManagementHandlers(TestCase):
         self.channel.factory.master_mr.is_callLater_active.return_value = False  # No, we haven't requested this Message yet.
 
         # First, test when the mempool is NOT full
-        self.channel.factory._chain_manager.tx_pool.pending_tx_pool = []
+        self.channel.factory._chain_manager.tx_pool.is_full_pending_transaction_pool.return_value = False
         mrData = qrllegacy_pb2.MRData(type=qrllegacy_pb2.LegacyMessage.TX)
         msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MR, mrData=mrData)
 
@@ -165,7 +165,7 @@ class TestP2PTxManagementHandlers(TestCase):
 
         # Now, test when the mempool IS full
         self.channel.factory.request_full_message.reset_mock()
-        self.channel.factory._chain_manager.tx_pool.pending_tx_pool = list('1' * config.user.transaction_pool_size)
+        self.channel.factory._chain_manager.tx_pool.is_full_pending_transaction_pool.return_value = True
 
         P2PTxManagement.handle_message_received(self.channel, msg)
 
@@ -259,12 +259,6 @@ class TestP2PTxManagementHandlers(TestCase):
         P2PTxManagement.handle_message_transaction(self.channel, msg)
 
         self.channel.factory.add_unprocessed_txn.assert_called()
-
-        # Let's say we have processed this TX before and it's waiting to get into a validated Block.
-        self.channel.factory.add_unprocessed_txn.reset_mock()
-        self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = [b'12345']
-        P2PTxManagement.handle_message_transaction(self.channel, msg)
-        self.channel.factory.add_unprocessed_txn.assert_not_called()
 
         # What if we ended up parsing a Transaction that we never requested in the first place?
         self.channel.factory.add_unprocessed_txn.reset_mock()

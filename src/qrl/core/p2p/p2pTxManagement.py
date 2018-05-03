@@ -46,7 +46,7 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
-            if len(source.factory._chain_manager.tx_pool.pending_tx_pool) >= config.user.transaction_pool_size:
+            if source.factory._chain_manager.tx_pool.is_full_pending_transaction_pool():
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return
 
@@ -89,17 +89,6 @@ class P2PTxManagement(P2PBaseObserver):
     ###################################################
 
     @staticmethod
-    def _parse_tx_object(source, message: qrllegacy_pb2.LegacyMessage, kind):
-        tx = None
-        try:
-            tx = Transaction.from_pbdata(message.mtData)
-        except Exception as e:
-            logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-        return tx
-
-    @staticmethod
     def handle_tx(source, message: qrllegacy_pb2.LegacyMessage):
         """
         Transaction
@@ -116,10 +105,8 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         # NOTE: Connects to MR
-        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     @staticmethod
     def handle_message_transaction(source, message: qrllegacy_pb2.LegacyMessage):
@@ -138,10 +125,8 @@ class P2PTxManagement(P2PBaseObserver):
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     @staticmethod
     def handle_token_transaction(source, message: qrllegacy_pb2.LegacyMessage):
@@ -160,10 +145,8 @@ class P2PTxManagement(P2PBaseObserver):
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     @staticmethod
     def handle_transfer_token_transaction(source, message: qrllegacy_pb2.LegacyMessage):
@@ -182,10 +165,8 @@ class P2PTxManagement(P2PBaseObserver):
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     @staticmethod
     def handle_lattice(source, message: qrllegacy_pb2.LegacyMessage):
@@ -204,10 +185,8 @@ class P2PTxManagement(P2PBaseObserver):
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer_ip)
 
     @staticmethod
     def handle_slave(source, message: qrllegacy_pb2.LegacyMessage):
@@ -226,7 +205,5 @@ class P2PTxManagement(P2PBaseObserver):
             source.loseConnection()
             return
 
-        if not source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            return
-
-        source.factory.add_unprocessed_txn(tx, source.peer_ip)
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer_ip)
