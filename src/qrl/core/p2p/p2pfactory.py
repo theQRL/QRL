@@ -363,7 +363,6 @@ class P2PFactory(ServerFactory):
     ##############################################
     ##############################################
     ##############################################
-    # NOTE: PoW related.. broadcasting, etc. OBSOLETE
 
     def reset_processor_flag(self, _):
         self._txn_processor_running = False
@@ -481,7 +480,6 @@ class P2PFactory(ServerFactory):
     def start_listening(self):
         reactor.listenTCP(config.user.p2p_local_port, self)
 
-    # NOTE: No need to refactor, it is obsolete
     def clientConnectionLost(self, connector, reason):  # noqa
         logger.debug('connection lost: %s', reason)
 
