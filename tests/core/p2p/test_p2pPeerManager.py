@@ -29,7 +29,12 @@ def make_node_chain_state():
     return node_chain_state
 
 
+def replacement_getTime():
+    return int(time.time())
+
+
 # Some functions have logger patched out, so that tests are not too noisy when unexpected things happen.
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestP2PPeerManager(TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -378,15 +383,12 @@ class TestP2PPeerManager(TestCase):
         channel_2.loseConnection.assert_not_called()
         channel_3.loseConnection.assert_not_called()
 
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_monitor_chain_state_stale_info(self, getTime):
+    def test_monitor_chain_state_stale_info(self):
         """
         After a certain time period, the information is considered stale and the channel will be disconnected.
         """
         channel_1 = self.populate_peer_manager()[0]
-        getTime.return_value = int(time.time())
-        self.peer_manager._peer_node_status[channel_1].timestamp = int(
-            time.time()) - config.user.chain_state_timeout - 1
+        self.peer_manager._peer_node_status[channel_1].timestamp = int(time.time()) - config.user.chain_state_timeout - 1
 
         self.peer_manager.monitor_chain_state()
 
@@ -405,8 +407,7 @@ class TestP2PPeerManager(TestCase):
 
         channel_3.loseConnection.assert_called_once_with()
 
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_handle_chain_state_works(self, getTime):
+    def test_handle_chain_state_works(self):
         """
         When a peer reports its chain state, we update the timestamp to reflect the time we received the message.
         Then we update our _peer_node_status.
@@ -418,13 +419,13 @@ class TestP2PPeerManager(TestCase):
         channel = make_channel()
 
         # The P2PPeerManager should update its hash table with the info from chain_state_data.
-        # Set ntp.getTime() to a nonsensical value so we can track it.
-        getTime.return_value = 140000000
+        # Unfortunately it also updates the timestamp so we cannot simply compare the objects,
+        # we have to compare the fields in the object excluding the timestamp.
         self.peer_manager.handle_chain_state(channel, chain_state_message)
 
-        chain_state_data_with_nonsense_ts = make_node_chain_state()
-        chain_state_data_with_nonsense_ts.timestamp = 140000000
-        self.assertEqual(self.peer_manager._peer_node_status[channel], chain_state_data_with_nonsense_ts)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].block_number, chain_state_data.block_number)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].header_hash, chain_state_data.header_hash)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].cumulative_difficulty, chain_state_data.cumulative_difficulty)
 
     def test_handle_p2p_acknowledgement(self):
         """
