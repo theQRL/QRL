@@ -86,7 +86,7 @@ class P2PPeerManager(P2PBaseObserver):
         return new_peers
 
     def update_peer_addresses(self, peer_addresses: set) -> None:
-        new_addresses = self._peer_addresses - set(peer_addresses)
+        new_addresses = set(peer_addresses) - self._peer_addresses
 
         if self._p2pfactory is not None:
             for peer_address in new_addresses:
