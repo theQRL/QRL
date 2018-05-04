@@ -224,6 +224,13 @@ class P2PPeerManager(P2PBaseObserver):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.CHAINSTATE)
 
         message.chainStateData.timestamp = ntp.getTime()  # Receiving time
+        try:
+            int(message.chainStateData.cumulative_difficulty)
+        except ValueError:
+            logger.warning('Invalid Cumulative Difficulty sent by peer')
+            source.loseConnection()
+            return
+        
         self._peer_node_status[source] = message.chainStateData
 
     def handle_p2p_acknowledgement(self, source, message: qrllegacy_pb2.LegacyMessage):
