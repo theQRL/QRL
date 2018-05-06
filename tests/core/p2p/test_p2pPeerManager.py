@@ -24,7 +24,7 @@ def make_channel(name=''):
 def make_node_chain_state():
     node_chain_state = qrl_pb2.NodeChainState(block_number=0,
                                               header_hash=b'',
-                                              cumulative_difficulty=b'0000011111',
+                                              cumulative_difficulty=b'0' * 32,
                                               timestamp=int(time.time()))
     return node_chain_state
 
