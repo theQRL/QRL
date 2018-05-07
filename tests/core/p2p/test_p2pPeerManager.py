@@ -102,13 +102,12 @@ class TestP2PPeerManager(TestCase):
         """
         get_valid_peers simply appends a ip:port pair to a set.
         """
-        result = self.peer_manager.get_valid_peers({}, '127.0.0.1', 1000)
-        self.assertEqual(result, {'127.0.0.1:1000'})
+        result = self.peer_manager.get_valid_peers({}, '187.0.0.1', 1000)
+        self.assertEqual(result, {'187.0.0.1:1000'})
 
-        result_2 = self.peer_manager.get_valid_peers(result, '127.0.0.1', 2000)
-        self.assertEqual(result_2, {'127.0.0.1:2000'})
+        result_2 = self.peer_manager.get_valid_peers(result, '187.0.0.1', 2000)
+        self.assertEqual(result_2, {'187.0.0.1:1000', '187.0.0.1:2000'})
 
-    @expectedFailure
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_get_valid_peers_bad_ip_port(self, logger):
         """
@@ -127,9 +126,10 @@ class TestP2PPeerManager(TestCase):
         get_valid_peers should revalidate all existing ip:port pairs when adding a new one to the list.
         but why isn't validation happening in another layer so that the set is always clean?
         """
-        bad_ip_list_result = self.peer_manager.get_valid_peers({'256.256.256.256:9000', '127.0.0.3:90000'}, '127.0.0.1',
+        bad_ip_list_result = self.peer_manager.get_valid_peers({'256.256.256.256:9000', '127.0.0.3:90000'},
+                                                               '187.0.0.1',
                                                                9000)
-        self.assertEqual(bad_ip_list_result, {'127.0.0.1:9000'})
+        self.assertEqual(bad_ip_list_result, {'187.0.0.1:9000'})
 
     @expectedFailure
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
@@ -268,8 +268,8 @@ class TestP2PPeerManager(TestCase):
                                                             peer_ips={'127.0.0.3:5000', '127.0.0.4:5001'},
                                                             public_port=9000))
         channel = make_channel()
-        channel.host_ip = '127.0.0.1'
-        channel.peer_ip = '127.0.0.2'
+        channel.host_ip = '187.0.0.1'
+        channel.peer_ip = '187.0.0.2'
 
         # handle_peer_list() will call update_peer_addresses(), so we gotta mock it out. It's tested elsewhere anyway.
         self.peer_manager.update_peer_addresses = Mock(autospec=P2PPeerManager.update_peer_addresses)
@@ -385,7 +385,8 @@ class TestP2PPeerManager(TestCase):
         """
         channel_1 = self.populate_peer_manager()[0]
         getTime.return_value = int(time.time())
-        self.peer_manager._peer_node_status[channel_1].timestamp = int(time.time()) - config.user.chain_state_timeout - 1
+        self.peer_manager._peer_node_status[channel_1].timestamp = int(
+            time.time()) - config.user.chain_state_timeout - 1
 
         self.peer_manager.monitor_chain_state()
 

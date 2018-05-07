@@ -1,13 +1,12 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from enum import Enum
-
 import os
-
+from enum import Enum
 from typing import Callable
 
 from pyqryptonight.pyqryptonight import UInt256ToString
+
 from qrl.core import config
 from qrl.core.misc import logger, ntp
 from qrl.core.misc.helper import parse_peer_addr
@@ -74,17 +73,15 @@ class P2PPeerManager(P2PBaseObserver):
     @staticmethod
     def get_valid_peers(peer_ips, peer_ip, public_port):
         new_peers = set()
+        tmp = list(peer_ips)
+        tmp.append("{0}:{1}".format(peer_ip, public_port))
 
-        for ip_port in peer_ips:
+        for ip_port in tmp:
             try:
                 parse_peer_addr(ip_port, True)
                 new_peers.add(ip_port)
-            except Exception as e:
-                logger.warning("Invalid Peer Address %s", ip_port)
-                logger.warning("Sent by %s", peer_ip)
-
-        if 0 < public_port <= 65535:
-            new_peers.add("{0}:{1}".format(peer_ip, public_port))
+            except Exception as _:
+                logger.warning("Invalid Peer Address {} sent by {}".format(ip_port, peer_ip))
 
         return new_peers
 
