@@ -2,7 +2,6 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.ESyncState import ESyncState
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger
@@ -24,7 +23,6 @@ class P2PTxManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.MT, self.handle_message_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
         channel.register(qrllegacy_pb2.LegacyMessage.SL, self.handle_slave)
-        channel.register(qrllegacy_pb2.LegacyMessage.EPH, self.handle_ephemeral)
 
     @staticmethod
     def handle_message_received(source, message: qrllegacy_pb2.LegacyMessage):
@@ -188,29 +186,6 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         source.factory.add_unprocessed_txn(tx, source.peer_ip)
-
-    def handle_ephemeral(self, source, message: qrllegacy_pb2.LegacyMessage):
-        """
-        Receives Ephemeral Message
-        :param source:
-        :param message:
-        :return:
-        """
-        try:
-            encrypted_ephemeral = EncryptedEphemeralMessage(message.ephData)
-        except Exception as e:
-            logger.error('ephemeral_message rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if not source.factory.master_mr.isRequested(encrypted_ephemeral.get_message_hash(), self):
-            return
-
-        if not encrypted_ephemeral.validate():
-            return
-
-        source.factory.broadcast_ephemeral_message(encrypted_ephemeral)  # FIXME(cyyber) : Fix broken link
 
     @staticmethod
     def handle_lattice(source, message: qrllegacy_pb2.LegacyMessage):

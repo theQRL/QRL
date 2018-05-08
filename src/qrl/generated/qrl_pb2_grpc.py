@@ -97,16 +97,6 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetAddressFromPKReq.SerializeToString,
         response_deserializer=qrl__pb2.GetAddressFromPKResp.FromString,
         )
-    self.PushEphemeralMessage = channel.unary_unary(
-        '/qrl.PublicAPI/PushEphemeralMessage',
-        request_serializer=qrl__pb2.PushEphemeralMessageReq.SerializeToString,
-        response_deserializer=qrl__pb2.PushTransactionResp.FromString,
-        )
-    self.CollectEphemeralMessage = channel.unary_unary(
-        '/qrl.PublicAPI/CollectEphemeralMessage',
-        request_serializer=qrl__pb2.CollectEphemeralMessageReq.SerializeToString,
-        response_deserializer=qrl__pb2.CollectEphemeralMessageResp.FromString,
-        )
 
 
 class PublicAPIServicer(object):
@@ -211,20 +201,6 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def PushEphemeralMessage(self, request, context):
-    """------- Ephemeral API -------
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
-  def CollectEphemeralMessage(self, request, context):
-    """------------------------------
-    """
-    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-    context.set_details('Method not implemented!')
-    raise NotImplementedError('Method not implemented!')
-
 
 def add_PublicAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -302,16 +278,6 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetAddressFromPK,
           request_deserializer=qrl__pb2.GetAddressFromPKReq.FromString,
           response_serializer=qrl__pb2.GetAddressFromPKResp.SerializeToString,
-      ),
-      'PushEphemeralMessage': grpc.unary_unary_rpc_method_handler(
-          servicer.PushEphemeralMessage,
-          request_deserializer=qrl__pb2.PushEphemeralMessageReq.FromString,
-          response_serializer=qrl__pb2.PushTransactionResp.SerializeToString,
-      ),
-      'CollectEphemeralMessage': grpc.unary_unary_rpc_method_handler(
-          servicer.CollectEphemeralMessage,
-          request_deserializer=qrl__pb2.CollectEphemeralMessageReq.FromString,
-          response_serializer=qrl__pb2.CollectEphemeralMessageResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

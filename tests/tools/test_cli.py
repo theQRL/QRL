@@ -879,68 +879,6 @@ class TestCLI(TestCase):
         self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_collect(self, mock_stub):
-        m_collectEphemeralMessageResp = mock.MagicMock(name='this should be the collectEphemeralMessageResp')
-        m_collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list = [
-            mock.MagicMock(name='A test message', payload="Help me"),
-            mock.MagicMock(name='A test message', payload="I'm stuck in a bottle and I can't get out")
-        ]
-
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.CollectEphemeralMessage.return_value = m_collectEphemeralMessageResp
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        result = self.runner.invoke(qrl_cli, ["-r", "collect", "--msg_id=deadbeef"])
-        self.assertIn("Help me", result.output)
-        self.assertIn("I'm stuck in a bottle and I can't get out", result.output)
-
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_send_eph_message(self, mock_stub):
-        m_ephemeralMessageResp = mock.MagicMock(name='this should be the ephemeralMessageResp', error_code=3)
-
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.PushEphemeralMessage.return_value = m_ephemeralMessageResp
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        aes256_key = "94CB62E517ED9DC2C00E6E02FE1F3BF0F619E00A46AB852259F36ED0CB820BF5"
-        result = self.runner.invoke(qrl_cli, ["-r", "send_eph_message", "--msg_id=deadbeef", "--ttl=0", "--ttr=0",
-                                              "--enc_aes256_symkey={}".format(aes256_key), "--nonce=0",
-                                              "--payload=She cheated with your husband"])
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output.strip(), '3')
-
-    @expectedFailure
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_send_eph_message_invalid_input(self, mock_stub):
-        m_ephemeralMessageResp = mock.MagicMock(name='this should be the ephemeralMessageResp', error_code=3)
-
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.PushEphemeralMessage.return_value = m_ephemeralMessageResp
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        # Should choke on an invalid aes256_key
-        aes256_key = "94CB62E517ED9DC2C00E6E02FE1F3BF0F619E00A46AB852259F36ED0CB820BF5"
-        result = self.runner.invoke(qrl_cli, ["-r", "send_eph_message", "--msg_id=deadbeef", "--ttl=0", "--ttr=0",
-                                              "--enc_aes256_symkey={}".format(aes256_key[32:]), "--nonce=0",
-                                              "--payload=She cheated with your husband"])
-
-        self.assertEqual(result.exit_code, 1)
-
-        # Should choke on an invalid nonce
-        aes256_key = "94CB62E517ED9DC2C00E6E02FE1F3BF0F619E00A46AB852259F36ED0CB820BF5"
-        result = self.runner.invoke(qrl_cli, ["-r", "send_eph_message", "--msg_id=deadbeef", "--ttl=0", "--ttr=0",
-                                              "--enc_aes256_symkey={}".format(aes256_key), "--nonce=-1",
-                                              "--payload=She cheated with your husband"])
-
-        self.assertEqual(result.exit_code, 1)
-
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_latticepk(self, mock_stub):
         m_pushTransactionResp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')

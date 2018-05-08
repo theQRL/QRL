@@ -42,10 +42,6 @@ service PublicAPI
 
     rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
 
-    // ------- Ephemeral API -------
-    rpc PushEphemeralMessage (PushEphemeralMessageReq) returns (PushTransactionResp);
-    rpc CollectEphemeralMessage (CollectEphemeralMessageReq) returns (CollectEphemeralMessageResp);
-    // ------------------------------
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -469,26 +465,6 @@ message TokenMetadata {
     repeated bytes transfer_token_tx_hashes = 2;
 }
 
-////////////////////////////
-////////////////////////////
-////////////////////////////
-//       Ephemeral        //
-////////////////////////////
-////////////////////////////
-////////////////////////////
-
-message CollectEphemeralMessageReq {
-    bytes msg_id = 1;
-}
-
-message CollectEphemeralMessageResp {
-    EphemeralMetadata ephemeral_metadata = 1;
-}
-
-message PushEphemeralMessageReq {
-    EncryptedEphemeralMessage ephemeral_message = 1;
-}
-
 message EncryptedEphemeralMessage {
     bytes msg_id = 1;                       // b'NEW' or PRF
     uint64 ttl = 2;                         // Expiry Timestamp in seconds
@@ -500,28 +476,6 @@ message EncryptedEphemeralMessage {
     uint64 nonce = 6;                       // nonce
     bytes payload = 7;                      // JSON content, encrypted by aes256_symkey
 }
-
-message EphemeralChannelPayload {
-    bytes prf512_seed = 1;                  // PRF512 seed used for further communication after channel established
-    bytes dilithium_signature = 2;          // Sign hash of (msg_id, ttl, enc_aes256_symkey, prf512_seed, addr_from,
-                                            // data)
-    bytes addr_from = 3;                    // Sender address
-    bytes data = 4;                         // Could be anything, plain-text, binary, JSON etc.
-}
-
-message EphemeralMessagePayload {
-    bytes addr_from = 1;                    // Sender address
-    bytes data = 2;                         // Could be anything, plain-text, binary, JSON etc.
-}
-
-message LatticePublicKeys {
-    repeated Transaction lattice_keys = 1;
-}
-
-message EphemeralMetadata {
-    repeated EncryptedEphemeralMessage encrypted_ephemeral_message_list = 2;
-}
-////////////////////////////
 
 message AddressList {
     repeated bytes addresses = 1;
