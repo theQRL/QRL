@@ -99,11 +99,17 @@ class P2PChainManager(P2PBaseObserver):
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.BH,
                                               bhData=bhdata)
             source.send(msg)
-        else:
-            source.factory.update_peer_blockheight(source.addr_remote,
-                                                   message.bhData.block_number,
-                                                   message.bhData.block_headerhash,
-                                                   message.bhData.cumulative_difficulty)
+            return
+
+        if len(message.bhData.cumulative_difficulty) != 32:
+            logger.warning('Invalid Block Height Data')
+            source.loseConnection()
+            return
+
+        source.factory.update_peer_blockheight(source.addr_remote,
+                                               message.bhData.block_number,
+                                               message.bhData.block_headerhash,
+                                               message.bhData.cumulative_difficulty)
 
     def handle_node_headerhash(self, source, message: qrllegacy_pb2.LegacyMessage):
         """

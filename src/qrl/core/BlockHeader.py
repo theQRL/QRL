@@ -261,4 +261,4 @@ class BlockHeader(object):
 
     def to_json(self):
         # FIXME: Remove once we move completely to protobuf
-        return MessageToJson(self._data)
+        return MessageToJson(self._data, sort_keys=True)

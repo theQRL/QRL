@@ -84,7 +84,7 @@ class State:
         self._db.delete(str(block_number).encode(), batch)
 
     def put_block_number_mapping(self, block_number: int, block_number_mapping, batch):
-        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping).encode(), batch)
+        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping, sort_keys=True).encode(), batch)
 
     def get_block_number_mapping(self, block_number: int) -> Optional[qrl_pb2.BlockNumberMapping]:
         try:

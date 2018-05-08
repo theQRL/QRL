@@ -57,7 +57,7 @@ class EphemeralChannelPayload:
         self._data.dilithium_signature = bytes(sender_dilithium.sign(bytes(sha2_256(ephemeral_hash))))
 
     def to_json(self):
-        return MessageToJson(self.pbdata)
+        return MessageToJson(self.pbdata, sort_keys=True)
 
     @staticmethod
     def from_json(json_data):
@@ -93,7 +93,7 @@ class EphemeralMessagePayload:
         return ephemeral_channel_payload
 
     def to_json(self):
-        return MessageToJson(self.pbdata)
+        return MessageToJson(self.pbdata, sort_keys=True)
 
     @staticmethod
     def from_json(json_data):

@@ -86,22 +86,22 @@ def set_colors(enable_colors, formatting):
 
 
 def debug(msg, *args, **kwargs):
-    logger.debug(msg, *args, **kwargs)
+    logger.debug(repr(msg)[1:-1], *args, **kwargs)
 
 
 def info(msg, *args, **kwargs):
     try:
-        logger.info(msg, *args, **kwargs)
+        logger.info(repr(msg)[1:-1], *args, **kwargs)
     except Exception:
         raise Exception
 
 
 def warning(msg, *args, **kwargs):
-    logger.warning(msg, *args, **kwargs)
+    logger.warning(repr(msg)[1:-1], *args, **kwargs)
 
 
 def error(msg, *args, **kwargs):
-    logger.error(msg, *args, **kwargs)
+    logger.error(repr(msg)[1:-1], *args, **kwargs)
 
 
 def exception(e):
@@ -110,4 +110,4 @@ def exception(e):
 
 
 def fatal(msg, *args, **kwargs):
-    logger.fatal(msg, *args, **kwargs)
+    logger.fatal(repr(msg)[1:-1], *args, **kwargs)
