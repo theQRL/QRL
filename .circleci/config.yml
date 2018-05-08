@@ -107,10 +107,10 @@ workflows:
             tags:
               only: /.*/
 
-      - test_leaks_CLI:
-          filters:
-            tags:
-              only: /.*/
+#      - test_leaks_CLI:
+#          filters:
+#            tags:
+#              only: /.*/
 
       - test_leaks_other:
           filters:
@@ -131,7 +131,7 @@ workflows:
           requires:
             - build
             - build_bionic
-            - test_leaks_CLI
+            #- test_leaks_CLI
             - test_leaks_other
             - integration_smoke
             - integration_fuzzing

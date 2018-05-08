@@ -41,7 +41,7 @@ class TokenList(object):
         self.token_txhash.extend(token_txhashes)
 
     def to_json(self):
-        return MessageToJson(self._data)
+        return MessageToJson(self._data, sort_keys=True)
 
     @staticmethod
     def from_json(json_data):

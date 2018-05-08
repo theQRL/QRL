@@ -148,7 +148,8 @@ class TestChainManager(TestCase):
 
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
-                mock_difficulty_tracker_get.return_value = [config.dev.mining_setpoint_blocktime, 2]
+
+                mock_difficulty_tracker_get.return_value = [StringToUInt256('2'), config.dev.mining_setpoint_blocktime]
                 chain_manager.load(genesis_block)
 
                 chain_manager._difficulty_tracker = Mock()

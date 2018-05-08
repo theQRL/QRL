@@ -50,7 +50,7 @@ def setDrift():
 def getTime():
     """
     :return:
-    :rtype: float
+    :rtype: int
 
     >>> getTime() is not None
     True
@@ -61,4 +61,4 @@ def getTime():
         setDrift()
 
     curr_time = drift + int(time())
-    return curr_time
+    return int(curr_time)

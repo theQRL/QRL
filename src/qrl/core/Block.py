@@ -99,7 +99,7 @@ class Block(object):
 
     def to_json(self)->str:
         # FIXME: Remove once we move completely to protobuf
-        return MessageToJson(self._data)
+        return MessageToJson(self._data, sort_keys=True)
 
     @staticmethod
     def create(block_number: int,

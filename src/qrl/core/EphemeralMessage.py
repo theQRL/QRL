@@ -62,7 +62,7 @@ class EncryptedEphemeralMessage(object):
         return True
 
     def to_json(self):
-        return MessageToJson(self.pbdata)
+        return MessageToJson(self.pbdata, sort_keys=True)
 
     @staticmethod
     def from_json(json_data):

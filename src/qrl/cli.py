@@ -1046,7 +1046,7 @@ def state(ctx):
     nodeStateResp = stub.GetNodeState(qrl_pb2.GetNodeStateReq())
 
     if ctx.obj.json:
-        click.echo(MessageToJson(nodeStateResp))
+        click.echo(MessageToJson(nodeStateResp, sort_keys=True))
     else:
         click.echo(nodeStateResp)
 

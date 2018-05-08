@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import time
 import random
 
 from twisted.internet import reactor
@@ -23,6 +22,36 @@ from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2, qrl_pb2
+
+p2p_msg_priority = {
+            qrllegacy_pb2.LegacyMessage.VE: 0,
+            qrllegacy_pb2.LegacyMessage.PL: 0,
+            qrllegacy_pb2.LegacyMessage.PONG: 0,
+
+            ######################
+            qrllegacy_pb2.LegacyMessage.MR: 2,
+            qrllegacy_pb2.LegacyMessage.SFM: 1,
+
+            qrllegacy_pb2.LegacyMessage.BK: 1,
+            qrllegacy_pb2.LegacyMessage.FB: 1,
+            qrllegacy_pb2.LegacyMessage.PB: 1,
+            qrllegacy_pb2.LegacyMessage.BH: 1,
+
+            ############################
+            qrllegacy_pb2.LegacyMessage.TX: 1,
+            qrllegacy_pb2.LegacyMessage.MT: 1,
+            qrllegacy_pb2.LegacyMessage.TK: 1,
+            qrllegacy_pb2.LegacyMessage.TT: 1,
+            qrllegacy_pb2.LegacyMessage.LT: 1,
+            qrllegacy_pb2.LegacyMessage.SL: 1,
+
+            qrllegacy_pb2.LegacyMessage.EPH: 3,
+
+            qrllegacy_pb2.LegacyMessage.SYNC: 0,
+            qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
+            qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
+            qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
+        }
 
 
 class P2PFactory(ServerFactory):
@@ -56,35 +85,7 @@ class P2PFactory(ServerFactory):
 
         reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)
 
-        self.p2p_msg_priority = {
-            qrllegacy_pb2.LegacyMessage.VE: 0,
-            qrllegacy_pb2.LegacyMessage.PL: 0,
-            qrllegacy_pb2.LegacyMessage.PONG: 0,
-
-            ######################
-            qrllegacy_pb2.LegacyMessage.MR: 2,
-            qrllegacy_pb2.LegacyMessage.SFM: 1,
-
-            qrllegacy_pb2.LegacyMessage.BK: 1,
-            qrllegacy_pb2.LegacyMessage.FB: 1,
-            qrllegacy_pb2.LegacyMessage.PB: 1,
-            qrllegacy_pb2.LegacyMessage.BH: 1,
-
-            ############################
-            qrllegacy_pb2.LegacyMessage.TX: 1,
-            qrllegacy_pb2.LegacyMessage.MT: 1,
-            qrllegacy_pb2.LegacyMessage.TK: 1,
-            qrllegacy_pb2.LegacyMessage.TT: 1,
-            qrllegacy_pb2.LegacyMessage.LT: 1,
-            qrllegacy_pb2.LegacyMessage.SL: 1,
-
-            qrllegacy_pb2.LegacyMessage.EPH: 3,
-
-            qrllegacy_pb2.LegacyMessage.SYNC: 0,
-            qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
-            qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
-            qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
-        }
+        self.p2p_msg_priority = p2p_msg_priority
 
     ###################################################
     ###################################################
@@ -182,8 +183,15 @@ class P2PFactory(ServerFactory):
     def get_block(self, block_number):
         return self._chain_manager.get_block_by_number(block_number)
 
+    def is_block_present(self, header_hash: bytes) -> bool:
+        if not self._chain_manager.state.get_block(header_hash):
+            if header_hash not in self.pow.future_blocks:
+                return False
+
+        return True
+
     def block_received(self, source, block: Block):
-        self.pow.last_pb_time = time.time()
+        self.pow.last_pb_time = ntp.getTime()
         logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))
 
         if source != self._target_peer:
@@ -355,7 +363,6 @@ class P2PFactory(ServerFactory):
     ##############################################
     ##############################################
     ##############################################
-    # NOTE: PoW related.. broadcasting, etc. OBSOLETE
 
     def reset_processor_flag(self, _):
         self._txn_processor_running = False
@@ -473,7 +480,6 @@ class P2PFactory(ServerFactory):
     def start_listening(self):
         reactor.listenTCP(config.user.p2p_local_port, self)
 
-    # NOTE: No need to refactor, it is obsolete
     def clientConnectionLost(self, connector, reason):  # noqa
         logger.debug('connection lost: %s', reason)
 
