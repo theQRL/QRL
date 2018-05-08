@@ -11,7 +11,6 @@ from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.TransactionPool import TransactionPool
@@ -331,6 +330,3 @@ class ChainManager:
         del node_header_hash.headerhashes[:len(node_header_hash.headerhashes) - total_expected_headerhash]
 
         return node_header_hash
-
-    def add_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage):
-        self.state.update_ephemeral(encrypted_ephemeral)

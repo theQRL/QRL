@@ -7,7 +7,6 @@ from pyqrllib.pyqrllib import hstr2bin, QRLHelper
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Transaction import Transaction, CODEMAP
 from qrl.core.misc import logger
 from qrl.core.qrlnode import QRLNode
@@ -293,29 +292,3 @@ class PublicAPIService(PublicAPIServicer):
             response.transactions_unconfirmed.extend(result)
 
         return response
-
-    @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)
-    def PushEphemeralMessage(self, request: qrl_pb2.PushEphemeralMessageReq, context) -> qrl_pb2.PushTransactionResp:
-        logger.debug("[PublicAPI] PushEphemeralMessageReq")
-        submitted = False
-
-        if config.user.accept_ephemeral:
-            encrypted_ephemeral_message = EncryptedEphemeralMessage(request.ephemeral_message)
-            submitted = self.qrlnode.broadcast_ephemeral_message(encrypted_ephemeral_message)
-
-        answer = qrl_pb2.PushTransactionResp()
-        answer.error_code = qrl_pb2.PushTransactionResp.ERROR
-        if submitted:
-            answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
-
-        return answer
-
-    @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)
-    def CollectEphemeralMessage(self,
-                                request: qrl_pb2.CollectEphemeralMessageReq,
-                                context) -> qrl_pb2.CollectEphemeralMessageResp:
-        logger.debug("[PublicAPI] CollectEphemeralMessage")
-
-        ephemeral_metadata = self.qrlnode.collect_ephemeral_message(request.msg_id)
-        answer = qrl_pb2.CollectEphemeralMessageResp(ephemeral_metadata=ephemeral_metadata.pbdata)
-        return answer

@@ -13,7 +13,6 @@ from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.State import State
 from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
     LatticePublicKey, MessageTransaction
@@ -460,27 +459,6 @@ class QRLNode:
             headerhash_current = data_point.header_hash_prev
 
         return reversed(result)
-
-    ####################################################
-    ####################################################
-    ####################################################
-    ####################################################
-
-    def broadcast_ephemeral_message(self, encrypted_ephemeral: EncryptedEphemeralMessage) -> bool:
-        if not encrypted_ephemeral.validate():
-            return False
-
-        self._p2pfactory.broadcast_ephemeral_message(encrypted_ephemeral)
-
-        return True
-
-    def collect_ephemeral_message(self, msg_id):
-        return self.db_state.get_ephemeral_metadata(msg_id)
-
-    ####################################################
-    ####################################################
-    ####################################################
-    ####################################################
 
     def get_blockheader_and_metadata(self, block_number) -> list:
         if block_number == 0:

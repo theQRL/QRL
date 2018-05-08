@@ -11,7 +11,6 @@ from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
 from qrl.core.Wallet import Wallet
 from qrl.crypto.xmss import XMSS, hash_functions
@@ -936,52 +935,6 @@ def collect(ctx, msg_id):
         print(len(collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list))
         for message in collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list:
             print('%s' % (message.payload,))
-    except Exception as e:
-        print("Error {}".format(str(e)))
-
-
-@qrl.command()
-@click.option('--msg_id', default='', type=str, prompt=True, help='Message ID')
-@click.option('--ttl', default=0, type=int, prompt=True, help='Time to Live')
-@click.option('--ttr', default=0, type=int, prompt=True, help='Time to Relay')
-@click.option('--enc_aes256_symkey', default='', type=str, prompt=True, help='Encrypted AES256 symmetric key')
-@click.option('--nonce', default=0, type=int, prompt=True, help='nonce')
-@click.option('--payload', default='', type=str, prompt=True, help='Encrypted Payload')
-@click.pass_context
-def send_eph_message(ctx, msg_id, ttl, ttr, enc_aes256_symkey, nonce, payload):
-    """
-    Creates & Push Ephemeral Message
-    :param ctx:
-    :param msg_id:
-    :param ttl:
-    :param ttr:
-    :param enc_aes256_symkey:
-    :param nonce:
-    :param payload:
-    :return:
-    """
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
-    if len(enc_aes256_symkey):
-        enc_aes256_symkey = enc_aes256_symkey.encode()
-
-    payload = payload.encode()
-
-    encrypted_ephemeral_msg = EncryptedEphemeralMessage.create(_parse_hexblob(msg_id),
-                                                               ttl,
-                                                               ttr,
-                                                               nonce,
-                                                               payload,
-                                                               enc_aes256_symkey)
-
-    try:
-        stub = ctx.obj.get_stub_public_api()
-        ephemeralMessageReq = qrl_pb2.PushEphemeralMessageReq(ephemeral_message=encrypted_ephemeral_msg.pbdata)
-        ephemeralMessageResp = stub.PushEphemeralMessage(ephemeralMessageReq, timeout=5)
-
-        print(ephemeralMessageResp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
