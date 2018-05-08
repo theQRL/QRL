@@ -101,7 +101,7 @@ class P2PChainManager(P2PBaseObserver):
             source.send(msg)
             return
 
-        if 0 <= len(message.bhData.cumulative_difficulty) < 32:
+        if len(message.bhData.cumulative_difficulty) != 32:
             logger.warning('Invalid Block Height Data')
             source.loseConnection()
             return
