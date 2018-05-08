@@ -25,6 +25,7 @@ class UserConfig(object):
         self.mining_enabled = False
         self.mining_address = ''
         self.mining_thread_count = 0  # 0 to auto detect thread count based on CPU/GPU number of processors
+        self.mining_pause = 0  # this will force a sleep (ms) while mining to reduce cpu usage. Only for mocknet
 
         # Ephemeral Configuration
         self.accept_ephemeral = True
@@ -36,13 +37,13 @@ class UserConfig(object):
                           '104.251.219.40',
                           '104.237.3.185',
                           '35.177.60.137']
-        self.p2p_local_port = 9000   # Locally binded port at which node will listen for connection
+        self.p2p_local_port = 9000  # Locally binded port at which node will listen for connection
         self.p2p_public_port = 9000  # Public port forwarding connections to server
 
-        self.peer_rate_limit = 500   # Max Number of messages per minute per peer
+        self.peer_rate_limit = 500  # Max Number of messages per minute per peer
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
-        self.ban_minutes = 20              # Allows to ban a peer's IP who is breaking protocol
+        self.ban_minutes = 20  # Allows to ban a peer's IP who is breaking protocol
 
         self.monitor_connections_interval = 30  # Monitor connection every 30 seconds
         self.max_peers_limit = 100  # Number of allowed peers
@@ -246,7 +247,7 @@ class DevConfig(object):
         # ======================================
         self.number_of_blocks_analyze = 10
         self.size_multiplier = 1.1
-        self.block_min_size_limit = 1024 * 1024         # 1 MB - Initial Block Size Limit
+        self.block_min_size_limit = 1024 * 1024  # 1 MB - Initial Block Size Limit
 
         # ======================================
         # SHOR PER QUANTA / MAX ALLOWED DECIMALS
@@ -256,8 +257,8 @@ class DevConfig(object):
         # ======================================
         #            P2P SETTINGS
         # ======================================
-        self.max_receivable_bytes = 10 * 1024 * 1024           # 10 MB [Temporary Restriction]
-        self.reserved_quota = 1024                             # 1 KB
+        self.max_receivable_bytes = 10 * 1024 * 1024  # 10 MB [Temporary Restriction]
+        self.reserved_quota = 1024  # 1 KB
         self.max_bytes_out = self.max_receivable_bytes - self.reserved_quota
         self.sync_delay_mining = 60  # Delay mining by 60 seconds while syncing blocks to mainchain
 

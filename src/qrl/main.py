@@ -53,6 +53,8 @@ def parse_arguments():
                         help="Warning: Only for integration test, to mock get_measurement")
     parser.add_argument('--debug', dest='debug', action='store_true', default=False,
                         help="Enables fault handler")
+    parser.add_argument('--mocknet', dest='mocknet', action='store_true', default=False,
+                        help="Enables default mocknet settings")
     return parser.parse_args()
 
 
@@ -96,6 +98,29 @@ def main():
 
     config.create_path(config.user.wallet_dir)
     mining_address = None
+    ntp.setDrift()
+
+    logger.info('Initializing chain..')
+    persistent_state = State()
+
+    if args.mocknet:
+        args.debug = True
+        config.user.mining_enabled = True
+        config.user.mining_thread_count = 1
+        config.user.mining_pause = 500
+        config.dev.mining_setpoint_blocktime = 10
+        config.dev.genesis_difficulty = 2
+
+        # Mocknet mining address
+        # Q01050058bb3f8cb66fd90d0347478e5bdf3a475e82cfc5fe5dc276500ca21531e6edaf3d2d0f7e
+        # Mocknet mining hexseed
+        # 010500dd70f898c2cb4c11ce7fd85aa04554e41dcc46569871d189a3f48d84e2fbedbe176695e291e9b81e619b3625c624cde6
+        args.mining_address = 'Q01050058bb3f8cb66fd90d0347478e5bdf3a475e82cfc5fe5dc276500ca21531e6edaf3d2d0f7e'
+
+    if args.debug:
+        logger.warning("FAULT HANDLER ENABLED")
+        faulthandler.enable()
+
     if config.user.mining_enabled:
         mining_address = get_mining_address(args.mining_address)
 
@@ -103,15 +128,6 @@ def main():
             logger.warning('Invalid Mining Credit Wallet Address')
             logger.warning('%s', args.mining_address)
             return False
-
-    ntp.setDrift()
-
-    if args.debug:
-        logger.warning("FAULT HANDLER ENABLED")
-        faulthandler.enable()
-
-    logger.info('Initializing chain..')
-    persistent_state = State()
 
     if args.measurement > -1:
         persistent_state.get_measurement = MagicMock(return_value=args.measurement)

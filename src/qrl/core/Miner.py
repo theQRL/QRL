@@ -38,6 +38,7 @@ class Miner(Qryptominer):
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
         self._mining_thread_count = mining_thread_count
         self._dummy_xmss = None
+        self.setForcedSleep(config.user.mining_pause)
 
     def prepare_next_unmined_block_template(self, mining_address, tx_pool, parent_block: Block, parent_difficulty):
         try:
