@@ -27,13 +27,13 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager.new_channel(channel)
         channel.register.assert_called()
 
-        self.assertEquals(9, channel.register.call_count)
+        self.assertEquals(8, channel.register.call_count)
 
     def test_observable(self):
         channel = Observable(None)
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
-        self.assertEquals(9, channel.observers_count)
+        self.assertEquals(8, channel.observers_count)
 
     def test_notification_no_observer(self):
         source = Mock()

@@ -16,8 +16,6 @@ from qrl.core.Block import Block
 from qrl.core.misc import logger, db
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, CoinBase
 from qrl.core.TokenMetadata import TokenMetadata
-from qrl.core.EphemeralMessage import EncryptedEphemeralMessage
-from qrl.core.EphemeralMetadata import EphemeralMetadata
 from qrl.core.AddressState import AddressState
 from qrl.generated import qrl_pb2
 
@@ -173,24 +171,6 @@ class State:
                 tx.apply_state_changes(addresses_state)
 
         return addresses_state, rollback_headerhash, hash_path
-
-    def get_ephemeral_metadata(self, msg_id: bytes):
-        try:
-            json_ephemeral_metadata = self._db.get_raw(b'ephemeral_' + msg_id)
-
-            return EphemeralMetadata.from_json(json_ephemeral_metadata)
-        except KeyError:
-            pass
-        except Exception as e:
-            logger.exception(e)
-
-        return EphemeralMetadata()
-
-    def update_ephemeral(self, encrypted_ephemeral: EncryptedEphemeralMessage):
-        ephemeral_metadata = self.get_ephemeral_metadata(encrypted_ephemeral.msg_id)
-        ephemeral_metadata.add(encrypted_ephemeral)
-
-        self._db.put_raw(b'ephemeral_' + encrypted_ephemeral.msg_id, ephemeral_metadata.to_json().encode())
 
     def get_mainchain_height(self) -> int:
         try:
