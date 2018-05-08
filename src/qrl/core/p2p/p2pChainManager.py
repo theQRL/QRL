@@ -1,4 +1,5 @@
 from pyqrllib.pyqrllib import bin2hstr
+from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core.misc import logger
 from qrl.core.Block import Block
@@ -101,7 +102,9 @@ class P2PChainManager(P2PBaseObserver):
             source.send(msg)
             return
 
-        if len(message.bhData.cumulative_difficulty) != 32:
+        try:
+            UInt256ToString(message.chainStateData.cumulative_difficulty)
+        except ValueError:
             logger.warning('Invalid Block Height Data')
             source.loseConnection()
             return
