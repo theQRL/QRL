@@ -227,6 +227,10 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
+        if not isinstance(self, CoinBase):
+            if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
+                raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
+
         if not XmssFast.verify(self.get_hashable_bytes(),
                                self.signature,
                                self.PK):
