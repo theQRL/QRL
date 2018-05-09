@@ -138,7 +138,7 @@ class TestP2PPeerManager(TestCase):
 
         # A bad IP in the set should not pass.
         result = self.peer_manager.get_valid_peers({'255.255.255.255:8000'}, '127.0.0.1', 3000)
-        self.assertEqual(result, {})
+        self.assertEqual(result, set())
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_update_peer_addresses_also_connects_to_new_peers(self, logger):
