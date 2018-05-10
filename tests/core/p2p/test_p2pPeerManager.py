@@ -29,7 +29,12 @@ def make_node_chain_state():
     return node_chain_state
 
 
+def replacement_getTime():
+    return int(time.time())
+
+
 # Some functions have logger patched out, so that tests are not too noisy when unexpected things happen.
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestP2PPeerManager(TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -98,27 +103,23 @@ class TestP2PPeerManager(TestCase):
                 for p in config.user.peer_list:
                     self.assertIn(p, contents)
 
-    def test_get_valid_peers_works(self):
-        """
-        get_valid_peers simply appends a ip:port pair to a set.
-        """
-        result = self.peer_manager.get_valid_peers({}, '187.0.0.1', 1000)
-        self.assertEqual(result, {'187.0.0.1:1000'})
-
-        result_2 = self.peer_manager.get_valid_peers(result, '187.0.0.1', 2000)
-        self.assertEqual(result_2, {'187.0.0.1:1000', '187.0.0.1:2000'})
-
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
-    def test_get_valid_peers_bad_ip_port(self, logger):
+    def test_get_valid_peers_works(self, logger):
         """
-        get_valid_peers quirk: it only validates the first and third arg?
-        It also handles bad ports differently if it's in the 1st arg vs in the 3rd argument.
+        get_valid_peers takes: a set of IP:PORTs from a peer; the peer's ip; the peer's port
+        It validates the set of IP:PORTs and adds valid ones to the node's peerlist.
+        Global IP addresses only.
+        Because we are connected to the peer from whom we downloaded this list, the peer's ip and port are validated
+        differently and added to the peerlist as well.
+        If the same IP appears with different ports, they should appear as different records in the peerlist (max 2)
         """
-        bad_port_result = self.peer_manager.get_valid_peers({}, '127.0.0.1', 70000)
-        self.assertEqual(bad_port_result, set())
+        # The second IP in the set has an invalid port, but the peer to which we are connected should be in the set.
+        result = self.peer_manager.get_valid_peers({'1.1.1.1:9000', '1.2.3.4:65536'}, '187.0.0.1', 1000)
+        self.assertEqual(result, {'1.1.1.1:9000', '187.0.0.1:1000'})
 
-        bad_ip_result = self.peer_manager.get_valid_peers({}, '256.256.256.256', 10000)
-        self.assertEqual(bad_ip_result, set())
+        # What happens if the peer we are connected to now has a different port? it should replace the entry in the set.
+        result = self.peer_manager.get_valid_peers({'1.1.1.1:9000', '127.0.0.1:1000'}, '187.0.0.1', 2000)
+        self.assertEqual(result, {'1.1.1.1:9000', '187.0.0.1:2000'})
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_get_valid_peers_bad_ip_list(self, logger):
@@ -126,22 +127,31 @@ class TestP2PPeerManager(TestCase):
         get_valid_peers should revalidate all existing ip:port pairs when adding a new one to the list.
         but why isn't validation happening in another layer so that the set is always clean?
         """
-        bad_ip_list_result = self.peer_manager.get_valid_peers({'256.256.256.256:9000', '127.0.0.3:90000'},
+        bad_ip_list_result = self.peer_manager.get_valid_peers({'256.256.256.256:9000', '187.0.0.3:90000'},
                                                                '187.0.0.1',
                                                                9000)
         self.assertEqual(bad_ip_list_result, {'187.0.0.1:9000'})
 
-    @expectedFailure
+        # A local IP in the incoming set should be ignored.
+        result = self.peer_manager.get_valid_peers({'1.1.1.1:8000', '127.0.0.1:1111'}, '127.0.0.1', 3000)
+        self.assertEqual(result, {'1.1.1.1:8000'})
+
+        # A bad IP in the set should not pass.
+        result = self.peer_manager.get_valid_peers({'255.255.255.255:8000'}, '127.0.0.1', 3000)
+        self.assertEqual(result, set())
+
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_update_peer_addresses_also_connects_to_new_peers(self, logger):
         """
         update_peer_addresses() not only writes out, it automatically connects to any new peers.
         """
         self.peer_manager._p2pfactory = Mock()
-        self.peer_manager._peer_addresses = {'127.0.0.1:9000'}
-        self.peer_manager.update_peer_addresses({'127.0.0.2:9000'})
+        self.peer_manager._peer_addresses = {'1.1.1.1:9000'}
+        with set_qrl_dir('no_data') as tempdir:
+            self.peer_manager.peers_path = os.path.join(tempdir, config.dev.peers_filename)
+            self.peer_manager.update_peer_addresses({'2.2.2.2:9000'})
 
-        self.peer_manager._p2pfactory.connect_peer.assert_called_once_with('127.0.0.2:9000')
+        self.peer_manager._p2pfactory.connect_peer.assert_called_once_with('2.2.2.2:9000')
 
     def test_remove_channel(self):
         """
@@ -378,15 +388,12 @@ class TestP2PPeerManager(TestCase):
         channel_2.loseConnection.assert_not_called()
         channel_3.loseConnection.assert_not_called()
 
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_monitor_chain_state_stale_info(self, getTime):
+    def test_monitor_chain_state_stale_info(self):
         """
         After a certain time period, the information is considered stale and the channel will be disconnected.
         """
         channel_1 = self.populate_peer_manager()[0]
-        getTime.return_value = int(time.time())
-        self.peer_manager._peer_node_status[channel_1].timestamp = int(
-            time.time()) - config.user.chain_state_timeout - 1
+        self.peer_manager._peer_node_status[channel_1].timestamp = int(time.time()) - config.user.chain_state_timeout - 1
 
         self.peer_manager.monitor_chain_state()
 
@@ -405,8 +412,7 @@ class TestP2PPeerManager(TestCase):
 
         channel_3.loseConnection.assert_called_once_with()
 
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_handle_chain_state_works(self, getTime):
+    def test_handle_chain_state_works(self):
         """
         When a peer reports its chain state, we update the timestamp to reflect the time we received the message.
         Then we update our _peer_node_status.
@@ -418,13 +424,13 @@ class TestP2PPeerManager(TestCase):
         channel = make_channel()
 
         # The P2PPeerManager should update its hash table with the info from chain_state_data.
-        # Set ntp.getTime() to a nonsensical value so we can track it.
-        getTime.return_value = 140000000
+        # Unfortunately it also updates the timestamp so we cannot simply compare the objects,
+        # we have to compare the fields in the object excluding the timestamp.
         self.peer_manager.handle_chain_state(channel, chain_state_message)
 
-        chain_state_data_with_nonsense_ts = make_node_chain_state()
-        chain_state_data_with_nonsense_ts.timestamp = 140000000
-        self.assertEqual(self.peer_manager._peer_node_status[channel], chain_state_data_with_nonsense_ts)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].block_number, chain_state_data.block_number)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].header_hash, chain_state_data.header_hash)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].cumulative_difficulty, chain_state_data.cumulative_difficulty)
 
     def test_handle_p2p_acknowledgement(self):
         """
