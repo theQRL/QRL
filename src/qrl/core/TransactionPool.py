@@ -9,7 +9,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction
+from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.TransactionInfo import TransactionInfo
 
 
@@ -60,6 +60,10 @@ class TransactionPool:
 
         idx = self.get_tx_index_from_pool(tx.txhash)
         if idx > -1:
+            return False
+
+        if isinstance(tx, CoinBase):
+            logger.warning('Rejected CoinBase Transaction as received without block')
             return False
 
         if tx.txhash in self.pending_tx_pool_hash:
