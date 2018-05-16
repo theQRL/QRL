@@ -33,9 +33,10 @@ class TransactionPool:
             return None
         pending_tx_set = heapq.heappop(self.pending_tx_pool)
         pending_tx = pending_tx_set[1].transaction
+        timestamp = pending_tx_set[1].timestamp
         self.pending_tx_pool_hash.remove(pending_tx.txhash)
 
-        return pending_tx
+        return pending_tx, timestamp
 
     def is_full_pending_transaction_pool(self, ignore_reserve=True) -> bool:
         max_pool_size = config.user.pending_transaction_pool_size
@@ -76,11 +77,13 @@ class TransactionPool:
 
         return True
 
-    def add_tx_to_pool(self, tx_class_obj, block_number) -> bool:
+    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int=None) -> bool:
         if self.is_full_transaction_pool():
             return False
 
-        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj, block_number)])
+        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj,
+                                                                                 block_number,
+                                                                                 timestamp)])
         return True
 
     def get_tx_index_from_pool(self, txhash):
