@@ -3,14 +3,18 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 from qrl.core import config
+from qrl.core.misc import ntp
 from qrl.core.Transaction import Transaction
 
 
 class TransactionInfo:
 
-    def __init__(self, tx: Transaction, block_number: int):
+    def __init__(self, tx: Transaction, block_number: int, timestamp: int=None):
         self._transaction = tx
         self._block_number = block_number
+        self._timestamp = timestamp
+        if not self._timestamp:
+            self._timestamp = ntp.getTime()
 
     def __lt__(self, tx_info):
         if self.transaction.fee < tx_info.transaction.fee:
@@ -25,6 +29,10 @@ class TransactionInfo:
     @property
     def block_number(self):
         return self._block_number
+
+    @property
+    def timestamp(self):
+        return self._timestamp
 
     def is_stale(self, current_block_number: int):
         if current_block_number > self._block_number + config.user.stale_transaction_threshold:

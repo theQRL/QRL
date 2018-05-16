@@ -419,7 +419,7 @@ class QRLNode:
         skipped = 0
         for tx_set in self._chain_manager.tx_pool.transactions:
             if skipped >= offset:
-                answer.append(tx_set[1].transaction)
+                answer.append(tx_set[1])
                 if len(answer) >= count:
                     break
             else:
