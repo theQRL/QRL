@@ -24,10 +24,12 @@ class TxnProcessor:
         return self
 
     def __next__(self):
-        tx, timestamp = self.transaction_pool_obj.get_pending_transaction()
+        tx_timestamp = self.transaction_pool_obj.get_pending_transaction()
 
-        if not tx:
+        if not tx_timestamp:
             raise StopIteration
+
+        tx, timestamp = tx_timestamp
 
         if not tx.validate():
             return False
