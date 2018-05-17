@@ -295,12 +295,14 @@ class ChainManager:
         return self.state.get_address_state(address)
 
     def get_transaction(self, transaction_hash) -> list:
+        return self.state.get_tx_metadata(transaction_hash)
+
+    def get_unconfirmed_transaction(self, transaction_hash) -> list:
         for tx_set in self.tx_pool.transactions:
             tx = tx_set[1].transaction
             if tx.txhash == transaction_hash:
-                return [tx, None]
-
-        return self.state.get_tx_metadata(transaction_hash)
+                return [tx, tx_set[1].timestamp]
+        return []
 
     def get_headerhashes(self, start_blocknumber):
         start_blocknumber = max(0, start_blocknumber)

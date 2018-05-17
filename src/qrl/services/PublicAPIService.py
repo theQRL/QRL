@@ -205,18 +205,27 @@ class PublicAPIService(PublicAPIServicer):
         except ValueError:
             pass
 
-        transaction, block_number = self.qrlnode.get_transaction(query)
-        if transaction is not None:
+        transaction_block_number = self.qrlnode.get_transaction(query)
+        transaction = None
+        blockheader = None
+        if transaction_block_number:
+            transaction, block_number = transaction_block_number
             answer.found = True
-            blockheader = None
-            if block_number is not None:
-                block = self.qrlnode.get_block_from_index(block_number)
-                blockheader = block.blockheader.pbdata
+            block = self.qrlnode.get_block_from_index(block_number)
+            blockheader = block.blockheader.pbdata
+            timestamp = block.blockheader.timestamp
+        else:
+            transaction_timestamp = self.qrlnode.get_unconfirmed_transaction(query)
+            if transaction_timestamp:
+                transaction, timestamp = transaction_timestamp
+                answer.found = True
 
+        if transaction:
             txextended = qrl_pb2.TransactionExtended(header=blockheader,
                                                      tx=transaction.pbdata,
                                                      addr_from=transaction.addr_from,
-                                                     size=transaction.size)
+                                                     size=transaction.size,
+                                                     timestamp_seconds=timestamp)
             answer.transaction.CopyFrom(txextended)
             return answer
 
@@ -236,7 +245,8 @@ class PublicAPIService(PublicAPIServicer):
                 tx = Transaction.from_pbdata(transaction)
                 extended_tx = qrl_pb2.TransactionExtended(tx=transaction,
                                                           addr_from=tx.addr_from,
-                                                          size=tx.size)
+                                                          size=tx.size,
+                                                          timestamp_seconds=block.blockheader.timestamp)
                 block_extended.extended_transactions.extend([extended_tx])
             answer.block_extended.CopyFrom(block_extended)
             return answer
@@ -289,7 +299,7 @@ class PublicAPIService(PublicAPIServicer):
                                                          tx=tx.pbdata,
                                                          addr_from=tx.addr_from,
                                                          size=tx.size,
-                                                         timestamp=tx_info.timestamp)
+                                                         timestamp_seconds=tx_info.timestamp)
                 result.append(txextended)
             response.transactions_unconfirmed.extend(result)
 
