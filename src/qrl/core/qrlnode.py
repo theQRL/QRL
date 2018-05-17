@@ -364,9 +364,11 @@ class QRLNode:
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
         result = self._chain_manager.get_transaction(query_hash)
-        if result:
-            return result[0], result[1]
-        return None, None
+        return result
+
+    def get_unconfirmed_transaction(self, query_hash: bytes):
+        result = self._chain_manager.get_unconfirmed_transaction(query_hash)
+        return result
 
     def get_block_last(self) -> Optional[Block]:
         """
