@@ -5,6 +5,7 @@ import contextlib
 import os
 import shutil
 import tempfile
+import time
 from copy import deepcopy
 
 import simplejson as json
@@ -17,6 +18,10 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import TokenTransaction, SlaveTransaction
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
+
+
+def replacement_getTime():
+    return int(time.time())
 
 
 @contextlib.contextmanager
