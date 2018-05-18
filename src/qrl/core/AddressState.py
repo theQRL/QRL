@@ -2,10 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from copy import deepcopy
-from collections import defaultdict
-
-from pyqrllib.pyqrllib import QRLHelper
+from pyqrllib.pyqrllib import QRLHelper, bin2hstr
 
 from qrl.core import config
 from qrl.generated import qrl_pb2
@@ -14,12 +11,8 @@ from qrl.generated import qrl_pb2
 class AddressState(object):
     def __init__(self, protobuf_block=None):
         self._data = protobuf_block
-        self.tokens = defaultdict(int)
         if protobuf_block is None:
             self._data = qrl_pb2.AddressState()
-        else:
-            for key in self._data.tokens:
-                self.tokens[str(key).encode()] = deepcopy(self._data.tokens[key])
 
     @property
     def pbdata(self):
@@ -28,8 +21,6 @@ class AddressState(object):
         :return: A protobuf AddressState object
         :rtype: qrl_pb2.AddressState
         """
-        for key in self.tokens:
-            self._data.tokens[key] = self.tokens[key]
         return self._data
 
     @property
@@ -85,12 +76,30 @@ class AddressState(object):
         address_state._data.ots_counter = ots_counter
 
         for token_txhash in tokens:
-            address_state.tokens[token_txhash] = tokens[token_txhash]
+            address_state.update_token_balance(token_txhash, tokens[token_txhash])
 
         for slave_pk in slave_pks_access_type:
-            address_state.slave_pks_access_type[str(slave_pk)] = slave_pks_access_type[str(slave_pk)]
+            address_state.add_slave_pks_access_type(slave_pk, slave_pks_access_type[slave_pk])
 
         return address_state
+
+    def update_token_balance(self, token_tx_hash: bytes, balance: int):
+        str_token_tx_hash = bin2hstr(token_tx_hash)
+        self._data.tokens[str_token_tx_hash] += balance
+        if self._data.tokens[str_token_tx_hash] == 0:
+            del self._data.tokens[str_token_tx_hash]
+
+    def get_token_balance(self, token_tx_hash: bytes) -> int:
+        str_token_tx_hash = bin2hstr(token_tx_hash)
+        if str_token_tx_hash in self._data.tokens:
+            return self._data.tokens[str_token_tx_hash]
+        return 0
+
+    def is_token_exists(self, token_tx_hash: bytes) -> bool:
+        str_token_tx_hash = bin2hstr(token_tx_hash)
+        if str_token_tx_hash in self._data.tokens:
+            return True
+        return False
 
     def add_slave_pks_access_type(self, slave_pk: bytes, access_type: int):
         self._data.slave_pks_access_type[str(slave_pk)] = access_type
