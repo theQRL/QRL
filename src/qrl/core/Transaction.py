@@ -868,8 +868,7 @@ class TokenTransaction(Transaction):
             if initial_balance.address == addr_from_pk:
                 addr_from_pk_processed = True
             if initial_balance.address in addresses_state:
-                token_tx_hash = bin2hstr(self.txhash)
-                addresses_state[initial_balance.address].update_token_balance(token_tx_hash,
+                addresses_state[initial_balance.address].update_token_balance(self.txhash,
                                                                               initial_balance.amount * -1)
                 addresses_state[initial_balance.address].transaction_hashes.remove(self.txhash)
 
