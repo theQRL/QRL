@@ -286,7 +286,7 @@ class P2PFactory(ServerFactory):
         if self._syncing_enabled:
             logger.info('>> Ignoring compare_and_sync Syncing Enabled')
             return
-        last_block = self._chain_manager.get_last_block()
+        last_block = self.get_last_block()
         node_last_block_number = node_header_hash.block_number + len(node_header_hash.headerhashes) - 1
         last_block_number = min(last_block.block_number, node_last_block_number)
         if last_block_number < node_header_hash.block_number:
@@ -294,9 +294,10 @@ class P2PFactory(ServerFactory):
         fork_block_number = last_block.block_number + 1
         fork_found = False
         for i in range(last_block_number, node_header_hash.block_number - 1, -1):
-            block = self._chain_manager.get_block_by_number(i)
-            if block.headerhash == node_header_hash.headerhashes[i - node_header_hash.block_number]:
-                break
+            block = self.get_block(i)
+            if block:
+                if block.headerhash == node_header_hash.headerhashes[i - node_header_hash.block_number]:
+                    break
             fork_block_number = i
             fork_found = True
 

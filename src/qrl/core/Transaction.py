@@ -227,6 +227,10 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
+        if not isinstance(self, CoinBase):
+            if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
+                raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
+
         if not XmssFast.verify(self.get_hashable_bytes(),
                                self.signature,
                                self.PK):
@@ -832,8 +836,7 @@ class TokenTransaction(Transaction):
             if initial_balance.address == addr_from_pk:
                 addr_from_pk_processed = True
             if initial_balance.address in addresses_state:
-                addresses_state[initial_balance.address].tokens[
-                    bin2hstr(self.txhash)] += initial_balance.amount
+                addresses_state[initial_balance.address].update_token_balance(self.txhash, initial_balance.amount)
                 addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
 
         if self.owner in addresses_state and not owner_processed:
@@ -865,11 +868,8 @@ class TokenTransaction(Transaction):
             if initial_balance.address == addr_from_pk:
                 addr_from_pk_processed = True
             if initial_balance.address in addresses_state:
-                token_tx_hash = bin2hstr(self.txhash)
-                addresses_state[initial_balance.address].tokens[
-                    token_tx_hash] -= initial_balance.amount
-                if addresses_state[initial_balance.address].tokens[token_tx_hash] == 0:
-                    del addresses_state[initial_balance.address].tokens[token_tx_hash]
+                addresses_state[initial_balance.address].update_token_balance(self.txhash,
+                                                                              initial_balance.amount * -1)
                 addresses_state[initial_balance.address].transaction_hashes.remove(self.txhash)
 
         if self.owner in addresses_state and not owner_processed:
@@ -1012,6 +1012,18 @@ class TransferTokenTransaction(Transaction):
             logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
+        if not addr_from_state.is_token_exists(self.token_txhash):
+            logger.info('%s doesnt own any such token %s ', self.addr_from, bin2hstr(self.token_txhash))
+            return False
+
+        token_balance = addr_from_state.get_token_balance(self.token_txhash)
+        if token_balance < total_amount:
+            logger.info('Insufficient amount of token')
+            logger.info('Token Balance: %s, Sent Token Amount: %s',
+                        token_balance,
+                        total_amount)
+            return False
+
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
             logger.info(
                 'TransferTokenTransaction State validation failed for %s because: OTS Public key re-use detected',
@@ -1022,9 +1034,7 @@ class TransferTokenTransaction(Transaction):
 
     def apply_state_changes(self, addresses_state):
         if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] -= self.total_amount
-            if addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] == 0:
-                del addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()]
+            addresses_state[self.addr_from].update_token_balance(self.token_txhash, self.total_amount * -1)
             addresses_state[self.addr_from].balance -= self.fee
             addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
 
@@ -1034,13 +1044,13 @@ class TransferTokenTransaction(Transaction):
             if addr_to in addresses_state:
                 if self.addr_from != addr_to:
                     addresses_state[addr_to].transaction_hashes.append(self.txhash)
-                addresses_state[addr_to].tokens[bin2hstr(self.token_txhash).encode()] += amount
+                addresses_state[addr_to].update_token_balance(self.token_txhash, amount)
 
         self._apply_state_changes_for_PK(addresses_state)
 
     def revert_state_changes(self, addresses_state, state):
         if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].tokens[bin2hstr(self.token_txhash).encode()] += self.total_amount
+            addresses_state[self.addr_from].update_token_balance(self.token_txhash, self.total_amount)
             addresses_state[self.addr_from].balance += self.fee
             addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
 
@@ -1050,7 +1060,7 @@ class TransferTokenTransaction(Transaction):
             if addr_to in addresses_state:
                 if self.addr_from != addr_to:
                     addresses_state[addr_to].transaction_hashes.remove(self.txhash)
-                addresses_state[addr_to].tokens[bin2hstr(self.token_txhash).encode()] -= amount
+                addresses_state[addr_to].update_token_balance(self.token_txhash, amount * -1)
 
         self._revert_state_changes_for_PK(addresses_state, state)
 

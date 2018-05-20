@@ -24,10 +24,12 @@ class TxnProcessor:
         return self
 
     def __next__(self):
-        tx = self.transaction_pool_obj.get_pending_transaction()
+        tx_timestamp = self.transaction_pool_obj.get_pending_transaction()
 
-        if not tx:
+        if not tx_timestamp:
             raise StopIteration
+
+        tx, timestamp = tx_timestamp
 
         if not tx.validate():
             return False
@@ -49,7 +51,7 @@ class TxnProcessor:
             return False
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
-        self.transaction_pool_obj.add_tx_to_pool(tx, self.state.last_block.block_number)
+        self.transaction_pool_obj.add_tx_to_pool(tx, self.state.last_block.block_number, timestamp)
         self.broadcast_tx(tx)
 
         return True
