@@ -295,8 +295,9 @@ class P2PFactory(ServerFactory):
         fork_found = False
         for i in range(last_block_number, node_header_hash.block_number - 1, -1):
             block = self.get_block(i)
-            if block.headerhash == node_header_hash.headerhashes[i - node_header_hash.block_number]:
-                break
+            if block:
+                if block.headerhash == node_header_hash.headerhashes[i - node_header_hash.block_number]:
+                    break
             fork_block_number = i
             fork_found = True
 
