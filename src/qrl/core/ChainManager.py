@@ -156,7 +156,7 @@ class ChainManager:
 
     def rollback(self, rollback_headerhash, hash_path, latest_block_number):
         while self.last_block.headerhash != rollback_headerhash:
-            # TODO: Performing without batch, any interruption such as Keybord Interrupt could corrupt the state
+            # TODO: Performing without batch, any interruption such as Keyboard Interrupt could corrupt the state
             self.remove_block_from_mainchain(self.last_block, latest_block_number, None)
             self.last_block = self.state.get_block(self.last_block.prev_headerhash)
 
