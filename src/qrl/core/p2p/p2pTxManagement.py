@@ -191,7 +191,7 @@ class P2PTxManagement(P2PBaseObserver):
     @staticmethod
     def handle_slave(source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Receives Lattice Public Key Transaction
+        Receives Slave Transaction
         :param source:
         :param message:
         :return:
