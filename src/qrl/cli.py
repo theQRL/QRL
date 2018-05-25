@@ -918,33 +918,6 @@ def token_list(ctx, owner):
 
 
 @qrl.command()
-@click.option('--msg_id', default='', type=str, prompt=True, help='Message ID')
-@click.pass_context
-def collect(ctx, msg_id):
-    """
-    Collects and returns the list of encrypted ephemeral message corresponding to msg_id
-    :param ctx:
-    :param msg_id:
-    :return:
-    """
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
-    try:
-        stub = ctx.obj.get_stub_public_api()
-        collect_ephemeral_message_req = qrl_pb2.CollectEphemeralMessageReq(msg_id=_parse_hexblob(msg_id))
-        collect_ephemeral_message_resp = stub.CollectEphemeralMessage(collect_ephemeral_message_req,
-                                                                      timeout=CONNECTION_TIMEOUT)
-
-        print(len(collect_ephemeral_message_resp.ephemeral_metadata.encrypted_ephemeral_message_list))
-        for message in collect_ephemeral_message_resp.ephemeral_metadata.encrypted_ephemeral_message_list:
-            print('%s' % (message.payload,))
-    except Exception as e:
-        print("Error {}".format(str(e)))
-
-
-@qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='source QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
