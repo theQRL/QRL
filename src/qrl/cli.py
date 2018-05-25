@@ -24,6 +24,8 @@ OutputMessage = namedtuple('OutputMessage',
 BalanceItem = namedtuple('BalanceItem',
                          'address balance')
 
+CONNECTION_TIMEOUT = 5
+
 
 class CLIContext(object):
 
@@ -64,7 +66,7 @@ class CLIContext(object):
 def _admin_get_local_addresses(ctx):
     try:
         stub = ctx.obj.get_stub_admin()
-        getAddressStateResp = stub.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=5)
+        getAddressStateResp = stub.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=CONNECTION_TIMEOUT)
         return getAddressStateResp.addresses
     except Exception as e:
         click.echo('Error connecting to node', color='red')
@@ -113,6 +115,7 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
         return "{:<8}{:<83}{:<13}{}".format(
             wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function']
         )
+
     output = _serialize_output(ctx, addresses, source_description)
     if ctx.obj.json:
         output["location"] = source_description
@@ -141,7 +144,7 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 def _public_get_address_balance(ctx, address):
     stub = ctx.obj.get_stub_public_api()
     getAddressStateReq = qrl_pb2.GetAddressStateReq(address=_parse_qaddress(address))
-    getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=1)
+    getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=CONNECTION_TIMEOUT)
     return getAddressStateResp.state.balance
 
 
@@ -181,7 +184,7 @@ def _select_wallet(ctx, src):
 
 
 def _shorize(x: Decimal) -> int:
-    return int(x * 10**9)
+    return int(x * 10 ** 9)
 
 
 def _parse_hexblob(blob: str) -> bytes:
@@ -418,8 +421,11 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
     if 0 <= wallet_idx < len(wallet.address_items):
         addr_item = wallet.address_items[wallet_idx]
         if not skip_confirmation:
-            click.echo('You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_item.qaddress))
-            click.echo('Warning! By continuing, you risk complete loss of access to this address if you do not have a recovery Mnemonic/Hexseed.')
+            click.echo(
+                'You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_item.qaddress))
+            click.echo(
+                'Warning! By continuing, you risk complete loss of access to this address if you do not have a '
+                'recovery Mnemonic/Hexseed.')
             click.confirm('Do you want to continue?', abort=True)
         wallet.remove(addr_item.qaddress)
 
@@ -478,15 +484,15 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         quit(1)
 
     # FIXME: This could be problematic. Check
-    transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
-                                                amounts=shor_amounts,
-                                                fee=fee_shor,
-                                                xmss_pk=address_src_pk,
-                                                master_addr=master_addr)
+    transfer_coins_req = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
+                                                  amounts=shor_amounts,
+                                                  fee=fee_shor,
+                                                  xmss_pk=address_src_pk,
+                                                  master_addr=master_addr)
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
+        transfer_coins_resp = stub.TransferCoins(transfer_coins_req, timeout=CONNECTION_TIMEOUT)
     except grpc.RpcError as e:
         click.echo(e.details())
         quit(1)
@@ -494,7 +500,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         click.echo("Unhandled error: {}".format(str(e)))
         quit(1)
 
-    txblob = bin2hstr(transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString())
+    txblob = bin2hstr(transfer_coins_resp.extended_transaction_unsigned.tx.SerializeToString())
     print(txblob)
 
 
@@ -543,16 +549,16 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
 
     # FIXME: This could be problematic. Check
-    slaveTxnReq = qrl_pb2.SlaveTxnReq(slave_pks=slave_pks,
-                                      access_types=access_types,
-                                      fee=fee_shor,
-                                      xmss_pk=address_src_pk,
-                                      master_addr=master_addr)
+    slave_txn_req = qrl_pb2.SlaveTxnReq(slave_pks=slave_pks,
+                                        access_types=access_types,
+                                        fee=fee_shor,
+                                        xmss_pk=address_src_pk,
+                                        master_addr=master_addr)
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        slaveTxnResp = stub.GetSlaveTxn(slaveTxnReq, timeout=5)
-        tx = Transaction.from_pbdata(slaveTxnResp.extended_transaction_unsigned.tx)
+        slave_txn_resp = stub.GetSlaveTxn(slave_txn_req, timeout=CONNECTION_TIMEOUT)
+        tx = Transaction.from_pbdata(slave_txn_resp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
             json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
@@ -631,7 +637,7 @@ def tx_push(ctx, txblob):
 
     stub = ctx.obj.get_stub_public_api()
     pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-    pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+    pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=CONNECTION_TIMEOUT)
     print(pushTransactionResp.error_code)
 
 
@@ -669,20 +675,20 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        messageTxnReq = qrl_pb2.MessageTxnReq(message=message,
-                                              fee=fee_shor,
-                                              xmss_pk=address_src_pk,
-                                              master_addr=master_addr)
+        message_txn_req = qrl_pb2.MessageTxnReq(message=message,
+                                                fee=fee_shor,
+                                                xmss_pk=address_src_pk,
+                                                master_addr=master_addr)
 
-        transferCoinsResp = stub.GetMessageTxn(messageTxnReq, timeout=5)
+        transfer_coins_resp = stub.GetMessageTxn(message_txn_req, timeout=CONNECTION_TIMEOUT)
 
-        tx = Transaction.from_pbdata(transferCoinsResp.extended_transaction_unsigned.tx)
+        tx = Transaction.from_pbdata(transfer_coins_resp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
 
-        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
-        print(pushTransactionResp)
+        print(push_transaction_resp)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -721,21 +727,21 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        transferCoinsReq = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
-                                                    amounts=shor_amounts,
-                                                    fee=fee_shor,
-                                                    xmss_pk=address_src_pk,
-                                                    master_addr=master_addr)
+        transfer_coins_req = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
+                                                      amounts=shor_amounts,
+                                                      fee=fee_shor,
+                                                      xmss_pk=address_src_pk,
+                                                      master_addr=master_addr)
 
-        transferCoinsResp = stub.TransferCoins(transferCoinsReq, timeout=5)
+        transfer_coins_resp = stub.TransferCoins(transfer_coins_req, timeout=CONNECTION_TIMEOUT)
 
-        tx = Transaction.from_pbdata(transferCoinsResp.extended_transaction_unsigned.tx)
+        tx = Transaction.from_pbdata(transfer_coins_resp.extended_transaction_unsigned.tx)
         tx.sign(src_xmss)
 
-        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
-        print(pushTransactionResp)
+        print(push_transaction_resp)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -807,10 +813,10 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
         tx.sign(src_xmss)
 
-        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
-        print(pushTransactionResp.error_code)
+        print(push_transaction_resp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -875,10 +881,10 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
                                              master_addr=master_addr)
         tx.sign(src_xmss)
 
-        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
-        print(pushTransactionResp.error_code)
+        print(push_transaction_resp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -903,12 +909,12 @@ def token_list(ctx, owner):
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        addressStateReq = qrl_pb2.GetAddressStateReq(address=owner_address)
-        addressStateResp = stub.GetAddressState(addressStateReq, timeout=5)
+        address_state_req = qrl_pb2.GetAddressStateReq(address=owner_address)
+        address_state_resp = stub.GetAddressState(address_state_req, timeout=CONNECTION_TIMEOUT)
 
-        for token_hash in addressStateResp.state.tokens:
+        for token_hash in address_state_resp.state.tokens:
             click.echo('Hash: %s' % (token_hash,))
-            click.echo('Balance: %s' % (addressStateResp.state.tokens[token_hash],))
+            click.echo('Balance: %s' % (address_state_resp.state.tokens[token_hash],))
     except Exception as e:
         print("Error {}".format(str(e)))
 
@@ -929,11 +935,12 @@ def collect(ctx, msg_id):
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        collectEphemeralMessageReq = qrl_pb2.CollectEphemeralMessageReq(msg_id=_parse_hexblob(msg_id))
-        collectEphemeralMessageResp = stub.CollectEphemeralMessage(collectEphemeralMessageReq, timeout=5)
+        collect_ephemeral_message_req = qrl_pb2.CollectEphemeralMessageReq(msg_id=_parse_hexblob(msg_id))
+        collect_ephemeral_message_resp = stub.CollectEphemeralMessage(collect_ephemeral_message_req,
+                                                                      timeout=CONNECTION_TIMEOUT)
 
-        print(len(collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list))
-        for message in collectEphemeralMessageResp.ephemeral_metadata.encrypted_ephemeral_message_list:
+        print(len(collect_ephemeral_message_resp.ephemeral_metadata.encrypted_ephemeral_message_list))
+        for message in collect_ephemeral_message_resp.ephemeral_metadata.encrypted_ephemeral_message_list:
             print('%s' % (message.payload,))
     except Exception as e:
         print("Error {}".format(str(e)))
@@ -981,10 +988,10 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         tx.sign(src_xmss)
 
         stub = ctx.obj.get_stub_public_api()
-        pushTransactionReq = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        pushTransactionResp = stub.PushTransaction(pushTransactionReq, timeout=5)
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
-        print(pushTransactionResp.error_code)
+        print(push_transaction_resp.error_code)
     except Exception as e:
         print("Error {}".format(str(e)))
 
