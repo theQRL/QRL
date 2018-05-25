@@ -12,7 +12,7 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey, \
-    TransferTransaction
+    TransferTransaction, MessageTransaction, SlaveTransaction
 from qrl.core.Wallet import Wallet
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
@@ -484,24 +484,17 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
-    # FIXME: This could be problematic. Check
-    transfer_coins_req = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
-                                                  amounts=shor_amounts,
-                                                  fee=fee_shor,
-                                                  xmss_pk=address_src_pk,
-                                                  master_addr=master_addr)
-
     try:
-        stub = ctx.obj.get_stub_public_api()
-        transfer_coins_resp = stub.TransferCoins(transfer_coins_req, timeout=CONNECTION_TIMEOUT)
-    except grpc.RpcError as e:
-        click.echo(e.details())
-        quit(1)
+        tx = TransferTransaction.create(addrs_to=addresses_dst,
+                                        amounts=shor_amounts,
+                                        fee=fee_shor,
+                                        xmss_pk=address_src_pk,
+                                        master_addr=master_addr)
     except Exception as e:
         click.echo("Unhandled error: {}".format(str(e)))
         quit(1)
 
-    txblob = bin2hstr(transfer_coins_resp.extended_transaction_unsigned.tx.SerializeToString())
+    txblob = bin2hstr(tx.SerializeToString())
     print(txblob)
 
 
@@ -549,17 +542,13 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         access_types.append(access_type)
         print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
 
-    # FIXME: This could be problematic. Check
-    slave_txn_req = qrl_pb2.SlaveTxnReq(slave_pks=slave_pks,
-                                        access_types=access_types,
-                                        fee=fee_shor,
-                                        xmss_pk=address_src_pk,
-                                        master_addr=master_addr)
-
     try:
         stub = ctx.obj.get_stub_public_api()
-        slave_txn_resp = stub.GetSlaveTxn(slave_txn_req, timeout=CONNECTION_TIMEOUT)
-        tx = Transaction.from_pbdata(slave_txn_resp.extended_transaction_unsigned.tx)
+        tx = SlaveTransaction.create(slave_pks=slave_pks,
+                                     access_types=access_types,
+                                     fee=fee_shor,
+                                     xmss_pk=address_src_pk,
+                                     master_addr=master_addr)
         tx.sign(src_xmss)
         with open('slaves.json', 'w') as f:
             json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
@@ -676,14 +665,10 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        message_txn_req = qrl_pb2.MessageTxnReq(message=message,
-                                                fee=fee_shor,
-                                                xmss_pk=address_src_pk,
-                                                master_addr=master_addr)
-
-        transfer_coins_resp = stub.GetMessageTxn(message_txn_req, timeout=CONNECTION_TIMEOUT)
-
-        tx = Transaction.from_pbdata(transfer_coins_resp.extended_transaction_unsigned.tx)
+        tx = MessageTransaction.create(message_hash=message,
+                                       fee=fee_shor,
+                                       xmss_pk=address_src_pk,
+                                       master_addr=master_addr)
         tx.sign(src_xmss)
 
         push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
