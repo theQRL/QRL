@@ -159,10 +159,13 @@ class Miner(Qryptominer):
         return block
 
     def get_block_to_mine(self, wallet_address, tx_pool, last_block, last_block_difficulty) -> list:
-        mining_address = bytes(hstr2bin(wallet_address[1:].decode()))
+        try:
+            mining_address = bytes(hstr2bin(wallet_address[1:].decode()))
 
-        if not AddressState.address_is_valid(mining_address):
-            raise ValueError("[get_block_to_mine] Invalid Wallet Address %s", mining_address)
+            if not AddressState.address_is_valid(mining_address):
+                raise ValueError("[get_block_to_mine] Invalid Wallet Address %s", wallet_address)
+        except Exception as e:
+            raise ValueError("Error while decoding wallet address %s", e)
 
         if self._mining_block:
             if last_block.headerhash == self._mining_block.prev_headerhash:
