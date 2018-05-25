@@ -11,7 +11,8 @@ from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey
+from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey, \
+    TransferTransaction
 from qrl.core.Wallet import Wallet
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
@@ -727,15 +728,12 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
 
     try:
         stub = ctx.obj.get_stub_public_api()
-        transfer_coins_req = qrl_pb2.TransferCoinsReq(addresses_to=addresses_dst,
-                                                      amounts=shor_amounts,
-                                                      fee=fee_shor,
-                                                      xmss_pk=address_src_pk,
-                                                      master_addr=master_addr)
 
-        transfer_coins_resp = stub.TransferCoins(transfer_coins_req, timeout=CONNECTION_TIMEOUT)
-
-        tx = Transaction.from_pbdata(transfer_coins_resp.extended_transaction_unsigned.tx)
+        tx = TransferTransaction.create(addrs_to=addresses_dst,
+                                        amounts=shor_amounts,
+                                        fee=fee_shor,
+                                        xmss_pk=address_src_pk,
+                                        master_addr=master_addr)
         tx.sign(src_xmss)
 
         push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
