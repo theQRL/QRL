@@ -8,6 +8,7 @@ from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 from pyqryptonight.pyqryptonight import Qryptominer, UInt256ToString, SOLUTION
 
 from qrl.core import config
+from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.PoWValidator import PoWValidator
@@ -159,6 +160,10 @@ class Miner(Qryptominer):
 
     def get_block_to_mine(self, wallet_address, tx_pool, last_block, last_block_difficulty) -> list:
         mining_address = bytes(hstr2bin(wallet_address[1:].decode()))
+
+        if not AddressState.address_is_valid(mining_address):
+            raise ValueError("[get_block_to_mine] Invalid Wallet Address %s", mining_address)
+
         if self._mining_block:
             if last_block.headerhash == self._mining_block.prev_headerhash:
                 if self._mining_block.transactions[0].coinbase.addr_to == mining_address:
