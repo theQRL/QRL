@@ -645,7 +645,7 @@ def tx_push(ctx, txblob):
 @click.pass_context
 def tx_message(ctx, src, master, message, fee, ots_key_index):
     """
-    Transfer coins from src to dst
+    Message Transaction
     """
     if not ctx.obj.remote:
         click.echo('This command is unsupported for local wallets')
@@ -825,7 +825,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 @click.pass_context
 def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee, ots_key_index):
     """
-    Create Token Transaction, that results into the formation of new token if accepted.
+    Create Transfer Token Transaction, which moves tokens from src to dst.
     """
 
     if not ctx.obj.remote:
@@ -888,7 +888,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
 @click.pass_context
 def token_list(ctx, owner):
     """
-    Create Token Transaction, that results into the formation of new token if accepted.
+    Fetch the list of tokens owned by an address.
     """
 
     if not ctx.obj.remote:
