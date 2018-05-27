@@ -186,7 +186,7 @@ def _select_wallet(ctx, src):
 
 
 def _shorize(x: Decimal) -> int:
-    return int(x * 10 ** 9)
+    return int(x * int(config.dev.shor_per_quanta))
 
 
 def _parse_hexblob(blob: str) -> bytes:
