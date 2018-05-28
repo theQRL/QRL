@@ -766,7 +766,7 @@ class TokenTransaction(Transaction):
         sum_of_initial_balances = 0
         for initial_balance in self.initial_balances:
             sum_of_initial_balances += initial_balance.amount
-            if initial_balance.amount == 0:
+            if initial_balance.amount <= 0:
                 logger.warning('Invalid Initial Amount in Token Transaction')
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
@@ -781,13 +781,6 @@ class TokenTransaction(Transaction):
 
         if self.fee < 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
-
-        for initial_balance in self._data.token.initial_balances:
-            if initial_balance.amount <= 0:
-                raise ValueError('TokenTransaction [%s] Invalid Amount = %s for address %s',
-                                 bin2hstr(self.txhash),
-                                 initial_balance.amount,
-                                 initial_balance.address)
 
         return True
 
