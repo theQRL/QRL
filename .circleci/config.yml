@@ -23,6 +23,14 @@ jobs:
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
       - run: python3 setup.py test --addopts "tests/tools/ --open-files --threadleak -n0"
 
+  flake8:
+    docker:
+      - image: qrledger/qrl-docker:xenial
+    steps:
+      - checkout
+      - run: pip install -U setuptools
+      - run: flake8
+
   test_leaks_other:
     docker:
       - image: qrledger/qrl-docker:xenial
