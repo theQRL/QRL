@@ -11,7 +11,6 @@ from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.core.AddressState import AddressState
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey, \
     TransferTransaction, MessageTransaction, SlaveTransaction
 from qrl.core.Wallet import Wallet
@@ -189,6 +188,7 @@ def _select_wallet(ctx, src):
 
 def _shorize(x: Decimal) -> int:
     return int(x * int(config.dev.shor_per_quanta))
+
 
 def _parse_dsts_amounts(addresses: str, amounts: str):
     """
