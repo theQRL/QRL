@@ -11,12 +11,12 @@ from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.core.AddressState import AddressState
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey, \
     TransferTransaction, MessageTransaction, SlaveTransaction
 from qrl.core.Wallet import Wallet
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
+from qrl.core.misc.helper import parse_hexblob, parse_qaddress
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
 
@@ -145,8 +145,9 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 
 def _public_get_address_balance(ctx, address):
     stub = ctx.obj.get_stub_public_api()
-    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=_parse_qaddress(address))
+    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=parse_qaddress(address))
     getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=CONNECTION_TIMEOUT)
+
     return getAddressStateResp.state.balance
 
 
@@ -179,7 +180,7 @@ def _select_wallet(ctx, src):
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return _parse_qaddress(src), None
+        return parse_qaddress(src), None
     except Exception as e:
         click.echo("Error selecting wallet")
         quit(1)
@@ -187,33 +188,6 @@ def _select_wallet(ctx, src):
 
 def _shorize(x: Decimal) -> int:
     return int(x * int(config.dev.shor_per_quanta))
-
-
-def _parse_hexblob(blob: str) -> bytes:
-    """
-    Binary conversions from hexstring are handled by bytes(hstr2bin()).
-    :param blob:
-    :return:
-    """
-    return bytes(hstr2bin(blob))
-
-
-def _parse_qaddress(qaddress: str) -> bytes:
-    """
-    Converts from a Qaddress to an Address.
-    qaddress: 'Q' + hexstring representation of an XMSS tree's address
-    address: binary representation, the Q is ignored when transforming from qaddress.
-    :param qaddress:
-    :return:
-    """
-    try:
-        qaddress = _parse_hexblob(qaddress[1:])
-        if not AddressState.address_is_valid(qaddress):
-            raise ValueError("Invalid Addresss ", qaddress)
-    except Exception as e:
-        raise ValueError("Failed To Decode Address", e)
-
-    return qaddress
 
 
 def _parse_dsts_amounts(addresses: str, amounts: str):
@@ -226,7 +200,7 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
     """
     addresses_split = []
     for addr in addresses.split(' '):
-        addresses_split.append(_parse_qaddress(addr))
+        addresses_split.append(parse_qaddress(addr))
 
     shor_amounts = []
     for amount in amounts.split(' '):
@@ -486,7 +460,7 @@ def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
         addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
         master_addr = None
         if master:
-            master_addr = _parse_qaddress(master)
+            master_addr = parse_qaddress(master)
 
         fee_shor = _shorize(fee)
     except Exception as e:
@@ -528,7 +502,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         else:
             address_src_pk = pk.encode()
 
-        master_addr = _parse_qaddress(master)
+        master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -575,7 +549,7 @@ def tx_sign(ctx, src, txblob):
     """
     Sign a tx blob
     """
-    txbin = _parse_hexblob(txblob)
+    txbin = parse_hexblob(txblob)
     pbdata = qrl_pb2.Transaction()
     pbdata.ParseFromString(txbin)
     tx = Transaction.from_pbdata(pbdata)
@@ -596,7 +570,7 @@ def tx_inspect(ctx, txblob):
     """
     tx = None
     try:
-        txbin = _parse_hexblob(txblob)
+        txbin = parse_hexblob(txblob)
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
@@ -615,7 +589,7 @@ def tx_inspect(ctx, txblob):
 def tx_push(ctx, txblob):
     tx = None
     try:
-        txbin = _parse_hexblob(txblob)
+        txbin = parse_hexblob(txblob)
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
@@ -662,7 +636,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
 
         message = message.encode()
 
-        master_addr = _parse_qaddress(master)
+        master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -712,7 +686,7 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
         addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
         master_addr = None
         if master:
-            master_addr = _parse_qaddress(master)
+            master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -762,7 +736,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         if address == '':
             break
         amount = int(click.prompt('Amount ')) * (10 ** int(decimals))
-        initial_balances.append(qrl_pb2.AddressAmount(address=_parse_qaddress(address),
+        initial_balances.append(qrl_pb2.AddressAmount(address=parse_qaddress(address),
                                                       amount=amount))
 
     try:
@@ -773,10 +747,10 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(int(ots_key_index))
-        address_owner = _parse_qaddress(owner)
+        address_owner = parse_qaddress(owner)
         master_addr = None
         if master_addr:
-            master_addr = _parse_qaddress(master)
+            master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
 
@@ -842,7 +816,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
         src_xmss.set_ots_index(int(ots_key_index))
         addresses_dst = []
         for addr in dst.split(' '):
-            addresses_dst.append(_parse_qaddress(addr))
+            addresses_dst.append(parse_qaddress(addr))
 
         shor_amounts = []
         for amount in amounts.split(' '):
@@ -852,10 +826,10 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
             raise Exception("{} destination addresses specified but only {} amounts given".format(len(addresses_dst),
                                                                                                   len(shor_amounts)))
 
-        bin_token_txhash = _parse_hexblob(token_txhash)
+        bin_token_txhash = parse_hexblob(token_txhash)
         master_addr = None
         if master:
-            master_addr = _parse_qaddress(master)
+            master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
     except KeyboardInterrupt:
@@ -896,7 +870,7 @@ def token_list(ctx, owner):
         return
 
     try:
-        owner_address = _parse_qaddress(owner)
+        owner_address = parse_qaddress(owner)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
@@ -941,7 +915,7 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         dilithium_pk = dilithium_pk.encode()
         master_addr = None
         if master:
-            master_addr = _parse_qaddress(master)
+            master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _shorize(fee)
     except Exception as e:

@@ -4,7 +4,6 @@
 from unittest import TestCase, expectedFailure
 from mock import Mock, patch
 
-import time
 from collections import OrderedDict
 from twisted.internet import reactor
 from qrl.core.qrlnode import QRLNode
@@ -21,14 +20,11 @@ from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
+from tests.misc.helper import replacement_getTime
 
 
 def bhstr2bin(a_string: str) -> bytes:
     return bytes(hstr2bin(a_string))
-
-
-def replacement_getTime():
-    return int(time.time())
 
 
 def make_message(**kwargs):

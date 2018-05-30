@@ -1,16 +1,21 @@
-from unittest import TestCase
+from unittest import TestCase, expectedFailure
 
 import simplejson as json
-from mock import Mock
+from mock import Mock, PropertyMock, patch
 from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.kyber import Kyber
+from pyqrllib.dilithium import Dilithium
+from qrl.core import config
 
 from qrl.core.misc import logger
+from qrl.core.AddressState import AddressState
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, TokenTransaction, \
-    TransferTokenTransaction, MessageTransaction
+    TransferTokenTransaction, MessageTransaction, SlaveTransaction, LatticePublicKey
+from qrl.core.TransactionInfo import TransactionInfo
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
-from tests.misc.helper import get_alice_xmss, get_bob_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, replacement_getTime
 
 logger.initialize_default()
 
@@ -408,17 +413,27 @@ class TestTransaction(TestCase):
         self.assertEqual(decimal, 18)
 
 
+@patch('qrl.core.Transaction.logger')
 class TestSimpleTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestSimpleTransaction, self).__init__(*args, **kwargs)
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
+        self.slave = get_slave_xmss()
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
 
-    def test_create(self):
+    def setUp(self):
+        self.tx = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+
+    def test_create(self, m_logger):
         # Alice sending coins to Bob
         tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
@@ -426,21 +441,21 @@ class TestSimpleTransaction(TestCase):
                                         xmss_pk=self.alice.pk)
         self.assertTrue(tx)
 
-    def test_create_negative_amount(self):
+    def test_create_negative_amount(self, m_logger):
         with self.assertRaises(ValueError):
             TransferTransaction.create(addrs_to=[self.bob.address],
                                        amounts=[-100],
                                        fee=1,
                                        xmss_pk=self.alice.pk)
 
-    def test_create_negative_fee(self):
+    def test_create_negative_fee(self, m_logger):
         with self.assertRaises(ValueError):
             TransferTransaction.create(addrs_to=[self.bob.address],
                                        amounts=[-100],
                                        fee=-1,
                                        xmss_pk=self.alice.pk)
 
-    def test_to_json(self):
+    def test_to_json(self, m_logger):
         tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
                                         fee=1,
@@ -449,7 +464,7 @@ class TestSimpleTransaction(TestCase):
 
         self.assertEqual(json.loads(test_json_Simple), json.loads(txjson))
 
-    def test_from_json(self):
+    def test_from_json(self, m_logger):
         tx = Transaction.from_json(test_json_Simple)
         tx.sign(self.alice)
         self.assertIsInstance(tx, TransferTransaction)
@@ -472,25 +487,448 @@ class TestSimpleTransaction(TestCase):
         self.assertEqual(100, tx.total_amount)
         self.assertEqual(1, tx.fee)
 
-    def test_validate_tx(self):
+    def test_validate_tx(self, m_logger):
         # If we change amount, fee, addr_from, addr_to, (maybe include xmss stuff) txhash should change.
-        tx = TransferTransaction.create(addrs_to=[self.bob.address],
-                                        amounts=[100],
-                                        fee=1,
-                                        xmss_pk=self.alice.pk)
-
+        # Here we use the tx already defined in setUp() for convenience.
         # We must sign the tx before validation will work.
-        tx.sign(self.alice)
+        self.tx.sign(self.alice)
 
         # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_or_raise())
+        self.assertTrue(self.tx.validate_or_raise())
 
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
+    @patch('qrl.core.Transaction.config')
+    def test_validate_tx_invalid(self, m_config, m_logger):
+        # Test all the things that could make a TransferTransaction invalid
+        self.tx.sign(self.alice)
+
+        # Validation in creation, Protobuf, type conversion etc. gets in our way all the time!
+        # So to get dirty data to the validate() function, we need PropertyMocks
+        with patch('qrl.core.Transaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
+            # TX amount of 0 shouldn't be allowed.
+            m_amounts.return_value = [0]
+            with self.assertRaises(ValueError):
+                self.tx.validate_or_raise()
+        with patch('qrl.core.Transaction.TransferTransaction.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            with self.assertRaises(ValueError):
+                self.tx.validate_or_raise()
+        with patch('qrl.core.Transaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
+            with patch('qrl.core.Transaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
+                # Validation could fail because len(m_addrs_to) != len(m_amounts),
+                # or if len(m_addrs_to) > transaction_multi_output_limit.
+                # This second patch level is to make sure the only the latter case happens.
+                m_amounts = [100, 100, 100, 100]
+                m_config.dev.transaction_multi_output_limit = 3
+                m_addrs_to.return_value = [2, 2, 2, 2]
+                with self.assertRaises(ValueError):
+                    self.tx.validate_or_raise()
+        with patch('qrl.core.Transaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
+            # len(addrs_to) must equal len(amounts)
+            m_addrs_to.return_value = [2, 2]
+            with self.assertRaises(ValueError):
+                self.tx.validate_or_raise()
+        with patch('qrl.core.Transaction.TransferTransaction.addr_from', new_callable=PropertyMock) as m_addr_from:
+            m_addr_from.return_value = b'If this isnt invalid Ill eat my shoe'
+            with self.assertRaises(ValueError):
+                self.tx.validate_or_raise()
+        with patch('qrl.core.Transaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
+            with patch('qrl.core.Transaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
+                m_amounts.return_value = [100, 100]
+                m_addrs_to.return_value = [self.bob.address, b'If this isnt invalid Ill eat my shoe']
+                with self.assertRaises(ValueError):
+                    self.tx.validate_or_raise()
+
+    def test_validate_extended(self, m_logger):
+        """
+        validate_extended() handles these parts of the validation:
+        1. Master/slave
+        2. balance, amount + fee from AddressState
+        3. OTS key reuse from AddressState
+        :return:
+        """
+        m_addr_state = Mock(autospec=AddressState, balance=200)
+        m_addr_from_pk_state = Mock(autospec=AddressState)
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+
+        self.tx.validate_slave = Mock(autospec=Transaction.validate_slave, return_value=True)
+
+        self.tx.sign(self.alice)
+
+        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
+
+        self.assertTrue(result)
+
+        # Suppose there was ots key reuse. The function should then return false.
+        m_addr_from_pk_state.ots_key_reuse.return_value = True
+        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+        # Reset conditions from above
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+        # Suppose the slave XMSS address does not have permission for this type of Transaction. It should return False.
+        self.tx.validate_slave.return_value = False
+        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+        # Reset conditions from above
+        self.tx.validate_slave.return_value = True
+        # Suppose the address doesn't have enough coins.
+        m_addr_state.balance = 99
+        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+    def test_validate_transaction_pool(self, m_logger):
+        """
+        Two TransferTransactions. Although they're the same, they are signed with different OTS indexes.
+        Therefore they should not conflict when they are both in the TransactionPool.
+        :return:
+        """
+        tx = self.tx
+        tx2 = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx.sign(self.alice)
+        tx2.sign(self.alice)
+        tx_info = Mock(autospec=TransactionInfo, transaction=tx)
+        tx2_info = Mock(autospec=TransactionInfo, transaction=tx2)
+        transaction_pool = [(replacement_getTime(), tx_info), (replacement_getTime(), tx2_info)]
+        result = tx.validate_transaction_pool(transaction_pool)
+        self.assertTrue(result)
+
+    def test_validate_transaction_pool_reusing_ots_index(self, m_logger):
+        """
+        Two different TransferTransactions. They are signed with the same OTS indexe, from the same public key.
+        Therefore they should conflict.
+        :return:
+        """
+        tx = self.tx
+        tx2 = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=5,
+            xmss_pk=self.alice.pk
+        )
+
+        # alice_clone's OTS index is still at 10, while self.alice will be at 11 after signing.
+        alice_clone = get_alice_xmss()
+        alice_clone.set_ots_index(10)
+        tx.sign(self.alice)
+        tx2.sign(alice_clone)
+
+        tx_info = Mock(autospec=TransactionInfo, transaction=tx)
+        tx2_info = Mock(autospec=TransactionInfo, transaction=tx2)
+        transaction_pool = [(replacement_getTime(), tx_info), (replacement_getTime(), tx2_info)]
+
+        result = tx.validate_transaction_pool(transaction_pool)
+        self.assertFalse(result)
+
+    def test_validate_transaction_pool_different_pk_same_ots_index(self, m_logger):
+        """
+        Two TransferTransactions. They are signed with the same OTS indexes, but from different public keys.
+        Therefore they should NOT conflict.
+        :return:
+        """
+        tx = self.tx
+        tx2 = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.bob.pk
+        )
+
+        tx.sign(self.alice)
+        tx2.sign(self.bob)
+
+        tx_info = Mock(autospec=TransactionInfo, transaction=tx)
+        tx2_info = Mock(autospec=TransactionInfo, transaction=tx2)
+        transaction_pool = [(replacement_getTime(), tx_info), (replacement_getTime(), tx2_info)]
+
+        result = tx.validate_transaction_pool(transaction_pool)
+        self.assertTrue(result)
+
+    def test_apply_state_changes(self, m_logger):
+        """
+        apply_state_changes() is the part that actually updates everybody's balances.
+        Then it forwards the addresses_state to _apply_state_changes_for_PK(), which updates everybody's addresses's
+        nonce, OTS key index, and associated TX hashes
+        If there is no AddressState for a particular Address, nothing is done.
+        """
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=200),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[], balance=0),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+        }
+        self.tx._apply_state_changes_for_PK = Mock(autospec=TransferTransaction._apply_state_changes_for_PK)
+
+        self.tx.apply_state_changes(addresses_state)
+
+        # Now Alice should have 99 coins left (200 - 100 - 1) and Bob should have 100 coins.
+        self.assertEqual(99, addresses_state[self.alice.address].balance)
+        self.assertEqual(100, addresses_state[self.bob.address].balance)
+        self.tx._apply_state_changes_for_PK.assert_called_once()
+
+        # If there are no AddressStates related to the Addresses in this transaction, do nothing.
+        self.tx._apply_state_changes_for_PK.reset_mock()
+        addresses_state_dummy = {
+            b'a': 'ABC',
+            b'b': 'DEF'
+        }
+        self.tx.apply_state_changes(addresses_state_dummy)
+        self.assertEqual(addresses_state_dummy, {b'a': 'ABC', b'b': 'DEF'})
+        self.tx._apply_state_changes_for_PK.assert_called_once()
+
+    def test_apply_state_changes_tx_sends_to_self(self, m_logger):
+        """
+        If you send coins to yourself, you should only lose the fee for the Transaction.
+        """
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=200),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[], balance=0),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+        }
+        tx = TransferTransaction.create(
+            addrs_to=[self.alice.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx._apply_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
+
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(199, addresses_state[self.alice.address].balance)
+        self.assertIn(tx.txhash, addresses_state[self.alice.address].transaction_hashes)
+
+    def test_apply_state_changes_multi_send(self, m_logger):
+        """
+        Test that apply_state_changes() also works with multiple recipients.
+        """
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=200),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[], balance=0),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+        }
+
+        tx_multisend = TransferTransaction.create(
+            addrs_to=[self.bob.address, self.slave.address],
+            amounts=[20, 20],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx_multisend._apply_state_changes_for_PK = Mock(autospec=TransferTransaction._apply_state_changes_for_PK)
+
+        tx_multisend.apply_state_changes(addresses_state)
+
+        # Now Alice should have 159 coins left (200 - 20 - 20 - 1) and Bob should have 100 coins.
+        self.assertEqual(159, addresses_state[self.alice.address].balance)
+        self.assertEqual(20, addresses_state[self.bob.address].balance)
+        self.assertEqual(20, addresses_state[self.slave.address].balance)
+        tx_multisend._apply_state_changes_for_PK.assert_called_once()
+
+    def test_apply_state_changes_for_PK(self, m_logger):
+        """
+        This updates the node's AddressState database with which OTS index a particular address should be on, and what
+        tx hashes is this address associated with.
+        Curiously enough, if the TX was signed by a master XMSS tree, it doesn't add this tx's txhash to the list of
+        txs that address is associated with.
+        :return:
+        """
+        addr_state = {
+            self.alice.address: Mock(autospec=AddressState)
+        }
+        old_ots_index = self.alice.ots_index
+        self.tx.sign(self.alice)
+        self.tx._apply_state_changes_for_PK(addr_state)
+
+        addr_state[self.alice.address].increase_nonce.assert_called_once()
+        addr_state[self.alice.address].set_ots_key.assert_called_once_with(old_ots_index)
+
+    def test_apply_state_changes_for_PK_master_slave_XMSS(self, m_logger):
+        """
+        If the TX was signed by a slave XMSS, the slave XMSS's AddressState should be updated (not the master's).
+        :return:
+        """
+        tx = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.slave.pk,
+            master_addr=self.alice.address
+        )
+        addr_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState'),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState')
+        }
+        old_ots_index = self.slave.ots_index
+        tx.sign(self.slave)
+        tx._apply_state_changes_for_PK(addr_state)
+
+        addr_state[self.slave.address].increase_nonce.assert_called_once()
+        addr_state[self.slave.address].set_ots_key.assert_called_once_with(old_ots_index)
+        addr_state[self.slave.address].transaction_hashes.append.assert_called_once()
+
+    def test_revert_state_changes(self, m_logger):
+        """
+        Alice has sent 100 coins to Bob, using 1 as Transaction fee. Now we need to undo this.
+        """
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
+                                     transaction_hashes=[self.tx.txhash],
+                                     balance=99),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[self.tx.txhash],
+                                   balance=100),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+        }
+        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        self.tx._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
+
+        self.tx.revert_state_changes(addresses_state, unused_state_mock)
+
+        self.assertEqual(200, addresses_state[self.alice.address].balance)
+        self.assertEqual(0, addresses_state[self.bob.address].balance)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+
+        self.tx._revert_state_changes_for_PK.assert_called_once()
+
+        # If there are no AddressStates related to the Addresses in this transaction, do nothing.
+        self.tx._revert_state_changes_for_PK.reset_mock()
+        addresses_state_dummy = {
+            b'a': 'ABC',
+            b'b': 'DEF'
+        }
+        self.tx.revert_state_changes(addresses_state_dummy, unused_state_mock)
+        self.assertEqual(addresses_state_dummy, {b'a': 'ABC', b'b': 'DEF'})
+        self.tx._revert_state_changes_for_PK.assert_called_once()
+
+    def test_revert_state_changes_multi_send(self, m_logger):
+        """
+        Alice has sent 20 coins to Bob and Slave each, using 1 as Transaction fee. Now we need to undo this.
+        """
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
+                                     transaction_hashes=[self.tx.txhash],
+                                     balance=159),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[self.tx.txhash],
+                                   balance=20),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState',
+                                     transaction_hashes=[self.tx.txhash], balance=20)
+        }
+        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        tx_multisend = TransferTransaction.create(
+            addrs_to=[self.bob.address, self.slave.address],
+            amounts=[20, 20],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx_multisend._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
+
+        tx_multisend.revert_state_changes(addresses_state, unused_state_mock)
+
+        self.assertEqual(200, addresses_state[self.alice.address].balance)
+        self.assertEqual(0, addresses_state[self.bob.address].balance)
+        self.assertEqual(0, addresses_state[self.slave.address].balance)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.slave.address].transaction_hashes)
+
+        tx_multisend._revert_state_changes_for_PK.assert_called_once()
+
+    def test_revert_state_changes_tx_sends_to_self(self, m_logger):
+        """
+        Alice sent coins to herself, but she still lost the Transaction fee. Undo this.
+        """
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
+                                     transaction_hashes=[self.tx.txhash],
+                                     balance=199),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[],
+                                   balance=0),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+        }
+        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        tx = TransferTransaction.create(
+            addrs_to=[self.alice.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+
+        tx._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
+
+        tx.revert_state_changes(addresses_state, unused_state_mock)
+
+        self.assertEqual(200, addresses_state[self.alice.address].balance)
+        self.assertEqual(0, addresses_state[self.bob.address].balance)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+
+        tx._revert_state_changes_for_PK.assert_called_once()
+
+    def test_revert_state_changes_for_PK(self, m_logger):
+        """
+        This is just an undo function.
+        :return:
+        """
+        tx = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        addr_state = {
+            self.alice.address: Mock(autospec=AddressState)
+        }
+        tx.sign(self.alice)
+        tx._revert_state_changes_for_PK(addr_state, Mock(name='unused State Mock'))
+
+        addr_state[self.alice.address].decrease_nonce.assert_called_once()
+        addr_state[self.alice.address].unset_ots_key.assert_called_once()
+
+    def test_revert_state_changes_for_PK_master_slave_XMSS(self, m_logger):
+        tx = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.slave.pk,
+            master_addr=self.alice.address
+        )
+        addr_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState'),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState')
+        }
+        tx.sign(self.slave)
+        tx._revert_state_changes_for_PK(addr_state, Mock(name='unused State Mock'))
+
+        addr_state[self.slave.address].decrease_nonce.assert_called_once()
+        addr_state[self.slave.address].unset_ots_key.assert_called_once()
+        addr_state[self.slave.address].transaction_hashes.remove.assert_called_once()
+
+    def test_affected_address(self, m_logger):
+        # The default transaction params involve only two addresses.
+        affected_addresses = set()
+        self.tx.set_affected_address(affected_addresses)
+        self.assertEqual(2, len(affected_addresses))
+
+        # This transaction should involve 3 addresses.
+        affected_addresses = set()
+        tx = TransferTransaction.create(
+            addrs_to=[self.bob.address, self.slave.address],
+            amounts=[100, 100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx.set_affected_address(affected_addresses)
+        self.assertEqual(3, len(affected_addresses))
 
 
+@patch('qrl.core.Transaction.logger')
 class TestCoinBase(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCoinBase, self).__init__(*args, **kwargs)
@@ -506,20 +944,20 @@ class TestCoinBase(TestCase):
         self.mock_blockheader.block_number = 1
         self.mock_blockheader.headerhash = sha256(b'headerhash')
 
+        self.amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
         self.maxDiff = None
 
-    def test_create(self):
-        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
-        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
+    def test_create(self, m_logger):
+        tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
         self.assertIsInstance(tx, CoinBase)
 
-    def test_to_json(self):
+    def test_to_json(self, m_logger):
         amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
         tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
         txjson = tx.to_json()
         self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
 
-    def test_from_txdict(self):
+    def test_from_txdict(self, m_logger):
         amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
         tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
         self.assertIsInstance(tx, CoinBase)
@@ -532,7 +970,101 @@ class TestCoinBase(TestCase):
         self.assertEqual('c7f3e1e092e70f49a943a162de8b110899b60ab1dafd0c72625fba6fc1adcd01', bin2hstr(tx.txhash))
         self.assertEqual(tx.amount, 90)
 
+    def test_validate_custom(self, m_logger):
+        """
+        CoinBase _validate_custom() only checks if fee == 0
+        """
+        tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
+        tx._data.fee = 1
+        result = tx._validate_custom()
+        self.assertFalse(result)
 
+        tx._data.fee = 0
+        result = tx._validate_custom()
+        self.assertTrue(result)
+
+    def test_validate_extended(self, m_logger):
+        """
+        CoinBase validate_extended() checks for
+        1. valid coinbase address (the coinbase address must be config.dev.coinbase_address)
+        2. valid addr_to
+        then calls _validate_custom()
+        """
+        tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
+        tx._data.master_addr = self.alice.address
+
+        result = tx.validate_extended()
+        self.assertFalse(result)
+
+        tx._data.master_addr = config.dev.coinbase_address
+        with patch('qrl.core.Transaction.CoinBase.addr_to', new_callable=PropertyMock) as m_addr_to:
+            m_addr_to.return_value = b'Fake Address'
+            result = tx.validate_extended()
+            self.assertFalse(result)
+
+        result = tx.validate_extended()
+        self.assertTrue(result)
+
+    def test_apply_state_changes(self, m_logger):
+        """
+        Alice earned some coins.
+        """
+        addresses_state = {
+            config.dev.coinbase_address: Mock(autospec=AddressState, name='CoinBase AddressState',
+                                              transaction_hashes=[], balance=1000000),
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=0),
+        }
+        tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
+
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(1000000 - tx.amount, addresses_state[config.dev.coinbase_address].balance)
+        self.assertEqual([tx.txhash], addresses_state[config.dev.coinbase_address].transaction_hashes)
+        self.assertEqual(tx.amount, addresses_state[self.alice.address].balance)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+
+        # A blank addresses_state doesn't get modified at all (but in practice, every node should have an AddressState
+        # for the CoinBase addr
+        addresses_state_empty = {}
+        tx.apply_state_changes(addresses_state_empty)
+        self.assertEqual({}, addresses_state_empty)
+
+    def test_revert_state_changes(self, m_logger):
+        """
+        Alice earned some coins. Undo this.
+        """
+        tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
+        addresses_state = {
+            config.dev.coinbase_address: Mock(autospec=AddressState, name='CoinBase AddressState',
+                                              transaction_hashes=[tx.txhash], balance=1000000 - self.amount),
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[tx.txhash],
+                                     balance=self.amount),
+        }
+        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+        tx.revert_state_changes(addresses_state, unused_state_mock)
+
+        self.assertEqual(1000000, addresses_state[config.dev.coinbase_address].balance)
+        self.assertEqual([], addresses_state[config.dev.coinbase_address].transaction_hashes)
+        self.assertEqual(0, addresses_state[self.alice.address].balance)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+
+        # A blank addresses_state doesn't get modified at all (but in practice, every node should have an AddressState
+        # for the CoinBase addr
+        addresses_state_empty = {}
+        tx.revert_state_changes(addresses_state_empty, unused_state_mock)
+        self.assertEqual({}, addresses_state_empty)
+
+    def test_affected_address(self, m_logger):
+        # This transaction can only involve 2 addresses.
+        affected_addresses = set()
+        tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
+        tx.set_affected_address(affected_addresses)
+        self.assertEqual(2, len(affected_addresses))
+
+
+@patch('qrl.core.Transaction.logger')
 class TestTokenTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -543,33 +1075,46 @@ class TestTokenTransaction(TestCase):
         self.alice.set_ots_index(10)
         self.maxDiff = None
 
-    def test_create(self):
+    def setUp(self):
+        self.initial_balances_valid = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                                       qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+
+        self.params = {"symbol": b'QRL',
+                       "name": b'Quantum Resistant Ledger',
+                       "owner": self.alice.address,
+                       "decimals": 15,
+                       "initial_balances": self.initial_balances_valid,
+                       "fee": 1,
+                       "xmss_pk": self.alice.pk}
+
+    def make_tx(self, **kwargs):
+        self.params.update(kwargs)
+        tx = TokenTransaction.create(**self.params)
+        return tx
+
+    def test_create(self, m_logger):
         # Alice creates Token
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
+
         self.assertTrue(tx)
 
-    def test_create_negative_fee(self):
+    def test_create_negative_fee(self, m_logger):
         with self.assertRaises(ValueError):
             TokenTransaction.create(symbol=b'QRL',
                                     name=b'Quantum Resistant Ledger',
-                                    owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
+                                    owner=self.alice.address,
                                     decimals=4,
                                     initial_balances=[],
                                     fee=-1,
                                     xmss_pk=self.alice.pk)
 
-    def test_to_json(self):
+    def test_to_json(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=400000000))
@@ -586,7 +1131,7 @@ class TestTokenTransaction(TestCase):
 
         self.assertEqual(json.loads(test_json_Token), json.loads(txjson))
 
-    def test_from_json(self):
+    def test_from_json(self, m_logger):
         tx = Transaction.from_json(test_json_Token)
         tx.sign(self.alice)
         self.assertIsInstance(tx, TokenTransaction)
@@ -613,19 +1158,14 @@ class TestTokenTransaction(TestCase):
 
         self.assertEqual(1, tx.fee)
 
-    def test_validate_tx(self):
+    def test_validate_tx(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -633,19 +1173,14 @@ class TestTokenTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
-    def test_validate_tx2(self):
+    def test_validate_tx2(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=10000000000000000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=10000000000000000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -654,19 +1189,14 @@ class TestTokenTransaction(TestCase):
         with self.assertRaises(ValueError):
             self.assertFalse(tx.validate_or_raise())
 
-    def test_validate_tx3(self):
+    def test_validate_tx3(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
                                                       amount=1000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=1000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=15,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(initial_balances=initial_balances)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -674,23 +1204,417 @@ class TestTokenTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
+    def test_validate_custom(self, m_logger):
+        # Token symbol too long
+        tx = self.make_tx(symbol=b'QRLSQRLSQRL')
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Token name too long
+        tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Token symbol missing
+        tx = self.make_tx(symbol=b'')
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Token name missing
+        tx = self.make_tx(name=b'')
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Empty initial_balances
+        tx = self.make_tx(initial_balances=[])
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Invalid initial balances... 0!
+        initial_balances_0_0 = [qrl_pb2.AddressAmount(address=self.alice.address, amount=0),
+                                qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
+        tx = self.make_tx(initial_balances=initial_balances_0_0)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Fee is -1
+        tx = self.make_tx()
+        tx.sign(self.alice)
+        with patch('qrl.core.Transaction.TokenTransaction.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            with self.assertRaises(ValueError):
+                tx.validate_or_raise()
+
+        # Invalid initial balances... -1!
+        # tx = self.make_tx()
+        # tx.sign(self.alice)
+        # with patch('qrl.core.Transaction.TokenTransaction.initial_balances', new_callable=PropertyMock) as m_i_balances:
+        #     m_i_balances.return_value = [-1, -1]
+        #     with self.assertRaises(ValueError):
+        #         tx.validate_or_raise()
+
+    @patch('qrl.core.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended(self, m_validate_slave, m_logger):
+        """
+        TokenTransaction.validate_extended checks for:
+        1. valid master/slave
+        2. from address is valid
+        3. owner address is valid
+        4. addresses that own the initial balances are valid
+        5. that the AddressState has enough coins to pay the Transaction fee (because no coins are being transferred)
+        6. OTS key reuse
+        """
+        tx = TokenTransaction.create(**self.params)
+
+        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
+        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+        tx.sign(self.alice)
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertTrue(result)
+
+        m_validate_slave.return_value = False
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+        m_validate_slave.return_value = True
+        with patch('qrl.core.Transaction.TokenTransaction.addr_from', new_callable=PropertyMock) as m_addr_from:
+            m_addr_from.return_value = b'Invalid Address'
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        with patch('qrl.core.Transaction.TokenTransaction.owner', new_callable=PropertyMock) as m_owner:
+            m_owner.return_value = b'Invalid Address'
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        with patch('qrl.core.Transaction.TokenTransaction.initial_balances',
+                   new_callable=PropertyMock) as m_address_balance:
+            m_address_balance.return_value = [qrl_pb2.AddressAmount(address=b'Invalid Address 1', amount=1000),
+                                              qrl_pb2.AddressAmount(address=b'Invalid Address 2', amount=1000)]
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        m_addr_from_state.balance = 0
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.balance = 100
+
+        m_addr_from_pk_state.ots_key_reuse.return_value = True
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+    def test_affected_address(self, m_logger):
+        tx = TokenTransaction.create(**self.params)
+        # Default params should result in 2 affected addresses
+        result = set()
+        tx.set_affected_address(result)
+        self.assertEqual(2, len(result))
+
+        # If the slave is a recipient of tokens, he should be included too.
+        slave = get_slave_xmss()
+        result = set()
+        self.initial_balances_valid.append(qrl_pb2.AddressAmount(address=slave.address, amount=1000))
+        tx = TokenTransaction.create(symbol=b'QRL',
+                                     name=b'Quantum Resistant Ledger',
+                                     owner=self.alice.address,
+                                     decimals=15,
+                                     initial_balances=self.initial_balances_valid,
+                                     fee=1,
+                                     xmss_pk=self.alice.pk)
+        tx.set_affected_address(result)
+        self.assertEqual(3, len(result))
 
 
+@patch('qrl.core.Transaction.logger')
+class TestTokenTransactionStateChanges(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        self.bob = get_bob_xmss()
+
+        self.params = {
+            "symbol": b'QRL',
+            "name": b'Quantum Resistant Ledger',
+            "owner": self.alice.address,
+            "decimals": 15,
+            "initial_balances": [],
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+
+        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+    def generate_addresses_state(self, tx):
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
+                                     tokens={bin2hstr(tx.txhash): 0}, transaction_hashes=[],
+                                     balance=100),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', tokens={bin2hstr(tx.txhash): 0},
+                                   transaction_hashes=[],
+                                   balance=0),
+        }
+        return addresses_state
+
+    def test_apply_state_changes(self, m_logger):
+        """
+        Alice creates a token. Obviously, she gives herself some of this token.
+        But she also gives Bob some tokens too.
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        self.params["initial_balances"] = initial_balances
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+
+        # According to the State, Alice has 100 coins, and Bob has 0 coins.
+        # After applying the Transaction, Alice and Bob should have 1000 tokens, and Alice's balance should be 99.
+        # AddressState.transaction_hashes now also reference the TokenTransaction that created the Tokens.
+        tx.apply_state_changes(addresses_state)
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, 1000)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, 1000)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
+        addresses_state[self.alice.address].increase_nonce.assert_called_once()
+        addresses_state[self.alice.address].set_ots_key.assert_called_once()
+        addresses_state[self.bob.address].increase_nonce.assert_not_called()
+        addresses_state[self.bob.address].set_ots_key.assert_not_called()
+
+    def test_apply_state_changes_empty_addresses_state(self, m_logger):
+        """
+        After applying the Transaction, Alice and Bob should have 1000 tokens, and Alice's balance should be 99.
+        AddressState.transaction_hashes now also reference the TokenTransaction that created the Tokens.
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        self.params["initial_balances"] = initial_balances
+        addresses_state_empty = {}
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        tx.apply_state_changes(addresses_state_empty)
+        self.assertEqual(addresses_state_empty, {})
+
+    @expectedFailure
+    def test_apply_state_changes_owner_not_in_address_state(self, m_logger):
+        """
+        In this case, Alice didn't give herself any tokens. How generous! She gave them all to Bob.
+        FAILS: when tx.owner == tx.addr_from, AddressState.transaction_hash gets appended to twice.
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        self.params["initial_balances"] = initial_balances
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        # Signing the TX also generates the txhash, which we need to generate the AddressState properly.
+        addresses_state = self.generate_addresses_state(tx)
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, 0)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, 1000)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
+        addresses_state[self.alice.address].increase_nonce.assert_called_once()
+        addresses_state[self.alice.address].set_ots_key.assert_called_once()
+        addresses_state[self.bob.address].increase_nonce.assert_not_called()
+        addresses_state[self.bob.address].set_ots_key.assert_not_called()
+
+    def test_apply_state_changes_signed_by_slave_xmss(self, m_logger):
+        """
+        Alice creates a token, gives herself and Bob some tokens.
+        But she uses a XMSS slave to sign it.
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        slave = get_slave_xmss()
+        self.params["initial_balances"] = initial_balances
+        self.params["xmss_pk"] = slave.pk
+        self.params["master_addr"] = self.alice.address
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(slave)
+
+        # Now that we have the Slave XMSS address, we should add it to AddressState so that apply_state_changes()
+        # can do something with it
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[slave.address] = Mock(autospec=AddressState,
+                                              name='slave AddressState',
+                                              tokens={bin2hstr(tx.txhash): 0},
+                                              transaction_hashes=[],
+                                              balance=0)
+
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, 1000)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, 1000)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[slave.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
+        addresses_state[slave.address].increase_nonce.assert_called_once()
+        addresses_state[slave.address].set_ots_key.assert_called_once()
+        addresses_state[self.alice.address].increase_nonce.assert_not_called()
+        addresses_state[self.alice.address].set_ots_key.assert_not_called()
+
+    def test_revert_state_changes(self, m_logger):
+        """
+        Same setup as in test_apply_state_changes(). This time though, the changes have already been applied,
+        and we would like to roll them back.
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        self.params["initial_balances"] = initial_balances
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        # Apply the changes!
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].tokens[bin2hstr(tx.txhash)] = 1000
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        addresses_state[self.bob.address].tokens[bin2hstr(tx.txhash)] = 1000
+        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
+
+        # After applying the Transaction, it should be as if Alice had never created the tokens in the first place.
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, -1000)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, -1000)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+        addresses_state[self.alice.address].decrease_nonce.assert_called_once()
+        addresses_state[self.alice.address].unset_ots_key.assert_called_once()
+        addresses_state[self.bob.address].decrease_nonce.assert_not_called()
+        addresses_state[self.bob.address].unset_ots_key.assert_not_called()
+
+    def test_revert_state_changes_empty_addresses_state(self, m_logger):
+        """If we didn't have any AddressStates for the addresses involved in this test, do nothing"""
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        self.params["initial_balances"] = initial_balances
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state, {})
+
+    @expectedFailure
+    def test_revert_state_changes_owner_not_in_address_state(self, m_logger):
+        """
+        In this case, Alice didn't give herself any tokens. How generous! She gave them all to Bob.
+        But we want to revert this.
+        FAILS: just like test_apply_state_changes_owner_not_in_address_state(): tries to remove tx.txhash from
+        transaction_hashes twice.
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        self.params["initial_balances"] = initial_balances
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        addresses_state[self.bob.address].tokens[bin2hstr(tx.txhash)] = 1000
+        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_not_called()
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, -1000)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+        addresses_state[self.alice.address].decrease_nonce.assert_called_once()
+        addresses_state[self.alice.address].unset_ots_key.assert_called_once()
+        addresses_state[self.bob.address].decrease_nonce.assert_not_called()
+        addresses_state[self.bob.address].unset_ots_key.assert_not_called()
+
+    def test_revert_state_changes_signed_by_slave_xmss(self, m_logger):
+        """
+        Alice creates a token, gives herself and Bob some tokens.
+        But she uses a XMSS slave to sign it.
+        Can we undo it?
+        """
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        slave = get_slave_xmss()
+        self.params["initial_balances"] = initial_balances
+        self.params["xmss_pk"] = slave.pk
+        self.params["master_addr"] = self.alice.address
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(slave)
+
+        # Now that we have the Slave XMSS address, we should add it to AddressState so that apply_state_changes()
+        # can do something with it
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[slave.address] = Mock(autospec=AddressState,
+                                              name='slave AddressState',
+                                              tokens={bin2hstr(tx.txhash): 0},
+                                              transaction_hashes=[],
+                                              balance=0)
+        # Also, update the AddressStates manually!
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        addresses_state[self.alice.address].tokens[bin2hstr(tx.txhash)] = 1000
+        addresses_state[self.bob.address].balance = 0
+        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
+        addresses_state[self.bob.address].tokens[bin2hstr(tx.txhash)] = 1000
+        addresses_state[slave.address].transaction_hashes = [tx.txhash]
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, -1000)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, -1000)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[slave.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+        addresses_state[slave.address].decrease_nonce.assert_called_once()
+        addresses_state[slave.address].unset_ots_key.assert_called_once()
+        addresses_state[self.alice.address].decrease_nonce.assert_not_called()
+        addresses_state[self.alice.address].unset_ots_key.assert_not_called()
+
+
+@patch('qrl.core.Transaction.logger')
 class TestTransferTokenTransaction(TestCase):
 
-    def __init__(self, *args, **kwargs):
-        super(TestTransferTokenTransaction, self).__init__(*args, **kwargs)
+    def setUp(self):
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
 
-    def test_create(self):
+    def default_params(self):
+        params = {
+            "token_txhash": b'',
+            "addrs_to": [self.bob.address],
+            "amounts": [100],
+            "fee": 1,
+            "xmss_pk": self.alice.pk,
+        }
+        return params
+
+    def test_create(self, m_logger):
         tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
@@ -698,7 +1622,7 @@ class TestTransferTokenTransaction(TestCase):
                                              xmss_pk=self.alice.pk)
         self.assertTrue(tx)
 
-    def test_to_json(self):
+    def test_to_json(self, m_logger):
         tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
@@ -708,7 +1632,7 @@ class TestTransferTokenTransaction(TestCase):
 
         self.assertEqual(json.loads(test_json_TransferToken), json.loads(txjson))
 
-    def test_from_json(self):
+    def test_from_json(self, m_logger):
         tx = Transaction.from_json(test_json_TransferToken)
         tx.sign(self.alice)
 
@@ -739,7 +1663,7 @@ class TestTransferTokenTransaction(TestCase):
 
         self.assertEqual(1, tx.fee)
 
-    def test_validate_tx(self):
+    def test_validate_tx(self, m_logger):
         tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
@@ -752,29 +1676,382 @@ class TestTransferTokenTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
+    def test_state_validate_tx_custom(self, m_logger):
+        """
+        TransferTokenTransaction._validate_custom() checks for:
+        1. 0 amounts
+        2. fee < 0
+        3. multi-send: too many recipients
+        4. multi-send: recipient addresses and amounts not the same length
+        5. invalid addr_from
+        6. invalid addr_to
+        """
+        slave = get_slave_xmss()
+        params = self.default_params()
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+
+        result = tx.validate_or_raise()
+        self.assertTrue(result)
+
+        params = self.default_params()
+        params["addrs_to"] = [self.bob.address, slave.address]
+        params["amounts"] = [1, 0]
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # Protobuf validation doesn't allow negative fees already
+        params = self.default_params()
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with patch('qrl.core.Transaction.Transaction.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            with self.assertRaises(ValueError):
+                tx.validate_or_raise()
+
+        params = self.default_params()
+        params["addrs_to"] = [self.bob.address, slave.address, self.alice.address]
+        params["amounts"] = [2, 3, 5]
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with patch('qrl.core.Transaction.config', autospec=True) as m_config:
+            m_config.dev.transaction_multi_output_limit = 1
+            with self.assertRaises(ValueError):
+                tx.validate_or_raise()
+
+        # TX signing already fails if addrs_to and amounts are unequal length
+        params = self.default_params()
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with patch('qrl.core.Transaction.TransferTokenTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
+            m_addrs_to.return_value = [self.bob.address, slave.address]
+            with self.assertRaises(ValueError):
+                tx.validate_or_raise()
+
+        params = self.default_params()
+        params["master_addr"] = b'Bad QRL Address'
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        params = self.default_params()
+        params["addrs_to"] = [self.bob.address, b'Bad QRL address']
+        params["amounts"] = [100, 200]
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+    @patch('qrl.core.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended(self, m_validate_slave, m_logger):
+        """
+        TransferTokenTransaction.validate_extended checks for:
+        1. valid master/slave
+        2. negative fee, negative total token amounts transferred
+        3. addr_from has enough funds for the fee
+        4. if addr_from owns any tokens to begin with
+        5. if addr_from has enough tokens
+        6. addr_from ots_key reuse
+        """
+        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
+        m_addr_from_state.is_token_exists.return_value = True
+        m_addr_from_state.get_token_balance.return_value = 1000
+
+        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+
+        params = self.default_params()
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertTrue(result)
+
+        # Invalid master XMSS/slave XMSS relationship
+        m_validate_slave.return_value = False
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_validate_slave.return_value = True
+
+        # fee = -1
+        with patch('qrl.core.Transaction.TransferTokenTransaction.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        # total_amount = -1
+        with patch('qrl.core.Transaction.TransferTokenTransaction.total_amount',
+                   new_callable=PropertyMock) as m_total_amount:
+            m_total_amount.return_value = -100
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        # balance = 0, cannot pay the Transaction fee
+        m_addr_from_state.balance = 0
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.balance = 100
+
+        # addr_from doesn't have these tokens
+        m_addr_from_state.is_token_exists.return_value = False
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.is_token_exists.return_value = True
+
+        # addr_from doesn't have enough tokens
+        m_addr_from_state.get_token_balance.return_value = 99
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.get_token_balance.return_value = 1000
+
+        # addr_from_pk has used this OTS key before
+        m_addr_from_pk_state.ots_key_reuse.return_value = True
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+    def test_set_affected_address(self, m_logger):
+        result = set()
+        params = self.default_params()
+        tx = TransferTokenTransaction.create(**params)
+        tx.set_affected_address(result)
+        self.assertEqual(2, len(result))
+
+        params = self.default_params()
+        params["addrs_to"] = [self.bob.address, get_slave_xmss().address]
+        tx = TransferTokenTransaction.create(**params)
+        tx.set_affected_address(result)
+        self.assertEqual(3, len(result))
 
 
+@patch('qrl.core.Transaction.Transaction._revert_state_changes_for_PK')
+@patch('qrl.core.Transaction.Transaction._apply_state_changes_for_PK')
+@patch('qrl.core.Transaction.logger')
+class TestTransferTokenTransactionStateChanges(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        self.bob = get_bob_xmss()
+
+        self.params = {
+            "token_txhash": b'I declare the TEST token',
+            "addrs_to": [self.bob.address],
+            "amounts": [100],
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+    def generate_addresses_state(self, tx):
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
+                                     tokens={self.params["token_txhash"]: 1000}, transaction_hashes=[],
+                                     balance=100),
+            self.bob.address: Mock(autospec=AddressState, name='bob AddressState',
+                                   tokens={self.params["token_txhash"]: 0},
+                                   transaction_hashes=[],
+                                   balance=0),
+        }
+        return addresses_state
+
+    def test_apply_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL, Bob has none. Alice sends some tokens to Bob.
+        """
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
+
+        m_apply_state_PK.assert_called_once()
+
+    def test_apply_state_changes_multi_send(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL, Bob and Slave have none. Alice sends some tokens to Bob and Slave.
+        """
+        slave = get_slave_xmss()
+        params = self.params.copy()
+        params["addrs_to"] = [self.bob.address, slave.address]
+        params["amounts"] = [100, 100]
+
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[slave.address] = Mock(autospec=AddressState, name='slave AddressState',
+                                              tokens={self.params["token_txhash"]: 0},
+                                              transaction_hashes=[],
+                                              balance=0)
+
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        self.assertEqual(addresses_state[slave.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', -200)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
+        addresses_state[slave.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
+        self.assertEqual([tx.txhash], addresses_state[slave.address].transaction_hashes)
+
+        m_apply_state_PK.assert_called_once()
+
+    def test_apply_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL, Bob has none. Alice sends some tokens to Bob.
+        But this node has no AddressState corresponding to these parties.
+        """
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual({}, addresses_state)
+        m_apply_state_PK.assert_called_once()
+
+    def test_apply_state_changes_send_tokens_to_self(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL. She sends some tokens to herself. What happens next?
+        """
+        self.params["addrs_to"] = [self.alice.address]
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        # Unfortunately importing mock.call results in some sort of ValueError so I can't check the arguments.
+        self.assertEqual(addresses_state[self.alice.address].update_token_balance.call_count, 2)
+
+        m_apply_state_PK.assert_called_once()
+
+    def test_revert_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL, Bob has none. Alice sends some tokens to Bob.
+        Let's undo this.
+        """
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].tokens[self.params["token_txhash"]] = 900
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        addresses_state[self.bob.address].balance = 0
+        addresses_state[self.bob.address].tokens[self.params["token_txhash"]] = 100
+        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+
+        m_revert_state_PK.assert_called_once()
+
+    def test_revert_state_changes_multi_send(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL, Bob and Slave have none. Alice sends some tokens to Bob and Slave.
+        Undo this.
+        """
+        slave = get_slave_xmss()
+        self.params["addrs_to"] = [self.bob.address, slave.address]
+        self.params["amounts"] = [100, 100]
+
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].tokens[self.params["token_txhash"]] = 900
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        addresses_state[self.bob.address].balance = 0
+        addresses_state[self.bob.address].tokens[self.params["token_txhash"]] = 100
+        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
+        addresses_state[slave.address] = Mock(autospec=AddressState, name='slave AddressState',
+                                              tokens={self.params["token_txhash"]: 100},
+                                              transaction_hashes=[tx.txhash],
+                                              balance=0)
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual(addresses_state[self.bob.address].balance, 0)
+        self.assertEqual(addresses_state[slave.address].balance, 0)
+        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', 200)
+        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
+        addresses_state[slave.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
+        self.assertEqual([], addresses_state[slave.address].transaction_hashes)
+
+        m_revert_state_PK.assert_called_once()
+
+    def test_revert_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        If we didn't have any AddressStates for the addresses involved in this test, do nothing
+        """
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state, {})
+        m_revert_state_PK.assert_called_once()
+
+    def test_revert_state_changes_send_tokens_to_self(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        """
+        Alice has 1000 tokens and 100 QRL. She sends some tokens to herself.
+        Can we undo this?
+        """
+        self.params["addrs_to"] = [self.alice.address]
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        # Unfortunately importing mock.call results in some sort of ValueError so I can't check the arguments.
+        self.assertEqual(addresses_state[self.alice.address].update_token_balance.call_count, 2)
+
+        m_revert_state_PK.assert_called_once()
+
+
+@patch('qrl.core.Transaction.logger')
 class TestMessageTransaction(TestCase):
 
-    def __init__(self, *args, **kwargs):
-        super(TestMessageTransaction, self).__init__(*args, **kwargs)
+    def setUp(self):
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
 
-    def test_create(self):
+        self.params = {
+            "message_hash": b'Test Message',
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+
+    def test_create(self, m_logger):
         tx = MessageTransaction.create(message_hash=b'Test Message',
                                        fee=1,
                                        xmss_pk=self.alice.pk)
         self.assertTrue(tx)
 
-    def test_to_json(self):
+    def test_to_json(self, m_logger):
         tx = MessageTransaction.create(message_hash=b'Test Message',
                                        fee=1,
                                        xmss_pk=self.alice.pk)
@@ -782,7 +2059,7 @@ class TestMessageTransaction(TestCase):
 
         self.assertEqual(json.loads(test_json_MessageTransaction), json.loads(txjson))
 
-    def test_from_json(self):
+    def test_from_json(self, m_logger):
         tx = Transaction.from_json(test_json_MessageTransaction)
         tx.sign(self.alice)
 
@@ -802,10 +2079,8 @@ class TestMessageTransaction(TestCase):
 
         self.assertEqual(1, tx.fee)
 
-    def test_validate_tx(self):
-        tx = MessageTransaction.create(message_hash=b'Test Message',
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
+    def test_validate_tx(self, m_logger):
+        tx = MessageTransaction.create(**self.params)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -813,10 +2088,9 @@ class TestMessageTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
-    def test_validate_tx2(self):
-        tx = MessageTransaction.create(message_hash=b'T' * 81,
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
+    def test_validate_tx2(self, m_logger):
+        self.params["message_hash"] = b'T' * 81
+        tx = MessageTransaction.create(**self.params)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -824,3 +2098,500 @@ class TestMessageTransaction(TestCase):
         # Validation should fail, as we have entered a message of more than 80 lengths
         with self.assertRaises(ValueError):
             self.assertFalse(tx.validate_or_raise())
+
+    def test_validate_message_length_zero(self, m_logger):
+        self.params["message_hash"] = b''
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            self.assertFalse(tx.validate_or_raise())
+
+    @patch('qrl.core.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended(self, m_validate_slave, m_logger):
+        """
+        Message.validate_extended checks for:
+        1. valid master/slave
+        2. negative fee, negative total token amounts transferred
+        3. addr_from has enough funds for the fee
+        4. addr_from ots_key reuse
+        """
+        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
+
+        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertTrue(result)
+
+        # Invalid master XMSS/slave XMSS relationship
+        m_validate_slave.return_value = False
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_validate_slave.return_value = True
+
+        # fee = -1
+        with patch('qrl.core.Transaction.MessageTransaction.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        # balance = 0, cannot pay the Transaction fee
+        m_addr_from_state.balance = 0
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.balance = 100
+
+        # addr_from_pk has used this OTS key before
+        m_addr_from_pk_state.ots_key_reuse.return_value = True
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+    def test_set_affected_address(self, m_logger):
+        result = set()
+        tx = MessageTransaction.create(**self.params)
+        tx.set_affected_address(result)
+        self.assertEqual(1, len(result))
+
+
+@patch('qrl.core.Transaction.logger')
+class TestTransactionValidateSlave(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        self.params = {
+            "message_hash": b'Test Message',
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+        self.m_addr_state = Mock(autospec=AddressState, name='addr_state', balance=200)
+        self.m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk_state')
+
+    def test_validate_slave_valid(self, m_logger):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        result = tx.validate_slave(self.m_addr_state, self.m_addr_from_pk_state)
+        self.assertTrue(result)
+
+    def test_validate_slave_master_addr_same_as_signing_addr(self, m_logger):
+        self.params["master_addr"] = self.alice.address
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        result = tx.validate_slave(self.m_addr_state, self.m_addr_from_pk_state)
+        self.assertFalse(result)
+
+    def test_validate_slave_signing_xmss_state_has_no_slave_permissions_in_state(self, m_logger):
+        bob = get_bob_xmss()
+        # Let's say Alice is Bob's master.
+        self.params["master_addr"] = self.alice.address
+        self.params["xmss_pk"] = bob.pk
+
+        # We need to add extra data to the mock AddressState.
+        self.m_addr_state.slave_pks_access_type = {}
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        result = tx.validate_slave(self.m_addr_state, self.m_addr_from_pk_state)
+        self.assertFalse(result)
+
+    def test_validate_slave_has_insufficient_permissions(self, m_logger):
+        """
+        Master's AddressState says the Slave has permission 0.
+        But Slave's AddressState says the Slave is good for permission 2.
+        Therefore the Slave does not have enough permissions.
+        """
+        bob = get_bob_xmss()
+        # Let's say Alice is Bob's master.
+        self.params["master_addr"] = self.alice.address
+        self.params["xmss_pk"] = bob.pk
+
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        # The master's state says the slave can have these permissions.
+        self.m_addr_state.slave_pks_access_type = {str(tx.PK): 0}
+        # The signing slave's state can be 0 (full permissions) or 1 (mining only) but only 0 is used for now.
+        # Let's give an invalid number.
+        self.m_addr_from_pk_state.slave_pks_access_type = {str(tx.PK): 2}
+        result = tx.validate_slave(self.m_addr_state, self.m_addr_from_pk_state)
+        self.assertFalse(result)
+
+        # Let's give a valid number, that matches what the master's state says (0)
+        self.m_addr_from_pk_state.slave_pks_access_type = {str(tx.PK): 0}
+        result = tx.validate_slave(self.m_addr_state, self.m_addr_from_pk_state)
+        self.assertTrue(result)
+
+
+@patch('qrl.core.Transaction.Transaction._revert_state_changes_for_PK')
+@patch('qrl.core.Transaction.Transaction._apply_state_changes_for_PK')
+@patch('qrl.core.Transaction.logger')
+class TestMessageTransactionStateChanges(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+
+        self.params = {
+            "message_hash": b'Test Message',
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+    def generate_addresses_state(self, tx):
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=100),
+        }
+        return addresses_state
+
+    def test_apply_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+
+        m_apply_state_PK.assert_called_once()
+
+    def test_apply_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual({}, addresses_state)
+        m_apply_state_PK.assert_called_once()
+
+    def test_revert_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+
+        m_revert_state_PK.assert_called_once()
+
+    def test_revert_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual({}, addresses_state)
+        m_revert_state_PK.assert_called_once()
+
+
+@patch('qrl.core.Transaction.logger')
+class TestSlaveTransaction(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        self.slave = get_slave_xmss()
+        self.params = {
+            "slave_pks": [self.slave.pk],
+            "access_types": [0],
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+
+    def test_create_validate(self, m_logger):
+        """Default self.params should result in a valid SlaveTransaction"""
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+        result = tx.validate_or_raise()
+        self.assertTrue(result)
+
+    def test_validate_custom(self, m_logger):
+        """
+        SlaveTransaction._validate_custom() checks for the following things:
+        1. if you specify more than 100 slave_pks at once
+        2. if len(slave_pks) != len(access_types)
+        3. access_types can only be 0, 1
+        """
+        # We're going to need all the XMSS trees we can get here
+        bob = get_bob_xmss()
+
+        # Too many slave_pks
+        with patch('qrl.core.Transaction.config', autospec=True) as m_config:
+            m_config.dev.transaction_multi_output_limit = 2
+            params = self.params.copy()
+            params["slave_pks"] = [self.alice.pk, bob.pk, self.slave.pk]
+            params["access_types"] = [0, 0, 0]
+
+            tx = SlaveTransaction.create(**params)
+            tx.sign(self.alice)
+            with self.assertRaises(ValueError):
+                tx.validate_or_raise()
+
+        # Unequal length slave_pks and access_types
+        params = self.params.copy()
+        params["slave_pks"] = [self.slave.pk]
+        params["access_types"] = [0, 1]
+        tx = SlaveTransaction.create(**params)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+        # access_type is a weird, undefined number
+        params = self.params.copy()
+        params["access_types"] = [5]
+        tx = SlaveTransaction.create(**params)
+        tx.sign(self.alice)
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
+    @patch('qrl.core.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended(self, m_validate_slave, m_logger):
+        """
+        SlaveTransaction.validate_extended checks for:
+        1. valid master/slave
+        2. negative fee,
+        3. addr_from has enough funds for the fee
+        4. addr_from ots_key reuse
+        """
+        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
+
+        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertTrue(result)
+
+        # Invalid master XMSS/slave XMSS relationship
+        m_validate_slave.return_value = False
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_validate_slave.return_value = True
+
+        # fee = -1
+        with patch('qrl.core.Transaction.SlaveTransaction.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        # balance = 0, cannot pay the Transaction fee
+        m_addr_from_state.balance = 0
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.balance = 100
+
+        # addr_from_pk has used this OTS key before
+        m_addr_from_pk_state.ots_key_reuse.return_value = True
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+
+@patch('qrl.core.Transaction.Transaction._revert_state_changes_for_PK')
+@patch('qrl.core.Transaction.Transaction._apply_state_changes_for_PK')
+@patch('qrl.core.Transaction.logger')
+class TestSlaveTransactionStateChanges(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        self.slave = get_slave_xmss()
+        self.params = {
+            "slave_pks": [self.slave.pk],
+            "access_types": [0],
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+    def generate_addresses_state(self, tx):
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=100),
+            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[],
+                                     balance=0),
+        }
+        return addresses_state
+
+    def test_apply_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.slave.address].transaction_hashes)
+        addresses_state[self.alice.address].add_slave_pks_access_type.assert_called_once()
+        addresses_state[self.slave.address].add_slave_pks_access_type.assert_not_called()
+
+        m_apply_state_PK.assert_called_once()
+
+    def test_apply_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual({}, addresses_state)
+        m_apply_state_PK.assert_called_once()
+
+    def test_revert_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        self.assertEqual([], addresses_state[self.slave.address].transaction_hashes)
+        addresses_state[self.alice.address].remove_slave_pks_access_type.assert_called_once()
+        addresses_state[self.slave.address].remove_slave_pks_access_type.assert_not_called()
+
+        m_revert_state_PK.assert_called_once()
+
+    def test_revert_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual({}, addresses_state)
+        m_revert_state_PK.assert_called_once()
+
+
+@patch('qrl.core.Transaction.logger')
+class TestLatticePublicKey(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        k = Kyber()
+        d = Dilithium()
+        self.params = {
+            "kyber_pk": k.getPK(),
+            "dilithium_pk": d.getPK(),
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+
+    def test_create_validate(self, m_logger):
+        """Default self.params should result in a valid LatticePublicKey"""
+        tx = LatticePublicKey.create(**self.params)
+        tx.sign(self.alice)
+        result = tx.validate_or_raise()
+        self.assertTrue(result)
+
+    @patch('qrl.core.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended(self, m_validate_slave, m_logger):
+        """
+        LatticePublicKey.validate_extended checks for:
+        1. valid master/slave
+        2. negative fee,
+        3. addr_from has enough funds for the fee
+        4. addr_from ots_key reuse
+        """
+        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
+
+        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
+        m_addr_from_pk_state.ots_key_reuse.return_value = False
+
+        tx = LatticePublicKey.create(**self.params)
+        tx.sign(self.alice)
+
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertTrue(result)
+
+        # Invalid master XMSS/slave XMSS relationship
+        m_validate_slave.return_value = False
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_validate_slave.return_value = True
+
+        # fee = -1
+        with patch('qrl.core.Transaction.LatticePublicKey.fee', new_callable=PropertyMock) as m_fee:
+            m_fee.return_value = -1
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            self.assertFalse(result)
+
+        # balance = 0, cannot pay the Transaction fee
+        m_addr_from_state.balance = 0
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+        m_addr_from_state.balance = 100
+
+        # addr_from_pk has used this OTS key before
+        m_addr_from_pk_state.ots_key_reuse.return_value = True
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        self.assertFalse(result)
+
+
+@patch('qrl.core.Transaction.Transaction._revert_state_changes_for_PK')
+@patch('qrl.core.Transaction.Transaction._apply_state_changes_for_PK')
+@patch('qrl.core.Transaction.logger')
+class TestLatticePublicKeyStateChanges(TestCase):
+    def setUp(self):
+        self.alice = get_alice_xmss()
+        k = Kyber()
+        d = Dilithium()
+        self.params = {
+            "kyber_pk": k.getPK(),
+            "dilithium_pk": d.getPK(),
+            "fee": 1,
+            "xmss_pk": self.alice.pk
+        }
+
+        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+    def generate_addresses_state(self, tx):
+        addresses_state = {
+            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
+                                     balance=100)
+        }
+        return addresses_state
+
+    def test_apply_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = LatticePublicKey.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 99)
+        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
+        addresses_state[self.alice.address].add_lattice_pk.assert_called_once()
+
+        m_apply_state_PK.assert_called_once()
+
+    def test_apply_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = LatticePublicKey.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+        tx.apply_state_changes(addresses_state)
+
+        self.assertEqual({}, addresses_state)
+        m_apply_state_PK.assert_called_once()
+
+    def test_revert_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = LatticePublicKey.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = self.generate_addresses_state(tx)
+        addresses_state[self.alice.address].balance = 99
+        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual(addresses_state[self.alice.address].balance, 100)
+        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
+        addresses_state[self.alice.address].remove_lattice_pk.assert_called_once()
+
+        m_revert_state_PK.assert_called_once()
+
+    def test_revert_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = LatticePublicKey.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {}
+
+        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+
+        self.assertEqual({}, addresses_state)
+        m_revert_state_PK.assert_called_once()
