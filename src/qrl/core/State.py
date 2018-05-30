@@ -311,7 +311,7 @@ class State:
         fee_reward = 0
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
-            fee_reward -= txn.fee
+            fee_reward += txn.fee
             self.remove_tx_metadata(txn, batch)
             # FIXME: Being updated without batch, need to fix,
             if isinstance(txn, TransferTokenTransaction):
