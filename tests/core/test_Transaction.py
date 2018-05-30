@@ -514,11 +514,9 @@ class TestSimpleTransaction(TestCase):
                 self.tx.validate_or_raise()
         with patch('qrl.core.Transaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
             with patch('qrl.core.Transaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
-                """
-                Validation could fail because len(m_addrs_to) != len(m_amounts),
-                or if len(m_addrs_to) > transaction_multi_output_limit.
-                This second patch level is to make sure the only the latter case happens.
-                """
+                # Validation could fail because len(m_addrs_to) != len(m_amounts),
+                # or if len(m_addrs_to) > transaction_multi_output_limit.
+                # This second patch level is to make sure the only the latter case happens.
                 m_amounts = [100, 100, 100, 100]
                 m_config.dev.transaction_multi_output_limit = 3
                 m_addrs_to.return_value = [2, 2, 2, 2]
@@ -1080,13 +1078,19 @@ class TestTokenTransaction(TestCase):
     def setUp(self):
         self.initial_balances_valid = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
                                        qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
-        self.tx = TokenTransaction.create(symbol=b'QRL',
-                                          name=b'Quantum Resistant Ledger',
-                                          owner=self.alice.address,
-                                          decimals=15,
-                                          initial_balances=self.initial_balances_valid,
-                                          fee=1,
-                                          xmss_pk=self.alice.pk)
+
+        self.params = {"symbol": b'QRL',
+                       "name": b'Quantum Resistant Ledger',
+                       "owner": self.alice.address,
+                       "decimals": 15,
+                       "initial_balances": self.initial_balances_valid,
+                       "fee": 1,
+                       "xmss_pk": self.alice.pk}
+
+    def make_tx(self, **kwargs):
+        self.params.update(kwargs)
+        tx = TokenTransaction.create(**self.params)
+        return tx
 
     def test_create(self, m_logger):
         # Alice creates Token
@@ -1095,20 +1099,16 @@ class TestTokenTransaction(TestCase):
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
+
         self.assertTrue(tx)
 
     def test_create_negative_fee(self, m_logger):
         with self.assertRaises(ValueError):
             TokenTransaction.create(symbol=b'QRL',
                                     name=b'Quantum Resistant Ledger',
-                                    owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
+                                    owner=self.alice.address,
                                     decimals=4,
                                     initial_balances=[],
                                     fee=-1,
@@ -1164,13 +1164,8 @@ class TestTokenTransaction(TestCase):
                                                       amount=400000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -1184,13 +1179,8 @@ class TestTokenTransaction(TestCase):
                                                       amount=10000000000000000000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=10000000000000000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -1205,13 +1195,8 @@ class TestTokenTransaction(TestCase):
                                                       amount=1000))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
                                                       amount=1000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=15,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
+
+        tx = self.make_tx(initial_balances=initial_balances)
 
         # We must sign the tx before validation will work.
         tx.sign(self.alice)
@@ -1220,43 +1205,32 @@ class TestTokenTransaction(TestCase):
         self.assertTrue(tx.validate_or_raise())
 
     def test_validate_custom(self, m_logger):
-        def make_tx(symbol=b'QRL',
-                    name=b'Quantum Resistant Ledger',
-                    owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                    decimals=15,
-                    initial_balances=self.initial_balances_valid,
-                    fee=1,
-                    xmss_pk=self.alice.pk):
-            tx = TokenTransaction.create(symbol=symbol, name=name, owner=owner, decimals=decimals,
-                                         initial_balances=initial_balances, fee=fee, xmss_pk=xmss_pk)
-            return tx
-
         # Token symbol too long
-        tx = make_tx(symbol=b'QRLSQRLSQRL')
+        tx = self.make_tx(symbol=b'QRLSQRLSQRL')
         tx.sign(self.alice)
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
         # Token name too long
-        tx = make_tx(name=b'Quantum Resistant LedgerQuantum')
+        tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
         tx.sign(self.alice)
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
         # Token symbol missing
-        tx = make_tx(symbol=b'')
+        tx = self.make_tx(symbol=b'')
         tx.sign(self.alice)
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
         # Token name missing
-        tx = make_tx(name=b'')
+        tx = self.make_tx(name=b'')
         tx.sign(self.alice)
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
         # Empty initial_balances
-        tx = make_tx(initial_balances=[])
+        tx = self.make_tx(initial_balances=[])
         tx.sign(self.alice)
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
@@ -1264,13 +1238,13 @@ class TestTokenTransaction(TestCase):
         # Invalid initial balances... 0!
         initial_balances_0_0 = [qrl_pb2.AddressAmount(address=self.alice.address, amount=0),
                                 qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
-        tx = make_tx(initial_balances=initial_balances_0_0)
+        tx = self.make_tx(initial_balances=initial_balances_0_0)
         tx.sign(self.alice)
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
         # Fee is -1
-        tx = make_tx()
+        tx = self.make_tx()
         tx.sign(self.alice)
         with patch('qrl.core.Transaction.TokenTransaction.fee', new_callable=PropertyMock) as m_fee:
             m_fee.return_value = -1
@@ -1278,7 +1252,7 @@ class TestTokenTransaction(TestCase):
                 tx.validate_or_raise()
 
         # Invalid initial balances... -1!
-        # tx = make_tx()
+        # tx = self.make_tx()
         # tx.sign(self.alice)
         # with patch('qrl.core.Transaction.TokenTransaction.initial_balances', new_callable=PropertyMock) as m_i_balances:
         #     m_i_balances.return_value = [-1, -1]
@@ -1296,48 +1270,51 @@ class TestTokenTransaction(TestCase):
         5. that the AddressState has enough coins to pay the Transaction fee (because no coins are being transferred)
         6. OTS key reuse
         """
+        tx = TokenTransaction.create(**self.params)
+
         m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
         m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
         m_addr_from_pk_state.ots_key_reuse.return_value = False
-        self.tx.sign(self.alice)
-        result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        tx.sign(self.alice)
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
         self.assertTrue(result)
 
         m_validate_slave.return_value = False
-        result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
         self.assertFalse(result)
 
         m_validate_slave.return_value = True
         with patch('qrl.core.Transaction.TokenTransaction.addr_from', new_callable=PropertyMock) as m_addr_from:
             m_addr_from.return_value = b'Invalid Address'
-            result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
             self.assertFalse(result)
 
         with patch('qrl.core.Transaction.TokenTransaction.owner', new_callable=PropertyMock) as m_owner:
             m_owner.return_value = b'Invalid Address'
-            result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
             self.assertFalse(result)
 
         with patch('qrl.core.Transaction.TokenTransaction.initial_balances',
                    new_callable=PropertyMock) as m_address_balance:
             m_address_balance.return_value = [qrl_pb2.AddressAmount(address=b'Invalid Address 1', amount=1000),
                                               qrl_pb2.AddressAmount(address=b'Invalid Address 2', amount=1000)]
-            result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
             self.assertFalse(result)
 
         m_addr_from_state.balance = 0
-        result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
         self.assertFalse(result)
         m_addr_from_state.balance = 100
 
         m_addr_from_pk_state.ots_key_reuse.return_value = True
-        result = self.tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
         self.assertFalse(result)
 
     def test_affected_address(self, m_logger):
+        tx = TokenTransaction.create(**self.params)
         # Default params should result in 2 affected addresses
         result = set()
-        self.tx.set_affected_address(result)
+        tx.set_affected_address(result)
         self.assertEqual(2, len(result))
 
         # If the slave is a recipient of tokens, he should be included too.
@@ -1396,12 +1373,10 @@ class TestTokenTransactionStateChanges(TestCase):
         tx = TokenTransaction.create(**self.params)
         tx.sign(self.alice)
         addresses_state = self.generate_addresses_state(tx)
-        """
-        According to the State, Alice has 100 coins, and Bob has 0 coins.
 
-        After applying the Transaction, Alice and Bob should have 1000 tokens, and Alice's balance should be 99.
-        AddressState.transaction_hashes now also reference the TokenTransaction that created the Tokens.
-        """
+        # According to the State, Alice has 100 coins, and Bob has 0 coins.
+        # After applying the Transaction, Alice and Bob should have 1000 tokens, and Alice's balance should be 99.
+        # AddressState.transaction_hashes now also reference the TokenTransaction that created the Tokens.
         tx.apply_state_changes(addresses_state)
         self.assertEqual(addresses_state[self.alice.address].balance, 99)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
@@ -1512,9 +1487,7 @@ class TestTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].tokens[bin2hstr(tx.txhash)] = 1000
         addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
 
-        """
-        After applying the Transaction, it should be as if Alice had never created the tokens in the first place.
-        """
+        # After applying the Transaction, it should be as if Alice had never created the tokens in the first place.
         tx.revert_state_changes(addresses_state, self.unused_state_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
@@ -1529,9 +1502,7 @@ class TestTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].unset_ots_key.assert_not_called()
 
     def test_revert_state_changes_empty_addresses_state(self, m_logger):
-        """
-        If we didn't have any AddressStates for the addresses involved in this test, do nothing
-        """
+        """If we didn't have any AddressStates for the addresses involved in this test, do nothing"""
         initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
                             qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
         self.params["initial_balances"] = initial_balances
@@ -1626,7 +1597,7 @@ class TestTokenTransactionStateChanges(TestCase):
 @patch('qrl.core.Transaction.logger')
 class TestTransferTokenTransaction(TestCase):
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self):
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
 
