@@ -76,13 +76,16 @@ def set_logger(args, sync_state):
 def get_mining_address(mining_address: str):
     try:
         if not mining_address:
-            return bytes(hstr2bin(config.user.mining_address[1:]))
+            mining_address = bytes(hstr2bin(config.user.mining_address[1:]))
+        else:
+            mining_address = bytes(hstr2bin(mining_address[1:]))
 
-        mining_address = bytes(hstr2bin(mining_address[1:]))
-        if AddressState.address_is_valid(mining_address):
-            return mining_address
-    except Exception:
-        logger.info('Exception in validate_mining_address')
+        if not AddressState.address_is_valid(mining_address):
+            raise ValueError('Mining Address Validation Failed')
+
+        return mining_address
+    except Exception as e:
+        logger.info('Failed Parsing Mining Address %s', e)
 
     return None
 
