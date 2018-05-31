@@ -2,12 +2,16 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase, expectedFailure
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 from collections import namedtuple
+
+from qrl.core import config
 from qrl.core.misc import logger
+from qrl.core.p2p import p2pPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory, p2p_msg_priority
 from qrl.core.p2p.p2pprotocol import P2PProtocol
+from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
@@ -25,12 +29,13 @@ class TestP2PProtocol(TestCase):
         self.channel = P2PProtocol()
 
         self.channel._observable = Mock()
-        self.channel.peer_manager = Mock()
-        self.channel.p2pchain_manager = Mock()
-        self.channel.tx_manager = Mock()
 
         self.channel.factory = Mock(autospec=P2PFactory)
         self.channel.factory.p2p_msg_priority = p2p_msg_priority
+        self.channel.factory._qrl_node = Mock(autospec=QRLNode)
+        self.channel.factory._qrl_node.peer_manager = Mock(autospec=p2pPeerManager)
+        self.channel.factory._qrl_node.peer_manager.is_banned = MagicMock(return_value=False)
+        self.channel.factory._qrl_node.peer_manager.trusted_addresses = MagicMock(return_value=[])
 
         sample_peer_1 = Host('127.0.0.2', '9000')
         sample_host = Host('127.0.0.1', '9000')
@@ -60,6 +65,7 @@ class TestP2PProtocol(TestCase):
         ntp.getTime() is patched everywhere, not just in p2pprotocol, because OutgoingMessage uses it too.
         """
         self.channel.factory.get_connected_peer_addrs.return_value = {'127.0.0.2:9000'}
+
         getTime.return_value = 1525078652.9991353
         self.channel.connectionMade()
 
@@ -93,12 +99,13 @@ class TestP2PProtocol(TestCase):
 
     @patch('qrl.core.misc.ntp.getTime')
     @patch('qrl.core.p2p.p2pprotocol.logger', autospec=True)
-    @patch('qrl.core.p2p.p2pprotocol.config', autospec=True)
-    def test_dataReceived_too_big(self, config, logger, getTime):
+    @patch('qrl.core.p2p.p2pprotocol.config.dev', autospec=True)
+    def test_dataReceived_too_big(self, config_dev, logger, getTime):
         """
         Normally the buffer size upper limit is 10MB. But we're going to patch it smaller here.
         """
-        config.dev.max_bytes_out = 10
+        config_dev.max_bytes_out = 10
+        config_dev.trust_min_msgcount = 10
         getTime.return_value = 1525078652.9991353
         acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
         self.channel._buffer = 10 * acknowledgement_bytes
@@ -144,6 +151,31 @@ class TestP2PProtocol(TestCase):
                                               '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
         messages = self.channel._parse_buffer([0])
         self.assertEqual(2, len(list(messages)))
+
+    @patch('qrl.core.misc.ntp.getTime')
+    def test_trusted_message_count(self, getTime):
+        getTime.return_value = self.channel.connected_at + 20
+        self.assertFalse(self.channel.trusted)
+
+        for _ in range(config.dev.trust_min_msgcount-1):
+            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+            self.channel.dataReceived(buffer)
+            self.assertFalse(self.channel.trusted)
+
+        buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+        self.channel.dataReceived(buffer)
+        self.assertTrue(self.channel.trusted)
+
+    @patch('qrl.core.misc.ntp.getTime')
+    def test_trusted_time(self, getTime):
+        getTime.return_value = self.channel.connected_at + 1
+
+        for _ in range(config.dev.trust_min_msgcount):
+            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+            self.channel.dataReceived(buffer)
+
+        getTime.return_value = self.channel.connected_at + config.dev.trust_min_conntime + 1
+        self.assertTrue(self.channel.trusted)
 
     @expectedFailure
     @patch('qrl.core.p2p.p2pprotocol.logger', autospec=True)

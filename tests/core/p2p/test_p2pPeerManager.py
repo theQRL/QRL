@@ -195,7 +195,7 @@ class TestP2PPeerManager(TestCase):
                                                                           genesis_prev_hash=config.dev.genesis_prev_headerhash,
                                                                           rate_limit=config.user.peer_rate_limit))
         self.peer_manager.handle_version(channel, message)
-        channel.factory.ban_peer.assert_not_called()
+        channel.peer_manager.ban_peer.assert_not_called()
         channel.loseConnection.assert_not_called()
 
     def test_handle_version_empty_version_message(self):
@@ -336,8 +336,6 @@ class TestP2PPeerManager(TestCase):
 
         self.peer_manager.handle_sync(channel, sync_message)
 
-        channel.factory.set_peer_synced.assert_called_once_with(channel, True)
-
     def test_handle_sync_unsynced(self):
         """
         If the message says anything else: the peer is unsynced.
@@ -347,8 +345,6 @@ class TestP2PPeerManager(TestCase):
         channel = make_channel()
 
         self.peer_manager.handle_sync(channel, sync_message)
-
-        channel.factory.set_peer_synced.assert_not_called()
 
     def test_handle_sync_blank(self):
         """
@@ -362,13 +358,11 @@ class TestP2PPeerManager(TestCase):
         channel.factory.synced = False
         self.peer_manager.handle_sync(channel, sync_message)
         channel.send_sync.assert_not_called()
-        channel.factory.set_peer_synced.assert_not_called()
 
         # If we are synced, then we can tell other nodes we are synced.
         channel.factory.synced = True
         self.peer_manager.handle_sync(channel, sync_message)
         channel.send_sync.assert_called_once_with(synced=True)
-        channel.factory.set_peer_synced.assert_called_once_with(channel, False)
 
     def test_monitor_chain_state_works(self):
         """

@@ -5,17 +5,13 @@ import os
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
-from pyqrllib.pyqrllib import QRLHelper
 from twisted.internet import reactor
 
-from qrl.core import config
-from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
-from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
-    LatticePublicKey, MessageTransaction
+from qrl.core.Transaction import *
 from qrl.core.misc import ntp
 from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
@@ -48,10 +44,6 @@ class QRLNode:
 
         self.mining_address = mining_address
 
-        banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
-        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
-                                         filename=banned_peers_filename)
-
         reactor.callLater(10, self.monitor_chain_state)
 
     ####################################################
@@ -61,7 +53,6 @@ class QRLNode:
 
     @property
     def version(self):
-        # FIXME: Move to __version__ coming from pip
         return config.dev.version
 
     @property
@@ -79,8 +70,7 @@ class QRLNode:
     def num_connections(self):
         if self._p2pfactory is None:
             return 0
-        # FIXME
-        return self._p2pfactory.connections
+        return self._p2pfactory.num_connections
 
     @property
     def num_known_peers(self):
@@ -144,37 +134,26 @@ class QRLNode:
         # FIXME: Keep a moving var
         return config.dev.max_coin_supply
 
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+
     @property
     def peer_addresses(self):
         return self.peer_manager.peer_addresses
 
     def get_peers_stat(self) -> list:
-        peers_stat = []
-        for source in self.peer_manager.peer_node_status:
-            peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
-                                         port=source.peer_port,
-                                         node_chain_state=self.peer_manager.peer_node_status[source])
-            peers_stat.append(peer_stat)
-        return peers_stat
+        return self.peer_manager.get_peers_stat()
 
-    ####################################################
-    ####################################################
-    ####################################################
-    ####################################################
     def is_banned(self, addr_remote: str):
-        return addr_remote in self._banned_peers
+        return self.peer_manager.is_banned(addr_remote)
 
     def ban_peer(self, peer_obj):
-        self._banned_peers.add(peer_obj.addr_remote)
-        logger.warning('Banned %s', peer_obj.addr_remote)
-        peer_obj.loseConnection()
+        self.peer_manager.ban_peer(peer_obj)
 
     def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer_address in self.peer_addresses:
-            if self.is_banned(peer_address):
-                continue
-            self._p2pfactory.connect_peer(peer_address)
+        self.peer_manager.connect_peers()
 
     ####################################################
     ####################################################
@@ -223,6 +202,7 @@ class QRLNode:
                                       sync_state=self.sync_state,
                                       qrl_node=self)  # FIXME: Try to avoid cyclic references
 
+        self.peer_manager._p2pfactory = self._p2pfactory
         self._p2pfactory.start_listening()
 
     ####################################################
@@ -428,7 +408,7 @@ class QRLNode:
                 skipped += 1
         return answer
 
-    def getNodeInfo(self) -> qrl_pb2.NodeInfo:
+    def get_node_info(self) -> qrl_pb2.NodeInfo:
         info = qrl_pb2.NodeInfo()
         info.version = self.version
         info.state = self.state
