@@ -10,8 +10,8 @@ jobs:
       - run: pip install -U -r test-requirements.txt
       - run: python3 setup.py test --addopts "--cov . --cov-report term-missing --cov-report xml"
       - run: sudo pip install -U coverage codacy-coverage
-      - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
-
+      - run: python-codacy-coverage -r coverage.xml
+      
   test_leaks_CLI:
     docker:
       - image: qrledger/qrl-docker:xenial
@@ -22,6 +22,14 @@ jobs:
       - run: pip install -U -r test-requirements.txt
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
       - run: python3 setup.py test --addopts "tests/tools/ --open-files --threadleak -n0"
+
+  flake8:
+    docker:
+      - image: qrledger/qrl-docker:xenial
+    steps:
+      - checkout
+      - run: pip install -U setuptools
+      - run: flake8
 
   test_leaks_other:
     docker:

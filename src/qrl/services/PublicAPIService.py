@@ -236,6 +236,8 @@ class PublicAPIService(PublicAPIServicer):
                 query_str = query.decode()
                 query_index = int(query_str)
                 block = self.qrlnode.get_block_from_index(query_index)
+                if not block:
+                    return answer
 
             answer.found = True
             block_extended = qrl_pb2.BlockExtended()
