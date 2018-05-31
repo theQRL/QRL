@@ -31,7 +31,7 @@ class P2PProtocol(Protocol):
         self.bytes_sent = 0
         self.outgoing_queue = PriorityQueue(maxsize=config.user.p2p_q_size)
 
-        self._connection_start_time = ntp.getTime()
+        self._connected_at = ntp.getTime()
         self._valid_message_count = 0
 
     @property
@@ -66,8 +66,12 @@ class P2PProtocol(Protocol):
         return True
 
     @property
+    def connected_at(self):
+        return self._connected_at
+
+    @property
     def connection_time(self):
-        return ntp.getTime() - self._connection_start_time
+        return ntp.getTime() - self._connected_at
 
     @property
     def addr_remote(self):
