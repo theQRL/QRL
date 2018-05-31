@@ -9,6 +9,7 @@ from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
 from qrl.core.misc import logger, ntp
+from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
@@ -31,6 +32,10 @@ class P2PPeerManager(P2PBaseObserver):
         self._peer_addresses = set()
         self.peers_path = os.path.join(config.user.data_dir,
                                        config.dev.peers_filename)
+
+        self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
+        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
+                                         filename=self.banned_peers_filename)
 
         self._observable = Observable(self)
         self._p2pfactory = None
@@ -80,8 +85,8 @@ class P2PPeerManager(P2PBaseObserver):
             try:
                 parse_peer_addr(ip_port, True)
                 new_peers.add(ip_port)
-            except Exception as _:
-                logger.warning("Invalid Peer Address {} sent by {}".format(ip_port, peer_ip))
+            except Exception as e:
+                logger.warning("Invalid Peer Address {} sent by {} - {}".format(ip_port, peer_ip, e))
 
         return new_peers
 
@@ -242,3 +247,31 @@ class P2PPeerManager(P2PBaseObserver):
             source.loseConnection()
 
         source.send_next()
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+    def is_banned(self, addr_remote: str):
+        return addr_remote in self._banned_peers
+
+    def ban_peer(self, peer_obj):
+        self._banned_peers.add(peer_obj.addr_remote)
+        logger.warning('Banned %s', peer_obj.addr_remote)
+        peer_obj.loseConnection()
+
+    def connect_peers(self):
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
+        for peer_address in self.peer_addresses:
+            if self.is_banned(peer_address):
+                continue
+            self._p2pfactory.connect_peer(peer_address)
+
+    def get_peers_stat(self) -> list:
+        peers_stat = []
+        for source in self.peer_node_status:
+            peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
+                                         port=source.peer_port,
+                                         node_chain_state=self.peer_node_status[source])
+            peers_stat.append(peer_stat)
+        return peers_stat
