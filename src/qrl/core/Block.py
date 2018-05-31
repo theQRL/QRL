@@ -97,9 +97,19 @@ class Block(object):
         self.blockheader.set_nonces(mining_nonce, extra_nonce)
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
-    def to_json(self)->str:
+    def to_json(self) -> str:
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data, sort_keys=True)
+
+    def serialize(self) -> str:
+        return self._data.SerializeToString()
+
+    @staticmethod
+    def deserialize(data):
+        pbdata = qrl_pb2.Block()
+        pbdata.ParseFromString(bytes(data))
+        block = Block(pbdata)
+        return block
 
     @staticmethod
     def create(block_number: int,

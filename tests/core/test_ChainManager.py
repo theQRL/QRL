@@ -234,4 +234,4 @@ class TestChainManager(TestCase):
 
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
-                self.assertEqual(chain_manager.last_block.to_json(), block_2.to_json())
+                self.assertEqual(chain_manager.last_block.serialize(), block_2.serialize())
