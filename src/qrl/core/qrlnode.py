@@ -70,7 +70,6 @@ class QRLNode:
     def num_connections(self):
         if self._p2pfactory is None:
             return 0
-        # FIXME
         return self._p2pfactory.num_connections
 
     @property
