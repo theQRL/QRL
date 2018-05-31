@@ -21,7 +21,7 @@ def get_ntp_response():
         ntp_server = config.user.ntp_servers[retry % len(config.user.ntp_servers)]
         try:
             ntp_client = NTPClient()
-            response = ntp_client.request(ntp_server, version=NTP_VERSION)
+            response = ntp_client.request(ntp_server, version=NTP_VERSION, timeout=config.user.ntp_request_timeout)
         except Exception as e:
             logger.warning(e)
             continue
