@@ -79,7 +79,7 @@ class TestP2PFactory(TestCase):
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()
-        self.assertEqual(self.factory.connections, 3)
+        self.assertEqual(self.factory.num_connections, 3)
 
     def test_add_connection_wont_connect_to_itself(self, m_reactor, m_logger):
         """
@@ -94,7 +94,7 @@ class TestP2PFactory(TestCase):
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()
-        self.assertEqual(self.factory.connections, 3)
+        self.assertEqual(self.factory.num_connections, 3)
         self.factory._qrl_node.peer_manager.update_peer_addresses.assert_called_once_with(
             ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000'])
 

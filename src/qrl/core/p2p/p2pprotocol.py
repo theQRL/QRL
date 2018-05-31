@@ -111,7 +111,7 @@ class P2PProtocol(Protocol):
     def connectionLost(self, reason=connectionDone):
         logger.debug('%s disconnected. remainder connected: %d',
                      self.addr_remote,
-                     self.factory.connections)
+                     self.factory.num_connections)
 
         self.factory.remove_connection(self)
         if self.peer_manager:

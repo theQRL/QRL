@@ -71,7 +71,7 @@ class QRLNode:
         if self._p2pfactory is None:
             return 0
         # FIXME
-        return self._p2pfactory.connections
+        return self._p2pfactory.num_connections
 
     @property
     def num_known_peers(self):
@@ -203,6 +203,7 @@ class QRLNode:
                                       sync_state=self.sync_state,
                                       qrl_node=self)  # FIXME: Try to avoid cyclic references
 
+        self.peer_manager._p2pfactory = self._p2pfactory
         self._p2pfactory.start_listening()
 
     ####################################################

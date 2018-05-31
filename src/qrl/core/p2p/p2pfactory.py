@@ -135,8 +135,12 @@ class P2PFactory(ServerFactory):
     ###################################################
 
     @property
-    def connections(self):
+    def num_connections(self):
         return len(self._peer_connections)
+
+    @property
+    def connections(self):
+        return list(self._peer_connections)
 
     @property
     def synced(self):
