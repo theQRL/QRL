@@ -31,6 +31,9 @@ class P2PProtocol(Protocol):
         self.bytes_sent = 0
         self.outgoing_queue = PriorityQueue(maxsize=config.user.p2p_q_size)
 
+        self._connection_start_time = ntp.getTime()
+        self._valid_message_count = 0
+
     @property
     def peer_ip(self):
         return self.transport.getPeer().host
@@ -46,6 +49,25 @@ class P2PProtocol(Protocol):
     @property
     def host_port(self):
         return self.transport.getHost().port
+
+    @property
+    def is_banned(self):
+        return self.peer_manager.is_banned(self.addr_remote)
+
+    @property
+    def trusted(self):
+        if self.peer_manager.is_banned(self.addr_remote):
+            return False
+
+        if self._valid_message_count < config.dev.trust_min_msgcount or \
+                self.connection_time < config.dev.trust_min_conntime:
+            return False
+
+        return True
+
+    @property
+    def connection_time(self):
+        return ntp.getTime() - self._connection_start_time
 
     @property
     def addr_remote(self):
