@@ -182,14 +182,9 @@ class P2PPeerManager(P2PBaseObserver):
 
     def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
-
-        # FIXME: Refactor this
-        if message.syncData.state == 'Synced':
-            source.factory.set_peer_synced(source, True)
-        elif message.syncData.state == '':
+        if message.syncData.state == '':
             if source.factory.synced:
                 source.send_sync(synced=True)
-                source.factory.set_peer_synced(source, False)
 
     @staticmethod
     def send_node_chain_state(dest_channel, node_chain_state: qrl_pb2.NodeChainState):

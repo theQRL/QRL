@@ -25,9 +25,6 @@ class TestP2PProtocol(TestCase):
         self.channel = P2PProtocol()
 
         self.channel._observable = Mock()
-        self.channel.peer_manager = Mock()
-        self.channel.p2pchain_manager = Mock()
-        self.channel.tx_manager = Mock()
 
         self.channel.factory = Mock(autospec=P2PFactory)
         self.channel.factory.p2p_msg_priority = p2p_msg_priority

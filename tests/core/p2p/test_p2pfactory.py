@@ -98,19 +98,6 @@ class TestP2PFactory(TestCase):
         self.factory._qrl_node.peer_manager.update_peer_addresses.assert_called_once_with(
             ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000'])
 
-    def test_synced_peer_properties_check(self, m_reactor, m_logger):
-        self.assertFalse(self.factory.has_synced_peers)
-        self.factory.set_peer_synced(self.channel_1, True)
-        self.assertTrue(self.factory.has_synced_peers)
-
-    def test_set_peer_synced(self, m_reactor, m_logger):
-        self.assertEqual(len(self.factory._synced_peers_protocol), 0)
-        self.factory.set_peer_synced(self.channel_1, True)
-        self.factory.set_peer_synced(self.channel_2, False)
-        self.assertEqual(len(self.factory._synced_peers_protocol), 1)
-        self.factory.set_peer_synced(self.channel_2, True)
-        self.assertEqual(len(self.factory._synced_peers_protocol), 2)
-
     def test_is_block_present(self, m_reactor, m_logger):
         """
         is_block_present() returns True if block's headerhash is in our blockchain, or if it is known and will be
