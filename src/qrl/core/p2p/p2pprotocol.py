@@ -269,11 +269,11 @@ class P2PProtocol(Protocol):
         Sends the peers list.
         :return:
         """
-        remote_peers = self.factory.get_connected_peer_addrs()
-        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, remote_peers)
+        trusted_peers = self.peer_manager.trusted_addresses
+        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, trusted_peers)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
-                                          plData=qrllegacy_pb2.PLData(peer_ips=remote_peers,
+                                          plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
                                                                       public_port=config.user.p2p_public_port))
 
         self.send(msg)

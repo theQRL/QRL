@@ -35,6 +35,7 @@ class TestP2PProtocol(TestCase):
         self.channel.factory._qrl_node = Mock(autospec=QRLNode)
         self.channel.factory._qrl_node.peer_manager = Mock(autospec=p2pPeerManager)
         self.channel.factory._qrl_node.peer_manager.is_banned = MagicMock(return_value=False)
+        self.channel.factory._qrl_node.peer_manager.trusted_addresses = MagicMock(return_value=[])
 
         sample_peer_1 = Host('127.0.0.2', '9000')
         sample_host = Host('127.0.0.1', '9000')
@@ -64,6 +65,7 @@ class TestP2PProtocol(TestCase):
         ntp.getTime() is patched everywhere, not just in p2pprotocol, because OutgoingMessage uses it too.
         """
         self.channel.factory.get_connected_peer_addrs.return_value = {'127.0.0.2:9000'}
+
         getTime.return_value = 1525078652.9991353
         self.channel.connectionMade()
 

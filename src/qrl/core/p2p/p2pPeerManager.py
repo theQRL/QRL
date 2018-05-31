@@ -48,6 +48,10 @@ class P2PPeerManager(P2PBaseObserver):
         return self._peer_addresses
 
     @property
+    def trusted_addresses(self):
+        return set([peer.addr_remote for peer in self._p2pfactory.connections if peer.trusted])
+
+    @property
     def peer_node_status(self):
         return self._peer_node_status
 
