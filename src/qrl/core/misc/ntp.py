@@ -13,6 +13,7 @@ from qrl.core.misc import logger
 NTP_VERSION = 3
 NTP_RETRIES = 6
 drift = None
+last_refresh = 0
 
 
 def get_ntp_response():
@@ -40,11 +41,12 @@ def getNTP():
 
 
 def setDrift():
-    global drift
+    global drift, last_refresh
     response = get_ntp_response()
     if not response:
         return response
     drift = response.offset
+    last_refresh = drift + int(time())
 
 
 def getTime():
@@ -55,10 +57,14 @@ def getTime():
     >>> getTime() is not None
     True
     """
-    global drift
+    global drift, last_refresh
 
     if drift is None:
         setDrift()
 
-    curr_time = drift + int(time())
-    return int(curr_time)
+    curr_time = int(drift + time())
+
+    if curr_time - last_refresh > config.user.ntp_refresh:
+        setDrift()
+
+    return curr_time
