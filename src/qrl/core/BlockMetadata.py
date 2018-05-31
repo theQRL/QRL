@@ -102,3 +102,12 @@ class BlockMetadata(object):
 
     def to_json(self) -> str:
         return MessageToJson(self._data, sort_keys=True).encode()
+
+    def serialize(self) -> str:
+        return self._data.SerializeToString()
+
+    @staticmethod
+    def deserialize(data):
+        pbdata = qrl_pb2.BlockMetaData()
+        pbdata.ParseFromString(bytes(data))
+        return BlockMetadata(pbdata)

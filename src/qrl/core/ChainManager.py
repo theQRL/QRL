@@ -22,7 +22,7 @@ class ChainManager:
     def __init__(self, state):
         self.state = state
         self.tx_pool = TransactionPool(None)
-        self.last_block = Block.from_json(GenesisBlock().to_json())
+        self.last_block = Block.deserialize(GenesisBlock().serialize())
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
         self.trigger_miner = False

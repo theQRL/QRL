@@ -272,6 +272,16 @@ class Transaction(object, metaclass=ABCMeta):
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data, sort_keys=True)
 
+    def serialize(self) -> str:
+        return self._data.SerializeToString()
+
+    @staticmethod
+    def deserialize(data):
+        pbdata = qrl_pb2.Transaction()
+        pbdata.ParseFromString(bytes(data))
+        tx = Transaction(pbdata)
+        return tx
+
 
 class TransferTransaction(Transaction):
     """

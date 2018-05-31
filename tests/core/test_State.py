@@ -205,7 +205,7 @@ class TestState(TestCase):
                 token_metadata = TokenMetadata.create(token_txhash,
                                                       [bytes(sha2_256(b'delta')),
                                                        bytes(sha2_256(b'gamma'))])
-                state._db.get_raw = MagicMock(return_value=token_metadata.to_json())
+                state._db.get_raw = MagicMock(return_value=token_metadata.serialize())
                 self.assertEqual(state.get_token_metadata(token_txhash).to_json(),
                                  token_metadata.to_json())
 
@@ -355,7 +355,7 @@ class TestState(TestCase):
                 block = Block()
                 state.put_block(block, None)
                 block1 = state.get_block(block.headerhash)
-                self.assertEqual(block.to_json(), block1.to_json())
+                self.assertEqual(block.serialize(), block1.serialize())
                 state.delete(block.headerhash, None)
                 self.assertIsNone(state.get_block(block.headerhash))
 

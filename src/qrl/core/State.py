@@ -17,6 +17,8 @@ from qrl.core.misc import logger, db
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, CoinBase
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.AddressState import AddressState
+from qrl.core.LastTransactions import LastTransactions
+from qrl.core.TransactionMetadata import TransactionMetadata
 from qrl.generated import qrl_pb2
 
 
@@ -50,12 +52,12 @@ class State:
         return max(config.dev.block_min_size_limit, config.dev.size_multiplier * median(block_size_list))
 
     def put_block(self, block: Block, batch):
-        self._db.put_raw(bin2hstr(block.headerhash).encode(), block.to_json().encode(), batch)
+        self._db.put_raw(block.headerhash, block.serialize(), batch)
 
     def get_block(self, header_hash: bytes) -> Optional[Block]:
         try:
-            json_data = self._db.get_raw(bin2hstr(header_hash).encode())
-            return Block.from_json(json_data)
+            data = self._db.get_raw(header_hash)
+            return Block.deserialize(data)
         except KeyError:
             logger.debug('[get_block] Block header_hash %s not found', bin2hstr(header_hash).encode())
         except Exception as e:
@@ -64,12 +66,12 @@ class State:
         return None
 
     def put_block_metadata(self, headerhash: bytes, block_metadata: BlockMetadata, batch):
-        self._db.put_raw(b'metadata_' + bin2hstr(headerhash).encode(), block_metadata.to_json(), batch)
+        self._db.put_raw(b'metadata_' + headerhash, block_metadata.serialize(), batch)
 
     def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
         try:
-            json_data = self._db.get_raw(b'metadata_' + bin2hstr(header_hash).encode())
-            return BlockMetadata.from_json(json_data)
+            json_data = self._db.get_raw(b'metadata_' + header_hash)
+            return BlockMetadata.deserialize(json_data)
         except KeyError:
             logger.debug('[get_block_metadata] Block header_hash %s not found',
                          b'metadata_' + bin2hstr(header_hash).encode())
@@ -195,29 +197,29 @@ class State:
             return
 
         try:
-            last_txn = self._db.get(b'last_txn')
+            last_txn = LastTransactions.deserialize(self._db.get_raw(b'last_txn'))
         except:  # noqa
             return
 
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
             i = 0
-            while i < len(last_txn):
-                tx = Transaction.from_json(last_txn[i][0])
+            while i < len(last_txn.tx_metadata):
+                tx = Transaction.from_pbdata(last_txn.tx_metadata[i].transaction)
                 if txn.txhash == tx.txhash:
-                    del last_txn[i]
+                    del last_txn.tx_metadata[i]
                     break
                 i += 1
 
-        self._db.put(b'last_txn', last_txn, batch)
+        self._db.put_raw(b'last_txn', last_txn.serialize(), batch)
 
     def update_last_tx(self, block, batch):
         if len(block.transactions) == 0:
             return
-        last_txn = []
+        last_txn = LastTransactions()
 
         try:
-            last_txn = self._db.get(b'last_txn')
+            last_txn = LastTransactions.deserialize(self._db.get_raw(b'last_txn'))
         except:  # noqa
             pass
 
@@ -225,23 +227,20 @@ class State:
             txn = Transaction.from_pbdata(protobuf_txn)
             if isinstance(txn, CoinBase):
                 continue
-            last_txn.insert(0, [txn.to_json(),
-                                block.block_number,
-                                block.timestamp])
+            last_txn.add(txn, block.block_number, block.timestamp)
 
-        del last_txn[20:]
-        self._db.put(b'last_txn', last_txn, batch)
+        self._db.put_raw(b'last_txn', last_txn.serialize(), batch)
 
     def get_last_txs(self):
         try:
-            last_txn = self._db.get(b'last_txn')
+            last_txn = LastTransactions.deserialize(self._db.get_raw(b'last_txn'))
         except:  # noqa
             return []
 
         txs = []
-        for tx_metadata in last_txn:
-            tx_json, block_num, block_ts = tx_metadata
-            tx = Transaction.from_json(tx_json)
+        for tx_metadata in last_txn.tx_metadata:
+            data = tx_metadata.transaction
+            tx = Transaction.from_pbdata(data)
             txs.append(tx)
 
         return txs
@@ -255,7 +254,7 @@ class State:
     def get_token_metadata(self, token_txhash: bytes):
         try:
             json_data = self._db.get_raw(b'token_' + token_txhash)
-            return TokenMetadata.from_json(json_data)
+            return TokenMetadata.deserialize(json_data)
         except KeyError:
             pass
         except Exception as e:
@@ -267,18 +266,18 @@ class State:
         token_metadata = self.get_token_metadata(transfer_token.token_txhash)
         token_metadata.update([transfer_token.txhash])
         self._db.put_raw(b'token_' + transfer_token.token_txhash,
-                         token_metadata.to_json().encode())
+                         token_metadata.serialize())
 
     def create_token_metadata(self, token: TokenTransaction):
         token_metadata = TokenMetadata.create(token_txhash=token.txhash, transfer_token_txhashes=[token.txhash])
         self._db.put_raw(b'token_' + token.txhash,
-                         token_metadata.to_json().encode())
+                         token_metadata.serialize())
 
     def remove_transfer_token_metadata(self, transfer_token: TransferTokenTransaction):
         token_metadata = self.get_token_metadata(transfer_token.token_txhash)
         token_metadata.remove(transfer_token.txhash)
         self._db.put_raw(b'token_' + transfer_token.token_txhash,
-                         token_metadata.to_json().encode())
+                         token_metadata.serialize())
 
     def remove_token_metadata(self, token: TokenTransaction):
         self._db.delete(b'token_' + token.txhash)
@@ -349,27 +348,29 @@ class State:
 
     def remove_tx_metadata(self, txn, batch):
         try:
-            self._db.delete(bin2hstr(txn.txhash).encode(), batch)
+            self._db.delete(txn.txhash, batch)
         except Exception:
             pass
 
-    def put_tx_metadata(self, txn, block_number, timestamp, batch):
+    def put_tx_metadata(self, txn: Transaction, block_number: int, timestamp: int, batch):
         try:
-            self._db.put(bin2hstr(txn.txhash),
-                         [txn.to_json(), block_number, timestamp],
-                         batch)
+            tm = TransactionMetadata.create(tx=txn,
+                                            block_number=block_number,
+                                            timestamp=timestamp)
+            self._db.put_raw(txn.txhash,
+                             tm.serialize(),
+                             batch)
         except Exception:
             pass
 
     def get_tx_metadata(self, txhash: bytes):
         try:
-            tx_metadata = self._db.get(bin2hstr(txhash))
+            tx_metadata = TransactionMetadata.deserialize(self._db.get_raw(txhash))
         except Exception:
             return None
-        if tx_metadata is None:
-            return None
-        txn_json, block_number, _ = tx_metadata
-        return Transaction.from_json(txn_json), block_number
+
+        data, block_number = tx_metadata.transaction, tx_metadata.block_number
+        return Transaction.from_pbdata(data), block_number
 
     #########################################
     #########################################

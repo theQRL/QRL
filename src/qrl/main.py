@@ -133,7 +133,7 @@ def main():
         persistent_state.get_measurement = MagicMock(return_value=args.measurement)
 
     chain_manager = ChainManager(state=persistent_state)
-    chain_manager.load(Block.from_json(GenesisBlock().to_json()))
+    chain_manager.load(Block.deserialize(GenesisBlock().serialize()))
 
     qrlnode = QRLNode(db_state=persistent_state, mining_address=mining_address)
     qrlnode.set_chain_manager(chain_manager)
