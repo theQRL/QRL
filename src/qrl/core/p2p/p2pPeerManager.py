@@ -193,11 +193,13 @@ class P2PPeerManager(P2PBaseObserver):
 
     @staticmethod
     def send_node_chain_state(dest_channel, node_chain_state: qrl_pb2.NodeChainState):
+        # FIXME: Not sure this belongs to peer management
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.CHAINSTATE,
                                           chainStateData=node_chain_state)
         dest_channel.send(msg)
 
     def monitor_chain_state(self):
+        # FIXME: Not sure this belongs to peer management
         current_timestamp = ntp.getTime()
         for channel in self._channels:
             if channel not in self._peer_node_status:
@@ -210,6 +212,7 @@ class P2PPeerManager(P2PBaseObserver):
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
+        # FIXME: Not sure this belongs to peer management
         # TODO: Verify/Disconnect problematic channels
         # Ping all channels
         for channel in self._channels:
@@ -218,6 +221,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._observable.notify(ObservableEvent(self.EventType.NO_PEERS))
 
     def handle_chain_state(self, source, message: qrllegacy_pb2.LegacyMessage):
+        # FIXME: Not sure this belongs to peer management
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.CHAINSTATE)
 
         message.chainStateData.timestamp = ntp.getTime()  # Receiving time

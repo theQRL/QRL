@@ -22,9 +22,6 @@ class P2PProtocol(Protocol):
 
         # Need to use composition instead of inheritance here
         self._observable = P2PObservable(self)
-        self.peer_manager = None
-        self.p2pchain_manager = None
-        self.tx_manager = None
 
         self.last_rate_limit_update = 0
         self.rate_limit = config.user.peer_rate_limit
@@ -58,16 +55,26 @@ class P2PProtocol(Protocol):
     def addr_local(self):
         return "{}:{}".format(self.host_ip, self.host_port)
 
+    @property
+    def peer_manager(self):
+        # FIXME: this is breaking encapsulation
+        return self.factory._qrl_node.peer_manager
+
+    @property
+    def p2pchain_manager(self):
+        # FIXME: this is breaking encapsulation
+        return self.factory._qrl_node.p2pchain_manager
+
+    @property
+    def tx_manager(self):
+        # FIXME: this is breaking encapsulation
+        return self.factory._qrl_node.tx_manager
+
     def register(self, message_type, func: Callable):
         self._observable.register(message_type, func)
 
     def connectionMade(self):
         if self.factory.add_connection(self):
-            self.peer_manager = self.factory._qrl_node.peer_manager
-            self.p2pchain_manager = self.factory._qrl_node.p2pchain_manager
-            self.tx_manager = self.factory._qrl_node.tx_manager
-
-            # Inform about new channel
             self.peer_manager.new_channel(self)
             self.p2pchain_manager.new_channel(self)
             self.tx_manager.new_channel(self)

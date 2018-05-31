@@ -5,17 +5,13 @@ import os
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
-from pyqrllib.pyqrllib import QRLHelper
 from twisted.internet import reactor
 
-from qrl.core import config
-from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
-from qrl.core.Transaction import TransferTransaction, TransferTokenTransaction, TokenTransaction, SlaveTransaction, \
-    LatticePublicKey, MessageTransaction
+from qrl.core.Transaction import *
 from qrl.core.misc import ntp
 from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
@@ -428,7 +424,7 @@ class QRLNode:
                 skipped += 1
         return answer
 
-    def getNodeInfo(self) -> qrl_pb2.NodeInfo:
+    def get_node_info(self) -> qrl_pb2.NodeInfo:
         info = qrl_pb2.NodeInfo()
         info.version = self.version
         info.state = self.state
