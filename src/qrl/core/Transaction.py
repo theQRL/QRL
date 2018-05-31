@@ -148,7 +148,7 @@ class Transaction(object, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def _apply_state_changes_for_PK(self, addresses_state):
+    def _apply_state_changes_for_PK(self, addresses_state: dict):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.addr_from != addr_from_pk:
@@ -336,8 +336,7 @@ class TransferTransaction(Transaction):
         if self.fee < 0:
             raise ValueError('TransferTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
-        if (len(self.addrs_to) > config.dev.transaction_multi_output_limit or
-                len(self.addrs_to) > config.dev.transaction_multi_output_limit):
+        if len(self.addrs_to) > config.dev.transaction_multi_output_limit:
             logger.warning('[TransferTransaction] Number of addresses exceeds max limit')
             logger.warning('Number of addresses %s', len(self.addrs_to))
             logger.warning('Number of amounts %s', len(self.amounts))
