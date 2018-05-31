@@ -220,8 +220,8 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.trust_min_msgcount = -1
-        self.trust_min_conntime = -1
+        self.trust_min_msgcount = 10
+        self.trust_min_conntime = 10
 
         self.genesis_timestamp = 1524928900
 

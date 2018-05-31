@@ -129,6 +129,11 @@ class P2PProtocol(Protocol):
             self.in_counter += 1
             if self.in_counter > self.rate_limit:
                 self.factory.ban_peer(self)
+
+            if self._valid_message_count < config.dev.trust_min_msgcount * 2:
+                # Avoid overflows
+                self._valid_message_count += 1
+
             self._observable.notify(msg)
 
         if read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
