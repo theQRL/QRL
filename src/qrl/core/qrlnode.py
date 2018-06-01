@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import os
 from decimal import Decimal
 from typing import Optional, List, Iterator
 
@@ -13,7 +12,6 @@ from qrl.core.ESyncState import ESyncState
 from qrl.core.State import State
 from qrl.core.Transaction import *
 from qrl.core.misc import ntp
-from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState
 from qrl.core.p2p.p2pChainManager import P2PChainManager
