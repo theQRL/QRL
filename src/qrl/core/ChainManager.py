@@ -57,8 +57,6 @@ class ChainManager:
                 parent_difficulty=parent_difficulty)
 
             block_metadata = BlockMetadata.create()
-
-            block_metadata.set_orphan(False)
             block_metadata.set_block_difficulty(self.current_difficulty)
             block_metadata.set_cumulative_difficulty(self.current_difficulty)
 
@@ -96,16 +94,6 @@ class ChainManager:
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
-
-    def _try_orphan_add_block(self, block, batch):
-        prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
-
-        if prev_block_metadata is None or prev_block_metadata.is_orphan:
-            self.state.put_block(block, batch)
-            self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
-            return True
-
-        return False
 
     def _try_branch_add_block(self, block, batch=None) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
@@ -186,9 +174,6 @@ class ChainManager:
             logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
             return False
 
-        if self._try_orphan_add_block(block, batch):
-            return True
-
         if self._try_branch_add_block(block, batch):
             return True
 
@@ -202,37 +187,10 @@ class ChainManager:
         batch = self.state.get_batch()
         if self._add_block(block, batch=batch):
             self.state.write_batch(batch)
-            self.update_child_metadata(block.headerhash)  # TODO: Not needed to execute when an orphan block is added
             logger.info('Added Block #%s %s', block.block_number, bin2hstr(block.headerhash))
             return True
 
         return False
-
-    def update_child_metadata(self, headerhash):
-        block_metadata = self.state.get_block_metadata(headerhash)
-
-        childs = list(block_metadata.child_headerhashes)
-
-        while childs:
-            child_headerhash = childs.pop(0)
-            block = self.state.get_block(child_headerhash)
-            if not block:
-                continue
-            if not self._add_block(block):
-                self._prune([block.headerhash], None)
-                continue
-            block_metadata = self.state.get_block_metadata(child_headerhash)
-            childs += block_metadata.child_headerhashes
-
-    def _prune(self, childs, batch):
-        while childs:
-            child_headerhash = childs.pop(0)
-
-            block_metadata = self.state.get_block_metadata(child_headerhash)
-            childs += block_metadata.child_headerhashes
-
-            self.state.delete(bin2hstr(child_headerhash).encode(), batch)
-            self.state.delete(b'metadata_' + bin2hstr(child_headerhash).encode(), batch)
 
     def add_block_metadata(self,
                            headerhash,
@@ -244,29 +202,21 @@ class ChainManager:
             block_metadata = BlockMetadata.create()
 
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
-        block_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
-        block_cumulative_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
-        if not parent_metadata:
-            parent_metadata = BlockMetadata.create()
-        else:
-            parent_block = self.state.get_block(parent_headerhash)
-            if parent_block:
-                parent_block_difficulty = parent_metadata.block_difficulty
-                parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                if not parent_metadata.is_orphan:
-                    block_metadata.update_last_headerhashes(parent_metadata.last_N_headerhashes, parent_headerhash)
-                    measurement = self.state.get_measurement(block_timestamp, parent_headerhash, parent_metadata)
+        parent_block_difficulty = parent_metadata.block_difficulty
+        parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                    block_difficulty, _ = DifficultyTracker.get(
-                        measurement=measurement,
-                        parent_difficulty=parent_block_difficulty)
+        block_metadata.update_last_headerhashes(parent_metadata.last_N_headerhashes, parent_headerhash)
+        measurement = self.state.get_measurement(block_timestamp, parent_headerhash, parent_metadata)
 
-                    block_cumulative_difficulty = StringToUInt256(str(
-                        int(UInt256ToString(block_difficulty)) +
-                        int(UInt256ToString(parent_cumulative_difficulty))))
+        block_difficulty, _ = DifficultyTracker.get(
+            measurement=measurement,
+            parent_difficulty=parent_block_difficulty)
 
-        block_metadata.set_orphan(parent_metadata.is_orphan)
+        block_cumulative_difficulty = StringToUInt256(str(
+            int(UInt256ToString(block_difficulty)) +
+            int(UInt256ToString(parent_cumulative_difficulty))))
+
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)
 

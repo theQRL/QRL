@@ -28,10 +28,6 @@ class BlockMetadata(object):
         return self._data
 
     @property
-    def is_orphan(self):
-        return self._data.is_orphan
-
-    @property
     def block_difficulty(self):
         return tuple(self._data.block_difficulty)
 
@@ -46,9 +42,6 @@ class BlockMetadata(object):
     @property
     def last_N_headerhashes(self):
         return self._data.last_N_headerhashes
-
-    def set_orphan(self, value):
-        self._data.is_orphan = value
 
     def set_block_difficulty(self, value):
 
@@ -79,12 +72,10 @@ class BlockMetadata(object):
                             config.dev.N_measurement)
 
     @staticmethod
-    def create(is_orphan=True,
-               block_difficulty=bytes([0] * 32),
+    def create(block_difficulty=bytes([0] * 32),
                cumulative_difficulty=bytes([0] * 32),
                child_headerhashes=None):
         block_meta_data = BlockMetadata()
-        block_meta_data._data.is_orphan = is_orphan
         block_meta_data._data.block_difficulty = block_difficulty
         block_meta_data._data.cumulative_difficulty = cumulative_difficulty
 
