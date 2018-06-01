@@ -273,9 +273,14 @@ class P2PPeerManager(P2PBaseObserver):
 
     def get_peers_stat(self) -> list:
         peers_stat = []
-        for source in self.peer_node_status:
-            peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
-                                         port=source.peer_port,
-                                         node_chain_state=self.peer_node_status[source])
-            peers_stat.append(peer_stat)
+        # Copying the list of keys, to avoid any change by other thread
+        for source in list(self.peer_node_status.keys()):
+            try:
+                peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
+                                             port=source.peer_port,
+                                             node_chain_state=self.peer_node_status[source])
+                peers_stat.append(peer_stat)
+            except KeyError:
+                # Ignore in case the key is deleted by other thread causing KeyError
+                continue
         return peers_stat
