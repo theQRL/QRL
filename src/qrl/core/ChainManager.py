@@ -104,7 +104,7 @@ class ChainManager:
 
         if block.apply_state_changes(address_txn):
             self.state.put_block(block, None)
-            self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
+            self.add_block_metadata(True, block.headerhash, block.timestamp, block.prev_headerhash, None)
 
             last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
             new_block_metadata = self.state.get_block_metadata(block.headerhash)
@@ -193,6 +193,7 @@ class ChainManager:
         return False
 
     def add_block_metadata(self,
+                           verified,
                            headerhash,
                            block_timestamp,
                            parent_headerhash,
@@ -200,6 +201,8 @@ class ChainManager:
         block_metadata = self.state.get_block_metadata(headerhash)
         if not block_metadata:
             block_metadata = BlockMetadata.create()
+
+        block_metadata.verified = verified
 
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
 

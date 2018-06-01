@@ -369,17 +369,18 @@ class TestState(TestCase):
     def test_put_block_metadata(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                block_metadata = BlockMetadata.create()
+                block_metadata = BlockMetadata.create(True)
                 block_metadata.update_last_headerhashes([b'test1', b'test2'], b'test3')
 
                 state.put_block_metadata(b'block_headerhash', block_metadata, None)
-                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(), None)
+                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(True), None)
 
                 self.assertEqual(state.get_block_metadata(b'block_headerhash').to_json(),
                                  block_metadata.to_json())
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
+                                b'"verified": true\n}'
 
                 self.assertEqual(state.get_block_metadata(b'block_headerhash2').to_json(),
                                  expected_json)
@@ -388,12 +389,13 @@ class TestState(TestCase):
         with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_block_metadata(b'test1'))
-                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(), None)
+                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(True), None)
 
                 tmp_json = state.get_block_metadata(b'block_headerhash2').to_json()
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}' \
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
+                                b'"verified": true\n}'
 
                 self.assertEqual(tmp_json, expected_json)
 

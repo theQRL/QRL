@@ -28,6 +28,14 @@ class BlockMetadata(object):
         return self._data
 
     @property
+    def verified(self):
+        return self._data.verified
+
+    @verified.setter
+    def verified(self, verified: bool):
+        self._data.verified = verified
+
+    @property
     def block_difficulty(self):
         return tuple(self._data.block_difficulty)
 
@@ -72,10 +80,12 @@ class BlockMetadata(object):
                             config.dev.N_measurement)
 
     @staticmethod
-    def create(block_difficulty=bytes([0] * 32),
+    def create(verified=False,
+               block_difficulty=bytes([0] * 32),
                cumulative_difficulty=bytes([0] * 32),
                child_headerhashes=None):
         block_meta_data = BlockMetadata()
+        block_meta_data._data.verified = verified
         block_meta_data._data.block_difficulty = block_difficulty
         block_meta_data._data.cumulative_difficulty = cumulative_difficulty
 
