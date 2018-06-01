@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from decimal import Decimal
-from typing import Optional, List, Iterator
+from typing import Optional, List, Iterator, Tuple
 
 from twisted.internet import reactor
 
@@ -440,16 +440,16 @@ class QRLNode:
 
         return reversed(result)
 
-    def get_blockheader_and_metadata(self, block_number) -> list:
+    def get_blockheader_and_metadata(self, block_number) -> Tuple:
         if block_number == 0:
             block_number = self.block_height
 
-        result = []
+        result = (None, None)
         block = self.get_block_from_index(block_number)
         if block:
             blockheader = block.blockheader
             blockmetadata = self.db_state.get_block_metadata(blockheader.headerhash)
-            result = [blockheader, blockmetadata]
+            result = (blockheader, blockmetadata)
 
         return result
 

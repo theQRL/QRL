@@ -22,12 +22,14 @@ class MiningAPIService(MiningAPIServicer):
     def GetBlockMiningCompatible(self,
                                  request: qrlmining_pb2.GetBlockMiningCompatibleReq,
                                  context) -> qrlmining_pb2.GetBlockMiningCompatibleResp:
-        response = qrlmining_pb2.GetBlockMiningCompatibleResp()
 
-        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)
-        if blockheader_and_metadata:
-            response.blockheader = blockheader_and_metadata[0]
-            response.blockmetadata = blockheader_and_metadata[1]
+        blockheader, block_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)
+
+        response = qrlmining_pb2.GetBlockMiningCompatibleResp()
+        if blockheader is not None and block_metadata is not None:
+            response = qrlmining_pb2.GetBlockMiningCompatibleResp(
+                blockheader=blockheader.pbdata,
+                blockmetadata=block_metadata.pbdata)
 
         return response
 
@@ -37,9 +39,8 @@ class MiningAPIService(MiningAPIServicer):
                            context) -> qrlmining_pb2.GetLastBlockHeaderResp:
         response = qrlmining_pb2.GetLastBlockHeaderResp()
 
-        blockheader_and_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)  # 0 means last block
-        blockheader = blockheader_and_metadata[0]
-        block_metadata = blockheader_and_metadata[1]
+        blockheader, block_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)
+
         response.difficulty = int(bin2hstr(block_metadata.block_difficulty), 16)
         response.height = self.qrlnode.block_height
         response.timestamp = blockheader.timestamp
@@ -57,6 +58,7 @@ class MiningAPIService(MiningAPIServicer):
         response = qrlmining_pb2.GetBlockToMineResp()
 
         blocktemplate_blob_and_difficulty = self.qrlnode.get_block_to_mine(request.wallet_address)
+
         if blocktemplate_blob_and_difficulty:
             response.blocktemplate_blob = blocktemplate_blob_and_difficulty[0]
             response.difficulty = blocktemplate_blob_and_difficulty[1]
