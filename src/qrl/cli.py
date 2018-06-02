@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+from binascii import hexlify
 from collections import namedtuple
 from decimal import Decimal
 from typing import List
@@ -7,13 +8,12 @@ from typing import List
 import click
 import grpc
 import simplejson as json
-from google.protobuf.json_format import MessageToJson
-from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
+from pyledgerqrl import ledgerqrl
+from pyledgerqrl.ledgerqrl import *
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 
-from qrl.core import config
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey, \
-    TransferTransaction, MessageTransaction, SlaveTransaction
-from qrl.core.Wallet import Wallet, WalletDecryptionError
+from qrl.core.Transaction import *
+from qrl.core.Wallet import Wallet
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
@@ -240,13 +240,49 @@ def qrl(ctx, remote, verbose, host, port_pub, port_adm, wallet_dir, json):
 
 @qrl.command()
 @click.pass_context
-def wallet_ls(ctx):
+@click.option('--use_ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
+def wallet_ls(ctx, use_ledger):
     """
     Lists available wallets
     """
+    if use_ledger:
+        ledgerqrl.U2FMODE = False
+        try:
+            answer = ledgerqrl.send(INS_VERSION)
+            if answer is None:
+                return
 
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
-    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
+            if answer[0]:
+                print("WARNING! TEST MODE ENABLED")
+            print("Version    : {}.{}.{}".format(answer[1], answer[2], answer[3]))
+
+            answer = ledgerqrl.send(INS_GETSTATE)
+
+            mode = "Unknown"
+            if answer[0] == APPMODE_NOT_INITIALIZED:
+                mode = "not initialized"
+
+            if answer[0] == APPMODE_KEYGEN_RUNNING:
+                mode = "keygen running"
+
+            if answer[0] == APPMODE_READY:
+                mode = "ready"
+
+            print("Mode       : {}".format(mode))
+            print("XMSS Index : {}".format(answer[1] + answer[2] * 256))
+
+            if answer[0] == APPMODE_READY:
+                answer = ledgerqrl.send(INS_PUBLIC_KEY)
+                pk = hexlify(answer).decode()
+                print("Public Key : {}".format(pk))
+                addr = bytes(QRLHelper.getAddress(answer))
+                print("Address    : {}".format(hexlify(addr).decode()))
+        except Exception as e:
+            print(e)
+
+    else:
+        wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+        _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
 
 @qrl.command()
