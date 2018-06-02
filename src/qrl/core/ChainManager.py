@@ -95,39 +95,43 @@ class ChainManager:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
 
-    def _try_branch_add_block(self, block, batch=None) -> bool:
+    def _apply_block(self, block: Block, batch=None) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
+        addresses_state = self.state.get_state_mainchain(address_set)
+        if not block.apply_state_changes(addresses_state):
+            return False
+        self.state.put_addresses_state(addresses_state, batch)
+        return True
+
+    def _update_chainstate(self, block: Block, batch=None):
+        self.last_block = block
+        self._update_mainchain(block, batch)
+        self.tx_pool.remove_tx_in_block_from_pool(block)
+        self.state.update_mainchain_height(block.block_number, batch)
+        self.state.update_tx_metadata(block, batch)
+
+    def _try_branch_add_block(self, block, batch=None) -> bool:
         if self.last_block.headerhash == block.prev_headerhash:
-            address_txn = self.state.get_state_mainchain(address_set)
-        else:
-            address_txn, rollback_headerhash, hash_path = self.state.get_state(block.prev_headerhash, address_set)
+            if not self._apply_block(block):
+                return False
 
-        if block.apply_state_changes(address_txn):
-            self.state.put_block(block, None)
-            self.add_block_metadata(True, block.headerhash, block.timestamp, block.prev_headerhash, None)
+        self.state.put_block(block, None)
+        self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
 
-            last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
-            new_block_metadata = self.state.get_block_metadata(block.headerhash)
-            last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
-            new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
+        last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
+        new_block_metadata = self.state.get_block_metadata(block.headerhash)
+        last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
+        new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
 
-            if new_block_difficulty > last_block_difficulty:
-                if self.last_block.headerhash != block.prev_headerhash:
-                    self.rollback(rollback_headerhash, hash_path, block.block_number)
+        if new_block_difficulty > last_block_difficulty:
+            if self.last_block.headerhash != block.prev_headerhash:
+                self.fork_recovery(block)
 
-                self.state.put_addresses_state(address_txn)
-                self.last_block = block
-                self._update_mainchain(block, batch)
-                self.tx_pool.remove_tx_in_block_from_pool(block)
-                self.tx_pool.check_stale_txn(block.block_number)
-                self.state.update_mainchain_height(block.block_number, batch)
-                self.state.update_tx_metadata(block, batch)
+            self._update_chainstate(block, batch)
+            self.tx_pool.check_stale_txn(block.block_number)
+            self.trigger_miner = True
 
-                self.trigger_miner = True
-
-            return True
-
-        return False
+        return True
 
     def remove_block_from_mainchain(self, block: Block, latest_block_number: int, batch):
         addresses_set = self.state.prepare_address_list(block)
@@ -142,27 +146,68 @@ class ChainManager:
         self.state.remove_blocknumber_mapping(block.block_number, batch)
         self.state.put_addresses_state(addresses_state, batch)
 
-    def rollback(self, rollback_headerhash, hash_path, latest_block_number):
-        while self.last_block.headerhash != rollback_headerhash:
-            # TODO: Performing without batch, any interruption such as Keyboard Interrupt could corrupt the state
-            self.remove_block_from_mainchain(self.last_block, latest_block_number, None)
+    def get_fork_point(self, header_hash: bytes):
+        forked_header_hash = header_hash
+
+        hash_path = []
+        while True:
+            block = self.state.get_block(forked_header_hash)
+            if not block:
+                raise Exception('[get_state] No Block Found %s, Initiator %s', forked_header_hash, header_hash)
+            mainchain_block = self.get_block_by_number(block.block_number)
+            if mainchain_block and mainchain_block.headerhash == block.headerhash:
+                break
+            if block.block_number == 0:
+                raise Exception('[get_state] Alternate chain genesis is different, Initiator %s', forked_header_hash)
+            hash_path.append(forked_header_hash)
+            forked_header_hash = block.prev_headerhash
+
+        return forked_header_hash, hash_path
+
+    def rollback(self, forked_header_hash: bytes):
+        """
+        Rollback from last block to the block just before the forked_header_hash
+        :param forked_header_hash:
+        :return:
+        """
+        hash_path = []
+        while self.last_block.headerhash != forked_header_hash:
+            block = self.state.get_block(self.last_block.headerhash)
+            mainchain_block = self.get_block_by_number(block.block_number)
+            if block.headerhash == mainchain_block.headerhash:
+                break
+            hash_path.append(self.last_block.headerhash)
+            self.remove_block_from_mainchain(self.last_block, block.block_number, None)
             self.last_block = self.state.get_block(self.last_block.prev_headerhash)
 
-        for header_hash in hash_path[-1::-1]:
+        return hash_path
+
+    def add_chain(self, hash_path, batch=None):
+        """
+        Add series of blocks whose headerhash mentioned into hash_path
+        :param hash_path:
+        :param batch:
+        :return:
+        """
+        for header_hash in hash_path:
             block = self.state.get_block(header_hash)
-            address_set = self.state.prepare_address_list(block)  # Prepare list for current block
-            addresses_state = self.state.get_state_mainchain(address_set)
+            if not self._apply_block(block, batch):
+                return header_hash
 
-            for tx_idx in range(0, len(block.transactions)):
-                tx = Transaction.from_pbdata(block.transactions[tx_idx])
-                tx.apply_state_changes(addresses_state)
+            self._update_chainstate(block, batch)
 
-            self.state.put_addresses_state(addresses_state)
-            self.last_block = block
-            self._update_mainchain(block, None)
-            self.tx_pool.remove_tx_in_block_from_pool(block)
-            self.state.update_mainchain_height(block.block_number, None)
-            self.state.update_tx_metadata(block, None)
+        return None
+
+    def fork_recovery(self, block: Block):
+        forked_header_hash, hash_path = self.get_fork_point(block.headerhash)
+        old_hash_path = self.rollback(forked_header_hash)
+
+        if self.add_chain(hash_path[-1::-1]):
+            # If above condition is true, then it means, the node failed to add_chain
+            # Thus old chain state, must be retrieved
+            self.rollback(forked_header_hash)
+            self.add_chain(old_hash_path[-1::-1])  # Restores the old chain state
+            return
 
         self.trigger_miner = True
 
@@ -193,7 +238,6 @@ class ChainManager:
         return False
 
     def add_block_metadata(self,
-                           verified,
                            headerhash,
                            block_timestamp,
                            parent_headerhash,
@@ -201,8 +245,6 @@ class ChainManager:
         block_metadata = self.state.get_block_metadata(headerhash)
         if not block_metadata:
             block_metadata = BlockMetadata.create()
-
-        block_metadata.verified = verified
 
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
 
@@ -241,9 +283,6 @@ class ChainManager:
 
     def get_block_by_number(self, block_number) -> Optional[Block]:
         return self.state.get_block_by_number(block_number)
-
-    def get_state(self, headerhash):
-        return self.state.get_state(headerhash, set())
 
     def get_address(self, address):
         return self.state.get_address_state(address)

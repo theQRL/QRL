@@ -489,11 +489,10 @@ message BlockHeightData {
 }
 
 message BlockMetaData {
-    bool verified = 1;
-    bytes block_difficulty = 2;
-    bytes cumulative_difficulty = 3;
-    repeated bytes child_headerhashes = 4;
-    repeated bytes last_N_headerhashes = 5;     // Keeps last N headerhashes, for measurement of timestamp difference
+    bytes block_difficulty = 1;
+    bytes cumulative_difficulty = 2;
+    repeated bytes child_headerhashes = 3;
+    repeated bytes last_N_headerhashes = 4;     // Keeps last N headerhashes, for measurement of timestamp difference
 }
 
 message BlockNumberMapping {

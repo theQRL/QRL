@@ -135,45 +135,6 @@ class State:
             addresses_state[address] = self.get_address_state(address)
         return addresses_state
 
-    def get_state(self, header_hash: bytes, addresses_set: set):
-        tmp_header_hash = header_hash
-
-        hash_path = []
-        while True:
-            block = self.get_block(header_hash)
-            if not block:
-                raise Exception('[get_state] No Block Found %s, Initiator %s', header_hash, tmp_header_hash)
-            mainchain_block = self.get_block_by_number(block.block_number)
-            if mainchain_block and mainchain_block.headerhash == block.headerhash:
-                break
-            if block.block_number == 0:
-                raise Exception('[get_state] Alternate chain genesis is different, Initiator %s', tmp_header_hash)
-            hash_path.append(header_hash)
-            header_hash = block.prev_headerhash
-
-        rollback_headerhash = header_hash
-
-        addresses_state = dict()
-        for address in addresses_set:
-            addresses_state[address] = self.get_address_state(address)
-
-        block = self.last_block
-        while block.headerhash != rollback_headerhash:
-            # Deplay transactions in reverse order, otherwise could result into negative value
-            for tx_protobuf in block.transactions[-1::-1]:
-                tx = Transaction.from_pbdata(tx_protobuf)
-                tx.revert_state_changes(addresses_state, self)
-            block = self.get_block(block.prev_headerhash)
-
-        for header_hash in hash_path[-1::-1]:
-            block = self.get_block(header_hash)
-
-            for tx_pbdata in block.transactions:
-                tx = Transaction.from_pbdata(tx_pbdata)
-                tx.apply_state_changes(addresses_state)
-
-        return addresses_state, rollback_headerhash, hash_path
-
     def get_mainchain_height(self) -> int:
         try:
             return self._db.get('blockheight')

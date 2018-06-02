@@ -369,18 +369,17 @@ class TestState(TestCase):
     def test_put_block_metadata(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                block_metadata = BlockMetadata.create(True)
+                block_metadata = BlockMetadata.create()
                 block_metadata.update_last_headerhashes([b'test1', b'test2'], b'test3')
 
                 state.put_block_metadata(b'block_headerhash', block_metadata, None)
-                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(True), None)
+                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(), None)
 
                 self.assertEqual(state.get_block_metadata(b'block_headerhash').to_json(),
                                  block_metadata.to_json())
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"verified": true\n}'
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
 
                 self.assertEqual(state.get_block_metadata(b'block_headerhash2').to_json(),
                                  expected_json)
@@ -389,13 +388,12 @@ class TestState(TestCase):
         with set_qrl_dir('no_data'):
             with State() as state:
                 self.assertIsNone(state.get_block_metadata(b'test1'))
-                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(True), None)
+                state.put_block_metadata(b'block_headerhash2', BlockMetadata.create(), None)
 
                 tmp_json = state.get_block_metadata(b'block_headerhash2').to_json()
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"verified": true\n}'
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}' \
 
                 self.assertEqual(tmp_json, expected_json)
 
@@ -478,19 +476,6 @@ class TestState(TestCase):
                     self.assertEqual(datapoint.timestamp, 1615270947 + i)
                     self.assertEqual(datapoint.header_hash, blocks[i].headerhash)
                     self.assertEqual(datapoint.header_hash_prev, blocks[i - 1].headerhash)
-
-    def test_get_state(self):
-        alice_xmss = get_alice_xmss()
-        number_of_blocks = 10
-        alice_balances = [0, 6656349462, 13312697815, 19969045061, 26625391199,
-                          33281736229, 39938080152, 46594422967, 53250764674, 59907105274]
-
-        with MockedBlockchain.create(number_of_blocks, alice_xmss.address) as mock_blockchain:
-            state = mock_blockchain.qrlnode._chain_manager.state
-            for i in range(number_of_blocks):
-                block = mock_blockchain.qrlnode.get_block_from_index(i)
-                addresses_state, _, _ = state.get_state(block.headerhash, {alice_xmss.address, })
-                self.assertEqual(addresses_state[alice_xmss.address].balance, alice_balances[i])
 
     def test_put_block_number_mapping(self):
         with set_qrl_dir('no_data'):
