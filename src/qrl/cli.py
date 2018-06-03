@@ -20,63 +20,32 @@ from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
 
-OutputMessage = namedtuple('OutputMessage',
-                           'error address_items balance_items')
-
-BalanceItem = namedtuple('BalanceItem',
-                         'address balance')
+OutputMessage = namedtuple('OutputMessage', 'error address_items balance_items')
+BalanceItem = namedtuple('BalanceItem', 'address balance')
 
 CONNECTION_TIMEOUT = 5
 
 
 class CLIContext(object):
 
-    def __init__(self, remote, verbose, host, port_public, port_admin, wallet_dir, json):
-        self.remote = remote
+    def __init__(self, verbose, host, port_public, wallet_dir, output_json):
         self.verbose = verbose
         self.host = host
         self.port_public = port_public
-        self.port_admin = port_admin
 
         self.wallet_dir = os.path.abspath(wallet_dir)
         self.wallet_path = os.path.join(self.wallet_dir, 'wallet.json')
-        self.json = json
-
-    @property
-    def node_public_address(self):
-        return '{}:{}'.format(self.host, self.port_public)
-
-    @property
-    def node_admin_address(self):
-        return '{}:{}'.format(self.host, self.port_admin)
-
-    @property
-    def channel_public(self):
-        return grpc.insecure_channel(self.node_public_address)
-
-    @property
-    def channel_admin(self):
-        return grpc.insecure_channel(self.node_admin_address)
-
-    def get_stub_admin_api(self):
-        return qrl_pb2_grpc.AdminAPIStub(self.channel_admin)
+        self.output_json = output_json
 
     def get_stub_public_api(self):
-        return qrl_pb2_grpc.PublicAPIStub(self.channel_public)
-
-
-def _admin_get_local_addresses(ctx):
-    try:
-        stub = ctx.obj.get_stub_admin()
-        getAddressStateResp = stub.GetLocalAddresses(qrl_pb2.GetLocalAddressesReq(), timeout=CONNECTION_TIMEOUT)
-        return getAddressStateResp.addresses
-    except Exception as e:
-        click.echo('Error connecting to node', color='red')
-        return []
+        node_public_address = '{}:{}'.format(self.host, self.port_public)
+        channel = grpc.insecure_channel(node_public_address)
+        return qrl_pb2_grpc.PublicAPIStub(channel)
 
 
 def _print_error(ctx, error_descr, wallets=None):
-    if ctx.obj.json:
+    # FIXME: Dead function
+    if ctx.obj.output_json:
         if wallets is None:
             wallets = []
         msg = {'error': error_descr, 'wallets': wallets}
@@ -119,7 +88,7 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
         )
 
     output = _serialize_output(ctx, addresses, source_description)
-    if ctx.obj.json:
+    if ctx.obj.output_json:
         output["location"] = source_description
         click.echo(json.dumps(output))
     else:
@@ -217,25 +186,21 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
 
 @click.version_option(version=config.dev.version, prog_name='QRL Command Line Interface')
 @click.group()
-@click.option('--remote', '-r', default=False, is_flag=True, help='connect to remote node')
 @click.option('--verbose', '-v', default=False, is_flag=True, help='verbose output whenever possible')
 @click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
 @click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
-@click.option('--port_adm', default=9008, help='remote port number (admin api)  [9009]* will change')
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
 @click.option('--json', default=False, is_flag=True, help='output in json')
 @click.pass_context
-def qrl(ctx, remote, verbose, host, port_pub, port_adm, wallet_dir, json):
+def qrl(ctx, verbose, host, port_pub, port_adm, wallet_dir, json):
     """
     QRL Command Line Interface
     """
-    ctx.obj = CLIContext(remote=remote,
-                         verbose=verbose,
+    ctx.obj = CLIContext(verbose=verbose,
                          host=host,
                          port_public=port_pub,
-                         port_admin=port_adm,
                          wallet_dir=wallet_dir,
-                         json=json)
+                         output_json=json)
 
 
 @qrl.command()
@@ -296,10 +261,6 @@ def wallet_gen(ctx, height, hash_function, encrypt):
     """
     Generates a new wallet with one address
     """
-    if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
-        return
-
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     if len(wallet.address_items) > 0:
         click.echo("Wallet already exists")
@@ -325,10 +286,6 @@ def wallet_add(ctx, height, hash_function):
     """
     Adds an address or generates a new wallet (working directory)
     """
-    if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
-        return
-
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     wallet_was_encrypted = wallet.encrypted
     if wallet.encrypted:
@@ -352,10 +309,6 @@ def wallet_recover(ctx, seed_type):
     """
     Recovers a wallet from a hexseed or mnemonic (32 words)
     """
-    if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
-        return
-
     seed = click.prompt('Please enter your %s' % (seed_type,))
     seed = seed.lower().strip()
 
@@ -397,10 +350,6 @@ def wallet_secret(ctx, wallet_idx):
     """
     Provides the mnemonic/hexseed of the given address index
     """
-    if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
-        return
-
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     if wallet.encrypted:
         secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
@@ -429,10 +378,6 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
     Use the wallet_secret command for obtaining the recovery Mnemonic/Hexseed and
     the wallet_recover command for restoring an address.
     """
-    if ctx.obj.remote:
-        click.echo('This command is unsupported for remote wallets')
-        return
-
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
 
     if 0 <= wallet_idx < len(wallet.address_items):
@@ -589,7 +534,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 
 
 @qrl.command()
-@click.option('--src', type=str, default='', prompt=True, help='signing address index')
+@click.option('--src', type=str, default='', prompt=True, help='signing address index (nano for ledger)')
 @click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
 @click.pass_context
 def tx_sign(ctx, src, txblob):
@@ -668,10 +613,6 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
     """
     Message Transaction
     """
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
     try:
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
@@ -717,10 +658,6 @@ def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
     """
     Transfer coins from src to dst
     """
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
     try:
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
@@ -771,10 +708,6 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
     """
     Create Token Transaction, that results into the formation of new token if accepted.
     """
-
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
 
     initial_balances = []
 
@@ -849,10 +782,6 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
     Create Transfer Token Transaction, which moves tokens from src to dst.
     """
 
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
     try:
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
@@ -911,11 +840,6 @@ def token_list(ctx, owner):
     """
     Fetch the list of tokens owned by an address.
     """
-
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
     try:
         owner_address = parse_qaddress(owner)
     except Exception as e:
@@ -946,10 +870,6 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
     """
     Create Lattice Public Keys Transaction
     """
-    if not ctx.obj.remote:
-        click.echo('This command is unsupported for local wallets')
-        return
-
     try:
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
@@ -995,7 +915,7 @@ def state(ctx):
     stub = ctx.obj.get_stub_public_api()
     nodeStateResp = stub.GetNodeState(qrl_pb2.GetNodeStateReq())
 
-    if ctx.obj.json:
+    if ctx.obj.output_json:
         click.echo(MessageToJson(nodeStateResp, sort_keys=True))
     else:
         click.echo(nodeStateResp)
