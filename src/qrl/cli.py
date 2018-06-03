@@ -269,7 +269,7 @@ def wallet_ls(ctx, use_ledger):
                 mode = "ready"
 
             print("Mode       : {}".format(mode))
-            print("XMSS Index : {}".format(answer[1] + answer[2] * 256))
+            print("XMSS Index : {}".format(1 + answer[1] + answer[2] * 256))
 
             if answer[0] == APPMODE_READY:
                 answer = ledgerqrl.send(INS_PUBLIC_KEY)
