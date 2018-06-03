@@ -145,6 +145,8 @@ class BlockHeader(object):
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
+        else:
+            bh._data.timestamp_seconds = prev_block_timestamp  # Set timestamp for genesis block
 
         bh._data.hash_header_prev = prev_block_headerhash
         bh._data.merkle_root = hashedtransactions
