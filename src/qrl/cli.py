@@ -27,7 +27,6 @@ CONNECTION_TIMEOUT = 5
 
 
 class CLIContext(object):
-
     def __init__(self, verbose, host, port_public, wallet_dir, output_json):
         self.verbose = verbose
         self.host = host
@@ -576,9 +575,12 @@ def tx_inspect(ctx, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (signed)')
 @click.pass_context
 def tx_push(ctx, txblob):
+    """
+    Sends a signed transaction blob to a node
+    """
     tx = None
     try:
         txbin = parse_hexblob(txblob)
