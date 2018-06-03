@@ -124,20 +124,27 @@ class Transaction(object, metaclass=ABCMeta):
 
     def update_txhash(self):
         self._data.transaction_hash = sha256(
-            self.get_hashable_bytes() +
+            self.get_data_hash() +
             self.signature +
             self.PK
         )
 
-    def get_hashable_bytes(self) -> bytes:
+    def get_data_bytes(self) -> bytes:
         """
-        This method returns the hashes of the transaction data.
+        This method returns the essential bytes that represent the transaction and will be later signed
         :return:
         """
         raise NotImplementedError
 
+    def get_data_hash(self) -> bytes:
+        """
+        This method returns the hashes of the transaction data.
+        :return:
+        """
+        raise sha256(self.get_data_bytes())
+
     def sign(self, xmss):
-        self._data.signature = xmss.sign(self.get_hashable_bytes())
+        self._data.signature = xmss.sign(self.get_data_hash())
         self.update_txhash()
 
     @abstractmethod
@@ -194,7 +201,8 @@ class Transaction(object, metaclass=ABCMeta):
                 continue
 
             if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
+                logger.info('State validation failed for %s because: OTS Public key re-use detected',
+                            bin2hstr(self.txhash))
                 logger.info('Subtype %s', type(self))
                 return False
 
@@ -231,7 +239,7 @@ class Transaction(object, metaclass=ABCMeta):
             if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
                 raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
 
-        if not XmssFast.verify(self.get_hashable_bytes(),
+        if not XmssFast.verify(self.get_data_hash(),
                                self.signature,
                                self.PK):
             raise ValueError("Invalid xmss signature")
@@ -306,16 +314,16 @@ class TransferTransaction(Transaction):
     def amounts(self):
         return self._data.transfer.amounts
 
-    def get_hashable_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False))
+    def get_data_bytes(self):
+        tx_bytes = (self.master_addr +
+                    self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = (tmptxhash +
-                         self.addrs_to[index] +
-                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            tx_bytes = (tx_bytes +
+                        self.addrs_to[index] +
+                        self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
-        return sha256(tmptxhash)
+        return tx_bytes
 
     @staticmethod
     def create(addrs_to: list, amounts: list, fee, xmss_pk, master_addr: bytes = None):
@@ -443,14 +451,14 @@ class CoinBase(Transaction):
     def amount(self):
         return self._data.coinbase.amount
 
-    def get_hashable_bytes(self):
+    def get_data_bytes(self):
         # nonce only added to the hashable bytes of CoinBase
-        return sha256(
-            self.master_addr +
-            self.addr_to +
-            self.nonce.to_bytes(8, byteorder='big', signed=False) +
-            self.amount.to_bytes(8, byteorder='big', signed=False)
-        )
+        tx_bytes = self.master_addr + \
+                   self.addr_to + \
+                   self.nonce.to_bytes(8, byteorder='big', signed=False) + \
+                   self.amount.to_bytes(8, byteorder='big', signed=False)
+
+        return tx_bytes
 
     @staticmethod
     def create(amount, miner_address, block_number):
@@ -459,13 +467,13 @@ class CoinBase(Transaction):
         transaction._data.coinbase.addr_to = miner_address
         transaction._data.coinbase.amount = amount
         transaction._data.nonce = block_number + 1
-        transaction._data.transaction_hash = transaction.get_hashable_bytes()
+        transaction._data.transaction_hash = transaction.get_data_hash()
 
         return transaction
 
     def update_mining_address(self, mining_address: bytes):
         self._data.coinbase.addr_to = mining_address
-        self._data.transaction_hash = self.get_hashable_bytes()
+        self._data.transaction_hash = self.get_data_hash()
 
     def _validate_custom(self):
         if self.fee != 0:
@@ -537,13 +545,11 @@ class LatticePublicKey(Transaction):
     def dilithium_pk(self):
         return self._data.latticePK.dilithium_pk
 
-    def get_hashable_bytes(self):
-        return sha256(
-            self.master_addr +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
-            self.kyber_pk +
-            self.dilithium_pk
-        )
+    def get_data_bytes(self):
+        return self.master_addr + \
+               self.fee.to_bytes(8, byteorder='big', signed=False) + \
+               self.kyber_pk + \
+               self.dilithium_pk
 
     @staticmethod
     def create(fee, kyber_pk, dilithium_pk, xmss_pk, master_addr: bytes = None):
@@ -612,12 +618,10 @@ class MessageTransaction(Transaction):
     def message_hash(self):
         return self._data.message.message_hash
 
-    def get_hashable_bytes(self):
-        return sha256(
-            self.master_addr +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
-            self.message_hash
-        )
+    def get_data_bytes(self):
+        return self.master_addr + \
+               self.fee.to_bytes(8, byteorder='big', signed=False) + \
+               self.message_hash
 
     @staticmethod
     def create(message_hash: bytes, fee: int, xmss_pk: bytes, master_addr: bytes = None):
@@ -709,19 +713,19 @@ class TokenTransaction(Transaction):
     def initial_balances(self):
         return self._data.token.initial_balances
 
-    def get_hashable_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.symbol +
-                     self.name +
-                     self.owner +
-                     self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
+    def get_data_bytes(self):
+        tx_bytes = (self.master_addr +
+                    self.fee.to_bytes(8, byteorder='big', signed=False) +
+                    self.symbol +
+                    self.name +
+                    self.owner +
+                    self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
 
         for initial_balance in self._data.token.initial_balances:
-            tmptxhash += initial_balance.address
-            tmptxhash += initial_balance.amount.to_bytes(8, byteorder='big', signed=False)
+            tx_bytes += initial_balance.address
+            tx_bytes += initial_balance.amount.to_bytes(8, byteorder='big', signed=False)
 
-        return sha256(tmptxhash)
+        return tx_bytes
 
     @staticmethod
     def create(symbol: bytes,
@@ -823,7 +827,8 @@ class TokenTransaction(Transaction):
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
+            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
+                        bin2hstr(self.txhash))
             return False
 
         return True
@@ -928,17 +933,17 @@ class TransferTokenTransaction(Transaction):
     def amounts(self):
         return self._data.transfer_token.amounts
 
-    def get_hashable_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.token_txhash)
+    def get_data_bytes(self):
+        tx_bytes = (self.master_addr +
+                    self.fee.to_bytes(8, byteorder='big', signed=False) +
+                    self.token_txhash)
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = (tmptxhash +
-                         self.addrs_to[index] +
-                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            tx_bytes = (tx_bytes +
+                        self.addrs_to[index] +
+                        self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
-        return sha256(tmptxhash)
+        return tx_bytes
 
     @staticmethod
     def create(token_txhash: bytes,
@@ -1089,16 +1094,16 @@ class SlaveTransaction(Transaction):
     def access_types(self):
         return self._data.slave.access_types
 
-    def get_hashable_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False))
+    def get_data_bytes(self):
+        tx_bytes = (self.master_addr +
+                    self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.slave_pks)):
-            tmptxhash = (tmptxhash +
-                         self.slave_pks[index] +
-                         self.access_types[index].to_bytes(8, byteorder='big', signed=False))
+            tx_bytes = (tx_bytes +
+                        self.slave_pks[index] +
+                        self.access_types[index].to_bytes(8, byteorder='big', signed=False))
 
-        return sha256(tmptxhash)
+        return tx_bytes
 
     @staticmethod
     def create(slave_pks: list, access_types: list, fee: int, xmss_pk: bytes, master_addr: bytes = None):
@@ -1154,7 +1159,8 @@ class SlaveTransaction(Transaction):
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
+            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected',
+                        bin2hstr(self.txhash))
             return False
 
         return True
