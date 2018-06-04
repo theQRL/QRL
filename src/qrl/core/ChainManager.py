@@ -99,7 +99,7 @@ class ChainManager:
                 block = self.state.get_block(fork_state.initiator_headerhash)
                 self.fork_recovery(block, fork_state)
 
-    def _apply_block(self, block: Block, batch=None) -> bool:
+    def _apply_block(self, block: Block, batch) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
         addresses_state = self.state.get_state_mainchain(address_set)
         if not block.apply_state_changes(addresses_state):
@@ -107,16 +107,25 @@ class ChainManager:
         self.state.put_addresses_state(addresses_state, batch)
         return True
 
-    def _update_chainstate(self, block: Block, batch=None):
+    def _update_chainstate(self, block: Block, batch):
         self.last_block = block
         self._update_block_number_mapping(block, batch)
         self.tx_pool.remove_tx_in_block_from_pool(block)
         self.state.update_mainchain_height(block.block_number, batch)
         self.state.update_tx_metadata(block, batch)
 
-    def _try_branch_add_block(self, block, batch=None) -> (bool, bool):
+    def _try_branch_add_block(self, block, batch) -> (bool, bool):
+        """
+        This function returns list of bool types. The first bool represent
+        if the block has been added successfully and the second bool
+        represent the fork_flag, which becomes true when a block triggered
+        into fork recovery.
+        :param block:
+        :param batch:
+        :return:
+        """
         if self.last_block.headerhash == block.prev_headerhash:
-            if not self._apply_block(block):
+            if not self._apply_block(block, batch):
                 return False, False
 
         self.state.put_block(block, batch)
