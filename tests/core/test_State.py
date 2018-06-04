@@ -85,22 +85,6 @@ class TestState(TestCase):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
-    def test_set_block_pos(self):
-        with set_qrl_dir('no_data'):
-            with State() as state:
-                block_number = 123
-
-                block_position = 234
-                block_size = 345
-
-                state._db.put('block_{}'.format(block_number), [block_position, block_size])
-
-                pos_size = state._db.get('block_{}'.format(block_number))
-                read_position, read_size = pos_size
-
-                self.assertEqual(block_position, read_position)
-                self.assertEqual(block_size, read_size)
-
     def test_get_address_state(self):
         with set_qrl_dir('no_data'):
             with State() as state:
