@@ -143,8 +143,8 @@ class Transaction(object, metaclass=ABCMeta):
         """
         return sha256(self.get_data_bytes())
 
-    def sign(self, xmss):
-        self._data.signature = xmss.sign(self.get_data_hash())
+    def sign(self, object_with_sign_method):
+        self._data.signature = object_with_sign_method.sign(self.get_data_hash())
         self.update_txhash()
 
     @abstractmethod

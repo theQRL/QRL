@@ -496,16 +496,19 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
     except Exception as e:
         print("Error {}".format(str(e)))
 
+
 def base64tohex(data):
     return hexlify(a2b_base64(data))
 
+
 def tx_unbase64(tx_json_str):
     tx_json = json.loads(tx_json_str)
-    tx_json["publicKey"] =  base64tohex(tx_json["publicKey"])
-    tx_json["signature"] =  base64tohex(tx_json["signature"])
-    tx_json["transactionHash"] =  base64tohex(tx_json["transactionHash"])
+    tx_json["publicKey"] = base64tohex(tx_json["publicKey"])
+    tx_json["signature"] = base64tohex(tx_json["signature"])
+    tx_json["transactionHash"] = base64tohex(tx_json["transactionHash"])
     tx_json["transfer"]["addrsTo"] = [base64tohex(v) for v in tx_json["transfer"]["addrsTo"]]
     return json.dumps(tx_json, indent=True, sort_keys=True)
+
 
 @qrl.command()
 @click.option('--ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
@@ -529,10 +532,30 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
     shor_amounts = []
     fee_shor = []
 
+    signing_object = None
+
     try:
         # Retrieve signing object
         if ledger:
             print("Using Ledger Nano S")
+            ledger_dev = LedgerQRL()
+            ledger_dev.connect()
+            if not ledger_dev.connected:
+                print("Could not retrieve information from the device")
+                quit(1)
+
+            ledger_dev.print_info()
+
+            if not ledger_dev.pk_raw:
+                print("Could not get Public Key from the device")
+                quit(1)
+
+            address_src_pk = ledger_dev.pk_raw
+            addr = bytes(QRLHelper.getAddress(ledger_dev.pk_raw))
+            print("Address    : Q{}".format(hexlify(addr).decode()))
+
+            signing_object = ledger_dev
+
         else:
             selected_wallet = _select_wallet(ctx, src)
             if selected_wallet is None or len(selected_wallet) != 2:
@@ -556,6 +579,7 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
                 quit(1)
 
             src_xmss.set_ots_index(ots_key_index - 1)
+            signing_object = src_xmss
 
         # Get and validate other inputs
         if master:
@@ -576,11 +600,7 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
                                         master_addr=master_addr)
 
         # Sign transaction
-        if ledger:
-            # TODO: Sign with ledger
-            pass
-        else:
-            tx.sign(src_xmss)
+        tx.sign(signing_object)
 
         # Print result
         txjson = tx_unbase64(tx.to_json())
