@@ -444,6 +444,9 @@ class State:
             logger.exception(e)
             raise
 
+    def delete_fork_state(self, batch=None):
+        self._db.delete(b'fork_state', batch)
+
     @functools.lru_cache(maxsize=config.dev.block_timeseries_size + 50)
     def get_block_datapoint(self, headerhash):
         block = self.get_block(headerhash)
