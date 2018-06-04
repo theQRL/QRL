@@ -137,7 +137,7 @@ class State:
 
     def get_mainchain_height(self) -> int:
         try:
-            return self._db.get('blockheight')
+            return int.from_bytes(self._db.get_raw(b'blockheight'), byteorder='big', signed=False)
         except KeyError:
             pass
         except Exception as e:
@@ -151,7 +151,7 @@ class State:
         return self.get_block_by_number(block_number)
 
     def update_mainchain_height(self, height, batch):
-        self._db.put('blockheight', height, batch)
+        self._db.put_raw(b'blockheight', height.to_bytes(8, byteorder='big', signed=False), batch)
 
     def remove_last_tx(self, block, batch):
         if len(block.transactions) == 0:
@@ -251,7 +251,7 @@ class State:
 
     def get_txn_count(self, addr):
         try:
-            return self._db.get(b'txn_count_' + addr)
+            return int.from_bytes(self._db.get_raw(b'txn_count_' + addr), byteorder='big', signed=False)
         except KeyError:
             pass
         except Exception as e:
@@ -341,14 +341,14 @@ class State:
 
     def increase_txn_count(self, last_count: int, addr: bytes):
         # FIXME: This should be transactional
-        self._db.put(b'txn_count_' + addr, last_count + 1)
+        self._db.put_raw(b'txn_count_' + addr, (last_count + 1).to_bytes(8, byteorder='big', signed=False))
 
     def decrease_txn_count(self, last_count: int, addr: bytes):
         # FIXME: This should be transactional
         if last_count == 0:
             raise ValueError('Cannot decrease transaction count last_count: %s, addr %s',
                              last_count, bin2hstr(addr))
-        self._db.put(b'txn_count_' + addr, last_count - 1)
+        self._db.put_raw(b'txn_count_' + addr, (last_count - 1).to_bytes(8, byteorder='big', signed=False))
 
     def get_address_state(self, address: bytes) -> AddressState:
         try:
@@ -400,11 +400,11 @@ class State:
     #########################################
 
     def update_total_coin_supply(self, balance):
-        self._db.put(b'total_coin_supply', self.total_coin_supply() + balance)
+        self._db.put_raw(b'total_coin_supply', (self.total_coin_supply() + balance).to_bytes(8, byteorder='big', signed=False))
 
     def total_coin_supply(self):
         try:
-            return self._db.get(b'total_coin_supply')
+            return int.from_bytes(self._db.get_raw(b'total_coin_supply'), byteorder='big', signed=False)
         except KeyError:
             return 0
 

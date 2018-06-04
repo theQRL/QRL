@@ -5,7 +5,6 @@
 # leveldb code for maintaining account state data
 import leveldb
 import os
-import simplejson as json
 
 from qrl.core import config
 from qrl.core.misc import logger
@@ -31,31 +30,6 @@ class DB:
             key_obj_end = key_obj_end.encode()
 
         return self.db.RangeIter(key_obj_start, key_obj_end)
-
-    def put(self, key_obj, value_obj, batch=None):  # serialise with pickle into a string
-        if not isinstance(key_obj, bytes) and not isinstance(key_obj, bytearray):
-            key_obj = key_obj.encode()
-
-        # FIXME: Bottleneck
-        dictObj = {'value': value_obj}
-        tmp_json = json.dumps(dictObj).encode()
-        if batch:
-            batch.Put(key_obj, tmp_json)
-        else:
-            self.db.Put(key_obj, tmp_json)
-
-    def get(self, key_obj):
-        if not isinstance(key_obj, bytes):
-            key_obj = key_obj.encode()
-
-        value_obj = self.db.Get(key_obj)
-        try:
-            # FIXME: This is a massive bottleneck as start up.
-            return json.loads(value_obj.decode())['value']
-        except KeyError:
-            logger.debug("Key not found %s", key_obj)
-        except Exception as e:
-            logger.exception(e)
 
     def delete(self, key_obj: bytes, batch=None):
         if batch:
