@@ -141,7 +141,7 @@ class Transaction(object, metaclass=ABCMeta):
         This method returns the hashes of the transaction data.
         :return:
         """
-        raise sha256(self.get_data_bytes())
+        return sha256(self.get_data_bytes())
 
     def sign(self, xmss):
         self._data.signature = xmss.sign(self.get_data_hash())

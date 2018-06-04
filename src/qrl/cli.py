@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-from binascii import hexlify
+from binascii import hexlify, a2b_base64
 from collections import namedtuple
 from decimal import Decimal
 from typing import List
@@ -171,7 +171,7 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
 
     shor_amounts = []
     for amount in amounts.split(' '):
-        shor_amounts.append(_shorize(float(amount)))
+        shor_amounts.append(_shorize(Decimal(amount)))
 
     if len(addresses_split) != len(shor_amounts):
         raise Exception("dsts and amounts should be the same length")
@@ -191,7 +191,7 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
 @click.option('--json', default=False, is_flag=True, help='output in json')
 @click.pass_context
-def qrl(ctx, verbose, host, port_pub, port_adm, wallet_dir, json):
+def qrl(ctx, verbose, host, port_pub, wallet_dir, json):
     """
     QRL Command Line Interface
     """
@@ -204,46 +204,18 @@ def qrl(ctx, verbose, host, port_pub, port_adm, wallet_dir, json):
 
 @qrl.command()
 @click.pass_context
-@click.option('--use_ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
-def wallet_ls(ctx, use_ledger):
+@click.option('--ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
+def wallet_ls(ctx, ledger):
     """
     Lists available wallets
     """
-    if use_ledger:
-        ledgerqrl.U2FMODE = False
-        try:
-            answer = ledgerqrl.send(INS_VERSION)
-            if answer is None:
-                return
-
-            if answer[0]:
-                print("WARNING! TEST MODE ENABLED")
-            print("Version    : {}.{}.{}".format(answer[1], answer[2], answer[3]))
-
-            answer = ledgerqrl.send(INS_GETSTATE)
-
-            mode = "Unknown"
-            if answer[0] == APPMODE_NOT_INITIALIZED:
-                mode = "not initialized"
-
-            if answer[0] == APPMODE_KEYGEN_RUNNING:
-                mode = "keygen running"
-
-            if answer[0] == APPMODE_READY:
-                mode = "ready"
-
-            print("Mode       : {}".format(mode))
-            print("XMSS Index : {}".format(1 + answer[1] + answer[2] * 256))
-
-            if answer[0] == APPMODE_READY:
-                answer = ledgerqrl.send(INS_PUBLIC_KEY)
-                pk = hexlify(answer).decode()
-                print("Public Key : {}".format(pk))
-                addr = bytes(QRLHelper.getAddress(answer))
-                print("Address    : {}".format(hexlify(addr).decode()))
-        except Exception as e:
-            print(e)
-
+    if ledger:
+        ledger_dev = LedgerQRL()
+        ledger_dev.connect()
+        ledger_dev.print_info()
+        if ledger_dev.pk_raw:
+            addr = bytes(QRLHelper.getAddress(ledger_dev.pk_raw))
+            print("Address    : Q{}".format(hexlify(addr).decode()))
     else:
         wallet = Wallet(wallet_path=ctx.obj.wallet_path)
         _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
@@ -430,130 +402,7 @@ def wallet_decrypt(ctx):
         quit(1)
 
 @qrl.command()
-@click.option('--src', type=str, default='', prompt=True, help='source address or index')
-@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
-@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
-@click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
-@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
-@click.pass_context
-def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
-    """
-    Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
-    """
-    try:
-        _, src_xmss = _select_wallet(ctx, src)
-        if src_xmss:
-            address_src_pk = src_xmss.pk
-        else:
-            address_src_pk = pk.encode()
-
-        addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
-        master_addr = None
-        if master:
-            master_addr = parse_qaddress(master)
-
-        fee_shor = _shorize(fee)
-    except Exception as e:
-        click.echo("Error validating arguments: {}".format(e))
-        quit(1)
-
-    try:
-        tx = TransferTransaction.create(addrs_to=addresses_dst,
-                                        amounts=shor_amounts,
-                                        fee=fee_shor,
-                                        xmss_pk=address_src_pk,
-                                        master_addr=master_addr)
-    except Exception as e:
-        click.echo("Unhandled error: {}".format(str(e)))
-        quit(1)
-
-    txblob = bin2hstr(tx.pbdata.SerializeToString())
-    print(txblob)
-
-
-@qrl.command()
-@click.option('--src', type=str, default='', prompt=True, help='source address or index')
-@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
-@click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
-@click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
-@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee (Quanta)')
-@click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
-@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
-@click.pass_context
-def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, otsidx):
-    """
-    Generates Slave Transaction for the wallet
-    """
-    try:
-        _, src_xmss = _select_wallet(ctx, src)
-        src_xmss.set_ots_index(otsidx)
-        if src_xmss:
-            address_src_pk = src_xmss.pk
-        else:
-            address_src_pk = pk.encode()
-
-        master_addr = parse_qaddress(master)
-        fee_shor = _shorize(fee)
-    except Exception as e:
-        click.echo("Error validating arguments: {}".format(e))
-        quit(1)
-
-    slave_xmss = []
-    slave_pks = []
-    access_types = []
-    slave_xmss_seed = []
-    if number_of_slaves > 100:
-        click.echo("Error: Max Limit for the number of slaves is 100")
-        quit(1)
-
-    for i in range(number_of_slaves):
-        print("Generating Slave #" + str(i + 1))
-        xmss = XMSS.from_height(config.dev.xmss_tree_height)
-        slave_xmss.append(xmss)
-        slave_xmss_seed.append(xmss.extended_seed)
-        slave_pks.append(xmss.pk)
-        access_types.append(access_type)
-        print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
-
-    try:
-        tx = SlaveTransaction.create(slave_pks=slave_pks,
-                                     access_types=access_types,
-                                     fee=fee_shor,
-                                     xmss_pk=address_src_pk,
-                                     master_addr=master_addr)
-        tx.sign(src_xmss)
-        with open('slaves.json', 'w') as f:
-            json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
-        click.echo('Successfully created slaves.json')
-        click.echo('Move slaves.json file from current directory to the mining node inside ~/.qrl/')
-    except Exception as e:
-        click.echo("Unhandled error: {}".format(str(e)))
-        quit(1)
-
-
-@qrl.command()
-@click.option('--src', type=str, default='', prompt=True, help='signing address index (nano for ledger)')
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
-@click.pass_context
-def tx_sign(ctx, src, txblob):
-    """
-    Sign a tx blob
-    """
-    txbin = parse_hexblob(txblob)
-    pbdata = qrl_pb2.Transaction()
-    pbdata.ParseFromString(txbin)
-    tx = Transaction.from_pbdata(pbdata)
-
-    address_src, address_xmss = _select_wallet(ctx, src)
-    tx.sign(address_xmss)
-
-    txblob = bin2hstr(tx.pbdata.SerializeToString())
-    print(txblob)
-
-
-@qrl.command()
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob')
 @click.pass_context
 def tx_inspect(ctx, txblob):
     """
@@ -647,50 +496,109 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
     except Exception as e:
         print("Error {}".format(str(e)))
 
+def base64tohex(data):
+    return hexlify(a2b_base64(data))
+
+def tx_unbase64(tx_json_str):
+    tx_json = json.loads(tx_json_str)
+    tx_json["publicKey"] =  base64tohex(tx_json["publicKey"])
+    tx_json["signature"] =  base64tohex(tx_json["signature"])
+    tx_json["transactionHash"] =  base64tohex(tx_json["transactionHash"])
+    tx_json["transfer"]["addrsTo"] = [base64tohex(v) for v in tx_json["transfer"]["addrsTo"]]
+    return json.dumps(tx_json, indent=True, sort_keys=True)
 
 @qrl.command()
+@click.option('--ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
-@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
-@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
+@click.option('--master', type=str, default='', help='master QRL address')
+@click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.option('--ots_key_index', default=0, help='OTS key Index')
 @click.pass_context
-def tx_transfer(ctx, src, master, dst, amounts, fee, ots_key_index):
+def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
     """
-    Transfer coins from src to dst
+    Transfer coins from src to dsts
     """
+    # TODO: Split and reuse
+
+    address_src_pk = None
+    master_addr = None
+
+    addresses_dst = []
+    shor_amounts = []
+    fee_shor = []
+
     try:
-        _, src_xmss = _select_wallet(ctx, src)
-        if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
-            quit(1)
+        # Retrieve signing object
+        if ledger:
+            print("Using Ledger Nano S")
+        else:
+            selected_wallet = _select_wallet(ctx, src)
+            if selected_wallet is None or len(selected_wallet) != 2:
+                click.echo("A wallet was not found")
+                quit(1)
 
-        address_src_pk = src_xmss.pk
-        src_xmss.set_ots_index(ots_key_index)
+            _, src_xmss = selected_wallet
 
-        addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
-        master_addr = None
+            if not src_xmss:
+                click.echo("A local wallet is required to sign the transaction")
+                quit(1)
+
+            address_src_pk = src_xmss.pk
+
+            if not (1 <= ots_key_index <= src_xmss.number_signatures):
+                ots_key_index = click.prompt('OTS key Index [{}..{}]'.format(1, src_xmss.number_signatures),
+                                             type=int)
+
+            if not (1 <= ots_key_index <= src_xmss.number_signatures):
+                click.echo("OTS key index must be between {} and {} (inclusive)".format(1, src_xmss.number_signatures))
+                quit(1)
+
+            src_xmss.set_ots_index(ots_key_index - 1)
+
+        # Get and validate other inputs
         if master:
             master_addr = parse_qaddress(master)
+
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
     try:
-        stub = ctx.obj.get_stub_public_api()
-
+        # Create transaction
         tx = TransferTransaction.create(addrs_to=addresses_dst,
                                         amounts=shor_amounts,
                                         fee=fee_shor,
                                         xmss_pk=address_src_pk,
                                         master_addr=master_addr)
-        tx.sign(src_xmss)
 
+        # Sign transaction
+        if ledger:
+            # TODO: Sign with ledger
+            pass
+        else:
+            tx.sign(src_xmss)
+
+        # Print result
+        txjson = tx_unbase64(tx.to_json())
+        print(txjson)
+
+        print("\nTransaction Blob (signed): \n")
+        txblob = tx.pbdata.SerializeToString()
+        txblobhex = hexlify(txblob).decode()
+        print(txblobhex)
+
+        # Push transaction
+        print()
+        print("Sending to a QRL Node...")
+        stub = ctx.obj.get_stub_public_api()
         push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
+        # Print result
         print(push_transaction_resp)
     except Exception as e:
         print("Error {}".format(str(e)))
@@ -798,7 +706,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
 
         shor_amounts = []
         for amount in amounts.split(' '):
-            shor_amounts.append(int(float(amount) * (10 ** int(decimals))))
+            shor_amounts.append(Decimal(amount) * (10 ** int(decimals)))
 
         if len(addresses_dst) != len(shor_amounts):
             raise Exception("{} destination addresses specified but only {} amounts given".format(len(addresses_dst),
@@ -836,28 +744,63 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
 
 
 @qrl.command()
-@click.option('--owner', default='', prompt=True, help='source QRL address')
+@click.option('--src', type=str, default='', prompt=True, help='source address or index')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
+@click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
+@click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee (Quanta)')
+@click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
+@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
-def token_list(ctx, owner):
+def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, otsidx):
     """
-    Fetch the list of tokens owned by an address.
+    Generates Slave Transaction for the wallet
     """
     try:
-        owner_address = parse_qaddress(owner)
+        _, src_xmss = _select_wallet(ctx, src)
+        src_xmss.set_ots_index(otsidx)
+        if src_xmss:
+            address_src_pk = src_xmss.pk
+        else:
+            address_src_pk = pk.encode()
+
+        master_addr = parse_qaddress(master)
+        fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
 
-    try:
-        stub = ctx.obj.get_stub_public_api()
-        address_state_req = qrl_pb2.GetAddressStateReq(address=owner_address)
-        address_state_resp = stub.GetAddressState(address_state_req, timeout=CONNECTION_TIMEOUT)
+    slave_xmss = []
+    slave_pks = []
+    access_types = []
+    slave_xmss_seed = []
+    if number_of_slaves > 100:
+        click.echo("Error: Max Limit for the number of slaves is 100")
+        quit(1)
 
-        for token_hash in address_state_resp.state.tokens:
-            click.echo('Hash: %s' % (token_hash,))
-            click.echo('Balance: %s' % (address_state_resp.state.tokens[token_hash],))
+    for i in range(number_of_slaves):
+        print("Generating Slave #" + str(i + 1))
+        xmss = XMSS.from_height(config.dev.xmss_tree_height)
+        slave_xmss.append(xmss)
+        slave_xmss_seed.append(xmss.extended_seed)
+        slave_pks.append(xmss.pk)
+        access_types.append(access_type)
+        print("Successfully Generated Slave %s/%s" % (str(i + 1), number_of_slaves))
+
+    try:
+        tx = SlaveTransaction.create(slave_pks=slave_pks,
+                                     access_types=access_types,
+                                     fee=fee_shor,
+                                     xmss_pk=address_src_pk,
+                                     master_addr=master_addr)
+        tx.sign(src_xmss)
+        with open('slaves.json', 'w') as f:
+            json.dump([bin2hstr(src_xmss.address), slave_xmss_seed, tx.to_json()], f)
+        click.echo('Successfully created slaves.json')
+        click.echo('Move slaves.json file from current directory to the mining node inside ~/.qrl/')
     except Exception as e:
-        print("Error {}".format(str(e)))
+        click.echo("Unhandled error: {}".format(str(e)))
+        quit(1)
 
 
 @qrl.command()
@@ -904,6 +847,31 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
 
         print(push_transaction_resp.error_code)
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+@qrl.command()
+@click.option('--owner', default='', prompt=True, help='source QRL address')
+@click.pass_context
+def token_list(ctx, owner):
+    """
+    Fetch the list of tokens owned by an address.
+    """
+    try:
+        owner_address = parse_qaddress(owner)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
+        quit(1)
+
+    try:
+        stub = ctx.obj.get_stub_public_api()
+        address_state_req = qrl_pb2.GetAddressStateReq(address=owner_address)
+        address_state_resp = stub.GetAddressState(address_state_req, timeout=CONNECTION_TIMEOUT)
+
+        for token_hash in address_state_resp.state.tokens:
+            click.echo('Hash: %s' % (token_hash,))
+            click.echo('Balance: %s' % (address_state_resp.state.tokens[token_hash],))
     except Exception as e:
         print("Error {}".format(str(e)))
 
