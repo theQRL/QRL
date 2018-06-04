@@ -277,9 +277,10 @@ class ChainManager:
             return False
 
         batch = self.state.get_batch()
-        block_flag, _ = self._add_block(block, batch=batch)
+        block_flag, fork_flag = self._add_block(block, batch=batch)
         if block_flag:
-            self.state.write_batch(batch)
+            if not fork_flag:
+                self.state.write_batch(batch)
             logger.info('Added Block #%s %s', block.block_number, bin2hstr(block.headerhash))
             return True
 
