@@ -184,8 +184,7 @@ class ChainManager:
             self.remove_block_from_mainchain(self.last_block, block.block_number, batch)
 
             if fork_state:
-                del fork_state.old_mainchain_hash_path[:]
-                fork_state.old_mainchain_hash_path.extend(hash_path)
+                fork_state.old_mainchain_hash_path.extend([self.last_block.headerhash])
                 self.state.put_fork_state(fork_state, batch)
 
             self.state.write_batch(batch)
@@ -194,36 +193,61 @@ class ChainManager:
 
         return hash_path
 
-    def add_chain(self, hash_path: list, fork_state: qrlstateinfo_pb2.ForkState, batch=None):
+    def add_chain(self, hash_path: list, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
         """
         Add series of blocks whose headerhash mentioned into hash_path
         :param hash_path:
+        :param fork_state:
         :param batch:
         :return:
         """
-        for header_hash in hash_path:
+        start = 0
+        try:
+            start = hash_path.index(self.last_block.headerhash) + 1
+        except ValueError:
+            # Following condition can only be true if the fork recovery was interrupted last time
+            if self.last_block.headerhash in fork_state.old_mainchain_hash_path:
+                return False
+
+        for i in range(start, len(hash_path)):
+            header_hash = hash_path[i]
             block = self.state.get_block(header_hash)
 
             batch = self.state.get_batch()
 
             if not self._apply_block(block, batch):
-                return header_hash
+                return False
 
             self._update_chainstate(block, batch)
 
             self.state.write_batch(batch)
 
-        return None
+        self.state.delete_fork_state()
+
+        return True
 
     def fork_recovery(self, block: Block, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
-        forked_header_hash, hash_path = self.get_fork_point(block)
-        fork_state.fork_point_headerhash = forked_header_hash
-        fork_state.new_mainchain_hash_path.extend(hash_path)
-        self.state.put_fork_state(fork_state)
+        # This condition only becomes true, when fork recovery was interrupted
+        if fork_state.fork_point_headerhash:
+            forked_header_hash, hash_path = fork_state.fork_point_headerhash, fork_state.new_mainchain_hash_path
+        else:
+            forked_header_hash, hash_path = self.get_fork_point(block)
+            fork_state.fork_point_headerhash = forked_header_hash
+            fork_state.new_mainchain_hash_path.extend(hash_path)
+            self.state.put_fork_state(fork_state)
 
-        old_hash_path = self.rollback(forked_header_hash, fork_state)
+        rollback_done = False
+        if fork_state.old_mainchain_hash_path:
+            b = self.state.get_block(fork_state.old_mainchain_hash_path[-1])
+            if b and b.prev_headerhash == fork_state.fork_point_headerhash:
+                rollback_done = True
 
-        if self.add_chain(hash_path[-1::-1], fork_state):
+        if not rollback_done:
+            old_hash_path = self.rollback(forked_header_hash, fork_state)
+        else:
+            old_hash_path = fork_state.old_mainchain_hash_path
+
+        if not self.add_chain(hash_path[-1::-1], fork_state):
             # If above condition is true, then it means, the node failed to add_chain
             # Thus old chain state, must be retrieved
             self.rollback(forked_header_hash)
