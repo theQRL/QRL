@@ -260,149 +260,6 @@ class TestCLI(TestCase):
         the_output = json.loads(result.output)
         self.assertEqual(the_output["info"]["networkId"], "Excession")
 
-    @mock.patch('qrl.cli._select_wallet')
-    def test_tx_prepare(self, mock_wallet):
-        mock_wallet.return_value = (None, get_alice_xmss())
-
-        # Creating a TX to one recipient should work
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(qaddr_1),
-                                     "--dst={}".format(qaddr_2),
-                                     "--amounts=0",
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(0, result.exit_code)
-        self.assertEqual(bin2hstr_unsigned_tx2, result.output.strip())
-
-        # Should also work with --src=Qaddr
-        wallet = open_wallet()
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src={}".format(wallet["addresses"][0]["address"]),
-                                     "--master={}".format(qaddr_1),
-                                     "--dst={}".format(qaddr_2),
-                                     "--amounts=0",
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(bin2hstr_unsigned_tx2, result.output.strip())
-
-    @mock.patch('qrl.cli._select_wallet')
-    def test_tx_prepare_multi(self, mock_wallet):
-        """Creating a TX to multiple recipients should work"""
-        mock_wallet.return_value = (None, get_alice_xmss())
-
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master=",
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(bin2hstr_unsigned_tx, result.output.strip())
-
-    def test_tx_prepare_invalid_input(self):
-        wallet = open_wallet()
-
-        # Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # An invalid src index shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=1",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # An invalid src address shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src={}".format(wallet["addresses"][0]["address"][1:]),
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # A valid src address not in your wallet shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src={}".format(qaddr_1),
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # Is there a fee that's too high?
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=9999999999999999999999999",
-                                     ]
-                                    )
-        self.assertEqual(result.exit_code, 1)
-
-    def test_tx_sign(self):
-        result = self.runner.invoke(qrl_cli, ["tx_sign", "--src=0", "--txblob={}".format(bin2hstr_unsigned_tx)])
-        self.assertEqual(result.exit_code, 0)
-
-        # works with src=Qaddr as well
-        wallet = open_wallet()
-        result = self.runner.invoke(qrl_cli, ["tx_sign", "--src={}".format(wallet["addresses"][0]["address"]),
-                                              "--txblob={}".format(bin2hstr_unsigned_tx)])
-        self.assertEqual(result.exit_code, 0)
-
-    def test_tx_sign_invalid_input(self):
-        # It shouldn't work on invalid txblobs
-        result = self.runner.invoke(qrl_cli, ["tx_sign", "--src=0", "--txblob={}".format(bin2hstr_unsigned_tx[2:])])
-        self.assertNotEqual(result.exit_code, 0)
-
     @mock.patch('qrl.cli.config', autospec=True)
     @mock.patch('qrl.cli.Transaction', autospec=True)
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
@@ -578,23 +435,23 @@ class TestCLI(TestCase):
         wallet = open_wallet()
 
         # Simplest use case
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
         # Should work with src=Qaddress as well
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
+                                    ["tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
                                      "--master=",
-                                     "--dst={}".format(qaddr_1), "--amounts=1", "--fee=0", "--ots_key_index=0"])
+                                     "--dsts={}".format(qaddr_1), "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
         # Master should also work with a Qaddress.
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
-                                     "--master={}".format(qaddr_2), "--dst={}".format(qaddr_1),
+                                    ["tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
+                                     "--master={}".format(qaddr_2), "--dsts={}".format(qaddr_1),
                                      "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
@@ -603,7 +460,7 @@ class TestCLI(TestCase):
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(" ".join(dsts)),
+                                    ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
@@ -631,7 +488,7 @@ class TestCLI(TestCase):
 
         # Simplest use case
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=0"],
                                     input='password\n')
         self.assertEqual(result.exit_code, 0)
@@ -659,7 +516,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         # What if I use a ots_key_index larger than the wallet's tree height?
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=17"])
         self.assertEqual(result.exit_code, 1)
         self.assertIn('Error validating arguments', result.output.strip())
@@ -668,7 +525,7 @@ class TestCLI(TestCase):
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2"]
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(" ".join(dsts)),
+                                    ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 1)
         self.assertIn('dsts and amounts should be the same length', result.output.strip())
@@ -689,7 +546,7 @@ class TestCLI(TestCase):
         owner_address = wallet["addresses"][0]["address"]
         typed_in_input = '\n'.join([owner_address, '100']) + '\n'
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
+                                    ["tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
                                      "--owner={}".format(owner_address), "--decimals=1", "--fee=0",
                                      "--ots_key_index=0"],
                                     input=typed_in_input
@@ -714,7 +571,7 @@ class TestCLI(TestCase):
 
         # Weird token names and symbols shouldn't work
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_token", "--src=0", "--master=",
+                                    ["tx_token", "--src=0", "--master=",
                                      "--symbol=thequickbrownfoxjumpsoverthelazydog",
                                      "--name=Seriouslyimgonnastarttalkingandneverendbecausethatsjusthowidothings can i\
                                       have spaces in here what about |nny characters",
@@ -728,7 +585,7 @@ class TestCLI(TestCase):
         # An outrageous decimal precision shouldn't work either
         # Currently this causes the CLI to hang, as it tries to do 10^1000000000
         # result = self.runner.invoke(qrl_cli,
-        #                             ["-r", "tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
+        #                             ["tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
         #                              "--owner={}".format(owner_address), "--decimals=1000000000", "--fee=0",
         #                              "--ots_key_index=0"],
         #                             input=typed_in_input
@@ -750,8 +607,8 @@ class TestCLI(TestCase):
         txhash = '267d9c6e192c78b192b6e835411d30f7cb605ffe9632d668489c579e4230f3c6'  # from sample tx_token run
 
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfertoken", "--src=0", "--master=",
-                                     "--token_txhash={}".format(txhash), "--dst={}".format(qaddr_1), "--amounts=10",
+                                    ["tx_transfertoken", "--src=0", "--master=",
+                                     "--token_txhash={}".format(txhash), "--dsts={}".format(qaddr_1), "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=0"],
                                     )
         self.assertEqual(result.exit_code, 0)
@@ -773,8 +630,8 @@ class TestCLI(TestCase):
 
         # Invalid txhash shouldn't work.
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfertoken", "--src=0", "--master=",
-                                     "--token_txhash={}".format(txhash[3:]), "--dst={}".format(qaddr_1), "--amounts=10",
+                                    ["tx_transfertoken", "--src=0", "--master=",
+                                     "--token_txhash={}".format(txhash[3:]), "--dsts={}".format(qaddr_1), "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=0"],
                                     )
         self.assertEqual(result.exit_code, 1)
@@ -783,8 +640,8 @@ class TestCLI(TestCase):
         # If decimals is different from the original token_txhash definition, it shouldn't work either.
         # But maybe this is for integration tests.
         # result = self.runner.invoke(qrl_cli,
-        #                             ["-r", "tx_transfertoken", "--src=0", "--master=",
-        #                              "--token_txhash={}".format(txhash), "--dst={}".format(qaddr_1), "--amounts=10",
+        #                             ["tx_transfertoken", "--src=0", "--master=",
+        #                              "--token_txhash={}".format(txhash), "--dsts={}".format(qaddr_1), "--amounts=10",
         #                              "--decimals=999", "--fee=0", "--ots_key_index=0"],
         #                             )
         # self.assertEqual(result.exit_code, 1)
@@ -801,7 +658,7 @@ class TestCLI(TestCase):
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
 
-        result = self.runner.invoke(qrl_cli, ["-r", "token_list", "--owner={}".format(qaddr_1)])
+        result = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(qaddr_1)])
 
         self.assertIn('Hash: {}\nBalance: 10'.format(qaddr_1), result.output)
         self.assertIn('Hash: {}\nBalance: 100'.format(qaddr_2), result.output)
@@ -818,7 +675,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         # Malformed Qaddress should fail!
-        result = self.runner.invoke(qrl_cli, ["-r", "token_list", "--owner={}".format(qaddr_1[:-1])])
+        result = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(qaddr_1[:-1])])
 
         self.assertEqual(result.exit_code, 1)
         self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
@@ -836,7 +693,7 @@ class TestCLI(TestCase):
         dilithium_pk = bin2hstr(Dilithium().getPK())
 
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=",
+                                    ["tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk),
                                      "--fee=0", "--ots_key_index=0"])
         print(result.exit_code)
@@ -858,14 +715,14 @@ class TestCLI(TestCase):
 
         # What if we have malformed kyber pks?
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=",
+                                    ["tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk[1:]), "--dilithium-pk={}".format(dilithium_pk),
                                      "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, -1)
 
         # What if we have malformed dilithium pks?
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=",
+                                    ["tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk[1:]),
                                      "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, -1)

@@ -606,6 +606,10 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
         txjson = tx_unbase64(tx.to_json())
         print(txjson)
 
+        if not tx.validate():
+            print("It was not possible to validate the signature")
+            quit(1)
+
         print("\nTransaction Blob (signed): \n")
         txblob = tx.pbdata.SerializeToString()
         txblobhex = hexlify(txblob).decode()
