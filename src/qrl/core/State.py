@@ -70,8 +70,8 @@ class State:
 
     def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
         try:
-            json_data = self._db.get_raw(b'metadata_' + header_hash)
-            return BlockMetadata.deserialize(json_data)
+            data = self._db.get_raw(b'metadata_' + header_hash)
+            return BlockMetadata.deserialize(data)
         except KeyError:
             logger.debug('[get_block_metadata] Block header_hash %s not found',
                          b'metadata_' + bin2hstr(header_hash).encode())
@@ -88,9 +88,9 @@ class State:
 
     def get_block_number_mapping(self, block_number: int) -> Optional[qrl_pb2.BlockNumberMapping]:
         try:
-            json_data = self._db.get_raw(str(block_number).encode())
+            data = self._db.get_raw(str(block_number).encode())
             block_number_mapping = qrl_pb2.BlockNumberMapping()
-            return Parse(json_data, block_number_mapping)
+            return Parse(data, block_number_mapping)
         except KeyError:
             logger.debug('[get_block_number_mapping] Block #%s not found', block_number)
         except Exception as e:
@@ -214,8 +214,8 @@ class State:
 
     def get_token_metadata(self, token_txhash: bytes):
         try:
-            json_data = self._db.get_raw(b'token_' + token_txhash)
-            return TokenMetadata.deserialize(json_data)
+            data = self._db.get_raw(b'token_' + token_txhash)
+            return TokenMetadata.deserialize(data)
         except KeyError:
             pass
         except Exception as e:
