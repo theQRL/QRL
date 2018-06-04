@@ -94,6 +94,10 @@ class ChainManager:
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
+            fork_state = self.state.get_fork_state()
+            if fork_state:
+                block = self.state.get_block(fork_state.initiator_headerhash)
+                self.fork_recovery(block, fork_state)
 
     def _apply_block(self, block: Block, batch=None) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
