@@ -15,7 +15,7 @@ from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Transaction import Transaction, CoinBase
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
-from qrl.generated import qrl_pb2
+from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 
 
 class ChainManager:
@@ -105,33 +105,36 @@ class ChainManager:
 
     def _update_chainstate(self, block: Block, batch=None):
         self.last_block = block
-        self._update_mainchain(block, batch)
+        self._update_block_number_mapping(block, batch)
         self.tx_pool.remove_tx_in_block_from_pool(block)
         self.state.update_mainchain_height(block.block_number, batch)
         self.state.update_tx_metadata(block, batch)
 
-    def _try_branch_add_block(self, block, batch=None) -> bool:
+    def _try_branch_add_block(self, block, batch=None) -> (bool, bool):
         if self.last_block.headerhash == block.prev_headerhash:
             if not self._apply_block(block):
-                return False
+                return False, False
 
-        self.state.put_block(block, None)
-        self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
+        self.state.put_block(block, batch)
 
         last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
-        new_block_metadata = self.state.get_block_metadata(block.headerhash)
         last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
+
+        new_block_metadata = self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
         new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
 
         if new_block_difficulty > last_block_difficulty:
             if self.last_block.headerhash != block.prev_headerhash:
-                self.fork_recovery(block)
+                fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=block.headerhash)
+                self.state.put_fork_state(fork_state, batch)
+                self.state.write_batch(batch)
+                return self.fork_recovery(block, fork_state), True
 
             self._update_chainstate(block, batch)
             self.tx_pool.check_stale_txn(block.block_number)
             self.trigger_miner = True
 
-        return True
+        return True, False
 
     def remove_block_from_mainchain(self, block: Block, latest_block_number: int, batch):
         addresses_set = self.state.prepare_address_list(block)
@@ -146,28 +149,27 @@ class ChainManager:
         self.state.remove_blocknumber_mapping(block.block_number, batch)
         self.state.put_addresses_state(addresses_state, batch)
 
-    def get_fork_point(self, header_hash: bytes):
-        forked_header_hash = header_hash
-
+    def get_fork_point(self, block: Block):
+        tmp_block = block
         hash_path = []
         while True:
-            block = self.state.get_block(forked_header_hash)
             if not block:
-                raise Exception('[get_state] No Block Found %s, Initiator %s', forked_header_hash, header_hash)
+                raise Exception('[get_state] No Block Found %s, Initiator %s', block.headerhash, tmp_block.headerhash)
             mainchain_block = self.get_block_by_number(block.block_number)
             if mainchain_block and mainchain_block.headerhash == block.headerhash:
                 break
             if block.block_number == 0:
-                raise Exception('[get_state] Alternate chain genesis is different, Initiator %s', forked_header_hash)
-            hash_path.append(forked_header_hash)
-            forked_header_hash = block.prev_headerhash
+                raise Exception('[get_state] Alternate chain genesis is different, Initiator %s', tmp_block.headerhash)
+            hash_path.append(block.headerhash)
+            block = self.state.get_block(block.prev_headerhash)
 
-        return forked_header_hash, hash_path
+        return block.headerhash, hash_path
 
-    def rollback(self, forked_header_hash: bytes):
+    def rollback(self, forked_header_hash: bytes, fork_state: qrlstateinfo_pb2.ForkState=None):
         """
         Rollback from last block to the block just before the forked_header_hash
         :param forked_header_hash:
+        :param fork_state:
         :return:
         """
         hash_path = []
@@ -177,12 +179,22 @@ class ChainManager:
             if block.headerhash == mainchain_block.headerhash:
                 break
             hash_path.append(self.last_block.headerhash)
-            self.remove_block_from_mainchain(self.last_block, block.block_number, None)
+
+            batch = self.state.get_batch()
+            self.remove_block_from_mainchain(self.last_block, block.block_number, batch)
+
+            if fork_state:
+                del fork_state.old_mainchain_hash_path[:]
+                fork_state.old_mainchain_hash_path.extend(hash_path)
+                self.state.put_fork_state(fork_state, batch)
+
+            self.state.write_batch(batch)
+
             self.last_block = self.state.get_block(self.last_block.prev_headerhash)
 
         return hash_path
 
-    def add_chain(self, hash_path, batch=None):
+    def add_chain(self, hash_path: list, fork_state: qrlstateinfo_pb2.ForkState, batch=None):
         """
         Add series of blocks whose headerhash mentioned into hash_path
         :param hash_path:
@@ -191,38 +203,45 @@ class ChainManager:
         """
         for header_hash in hash_path:
             block = self.state.get_block(header_hash)
+
+            batch = self.state.get_batch()
+
             if not self._apply_block(block, batch):
                 return header_hash
 
             self._update_chainstate(block, batch)
 
+            self.state.write_batch(batch)
+
         return None
 
-    def fork_recovery(self, block: Block):
-        forked_header_hash, hash_path = self.get_fork_point(block.headerhash)
-        old_hash_path = self.rollback(forked_header_hash)
+    def fork_recovery(self, block: Block, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        forked_header_hash, hash_path = self.get_fork_point(block)
+        fork_state.fork_point_headerhash = forked_header_hash
+        fork_state.new_mainchain_hash_path.extend(hash_path)
+        self.state.put_fork_state(fork_state)
 
-        if self.add_chain(hash_path[-1::-1]):
+        old_hash_path = self.rollback(forked_header_hash, fork_state)
+
+        if self.add_chain(hash_path[-1::-1], fork_state):
             # If above condition is true, then it means, the node failed to add_chain
             # Thus old chain state, must be retrieved
             self.rollback(forked_header_hash)
             self.add_chain(old_hash_path[-1::-1])  # Restores the old chain state
-            return
+            return False
 
         self.trigger_miner = True
+        return True
 
-    def _add_block(self, block, batch=None):
+    def _add_block(self, block, batch=None) -> (bool, bool):
         self.trigger_miner = False
 
         block_size_limit = self.state.get_block_size_limit(block)
         if block_size_limit and block.size > block_size_limit:
             logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
-            return False
+            return False, False
 
-        if self._try_branch_add_block(block, batch):
-            return True
-
-        return False
+        return self._try_branch_add_block(block, batch)
 
     def add_block(self, block: Block) -> bool:
         if block.block_number < self.height - config.dev.reorg_limit:
@@ -230,7 +249,8 @@ class ChainManager:
             return False
 
         batch = self.state.get_batch()
-        if self._add_block(block, batch=batch):
+        block_flag, _ = self._add_block(block, batch=batch)
+        if block_flag:
             self.state.write_batch(batch)
             logger.info('Added Block #%s %s', block.block_number, bin2hstr(block.headerhash))
             return True
@@ -269,17 +289,12 @@ class ChainManager:
         self.state.put_block_metadata(parent_headerhash, parent_metadata, batch)
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
-        # Call once to populate the cache
-        self.state.get_block_datapoint(headerhash)
+        return block_metadata
 
-    def _update_mainchain(self, block, batch):
-        block_number_mapping = None
-        while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
-            block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
-                                                              prev_headerhash=block.prev_headerhash)
-            self.state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
-            block = self.state.get_block(block.prev_headerhash)
-            block_number_mapping = self.state.get_block_number_mapping(block.block_number)
+    def _update_block_number_mapping(self, block, batch):
+        block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
+                                                          prev_headerhash=block.prev_headerhash)
+        self.state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
 
     def get_block_by_number(self, block_number) -> Optional[Block]:
         return self.state.get_block_by_number(block_number)

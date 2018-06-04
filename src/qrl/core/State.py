@@ -19,7 +19,7 @@ from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.AddressState import AddressState
 from qrl.core.LastTransactions import LastTransactions
 from qrl.core.TransactionMetadata import TransactionMetadata
-from qrl.generated import qrl_pb2
+from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 
 
 class State:
@@ -427,6 +427,22 @@ class State:
 
     def delete(self, key, batch):
         self._db.delete(key, batch)
+
+    def put_fork_state(self, fork_state: qrlstateinfo_pb2.ForkState, batch=None):
+        self._db.put_raw(b'fork_state', fork_state.SerializeToString(), batch)
+
+    def get_fork_state(self) -> Optional[qrlstateinfo_pb2.ForkState]:
+        try:
+            data = self._db.get_raw(b'fork_state')
+            fork_state = qrlstateinfo_pb2.ForkState()
+            fork_state.ParseFromString(bytes(data))
+            return fork_state
+        except KeyError:
+            return None
+        except Exception as e:
+            logger.error('Exception in get_fork_state')
+            logger.exception(e)
+            raise
 
     @functools.lru_cache(maxsize=config.dev.block_timeseries_size + 50)
     def get_block_datapoint(self, headerhash):
