@@ -79,7 +79,7 @@ class ChainManager:
 
             addresses_state[coinbase_tx.addr_to] = AddressState.get_default(coinbase_tx.addr_to)
 
-            if not coinbase_tx.validate_extended():
+            if not coinbase_tx.validate_extended(genesis_block.block_number):
                 return False
 
             coinbase_tx.apply_state_changes(addresses_state)
