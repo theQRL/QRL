@@ -375,7 +375,7 @@ class QRLNode:
     def get_latest_blocks(self, offset, count) -> List[Block]:
         answer = []
         end = self.block_height - offset
-        start = max(0, end - count - offset)
+        start = max(0, end - count + offset)
         for blk_idx in range(start, end + 1):
             answer.append(self._chain_manager.get_block_by_number(blk_idx))
 
