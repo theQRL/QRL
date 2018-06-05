@@ -120,7 +120,7 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
     def GetMessageTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetMessageTxn")
-        tx = self.qrlnode.create_message_txn(message=request.message,
+        tx = self.qrlnode.create_message_txn(message_hash=request.message,
                                              fee=request.fee,
                                              xmss_pk=request.xmss_pk,
                                              master_addr=request.master_addr)

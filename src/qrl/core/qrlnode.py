@@ -217,11 +217,11 @@ class QRLNode:
     ####################################################
 
     @staticmethod
-    def create_message_txn(message: bytes,
+    def create_message_txn(message_hash: bytes,
                            fee: int,
                            xmss_pk: bytes,
                            master_addr: bytes):
-        return MessageTransaction.create(message_hash=message,
+        return MessageTransaction.create(message_hash=message_hash,
                                          fee=fee,
                                          xmss_pk=xmss_pk,
                                          master_addr=master_addr)
