@@ -185,7 +185,7 @@ class BlockHeader(object):
             return config.dev.supplied_coins
         return int(block_reward(block_number))
 
-    def validate(self, fee_reward, coinbase_amount):
+    def validate(self, fee_reward, coinbase_amount, tx_merkle_root):
         current_time = ntp.getTime()
         allowed_timestamp = current_time + config.dev.block_lead_timestamp
         if self.timestamp > allowed_timestamp:
@@ -218,6 +218,10 @@ class BlockHeader(object):
 
         if self.timestamp == 0 and self.block_number > 0:
             logger.warning('Invalid block timestamp ')
+            return False
+
+        if self.tx_merkle_root != tx_merkle_root:
+            logger.warning('Invalid TX Merkle Root')
             return False
 
         return True

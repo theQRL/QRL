@@ -200,14 +200,20 @@ class Block(object):
             coinbase_txn = Transaction.from_pbdata(self.transactions[0])
             coinbase_amount = coinbase_txn.amount
 
-            if not coinbase_txn.validate_extended():
+            if not coinbase_txn.validate_extended(self.block_number):
                 return False
 
         except Exception as e:
             logger.warning('Exception %s', e)
             return False
 
-        if not self.blockheader.validate(fee_reward, coinbase_amount):
+        hashedtransactions = []
+
+        for tx in self.transactions:
+            tx = Transaction.from_pbdata(tx)
+            hashedtransactions.append(tx.txhash)
+
+        if not self.blockheader.validate(fee_reward, coinbase_amount, merkle_tx_hash(hashedtransactions)):
             return False
 
         return True
@@ -215,7 +221,7 @@ class Block(object):
     def apply_state_changes(self, address_txn) -> bool:
         coinbase_tx = Transaction.from_pbdata(self.transactions[0])
 
-        if not coinbase_tx.validate_extended():
+        if not coinbase_tx.validate_extended(self.block_number):
             logger.warning('Coinbase transaction failed')
             return False
 

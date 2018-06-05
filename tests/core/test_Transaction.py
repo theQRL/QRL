@@ -993,16 +993,16 @@ class TestCoinBase(TestCase):
         tx = CoinBase.create(self.amount, self.alice.address, self.mock_blockheader.block_number)
         tx._data.master_addr = self.alice.address
 
-        result = tx.validate_extended()
+        result = tx.validate_extended(self.mock_blockheader.block_number)
         self.assertFalse(result)
 
         tx._data.master_addr = config.dev.coinbase_address
         with patch('qrl.core.Transaction.CoinBase.addr_to', new_callable=PropertyMock) as m_addr_to:
             m_addr_to.return_value = b'Fake Address'
-            result = tx.validate_extended()
+            result = tx.validate_extended(self.mock_blockheader.block_number)
             self.assertFalse(result)
 
-        result = tx.validate_extended()
+        result = tx.validate_extended(self.mock_blockheader.block_number)
         self.assertTrue(result)
 
     def test_apply_state_changes(self, m_logger):
