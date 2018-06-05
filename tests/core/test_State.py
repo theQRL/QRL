@@ -20,7 +20,9 @@ from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss, get_token_transaction, get_some_address
+
+from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss, get_token_transaction, get_some_address, \
+    replacement_getTime
 
 logger.initialize_default()
 
@@ -69,6 +71,7 @@ def gen_blocks(block_count, state, miner_address):
     return blocks
 
 
+@mock.patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestState(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestState, self).__init__(*args, **kwargs)
@@ -378,7 +381,7 @@ class TestState(TestCase):
                 tmp_json = state.get_block_metadata(b'block_headerhash2').to_json()
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}' \
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
 
                 self.assertEqual(tmp_json, expected_json)
 

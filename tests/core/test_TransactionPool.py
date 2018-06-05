@@ -22,6 +22,7 @@ def replacement_from_pbdata(protobuf_tx):
     return protobuf_tx
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestTransactionPool(TestCase):
     """
     TransactionPool sits between incoming Transactions from the network and Blocks.
@@ -251,6 +252,7 @@ class TestTransactionPool(TestCase):
         self.assertEqual(m_broadcast_tx.call_count, 2)
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
     """
     Up until 4096 (max_ots_tracking_index), the state of each OTS index USED/UNUSED is stored in a bitfield.
@@ -264,7 +266,9 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
     Of course, 4098 and 4099 also have to be deleted.
     """
 
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def setUp(self):
+
         self.txpool = TransactionPool(None)
 
         self.tx_3907 = make_tx(name='Mock TX 3907', txhash=b'h3907', ots_key=3907)

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
-
+from mock import patch
 from pyqrllib.pyqrllib import sha2_256
 
 from tests.misc.helper import get_alice_xmss
@@ -10,9 +10,12 @@ from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
 
+from tests.misc.helper import replacement_getTime
+
 logger.initialize_default()
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestBlock(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBlock, self).__init__(*args, **kwargs)
@@ -20,7 +23,7 @@ class TestBlock(TestCase):
     def test_init(self):
         # TODO: Not much going on here..
         block = Block()
-        self.assertIsNotNone(block)             # just to avoid warnings
+        self.assertIsNotNone(block)  # just to avoid warnings
 
     def test_verify_blob(self):
         alice_xmss = get_alice_xmss()

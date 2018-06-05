@@ -5,7 +5,7 @@ import heapq
 from unittest import TestCase
 
 from grpc import ServicerContext, StatusCode
-from mock import Mock, MagicMock
+from mock import Mock, MagicMock, patch
 from pyqrllib.pyqrllib import str2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
@@ -23,11 +23,12 @@ from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from tests.misc.helper import get_alice_xmss, get_bob_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, replacement_getTime
 
 logger.initialize_default()
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestPublicAPI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestPublicAPI, self).__init__(*args, **kwargs)
