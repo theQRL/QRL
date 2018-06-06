@@ -9,6 +9,8 @@ from tests.misc.helper import get_alice_xmss
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
+from qrl.core.Transaction import Transaction, CoinBase
+from qrl.crypto.misc import merkle_tx_hash
 
 logger.initialize_default()
 
@@ -67,3 +69,20 @@ class TestBlock(TestCase):
         self.assertEqual(block.blockheader.mining_nonce, current_mining_nonce)
         self.assertEqual(block.headerhash, current_headerhash)
         self.assertEqual(block.blockheader.mining_blob, mining_blob)
+
+    def test_update_mining_address(self):
+        alice_xmss = get_alice_xmss()
+        bob_xmss = get_bob_xmss()
+        block = Block.create(block_number=5,
+                             prev_block_headerhash=bytes(sha2_256(b'test')),
+                             prev_block_timestamp=10,
+                             transactions=[],
+                             miner_address=alice_xmss.address)
+        block.update_mining_address(mining_address=bob_xmss.address)
+        coinbase_tx = Transaction.from_pbdata(block.transactions[0])
+        self.assertTrue(isinstance(coinbase_tx, CoinBase))
+        self.assertEqual(coinbase_tx.addr_to, bob_xmss.address)
+        hashedtransactions = []
+        for tx in block.transactions:
+            hashedtransactions.append(tx.transaction_hash)
+        self.assertEqual(block.blockheader.tx_merkle_root, merkle_tx_hash(hashedtransactions))
