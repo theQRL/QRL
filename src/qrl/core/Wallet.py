@@ -154,12 +154,13 @@ class Wallet:
         """
         num_items = len(self._address_items)
 
-        try:
-            for i in range(num_items):
-                self._get_xmss_by_index_no_cache(i)
-        except Exception as e:
-            logger.warning(e)
-            return False
+        if not self.encrypted:
+            try:
+                for i in range(num_items):
+                    self._get_xmss_by_index_no_cache(i)
+            except Exception as e:
+                logger.warning(e)
+                return False
 
         return True
 
