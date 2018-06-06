@@ -18,11 +18,19 @@ AddressItem = namedtuple('AddressItem',
                          'qaddress pk hexseed mnemonic height hashFunction signatureType index encrypted')
 
 
-class WalletEncryptionError(Exception):
+class WalletException(Exception):
     pass
 
 
-class WalletVersionError(Exception):
+class WalletEncryptionError(WalletException):
+    pass
+
+
+class WalletDecryptionError(WalletException):
+    pass
+
+
+class WalletVersionError(WalletException):
     pass
 
 
@@ -72,6 +80,14 @@ class Wallet:
 
     @functools.lru_cache(maxsize=20)
     def get_xmss_by_index(self, idx) -> Optional[XMSS]:
+        """
+        Generates an XMSS tree based on the information contained in the wallet
+        :param idx: The index of the address item
+        :return: An XMSS tree object
+        """
+        return self._get_xmss_by_index_no_cache(idx)
+
+    def _get_xmss_by_index_no_cache(self, idx) -> Optional[XMSS]:
         """
         Generates an XMSS tree based on the information contained in the wallet
         :param idx: The index of the address item
@@ -136,6 +152,16 @@ class Wallet:
         is time consuming
         :return: True if valid
         """
+        num_items = len(self._address_items)
+
+        if not self.encrypted:
+            try:
+                for i in range(num_items):
+                    self._get_xmss_by_index_no_cache(i)
+            except Exception as e:
+                logger.warning(e)
+                return False
+
         return True
 
     def _read_wallet_ver0(self, filename) -> None:
@@ -169,6 +195,9 @@ class Wallet:
             return
 
     def save_wallet(self, filename):
+        if not self.verify_wallet():
+            raise WalletException("Could not be saved. Invalid wallet.")
+
         with open(filename, "wb") as outfile:
             address_items_asdict = [a._asdict() for a in self._address_items]
             for a in address_items_asdict:
@@ -208,7 +237,7 @@ class Wallet:
         tmp['encrypted'] = True
         self._address_items[index] = AddressItem(**tmp)
 
-    def decrypt(self, key: str):
+    def decrypt(self, password: str):
         if self.encrypted_partially:
             raise WalletEncryptionError("Some addresses are already decrypted. Please re-encrypt all addresses before"
                                         "running decrypt().")
@@ -222,8 +251,14 @@ class Wallet:
         else:
             raise WalletVersionError("Wallet.decrypt() can only decrypt wallet.jsons of version 0/1")
 
-        for i in range(len(self._address_items)):
-            decryptor(i, key)
+        try:
+            for i in range(len(self._address_items)):
+                decryptor(i, password)
+        except:
+            raise WalletDecryptionError("Error during decryption. Likely due to invalid password")
+
+        if not self.verify_wallet():
+            raise WalletDecryptionError("Decrypted wallet is not valid. Likely due to invalid password")
 
     def encrypt(self, key: str):
         if self.encrypted_partially:
