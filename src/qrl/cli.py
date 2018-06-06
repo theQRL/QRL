@@ -432,7 +432,7 @@ def wallet_decrypt(ctx):
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     click.echo('Decrypting wallet at {}'.format(wallet.wallet_path))
 
-    secret = click.prompt('Enter password', hide_input=True, confirmation_prompt=True)
+    secret = click.prompt('Enter password', hide_input=True)
     wallet.decrypt(secret)
     wallet.save()
 
