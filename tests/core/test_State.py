@@ -85,22 +85,6 @@ class TestState(TestCase):
             with State() as state:
                 self.assertIsNotNone(state)  # to avoid warning (unused variable)
 
-    def test_set_block_pos(self):
-        with set_qrl_dir('no_data'):
-            with State() as state:
-                block_number = 123
-
-                block_position = 234
-                block_size = 345
-
-                state._db.put('block_{}'.format(block_number), [block_position, block_size])
-
-                pos_size = state._db.get('block_{}'.format(block_number))
-                read_position, read_size = pos_size
-
-                self.assertEqual(block_position, read_position)
-                self.assertEqual(block_size, read_size)
-
     def test_get_address_state(self):
         with set_qrl_dir('no_data'):
             with State() as state:
@@ -205,7 +189,7 @@ class TestState(TestCase):
                 token_metadata = TokenMetadata.create(token_txhash,
                                                       [bytes(sha2_256(b'delta')),
                                                        bytes(sha2_256(b'gamma'))])
-                state._db.get_raw = MagicMock(return_value=token_metadata.to_json())
+                state._db.get_raw = MagicMock(return_value=token_metadata.serialize())
                 self.assertEqual(state.get_token_metadata(token_txhash).to_json(),
                                  token_metadata.to_json())
 
@@ -355,7 +339,7 @@ class TestState(TestCase):
                 block = Block()
                 state.put_block(block, None)
                 block1 = state.get_block(block.headerhash)
-                self.assertEqual(block.to_json(), block1.to_json())
+                self.assertEqual(block.serialize(), block1.serialize())
                 state.delete(block.headerhash, None)
                 self.assertIsNone(state.get_block(block.headerhash))
 
@@ -369,7 +353,7 @@ class TestState(TestCase):
     def test_put_block_metadata(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                block_metadata = BlockMetadata.create(False)
+                block_metadata = BlockMetadata.create()
                 block_metadata.update_last_headerhashes([b'test1', b'test2'], b'test3')
 
                 state.put_block_metadata(b'block_headerhash', block_metadata, None)
@@ -379,8 +363,7 @@ class TestState(TestCase):
                                  block_metadata.to_json())
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"isOrphan": true\n}'
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
 
                 self.assertEqual(state.get_block_metadata(b'block_headerhash2').to_json(),
                                  expected_json)
@@ -394,8 +377,7 @@ class TestState(TestCase):
                 tmp_json = state.get_block_metadata(b'block_headerhash2').to_json()
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"isOrphan": true\n}'
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}' \
 
                 self.assertEqual(tmp_json, expected_json)
 
@@ -478,19 +460,6 @@ class TestState(TestCase):
                     self.assertEqual(datapoint.timestamp, 1615270947 + i)
                     self.assertEqual(datapoint.header_hash, blocks[i].headerhash)
                     self.assertEqual(datapoint.header_hash_prev, blocks[i - 1].headerhash)
-
-    def test_get_state(self):
-        alice_xmss = get_alice_xmss()
-        number_of_blocks = 10
-        alice_balances = [0, 6656349462, 13312697815, 19969045061, 26625391199,
-                          33281736229, 39938080152, 46594422967, 53250764674, 59907105274]
-
-        with MockedBlockchain.create(number_of_blocks, alice_xmss.address) as mock_blockchain:
-            state = mock_blockchain.qrlnode._chain_manager.state
-            for i in range(number_of_blocks):
-                block = mock_blockchain.qrlnode.get_block_from_index(i)
-                addresses_state, _, _ = state.get_state(block.headerhash, {alice_xmss.address, })
-                self.assertEqual(addresses_state[alice_xmss.address].balance, alice_balances[i])
 
     def test_put_block_number_mapping(self):
         with set_qrl_dir('no_data'):

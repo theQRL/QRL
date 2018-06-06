@@ -38,12 +38,12 @@ class PublicAPIService(PublicAPIServicer):
 
     @GrpcExceptionWrapper(qrl_pb2.GetNodeStateResp)
     def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
-        return qrl_pb2.GetNodeStateResp(info=self.qrlnode.getNodeInfo())
+        return qrl_pb2.GetNodeStateResp(info=self.qrlnode.get_node_info())
 
     @GrpcExceptionWrapper(qrl_pb2.GetKnownPeersResp)
     def GetKnownPeers(self, request: qrl_pb2.GetKnownPeersReq, context) -> qrl_pb2.GetKnownPeersResp:
         response = qrl_pb2.GetKnownPeersResp()
-        response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
+        response.node_info.CopyFrom(self.qrlnode.get_node_info())
         response.known_peers.extend([qrl_pb2.Peer(ip=p) for p in self.qrlnode.peer_addresses])
 
         return response
@@ -51,7 +51,7 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetStatsResp)
     def GetStats(self, request: qrl_pb2.GetStatsReq, context) -> qrl_pb2.GetStatsResp:
         response = qrl_pb2.GetStatsResp()
-        response.node_info.CopyFrom(self.qrlnode.getNodeInfo())
+        response.node_info.CopyFrom(self.qrlnode.get_node_info())
 
         response.epoch = self.qrlnode.epoch
         response.uptime_network = self.qrlnode.uptime_network
@@ -236,6 +236,8 @@ class PublicAPIService(PublicAPIServicer):
                 query_str = query.decode()
                 query_index = int(query_str)
                 block = self.qrlnode.get_block_from_index(query_index)
+                if not block:
+                    return answer
 
             answer.found = True
             block_extended = qrl_pb2.BlockExtended()

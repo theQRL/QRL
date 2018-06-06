@@ -148,7 +148,7 @@ class Transaction(object, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def _apply_state_changes_for_PK(self, addresses_state):
+    def _apply_state_changes_for_PK(self, addresses_state: dict):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.addr_from != addr_from_pk:
@@ -272,6 +272,16 @@ class Transaction(object, metaclass=ABCMeta):
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data, sort_keys=True)
 
+    def serialize(self) -> str:
+        return self._data.SerializeToString()
+
+    @staticmethod
+    def deserialize(data):
+        pbdata = qrl_pb2.Transaction()
+        pbdata.ParseFromString(bytes(data))
+        tx = Transaction(pbdata)
+        return tx
+
 
 class TransferTransaction(Transaction):
     """
@@ -336,8 +346,7 @@ class TransferTransaction(Transaction):
         if self.fee < 0:
             raise ValueError('TransferTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
 
-        if (len(self.addrs_to) > config.dev.transaction_multi_output_limit or
-                len(self.addrs_to) > config.dev.transaction_multi_output_limit):
+        if len(self.addrs_to) > config.dev.transaction_multi_output_limit:
             logger.warning('[TransferTransaction] Number of addresses exceeds max limit')
             logger.warning('Number of addresses %s', len(self.addrs_to))
             logger.warning('Number of amounts %s', len(self.amounts))
@@ -466,7 +475,7 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self):
+    def validate_extended(self, block_number: int):
         if self.master_addr != config.dev.coinbase_address:
             logger.warning('Master address doesnt match with coinbase_address')
             logger.warning('%s %s', self.master_addr, config.dev.coinbase_address)
@@ -474,6 +483,10 @@ class CoinBase(Transaction):
 
         if not (AddressState.address_is_valid(self.master_addr) and AddressState.address_is_valid(self.addr_to)):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.master_addr, self.addr_to)
+            return False
+
+        if self.nonce != block_number + 1:
+            logger.warning('Nonce %s doesnt match with block_number %s', self.nonce, block_number)
             return False
 
         return self._validate_custom()
@@ -766,7 +779,7 @@ class TokenTransaction(Transaction):
         sum_of_initial_balances = 0
         for initial_balance in self.initial_balances:
             sum_of_initial_balances += initial_balance.amount
-            if initial_balance.amount == 0:
+            if initial_balance.amount <= 0:
                 logger.warning('Invalid Initial Amount in Token Transaction')
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
@@ -781,13 +794,6 @@ class TokenTransaction(Transaction):
 
         if self.fee < 0:
             raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
-
-        for initial_balance in self._data.token.initial_balances:
-            if initial_balance.amount <= 0:
-                raise ValueError('TokenTransaction [%s] Invalid Amount = %s for address %s',
-                                 bin2hstr(self.txhash),
-                                 initial_balance.amount,
-                                 initial_balance.address)
 
         return True
 

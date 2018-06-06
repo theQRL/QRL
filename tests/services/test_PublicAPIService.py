@@ -36,7 +36,7 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
-        p2p_factory.connections = 23
+        p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
 
         chain_manager = Mock(spec=ChainManager)
@@ -60,7 +60,7 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
-        p2p_factory.connections = 23
+        p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
 
         chain_manager = Mock(spec=ChainManager)
@@ -90,7 +90,7 @@ class TestPublicAPI(TestCase):
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
-        p2p_factory.connections = 23
+        p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
 
         chain_manager = Mock(spec=ChainManager)
@@ -363,7 +363,7 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
-        p2p_factory.connections = 23
+        p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
 
         chain_manager = Mock(spec=ChainManager)
@@ -386,7 +386,7 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
-        p2p_factory.connections = 23
+        p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
 
         chain_manager = Mock(spec=ChainManager)

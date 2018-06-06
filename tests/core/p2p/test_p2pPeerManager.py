@@ -13,6 +13,7 @@ from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 from pyqryptonight.pyqryptonight import StringToUInt256
+from tests.misc.helper import replacement_getTime
 
 
 def make_channel(name=''):
@@ -27,10 +28,6 @@ def make_node_chain_state():
                                               cumulative_difficulty=b'0' * 32,
                                               timestamp=int(time.time()))
     return node_chain_state
-
-
-def replacement_getTime():
-    return int(time.time())
 
 
 # Some functions have logger patched out, so that tests are not too noisy when unexpected things happen.
@@ -198,7 +195,7 @@ class TestP2PPeerManager(TestCase):
                                                                           genesis_prev_hash=config.dev.genesis_prev_headerhash,
                                                                           rate_limit=config.user.peer_rate_limit))
         self.peer_manager.handle_version(channel, message)
-        channel.factory.ban_peer.assert_not_called()
+        channel.peer_manager.ban_peer.assert_not_called()
         channel.loseConnection.assert_not_called()
 
     def test_handle_version_empty_version_message(self):
@@ -339,8 +336,6 @@ class TestP2PPeerManager(TestCase):
 
         self.peer_manager.handle_sync(channel, sync_message)
 
-        channel.factory.set_peer_synced.assert_called_once_with(channel, True)
-
     def test_handle_sync_unsynced(self):
         """
         If the message says anything else: the peer is unsynced.
@@ -350,8 +345,6 @@ class TestP2PPeerManager(TestCase):
         channel = make_channel()
 
         self.peer_manager.handle_sync(channel, sync_message)
-
-        channel.factory.set_peer_synced.assert_not_called()
 
     def test_handle_sync_blank(self):
         """
@@ -365,13 +358,11 @@ class TestP2PPeerManager(TestCase):
         channel.factory.synced = False
         self.peer_manager.handle_sync(channel, sync_message)
         channel.send_sync.assert_not_called()
-        channel.factory.set_peer_synced.assert_not_called()
 
         # If we are synced, then we can tell other nodes we are synced.
         channel.factory.synced = True
         self.peer_manager.handle_sync(channel, sync_message)
         channel.send_sync.assert_called_once_with(synced=True)
-        channel.factory.set_peer_synced.assert_called_once_with(channel, False)
 
     def test_monitor_chain_state_works(self):
         """
@@ -393,7 +384,8 @@ class TestP2PPeerManager(TestCase):
         After a certain time period, the information is considered stale and the channel will be disconnected.
         """
         channel_1 = self.populate_peer_manager()[0]
-        self.peer_manager._peer_node_status[channel_1].timestamp = int(time.time()) - config.user.chain_state_timeout - 1
+        self.peer_manager._peer_node_status[channel_1].timestamp = int(
+            time.time()) - config.user.chain_state_timeout - 1
 
         self.peer_manager.monitor_chain_state()
 
@@ -430,7 +422,8 @@ class TestP2PPeerManager(TestCase):
 
         self.assertEqual(self.peer_manager._peer_node_status[channel].block_number, chain_state_data.block_number)
         self.assertEqual(self.peer_manager._peer_node_status[channel].header_hash, chain_state_data.header_hash)
-        self.assertEqual(self.peer_manager._peer_node_status[channel].cumulative_difficulty, chain_state_data.cumulative_difficulty)
+        self.assertEqual(self.peer_manager._peer_node_status[channel].cumulative_difficulty,
+                         chain_state_data.cumulative_difficulty)
 
     def test_handle_p2p_acknowledgement(self):
         """

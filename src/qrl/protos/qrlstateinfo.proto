@@ -1,0 +1,26 @@
+// Distributed under the MIT software license, see the accompanying
+// file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+syntax = "proto3";
+
+package qrl;
+
+import "qrl.proto";
+
+message TransactionMetadata {
+    Transaction transaction = 1;
+    uint64 block_number = 2;
+    uint64 timestamp = 3;
+}
+
+message LastTransactions {
+    repeated TransactionMetadata tx_metadata = 1;
+}
+
+message ForkState {
+    bytes initiator_headerhash = 1;  // Stores the headerhash of the block initiated the fork recovery
+    bytes fork_point_headerhash = 2; // Stores the headerhash of the block after which forked happened
+    repeated bytes old_mainchain_hash_path = 3; // Stores the hash path of old main chain which needs to be played
+                                                // if the fork recovery fails
+    repeated bytes new_mainchain_hash_path = 4; // Alternate chain hash path which is eligible to become mainchain
+}

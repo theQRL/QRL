@@ -145,6 +145,8 @@ class BlockHeader(object):
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
+        else:
+            bh._data.timestamp_seconds = prev_block_timestamp  # Set timestamp for genesis block
 
         bh._data.hash_header_prev = prev_block_headerhash
         bh._data.merkle_root = hashedtransactions
@@ -183,7 +185,7 @@ class BlockHeader(object):
             return config.dev.supplied_coins
         return int(block_reward(block_number))
 
-    def validate(self, fee_reward, coinbase_amount):
+    def validate(self, fee_reward, coinbase_amount, tx_merkle_root):
         current_time = ntp.getTime()
         allowed_timestamp = current_time + config.dev.block_lead_timestamp
         if self.timestamp > allowed_timestamp:
@@ -216,6 +218,10 @@ class BlockHeader(object):
 
         if self.timestamp == 0 and self.block_number > 0:
             logger.warning('Invalid block timestamp ')
+            return False
+
+        if self.tx_merkle_root != tx_merkle_root:
+            logger.warning('Invalid TX Merkle Root')
             return False
 
         return True
