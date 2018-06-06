@@ -199,6 +199,18 @@ class TestCLI(TestCase):
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
+    def test_wallet_secret_encrypt_decrypt_wrong(self):
+        wallet = open_wallet()
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
+        self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
+
+        result = self.runner.invoke(qrl_cli, ["wallet_decrypt"], input='wrong_password\nwrong_password\n')
+        self.assertEquals(1, result.exit_code)
+        # TODO: Add appropriate error matching
+
     def test_wallet_secret_invalid_input(self):
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"])
         self.assertEqual(result.output.strip(), 'Wallet index not found')

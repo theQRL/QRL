@@ -265,6 +265,22 @@ class TestWallet(TestCase):
             self.assertEqual(addresses, wallet.addresses)
             self.assertFalse(wallet.encrypted_partially)
 
+    def test_decrypt_wallet_wrong(self):
+        with set_qrl_dir("no_data"):
+            wallet = Wallet()
+            wallet.add_new_address(height=4)
+            wallet.add_new_address(height=4)
+            addresses = wallet.addresses
+
+            TEST_KEY = 'mytestkey'
+            wallet.encrypt(TEST_KEY)
+            self.assertTrue(wallet.encrypted)
+
+            TEST_KEY = 'mytestkey_is_wrong'
+            wallet.decrypt(TEST_KEY)
+            self.assertEqual(addresses, wallet.addresses)
+            self.assertFalse(wallet.encrypted_partially)
+
     def test_encrypt_save_reload(self):
         with set_qrl_dir("no_data"):
             wallet = Wallet()

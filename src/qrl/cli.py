@@ -13,7 +13,7 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 from qrl.core import config
 from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, LatticePublicKey, \
     TransferTransaction, MessageTransaction, SlaveTransaction
-from qrl.core.Wallet import Wallet
+from qrl.core.Wallet import Wallet, WalletDecryptionError
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
@@ -433,9 +433,21 @@ def wallet_decrypt(ctx):
     click.echo('Decrypting wallet at {}'.format(wallet.wallet_path))
 
     secret = click.prompt('Enter password', hide_input=True)
-    wallet.decrypt(secret)
-    wallet.save()
 
+    try:
+        wallet.decrypt(secret)
+    except WalletDecryptionError as e:
+        click.echo(str(e))
+        quit(1)
+    except Exception as e:
+        click.echo(str(e))
+        quit(1)
+
+    try:
+        wallet.save()
+    except Exception as e:
+        click.echo(str(e))
+        quit(1)
 
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='source address or index')
