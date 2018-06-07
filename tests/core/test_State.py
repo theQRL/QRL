@@ -332,7 +332,7 @@ class TestState(TestCase):
 
                 # Test Case, when count_headerhashes is greater than config.dev.N_measurement
                 self.assertEqual(measurement,
-                                 (100000 - 90000) // 250)
+                                 (100000 - 90000) // config.dev.N_measurement)
 
     def test_delete(self):
         with set_qrl_dir('no_data'):
