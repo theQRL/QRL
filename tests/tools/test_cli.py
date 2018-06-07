@@ -436,7 +436,7 @@ class TestCLI(TestCase):
 
         # Simplest use case
         result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
-                                              "--amounts=1", "--fee=0", "--ots_key_index=0"])
+                                              "--amounts=1", "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
@@ -444,7 +444,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
                                      "--master=",
-                                     "--dsts={}".format(qaddr_1), "--amounts=1", "--fee=0", "--ots_key_index=0"])
+                                     "--dsts={}".format(qaddr_1), "--amounts=1", "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
@@ -461,7 +461,7 @@ class TestCLI(TestCase):
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli,
                                     ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
@@ -489,7 +489,7 @@ class TestCLI(TestCase):
         # Simplest use case
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
         result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
-                                              "--amounts=1", "--fee=0", "--ots_key_index=0"],
+                                              "--amounts=1", "--fee=0", "--ots_key_index=1"],
                                     input='password\n')
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
@@ -526,7 +526,7 @@ class TestCLI(TestCase):
         amounts = ["1", "2"]
         result = self.runner.invoke(qrl_cli,
                                     ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 1)
         self.assertIn('dsts and amounts should be the same length', result.output.strip())
 
@@ -548,7 +548,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
                                      "--owner={}".format(owner_address), "--decimals=1", "--fee=0",
-                                     "--ots_key_index=0"],
+                                     "--ots_key_index=1"],
                                     input=typed_in_input
                                     )
         self.assertIn('This was a test', result.output)
@@ -576,7 +576,7 @@ class TestCLI(TestCase):
                                      "--name=Seriouslyimgonnastarttalkingandneverendbecausethatsjusthowidothings can i\
                                       have spaces in here what about |nny characters",
                                      "--owner={}".format(owner_address), "--decimals=1", "--fee=0",
-                                     "--ots_key_index=0"],
+                                     "--ots_key_index=1"],
                                     input=typed_in_input
                                     )
         self.assertEqual(result.exit_code, 1)
@@ -609,7 +609,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_transfertoken", "--src=0", "--master=",
                                      "--token_txhash={}".format(txhash), "--dsts={}".format(qaddr_1), "--amounts=10",
-                                     "--decimals=10", "--fee=0", "--ots_key_index=0"],
+                                     "--decimals=10", "--fee=0", "--ots_key_index=1"],
                                     )
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.output.strip(), 'This was a test')
@@ -632,7 +632,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_transfertoken", "--src=0", "--master=",
                                      "--token_txhash={}".format(txhash[3:]), "--dsts={}".format(qaddr_1), "--amounts=10",
-                                     "--decimals=10", "--fee=0", "--ots_key_index=0"],
+                                     "--decimals=10", "--fee=0", "--ots_key_index=1"],
                                     )
         self.assertEqual(result.exit_code, 1)
         self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
@@ -642,7 +642,7 @@ class TestCLI(TestCase):
         # result = self.runner.invoke(qrl_cli,
         #                             ["tx_transfertoken", "--src=0", "--master=",
         #                              "--token_txhash={}".format(txhash), "--dsts={}".format(qaddr_1), "--amounts=10",
-        #                              "--decimals=999", "--fee=0", "--ots_key_index=0"],
+        #                              "--decimals=999", "--fee=0", "--ots_key_index=1"],
         #                             )
         # self.assertEqual(result.exit_code, 1)
         # self.assertNotIn('This was a test', result.output.strip())
@@ -695,7 +695,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk),
-                                     "--fee=0", "--ots_key_index=0"])
+                                     "--fee=0", "--ots_key_index=1"])
         print(result.exit_code)
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.output.strip(), '3')
@@ -717,12 +717,12 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk[1:]), "--dilithium-pk={}".format(dilithium_pk),
-                                     "--fee=0", "--ots_key_index=0"])
+                                     "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, -1)
 
         # What if we have malformed dilithium pks?
         result = self.runner.invoke(qrl_cli,
                                     ["tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk[1:]),
-                                     "--fee=0", "--ots_key_index=0"])
+                                     "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, -1)

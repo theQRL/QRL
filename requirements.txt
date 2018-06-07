@@ -19,4 +19,5 @@ Flask==0.12.2
 json-rpc==1.10.8
 cryptography
 mock>=2.0.0
-pyledgerqrl
+pyledgerqrl>=0.4.0
+

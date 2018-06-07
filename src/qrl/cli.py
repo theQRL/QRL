@@ -8,12 +8,11 @@ from typing import List
 import click
 import grpc
 import simplejson as json
-from pyledgerqrl import ledgerqrl
 from pyledgerqrl.ledgerqrl import *
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 
 from qrl.core.Transaction import *
-from qrl.core.Wallet import Wallet
+from qrl.core.Wallet import Wallet, WalletDecryptionError
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
@@ -77,6 +76,26 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
     return msg
 
 
+def validate_ots_index(ots_key_index, src_xmss, prompt=True):
+    while not (1 <= ots_key_index <= src_xmss.number_signatures):
+        if prompt:
+            ots_key_index = click.prompt('OTS key Index [{}..{}]'.format(1, src_xmss.number_signatures), type=int)
+            prompt = False
+        else:
+            click.echo("OTS key index must be between {} and {} (inclusive)".format(1, src_xmss.number_signatures))
+            quit(1)
+
+    return ots_key_index
+
+
+def get_item_from_wallet(wallet, wallet_idx):
+    if 1 <= wallet_idx <= len(wallet.address_items):
+        return wallet.address_items[wallet_idx - 1]
+
+    click.echo('Wallet index not found', color='yellow')
+    return None
+
+
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
     def _normal(wallet):
         return "{:<8}{:<83}{:<13}".format(wallet['number'], wallet['address'], wallet['balance'])
@@ -113,12 +132,12 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 
 def _public_get_address_balance(ctx, address):
     stub = ctx.obj.get_stub_public_api()
-    getAddressStateReq = qrl_pb2.GetAddressStateReq(address=parse_qaddress(address))
-    getAddressStateResp = stub.GetAddressState(getAddressStateReq, timeout=CONNECTION_TIMEOUT)
-    return getAddressStateResp.state.balance
+    get_address_state_req = qrl_pb2.GetAddressStateReq(address=parse_qaddress(address))
+    get_address_state_resp = stub.GetAddressState(get_address_state_req, timeout=CONNECTION_TIMEOUT)
+    return get_address_state_resp.state.balance
 
 
-def _select_wallet(ctx, src):
+def _select_wallet(ctx, address_or_index):
     try:
         wallet = Wallet(wallet_path=ctx.obj.wallet_path)
         if not wallet.addresses:
@@ -129,32 +148,30 @@ def _select_wallet(ctx, src):
             secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
             wallet.decrypt(secret)
 
-        if src.isdigit():
-            src = int(src)
-            try:
+        if address_or_index.isdigit():
+            address_or_index = int(address_or_index)
+            addr_item = get_item_from_wallet(wallet, address_or_index)
+            if addr_item:
                 # FIXME: This should only return pk and index
-                xmss = wallet.get_xmss_by_index(src)
-                return wallet.addresses[src], xmss
-            except IndexError:
-                click.echo('Wallet index not found', color='yellow')
-                quit(1)
+                xmss = wallet.get_xmss_by_index(address_or_index)
+                return wallet.addresses[address_or_index], xmss
 
-        elif src.startswith('Q'):
+        elif address_or_index.startswith('Q'):
             for i, addr_item in enumerate(wallet.address_items):
-                if src == addr_item.qaddress:
+                if address_or_index == addr_item.qaddress:
                     xmss = wallet.get_xmss_by_address(wallet.addresses[i])
                     return wallet.addresses[i], xmss
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return parse_qaddress(src), None
+        return parse_qaddress(address_or_index), None
     except Exception as e:
         click.echo("Error selecting wallet")
         quit(1)
 
 
 def _shorize(x: Decimal) -> int:
-    return int(x * int(config.dev.shor_per_quanta))
+    return Decimal(x * Decimal(config.dev.shor_per_quanta)).to_integral_value()
 
 
 def _parse_dsts_amounts(addresses: str, amounts: str):
@@ -165,16 +182,12 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
     :param amounts:
     :return:
     """
-    addresses_split = []
-    for addr in addresses.split(' '):
-        addresses_split.append(parse_qaddress(addr))
-
-    shor_amounts = []
-    for amount in amounts.split(' '):
-        shor_amounts.append(_shorize(Decimal(amount)))
+    addresses_split = [parse_qaddress(addr) for addr in addresses.split(' ')]
+    shor_amounts = [_shorize(Decimal(amount)) for amount in amounts.split(' ')]
 
     if len(addresses_split) != len(shor_amounts):
         raise Exception("dsts and amounts should be the same length")
+
     return addresses_split, shor_amounts
 
 
@@ -257,6 +270,7 @@ def wallet_add(ctx, height, hash_function):
     """
     Adds an address or generates a new wallet (working directory)
     """
+    secret = None
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
     wallet_was_encrypted = wallet.encrypted
     if wallet.encrypted:
@@ -297,25 +311,25 @@ def wallet_recover(ctx, seed_type):
             return
         bin_seed = hstr2bin(seed)
 
-    walletObj = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
 
     recovered_xmss = XMSS.from_extended_seed(bin_seed)
     print('Recovered Wallet Address : %s' % (Wallet._get_Qaddress(recovered_xmss.address),))
-    for addr in walletObj.address_items:
+    for addr in wallet.address_items:
         if recovered_xmss.qaddress == addr.qaddress:
             print('Wallet Address is already in the wallet list')
             return
 
     if click.confirm('Do you want to save the recovered wallet?'):
         click.echo('Saving...')
-        walletObj.append_xmss(recovered_xmss)
-        walletObj.save()
+        wallet.append_xmss(recovered_xmss)
+        wallet.save()
         click.echo('Done')
-        _print_addresses(ctx, walletObj.address_items, config.user.wallet_dir)
+        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
 @qrl.command()
-@click.option('--wallet-idx', default=0, prompt=True)
+@click.option('--wallet-idx', default=1, prompt=True)
 @click.pass_context
 def wallet_secret(ctx, wallet_idx):
     """
@@ -326,13 +340,11 @@ def wallet_secret(ctx, wallet_idx):
         secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
         wallet.decrypt(secret)
 
-    if 0 <= wallet_idx < len(wallet.address_items):
-        address_item = wallet.address_items[wallet_idx]
-        click.echo('Wallet Address  : %s' % (address_item.qaddress))
-        click.echo('Mnemonic        : %s' % (address_item.mnemonic))
-        click.echo('Hexseed         : %s' % (address_item.hexseed))
-    else:
-        click.echo('Wallet index not found', color='yellow')
+    address_item = get_item_from_wallet(wallet, wallet_idx)
+    if address_item:
+        click.echo('Wallet Address  : {}'.format(address_item.qaddress))
+        click.echo('Mnemonic        : {}'.format(address_item.mnemonic))
+        click.echo('Hexseed         : {}'.format(address_item.hexseed))
 
 
 @qrl.command()
@@ -351,20 +363,19 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
     """
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
 
-    if 0 <= wallet_idx < len(wallet.address_items):
-        addr_item = wallet.address_items[wallet_idx]
+    address_item = get_item_from_wallet(wallet, wallet_idx)
+
+    if address_item:
         if not skip_confirmation:
             click.echo(
-                'You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, addr_item.qaddress))
+                'You are about to remove address [{0}]: {1} from the wallet.'.format(wallet_idx, address_item.qaddress))
             click.echo(
                 'Warning! By continuing, you risk complete loss of access to this address if you do not have a '
                 'recovery Mnemonic/Hexseed.')
             click.confirm('Do you want to continue?', abort=True)
-        wallet.remove(addr_item.qaddress)
+        wallet.remove(address_item.qaddress)
 
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
-    else:
-        click.echo('Wallet index not found', color='yellow')
 
 
 @qrl.command()
@@ -400,6 +411,7 @@ def wallet_decrypt(ctx):
     except Exception as e:
         click.echo(str(e))
         quit(1)
+
 
 @qrl.command()
 @click.option('--txblob', type=str, default='', prompt=True, help='transaction blob')
@@ -458,7 +470,7 @@ def tx_push(ctx, txblob):
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--message', type=str, prompt=True, help='Message (max 80 bytes)')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
 def tx_message(ctx, src, master, message, fee, ots_key_index):
     """
@@ -471,7 +483,9 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
             quit(1)
 
         address_src_pk = src_xmss.pk
-        src_xmss.set_ots_index(ots_key_index)
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index - 1)
 
         message = message.encode()
 
@@ -517,7 +531,7 @@ def tx_unbase64(tx_json_str):
 @click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=0, help='OTS key Index')
+@click.option('--ots_key_index', default=1, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
 def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
     """
@@ -570,15 +584,9 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
 
             address_src_pk = src_xmss.pk
 
-            if not (1 <= ots_key_index <= src_xmss.number_signatures):
-                ots_key_index = click.prompt('OTS key Index [{}..{}]'.format(1, src_xmss.number_signatures),
-                                             type=int)
-
-            if not (1 <= ots_key_index <= src_xmss.number_signatures):
-                click.echo("OTS key index must be between {} and {} (inclusive)".format(1, src_xmss.number_signatures))
-                quit(1)
-
+            ots_key_index = validate_ots_index(ots_key_index, src_xmss)
             src_xmss.set_ots_index(ots_key_index - 1)
+
             signing_object = src_xmss
 
         # Get and validate other inputs
@@ -636,7 +644,7 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
 @click.option('--owner', default='', prompt=True, help='Owner QRL address')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
 def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index):
     """
@@ -660,7 +668,10 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
             quit(1)
 
         address_src_pk = src_xmss.pk
-        src_xmss.set_ots_index(int(ots_key_index))
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index - 1)
+
         address_owner = parse_qaddress(owner)
         master_addr = None
         if master_addr:
@@ -709,7 +720,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
 def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee, ots_key_index):
     """
@@ -723,7 +734,10 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
             quit(1)
 
         address_src_pk = src_xmss.pk
-        src_xmss.set_ots_index(int(ots_key_index))
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index - 1)
+
         addresses_dst = []
         for addr in dst.split(' '):
             addresses_dst.append(parse_qaddress(addr))
@@ -774,15 +788,18 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
 @click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
-@click.option('--otsidx', default=0, prompt=False, help='OTS index (when local wallet is missing)')
+@click.option('--otsidx', default=1, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
-def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, otsidx):
+def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, ots_key_index):
     """
     Generates Slave Transaction for the wallet
     """
     try:
         _, src_xmss = _select_wallet(ctx, src)
-        src_xmss.set_ots_index(otsidx)
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index - 1)
+
         if src_xmss:
             address_src_pk = src_xmss.pk
         else:
@@ -833,7 +850,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 @click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
 @click.option('--dilithium-pk', default='', prompt=True, help='dilithium public key')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=0, prompt=True, help='OTS key Index')
+@click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
 def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
     """
@@ -846,7 +863,10 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
             quit(1)
 
         address_src_pk = src_xmss.pk
-        src_xmss.set_ots_index(ots_key_index)
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index - 1)
+
         kyber_pk = kyber_pk.encode()
         dilithium_pk = dilithium_pk.encode()
         master_addr = None
