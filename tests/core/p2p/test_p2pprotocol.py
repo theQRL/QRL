@@ -157,7 +157,7 @@ class TestP2PProtocol(TestCase):
         getTime.return_value = self.channel.connected_at + 20
         self.assertFalse(self.channel.trusted)
 
-        for _ in range(config.dev.trust_min_msgcount-1):
+        for _ in range(config.dev.trust_min_msgcount - 1):
             buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
             self.channel.dataReceived(buffer)
             self.assertFalse(self.channel.trusted)

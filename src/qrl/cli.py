@@ -454,6 +454,7 @@ def wallet_decrypt(ctx):
         click.echo(str(e))
         quit(1)
 
+
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='source address or index')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')

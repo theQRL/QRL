@@ -254,8 +254,8 @@ class Wallet:
         try:
             for i in range(len(self._address_items)):
                 decryptor(i, password)
-        except:
-            raise WalletDecryptionError("Error during decryption. Likely due to invalid password")
+        except Exception as e:
+            raise WalletDecryptionError("Error during decryption. Likely due to invalid password: " + str(e))
 
         if not self.verify_wallet():
             raise WalletDecryptionError("Decrypted wallet is not valid. Likely due to invalid password")

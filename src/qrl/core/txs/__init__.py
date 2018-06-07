@@ -18,5 +18,5 @@ def build_tx(pb_tx_type, *args, **kwargs):
         tx_class = getattr(tx_module, tx_class_name)
         return tx_class(*args, **kwargs)
 
-    except(AttributeError, ModuleNotFoundError) as e:
+    except(AttributeError, ModuleNotFoundError) as e:  # noqa
         raise ImportError("{} is not defined as a transaction type".format(pb_tx_type))
