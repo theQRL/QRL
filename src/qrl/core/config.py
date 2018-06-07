@@ -166,7 +166,7 @@ class DevConfig(object):
         DevConfig.__instance = self
 
         self.version = version
-        self.genesis_prev_headerhash = b'Outside Context Problem'
+        self.genesis_prev_headerhash = b'Thirst of Quantas'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -225,7 +225,7 @@ class DevConfig(object):
         self.trust_min_msgcount = 10
         self.trust_min_conntime = 10
 
-        self.genesis_timestamp = 1524928900
+        self.genesis_timestamp = 1528402558
 
         self.supplied_coins = 65000000 * (10 ** 9)
 
@@ -244,7 +244,7 @@ class DevConfig(object):
         # ======================================
         #       DIFFICULTY CONTROLLER
         # ======================================
-        self.N_measurement = 250
+        self.N_measurement = 30
         self.kp = 5
 
         # ======================================
