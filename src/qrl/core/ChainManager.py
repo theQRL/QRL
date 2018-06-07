@@ -12,7 +12,8 @@ from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Transaction import Transaction, CoinBase
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2, qrlstateinfo_pb2

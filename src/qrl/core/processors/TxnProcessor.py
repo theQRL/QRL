@@ -5,7 +5,7 @@ from twisted.internet.task import cooperate
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.misc import logger
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.TransactionPool import TransactionPool
 
 from qrl.core.State import State

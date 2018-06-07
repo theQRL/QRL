@@ -7,7 +7,7 @@ from pyqrllib.pyqrllib import hstr2bin, QRLHelper
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
-from qrl.core.Transaction import Transaction, CODEMAP
+from qrl.core.txs.Transaction import Transaction, CODEMAP
 from qrl.core.misc import logger
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrl_pb2

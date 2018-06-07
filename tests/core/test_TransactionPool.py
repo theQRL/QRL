@@ -6,7 +6,8 @@ from mock import Mock, patch
 
 from qrl.core.misc import logger
 from qrl.core.Block import Block
-from qrl.core.Transaction import TransferTransaction, CoinBase
+from qrl.core.txs.CoinBase import CoinBase
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionPool import TransactionPool
 from tests.misc.helper import replacement_getTime
 

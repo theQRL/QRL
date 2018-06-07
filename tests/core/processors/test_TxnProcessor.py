@@ -8,7 +8,7 @@ from qrl.core.misc import logger
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.State import State
 from qrl.core.AddressState import AddressState
-from qrl.core.Transaction import TransferTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionPool import TransactionPool
 from tests.misc.helper import replacement_getTime
 from qrl.core.p2p.p2pfactory import P2PFactory

@@ -10,8 +10,14 @@ from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.BlockHeader import BlockHeader
-from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, TokenTransaction, \
-    TransferTokenTransaction, MessageTransaction, SlaveTransaction, LatticePublicKey
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.CoinBase import CoinBase
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionInfo import TransactionInfo
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2

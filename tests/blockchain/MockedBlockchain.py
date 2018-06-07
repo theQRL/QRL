@@ -12,7 +12,7 @@ from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
-from qrl.core.Transaction import SlaveTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.qrlnode import QRLNode
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_qrl_dir
 
