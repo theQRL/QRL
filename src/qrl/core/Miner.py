@@ -14,7 +14,7 @@ from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
 from qrl.core.TransactionPool import TransactionPool
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.misc import logger
 
 

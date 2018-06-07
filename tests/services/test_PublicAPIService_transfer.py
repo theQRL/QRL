@@ -8,7 +8,7 @@ from mock import Mock
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core.ChainManager import ChainManager
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.State import State
 from qrl.core.misc import logger
 from qrl.core.node import POW

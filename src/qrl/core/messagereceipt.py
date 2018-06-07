@@ -9,7 +9,7 @@ from typing import Optional
 from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
-from qrl.core.Transaction import CoinBase
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.generated import qrllegacy_pb2
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 

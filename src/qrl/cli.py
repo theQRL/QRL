@@ -11,7 +11,14 @@ import simplejson as json
 from pyledgerqrl.ledgerqrl import *
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
 
-from qrl.core.Transaction import *
+from qrl.core import config
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.Wallet import Wallet, WalletDecryptionError
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
 from qrl.crypto.xmss import XMSS, hash_functions

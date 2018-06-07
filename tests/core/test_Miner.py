@@ -6,7 +6,7 @@ from qrl.core.node import POW
 from qrl.core.State import State
 from qrl.core.Block import Block
 from qrl.core.p2p.p2pfactory import P2PFactory
-from qrl.core.Transaction import CoinBase
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc.helper import parse_qaddress
 from pyqryptonight.pyqryptonight import StringToUInt256

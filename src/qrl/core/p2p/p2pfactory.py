@@ -16,8 +16,12 @@ from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
-from qrl.core.Transaction import TransferTransaction, MessageTransaction, TokenTransaction, TransferTokenTransaction, \
-    LatticePublicKey, SlaveTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2p.p2pprotocol import P2PProtocol

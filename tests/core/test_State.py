@@ -13,12 +13,13 @@ from qrl.core.AddressState import AddressState
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.misc import logger
 from qrl.core.State import State
-from qrl.core.Transaction import Transaction, TransferTransaction, TransferTokenTransaction
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.generated import qrl_pb2
-from tests.blockchain.MockedBlockchain import MockedBlockchain
 from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
 
 logger.initialize_default()
