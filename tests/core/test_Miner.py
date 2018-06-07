@@ -116,7 +116,7 @@ class TestMiner(TestCase):
 
         self.assertEqual(difficulty, 1)  # because self.miner._current_difficulty was set above
         self.assertEqual(blob,
-                         '00cd3fa2359b82fe564bb20a41b16556ca591d10dde86838a75f0be4aa82a0c09638c0313924c1000000000000000000000000bdb655cfe5d1f2959e0783ff2b84eb9e91c3da2d4be0e89d3a')  # noqa
+                         '00cd3fa2359b82fe564bb20a41b16556ca591d10dde86838a75f0be4aa82a0c09638c0313924c10000000000000000000000000000000000bdb655cfe5d1f2959e0783ff2b84eb9e91c3da2d')  # noqa
 
     def test_get_block_to_mine_not_mining_upon_last_block(self, m_getTime, m_logger):
         """
@@ -135,7 +135,7 @@ class TestMiner(TestCase):
 
         self.assertEqual(difficulty, 1)  # because self.miner._current_difficulty was set above
         self.assertEqual(blob,
-                         '00cd3fa2359b82fe564bb20a41b16556ca591d10dde86838a75f0be4aa82a0c09638c0313924c1000000000000000000000000bdb655cfe5d1f2959e0783ff2b84eb9e91c3da2d4be0e89d3a')  # noqa
+                         '00cd3fa2359b82fe564bb20a41b16556ca591d10dde86838a75f0be4aa82a0c09638c0313924c10000000000000000000000000000000000bdb655cfe5d1f2959e0783ff2b84eb9e91c3da2d')  # noqa
 
     def test_get_block_to_mine_perfect_block_no_changes(self, m_getTime, m_logger):
         """
