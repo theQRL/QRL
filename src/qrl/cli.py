@@ -153,8 +153,8 @@ def _select_wallet(ctx, address_or_index):
             addr_item = get_item_from_wallet(wallet, address_or_index)
             if addr_item:
                 # FIXME: This should only return pk and index
-                xmss = wallet.get_xmss_by_index(address_or_index)
-                return wallet.addresses[address_or_index], xmss
+                xmss = wallet.get_xmss_by_index(address_or_index - 1)
+                return wallet.addresses[address_or_index - 1], xmss
 
         elif address_or_index.startswith('Q'):
             for i, addr_item in enumerate(wallet.address_items):
@@ -167,14 +167,15 @@ def _select_wallet(ctx, address_or_index):
         return parse_qaddress(address_or_index), None
     except Exception as e:
         click.echo("Error selecting wallet")
+        click.echo(str(e))
         quit(1)
 
 
 def _shorize(x: Decimal) -> int:
-    return Decimal(x * Decimal(config.dev.shor_per_quanta)).to_integral_value()
+    return int(Decimal(x * Decimal(config.dev.shor_per_quanta)).to_integral_value())
 
 
-def _parse_dsts_amounts(addresses: str, amounts: str):
+def _parse_dsts_amounts(addresses: str, amounts: str, decimals: int = 0):
     """
     'Qaddr1 Qaddr2...' -> [\\xcx3\\xc2, \\xc2d\\xc3]
     '10 10' -> [10e9, 10e9] (in shor)
@@ -182,8 +183,10 @@ def _parse_dsts_amounts(addresses: str, amounts: str):
     :param amounts:
     :return:
     """
+    multiplier = Decimal(10 ** int(decimals))
+
     addresses_split = [parse_qaddress(addr) for addr in addresses.split(' ')]
-    shor_amounts = [_shorize(Decimal(amount)) for amount in amounts.split(' ')]
+    shor_amounts = [_shorize(Decimal(amount) * multiplier) for amount in amounts.split(' ')]
 
     if len(addresses_split) != len(shor_amounts):
         raise Exception("dsts and amounts should be the same length")
@@ -537,8 +540,6 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
     """
     Transfer coins from src to dsts
     """
-    # TODO: Split and reuse
-
     address_src_pk = None
     master_addr = None
 
@@ -716,13 +717,13 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 @click.option('--src', type=str, default='', prompt=True, help='source QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
-@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
+@click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
 @click.option('--decimals', default=0, prompt=True, help='decimals')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
-def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee, ots_key_index):
+def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fee, ots_key_index):
     """
     Create Transfer Token Transaction, which moves tokens from src to dst.
     """
@@ -738,17 +739,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
         src_xmss.set_ots_index(ots_key_index - 1)
 
-        addresses_dst = []
-        for addr in dst.split(' '):
-            addresses_dst.append(parse_qaddress(addr))
-
-        shor_amounts = []
-        for amount in amounts.split(' '):
-            shor_amounts.append(Decimal(amount) * (10 ** int(decimals)))
-
-        if len(addresses_dst) != len(shor_amounts):
-            raise Exception("{} destination addresses specified but only {} amounts given".format(len(addresses_dst),
-                                                                                                  len(shor_amounts)))
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, decimals)
 
         bin_token_txhash = parse_hexblob(token_txhash)
         master_addr = None
@@ -788,7 +779,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dst, amounts, decimals, fee
 @click.option('--access_type', default=0, type=int, prompt=True, help='0 - All Permission, 1 - Only Mining Permission')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee (Quanta)')
 @click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
-@click.option('--otsidx', default=1, prompt=False, help='OTS index (when local wallet is missing)')
+@click.option('--ots_key_index', default=1, prompt=False, help='OTS index (when local wallet is missing)')
 @click.pass_context
 def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, ots_key_index):
     """

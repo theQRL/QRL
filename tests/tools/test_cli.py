@@ -1,22 +1,21 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, mock, skip, expectedFailure
-from click.testing import CliRunner
 import json
 import os
-import tempfile
 import shutil
+import tempfile
+from unittest import TestCase, mock, skip, expectedFailure
 
-from pyqrllib.kyber import Kyber
+from click.testing import CliRunner
 from pyqrllib.dilithium import Dilithium
+from pyqrllib.kyber import Kyber
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.cli import qrl as qrl_cli
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
-from tests.misc.helper import get_alice_xmss
 
 logger.initialize_default()
 
@@ -186,7 +185,7 @@ class TestCLI(TestCase):
 
     def test_wallet_secret(self):
         wallet = open_wallet()
-        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"])
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"])
         self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
@@ -194,7 +193,7 @@ class TestCLI(TestCase):
     def test_wallet_secret_encrypted(self):
         wallet = open_wallet()
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
-        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"], input='password\npassword\n')
         self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
@@ -202,7 +201,7 @@ class TestCLI(TestCase):
     def test_wallet_secret_encrypt_decrypt_wrong(self):
         wallet = open_wallet()
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
-        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"], input='password\npassword\n')
         self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
@@ -212,29 +211,29 @@ class TestCLI(TestCase):
         # TODO: Add appropriate error matching
 
     def test_wallet_secret_invalid_input(self):
-        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"])
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=2"])
         self.assertEqual(result.output.strip(), 'Wallet index not found')
 
     def test_wallet_rm(self):
         self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
         wallet = open_wallet()
-        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=1", "--skip-confirmation"], input='y\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=2", "--skip-confirmation"], input='y\n')
         self.assertNotIn(wallet["addresses"][1]["address"], result.output)
-        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=0"], input='y\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=1"], input='y\n')
         self.assertIn("No wallet found", result.output)
 
     def test_wallet_rm_invalid_input(self):
-        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=1", "--skip-confirmation"], input='y\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=2", "--skip-confirmation"], input='y\n')
         self.assertEqual(result.output.strip(), 'Wallet index not found')
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_state(self, mock_stub):
-        m_nodeStateResp_serialized_to_string = b'\n/\n\x160.61.3+ngbd52b1a.dirty\x10\x03\x18\x02 D(\xa7\x010\x83!B\tExcession'
-        m_nodeStateResp = qrl_pb2.GetNodeStateResp()
-        m_nodeStateResp.ParseFromString(m_nodeStateResp_serialized_to_string)
+        m_node_state_resp_serialized_to_string = b'\n/\n\x160.61.3+ngbd52b1a.dirty\x10\x03\x18\x02 D(\xa7\x010\x83!B\tExcession'
+        m_node_state_resp = qrl_pb2.GetNodeStateResp()
+        m_node_state_resp.ParseFromString(m_node_state_resp_serialized_to_string)
 
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.GetNodeState.return_value = m_nodeStateResp
+        mock_stub_instance.GetNodeState.return_value = m_node_state_resp
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
@@ -245,12 +244,12 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_state_json(self, mock_stub):
-        m_nodeStateResp_serialized = b'\n/\n\x160.61.3+ngbd52b1a.dirty\x10\x03\x18\x02 D(\xa7\x010\x83!B\tExcession'
-        m_nodeStateResp = qrl_pb2.GetNodeStateResp()
-        m_nodeStateResp.ParseFromString(m_nodeStateResp_serialized)
+        m_node_state_resp_serialized = b'\n/\n\x160.61.3+ngbd52b1a.dirty\x10\x03\x18\x02 D(\xa7\x010\x83!B\tExcession'
+        m_node_state_resp = qrl_pb2.GetNodeStateResp()
+        m_node_state_resp.ParseFromString(m_node_state_resp_serialized)
 
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.GetNodeState.return_value = m_nodeStateResp
+        mock_stub_instance.GetNodeState.return_value = m_node_state_resp
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
@@ -263,9 +262,7 @@ class TestCLI(TestCase):
     @mock.patch('qrl.cli.config', autospec=True)
     @mock.patch('qrl.cli.Transaction', autospec=True)
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_slave_tx_generate(self, mock_stub, mock_Transaction, mock_config):
-        """Test that this command works as advertised."""
-
+    def test_slave_tx_generate(self, mock_stub, mock_transaction, mock_config):
         # Mock out xmss_tree_height so this test runs faster!
         # But first, we must copy all attributes from the real config into the mock.
         # autospec does not do this for us, only the specification.
@@ -275,14 +272,14 @@ class TestCLI(TestCase):
         mock_tx_attrs = {"name": "a mock tx object", "to_json.return_value": "{}"}
         mock_tx = mock.MagicMock(**mock_tx_attrs)
 
-        mock_Transaction.name = 'mock Transaction class'
-        mock_Transaction.from_pbdata.return_value = mock_tx
+        mock_transaction.name = 'mock Transaction class'
+        mock_transaction.from_pbdata.return_value = mock_tx
 
-        mock_slaveTxnResp = mock.MagicMock(name='mock slaveTxnResp')
-        mock_slaveTxnResp.extended_transaction_unsigned.tx = bin2hstr_unsigned_tx
+        mock_slave_txn_resp = mock.MagicMock(name='mock slaveTxnResp')
+        mock_slave_txn_resp.extended_transaction_unsigned.tx = bin2hstr_unsigned_tx
 
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.GetSlaveTxn.return_value = mock_slaveTxnResp
+        mock_stub_instance.GetSlaveTxn.return_value = mock_slave_txn_resp
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
@@ -292,16 +289,18 @@ class TestCLI(TestCase):
 
         # Simplest use case
         result = self.runner.invoke(qrl_cli, [
-            "slave_tx_generate", "--src=0", "--master={}".format(master_address),
+            "slave_tx_generate", "--src=1", "--master={}".format(master_address),
             "--number_of_slaves=1", "--access_type=0", "--fee=0"
         ])
+        print(result.output)
+        print(result.exc_info)
         self.assertEqual(result.exit_code, 0)
         self.assertTrue(os.path.exists('slaves.json'))
 
         # Does it work with 5 slaves?
         os.remove('slaves.json')
         result = self.runner.invoke(qrl_cli, [
-            "slave_tx_generate", "--src=0", "--master={}".format(master_address),
+            "slave_tx_generate", "--src=1", "--master={}".format(master_address),
             "--number_of_slaves=5", "--access_type=0", "--fee=0"
         ])
         self.assertEqual(result.exit_code, 0)
@@ -310,7 +309,7 @@ class TestCLI(TestCase):
         # access_type could be 0 or 1. test 1.
         os.remove('slaves.json')
         result = self.runner.invoke(qrl_cli, [
-            "slave_tx_generate", "--src=0", "--master={}".format(master_address),
+            "slave_tx_generate", "--src=1", "--master={}".format(master_address),
             "--number_of_slaves=5", "--access_type=1", "--fee=0"
         ])
         self.assertEqual(result.exit_code, 0)
@@ -377,10 +376,10 @@ class TestCLI(TestCase):
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_push(self, mock_stub):
         mock_error_code = 'Error? What error? This is a test'
-        mock_pushTransactionResp = mock.MagicMock(name='this should be pushTransactionResp', error_code=mock_error_code)
+        mock_push_transaction_resp = mock.MagicMock(name='this should be pushTransactionResp', error_code=mock_error_code)
 
         attrs = {"name": "this should be stub.PushTransaction",
-                 "PushTransaction.return_value": mock_pushTransactionResp}
+                 "PushTransaction.return_value": mock_push_transaction_resp}
         mock_stub_instance = mock.MagicMock(**attrs)
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
@@ -392,10 +391,10 @@ class TestCLI(TestCase):
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_push_invalid_input(self, mock_stub):
         mock_error_code = 'Error? What error? This is a test'
-        mock_pushTransactionResp = mock.MagicMock(name='this should be pushTransactionResp', error_code=mock_error_code)
+        mock_push_transaction_resp = mock.MagicMock(name='this should be pushTransactionResp', error_code=mock_error_code)
 
         attrs = {"name": "this should be stub.PushTransaction",
-                 "PushTransaction.return_value": mock_pushTransactionResp}
+                 "PushTransaction.return_value": mock_push_transaction_resp}
         mock_stub_instance = mock.MagicMock(**attrs)
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
@@ -417,15 +416,14 @@ class TestCLI(TestCase):
         mock_tx = qrl_pb2.Transaction()
         mock_tx.ParseFromString(tx_pbdata_serialized_to_string)
 
-        m_transferCoinsResp = mock.MagicMock(name='a fake transferCoinsResp')
-        m_transferCoinsResp.extended_transaction_unsigned.tx = mock_tx
-
-        m_pushTransactionResp = mock.MagicMock(name='a fake pushTransactionResp', error_code=3)
+        m_transfer_coins_resp = mock.MagicMock(name='a fake transferCoinsResp')
+        m_transfer_coins_resp.extended_transaction_unsigned.tx = mock_tx
+        m_push_transaction_resp = mock.MagicMock(name='a fake pushTransactionResp', error_code=3)
 
         attrs = {
             "name": "my fake stub",
-            "TransferCoins.return_value": m_transferCoinsResp,
-            "PushTransaction.return_value": m_pushTransactionResp
+            "TransferCoins.return_value": m_transfer_coins_resp,
+            "PushTransaction.return_value": m_push_transaction_resp
         }
         mock_stub_instance = mock.MagicMock(**attrs)
 
@@ -435,9 +433,10 @@ class TestCLI(TestCase):
         wallet = open_wallet()
 
         # Simplest use case
-        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=1", "--master=", "--dsts={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 0)
+        print(result.output)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
         # Should work with src=Qaddress as well
@@ -452,7 +451,7 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli,
                                     ["tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
                                      "--master={}".format(qaddr_2), "--dsts={}".format(qaddr_1),
-                                     "--amounts=1", "--fee=0", "--ots_key_index=0"])
+                                     "--amounts=1", "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
@@ -460,7 +459,7 @@ class TestCLI(TestCase):
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(" ".join(dsts)),
+                                    ["tx_transfer", "--src=1", "--master=", "--dsts={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
@@ -488,7 +487,7 @@ class TestCLI(TestCase):
 
         # Simplest use case
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
-        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=1", "--master=", "--dsts={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=1"],
                                     input='password\n')
         self.assertEqual(result.exit_code, 0)
@@ -500,15 +499,15 @@ class TestCLI(TestCase):
         mock_tx = qrl_pb2.Transaction()
         mock_tx.ParseFromString(tx_pbdata_serialized_to_string)
 
-        m_transferCoinsResp = mock.MagicMock(name='a fake transferCoinsResp')
-        m_transferCoinsResp.extended_transaction_unsigned.tx = mock_tx
+        m_transfer_coins_resp = mock.MagicMock(name='a fake transferCoinsResp')
+        m_transfer_coins_resp.extended_transaction_unsigned.tx = mock_tx
 
-        m_pushTransactionResp = mock.MagicMock(name='a fake pushTransactionResp', error_code=3)
+        m_push_transaction_resp = mock.MagicMock(name='a fake pushTransactionResp', error_code=3)
 
         attrs = {
             "name": "my fake stub",
-            "TransferCoins.return_value": m_transferCoinsResp,
-            "PushTransaction.return_value": m_pushTransactionResp
+            "TransferCoins.return_value": m_transfer_coins_resp,
+            "PushTransaction.return_value": m_push_transaction_resp
         }
         mock_stub_instance = mock.MagicMock(**attrs)
 
@@ -516,27 +515,27 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         # What if I use a ots_key_index larger than the wallet's tree height?
-        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
-                                              "--amounts=1", "--fee=0", "--ots_key_index=17"])
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=1", "--master=", "--dsts={}".format(qaddr_1),
+                                              "--amounts=1", "--fee=0", "--ots_key_index=17"], input='17')
         self.assertEqual(result.exit_code, 1)
-        self.assertIn('Error validating arguments', result.output.strip())
+        self.assertIn('OTS key index must be between 1 and 16', result.output.strip())
 
         # dsts and amounts with different lengths should fail
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2"]
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(" ".join(dsts)),
+                                    ["tx_transfer", "--src=1", "--master=", "--dsts={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=1"])
         self.assertEqual(result.exit_code, 1)
         self.assertIn('dsts and amounts should be the same length', result.output.strip())
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='mock pushTransactionResp')
-        m_pushTransactionResp.error_code = 'This was a test'
+        m_push_transaction_resp = mock.MagicMock(name='mock pushTransactionResp')
+        m_push_transaction_resp.error_code = 'This was a test'
 
         attrs = {"name": "this should be qrl_pb2_grpc.PublicAPIStub(channel)",
-                 "PushTransaction.return_value": m_pushTransactionResp}
+                 "PushTransaction.return_value": m_push_transaction_resp}
         mock_stub_instance = mock.MagicMock(**attrs)
 
         mock_stub.name = "this should be qrl_pb2_grpc.PublicAPIStub"
@@ -546,7 +545,7 @@ class TestCLI(TestCase):
         owner_address = wallet["addresses"][0]["address"]
         typed_in_input = '\n'.join([owner_address, '100']) + '\n'
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
+                                    ["tx_token", "--src=1", "--master=", "--symbol=TST", "--name=TEST",
                                      "--owner={}".format(owner_address), "--decimals=1", "--fee=0",
                                      "--ots_key_index=1"],
                                     input=typed_in_input
@@ -555,11 +554,11 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_token_invalid_input(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='mock pushTransactionResp')
-        m_pushTransactionResp.error_code = 'This was a test'
+        m_push_transaction_resp = mock.MagicMock(name='mock pushTransactionResp')
+        m_push_transaction_resp.error_code = 'This was a test'
 
         attrs = {"name": "this should be qrl_pb2_grpc.PublicAPIStub(channel)",
-                 "PushTransaction.return_value": m_pushTransactionResp}
+                 "PushTransaction.return_value": m_push_transaction_resp}
         mock_stub_instance = mock.MagicMock(**attrs)
 
         mock_stub.name = "this should be qrl_pb2_grpc.PublicAPIStub"
@@ -571,7 +570,7 @@ class TestCLI(TestCase):
 
         # Weird token names and symbols shouldn't work
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_token", "--src=0", "--master=",
+                                    ["tx_token", "--src=1", "--master=",
                                      "--symbol=thequickbrownfoxjumpsoverthelazydog",
                                      "--name=Seriouslyimgonnastarttalkingandneverendbecausethatsjusthowidothings can i\
                                       have spaces in here what about |nny characters",
@@ -594,11 +593,11 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_transfertoken(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='mock pushTransactionResp')
-        m_pushTransactionResp.error_code = 'This was a test'
+        m_push_transaction_resp = mock.MagicMock(name='mock pushTransactionResp')
+        m_push_transaction_resp.error_code = 'This was a test'
 
         attrs = {"name": "this should be qrl_pb2_grpc.PublicAPIStub(channel)",
-                 "PushTransaction.return_value": m_pushTransactionResp}
+                 "PushTransaction.return_value": m_push_transaction_resp}
         mock_stub_instance = mock.MagicMock(**attrs)
 
         mock_stub.name = "this should be qrl_pb2_grpc.PublicAPIStub"
@@ -607,20 +606,29 @@ class TestCLI(TestCase):
         txhash = '267d9c6e192c78b192b6e835411d30f7cb605ffe9632d668489c579e4230f3c6'  # from sample tx_token run
 
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_transfertoken", "--src=0", "--master=",
-                                     "--token_txhash={}".format(txhash), "--dsts={}".format(qaddr_1), "--amounts=10",
-                                     "--decimals=10", "--fee=0", "--ots_key_index=1"],
-                                    )
+                                    [
+                                        "tx_transfertoken",
+                                        "--src=1",
+                                        "--master=",
+                                        "--token_txhash={}".format(txhash),
+                                        "--dsts={}".format(qaddr_1),
+                                        "--amounts=10",
+                                        "--decimals=10",
+                                        "--fee=0",
+                                        "--ots_key_index=1"
+                                    ])
+
+        print(result.output)
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.output.strip(), 'This was a test')
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_transfertoken_invalid_input(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='mock pushTransactionResp')
-        m_pushTransactionResp.error_code = 'This was a test'
+        m_push_transaction_resp = mock.MagicMock(name='mock pushTransactionResp')
+        m_push_transaction_resp.error_code = 'This was a test'
 
         attrs = {"name": "this should be qrl_pb2_grpc.PublicAPIStub(channel)",
-                 "PushTransaction.return_value": m_pushTransactionResp}
+                 "PushTransaction.return_value": m_push_transaction_resp}
         mock_stub_instance = mock.MagicMock(**attrs)
 
         mock_stub.name = "this should be qrl_pb2_grpc.PublicAPIStub"
@@ -630,10 +638,13 @@ class TestCLI(TestCase):
 
         # Invalid txhash shouldn't work.
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_transfertoken", "--src=0", "--master=",
-                                     "--token_txhash={}".format(txhash[3:]), "--dsts={}".format(qaddr_1), "--amounts=10",
+                                    ["tx_transfertoken", "--src=1", "--master=",
+                                     "--token_txhash={}".format(txhash[3:]), "--dsts={}".format(qaddr_1),
+                                     "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=1"],
                                     )
+
+        print(result.output)
         self.assertEqual(result.exit_code, 1)
         self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
 
@@ -649,11 +660,11 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list(self, mock_stub):
-        m_addressStateResp = mock.MagicMock(name='this should be the addressStateResp')
-        m_addressStateResp.state.tokens = {qaddr_1: 10, qaddr_2: 100}
+        m_address_state_resp = mock.MagicMock(name='this should be the addressStateResp')
+        m_address_state_resp.state.tokens = {qaddr_1: 10, qaddr_2: 100}
 
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.GetAddressState.return_value = m_addressStateResp
+        mock_stub_instance.GetAddressState.return_value = m_address_state_resp
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
@@ -665,11 +676,11 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list_invalid_input(self, mock_stub):
-        m_addressStateResp = mock.MagicMock(name='this should be the addressStateResp')
-        m_addressStateResp.state.tokens = {qaddr_1: 10, qaddr_2: 100}
+        m_address_state_resp = mock.MagicMock(name='this should be the addressStateResp')
+        m_address_state_resp.state.tokens = {qaddr_1: 10, qaddr_2: 100}
 
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.GetAddressState.return_value = m_addressStateResp
+        mock_stub_instance.GetAddressState.return_value = m_address_state_resp
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
@@ -682,9 +693,9 @@ class TestCLI(TestCase):
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_latticepk(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
+        m_push_transaction_resp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.PushTransaction.return_value = m_pushTransactionResp
+        mock_stub_instance.PushTransaction.return_value = m_push_transaction_resp
 
         mock_stub.name = 'fake qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
@@ -693,7 +704,7 @@ class TestCLI(TestCase):
         dilithium_pk = bin2hstr(Dilithium().getPK())
 
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_latticepk", "--src=0", "--master=",
+                                    ["tx_latticepk", "--src=1", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk),
                                      "--fee=0", "--ots_key_index=1"])
         print(result.exit_code)
@@ -703,9 +714,9 @@ class TestCLI(TestCase):
     @expectedFailure
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_latticepk_invalid_input(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
+        m_push_transaction_resp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.PushTransaction.return_value = m_pushTransactionResp
+        mock_stub_instance.PushTransaction.return_value = m_push_transaction_resp
 
         mock_stub.name = 'fake qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
