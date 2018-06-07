@@ -116,6 +116,11 @@ workflows:
             tags:
               only: /.*/
 
+      - flake8:
+          filters:
+            tags:
+              only: /.*/
+
 #      - test_leaks_CLI:
 #          filters:
 #            tags:
@@ -140,6 +145,7 @@ workflows:
           requires:
             - build
             - build_bionic
+            - flake8
             #- test_leaks_CLI
             - test_leaks_other
             - integration_smoke
