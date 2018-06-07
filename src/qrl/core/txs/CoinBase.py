@@ -46,6 +46,16 @@ class CoinBase(Transaction):
         self._data.coinbase.addr_to = mining_address
         self._data.transaction_hash = self.get_hashable_bytes()
 
+    def _coinbase_filter(self):
+        pass
+
+    def _get_allowed_access_types(self):
+        # FIXME: 0 and 1 are not clear..
+        return [0, 1]
+
+    def _get_master_address(self):
+        return self.addr_to
+
     def _validate_custom(self):
         if self.fee != 0:
             logger.warning('Fee for coinbase transaction should be 0')

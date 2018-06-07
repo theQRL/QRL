@@ -21,7 +21,7 @@ def make_tx(txhash=b'hashbrownies', fee=1, autospec=TransferTransaction, PK=b'pu
 
 
 @patch('qrl.core.processors.TxnProcessor.logger')
-@patch('qrl.core.Transaction.Transaction.get_slave')
+@patch('qrl.core.txs.Transaction.Transaction.get_slave')
 class TestTxnProcessor(TestCase):
     def setUp(self):
         self.m_state = Mock(name='A Mock State', autospec=State)

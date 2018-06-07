@@ -11,15 +11,19 @@ from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
 from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger
-from qrl.core.txs.CoinBase import CoinBase
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
-from qrl.core.txs.MessageTransaction import MessageTransaction
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
-from qrl.core.txs.TokenTransaction import TokenTransaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.txs import build_tx
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
+
+CODEMAP = {
+    'transfer': 1,
+    'coinbase': 2,
+    'latticePK': 3,
+    'message': 4,
+    'token': 5,
+    'transfer_token': 6,
+    'slave': 7
+}
 
 
 class Transaction(object, metaclass=ABCMeta):
@@ -109,8 +113,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def from_pbdata(pbdata: qrl_pb2.Transaction):
-        txtype = TYPEMAP[pbdata.WhichOneof('transactionType')]
-        return txtype(pbdata)
+        return build_tx(pbdata.WhichOneof('transactionType'), pbdata)
 
     @staticmethod
     def from_json(json_data):
@@ -201,7 +204,8 @@ class Transaction(object, metaclass=ABCMeta):
                 continue
 
             if txn.ots_key == self.ots_key:
-                logger.info('State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
+                logger.info('State validation failed for %s because: OTS Public key re-use detected',
+                            bin2hstr(self.txhash))
                 logger.info('Subtype %s', type(self))
                 return False
 
@@ -225,6 +229,16 @@ class Transaction(object, metaclass=ABCMeta):
             return False
         return True
 
+    def _coinbase_filter(self):
+        if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
+            raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
+
+    def _get_allowed_access_types(self):
+        return [0]
+
+    def _get_master_address(self):
+        return self.addr_from
+
     def validate_or_raise(self) -> bool:
         """
         This method will validate a transaction and raise exception if problems are found
@@ -234,9 +248,7 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_custom():
             raise ValueError("Custom validation failed")
 
-        if not isinstance(self, CoinBase):
-            if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
-                raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
+        self._coinbase_filter()
 
         if not XmssFast.verify(self.get_hashable_bytes(),
                                self.signature,
@@ -246,13 +258,9 @@ class Transaction(object, metaclass=ABCMeta):
 
     def validate_slave(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
-        # Validate Slave for CoinBase txn is no more required
-        if isinstance(self, CoinBase):
-            master_address = self.addr_to
-            allowed_access_types = [0, 1]
-        else:
-            master_address = self.addr_from
-            allowed_access_types = [0]
+
+        master_address = self._get_master_address()
+        allowed_access_types = self._get_allowed_access_types()
 
         if self.master_addr == addr_from_pk:
             logger.warning('Matching master_addr field and address from PK')
@@ -288,24 +296,3 @@ class Transaction(object, metaclass=ABCMeta):
         pbdata.ParseFromString(bytes(data))
         tx = Transaction(pbdata)
         return tx
-
-
-TYPEMAP = {
-    'transfer': TransferTransaction,
-    'coinbase': CoinBase,
-    'latticePK': LatticePublicKey,
-    'message': MessageTransaction,
-    'token': TokenTransaction,
-    'transfer_token': TransferTokenTransaction,
-    'slave': SlaveTransaction
-}
-
-CODEMAP = {
-    'transfer': 1,
-    'coinbase': 2,
-    'latticePK': 3,
-    'message': 4,
-    'token': 5,
-    'transfer_token': 6,
-    'slave': 7
-}

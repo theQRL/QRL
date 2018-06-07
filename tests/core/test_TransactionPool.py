@@ -196,7 +196,7 @@ class TestTransactionPool(TestCase):
         self.assertIsNone(tx_timestamp)
 
     @patch('qrl.core.TransactionPool.logger')
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', return_value=make_tx())
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', return_value=make_tx())
     @patch('qrl.core.TransactionPool.TransactionPool.add_tx_to_pool', return_value=True)
     def test_add_tx_from_block_to_pool(self, m_add_tx_to_pool, m_from_pbdata, m_logger):
         m_block = Mock(autospec=Block, block_number=5, headerhash=b'test block header')
@@ -288,7 +288,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_block_4098_4099(self, m_is_full_transaction_pool, m_config):
         """
         TxPool = [4095-4100, 4200]
@@ -315,7 +315,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_txpool_3907_block_4098_4099(self, m_is_full_transaction_pool, m_config):
         """
         TxPool = [3907, 4095-4100, 4200]
@@ -346,7 +346,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_block_4200(self, m_is_full_transaction_pool, m_config):
         """
         TxPool = [3907, 4095-4100, 4200]
@@ -370,7 +370,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_txpool_4095_4096_4097_otherppl_block_4098_4099(self, m_is_full_transaction_pool, m_config):
         """
         TxPool = [4096-4100, 4200, 4095-4097_otherppl]
@@ -402,7 +402,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_block_1000(self, m_is_full_transaction_pool, m_config):
         """
         TxPool = [4095-4100, 4200]

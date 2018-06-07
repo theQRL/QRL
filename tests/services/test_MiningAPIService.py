@@ -13,7 +13,8 @@ from qrl.core.State import State
 from qrl.core.misc import logger
 from qrl.core.node import SyncState
 from qrl.core.p2p.p2pfactory import P2PFactory
-from qrl.core.qrlnode import QRLNode, sha256
+from qrl.core.qrlnode import QRLNode
+from qrl.crypto.misc import sha256
 from qrl.generated import qrlmining_pb2
 from qrl.services.MiningAPIService import MiningAPIService
 
