@@ -426,7 +426,6 @@ def wallet_decrypt(ctx):
         click.echo(str(e))
         quit(1)
 
-
 @qrl.command()
 @click.option('--txblob', type=str, default='', prompt=True, help='transaction blob')
 @click.pass_context

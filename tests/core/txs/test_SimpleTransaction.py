@@ -102,7 +102,8 @@ class TestSimpleTransaction(TestCase):
 
         # Validation in creation, Protobuf, type conversion etc. gets in our way all the time!
         # So to get dirty data to the validate() function, we need PropertyMocks
-        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
+        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.amounts',
+                   new_callable=PropertyMock) as m_amounts:
             # TX amount of 0 shouldn't be allowed.
             m_amounts.return_value = [0]
             with self.assertRaises(ValueError):
@@ -111,8 +112,10 @@ class TestSimpleTransaction(TestCase):
             m_fee.return_value = -1
             with self.assertRaises(ValueError):
                 self.tx.validate_or_raise()
-        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
-            with patch('qrl.core.txs.TransferTransaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
+        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addrs_to',
+                   new_callable=PropertyMock) as m_addrs_to:
+            with patch('qrl.core.txs.TransferTransaction.TransferTransaction.amounts',
+                       new_callable=PropertyMock) as m_amounts:
                 # Validation could fail because len(m_addrs_to) != len(m_amounts),
                 # or if len(m_addrs_to) > transaction_multi_output_limit.
                 # This second patch level is to make sure the only the latter case happens.
@@ -121,17 +124,21 @@ class TestSimpleTransaction(TestCase):
                 m_addrs_to.return_value = [2, 2, 2, 2]
                 with self.assertRaises(ValueError):
                     self.tx.validate_or_raise()
-        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
+        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addrs_to',
+                   new_callable=PropertyMock) as m_addrs_to:
             # len(addrs_to) must equal len(amounts)
             m_addrs_to.return_value = [2, 2]
             with self.assertRaises(ValueError):
                 self.tx.validate_or_raise()
-        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addr_from', new_callable=PropertyMock) as m_addr_from:
+        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addr_from',
+                   new_callable=PropertyMock) as m_addr_from:
             m_addr_from.return_value = b'If this isnt invalid Ill eat my shoe'
             with self.assertRaises(ValueError):
                 self.tx.validate_or_raise()
-        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
-            with patch('qrl.core.txs.TransferTransaction.TransferTransaction.amounts', new_callable=PropertyMock) as m_amounts:
+        with patch('qrl.core.txs.TransferTransaction.TransferTransaction.addrs_to',
+                   new_callable=PropertyMock) as m_addrs_to:
+            with patch('qrl.core.txs.TransferTransaction.TransferTransaction.amounts',
+                       new_callable=PropertyMock) as m_amounts:
                 m_amounts.return_value = [100, 100]
                 m_addrs_to.return_value = [self.bob.address, b'If this isnt invalid Ill eat my shoe']
                 with self.assertRaises(ValueError):

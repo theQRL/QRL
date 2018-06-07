@@ -232,7 +232,8 @@ class TestTokenTransaction(TestCase):
         self.assertFalse(result)
 
         m_validate_slave.return_value = True
-        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.addr_from', new_callable=PropertyMock) as m_addr_from:
+        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.addr_from',
+                   new_callable=PropertyMock) as m_addr_from:
             m_addr_from.return_value = b'Invalid Address'
             result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
             self.assertFalse(result)

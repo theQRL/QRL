@@ -142,7 +142,8 @@ class TestTransferTokenTransaction(TestCase):
         params = self.default_params()
         tx = TransferTokenTransaction.create(**params)
         tx.sign(self.alice)
-        with patch('qrl.core.txs.TransferTokenTransaction.TransferTokenTransaction.addrs_to', new_callable=PropertyMock) as m_addrs_to:
+        with patch('qrl.core.txs.TransferTokenTransaction.TransferTokenTransaction.addrs_to',
+                   new_callable=PropertyMock) as m_addrs_to:
             m_addrs_to.return_value = [self.bob.address, slave.address]
             with self.assertRaises(ValueError):
                 tx.validate_or_raise()
@@ -194,7 +195,8 @@ class TestTransferTokenTransaction(TestCase):
         m_validate_slave.return_value = True
 
         # fee = -1
-        with patch('qrl.core.txs.TransferTokenTransaction.TransferTokenTransaction.fee', new_callable=PropertyMock) as m_fee:
+        with patch('qrl.core.txs.TransferTokenTransaction.TransferTokenTransaction.fee',
+                   new_callable=PropertyMock) as m_fee:
             m_fee.return_value = -1
             result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
             self.assertFalse(result)
