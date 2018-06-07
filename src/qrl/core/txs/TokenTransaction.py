@@ -110,7 +110,7 @@ class TokenTransaction(Transaction):
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
 
-        allowed_decimals = self.calc_allowed_decimals(sum_of_initial_balances)
+        allowed_decimals = self.calc_allowed_decimals(sum_of_initial_balances // 10 ** self.decimals)
 
         if self.decimals > allowed_decimals:
             logger.warning('Decimal is greater than maximum allowed decimal')

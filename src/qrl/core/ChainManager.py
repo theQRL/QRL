@@ -265,7 +265,7 @@ class ChainManager:
             # If above condition is true, then it means, the node failed to add_chain
             # Thus old chain state, must be retrieved
             self.rollback(forked_header_hash)
-            self.add_chain(old_hash_path[-1::-1])  # Restores the old chain state
+            self.add_chain(old_hash_path[-1::-1], fork_state)  # Restores the old chain state
             return False
 
         self.trigger_miner = True
