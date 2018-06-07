@@ -23,7 +23,7 @@ class LastTransactions:
         tmp = self._data.tx_metadata[::-1]
         tmp.append(tm)
         del self._data.tx_metadata[:]
-        self._data.tx_metadata.extend(tmp[:20][::-1])
+        self._data.tx_metadata.extend(tmp[-20:][::-1])
 
     def serialize(self) -> str:
         return self._data.SerializeToString()
