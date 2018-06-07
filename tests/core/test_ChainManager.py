@@ -59,7 +59,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(22, 0)
+                    block_1.set_nonces(200, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -112,7 +112,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(344, 0)
+                    block_1.set_nonces(3, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator

@@ -86,18 +86,19 @@ class BlockHeader(object):
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
 
-        # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool (13 bytes)
-        blob = bytes(shake128(config.dev.mining_blob_size - 13, blob))
+        # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool + 5 bytes for pool (17 bytes)
+        blob = bytes(shake128(config.dev.mining_blob_size - 18, blob))
 
         zero = 0
         blob = zero.to_bytes(1, byteorder='big', signed=False) + blob
 
         if len(blob) < self.nonce_offset:
-            raise Exception("Mining blob size below 39 bytes")
+            raise Exception("Mining blob size below 56 bytes")
 
-        # Now insert mining nonce and extra nonce in offset 39 for compatibility
+        # Now insert mining nonce and extra nonce in offset 56 for compatibility
         mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False) \
-            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False)
+            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False) \
+            + zero.to_bytes(5, byteorder='big', signed=False)
 
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
 
@@ -255,10 +256,10 @@ class BlockHeader(object):
 
     def verify_blob(self, blob: bytes) -> bool:
         mining_nonce_offset = config.dev.mining_nonce_offset
-        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 12:]
+        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 17:]
 
         actual_blob = self.mining_blob
-        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 12:]
+        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 17:]
 
         if blob != actual_blob:
             return False
