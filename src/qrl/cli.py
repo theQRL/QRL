@@ -179,11 +179,11 @@ def _select_wallet(ctx, address_or_index):
         quit(1)
 
 
-def _shorize(x: Decimal) -> int:
-    return int(Decimal(x * Decimal(config.dev.shor_per_quanta)).to_integral_value())
+def _quanta_to_shor(x: Decimal, base=Decimal(config.dev.shor_per_quanta)) -> int:
+    return int(Decimal(x * base).to_integral_value())
 
 
-def _parse_dsts_amounts(addresses: str, amounts: str, decimals: int = 0):
+def _parse_dsts_amounts(addresses: str, amounts: str, token_decimals: int = 0):
     """
     'Qaddr1 Qaddr2...' -> [\\xcx3\\xc2, \\xc2d\\xc3]
     '10 10' -> [10e9, 10e9] (in shor)
@@ -191,10 +191,13 @@ def _parse_dsts_amounts(addresses: str, amounts: str, decimals: int = 0):
     :param amounts:
     :return:
     """
-    multiplier = Decimal(10 ** int(decimals))
-
     addresses_split = [parse_qaddress(addr) for addr in addresses.split(' ')]
-    shor_amounts = [_shorize(Decimal(amount) * multiplier) for amount in amounts.split(' ')]
+
+    if token_decimals != 0:
+        multiplier = Decimal(10 ** int(token_decimals))
+        shor_amounts = [_quanta_to_shor(Decimal(amount), base=multiplier) for amount in amounts.split(' ')]
+    else:
+        shor_amounts = [_quanta_to_shor(Decimal(amount)) for amount in amounts.split(' ')]
 
     if len(addresses_split) != len(shor_amounts):
         raise Exception("dsts and amounts should be the same length")
@@ -501,7 +504,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
         message = message.encode()
 
         master_addr = parse_qaddress(master)
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
@@ -603,7 +606,7 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
             master_addr = parse_qaddress(master)
 
         addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts)
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
@@ -690,7 +693,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         if master_addr:
             master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
 
         if len(name) > config.dev.max_token_name_length:
             raise Exception("Token name must be shorter than {} chars".format(config.dev.max_token_name_length))
@@ -745,13 +748,13 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
         quit(1)
 
     try:
-        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, decimals)
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, token_decimals=decimals)
         bin_token_txhash = parse_hexblob(token_txhash)
         master_addr = None
         if master:
             master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
 
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
@@ -813,7 +816,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
             address_src_pk = pk.encode()
 
         master_addr = parse_qaddress(master)
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
@@ -880,7 +883,7 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         if master:
             master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
