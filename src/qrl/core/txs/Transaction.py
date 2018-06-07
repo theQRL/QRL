@@ -2,8 +2,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from math import log, floor
 from abc import ABCMeta, abstractmethod
+from math import log, floor
 
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
