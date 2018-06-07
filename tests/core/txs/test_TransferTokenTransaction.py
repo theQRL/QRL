@@ -133,7 +133,7 @@ class TestTransferTokenTransaction(TestCase):
         params["amounts"] = [2, 3, 5]
         tx = TransferTokenTransaction.create(**params)
         tx.sign(self.alice)
-        with patch('qrl.core.txs.Transaction.config', autospec=True) as m_config:
+        with patch('qrl.core.txs.TransferTokenTransaction.config', autospec=True) as m_config:
             m_config.dev.transaction_multi_output_limit = 1
             with self.assertRaises(ValueError):
                 tx.validate_or_raise()

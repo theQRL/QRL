@@ -37,7 +37,7 @@ class TestSlaveTransaction(TestCase):
         bob = get_bob_xmss()
 
         # Too many slave_pks
-        with patch('qrl.core.txs.Transaction.config', autospec=True) as m_config:
+        with patch('qrl.core.txs.SlaveTransaction.config', autospec=True) as m_config:
             m_config.dev.transaction_multi_output_limit = 2
             params = self.params.copy()
             params["slave_pks"] = [self.alice.pk, bob.pk, self.slave.pk]

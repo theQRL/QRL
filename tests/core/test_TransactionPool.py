@@ -211,7 +211,7 @@ class TestTransactionPool(TestCase):
         self.txpool.add_tx_from_block_to_pool(m_block, 5)
         m_logger.warning.assert_called()
 
-    @patch('qrl.core.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_remove_tx_in_block_from_pool(self):
         m_block = Mock(autospec=Block)
         tx1 = make_tx(name='Mock TX 1', ots_key=1, PK=b'pk')
