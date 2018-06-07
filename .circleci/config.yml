@@ -76,6 +76,7 @@ jobs:
       - run: pip install -U -r tests_integration/requirements.txt
       - run: ls tests_integration/tmp
       - run: pytest tests_integration/tests/python/basic
+      - run: pytest tests_integration/tests/python/fork_recovery
 
   integration_fuzzing:
     docker:
