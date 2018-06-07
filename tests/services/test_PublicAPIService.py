@@ -15,7 +15,7 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
 from qrl.core.TransactionInfo import TransactionInfo
-from qrl.core.Transaction import TransferTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.misc import logger
 from qrl.core.node import SyncState, POW
 from qrl.core.p2p.p2pfactory import P2PFactory

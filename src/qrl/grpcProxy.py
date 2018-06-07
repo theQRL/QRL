@@ -7,7 +7,8 @@ from google.protobuf.json_format import MessageToJson
 from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.crypto.xmss import XMSS
-from qrl.core.Transaction import TransferTransaction, Transaction
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
 from qrl.generated import qrl_pb2_grpc, qrl_pb2, qrlmining_pb2, qrlmining_pb2_grpc

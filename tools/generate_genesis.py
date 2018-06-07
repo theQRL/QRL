@@ -6,7 +6,7 @@ from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.generated import qrl_pb2
 from qrl.core import config
-from qrl.core.Transaction import TransferTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.Block import Block
 from qrl.crypto.xmss import XMSS
 

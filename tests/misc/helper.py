@@ -15,7 +15,8 @@ from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Transaction import TokenTransaction, SlaveTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 

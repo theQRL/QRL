@@ -14,7 +14,10 @@ from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.Block import Block
 from qrl.core.misc import logger, db
-from qrl.core.Transaction import Transaction, TokenTransaction, TransferTokenTransaction, CoinBase
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.AddressState import AddressState
 from qrl.core.LastTransactions import LastTransactions
