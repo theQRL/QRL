@@ -15,12 +15,10 @@ class MessageTransaction(Transaction):
     def message_hash(self):
         return self._data.message.message_hash
 
-    def get_hashable_bytes(self):
-        return sha256(
-            self.master_addr +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
-            self.message_hash
-        )
+    def get_data_bytes(self):
+        return self.master_addr + \
+               self.fee.to_bytes(8, byteorder='big', signed=False) + \
+               self.message_hash
 
     @staticmethod
     def create(message_hash: bytes, fee: int, xmss_pk: bytes, master_addr: bytes = None):

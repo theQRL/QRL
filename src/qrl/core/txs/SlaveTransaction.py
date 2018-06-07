@@ -20,7 +20,7 @@ class SlaveTransaction(Transaction):
     def access_types(self):
         return self._data.slave.access_types
 
-    def get_hashable_bytes(self):
+    def get_data_bytes(self) -> bytes:
         tmptxhash = (self.master_addr +
                      self.fee.to_bytes(8, byteorder='big', signed=False))
 
@@ -29,7 +29,7 @@ class SlaveTransaction(Transaction):
                          self.slave_pks[index] +
                          self.access_types[index].to_bytes(8, byteorder='big', signed=False))
 
-        return sha256(tmptxhash)
+        return tmptxhash
 
     @staticmethod
     def create(slave_pks: list, access_types: list, fee: int, xmss_pk: bytes, master_addr: bytes = None):
@@ -85,7 +85,8 @@ class SlaveTransaction(Transaction):
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
+            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected',
+                        bin2hstr(self.txhash))
             return False
 
         return True

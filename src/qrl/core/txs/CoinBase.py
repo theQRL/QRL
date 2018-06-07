@@ -22,14 +22,12 @@ class CoinBase(Transaction):
     def amount(self):
         return self._data.coinbase.amount
 
-    def get_hashable_bytes(self):
+    def get_data_bytes(self):
         # nonce only added to the hashable bytes of CoinBase
-        return sha256(
-            self.master_addr +
-            self.addr_to +
-            self.nonce.to_bytes(8, byteorder='big', signed=False) +
-            self.amount.to_bytes(8, byteorder='big', signed=False)
-        )
+        return self.master_addr + \
+               self.addr_to + \
+               self.nonce.to_bytes(8, byteorder='big', signed=False) + \
+               self.amount.to_bytes(8, byteorder='big', signed=False)
 
     @staticmethod
     def create(amount, miner_address, block_number):
@@ -38,13 +36,13 @@ class CoinBase(Transaction):
         transaction._data.coinbase.addr_to = miner_address
         transaction._data.coinbase.amount = amount
         transaction._data.nonce = block_number + 1
-        transaction._data.transaction_hash = transaction.get_hashable_bytes()
+        transaction._data.transaction_hash = transaction.get_data_hash()
 
         return transaction
 
     def update_mining_address(self, mining_address: bytes):
         self._data.coinbase.addr_to = mining_address
-        self._data.transaction_hash = self.get_hashable_bytes()
+        self._data.transaction_hash = self.get_data_hash()
 
     def _coinbase_filter(self):
         pass
