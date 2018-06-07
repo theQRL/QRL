@@ -208,7 +208,7 @@ class Transaction(object, metaclass=ABCMeta):
 
         return True
 
-    def validate(self) -> bool:
+    def validate(self, verify_signature=True) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
         The main purpose is to avoid exceptions and accommodate legacy code
@@ -216,7 +216,7 @@ class Transaction(object, metaclass=ABCMeta):
         :rtype: bool
         """
         try:
-            self.validate_or_raise()
+            self.validate_or_raise(verify_signature)
         except ValueError as e:
             logger.info('[%s] failed validate_tx', bin2hstr(self.txhash))
             logger.warning(str(e))
@@ -226,7 +226,7 @@ class Transaction(object, metaclass=ABCMeta):
             return False
         return True
 
-    def validate_or_raise(self) -> bool:
+    def validate_or_raise(self, verify_signature=True) -> bool:
         """
         This method will validate a transaction and raise exception if problems are found
         :return: True if the exception is valid, exceptions otherwise
@@ -239,10 +239,11 @@ class Transaction(object, metaclass=ABCMeta):
             if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
                 raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
 
-        if not XmssFast.verify(self.get_data_hash(),
-                               self.signature,
-                               self.PK):
+        if verify_signature and not XmssFast.verify(self.get_data_hash(),
+                                                    self.signature,
+                                                    self.PK):
             raise ValueError("Invalid xmss signature")
+
         return True
 
     def validate_slave(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
@@ -752,6 +753,8 @@ class TokenTransaction(Transaction):
             transaction._data.token.initial_balances.extend([initial_balance])
 
         transaction._data.fee = int(fee)
+
+        transaction.validate_or_raise(verify_signature=False)
 
         return transaction
 
