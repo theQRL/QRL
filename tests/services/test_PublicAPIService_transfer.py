@@ -8,7 +8,7 @@ from mock import Mock
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core.ChainManager import ChainManager
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.State import State
 from qrl.core.misc import logger
 from qrl.core.node import POW
@@ -74,7 +74,7 @@ class TestPublicAPI(TestCase):
 
                 tmp_hash = sha256(tmp_hash_pre)
                 hash_found = bin2hstr(Transaction.from_pbdata(response.extended_transaction_unsigned.tx).
-                                      get_hashable_bytes())
+                                      get_data_hash())
                 self.assertEqual(hash_found,
                                  bin2hstr(tmp_hash))
 

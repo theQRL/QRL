@@ -1,19 +1,3 @@
-from unittest import TestCase
-
-import simplejson as json
-from mock import Mock
-from pyqrllib.pyqrllib import bin2hstr
-
-from qrl.core.misc import logger
-from qrl.core.BlockHeader import BlockHeader
-from qrl.core.Transaction import Transaction, TransferTransaction, CoinBase, TokenTransaction, \
-    TransferTokenTransaction, MessageTransaction
-from qrl.crypto.misc import sha256
-from qrl.generated import qrl_pb2
-from tests.misc.helper import get_alice_xmss, get_bob_xmss
-
-logger.initialize_default()
-
 test_json_Simple = """{
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
@@ -26,7 +10,6 @@ test_json_Simple = """{
     ]
   }
 }"""
-
 test_json_CoinBase = """{
   "masterAddr": "AQMACCOCpS+LqcLTOtgHws3VvQhsLC/mPG6hO2MNEoCJTDo54cOA",
   "nonce": "2",
@@ -36,7 +19,6 @@ test_json_CoinBase = """{
     "amount": "90"
   }
 }"""
-
 test_json_Token = """{
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
@@ -57,7 +39,6 @@ test_json_Token = """{
     ]
   }
 }"""
-
 test_json_TransferToken = """{
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
@@ -71,7 +52,6 @@ test_json_TransferToken = """{
     ]
   }
 }"""
-
 test_json_MessageTransaction = """{
   "fee": "1",
   "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg==",
@@ -79,7 +59,6 @@ test_json_MessageTransaction = """{
     "messageHash": "VGVzdCBNZXNzYWdl"
   }
 }"""
-
 test_signature_Simple = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
                         "3c3f3f6cd87250b2ad225ced6b8c902a5fa1ecfacaa6744f6f42323ee586d873" \
                         "f066388ab9f17ad396aed963678edeab3e6e35c082ecd7bb8ef568f2da92fb2a" \
@@ -155,7 +134,6 @@ test_signature_Simple = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34c
                         "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
                         "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
                         "98675eed"
-
 test_signature_Token = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
                        "3c3f3f6cc186a29f9a39b38d7dd73a51f5dcdc759f9349e9a33ec47aa9e1171e" \
                        "fa0426b30d5074b25cdf27cf21938f1a6a208ec739f47c982613218b48c5b02b" \
@@ -231,7 +209,6 @@ test_signature_Token = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce
                        "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
                        "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
                        "98675eed"
-
 test_signature_TransferToken = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
                                "3c3f3f6c704cb79db016ed3aa75b5acf697b4cefa20dd6c66c2598dafd67e995" \
                                "69441d489b82316035ff53ac3bd7e53007da659e531d77d62dcf3cdbfab00c52" \
@@ -307,7 +284,6 @@ test_signature_TransferToken = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad
                                "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
                                "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
                                "98675eed"
-
 test_signature_MessageTransaction = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
                                     "3c3f3f6c870ead6e875c470543e9e91ab30e6119251698511ddd403c98167317" \
                                     "78adc7495d8f176dc9d0d5b9e08bf6314933cd1fc630ee0e0deddf477c22220d" \
@@ -383,444 +359,5 @@ test_signature_MessageTransaction = "0000000a899e73cfbf8c57027f5a0f853b9906701ee
                                     "95b34ebe7f09870e34e155ef3c2c542bfff412c7d6b6f6fc90b0a95a635eed0f" \
                                     "a50a126a5d24b78c915c210dbf5e92633f83f282d0b9e4e0a47f49f3d3249828" \
                                     "98675eed"
-
-# TODO: Do the same for Lattice and Duplicate
-# TODO: Write test to check after signing (before is there)
-# TODO: Fix problems with verifications (positive and negative checks)
-# TODO: Check corner cases, parameter boundaries
-
 wrap_message_expected1 = bytearray(b'\xff\x00\x0000000027\x00{"data": 12345, "type": "TESTKEY_1234"}\x00\x00\xff')
 wrap_message_expected1b = bytearray(b'\xff\x00\x0000000027\x00{"type": "TESTKEY_1234", "data": 12345}\x00\x00\xff')
-
-
-class TestTransaction(TestCase):
-    def __init__(self, *args, **kwargs):
-        super(TestTransaction, self).__init__(*args, **kwargs)
-
-    def test_calc_allowed_decimals(self):
-        decimal = Transaction.calc_allowed_decimals(10000000000000000000)
-        self.assertEqual(decimal, 0)
-
-        decimal = Transaction.calc_allowed_decimals(1)
-        self.assertEqual(decimal, 19)
-
-        decimal = Transaction.calc_allowed_decimals(2)
-        self.assertEqual(decimal, 18)
-
-
-class TestSimpleTransaction(TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestSimpleTransaction, self).__init__(*args, **kwargs)
-        self.alice = get_alice_xmss()
-        self.bob = get_bob_xmss()
-
-        self.alice.set_ots_index(10)
-        self.maxDiff = None
-
-    def test_create(self):
-        # Alice sending coins to Bob
-        tx = TransferTransaction.create(addrs_to=[self.bob.address],
-                                        amounts=[100],
-                                        fee=1,
-                                        xmss_pk=self.alice.pk)
-        self.assertTrue(tx)
-
-    def test_create_negative_amount(self):
-        with self.assertRaises(ValueError):
-            TransferTransaction.create(addrs_to=[self.bob.address],
-                                       amounts=[-100],
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
-
-    def test_create_negative_fee(self):
-        with self.assertRaises(ValueError):
-            TransferTransaction.create(addrs_to=[self.bob.address],
-                                       amounts=[-100],
-                                       fee=-1,
-                                       xmss_pk=self.alice.pk)
-
-    def test_to_json(self):
-        tx = TransferTransaction.create(addrs_to=[self.bob.address],
-                                        amounts=[100],
-                                        fee=1,
-                                        xmss_pk=self.alice.pk)
-        txjson = tx.to_json()
-
-        self.assertEqual(json.loads(test_json_Simple), json.loads(txjson))
-
-    def test_from_json(self):
-        tx = Transaction.from_json(test_json_Simple)
-        tx.sign(self.alice)
-        self.assertIsInstance(tx, TransferTransaction)
-
-        # Test that common Transaction components were copied over.
-        self.assertEqual(0, tx.nonce)
-        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
-                         bin2hstr(tx.addr_from))
-        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
-                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
-                         bin2hstr(tx.PK))
-        self.assertEqual('554f546305d4aed6ec71c759942b721b904ab9d65eeac3c954c08c652181c4e8', bin2hstr(tx.txhash))
-        self.assertEqual(10, tx.ots_key)
-
-        self.assertEqual(test_signature_Simple, bin2hstr(tx.signature))
-
-        # Test that specific content was copied over.
-        self.assertEqual('0103001d65d7e59aed5efbeae64246e0f3184d7c42411421eb385ba30f2c1c005a85ebc4419cfd',
-                         bin2hstr(tx.addrs_to[0]))
-        self.assertEqual(100, tx.total_amount)
-        self.assertEqual(1, tx.fee)
-
-    def test_validate_tx(self):
-        # If we change amount, fee, addr_from, addr_to, (maybe include xmss stuff) txhash should change.
-        tx = TransferTransaction.create(addrs_to=[self.bob.address],
-                                        amounts=[100],
-                                        fee=1,
-                                        xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_or_raise())
-
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
-
-
-class TestCoinBase(TestCase):
-    def __init__(self, *args, **kwargs):
-        super(TestCoinBase, self).__init__(*args, **kwargs)
-
-        self.alice = get_alice_xmss()
-        self.alice.set_ots_index(11)
-
-        self.mock_blockheader = Mock(spec=BlockHeader)
-        self.mock_blockheader.stake_selector = self.alice.address
-        self.mock_blockheader.block_reward = 50
-        self.mock_blockheader.fee_reward = 40
-        self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
-        self.mock_blockheader.block_number = 1
-        self.mock_blockheader.headerhash = sha256(b'headerhash')
-
-        self.maxDiff = None
-
-    def test_create(self):
-        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
-        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
-        self.assertIsInstance(tx, CoinBase)
-
-    def test_to_json(self):
-        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
-        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
-        txjson = tx.to_json()
-        self.assertEqual(json.loads(test_json_CoinBase), json.loads(txjson))
-
-    def test_from_txdict(self):
-        amount = self.mock_blockheader.block_reward + self.mock_blockheader.fee_reward
-        tx = CoinBase.create(amount, self.alice.address, self.mock_blockheader.block_number)
-        self.assertIsInstance(tx, CoinBase)
-
-        # Test that common Transaction components were copied over.
-        self.assertEqual(self.mock_blockheader.block_number + 1, tx.nonce)
-        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
-                         bin2hstr(tx.addr_to))
-
-        self.assertEqual('c7f3e1e092e70f49a943a162de8b110899b60ab1dafd0c72625fba6fc1adcd01', bin2hstr(tx.txhash))
-        self.assertEqual(tx.amount, 90)
-
-
-class TestTokenTransaction(TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestTokenTransaction, self).__init__(*args, **kwargs)
-        self.alice = get_alice_xmss()
-        self.bob = get_bob_xmss()
-
-        self.alice.set_ots_index(10)
-        self.maxDiff = None
-
-    def test_create(self):
-        # Alice creates Token
-        initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=400000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
-        self.assertTrue(tx)
-
-    def test_create_negative_fee(self):
-        with self.assertRaises(ValueError):
-            TokenTransaction.create(symbol=b'QRL',
-                                    name=b'Quantum Resistant Ledger',
-                                    owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                    decimals=4,
-                                    initial_balances=[],
-                                    fee=-1,
-                                    xmss_pk=self.alice.pk)
-
-    def test_to_json(self):
-        initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=400000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
-        txjson = tx.to_json()
-
-        self.assertEqual(json.loads(test_json_Token), json.loads(txjson))
-
-    def test_from_json(self):
-        tx = Transaction.from_json(test_json_Token)
-        tx.sign(self.alice)
-        self.assertIsInstance(tx, TokenTransaction)
-
-        # Test that common Transaction components were copied over.
-        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
-                         bin2hstr(tx.addr_from))
-        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
-                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
-                         bin2hstr(tx.PK))
-        self.assertEqual(b'QRL', tx.symbol)
-        self.assertEqual(b'Quantum Resistant Ledger', tx.name)
-        self.assertEqual('010317463dcd581b679b4754f46c6425125489a2826894e3c42a590efb6806450ce6bf52716c',
-                         bin2hstr(tx.owner))
-        self.assertEqual('ff84da605e9c9cd04d68503be7922110b4cc147837f8687ad18aa54b7bc5632d', bin2hstr(tx.txhash))
-        self.assertEqual(10, tx.ots_key)
-
-        self.assertEqual(test_signature_Token, bin2hstr(tx.signature))
-
-        total_supply = 0
-        for initial_balance in tx.initial_balances:
-            total_supply += initial_balance.amount
-        self.assertEqual(600000000, total_supply)
-
-        self.assertEqual(1, tx.fee)
-
-    def test_validate_tx(self):
-        initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=400000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=200000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_or_raise())
-
-    def test_validate_tx2(self):
-        initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=10000000000000000000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=10000000000000000000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=4,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # Transaction Validation should fail as the decimals is higher than the possible decimals
-        with self.assertRaises(ValueError):
-            self.assertFalse(tx.validate_or_raise())
-
-    def test_validate_tx3(self):
-        initial_balances = list()
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=1000))
-        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=1000))
-        tx = TokenTransaction.create(symbol=b'QRL',
-                                     name=b'Quantum Resistant Ledger',
-                                     owner=b'\x01\x03\x17F=\xcdX\x1bg\x9bGT\xf4ld%\x12T\x89\xa2\x82h\x94\xe3\xc4*Y\x0e\xfbh\x06E\x0c\xe6\xbfRql',
-                                     decimals=15,
-                                     initial_balances=initial_balances,
-                                     fee=1,
-                                     xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_or_raise())
-
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
-
-
-class TestTransferTokenTransaction(TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestTransferTokenTransaction, self).__init__(*args, **kwargs)
-        self.alice = get_alice_xmss()
-        self.bob = get_bob_xmss()
-
-        self.alice.set_ots_index(10)
-        self.maxDiff = None
-
-    def test_create(self):
-        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
-                                             addrs_to=[self.bob.address],
-                                             amounts=[200000],
-                                             fee=1,
-                                             xmss_pk=self.alice.pk)
-        self.assertTrue(tx)
-
-    def test_to_json(self):
-        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
-                                             addrs_to=[self.bob.address],
-                                             amounts=[200000],
-                                             fee=1,
-                                             xmss_pk=self.alice.pk)
-        txjson = tx.to_json()
-
-        self.assertEqual(json.loads(test_json_TransferToken), json.loads(txjson))
-
-    def test_from_json(self):
-        tx = Transaction.from_json(test_json_TransferToken)
-        tx.sign(self.alice)
-
-        self.assertIsInstance(tx, TransferTokenTransaction)
-
-        # Test that common Transaction components were copied over.
-        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
-                         bin2hstr(tx.addr_from))
-        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
-                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
-                         bin2hstr(tx.PK))
-        self.assertEqual(b'000000000000000', tx.token_txhash)
-        self.assertEqual(200000, tx.total_amount)
-        self.assertEqual('390b159b34cffd29d4271a19679ff227df2ccd471078f177a7b58ca5f5d999f0', bin2hstr(tx.txhash))
-        self.assertEqual(10, tx.ots_key)
-
-        # z = bin2hstr(tx.signature)
-        # print('"', end='')
-        # for i in range(len(z)):
-        #     print(z[i], end='')
-        #     if (i + 1) % 64 == 0:
-        #         print('" \\', end='')
-        #         print('')
-        #         print(' ' * len('test_signature_TransferToken = '), end='')
-        #         print('"', end='')
-
-        self.assertEqual(test_signature_TransferToken, bin2hstr(tx.signature))
-
-        self.assertEqual(1, tx.fee)
-
-    def test_validate_tx(self):
-        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
-                                             addrs_to=[self.bob.address],
-                                             amounts=[200000],
-                                             fee=1,
-                                             xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_or_raise())
-
-    def test_state_validate_tx(self):
-        # Test balance not enough
-        # Test negative tx amounts
-        pass
-
-
-class TestMessageTransaction(TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestMessageTransaction, self).__init__(*args, **kwargs)
-        self.alice = get_alice_xmss()
-        self.bob = get_bob_xmss()
-
-        self.alice.set_ots_index(10)
-        self.maxDiff = None
-
-    def test_create(self):
-        tx = MessageTransaction.create(message_hash=b'Test Message',
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
-        self.assertTrue(tx)
-
-    def test_to_json(self):
-        tx = MessageTransaction.create(message_hash=b'Test Message',
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
-        txjson = tx.to_json()
-
-        self.assertEqual(json.loads(test_json_MessageTransaction), json.loads(txjson))
-
-    def test_from_json(self):
-        tx = Transaction.from_json(test_json_MessageTransaction)
-        tx.sign(self.alice)
-
-        self.assertIsInstance(tx, MessageTransaction)
-
-        # Test that common Transaction components were copied over.
-        self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
-                         bin2hstr(tx.addr_from))
-        self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
-                         '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
-                         bin2hstr(tx.PK))
-        self.assertEqual(b'Test Message', tx.message_hash)
-        self.assertEqual('cbe7c40a86e82b8b6ac4e7df812f882183bd85d60f335cd83483d6831e61f4ec', bin2hstr(tx.txhash))
-        self.assertEqual(10, tx.ots_key)
-
-        self.assertEqual(test_signature_MessageTransaction, bin2hstr(tx.signature))
-
-        self.assertEqual(1, tx.fee)
-
-    def test_validate_tx(self):
-        tx = MessageTransaction.create(message_hash=b'Test Message',
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # We have not touched the tx: validation should pass.
-        self.assertTrue(tx.validate_or_raise())
-
-    def test_validate_tx2(self):
-        tx = MessageTransaction.create(message_hash=b'T' * 81,
-                                       fee=1,
-                                       xmss_pk=self.alice.pk)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
-
-        # Validation should fail, as we have entered a message of more than 80 lengths
-        with self.assertRaises(ValueError):
-            self.assertFalse(tx.validate_or_raise())

@@ -4,7 +4,7 @@
 
 from qrl.core import config
 from qrl.core.misc import ntp
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 
 
 class TransactionInfo:

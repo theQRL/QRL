@@ -12,17 +12,18 @@ from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.Transaction import Transaction, CoinBase
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
-from qrl.generated import qrl_pb2
+from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 
 
 class ChainManager:
     def __init__(self, state):
         self.state = state
         self.tx_pool = TransactionPool(None)
-        self.last_block = Block.from_json(GenesisBlock().to_json())
+        self.last_block = Block.deserialize(GenesisBlock().serialize())
         self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
 
         self.trigger_miner = False
@@ -57,8 +58,6 @@ class ChainManager:
                 parent_difficulty=parent_difficulty)
 
             block_metadata = BlockMetadata.create()
-
-            block_metadata.set_orphan(False)
             block_metadata.set_block_difficulty(self.current_difficulty)
             block_metadata.set_cumulative_difficulty(self.current_difficulty)
 
@@ -81,7 +80,7 @@ class ChainManager:
 
             addresses_state[coinbase_tx.addr_to] = AddressState.get_default(coinbase_tx.addr_to)
 
-            if not coinbase_tx.validate_extended():
+            if not coinbase_tx.validate_extended(genesis_block.block_number):
                 return False
 
             coinbase_tx.apply_state_changes(addresses_state)
@@ -96,55 +95,65 @@ class ChainManager:
         else:
             self.last_block = self.get_block_by_number(height)
             self.current_difficulty = self.state.get_block_metadata(self.last_block.headerhash).block_difficulty
+            fork_state = self.state.get_fork_state()
+            if fork_state:
+                block = self.state.get_block(fork_state.initiator_headerhash)
+                self.fork_recovery(block, fork_state)
 
-    def _try_orphan_add_block(self, block, batch):
-        prev_block_metadata = self.state.get_block_metadata(block.prev_headerhash)
-
-        if prev_block_metadata is None or prev_block_metadata.is_orphan:
-            self.state.put_block(block, batch)
-            self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
-            return True
-
-        return False
-
-    def _try_branch_add_block(self, block, batch=None) -> bool:
+    def _apply_block(self, block: Block, batch) -> bool:
         address_set = self.state.prepare_address_list(block)  # Prepare list for current block
+        addresses_state = self.state.get_state_mainchain(address_set)
+        if not block.apply_state_changes(addresses_state):
+            return False
+        self.state.put_addresses_state(addresses_state, batch)
+        return True
+
+    def _update_chainstate(self, block: Block, batch):
+        self.last_block = block
+        self._update_block_number_mapping(block, batch)
+        self.tx_pool.remove_tx_in_block_from_pool(block)
+        self.state.update_mainchain_height(block.block_number, batch)
+        self.state.update_tx_metadata(block, batch)
+
+    def _try_branch_add_block(self, block, batch) -> (bool, bool):
+        """
+        This function returns list of bool types. The first bool represent
+        if the block has been added successfully and the second bool
+        represent the fork_flag, which becomes true when a block triggered
+        into fork recovery.
+        :param block:
+        :param batch:
+        :return:
+        """
         if self.last_block.headerhash == block.prev_headerhash:
-            address_txn = self.state.get_state_mainchain(address_set)
-        else:
-            address_txn, rollback_headerhash, hash_path = self.state.get_state(block.prev_headerhash, address_set)
+            if not self._apply_block(block, batch):
+                return False, False
 
-        if block.apply_state_changes(address_txn):
-            self.state.put_block(block, None)
-            self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, None)
+        self.state.put_block(block, batch)
 
-            last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
-            new_block_metadata = self.state.get_block_metadata(block.headerhash)
-            last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
-            new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
+        last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
+        last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
 
-            if new_block_difficulty > last_block_difficulty:
-                if self.last_block.headerhash != block.prev_headerhash:
-                    self.rollback(rollback_headerhash, hash_path, block.block_number)
+        new_block_metadata = self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
+        new_block_difficulty = int(UInt256ToString(new_block_metadata.cumulative_difficulty))
 
-                self.state.put_addresses_state(address_txn)
-                self.last_block = block
-                self._update_mainchain(block, batch)
-                self.tx_pool.remove_tx_in_block_from_pool(block)
-                self.tx_pool.check_stale_txn(block.block_number)
-                self.state.update_mainchain_height(block.block_number, batch)
-                self.state.update_tx_metadata(block, batch)
+        if new_block_difficulty > last_block_difficulty:
+            if self.last_block.headerhash != block.prev_headerhash:
+                fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=block.headerhash)
+                self.state.put_fork_state(fork_state, batch)
+                self.state.write_batch(batch)
+                return self.fork_recovery(block, fork_state), True
 
-                self.trigger_miner = True
+            self._update_chainstate(block, batch)
+            self.tx_pool.check_stale_txn(block.block_number)
+            self.trigger_miner = True
 
-            return True
-
-        return False
+        return True, False
 
     def remove_block_from_mainchain(self, block: Block, latest_block_number: int, batch):
         addresses_set = self.state.prepare_address_list(block)
         addresses_state = self.state.get_state_mainchain(addresses_set)
-        for tx_idx in range(len(block.transactions) - 1, 0, -1):
+        for tx_idx in range(len(block.transactions) - 1, -1, -1):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
             tx.revert_state_changes(addresses_state, self.state)
 
@@ -154,44 +163,123 @@ class ChainManager:
         self.state.remove_blocknumber_mapping(block.block_number, batch)
         self.state.put_addresses_state(addresses_state, batch)
 
-    def rollback(self, rollback_headerhash, hash_path, latest_block_number):
-        while self.last_block.headerhash != rollback_headerhash:
-            self.remove_block_from_mainchain(self.last_block, latest_block_number, None)
+    def get_fork_point(self, block: Block):
+        tmp_block = block
+        hash_path = []
+        while True:
+            if not block:
+                raise Exception('[get_state] No Block Found %s, Initiator %s', block.headerhash, tmp_block.headerhash)
+            mainchain_block = self.get_block_by_number(block.block_number)
+            if mainchain_block and mainchain_block.headerhash == block.headerhash:
+                break
+            if block.block_number == 0:
+                raise Exception('[get_state] Alternate chain genesis is different, Initiator %s', tmp_block.headerhash)
+            hash_path.append(block.headerhash)
+            block = self.state.get_block(block.prev_headerhash)
+
+        return block.headerhash, hash_path
+
+    def rollback(self, forked_header_hash: bytes, fork_state: qrlstateinfo_pb2.ForkState=None):
+        """
+        Rollback from last block to the block just before the forked_header_hash
+        :param forked_header_hash:
+        :param fork_state:
+        :return:
+        """
+        hash_path = []
+        while self.last_block.headerhash != forked_header_hash:
+            block = self.state.get_block(self.last_block.headerhash)
+            mainchain_block = self.get_block_by_number(block.block_number)
+            if block.headerhash == mainchain_block.headerhash:
+                break
+            hash_path.append(self.last_block.headerhash)
+
+            batch = self.state.get_batch()
+            self.remove_block_from_mainchain(self.last_block, block.block_number, batch)
+
+            if fork_state:
+                fork_state.old_mainchain_hash_path.extend([self.last_block.headerhash])
+                self.state.put_fork_state(fork_state, batch)
+
+            self.state.write_batch(batch)
+
             self.last_block = self.state.get_block(self.last_block.prev_headerhash)
 
-        for header_hash in hash_path[-1::-1]:
+        return hash_path
+
+    def add_chain(self, hash_path: list, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        """
+        Add series of blocks whose headerhash mentioned into hash_path
+        :param hash_path:
+        :param fork_state:
+        :param batch:
+        :return:
+        """
+        start = 0
+        try:
+            start = hash_path.index(self.last_block.headerhash) + 1
+        except ValueError:
+            # Following condition can only be true if the fork recovery was interrupted last time
+            if self.last_block.headerhash in fork_state.old_mainchain_hash_path:
+                return False
+
+        for i in range(start, len(hash_path)):
+            header_hash = hash_path[i]
             block = self.state.get_block(header_hash)
-            address_set = self.state.prepare_address_list(block)  # Prepare list for current block
-            addresses_state = self.state.get_state_mainchain(address_set)
 
-            for tx_idx in range(0, len(block.transactions)):
-                tx = Transaction.from_pbdata(block.transactions[tx_idx])
-                tx.apply_state_changes(addresses_state)
+            batch = self.state.get_batch()
 
-            self.state.put_addresses_state(addresses_state)
-            self.last_block = block
-            self._update_mainchain(block, None)
-            self.tx_pool.remove_tx_in_block_from_pool(block)
-            self.state.update_mainchain_height(block.block_number, None)
-            self.state.update_tx_metadata(block, None)
+            if not self._apply_block(block, batch):
+                return False
+
+            self._update_chainstate(block, batch)
+
+            self.state.write_batch(batch)
+
+        self.state.delete_fork_state()
+
+        return True
+
+    def fork_recovery(self, block: Block, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        # This condition only becomes true, when fork recovery was interrupted
+        if fork_state.fork_point_headerhash:
+            forked_header_hash, hash_path = fork_state.fork_point_headerhash, fork_state.new_mainchain_hash_path
+        else:
+            forked_header_hash, hash_path = self.get_fork_point(block)
+            fork_state.fork_point_headerhash = forked_header_hash
+            fork_state.new_mainchain_hash_path.extend(hash_path)
+            self.state.put_fork_state(fork_state)
+
+        rollback_done = False
+        if fork_state.old_mainchain_hash_path:
+            b = self.state.get_block(fork_state.old_mainchain_hash_path[-1])
+            if b and b.prev_headerhash == fork_state.fork_point_headerhash:
+                rollback_done = True
+
+        if not rollback_done:
+            old_hash_path = self.rollback(forked_header_hash, fork_state)
+        else:
+            old_hash_path = fork_state.old_mainchain_hash_path
+
+        if not self.add_chain(hash_path[-1::-1], fork_state):
+            # If above condition is true, then it means, the node failed to add_chain
+            # Thus old chain state, must be retrieved
+            self.rollback(forked_header_hash)
+            self.add_chain(old_hash_path[-1::-1])  # Restores the old chain state
+            return False
 
         self.trigger_miner = True
+        return True
 
-    def _add_block(self, block, batch=None):
+    def _add_block(self, block, batch=None) -> (bool, bool):
         self.trigger_miner = False
 
         block_size_limit = self.state.get_block_size_limit(block)
         if block_size_limit and block.size > block_size_limit:
             logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
-            return False
+            return False, False
 
-        if self._try_orphan_add_block(block, batch):
-            return True
-
-        if self._try_branch_add_block(block, batch):
-            return True
-
-        return False
+        return self._try_branch_add_block(block, batch)
 
     def add_block(self, block: Block) -> bool:
         if block.block_number < self.height - config.dev.reorg_limit:
@@ -199,39 +287,14 @@ class ChainManager:
             return False
 
         batch = self.state.get_batch()
-        if self._add_block(block, batch=batch):
-            self.state.write_batch(batch)
-            self.update_child_metadata(block.headerhash)  # TODO: Not needed to execute when an orphan block is added
+        block_flag, fork_flag = self._add_block(block, batch=batch)
+        if block_flag:
+            if not fork_flag:
+                self.state.write_batch(batch)
             logger.info('Added Block #%s %s', block.block_number, bin2hstr(block.headerhash))
             return True
 
         return False
-
-    def update_child_metadata(self, headerhash):
-        block_metadata = self.state.get_block_metadata(headerhash)
-
-        childs = list(block_metadata.child_headerhashes)
-
-        while childs:
-            child_headerhash = childs.pop(0)
-            block = self.state.get_block(child_headerhash)
-            if not block:
-                continue
-            if not self._add_block(block):
-                self._prune([block.headerhash], None)
-                continue
-            block_metadata = self.state.get_block_metadata(child_headerhash)
-            childs += block_metadata.child_headerhashes
-
-    def _prune(self, childs, batch):
-        while childs:
-            child_headerhash = childs.pop(0)
-
-            block_metadata = self.state.get_block_metadata(child_headerhash)
-            childs += block_metadata.child_headerhashes
-
-            self.state.delete(bin2hstr(child_headerhash).encode(), batch)
-            self.state.delete(b'metadata_' + bin2hstr(child_headerhash).encode(), batch)
 
     def add_block_metadata(self,
                            headerhash,
@@ -243,29 +306,21 @@ class ChainManager:
             block_metadata = BlockMetadata.create()
 
         parent_metadata = self.state.get_block_metadata(parent_headerhash)
-        block_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
-        block_cumulative_difficulty = (0,) * 32  # 32 bytes to represent 256 bit of 0
-        if not parent_metadata:
-            parent_metadata = BlockMetadata.create()
-        else:
-            parent_block = self.state.get_block(parent_headerhash)
-            if parent_block:
-                parent_block_difficulty = parent_metadata.block_difficulty
-                parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                if not parent_metadata.is_orphan:
-                    block_metadata.update_last_headerhashes(parent_metadata.last_N_headerhashes, parent_headerhash)
-                    measurement = self.state.get_measurement(block_timestamp, parent_headerhash, parent_metadata)
+        parent_block_difficulty = parent_metadata.block_difficulty
+        parent_cumulative_difficulty = parent_metadata.cumulative_difficulty
 
-                    block_difficulty, _ = DifficultyTracker.get(
-                        measurement=measurement,
-                        parent_difficulty=parent_block_difficulty)
+        block_metadata.update_last_headerhashes(parent_metadata.last_N_headerhashes, parent_headerhash)
+        measurement = self.state.get_measurement(block_timestamp, parent_headerhash, parent_metadata)
 
-                    block_cumulative_difficulty = StringToUInt256(str(
-                        int(UInt256ToString(block_difficulty)) +
-                        int(UInt256ToString(parent_cumulative_difficulty))))
+        block_difficulty, _ = DifficultyTracker.get(
+            measurement=measurement,
+            parent_difficulty=parent_block_difficulty)
 
-        block_metadata.set_orphan(parent_metadata.is_orphan)
+        block_cumulative_difficulty = StringToUInt256(str(
+            int(UInt256ToString(block_difficulty)) +
+            int(UInt256ToString(parent_cumulative_difficulty))))
+
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)
 
@@ -273,23 +328,15 @@ class ChainManager:
         self.state.put_block_metadata(parent_headerhash, parent_metadata, batch)
         self.state.put_block_metadata(headerhash, block_metadata, batch)
 
-        # Call once to populate the cache
-        self.state.get_block_datapoint(headerhash)
+        return block_metadata
 
-    def _update_mainchain(self, block, batch):
-        block_number_mapping = None
-        while block_number_mapping is None or block.headerhash != block_number_mapping.headerhash:
-            block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
-                                                              prev_headerhash=block.prev_headerhash)
-            self.state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
-            block = self.state.get_block(block.prev_headerhash)
-            block_number_mapping = self.state.get_block_number_mapping(block.block_number)
+    def _update_block_number_mapping(self, block, batch):
+        block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
+                                                          prev_headerhash=block.prev_headerhash)
+        self.state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
 
     def get_block_by_number(self, block_number) -> Optional[Block]:
         return self.state.get_block_by_number(block_number)
-
-    def get_state(self, headerhash):
-        return self.state.get_state(headerhash, set())
 
     def get_address(self, address):
         return self.state.get_address_state(address)

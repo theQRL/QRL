@@ -169,7 +169,7 @@ class POW(ConsensusMechanism):
 
         logger.info('Checking Download..')
 
-        if self.p2p_factory.connections == 0:
+        if self.p2p_factory.num_connections == 0:
             logger.warning('No connected peers. Moving to synced state')
             self.update_node_state(ESyncState.synced)
             return
