@@ -8,8 +8,9 @@ from typing import List
 import click
 import grpc
 import simplejson as json
+from google.protobuf.json_format import MessageToJson
 from pyledgerqrl.ledgerqrl import *
-from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, QRLHelper, bin2hstr
 
 from qrl.core import config
 from qrl.core.txs.Transaction import Transaction
@@ -84,22 +85,22 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
 
 
 def validate_ots_index(ots_key_index, src_xmss, prompt=True):
-    while not (1 <= ots_key_index <= src_xmss.number_signatures):
+    while not (0 <= ots_key_index < src_xmss.number_signatures):
         if prompt:
-            ots_key_index = click.prompt('OTS key Index [{}..{}]'.format(1, src_xmss.number_signatures), type=int)
+            ots_key_index = click.prompt('OTS key Index [{}..{}]'.format(0, src_xmss.number_signatures - 1), type=int)
             prompt = False
         else:
-            click.echo("OTS key index must be between {} and {} (inclusive)".format(1, src_xmss.number_signatures))
+            click.echo("OTS key index must be between {} and {} (inclusive)".format(0, src_xmss.number_signatures - 1))
             quit(1)
 
     return ots_key_index
 
 
 def get_item_from_wallet(wallet, wallet_idx):
-    if 1 <= wallet_idx <= len(wallet.address_items):
-        return wallet.address_items[wallet_idx - 1]
+    if 0 <= wallet_idx < len(wallet.address_items):
+        return wallet.address_items[wallet_idx]
 
-    click.echo('Wallet index not found', color='yellow')
+    click.echo('Wallet index not found {}'.format(wallet_idx), color='yellow')
     return None
 
 
@@ -160,8 +161,8 @@ def _select_wallet(ctx, address_or_index):
             addr_item = get_item_from_wallet(wallet, address_or_index)
             if addr_item:
                 # FIXME: This should only return pk and index
-                xmss = wallet.get_xmss_by_index(address_or_index - 1)
-                return wallet.addresses[address_or_index - 1], xmss
+                xmss = wallet.get_xmss_by_index(address_or_index)
+                return wallet.addresses[address_or_index], xmss
 
         elif address_or_index.startswith('Q'):
             for i, addr_item in enumerate(wallet.address_items):
@@ -495,7 +496,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
         address_src_pk = src_xmss.pk
 
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-        src_xmss.set_ots_index(ots_key_index - 1)
+        src_xmss.set_ots_index(ots_key_index)
 
         message = message.encode()
 
@@ -593,7 +594,7 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
             address_src_pk = src_xmss.pk
 
             ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-            src_xmss.set_ots_index(ots_key_index - 1)
+            src_xmss.set_ots_index(ots_key_index)
 
             signing_object = src_xmss
 
@@ -682,7 +683,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         address_src_pk = src_xmss.pk
 
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-        src_xmss.set_ots_index(ots_key_index - 1)
+        src_xmss.set_ots_index(ots_key_index)
 
         address_owner = parse_qaddress(owner)
         master_addr = None
@@ -760,7 +761,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
         address_src_pk = src_xmss.pk
 
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-        src_xmss.set_ots_index(ots_key_index - 1)
+        src_xmss.set_ots_index(ots_key_index)
 
     except KeyboardInterrupt:
         click.echo("Terminated by user")
@@ -804,7 +805,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         _, src_xmss = _select_wallet(ctx, src)
 
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-        src_xmss.set_ots_index(ots_key_index - 1)
+        src_xmss.set_ots_index(ots_key_index)
 
         if src_xmss:
             address_src_pk = src_xmss.pk
@@ -871,7 +872,7 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         address_src_pk = src_xmss.pk
 
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-        src_xmss.set_ots_index(ots_key_index - 1)
+        src_xmss.set_ots_index(ots_key_index)
 
         kyber_pk = kyber_pk.encode()
         dilithium_pk = dilithium_pk.encode()
