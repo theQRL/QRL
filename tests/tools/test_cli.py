@@ -376,7 +376,8 @@ class TestCLI(TestCase):
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_push(self, mock_stub):
         mock_error_code = 'Error? What error? This is a test'
-        mock_push_transaction_resp = mock.MagicMock(name='this should be pushTransactionResp', error_code=mock_error_code)
+        mock_push_transaction_resp = mock.MagicMock(name='this should be pushTransactionResp',
+                                                    error_code=mock_error_code)
 
         attrs = {"name": "this should be stub.PushTransaction",
                  "PushTransaction.return_value": mock_push_transaction_resp}
@@ -391,7 +392,8 @@ class TestCLI(TestCase):
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_push_invalid_input(self, mock_stub):
         mock_error_code = 'Error? What error? This is a test'
-        mock_push_transaction_resp = mock.MagicMock(name='this should be pushTransactionResp', error_code=mock_error_code)
+        mock_push_transaction_resp = mock.MagicMock(name='this should be pushTransactionResp',
+                                                    error_code=mock_error_code)
 
         attrs = {"name": "this should be stub.PushTransaction",
                  "PushTransaction.return_value": mock_push_transaction_resp}
@@ -570,26 +572,44 @@ class TestCLI(TestCase):
 
         # Weird token names and symbols shouldn't work
         result = self.runner.invoke(qrl_cli,
-                                    ["tx_token", "--src=1", "--master=",
-                                     "--symbol=thequickbrownfoxjumpsoverthelazydog",
-                                     "--name=Seriouslyimgonnastarttalkingandneverendbecausethatsjusthowidothings can i\
-                                      have spaces in here what about |nny characters",
-                                     "--owner={}".format(owner_address), "--decimals=1", "--fee=0",
-                                     "--ots_key_index=1"],
+                                    [
+                                        "tx_token",
+                                        "--src=1",
+                                        "--master=",
+                                        "--symbol=thequickbrownfoxjumpsoverthelazydog",
+                                        "--name=Seriouslyimgonnastarttalkingandneverendbecausethatsjusthowidothings "
+                                        "can i have spaces in here what about |nny characters",
+                                        "--owner={}".format(owner_address),
+                                        "--decimals=1",
+                                        "--fee=0",
+                                        "--ots_key_index=1"
+                                    ],
                                     input=typed_in_input
                                     )
+
+        print(result.output)
         self.assertEqual(result.exit_code, 1)
         self.assertIn('must be shorter than', result.output.strip())
 
         # An outrageous decimal precision shouldn't work either
-        # Currently this causes the CLI to hang, as it tries to do 10^1000000000
-        # result = self.runner.invoke(qrl_cli,
-        #                             ["tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
-        #                              "--owner={}".format(owner_address), "--decimals=1000000000", "--fee=0",
-        #                              "--ots_key_index=0"],
-        #                             input=typed_in_input
-        #                             )
-        # self.assertEqual(result.exit_code, 1)
+        result = self.runner.invoke(qrl_cli,
+                                    [
+                                        "tx_token",
+                                        "--src=1",
+                                        "--master=",
+                                        "--symbol=TST",
+                                        "--name=TEST",
+                                        "--owner={}".format(owner_address),
+                                        "--decimals=1000",
+                                        "--fee=0",
+                                        "--ots_key_index=1"
+                                    ],
+                                    input=typed_in_input
+                                    )
+
+        print(result.output)
+        print(result.exc_info)
+        self.assertEqual(result.exit_code, 1)
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_transfertoken(self, mock_stub):

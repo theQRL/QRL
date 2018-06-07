@@ -654,6 +654,10 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
     initial_balances = []
 
+    if decimals > 19:
+        click.echo("The number of decimal cannot exceed 19 under any possible configuration")
+        quit(1)
+
     while True:
         address = click.prompt('Address ', default='')
         if address == '':
@@ -728,7 +732,19 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
     Create Transfer Token Transaction, which moves tokens from src to dst.
     """
 
+    if decimals > 19:
+        click.echo("The number of decimal cannot exceed 19 under any configuration")
+        quit(1)
+
     try:
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, decimals)
+        bin_token_txhash = parse_hexblob(token_txhash)
+        master_addr = None
+        if master:
+            master_addr = parse_qaddress(master)
+        # FIXME: This could be problematic. Check
+        fee_shor = _shorize(fee)
+
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
             click.echo("A local wallet is required to sign the transaction")
@@ -739,14 +755,6 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
         src_xmss.set_ots_index(ots_key_index - 1)
 
-        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, decimals)
-
-        bin_token_txhash = parse_hexblob(token_txhash)
-        master_addr = None
-        if master:
-            master_addr = parse_qaddress(master)
-        # FIXME: This could be problematic. Check
-        fee_shor = _shorize(fee)
     except KeyboardInterrupt:
         click.echo("Terminated by user")
         quit(1)
