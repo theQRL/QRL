@@ -86,18 +86,19 @@ class BlockHeader(object):
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
 
-        # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool (13 bytes)
-        blob = bytes(shake128(config.dev.mining_blob_size - 13, blob))
+        # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool + 5 bytes for pool (17 bytes)
+        blob = bytes(shake128(config.dev.mining_blob_size - 18, blob))
 
         zero = 0
         blob = zero.to_bytes(1, byteorder='big', signed=False) + blob
 
         if len(blob) < self.nonce_offset:
-            raise Exception("Mining blob size below 39 bytes")
+            raise Exception("Mining blob size below 56 bytes")
 
-        # Now insert mining nonce and extra nonce in offset 39 for compatibility
+        # Now insert mining nonce and extra nonce in offset 56 for compatibility
         mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False) \
-            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False)
+            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False) \
+            + zero.to_bytes(5, byteorder='big', signed=False)
 
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
 
@@ -145,6 +146,8 @@ class BlockHeader(object):
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
+        else:
+            bh._data.timestamp_seconds = prev_block_timestamp  # Set timestamp for genesis block
 
         bh._data.hash_header_prev = prev_block_headerhash
         bh._data.merkle_root = hashedtransactions
@@ -183,7 +186,7 @@ class BlockHeader(object):
             return config.dev.supplied_coins
         return int(block_reward(block_number))
 
-    def validate(self, fee_reward, coinbase_amount):
+    def validate(self, fee_reward, coinbase_amount, tx_merkle_root):
         current_time = ntp.getTime()
         allowed_timestamp = current_time + config.dev.block_lead_timestamp
         if self.timestamp > allowed_timestamp:
@@ -218,6 +221,10 @@ class BlockHeader(object):
             logger.warning('Invalid block timestamp ')
             return False
 
+        if self.tx_merkle_root != tx_merkle_root:
+            logger.warning('Invalid TX Merkle Root')
+            return False
+
         return True
 
     def validate_parent_child_relation(self, parent_block):
@@ -249,10 +256,10 @@ class BlockHeader(object):
 
     def verify_blob(self, blob: bytes) -> bool:
         mining_nonce_offset = config.dev.mining_nonce_offset
-        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 12:]
+        blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 17:]
 
         actual_blob = self.mining_blob
-        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 12:]
+        actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 17:]
 
         if blob != actual_blob:
             return False

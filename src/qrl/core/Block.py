@@ -9,7 +9,8 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.misc import logger, ntp
 from qrl.core.PoWValidator import PoWValidator
-from qrl.core.Transaction import CoinBase, Transaction
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import merkle_tx_hash
 from qrl.generated import qrl_pb2
@@ -97,9 +98,19 @@ class Block(object):
         self.blockheader.set_nonces(mining_nonce, extra_nonce)
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
-    def to_json(self)->str:
+    def to_json(self) -> str:
         # FIXME: Remove once we move completely to protobuf
         return MessageToJson(self._data, sort_keys=True)
+
+    def serialize(self) -> str:
+        return self._data.SerializeToString()
+
+    @staticmethod
+    def deserialize(data):
+        pbdata = qrl_pb2.Block()
+        pbdata.ParseFromString(bytes(data))
+        block = Block(pbdata)
+        return block
 
     @staticmethod
     def create(block_number: int,
@@ -190,14 +201,20 @@ class Block(object):
             coinbase_txn = Transaction.from_pbdata(self.transactions[0])
             coinbase_amount = coinbase_txn.amount
 
-            if not coinbase_txn.validate_extended():
+            if not coinbase_txn.validate_extended(self.block_number):
                 return False
 
         except Exception as e:
             logger.warning('Exception %s', e)
             return False
 
-        if not self.blockheader.validate(fee_reward, coinbase_amount):
+        hashedtransactions = []
+
+        for tx in self.transactions:
+            tx = Transaction.from_pbdata(tx)
+            hashedtransactions.append(tx.txhash)
+
+        if not self.blockheader.validate(fee_reward, coinbase_amount, merkle_tx_hash(hashedtransactions)):
             return False
 
         return True
@@ -205,7 +222,7 @@ class Block(object):
     def apply_state_changes(self, address_txn) -> bool:
         coinbase_tx = Transaction.from_pbdata(self.transactions[0])
 
-        if not coinbase_tx.validate_extended():
+        if not coinbase_tx.validate_extended(self.block_number):
             logger.warning('Coinbase transaction failed')
             return False
 

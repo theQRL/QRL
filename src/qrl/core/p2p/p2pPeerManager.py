@@ -9,6 +9,7 @@ from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
 from qrl.core.misc import logger, ntp
+from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
@@ -32,6 +33,10 @@ class P2PPeerManager(P2PBaseObserver):
         self.peers_path = os.path.join(config.user.data_dir,
                                        config.dev.peers_filename)
 
+        self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
+        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
+                                         filename=self.banned_peers_filename)
+
         self._observable = Observable(self)
         self._p2pfactory = None
 
@@ -41,6 +46,10 @@ class P2PPeerManager(P2PBaseObserver):
     @property
     def peer_addresses(self):
         return self._peer_addresses
+
+    @property
+    def trusted_addresses(self):
+        return set([peer.addr_remote for peer in self._p2pfactory.connections if peer.trusted])
 
     @property
     def peer_node_status(self):
@@ -80,8 +89,8 @@ class P2PPeerManager(P2PBaseObserver):
             try:
                 parse_peer_addr(ip_port, True)
                 new_peers.add(ip_port)
-            except Exception as _:
-                logger.warning("Invalid Peer Address {} sent by {}".format(ip_port, peer_ip))
+            except Exception as e:
+                logger.warning("Invalid Peer Address {} sent by {} - {}".format(ip_port, peer_ip, e))
 
         return new_peers
 
@@ -115,7 +124,8 @@ class P2PPeerManager(P2PBaseObserver):
         return best_channel
 
     def remove_channel(self, channel):
-        self._channels.remove(channel)
+        if channel in self._channels:
+            self._channels.remove(channel)
         if channel in self._peer_node_status:
             del self._peer_node_status[channel]
 
@@ -169,7 +179,7 @@ class P2PPeerManager(P2PBaseObserver):
         if not config.user.enable_peer_discovery:
             return
 
-        if message.plData.peer_ips is None:
+        if not message.plData.peer_ips:
             return
 
         new_peers = self.get_valid_peers(message.plData.peer_ips,
@@ -182,22 +192,19 @@ class P2PPeerManager(P2PBaseObserver):
 
     def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
-
-        # FIXME: Refactor this
-        if message.syncData.state == 'Synced':
-            source.factory.set_peer_synced(source, True)
-        elif message.syncData.state == '':
+        if message.syncData.state == '':
             if source.factory.synced:
                 source.send_sync(synced=True)
-                source.factory.set_peer_synced(source, False)
 
     @staticmethod
     def send_node_chain_state(dest_channel, node_chain_state: qrl_pb2.NodeChainState):
+        # FIXME: Not sure this belongs to peer management
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.CHAINSTATE,
                                           chainStateData=node_chain_state)
         dest_channel.send(msg)
 
     def monitor_chain_state(self):
+        # FIXME: Not sure this belongs to peer management
         current_timestamp = ntp.getTime()
         for channel in self._channels:
             if channel not in self._peer_node_status:
@@ -210,6 +217,7 @@ class P2PPeerManager(P2PBaseObserver):
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
+        # FIXME: Not sure this belongs to peer management
         # TODO: Verify/Disconnect problematic channels
         # Ping all channels
         for channel in self._channels:
@@ -218,6 +226,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._observable.notify(ObservableEvent(self.EventType.NO_PEERS))
 
     def handle_chain_state(self, source, message: qrllegacy_pb2.LegacyMessage):
+        # FIXME: Not sure this belongs to peer management
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.CHAINSTATE)
 
         message.chainStateData.timestamp = ntp.getTime()  # Receiving time
@@ -243,3 +252,36 @@ class P2PPeerManager(P2PBaseObserver):
             source.loseConnection()
 
         source.send_next()
+
+    ####################################################
+    ####################################################
+    ####################################################
+    ####################################################
+    def is_banned(self, addr_remote: str):
+        return addr_remote in self._banned_peers
+
+    def ban_peer(self, peer_obj):
+        self._banned_peers.add(peer_obj.addr_remote)
+        logger.warning('Banned %s', peer_obj.addr_remote)
+        peer_obj.loseConnection()
+
+    def connect_peers(self):
+        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
+        for peer_address in self.peer_addresses:
+            if self.is_banned(peer_address):
+                continue
+            self._p2pfactory.connect_peer(peer_address)
+
+    def get_peers_stat(self) -> list:
+        peers_stat = []
+        # Copying the list of keys, to avoid any change by other thread
+        for source in list(self.peer_node_status.keys()):
+            try:
+                peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
+                                             port=source.peer_port,
+                                             node_chain_state=self.peer_node_status[source])
+                peers_stat.append(peer_stat)
+            except KeyError:
+                # Ignore in case the key is deleted by other thread causing KeyError
+                continue
+        return peers_stat

@@ -22,9 +22,6 @@ class P2PProtocol(Protocol):
 
         # Need to use composition instead of inheritance here
         self._observable = P2PObservable(self)
-        self.peer_manager = None
-        self.p2pchain_manager = None
-        self.tx_manager = None
 
         self.last_rate_limit_update = 0
         self.rate_limit = config.user.peer_rate_limit
@@ -33,6 +30,9 @@ class P2PProtocol(Protocol):
 
         self.bytes_sent = 0
         self.outgoing_queue = PriorityQueue(maxsize=config.user.p2p_q_size)
+
+        self._connected_at = ntp.getTime()
+        self._valid_message_count = 0
 
     @property
     def peer_ip(self):
@@ -51,6 +51,29 @@ class P2PProtocol(Protocol):
         return self.transport.getHost().port
 
     @property
+    def is_banned(self):
+        return self.peer_manager.is_banned(self.addr_remote)
+
+    @property
+    def trusted(self):
+        if self.peer_manager.is_banned(self.addr_remote):
+            return False
+
+        if self._valid_message_count < config.dev.trust_min_msgcount or \
+                self.connection_time < config.dev.trust_min_conntime:
+            return False
+
+        return True
+
+    @property
+    def connected_at(self):
+        return self._connected_at
+
+    @property
+    def connection_time(self):
+        return ntp.getTime() - self._connected_at
+
+    @property
     def addr_remote(self):
         return "{}:{}".format(self.peer_ip, self.peer_port)
 
@@ -58,16 +81,26 @@ class P2PProtocol(Protocol):
     def addr_local(self):
         return "{}:{}".format(self.host_ip, self.host_port)
 
+    @property
+    def peer_manager(self):
+        # FIXME: this is breaking encapsulation
+        return self.factory._qrl_node.peer_manager
+
+    @property
+    def p2pchain_manager(self):
+        # FIXME: this is breaking encapsulation
+        return self.factory._qrl_node.p2pchain_manager
+
+    @property
+    def tx_manager(self):
+        # FIXME: this is breaking encapsulation
+        return self.factory._qrl_node.tx_manager
+
     def register(self, message_type, func: Callable):
         self._observable.register(message_type, func)
 
     def connectionMade(self):
         if self.factory.add_connection(self):
-            self.peer_manager = self.factory._qrl_node.peer_manager
-            self.p2pchain_manager = self.factory._qrl_node.p2pchain_manager
-            self.tx_manager = self.factory._qrl_node.tx_manager
-
-            # Inform about new channel
             self.peer_manager.new_channel(self)
             self.p2pchain_manager.new_channel(self)
             self.tx_manager.new_channel(self)
@@ -78,7 +111,7 @@ class P2PProtocol(Protocol):
     def connectionLost(self, reason=connectionDone):
         logger.debug('%s disconnected. remainder connected: %d',
                      self.addr_remote,
-                     self.factory.connections)
+                     self.factory.num_connections)
 
         self.factory.remove_connection(self)
         if self.peer_manager:
@@ -100,6 +133,11 @@ class P2PProtocol(Protocol):
             self.in_counter += 1
             if self.in_counter > self.rate_limit:
                 self.factory.ban_peer(self)
+
+            if self._valid_message_count < config.dev.trust_min_msgcount * 2:
+                # Avoid overflows
+                self._valid_message_count += 1
+
             self._observable.notify(msg)
 
         if read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
@@ -231,11 +269,11 @@ class P2PProtocol(Protocol):
         Sends the peers list.
         :return:
         """
-        remote_peers = self.factory.get_connected_peer_addrs()
-        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, remote_peers)
+        trusted_peers = self.peer_manager.trusted_addresses
+        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, trusted_peers)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
-                                          plData=qrllegacy_pb2.PLData(peer_ips=remote_peers,
+                                          plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
                                                                       public_port=config.user.p2p_public_port))
 
         self.send(msg)

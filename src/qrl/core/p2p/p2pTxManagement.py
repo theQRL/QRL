@@ -2,7 +2,7 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
@@ -191,7 +191,7 @@ class P2PTxManagement(P2PBaseObserver):
     @staticmethod
     def handle_slave(source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Receives Lattice Public Key Transaction
+        Receives Slave Transaction
         :param source:
         :param message:
         :return:

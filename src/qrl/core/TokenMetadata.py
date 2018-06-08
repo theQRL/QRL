@@ -60,3 +60,12 @@ class TokenMetadata(object):
         pbdata = qrl_pb2.TokenMetadata()
         Parse(json_data, pbdata)
         return TokenMetadata(pbdata)
+
+    def serialize(self) -> str:
+        return self._data.SerializeToString()
+
+    @staticmethod
+    def deserialize(data):
+        pbdata = qrl_pb2.TokenMetadata()
+        pbdata.ParseFromString(bytes(data))
+        return TokenMetadata(pbdata)
