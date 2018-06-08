@@ -180,7 +180,7 @@ class DevConfig(object):
         self.min_margin_block_number = 7
 
         self.public_ip = None
-        self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour
+        self.reorg_limit = 22000
         self.cache_frequency = 1000
 
         self.message_q_size = 300
@@ -198,7 +198,7 @@ class DevConfig(object):
 
         # Maximum number of ots index upto which OTS index should be tracked. Any OTS index above the specified value
         # will be managed by OTS Counter
-        self.max_ots_tracking_index = 4096
+        self.max_ots_tracking_index = 8192
         self.mining_nonce_offset = 39
         self.extra_nonce_offset = 43
         self.mining_blob_size = 76
