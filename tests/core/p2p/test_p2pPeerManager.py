@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, expectedFailure
+from unittest import TestCase
 from unittest.mock import Mock, patch
 import os
 import time
@@ -283,7 +283,6 @@ class TestP2PPeerManager(TestCase):
         self.peer_manager.handle_peer_list(channel, peer_list_message)
         self.peer_manager.update_peer_addresses.assert_called_once_with({"{0}:{1}".format(channel.peer_ip, 9000)})
 
-    @expectedFailure
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_handle_peer_list_empty_peer_list_message(self, logger):
         """
