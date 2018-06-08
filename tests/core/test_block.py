@@ -9,7 +9,8 @@ from tests.misc.helper import get_alice_xmss, get_bob_xmss
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction, CoinBase
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.crypto.misc import merkle_tx_hash
 
 logger.initialize_default()
