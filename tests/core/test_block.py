@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from pyqrllib.pyqrllib import sha2_256
 
-from tests.misc.helper import get_alice_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
