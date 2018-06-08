@@ -174,6 +174,7 @@ class QRLNode:
         node_chain_state = qrl_pb2.NodeChainState(block_number=last_block.block_number,
                                                   header_hash=last_block.headerhash,
                                                   cumulative_difficulty=bytes(block_metadata.cumulative_difficulty),
+                                                  version=config.dev.version,
                                                   timestamp=ntp.getTime())
 
         self.peer_manager.broadcast_chain_state(node_chain_state=node_chain_state)
