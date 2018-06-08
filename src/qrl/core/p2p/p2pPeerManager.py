@@ -124,7 +124,8 @@ class P2PPeerManager(P2PBaseObserver):
         return best_channel
 
     def remove_channel(self, channel):
-        self._channels.remove(channel)
+        if channel in self._channels:
+            self._channels.remove(channel)
         if channel in self._peer_node_status:
             del self._peer_node_status[channel]
 
@@ -178,7 +179,7 @@ class P2PPeerManager(P2PBaseObserver):
         if not config.user.enable_peer_discovery:
             return
 
-        if message.plData.peer_ips is None:
+        if not message.plData.peer_ips:
             return
 
         new_peers = self.get_valid_peers(message.plData.peer_ips,
