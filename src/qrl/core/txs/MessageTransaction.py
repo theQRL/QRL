@@ -34,6 +34,8 @@ class MessageTransaction(Transaction):
 
         transaction._data.public_key = xmss_pk
 
+        transaction.validate_or_raise(verify_signature=False)
+
         return transaction
 
     def _validate_custom(self) -> bool:

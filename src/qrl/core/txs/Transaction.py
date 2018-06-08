@@ -2,8 +2,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from math import log, floor
 from abc import ABCMeta, abstractmethod
+from math import log, floor
 
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
@@ -211,7 +211,7 @@ class Transaction(object, metaclass=ABCMeta):
 
         return True
 
-    def validate(self) -> bool:
+    def validate(self, verify_signature=True) -> bool:
         """
         This method calls validate_or_raise, logs any failure and returns True or False accordingly
         The main purpose is to avoid exceptions and accommodate legacy code
@@ -219,7 +219,7 @@ class Transaction(object, metaclass=ABCMeta):
         :rtype: bool
         """
         try:
-            self.validate_or_raise()
+            self.validate_or_raise(verify_signature)
         except ValueError as e:
             logger.info('[%s] failed validate_tx', bin2hstr(self.txhash))
             logger.warning(str(e))
@@ -239,7 +239,7 @@ class Transaction(object, metaclass=ABCMeta):
     def _get_master_address(self):
         return self.addr_from
 
-    def validate_or_raise(self) -> bool:
+    def validate_or_raise(self, verify_signature=True) -> bool:
         """
         This method will validate a transaction and raise exception if problems are found
         :return: True if the exception is valid, exceptions otherwise
@@ -250,9 +250,9 @@ class Transaction(object, metaclass=ABCMeta):
 
         self._coinbase_filter()
 
-        if not XmssFast.verify(self.get_hashable_bytes(),
-                               self.signature,
-                               self.PK):
+        if verify_signature and not XmssFast.verify(self.get_hashable_bytes(),
+                                                    self.signature,
+                                                    self.PK):
             raise ValueError("Invalid xmss signature")
         return True
 

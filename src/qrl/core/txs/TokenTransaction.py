@@ -75,6 +75,8 @@ class TokenTransaction(Transaction):
 
         transaction._data.fee = int(fee)
 
+        transaction.validate_or_raise(verify_signature=False)
+
         return transaction
 
     def _validate_custom(self):
