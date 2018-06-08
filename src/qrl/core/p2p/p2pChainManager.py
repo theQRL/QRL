@@ -103,7 +103,7 @@ class P2PChainManager(P2PBaseObserver):
             return
 
         try:
-            UInt256ToString(message.chainStateData.cumulative_difficulty)
+            UInt256ToString(message.bhData.cumulative_difficulty)
         except ValueError:
             logger.warning('Invalid Block Height Data')
             source.loseConnection()
