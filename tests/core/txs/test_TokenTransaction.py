@@ -19,6 +19,7 @@ class TestTokenTransaction(TestCase):
         super(TestTokenTransaction, self).__init__(*args, **kwargs)
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
+        self._decimals = 15
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
@@ -30,7 +31,7 @@ class TestTokenTransaction(TestCase):
         self.params = {"symbol": b'QRL',
                        "name": b'Quantum Resistant Ledger',
                        "owner": self.alice.address,
-                       "decimals": 15,
+                       "decimals": self._decimals,
                        "initial_balances": self.initial_balances_valid,
                        "fee": 1,
                        "xmss_pk": self.alice.pk}
@@ -124,9 +125,9 @@ class TestTokenTransaction(TestCase):
     def test_validate_tx2(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=10000000000000000000))
+                                                      amount=10000000000000000001))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=10000000000000000000))
+                                                      amount=10000000000000000001))
 
         tx = self.make_tx(decimals=4, initial_balances=initial_balances)
 
@@ -140,9 +141,9 @@ class TestTokenTransaction(TestCase):
     def test_validate_tx3(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=1000))
+                                                      amount=1000 * 10 ** self._decimals))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=1000))
+                                                      amount=1000 * 10 ** self._decimals))
 
         tx = self.make_tx(initial_balances=initial_balances)
 
