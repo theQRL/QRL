@@ -4,7 +4,6 @@
 from unittest import TestCase, expectedFailure
 from mock import Mock, patch
 
-import time
 from collections import OrderedDict
 from twisted.internet import reactor
 from qrl.core.qrlnode import QRLNode
@@ -14,21 +13,22 @@ from qrl.core.Block import Block
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core.ChainManager import ChainManager
-from qrl.core.Transaction import TransferTransaction, MessageTransaction, TokenTransaction, TransferTokenTransaction, \
-    LatticePublicKey, SlaveTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
+from tests.misc.helper import replacement_getTime
 
 
 def bhstr2bin(a_string: str) -> bytes:
     return bytes(hstr2bin(a_string))
-
-
-def replacement_getTime():
-    return int(time.time())
 
 
 def make_message(**kwargs):
@@ -83,7 +83,7 @@ class TestP2PFactory(TestCase):
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()
-        self.assertEqual(self.factory.connections, 3)
+        self.assertEqual(self.factory.num_connections, 3)
 
     def test_add_connection_wont_connect_to_itself(self, m_reactor, m_logger):
         """
@@ -98,22 +98,9 @@ class TestP2PFactory(TestCase):
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()
-        self.assertEqual(self.factory.connections, 3)
+        self.assertEqual(self.factory.num_connections, 3)
         self.factory._qrl_node.peer_manager.update_peer_addresses.assert_called_once_with(
             ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000'])
-
-    def test_synced_peer_properties_check(self, m_reactor, m_logger):
-        self.assertFalse(self.factory.has_synced_peers)
-        self.factory.set_peer_synced(self.channel_1, True)
-        self.assertTrue(self.factory.has_synced_peers)
-
-    def test_set_peer_synced(self, m_reactor, m_logger):
-        self.assertEqual(len(self.factory._synced_peers_protocol), 0)
-        self.factory.set_peer_synced(self.channel_1, True)
-        self.factory.set_peer_synced(self.channel_2, False)
-        self.assertEqual(len(self.factory._synced_peers_protocol), 1)
-        self.factory.set_peer_synced(self.channel_2, True)
-        self.assertEqual(len(self.factory._synced_peers_protocol), 2)
 
     def test_is_block_present(self, m_reactor, m_logger):
         """

@@ -7,7 +7,8 @@ from mock import Mock, patch
 
 from qrl.core import config
 from qrl.core.ESyncState import ESyncState
-from qrl.core.Transaction import TransferTransaction, SlaveTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger
 from qrl.core.notification.Observable import Observable
@@ -15,7 +16,7 @@ from qrl.core.notification.ObservableEvent import ObservableEvent
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
-from qrl.core.Transaction import MessageTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 logger.initialize_default()

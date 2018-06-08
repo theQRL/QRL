@@ -16,8 +16,12 @@ from qrl.core.misc import ntp, logger
 from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
-from qrl.core.Transaction import TransferTransaction, MessageTransaction, TokenTransaction, TransferTokenTransaction, \
-    LatticePublicKey, SlaveTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.node import SyncState
 from qrl.core.p2p.p2pprotocol import P2PProtocol
@@ -78,7 +82,6 @@ class P2PFactory(ServerFactory):
 
         self._genesis_processed = False
         self._peer_connections = []
-        self._synced_peers_protocol = set()
         self._txn_processor_running = False
 
         self.peer_blockheight = dict()
@@ -93,10 +96,6 @@ class P2PFactory(ServerFactory):
     ###################################################
     ###################################################
     ###################################################
-
-    @property
-    def has_synced_peers(self):
-        return len(self._synced_peers_protocol) > 0
 
     def get_random_peer(self):
         # FIXME: Used a named tuple to improve readability?
@@ -131,12 +130,6 @@ class P2PFactory(ServerFactory):
                                               bhData=qrl_pb2.BlockHeightData(block_number=0))
             peer.send(msg)
 
-    def set_peer_synced(self, conn_protocol, synced: bool):
-        if synced:
-            self._synced_peers_protocol.add(conn_protocol)
-        else:
-            self._synced_peers_protocol.discard(conn_protocol)
-
     ###################################################
     ###################################################
     ###################################################
@@ -146,8 +139,12 @@ class P2PFactory(ServerFactory):
     ###################################################
 
     @property
-    def connections(self):
+    def num_connections(self):
         return len(self._peer_connections)
+
+    @property
+    def connections(self):
+        return list(self._peer_connections)
 
     @property
     def synced(self):
@@ -461,7 +458,6 @@ class P2PFactory(ServerFactory):
 
     def broadcast_get_synced_state(self):
         # Request all peers to update their synced status
-        self._synced_peers_protocol = set()
         for peer in self._peer_connections:
             peer.send_sync()
 
@@ -512,8 +508,6 @@ class P2PFactory(ServerFactory):
 
         if conn_protocol.addr_remote in self.peer_blockheight:
             del self.peer_blockheight[conn_protocol.addr_remote]
-
-        self._synced_peers_protocol.discard(conn_protocol)
 
     def monitor_connections(self):
         reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)

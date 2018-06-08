@@ -9,7 +9,8 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
-from qrl.core.Transaction import Transaction, CoinBase
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.TransactionInfo import TransactionInfo
 
 
@@ -113,7 +114,7 @@ class TransactionPool:
                     txn = self.transaction_pool[i][1].transaction
                     if txn.PK == tx.PK:
                         if txn.ots_key >= config.dev.max_ots_tracking_index:
-                            if txn.ots_key < tx.ots_key:
+                            if txn.ots_key <= tx.ots_key:
                                 del self.transaction_pool[i]
                                 continue
                     i += 1
