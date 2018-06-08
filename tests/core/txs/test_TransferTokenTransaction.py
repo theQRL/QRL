@@ -114,10 +114,8 @@ class TestTransferTokenTransaction(TestCase):
         params = self.default_params()
         params["addrs_to"] = [self.bob.address, slave.address]
         params["amounts"] = [1, 0]
-        tx = TransferTokenTransaction.create(**params)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = TransferTokenTransaction.create(**params)
 
         # Protobuf validation doesn't allow negative fees already
         params = self.default_params()
@@ -150,18 +148,14 @@ class TestTransferTokenTransaction(TestCase):
 
         params = self.default_params()
         params["master_addr"] = b'Bad QRL Address'
-        tx = TransferTokenTransaction.create(**params)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = TransferTokenTransaction.create(**params)
 
         params = self.default_params()
         params["addrs_to"] = [self.bob.address, b'Bad QRL address']
         params["amounts"] = [100, 200]
-        tx = TransferTokenTransaction.create(**params)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = TransferTokenTransaction.create(**params)
 
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):
@@ -240,6 +234,7 @@ class TestTransferTokenTransaction(TestCase):
 
         params = self.default_params()
         params["addrs_to"] = [self.bob.address, get_slave_xmss().address]
+        params["amounts"] = [100, 200]
         tx = TransferTokenTransaction.create(**params)
         tx.set_affected_address(result)
         self.assertEqual(3, len(result))

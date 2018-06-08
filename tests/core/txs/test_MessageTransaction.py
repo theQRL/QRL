@@ -72,21 +72,15 @@ class TestMessageTransaction(TestCase):
 
     def test_validate_tx2(self, m_logger):
         self.params["message_hash"] = b'T' * 81
-        tx = MessageTransaction.create(**self.params)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
 
         # Validation should fail, as we have entered a message of more than 80 lengths
         with self.assertRaises(ValueError):
-            self.assertFalse(tx.validate_or_raise())
+            MessageTransaction.create(**self.params)
 
     def test_validate_message_length_zero(self, m_logger):
         self.params["message_hash"] = b''
-        tx = MessageTransaction.create(**self.params)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            self.assertFalse(tx.validate_or_raise())
+            MessageTransaction.create(**self.params)
 
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):

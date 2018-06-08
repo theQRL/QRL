@@ -40,6 +40,8 @@ class CoinBase(Transaction):
         transaction._data.nonce = block_number + 1
         transaction._data.transaction_hash = transaction.get_hashable_bytes()
 
+        transaction.validate_or_raise(verify_signature=False)
+
         return transaction
 
     def update_mining_address(self, mining_address: bytes):
