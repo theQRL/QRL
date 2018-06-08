@@ -1,22 +1,21 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, mock, skip, expectedFailure
-from click.testing import CliRunner
 import json
 import os
-import tempfile
 import shutil
+import tempfile
+from unittest import TestCase, mock, skip, expectedFailure
 
-from pyqrllib.kyber import Kyber
+from click.testing import CliRunner
 from pyqrllib.dilithium import Dilithium
+from pyqrllib.kyber import Kyber
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.cli import qrl as qrl_cli
 from qrl.core import config
 from qrl.core.misc import logger
 from qrl.generated import qrl_pb2
-from tests.misc.helper import get_alice_xmss
 
 logger.initialize_default()
 
@@ -259,134 +258,6 @@ class TestCLI(TestCase):
         self.assertEqual(result.exit_code, 0)
         the_output = json.loads(result.output)
         self.assertEqual(the_output["info"]["networkId"], "Excession")
-
-    @mock.patch('qrl.cli._select_wallet')
-    def test_tx_prepare(self, mock_wallet):
-        mock_wallet.return_value = (None, get_alice_xmss())
-
-        # Creating a TX to one recipient should work
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(qaddr_1),
-                                     "--dst={}".format(qaddr_2),
-                                     "--amounts=0",
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(0, result.exit_code)
-        self.assertEqual(bin2hstr_unsigned_tx2, result.output.strip())
-
-        # Should also work with --src=Qaddr
-        wallet = open_wallet()
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src={}".format(wallet["addresses"][0]["address"]),
-                                     "--master={}".format(qaddr_1),
-                                     "--dst={}".format(qaddr_2),
-                                     "--amounts=0",
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(bin2hstr_unsigned_tx2, result.output.strip())
-
-    @mock.patch('qrl.cli._select_wallet')
-    def test_tx_prepare_multi(self, mock_wallet):
-        """Creating a TX to multiple recipients should work"""
-        mock_wallet.return_value = (None, get_alice_xmss())
-
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master=",
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(bin2hstr_unsigned_tx, result.output.strip())
-
-    def test_tx_prepare_invalid_input(self):
-        wallet = open_wallet()
-
-        # Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # An invalid src index shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=1",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # An invalid src address shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src={}".format(wallet["addresses"][0]["address"][1:]),
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # A valid src address not in your wallet shouldn't work
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src={}".format(qaddr_1),
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertNotEqual(result.exit_code, 0)
-
-        # Is there a fee that's too high?
-        master = "\n"
-        dsts = [qaddr_1, qaddr_2, qaddr_3]
-        amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(" ".join(dsts)),
-                                     "--amounts={}".format(" ".join(amounts)),
-                                     "--fee=9999999999999999999999999",
-                                     ]
-                                    )
-        self.assertEqual(result.exit_code, 1)
 
     def test_tx_sign(self):
         result = self.runner.invoke(qrl_cli, ["tx_sign", "--src=0", "--txblob={}".format(bin2hstr_unsigned_tx)])

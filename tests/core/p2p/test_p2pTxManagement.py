@@ -18,6 +18,7 @@ from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.generated import qrl_pb2, qrllegacy_pb2
+from tests.misc.helper import get_some_address
 
 logger.initialize_default()
 
@@ -70,7 +71,11 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
 
-        tx = TransferTransaction.create([], [0], 10, xmss_pk=bytes(40))
+        tx = TransferTransaction.create(
+            addrs_to=[get_some_address()],
+            amounts=[1],
+            fee=10,
+            xmss_pk=bytes(67))
 
         event = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.TX,
                                             txData=tx.pbdata)
@@ -92,7 +97,12 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
 
-        tx = SlaveTransaction.create([], [], 1, bytes(100))
+        tx = SlaveTransaction.create(
+            slave_pks=[],
+            access_types=[],
+            fee=1,
+            xmss_pk=bytes(67))
+
         event = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.TX,
                                             txData=tx.pbdata)
 
