@@ -190,7 +190,7 @@ class ChainManager:
         while self.last_block.headerhash != forked_header_hash:
             block = self.state.get_block(self.last_block.headerhash)
             mainchain_block = self.get_block_by_number(block.block_number)
-            if block.headerhash == mainchain_block.headerhash:
+            if block.headerhash != mainchain_block.headerhash:
                 break
             hash_path.append(self.last_block.headerhash)
 
@@ -241,8 +241,10 @@ class ChainManager:
         return True
 
     def fork_recovery(self, block: Block, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        logger.info("Triggered Fork Recovery")
         # This condition only becomes true, when fork recovery was interrupted
         if fork_state.fork_point_headerhash:
+            logger.info("Recovering from last fork recovery interruption")
             forked_header_hash, hash_path = fork_state.fork_point_headerhash, fork_state.new_mainchain_hash_path
         else:
             forked_header_hash, hash_path = self.get_fork_point(block)
@@ -257,11 +259,13 @@ class ChainManager:
                 rollback_done = True
 
         if not rollback_done:
+            logger.info("Rolling back")
             old_hash_path = self.rollback(forked_header_hash, fork_state)
         else:
             old_hash_path = fork_state.old_mainchain_hash_path
 
         if not self.add_chain(hash_path[-1::-1], fork_state):
+            logger.warning("Fork Recovery Failed... Recovering back to old mainchain")
             # If above condition is true, then it means, the node failed to add_chain
             # Thus old chain state, must be retrieved
             self.rollback(forked_header_hash)
