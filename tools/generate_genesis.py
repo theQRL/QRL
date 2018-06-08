@@ -1,12 +1,13 @@
 # coding=utf-8
 from __future__ import print_function
 import simplejson as json
+import yaml
 
 from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.generated import qrl_pb2
 from qrl.core import config
-from qrl.core.Transaction import TransferTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.Block import Block
 from qrl.crypto.xmss import XMSS
 
@@ -68,5 +69,5 @@ block._data.genesis_balance.MergeFrom([qrl_pb2.GenesisBalance(address=config.dev
 
 k = block.blockheader.to_json()
 
-with open('genesis.json', 'w') as f:
-    f.write(block.to_json())
+with open('genesis.yml', 'w') as f:
+    yaml.dump(json.loads(block.to_json()), f)

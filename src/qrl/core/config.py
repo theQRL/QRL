@@ -43,6 +43,8 @@ class UserConfig(object):
         self.peer_rate_limit = 500  # Max Number of messages per minute per peer
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
+        self.ntp_refresh = 12 * 60 * 60  # 12 hours
+        self.ntp_request_timeout = 10  # 10 seconds ntp timeout
         self.ban_minutes = 20  # Allows to ban a peer's IP who is breaking protocol
 
         self.monitor_connections_interval = 30  # Monitor connection every 30 seconds
@@ -164,7 +166,7 @@ class DevConfig(object):
         DevConfig.__instance = self
 
         self.version = version
-        self.genesis_prev_headerhash = b'Outside Context Problem'
+        self.genesis_prev_headerhash = b'Thirst of Quantas'
 
         ################################################################
         # Warning: Don't change following configuration.               #
@@ -178,7 +180,7 @@ class DevConfig(object):
         self.min_margin_block_number = 7
 
         self.public_ip = None
-        self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour
+        self.reorg_limit = 22000
         self.cache_frequency = 1000
 
         self.message_q_size = 300
@@ -196,7 +198,7 @@ class DevConfig(object):
 
         # Maximum number of ots index upto which OTS index should be tracked. Any OTS index above the specified value
         # will be managed by OTS Counter
-        self.max_ots_tracking_index = 4096
+        self.max_ots_tracking_index = 8192
         self.mining_nonce_offset = 39
         self.extra_nonce_offset = 43
         self.mining_blob_size = 76
@@ -220,7 +222,10 @@ class DevConfig(object):
         self.slave_dat_filename = 'slave.qrl'
         self.banned_peers_filename = 'banned_peers.qrl'
 
-        self.genesis_timestamp = 1524928900
+        self.trust_min_msgcount = 10
+        self.trust_min_conntime = 10
+
+        self.genesis_timestamp = 1528402558
 
         self.supplied_coins = 65000000 * (10 ** 9)
 
@@ -239,7 +244,7 @@ class DevConfig(object):
         # ======================================
         #       DIFFICULTY CONTROLLER
         # ======================================
-        self.N_measurement = 250
+        self.N_measurement = 30
         self.kp = 5
 
         # ======================================

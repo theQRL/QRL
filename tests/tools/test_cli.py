@@ -3,30 +3,32 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase, mock, skip, expectedFailure
 from click.testing import CliRunner
-from qrl.cli import qrl as qrl_cli
-from qrl.core import config
-from qrl.core.misc import logger
-from qrl.generated import qrl_pb2
-from pyqrllib.kyber import Kyber
-from pyqrllib.dilithium import Dilithium
-from pyqrllib.pyqrllib import bin2hstr
-
 import json
-import grpc
 import os
 import tempfile
 import shutil
 
+from pyqrllib.kyber import Kyber
+from pyqrllib.dilithium import Dilithium
+from pyqrllib.pyqrllib import bin2hstr
+
+from qrl.cli import qrl as qrl_cli
+from qrl.core import config
+from qrl.core.misc import logger
+from qrl.generated import qrl_pb2
+from tests.misc.helper import get_alice_xmss
+
 logger.initialize_default()
 
 unsigned_tx = b"\nOQ010200be640405bb61d104e329cc94b6807b6e713ef0dea80aa5aa73abff8dd88946b41172569c\x1aC\x01\x02\x00\x80\x9dg/U\xb1N\xf2_\x0e~j%\xb2\x15\x05\xa7y\x19\x8f\xc0>\x05`\x90\xe3>\xaa\x9a(\xd3\xc7U\x91\xbab\x90{\xaa^\xadQ\xca\xbf\xd3\xbc\xd9\x93\xf0:D\xca\xd8v\x97\x08\xa8x\x9c-\n4\xd6e:,\n'\x01\x04\x00\xd9\xf1\xef\xe5\xb2r\xe0B\xdc\xc8\xefi\x0f\x0e\x90\xca\x8b\x0bn\xdb\xa0\xd2o\x81\xe7\xaf\xf1*gT\xb2\x17\x88\x16\x9f\x7f\x12\x01\x00"  # noqa
-bin2hstr_unsigned_tx = '0a4f513031303230306265363430343035626236316431303465333239636339346236383037623665373133656630646561383061613561613733616266663864643838393436623431313732353639631a43010200809d672f55b14ef25f0e7e6a25b21505a779198fc03e056090e33eaa9a28d3c75591ba62907baa5ead51cabfd3bcd993f03a44cad8769708a8789c2d0a34d6653a2c0a27010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f120100'  # noqa
+bin2hstr_unsigned_tx = '1a4301030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada3565854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e3a8c010a2701050000a31343e48abce29464f063b30827ecf2c552743cab13d4f3b457b55410b548a0f8bca60a270105009ca50ed86497e6b2cfcca8c525191c741220eacf79a697e078bf9b53a9899b17b3f839d10a27010500e135decb3328a27e51c47064df2dbbe799e79812291cc5e7cfad08a82a62d64e4fa813aa120f8094ebdc0380a8d6b90780bcc1960b'  # noqa
+bin2hstr_unsigned_tx2 = '0a2701050000a31343e48abce29464f063b30827ecf2c552743cab13d4f3b457b55410b548a0f8bca61a4301030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada3565854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e3a2c0a270105009ca50ed86497e6b2cfcca8c525191c741220eacf79a697e078bf9b53a9899b17b3f839d1120100'  # noqa
 bin2hstr_signed_tx = '0a4f513031303230306265363430343035626236316431303465333239636339346236383037623665373133656630646561383061613561613733616266663864643838393436623431313732353639631a43010200809d672f55b14ef25f0e7e6a25b21505a779198fc03e056090e33eaa9a28d3c75591ba62907baa5ead51cabfd3bcd993f03a44cad8769708a8789c2d0a34d6652284120000000064c5a87881bca5010aef4363de5ebc4452cbd585f9e3aefb12f2b3680eb9fcaac1c8d30d002d0b7818d6ec7e2bf6fc9e489d2b7f621ff9d4213420d19d7a00798c4a730ab34594f7042e757a066d66cfd9eac5d4b201692657a8ae14584833468b45b2229c1f8a056da8522ae84a1f8628df94707d4b495e2775e7f75847113568c0e13fc15669212599cbaf8b574afe19a77644af08fc1a48ea6333036bd9e2fb6b0afc6a70cc696ba27e38f79e6a3337bfc21369112609cb309495056255ac439afecda65094c1e159eb35e476b660b05fa05b0e719f48e1c77ca8c816c070bc2efda0affcf5a5ebcd73861b00a2240e722047c26ba71193551b9b30bf95dad62b068f8ef4ef663de2298461cbb57330ec94ed06c0e33f7c5e9137815f5e3ce8cc446e7fc8b5b97339d1ba21381ac341a479f2905659f02b80b7ed4adae605d2e17ece9523fe8e4bacfde8db6c9a8f87abf14492384b4b0b9118d76102458709e468bdb600147abbb70421d4b83c38ed763da8524168d1aa6ac5be25fa9e3f8fbba814e604f55927fc82dd8775b1bbde8bbded783adf8e608a3dbdbf76c4b38e35128a405ecabb4d49243ff79de6d91ac8d14205a9a3164bc4dc3768b705e0c2a1a21411a2bba1cbd38d5eee55392edfce30d4e3a328e413b2e28adb5bb83a9c634d7e043ac19a493c9a69a2bd2b24c3061c84d0249b7f921074689774fcc5852e4dc6658be3ce323ba54ab5fb3315791f8277f3cc8fcac3d07a981557873aadc5193d76a6d1a312ecb11bd8546b3912dc57deab8536d2978ab46452dd8e1a18a2f136916a9a311f5b4ad37a9e5e502a6fda1728cebcbd0db8c2cff7ce557cb7e30961969ee594defc6e681cab251c2136d85f858ef17444cc561461cf07b43c62edc85f040ad8b72ff5bf06c4668828916cb9531b3d1c12cdcab6ac3e66038653906e299ade2ef317d11584db67e38c2624270343ea5519b90dc4861382a5b3b512cc97fa4d10fb787cf535c0daeff9e291d91cd295fada168e733f4dc57b827ccf0a8f3401f46900f32fe5d349d7e482861794757364ef7b4935238d0612cb5a9dde434c75646226303f83c600d8186c1aca157b568a41f70925d86f8ecfe4458bd09551df2282281f4e3f63ed675d67fb297457c27fea54327008c56a4c60668c5251f788d29198daade91f9c4c5c46e043f498402982614b02ed5a2711b02bc85c9a60bdf384a51b801fb08c07720f3cf17a03a8c0f43f9490f39264f818893fe0bb263793d752f5756fcd9f0ed023cccc2046c6b7fb1bceb61ae33006ad44f16f3b1e730b25c0c7b6642505349374d90a53fff31ab89fa16795d10cbe46bbfd89b45854a70f5993e2c6a51cd1dab64e1bfc678d09b0e4e1960647ef16c478ff35d332e6d2e45d6443f85a5dc6197d66b250e9b17cb7249cb318285a6c1cbcc7dc05f5f0b4ea2c2a088c9cfde004ad8dc35aedce3bb47195b5a6550fcd5421e8f67c9d750e46b1ca27f3b1128a9afe10755f42bd5d099ec9d9e8c30adfa28e37164aa0278404f576d2598662da6b3c533f95f646ad775265a28e78d90e6f518f11d95703e40ab8235dbdefe2ba7f5e7ce576ef0e50a9ea306e07177d8aac049f00c45e0d5eb3a7fd3821d2010700548b3852861988ba234036ef88ba855c33bef9447f7ede60b3cd27b0645b82b579c566a1b777680ff3bbdc727bbac0d92afb650403c74f92f9b33a4435a52f8d36aae8724cdd4934a5d9c3ee0bedfd7b06b8e0a4491c73752c5edec412d5c138f965ce5d08eb0db5dbd1eb78b1df6419d66b37ac837bfbef9ad5cce68ba4c1d85b92cec21f559c19efaf45eaa13179e4db26cfd03bbc187c5c2aadd2a506b1c498fde3dee3b221304527b351e23000b870b41dec03f4436e2ee4115e5ddfafc27aa9066e517527da6ed70f9a39f6267f8a7e1824660538861e10d337f8fa62bfdd1b4db957405243166ea4f4fa19e9831f657b87d8ccccc69042a26909a95701f235a78b63966a34959d55e40bc1bb1ec8df2da92b9bafa4ed39ea31b5d115c810211ecd09e62752e5151d4e517bd6e96455cc45ca93200bbf6046242c4c520ec6b9a707e885a3cead56d68aa0f2ee1ffa6e971a5851b910a200153fc143f8f5e440df12147bd2876349a9a06b81bf8bf71478f9a3914d2924da6afa2a0dc0e102d75e2e54fcea2c5ea267908a2f2e0385cd28316a3131791724998b49395d84fb0cfec0d44de3396dd145e3e5c75e0242c5384eac34a89159b5849736ee817a3f7dc08bb1508e03a2596321b06ba55689e846d614ca985e6f658f1601c4d86ae12e015755ddec13a14ae7e021c9eb478e9dec8eac921b2c4b297a01b9f424467c74d27f9dca4423b57d6489e9d50d54f505f387e5b4bf520b6b137f992d14582b633054f15968a6615441886d5d05ac143f8dab0efb8a05bae6d46093e213255f560e22212f1303abf04e599b1186133796d9da5a5dd7a5c01a44cb159a228bf6503c925944d6140fe2b85d0f6ddcf046e41d824eb111e7a15c8a2cbdbc47ab6a75573b0b5f69e8af66ca4fcfeb612bdf516dba5326565777e0754ec08ba703f433cd022ee5c77a5e3dbe6af7f28255176019e68dc4cca50436cb230abf304d60864e51614d057f97c96d81773c2a3ef2f358e8ca0aedb22496280cbe727c188579d250222c7f2e56e7ab2d6c7c6d22cd8d342586407930e1898d5b16c55b3ec37bb5c6757804523072175c931d735c819803d14394ec244bfc6f36bc9d0b35438654169030f52addb175aa7a047e876bacd8cbc763cd0cce8734f9526150964e5977742fc9ddf9864336ea51dacb7a8838f840c92f41550dbbae71a7d83e6fc2308914e19fe20a75cb01d5a6a151c7b553c76ef72592136c0ebf91ca13c5725ec8dd302968708bc7662808e2e5cd93729cb5d0923f948182c897d2848491a8e3bdb4a769894e89d1c32e765daeb5f49d5ddae5291c351a3d4ba2944c99c1f120da2e485e88f0fb43af2aa4099508a043efe5e634eb05bdcbfae42a9b0b6a7918d0f7cac85c715947c48a3c7386def94a24dd9c7122a41575d574588b2b8ca41434bbd77aab3435000983597b6a91fee20bceb5243a652fffb2edb1156f50dde388ae8595b7f7ba93f514b35038509e71f51ad07077da504781dec62f7053d3976b5ab6e852b41331af42528ba9167eb013c902f6d0a8638b75f06957d1a03633bec8e81ea7617f46279752d204c532203fa9394bf4b643d8140cb6179d8d0a9aba1f4c3151c3daa05bea571346bffe793a2c0a27010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f120100'  # noqa
 
-qaddr_1 = "Q000000000000000000000000000000000000000000000000000000000000000000000000000001"
-qaddr_2 = "Q000000000000000000000000000000000000000000000000000000000000000000000000000002"
-qaddr_3 = "Q000000000000000000000000000000000000000000000000000000000000000000000000000003"
-qaddr_4 = "Q000000000000000000000000000000000000000000000000000000000000000000000000000004"
+qaddr_1 = "Q01050000a31343e48abce29464f063b30827ecf2c552743cab13d4f3b457b55410b548a0f8bca6"
+qaddr_2 = "Q0105009ca50ed86497e6b2cfcca8c525191c741220eacf79a697e078bf9b53a9899b17b3f839d1"
+qaddr_3 = "Q010500e135decb3328a27e51c47064df2dbbe799e79812291cc5e7cfad08a82a62d64e4fa813aa"
+qaddr_4 = "Q0105001fa3a2038c0b4b947cccbf589d53fc7749f0a04f118ec1ffadedd1b4db37e83c513aa259"
 
 
 def open_wallet(filename="wallet.json"):
@@ -197,6 +199,18 @@ class TestCLI(TestCase):
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
+    def test_wallet_secret_encrypt_decrypt_wrong(self):
+        wallet = open_wallet()
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
+        self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
+
+        result = self.runner.invoke(qrl_cli, ["wallet_decrypt"], input='wrong_password\nwrong_password\n')
+        self.assertEquals(1, result.exit_code)
+        # TODO: Add appropriate error matching
+
     def test_wallet_secret_invalid_input(self):
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=1"])
         self.assertEqual(result.output.strip(), 'Wallet index not found')
@@ -246,17 +260,9 @@ class TestCLI(TestCase):
         the_output = json.loads(result.output)
         self.assertEqual(the_output["info"]["networkId"], "Excession")
 
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_tx_prepare(self, mock_stub):
-        mock_transferCoinsResp = mock.MagicMock(name='this should be transferCoinsResp')
-        mock_transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString = mock.MagicMock(
-            return_value=unsigned_tx)
-
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.TransferCoins.return_value = mock_transferCoinsResp
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
+    @mock.patch('qrl.cli._select_wallet')
+    def test_tx_prepare(self, mock_wallet):
+        mock_wallet.return_value = (None, get_alice_xmss())
 
         # Creating a TX to one recipient should work
         result = self.runner.invoke(qrl_cli,
@@ -268,8 +274,8 @@ class TestCLI(TestCase):
                                      "--fee=0",
                                      ]
                                     )
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output.strip(), bin2hstr_unsigned_tx)
+        self.assertEqual(0, result.exit_code)
+        self.assertEqual(bin2hstr_unsigned_tx2, result.output.strip())
 
         # Should also work with --src=Qaddr
         wallet = open_wallet()
@@ -283,48 +289,28 @@ class TestCLI(TestCase):
                                      ]
                                     )
         self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output.strip(), bin2hstr_unsigned_tx)
+        self.assertEqual(bin2hstr_unsigned_tx2, result.output.strip())
 
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_tx_prepare_multi(self, mock_stub):
+    @mock.patch('qrl.cli._select_wallet')
+    def test_tx_prepare_multi(self, mock_wallet):
         """Creating a TX to multiple recipients should work"""
-        mock_transferCoinsResp = mock.MagicMock(name='this should be transferCoinsResp')
-        mock_transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString = mock.MagicMock(
-            return_value=unsigned_tx)
+        mock_wallet.return_value = (None, get_alice_xmss())
 
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.TransferCoins.return_value = mock_transferCoinsResp
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        master = "\n"
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2", "3"]
 
         result = self.runner.invoke(qrl_cli,
                                     ["tx_prepare",
                                      "--src=0",
-                                     "--master={}".format(master),
+                                     "--master=",
                                      "--dst={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)),
                                      "--fee=0",
                                      ]
                                     )
-        self.assertEqual(result.output.strip(), bin2hstr_unsigned_tx)
+        self.assertEqual(bin2hstr_unsigned_tx, result.output.strip())
 
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_tx_prepare_invalid_input(self, mock_stub):
-        mock_transferCoinsResp = mock.MagicMock(name='this should be transferCoinsResp')
-        mock_transferCoinsResp.extended_transaction_unsigned.tx.SerializeToString = mock.MagicMock(
-            return_value=unsigned_tx)
-
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.TransferCoins.return_value = mock_transferCoinsResp
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
+    def test_tx_prepare_invalid_input(self):
         wallet = open_wallet()
 
         # Creating a TX to 3 destinations but specifying only 2 amounts shouldn't work
@@ -400,50 +386,7 @@ class TestCLI(TestCase):
                                      "--fee=9999999999999999999999999",
                                      ]
                                     )
-        self.assertEqual(result.exit_code, -1)
-        self.assertTrue(isinstance(result.exception, ValueError))
-
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_tx_prepare_exceptions_handled(self, mock_stub):
-        """When communicating with the node, we should catch exceptions that aren't grpc related too"""
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.TransferCoins.side_effect = Exception("something bad happened")
-
-        mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        master = "Q00000000000000000000000000000000000000000000000000000000000000000000000000000f"
-        dst = "Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f"
-
-        # General Exceptions
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(dst),
-                                     "--amounts=0",
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertIn("Unhandled error:", result.output)
-        self.assertIn("something bad happened", result.output)
-
-        # gRPC RPC Exceptions
-        # grpc.RpcError has no .details() method, which the code relies on.
-        # However, the actual grpc Exception class (_Rendezvous) is (according to
-        # https://github.com/grpc/grpc/issues/9270) not to be relied upon.
-        # Therefore we cannot perfectly mock this, and thus the tested code should fail with -1.
-        mock_stub_instance.TransferCoins.side_effect = grpc.RpcError("RPC Rendezvous rah rah")
-        result = self.runner.invoke(qrl_cli,
-                                    ["tx_prepare",
-                                     "--src=0",
-                                     "--master={}".format(master),
-                                     "--dst={}".format(dst),
-                                     "--amounts=0",
-                                     "--fee=0",
-                                     ]
-                                    )
-        self.assertEqual(result.exit_code, -1)
+        self.assertEqual(result.exit_code, 1)
 
     def test_tx_sign(self):
         result = self.runner.invoke(qrl_cli, ["tx_sign", "--src=0", "--txblob={}".format(bin2hstr_unsigned_tx)])
@@ -635,14 +578,15 @@ class TestCLI(TestCase):
         wallet = open_wallet()
 
         # Simplest use case
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
         # Should work with src=Qaddress as well
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]), "--master=\n",
+                                    ["-r", "tx_transfer", "--src={}".format(wallet["addresses"][0]["address"]),
+                                     "--master=",
                                      "--dst={}".format(qaddr_1), "--amounts=1", "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
@@ -658,8 +602,9 @@ class TestCLI(TestCase):
         # Multiple dsts should work too
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2", "3"]
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
-                                              "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
+        result = self.runner.invoke(qrl_cli,
+                                    ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(" ".join(dsts)),
+                                     "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
@@ -686,7 +631,7 @@ class TestCLI(TestCase):
 
         # Simplest use case
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=0"],
                                     input='password\n')
         self.assertEqual(result.exit_code, 0)
@@ -714,7 +659,7 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         # What if I use a ots_key_index larger than the wallet's tree height?
-        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(qaddr_1),
+        result = self.runner.invoke(qrl_cli, ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(qaddr_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=17"])
         self.assertEqual(result.exit_code, 1)
         self.assertIn('Error validating arguments', result.output.strip())
@@ -723,7 +668,7 @@ class TestCLI(TestCase):
         dsts = [qaddr_1, qaddr_2, qaddr_3]
         amounts = ["1", "2"]
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfer", "--src=0", "--master=\n", "--dst={}".format(" ".join(dsts)),
+                                    ["-r", "tx_transfer", "--src=0", "--master=", "--dst={}".format(" ".join(dsts)),
                                      "--amounts={}".format(" ".join(amounts)), "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, 1)
         self.assertIn('dsts and amounts should be the same length', result.output.strip())
@@ -744,7 +689,7 @@ class TestCLI(TestCase):
         owner_address = wallet["addresses"][0]["address"]
         typed_in_input = '\n'.join([owner_address, '100']) + '\n'
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_token", "--src=0", "--master=\n", "--symbol=TST", "--name=TEST",
+                                    ["-r", "tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
                                      "--owner={}".format(owner_address), "--decimals=1", "--fee=0",
                                      "--ots_key_index=0"],
                                     input=typed_in_input
@@ -769,7 +714,7 @@ class TestCLI(TestCase):
 
         # Weird token names and symbols shouldn't work
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_token", "--src=0", "--master=\n",
+                                    ["-r", "tx_token", "--src=0", "--master=",
                                      "--symbol=thequickbrownfoxjumpsoverthelazydog",
                                      "--name=Seriouslyimgonnastarttalkingandneverendbecausethatsjusthowidothings can i\
                                       have spaces in here what about |nny characters",
@@ -783,7 +728,7 @@ class TestCLI(TestCase):
         # An outrageous decimal precision shouldn't work either
         # Currently this causes the CLI to hang, as it tries to do 10^1000000000
         # result = self.runner.invoke(qrl_cli,
-        #                             ["-r", "tx_token", "--src=0", "--master=\n", "--symbol=TST", "--name=TEST",
+        #                             ["-r", "tx_token", "--src=0", "--master=", "--symbol=TST", "--name=TEST",
         #                              "--owner={}".format(owner_address), "--decimals=1000000000", "--fee=0",
         #                              "--ots_key_index=0"],
         #                             input=typed_in_input
@@ -805,7 +750,7 @@ class TestCLI(TestCase):
         txhash = '267d9c6e192c78b192b6e835411d30f7cb605ffe9632d668489c579e4230f3c6'  # from sample tx_token run
 
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfertoken", "--src=0", "--master=\n",
+                                    ["-r", "tx_transfertoken", "--src=0", "--master=",
                                      "--token_txhash={}".format(txhash), "--dst={}".format(qaddr_1), "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=0"],
                                     )
@@ -828,7 +773,7 @@ class TestCLI(TestCase):
 
         # Invalid txhash shouldn't work.
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_transfertoken", "--src=0", "--master=\n",
+                                    ["-r", "tx_transfertoken", "--src=0", "--master=",
                                      "--token_txhash={}".format(txhash[3:]), "--dst={}".format(qaddr_1), "--amounts=10",
                                      "--decimals=10", "--fee=0", "--ots_key_index=0"],
                                     )
@@ -838,7 +783,7 @@ class TestCLI(TestCase):
         # If decimals is different from the original token_txhash definition, it shouldn't work either.
         # But maybe this is for integration tests.
         # result = self.runner.invoke(qrl_cli,
-        #                             ["-r", "tx_transfertoken", "--src=0", "--master=\n",
+        #                             ["-r", "tx_transfertoken", "--src=0", "--master=",
         #                              "--token_txhash={}".format(txhash), "--dst={}".format(qaddr_1), "--amounts=10",
         #                              "--decimals=999", "--fee=0", "--ots_key_index=0"],
         #                             )
@@ -891,9 +836,10 @@ class TestCLI(TestCase):
         dilithium_pk = bin2hstr(Dilithium().getPK())
 
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=\n",
+                                    ["-r", "tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk),
                                      "--fee=0", "--ots_key_index=0"])
+        print(result.exit_code)
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.output.strip(), '3')
 
@@ -912,14 +858,14 @@ class TestCLI(TestCase):
 
         # What if we have malformed kyber pks?
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=\n",
+                                    ["-r", "tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk[1:]), "--dilithium-pk={}".format(dilithium_pk),
                                      "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, -1)
 
         # What if we have malformed dilithium pks?
         result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=\n",
+                                    ["-r", "tx_latticepk", "--src=0", "--master=",
                                      "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk[1:]),
                                      "--fee=0", "--ots_key_index=0"])
         self.assertEqual(result.exit_code, -1)

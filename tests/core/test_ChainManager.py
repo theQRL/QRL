@@ -14,7 +14,8 @@ from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.State import State
-from qrl.core.Transaction import SlaveTransaction, TransferTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_qrl_dir
 
 
@@ -58,7 +59,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(22, 0)
+                    block_1.set_nonces(200, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -111,7 +112,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(344, 0)
+                    block_1.set_nonces(3, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -234,4 +235,4 @@ class TestChainManager(TestCase):
 
                 self.assertTrue(result)
                 self.assertEqual(chain_manager.last_block.block_number, block_2.block_number)
-                self.assertEqual(chain_manager.last_block.to_json(), block_2.to_json())
+                self.assertEqual(chain_manager.last_block.serialize(), block_2.serialize())

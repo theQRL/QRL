@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core.Wallet import Wallet, WalletEncryptionError, WalletVersionError
+from qrl.core.Wallet import Wallet, WalletEncryptionError, WalletVersionError, WalletDecryptionError
 from qrl.core.misc import logger
 from tests.misc.helper import set_qrl_dir
 
@@ -262,6 +262,23 @@ class TestWallet(TestCase):
             self.assertTrue(wallet.encrypted)
 
             wallet.decrypt(TEST_KEY)
+            self.assertEqual(addresses, wallet.addresses)
+            self.assertFalse(wallet.encrypted_partially)
+
+    def test_decrypt_wallet_wrong(self):
+        with set_qrl_dir("no_data"):
+            wallet = Wallet()
+            wallet.add_new_address(height=4)
+            wallet.add_new_address(height=4)
+            addresses = wallet.addresses
+
+            TEST_KEY = 'mytestkey'
+            wallet.encrypt(TEST_KEY)
+            self.assertTrue(wallet.encrypted)
+
+            TEST_KEY = 'mytestkey_is_wrong'
+            with self.assertRaises(WalletDecryptionError):
+                wallet.decrypt(TEST_KEY)
             self.assertEqual(addresses, wallet.addresses)
             self.assertFalse(wallet.encrypted_partially)
 

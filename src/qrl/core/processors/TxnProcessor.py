@@ -5,7 +5,7 @@ from twisted.internet.task import cooperate
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.misc import logger
-from qrl.core.Transaction import Transaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.TransactionPool import TransactionPool
 
 from qrl.core.State import State
@@ -44,10 +44,14 @@ class TxnProcessor:
         is_valid_state = tx.validate_extended(addr_from_state=addr_from_state,
                                               addr_from_pk_state=addr_from_pk_state)
 
+        if not is_valid_state:
+            logger.info('>>>TX %s failed is_valid_state', bin2hstr(tx.txhash))
+            return False
+
         is_valid_pool_state = tx.validate_transaction_pool(self.transaction_pool_obj.transaction_pool)
 
-        if not (is_valid_state and is_valid_pool_state):
-            logger.info('>>>TX %s failed state_validate', bin2hstr(tx.txhash))
+        if not is_valid_pool_state:
+            logger.info('>>>TX %s failed is_valid_pool_state', bin2hstr(tx.txhash))
             return False
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
