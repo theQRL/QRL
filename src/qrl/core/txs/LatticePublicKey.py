@@ -44,6 +44,8 @@ class LatticePublicKey(Transaction):
         transaction._data.latticePK.kyber_pk = bytes(kyber_pk)
         transaction._data.latticePK.dilithium_pk = bytes(dilithium_pk)
 
+        transaction.validate_or_raise(verify_signature=False)
+
         return transaction
 
     # checks new tx validity based upon node statedb and node mempool.

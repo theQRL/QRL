@@ -43,27 +43,21 @@ class TestSlaveTransaction(TestCase):
             params["slave_pks"] = [self.alice.pk, bob.pk, self.slave.pk]
             params["access_types"] = [0, 0, 0]
 
-            tx = SlaveTransaction.create(**params)
-            tx.sign(self.alice)
             with self.assertRaises(ValueError):
-                tx.validate_or_raise()
+                SlaveTransaction.create(**params)
 
         # Unequal length slave_pks and access_types
         params = self.params.copy()
         params["slave_pks"] = [self.slave.pk]
         params["access_types"] = [0, 1]
-        tx = SlaveTransaction.create(**params)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            SlaveTransaction.create(**params)
 
         # access_type is a weird, undefined number
         params = self.params.copy()
         params["access_types"] = [5]
-        tx = SlaveTransaction.create(**params)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            SlaveTransaction.create(**params)
 
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):

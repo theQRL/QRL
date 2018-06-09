@@ -11,15 +11,15 @@ from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
-from qrl.core.txs.Transaction import Transaction
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.TokenTransaction import TokenTransaction
-from qrl.core.txs.MessageTransaction import MessageTransaction
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
-from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.Wallet import Wallet, WalletDecryptionError
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
@@ -453,49 +453,6 @@ def wallet_decrypt(ctx):
     except Exception as e:
         click.echo(str(e))
         quit(1)
-
-
-@qrl.command()
-@click.option('--src', type=str, default='', prompt=True, help='source address or index')
-@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
-@click.option('--dst', type=str, prompt=True, help='List of destination addresses')
-@click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
-@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--pk', default=0, prompt=False, help='public key (when local wallet is missing)')
-@click.pass_context
-def tx_prepare(ctx, src, master, dst, amounts, fee, pk):
-    """
-    Request a tx blob (unsigned) to transfer from src to dst (uses local wallet)
-    """
-    try:
-        _, src_xmss = _select_wallet(ctx, src)
-        if src_xmss:
-            address_src_pk = src_xmss.pk
-        else:
-            address_src_pk = pk.encode()
-
-        addresses_dst, shor_amounts = _parse_dsts_amounts(dst, amounts)
-        master_addr = None
-        if master:
-            master_addr = parse_qaddress(master)
-
-        fee_shor = _shorize(fee)
-    except Exception as e:
-        click.echo("Error validating arguments: {}".format(e))
-        quit(1)
-
-    try:
-        tx = TransferTransaction.create(addrs_to=addresses_dst,
-                                        amounts=shor_amounts,
-                                        fee=fee_shor,
-                                        xmss_pk=address_src_pk,
-                                        master_addr=master_addr)
-    except Exception as e:
-        click.echo("Unhandled error: {}".format(str(e)))
-        quit(1)
-
-    txblob = bin2hstr(tx.pbdata.SerializeToString())
-    print(txblob)
 
 
 @qrl.command()
