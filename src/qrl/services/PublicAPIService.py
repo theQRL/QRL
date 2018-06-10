@@ -2,14 +2,15 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import traceback
+from statistics import variance, mean
 
 from pyqrllib.pyqrllib import hstr2bin, QRLHelper
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
-from qrl.core.txs.Transaction import Transaction, CODEMAP
 from qrl.core.misc import logger
 from qrl.core.qrlnode import QRLNode
+from qrl.core.txs.Transaction import Transaction, CODEMAP
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import GrpcExceptionWrapper
@@ -56,14 +57,19 @@ class PublicAPIService(PublicAPIServicer):
         response.epoch = self.qrlnode.epoch
         response.uptime_network = self.qrlnode.uptime_network
         response.block_last_reward = self.qrlnode.block_last_reward
-        response.block_time_mean = self.qrlnode.block_time_mean
-        response.block_time_sd = self.qrlnode.block_time_sd
         response.coins_total_supply = int(self.qrlnode.coin_supply_max)
         response.coins_emitted = int(self.qrlnode.coin_supply)
 
+        response.block_time_mean = 0
+        response.block_time_sd = 0
+
         if request.include_timeseries:
-            tmp = self.qrlnode.get_block_timeseries(config.dev.block_timeseries_size)
+            tmp = list(self.qrlnode.get_block_timeseries(config.dev.block_timeseries_size))
             response.block_timeseries.extend(tmp)
+            if len(tmp) > 2:
+                vals = [v.time_last for v in tmp[1:]]
+                response.block_time_mean = int(mean(vals))
+                response.block_time_sd = int(variance(vals) ** 0.5)
 
         return response
 
