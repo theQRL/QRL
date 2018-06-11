@@ -97,7 +97,7 @@ class TestP2PProtocol(TestCase):
         self.channel.dataReceived(data)
 
         # Twisted transport should have received acknowledgement message to send out
-        acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
+        acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x84\x01'
         self.channel.transport.write.assert_called_once_with(acknowledgement_bytes)
 
     @patch('qrl.core.misc.ntp.getTime')
@@ -113,7 +113,7 @@ class TestP2PProtocol(TestCase):
         acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
         self.channel._buffer = 10 * acknowledgement_bytes
         self.channel.dataReceived(acknowledgement_bytes)
-        self.channel.transport.loseConnection.assert_called_once_with()
+        self.channel.transport.loseConnection.assert_called()
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_dataReceived_spam_ban_peer(self, getTime):

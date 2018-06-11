@@ -129,6 +129,7 @@ class P2PProtocol(Protocol):
 
         read_bytes = [0]
 
+        msg = None
         for msg in self._parse_buffer(read_bytes):
             self.update_counters()
             self.in_counter += 1
@@ -141,7 +142,7 @@ class P2PProtocol(Protocol):
 
             self._observable.notify(msg)
 
-        if read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
+        if msg is not None and read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
             p2p_ack = qrl_pb2.P2PAcknowledgement(bytes_processed=read_bytes[0])
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.P2P_ACK,
                                               p2pAckData=p2p_ack)
