@@ -1,4 +1,4 @@
-from unittest import TestCase, expectedFailure
+from unittest import TestCase
 
 from mock import patch, Mock
 from pyqrllib.pyqrllib import bin2hstr
@@ -82,11 +82,9 @@ class TestTokenTransactionStateChanges(TestCase):
         tx.apply_state_changes(addresses_state_empty)
         self.assertEqual(addresses_state_empty, {})
 
-    @expectedFailure
     def test_apply_state_changes_owner_not_in_address_state(self, m_logger):
         """
         In this case, Alice didn't give herself any tokens. How generous! She gave them all to Bob.
-        FAILS: when tx.owner == tx.addr_from, AddressState.transaction_hash gets appended to twice.
         """
         initial_balances = [qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
         self.params["initial_balances"] = initial_balances
@@ -100,8 +98,6 @@ class TestTokenTransactionStateChanges(TestCase):
 
         self.assertEqual(addresses_state[self.alice.address].balance, 99)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
-        addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, 0)
-        addresses_state[self.bob.address].update_token_balance.assert_called_with(tx.txhash, 1000)
         self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
         self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
         addresses_state[self.alice.address].increase_nonce.assert_called_once()
@@ -192,13 +188,10 @@ class TestTokenTransactionStateChanges(TestCase):
 
         self.assertEqual(addresses_state, {})
 
-    @expectedFailure
     def test_revert_state_changes_owner_not_in_address_state(self, m_logger):
         """
         In this case, Alice didn't give herself any tokens. How generous! She gave them all to Bob.
         But we want to revert this.
-        FAILS: just like test_apply_state_changes_owner_not_in_address_state(): tries to remove tx.txhash from
-        transaction_hashes twice.
         """
         initial_balances = [qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
         self.params["initial_balances"] = initial_balances

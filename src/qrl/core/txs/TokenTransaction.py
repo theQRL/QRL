@@ -178,11 +178,11 @@ class TokenTransaction(Transaction):
 
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance -= self.fee
-            if not addr_from_processed:
+            if not addr_from_processed and self.addr_from != self.owner:
                 addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
 
         if addr_from_pk in addresses_state:
-            if self.addr_from != addr_from_pk:
+            if self.addr_from != addr_from_pk and addr_from_pk != self.owner:
                 if not addr_from_pk_processed:
                     addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
             addresses_state[addr_from_pk].increase_nonce()
@@ -211,11 +211,11 @@ class TokenTransaction(Transaction):
 
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += self.fee
-            if not addr_from_processed:
+            if not addr_from_processed and self.addr_from != self.owner:
                 addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
 
         if addr_from_pk in addresses_state:
-            if self.addr_from != addr_from_pk:
+            if self.addr_from != addr_from_pk and addr_from_pk != self.owner:
                 if not addr_from_pk_processed:
                     addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
             addresses_state[addr_from_pk].decrease_nonce()
