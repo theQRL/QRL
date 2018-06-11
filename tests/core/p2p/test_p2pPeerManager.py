@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
-from unittest.mock import Mock, patch
+from mock import Mock, patch
 import os
 import time
 

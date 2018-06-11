@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import namedtuple
 from unittest import TestCase
-from unittest.mock import Mock, patch, MagicMock
+from mock import Mock, patch, MagicMock
 
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
