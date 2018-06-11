@@ -33,7 +33,6 @@ class P2PProtocol(Protocol):
 
         self._connected_at = ntp.getTime()
         self._valid_message_count = 0
-        self._invalid_bytes = 0
 
     @property
     def peer_ip(self):
