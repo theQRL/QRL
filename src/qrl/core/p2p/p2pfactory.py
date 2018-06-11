@@ -528,7 +528,13 @@ class P2PFactory(ServerFactory):
     def connect_peer(self, peer_address):
         try:
             ip_addr, ip_port = parse_peer_addr(peer_address)
-            if peer_address not in self.get_connected_peer_addrs():
+            peer_address = "{}:{}".format(ip_addr, ip_port)
+
+            connected_peers = self.get_connected_peer_addrs()
+            should_connect = peer_address not in connected_peers
+
+            if should_connect:
                 reactor.connectTCP(ip_addr, ip_port, self)
+
         except Exception as e:
             logger.warning("Could not connect to %s - %s", peer_address, str(e))

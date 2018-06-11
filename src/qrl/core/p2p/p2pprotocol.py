@@ -8,9 +8,9 @@ from typing import Callable
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
-from qrl.core.misc import logger, ntp
 from qrl.core import config
 from qrl.core.OutgoingMessage import OutgoingMessage
+from qrl.core.misc import logger, ntp
 from qrl.core.p2p.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
@@ -33,6 +33,7 @@ class P2PProtocol(Protocol):
 
         self._connected_at = ntp.getTime()
         self._valid_message_count = 0
+        self._invalid_bytes = 0
 
     @property
     def peer_ip(self):
@@ -229,30 +230,40 @@ class P2PProtocol(Protocol):
         >>> len(list(messages))
         2
         """
+
+        chunk_size = 0
         while self._buffer:
-            # FIXME: This is not the final implementation, it is just a minimal implementation for refactoring
-            if len(self._buffer) < 4:
+            if len(self._buffer) < 5:
                 # Buffer is still incomplete as it doesn't have message size
                 return
 
-            chunk_size_raw = self._buffer[:4]
-            chunk_size = struct.unpack('>L', chunk_size_raw)[0]  # is m length encoded correctly?
-
-            # FIXME: There is no limitation on the buffer size or timeout
-            if len(self._buffer) < chunk_size:
-                # Buffer is still incomplete as it doesn't have message
-                return
-
             try:
+                chunk_size_raw = self._buffer[:4]
+                chunk_size = struct.unpack('>L', chunk_size_raw)[0]  # is m length encoded correctly?
+
+                if chunk_size <= 0:
+                    raise Exception("Invalid chunk size <= 0")
+
+                if chunk_size > config.dev.message_buffer_size:
+                    raise Exception("Invalid chunk size > message_buffer_size")
+
+                if len(self._buffer) < chunk_size:
+                    # Buffer is still incomplete as it doesn't have message
+                    return
+
                 message_raw = self._buffer[4:4 + chunk_size]
                 message = qrllegacy_pb2.LegacyMessage()
                 message.ParseFromString(message_raw)
                 yield message
-            except Exception as e:
-                logger.warning("Problem parsing message. Skipping")
+
+            except Exception:  # no qa
+                logger.warning("Problem parsing message. Dropping connection")
+                self.loseConnection()
+
             finally:
-                self._buffer = self._buffer[4 + chunk_size:]
-                total_read[0] += 4 + chunk_size
+                skip = 4 + chunk_size
+                self._buffer = self._buffer[skip:]
+                total_read[0] += skip
 
     ###################################################
     ###################################################
@@ -298,7 +309,7 @@ class P2PProtocol(Protocol):
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
 
-    def get_headerhash_list(self, current_block_height):
+    def send_get_headerhash_list(self, current_block_height):
         start_blocknumber = max(0, current_block_height - config.dev.reorg_limit)
         node_header_hash = qrl_pb2.NodeHeaderHash(block_number=start_blocknumber,
                                                   headerhashes=[])

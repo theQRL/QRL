@@ -185,7 +185,7 @@ class DevConfig(object):
 
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
-        self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
+        self.message_buffer_size = 64 * 1024 * 1024  # 3 MB
 
         self.max_coin_supply = decimal.Decimal(105000000)
         self.coin_remaning_at_genesis = decimal.Decimal(40000000)
