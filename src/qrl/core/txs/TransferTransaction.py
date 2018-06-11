@@ -65,7 +65,7 @@ class TransferTransaction(Transaction):
     def _validate_custom(self):
         for amount in self.amounts:
             if amount == 0:
-                logger.warning('Amount cannot be 0', self.amounts)
+                logger.warning('Amount cannot be 0 - %s', self.amounts)
                 logger.warning('Invalid TransferTransaction')
                 return False
 
