@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
-from mock import Mock, MagicMock
+from mock import Mock, MagicMock, patch
 
 from qrl.core.Block import Block
 from qrl.core.BlockHeader import BlockHeader
@@ -17,10 +17,12 @@ from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
 from qrl.generated import qrlmining_pb2
 from qrl.services.MiningAPIService import MiningAPIService
+from tests.misc.helper import replacement_getTime
 
 logger.initialize_default()
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestMiningAPI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestMiningAPI, self).__init__(*args, **kwargs)

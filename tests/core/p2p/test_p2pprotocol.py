@@ -15,6 +15,8 @@ from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
+from tests.misc.helper import replacement_getTime
+
 logger.initialize_default()
 
 Host = namedtuple('Host', ['host', 'port'])
@@ -26,7 +28,8 @@ class TestP2PProtocol(TestCase):
         super(TestP2PProtocol, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        self.channel = P2PProtocol()
+        with patch('qrl.core.misc.ntp.getTime', new=replacement_getTime):
+            self.channel = P2PProtocol()
 
         self.channel._observable = Mock()
 
