@@ -386,6 +386,11 @@ class P2PFactory(ServerFactory):
 
         return True
 
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+
     def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
 
@@ -405,17 +410,6 @@ class P2PFactory(ServerFactory):
             raise ValueError('Invalid Transaction Type')
         self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.pbdata)
 
-    def broadcast_tx_relay(self, source_peer, tx):
-        txn_msg = source_peer._wrap_message('TX', tx.to_json())
-        for peer in self._peer_connections:
-            if peer != source_peer:
-                peer.transport.write(txn_msg)
-
-    ##############################################
-    ##############################################
-    ##############################################
-    ##############################################
-
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
         data = qrllegacy_pb2.MRData()
@@ -424,11 +418,6 @@ class P2PFactory(ServerFactory):
         data.prev_headerhash = bytes(block.prev_headerhash)
 
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.pbdata, data)
-
-    ##############################################
-    ##############################################
-    ##############################################
-    ##############################################
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, pbdata, data=None):
         self.master_mr.register(msg_type, msg_hash, pbdata)

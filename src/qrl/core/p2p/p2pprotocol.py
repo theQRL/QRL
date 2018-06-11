@@ -3,8 +3,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import struct
 from queue import PriorityQueue
-from typing import Callable
+from typing import Callable, Optional
 
+from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
@@ -172,14 +173,15 @@ class P2PProtocol(Protocol):
             outgoing_msg = self.outgoing_queue.get()[2]
             if not outgoing_msg.is_expired():
                 wrapped_message = self._wrap_message(outgoing_msg.message)
-                if len(wrapped_message) + len(outgoing_bytes) > config.dev.max_bytes_out:
-                    self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
-                    break
-                outgoing_bytes += wrapped_message
+                if wrapped_message is not None:
+                    if len(wrapped_message) + len(outgoing_bytes) > config.dev.max_bytes_out:
+                        self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
+                        break
+                    outgoing_bytes += wrapped_message
 
-                self.out_counter += 1
-                if self.out_counter == self.rate_limit:
-                    break
+                    self.out_counter += 1
+                    if self.out_counter == self.rate_limit:
+                        break
 
         return outgoing_bytes
 
@@ -202,7 +204,7 @@ class P2PProtocol(Protocol):
     # FIXME: This is a temporary refactoring, it will be completely replaced before release
 
     @staticmethod
-    def _wrap_message(protobuf_obj) -> bytes:
+    def _wrap_message(protobuf_obj) -> Optional[bytes]:
         """
         Receives a protobuf object and encodes it as (length)(data)
         :return: the encoded message
@@ -211,11 +213,21 @@ class P2PProtocol(Protocol):
         >>> msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE, veData=veData)
         >>> bin2hstr(P2PProtocol._wrap_message(msg))
         '000000191a170a0776657273696f6e120c67656e657369735f68617368'
+
+                msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
+                                          plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
+                                                                      public_port=config.user.p2p_public_port))
+
+        >>> plData = qrllegacy_pb2.PLData(peer_ips=[])
+        >>> msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL, plData=plData)
+        >>> bin2hstr(P2PProtocol._wrap_message(msg))
+        '0000000408012200'
         """
-        # FIXME: This is not the final implementation, it is just a workaround for refactoring
-        # FIXME: struct.pack may result in endianness problems
-        # NOTE: This temporary approach does not allow for alignment. Once the stream is off, it will need to clear
         data = protobuf_obj.SerializeToString()
+        if len(data) == 0:
+            logger.debug("Skipping message. Zero bytes. %s", MessageToJson(protobuf_obj, sort_keys=True))
+            return None
+
         str_data_len = struct.pack('>L', len(data))
         return str_data_len + data
 
@@ -242,6 +254,7 @@ class P2PProtocol(Protocol):
                 chunk_size = struct.unpack('>L', chunk_size_raw)[0]  # is m length encoded correctly?
 
                 if chunk_size <= 0:
+                    logger.debug("<X< %s", bin2hstr(self._buffer))
                     raise Exception("Invalid chunk size <= 0")
 
                 if chunk_size > config.dev.message_buffer_size:
@@ -256,8 +269,9 @@ class P2PProtocol(Protocol):
                 message.ParseFromString(message_raw)
                 yield message
 
-            except Exception:  # no qa
+            except Exception as e:  # no qa
                 logger.warning("Problem parsing message. Dropping connection")
+                logger.exception(e)
                 self.loseConnection()
 
             finally:
