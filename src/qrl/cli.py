@@ -887,6 +887,14 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
             click.echo("A local wallet is required to sign the transaction")
             quit(1)
 
+        if len(kyber_pk) != 2176:
+            click.echo("Kyber_PK should be 2176 characters")
+            quit(1)
+
+        if len(dilithium_pk) != 2944:
+            click.echo("Dilithium_PK should be 2944 characters")
+            quit(1)
+
         address_src_pk = src_xmss.pk
         src_xmss.set_ots_index(ots_key_index)
         kyber_pk = kyber_pk.encode()

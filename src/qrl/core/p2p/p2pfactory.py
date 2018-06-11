@@ -386,6 +386,11 @@ class P2PFactory(ServerFactory):
 
         return True
 
+    ##############################################
+    ##############################################
+    ##############################################
+    ##############################################
+
     def broadcast_tx(self, tx: TransferTransaction):
         logger.info('<<<Transmitting TX: %s', bin2hstr(tx.txhash))
 
@@ -405,17 +410,6 @@ class P2PFactory(ServerFactory):
             raise ValueError('Invalid Transaction Type')
         self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.pbdata)
 
-    def broadcast_tx_relay(self, source_peer, tx):
-        txn_msg = source_peer._wrap_message('TX', tx.to_json())
-        for peer in self._peer_connections:
-            if peer != source_peer:
-                peer.transport.write(txn_msg)
-
-    ##############################################
-    ##############################################
-    ##############################################
-    ##############################################
-
     def broadcast_block(self, block: Block):
         # logger.info('<<<Transmitting block: ', block.headerhash)
         data = qrllegacy_pb2.MRData()
@@ -424,11 +418,6 @@ class P2PFactory(ServerFactory):
         data.prev_headerhash = bytes(block.prev_headerhash)
 
         self.register_and_broadcast(qrllegacy_pb2.LegacyMessage.BK, block.headerhash, block.pbdata, data)
-
-    ##############################################
-    ##############################################
-    ##############################################
-    ##############################################
 
     def register_and_broadcast(self, msg_type, msg_hash: bytes, pbdata, data=None):
         self.master_mr.register(msg_type, msg_hash, pbdata)
@@ -528,7 +517,13 @@ class P2PFactory(ServerFactory):
     def connect_peer(self, peer_address):
         try:
             ip_addr, ip_port = parse_peer_addr(peer_address)
-            if peer_address not in self.get_connected_peer_addrs():
+            peer_address = "{}:{}".format(ip_addr, ip_port)
+
+            connected_peers = self.get_connected_peer_addrs()
+            should_connect = peer_address not in connected_peers
+
+            if should_connect:
                 reactor.connectTCP(ip_addr, ip_port, self)
+
         except Exception as e:
             logger.warning("Could not connect to %s - %s", peer_address, str(e))

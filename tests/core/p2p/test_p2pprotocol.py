@@ -1,10 +1,11 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, expectedFailure
-from unittest.mock import Mock, patch, MagicMock
-
 from collections import namedtuple
+from unittest import TestCase
+from mock import Mock, patch, MagicMock
+
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.misc import logger
@@ -13,7 +14,6 @@ from qrl.core.p2p.p2pfactory import P2PFactory, p2p_msg_priority
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
 from tests.misc.helper import replacement_getTime
 
@@ -97,7 +97,7 @@ class TestP2PProtocol(TestCase):
         self.channel.dataReceived(data)
 
         # Twisted transport should have received acknowledgement message to send out
-        acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
+        acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x84\x01'
         self.channel.transport.write.assert_called_once_with(acknowledgement_bytes)
 
     @patch('qrl.core.misc.ntp.getTime')
@@ -113,7 +113,7 @@ class TestP2PProtocol(TestCase):
         acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
         self.channel._buffer = 10 * acknowledgement_bytes
         self.channel.dataReceived(acknowledgement_bytes)
-        self.channel.transport.loseConnection.assert_called_once_with()
+        self.channel.transport.loseConnection.assert_called()
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_dataReceived_spam_ban_peer(self, getTime):
@@ -146,7 +146,7 @@ class TestP2PProtocol(TestCase):
     def test_get_headerhash_list(self, getTime):
         getTime.return_value = 1525078652.9991353
         get_headerhash_request = b'\x00\x00\x00\x05\x08\x12\xa2\x01\x00'
-        self.channel.get_headerhash_list(1)
+        self.channel.send_get_headerhash_list(1)
         self.channel.transport.write.assert_called_with(get_headerhash_request)
 
     def test_parse_buffer_works(self):
@@ -180,18 +180,15 @@ class TestP2PProtocol(TestCase):
         getTime.return_value = self.channel.connected_at + config.dev.trust_min_conntime + 1
         self.assertTrue(self.channel.trusted)
 
-    @expectedFailure
     @patch('qrl.core.p2p.p2pprotocol.logger', autospec=True)
     def test_parse_buffer_invalid_data(self, logger):
-        """
-        Why does this pass? It shouldn't pass at all.
-        """
         self.channel._buffer = bytes(hstr2bin('0000000000000000000000000000000000000000000000000000000000' +
                                               '1111111111111111111111111111111111111111111111111111111111'))
+
         messages = self.channel._parse_buffer([0])
         messages_list = list(messages)
         self.assertEqual(0, len(messages_list))
-        logger.warning.assert_called_with("Problem parsing message. Skipping")
+        logger.warning.assert_called_with("Problem parsing message. Dropping connection")
 
     def test_wrap_message_works(self):
         veData = qrllegacy_pb2.VEData(version="version", genesis_prev_hash=b'genesis_hash')

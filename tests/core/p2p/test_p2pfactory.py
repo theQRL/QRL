@@ -1,29 +1,30 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, expectedFailure
-from mock import Mock, patch
-
 from collections import OrderedDict
-from twisted.internet import reactor
-from qrl.core.qrlnode import QRLNode
-from qrl.core.node import POW
-from qrl.core.misc import logger
-from qrl.core.Block import Block
-from qrl.core.Message import Message
-from qrl.core.MessageRequest import MessageRequest
-from qrl.core.ChainManager import ChainManager
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.TokenTransaction import TokenTransaction
-from qrl.core.txs.MessageTransaction import MessageTransaction
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
-from qrl.core.txs.TransferTransaction import TransferTransaction
-from qrl.core.p2p.p2pfactory import P2PFactory
-from qrl.core.p2p.p2pprotocol import P2PProtocol
-from qrl.generated import qrl_pb2, qrllegacy_pb2
+from unittest import TestCase
+
+from mock import Mock, patch
 from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
+from twisted.internet import reactor
+
+from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
+from qrl.core.Message import Message
+from qrl.core.MessageRequest import MessageRequest
+from qrl.core.misc import logger
+from qrl.core.node import POW
+from qrl.core.p2p.p2pfactory import P2PFactory
+from qrl.core.p2p.p2pprotocol import P2PProtocol
+from qrl.core.qrlnode import QRLNode
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.generated import qrl_pb2, qrllegacy_pb2
 from tests.misc.helper import replacement_getTime
 
 
@@ -121,7 +122,6 @@ class TestP2PFactory(TestCase):
         result = self.factory.is_block_present(b'1234')
         self.assertTrue(result)
 
-    @expectedFailure
     def test_connect_peer_already_connected(self, m_reactor, m_logger):
         """
         connect_peer() should not connect to already connected peers.
