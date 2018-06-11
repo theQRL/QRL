@@ -476,7 +476,9 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         else:
             address_src_pk = pk.encode()
 
-        master_addr = parse_qaddress(master)
+        master_addr = None
+        if master:
+            master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -610,7 +612,9 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
 
         message = message.encode()
 
-        master_addr = parse_qaddress(master)
+        master_addr = None
+        if master:
+            master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))

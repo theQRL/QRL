@@ -24,6 +24,7 @@ from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, replacement_getTime
+from tests.blockchain.MockedBlockchain import MockedBlockchain
 
 logger.initialize_default()
 
@@ -119,13 +120,25 @@ class TestPublicAPI(TestCase):
         self.assertEqual(0, stats.uptime_network)
 
         self.assertEqual(65000000000000000, stats.block_last_reward)
-        self.assertEqual(60, stats.block_time_mean)
+        self.assertEqual(0, stats.block_time_mean)
         self.assertEqual(0, stats.block_time_sd)
 
         self.assertEqual(105000000, stats.coins_total_supply)
         self.assertEqual(1000, stats.coins_emitted)
 
         self.assertEqual(0, len(stats.block_timeseries))
+
+    def test_getStats_timeseries(self):
+        with MockedBlockchain.create(10) as mock_blockchain:
+            service = PublicAPIService(mock_blockchain.qrlnode)
+            request = qrl_pb2.GetStatsReq(include_timeseries=1)
+            stats = service.GetStats(request=request, context=None)
+
+            print(stats.block_timeseries)
+
+            self.assertEqual(11, len(stats.block_timeseries))
+            self.assertEqual(61, stats.block_time_mean)
+            self.assertEqual(1, stats.block_time_sd)
 
     def test_getAddressState(self):
         db_state = Mock(spec=State)
