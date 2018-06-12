@@ -258,20 +258,17 @@ class P2PFactory(ServerFactory):
         block_headerhash = node_header_hash.headerhashes[curr_index]
         block = self._chain_manager.state.get_block(block_headerhash)
 
-        if not block:
-            if retry >= 5:
-                logger.debug('Retry Limit Hit')
-                self._qrl_node.ban_peer(self._target_peer)
-                self.is_syncing_finished(force_finish=True)
-                return
-        else:
-            while block and curr_index + 1 < len(node_header_hash.headerhashes):
-                self._last_requested_block_idx += 1
-                curr_index = self._last_requested_block_idx - node_header_hash.block_number
-                block_headerhash = node_header_hash.headerhashes[curr_index]
-                block = self._chain_manager.state.get_block(block_headerhash)
+        if retry >= 5:
+            logger.debug('Retry Limit Hit')
+            self._qrl_node.ban_peer(self._target_peer)
+            self.is_syncing_finished(force_finish=True)
+            return
 
-            retry = 0
+        while block and curr_index + 1 < len(node_header_hash.headerhashes):
+            self._last_requested_block_idx += 1
+            curr_index = self._last_requested_block_idx - node_header_hash.block_number
+            block_headerhash = node_header_hash.headerhashes[curr_index]
+            block = self._chain_manager.state.get_block(block_headerhash)
 
         if self.is_syncing_finished():
             return
