@@ -519,7 +519,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='signing address index')
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_sign(ctx, src, txblob):
     """
@@ -538,7 +538,7 @@ def tx_sign(ctx, src, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_inspect(ctx, txblob):
     """
@@ -560,7 +560,7 @@ def tx_inspect(ctx, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_push(ctx, txblob):
     tx = None
