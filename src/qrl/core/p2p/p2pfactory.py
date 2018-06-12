@@ -3,28 +3,27 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import random
 
+from pyqrllib.pyqrllib import bin2hstr
+from pyqryptonight.pyqryptonight import UInt256ToString
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 
-from pyqrllib.pyqrllib import bin2hstr
-from pyqryptonight.pyqryptonight import UInt256ToString
-
 from qrl.core import config
-from qrl.core.misc.helper import parse_peer_addr
-from qrl.core.processors.TxnProcessor import TxnProcessor
-from qrl.core.misc import ntp, logger
-from qrl.core.ESyncState import ESyncState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.TokenTransaction import TokenTransaction
-from qrl.core.txs.MessageTransaction import MessageTransaction
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
-from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.ESyncState import ESyncState
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.misc import ntp, logger
 from qrl.core.node import SyncState
 from qrl.core.p2p.p2pprotocol import P2PProtocol
+from qrl.core.p2p.IPMetadata import IPMetadata
+from qrl.core.processors.TxnProcessor import TxnProcessor
+from qrl.core.txs.LatticePublicKey import LatticePublicKey
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 p2p_msg_priority = {
@@ -513,14 +512,13 @@ class P2PFactory(ServerFactory):
 
     def connect_peer(self, peer_address):
         try:
-            ip_addr, ip_port = parse_peer_addr(peer_address)
-            peer_address = "{}:{}".format(ip_addr, ip_port)
+            addr = IPMetadata.from_full_address(peer_address)
 
             connected_peers = self.get_connected_peer_addrs()
             should_connect = peer_address not in connected_peers
 
             if should_connect:
-                reactor.connectTCP(ip_addr, ip_port, self)
+                reactor.connectTCP(addr.ip, addr.port, self)
 
         except Exception as e:
             logger.warning("Could not connect to %s - %s", peer_address, str(e))

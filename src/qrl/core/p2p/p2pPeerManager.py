@@ -10,10 +10,10 @@ from pyqryptonight.pyqryptonight import UInt256ToString
 from qrl.core import config
 from qrl.core.misc import logger, ntp
 from qrl.core.misc.expiring_set import ExpiringSet
-from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
+from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
@@ -85,12 +85,12 @@ class P2PPeerManager(P2PBaseObserver):
         tmp = list(peer_ips)
         tmp.append("{0}:{1}".format(peer_ip, public_port))
 
-        for ip_port in tmp:
+        for full_address in tmp:
             try:
-                parse_peer_addr(ip_port, True)
-                new_peers.add(ip_port)
+                peer_address = IPMetadata.from_full_address(full_address, check_global=True)
+                new_peers.add(peer_address.full_address)
             except Exception as e:
-                logger.warning("Invalid Peer Address {} sent by {} - {}".format(ip_port, peer_ip, e))
+                logger.warning("Invalid Peer Address {} sent by {} - {}".format(full_address, peer_ip, e))
 
         return new_peers
 
