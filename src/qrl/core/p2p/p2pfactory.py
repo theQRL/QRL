@@ -78,7 +78,7 @@ class P2PFactory(ServerFactory):
         self._syncing_enabled = False
         self._target_peer = None
         self._target_node_header_hash = None
-        self._last_requested_block_idx = None
+        self._last_requested_block_number = None
 
         self._genesis_processed = False
         self._peer_connections = []
@@ -197,8 +197,8 @@ class P2PFactory(ServerFactory):
             logger.warning('Found peer: %s', source.addr_remote)
             return
 
-        if block.block_number != self._last_requested_block_idx:
-            logger.warning('Did not match %s', self._last_requested_block_idx)
+        if block.block_number != self._last_requested_block_number:
+            logger.warning('Did not match %s', self._last_requested_block_number)
             return
 
         target_start_blocknumber = self._target_node_header_hash.block_number
@@ -228,9 +228,7 @@ class P2PFactory(ServerFactory):
         if self.is_syncing_finished():
             return
 
-        self._last_requested_block_idx += 1
-        if self.is_syncing_finished():
-            return
+        self._last_requested_block_number += 1
 
         self.peer_fetch_block()
 
@@ -241,9 +239,9 @@ class P2PFactory(ServerFactory):
         return self._syncing_enabled
 
     def is_syncing_finished(self, force_finish=False):
-        curr_index = self._last_requested_block_idx - self._target_node_header_hash.block_number
+        curr_index = self._last_requested_block_number - self._target_node_header_hash.block_number + 1
         if curr_index == len(self._target_node_header_hash.headerhashes) or force_finish:
-            self._last_requested_block_idx = None
+            self._last_requested_block_number = None
             self._target_node_header_hash = None
             self._target_peer = None
             self._syncing_enabled = False
@@ -253,7 +251,7 @@ class P2PFactory(ServerFactory):
 
     def peer_fetch_block(self, retry=0):
         node_header_hash = self._target_node_header_hash
-        curr_index = self._last_requested_block_idx - node_header_hash.block_number
+        curr_index = self._last_requested_block_number - node_header_hash.block_number
 
         block_headerhash = node_header_hash.headerhashes[curr_index]
         block = self._chain_manager.state.get_block(block_headerhash)
@@ -265,15 +263,15 @@ class P2PFactory(ServerFactory):
             return
 
         while block and curr_index + 1 < len(node_header_hash.headerhashes):
-            self._last_requested_block_idx += 1
-            curr_index = self._last_requested_block_idx - node_header_hash.block_number
+            self._last_requested_block_number += 1
+            curr_index = self._last_requested_block_number - node_header_hash.block_number
             block_headerhash = node_header_hash.headerhashes[curr_index]
             block = self._chain_manager.state.get_block(block_headerhash)
 
-        if self.is_syncing_finished():
+        if block and self.is_syncing_finished():
             return
 
-        self._target_peer.send_fetch_block(self._last_requested_block_idx)
+        self._target_peer.send_fetch_block(self._last_requested_block_number)
         reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry + 1)
 
     def compare_and_sync(self, source_peer, node_header_hash: qrl_pb2.NodeHeaderHash):
@@ -298,7 +296,7 @@ class P2PFactory(ServerFactory):
         if fork_found or (last_block.block_number < node_last_block_number):
             self._target_peer = source_peer
             self._target_node_header_hash = node_header_hash
-            self._last_requested_block_idx = fork_block_number
+            self._last_requested_block_number = fork_block_number
             self._syncing_enabled = True
             self.peer_fetch_block()
 
