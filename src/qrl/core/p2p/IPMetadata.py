@@ -10,7 +10,21 @@ class IPMetadata(object):
         self.ip_address = IPv4Address(self._ip)
 
         if not (0 < self._port <= 65535):  # Validate port number
-            raise ValueError('Invalid Peer Port {}'.format(self.full_address))
+            raise ValueError('Invalid Peer Port {}'.format(self))
+
+    def __repr__(self):
+        return self.full_address
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
+    def __eq__(self, other):
+        if isinstance(other, IPMetadata):
+            return self._ip == other._ip and self._port == other._port
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def _validate(self):
         pass

@@ -199,7 +199,7 @@ class TestP2PPeerManager(TestCase):
                                                                           genesis_prev_hash=config.dev.genesis_prev_headerhash,
                                                                           rate_limit=config.user.peer_rate_limit))
         self.peer_manager.handle_version(channel, message)
-        channel.peer_manager.ban_peer.assert_not_called()
+        channel.peer_manager.ban_channel.assert_not_called()
         channel.loseConnection.assert_not_called()
 
     def test_handle_version_empty_version_message(self):

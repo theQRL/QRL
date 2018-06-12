@@ -84,9 +84,7 @@ class P2PProtocol(Protocol):
             self.send_version_request()
 
     def connectionLost(self, reason=connectionDone):
-        logger.debug('%s disconnected. remainder connected: %d',
-                     self.peer.full_address,
-                     self.factory.num_connections)
+        logger.debug('%s disconnected. remainder connected: %d', self.peer, self.factory.num_connections)
 
         self.factory.remove_connection(self)
         if self.peer_manager:
@@ -97,7 +95,7 @@ class P2PProtocol(Protocol):
         total_read = len(self._buffer)
 
         if total_read > config.dev.max_bytes_out:
-            logger.warning('Disconnecting peer %s', self.peer.full_address)
+            logger.warning('Disconnecting peer %s', self.peer)
             logger.warning('Buffer Size %s', len(self._buffer))
             self.loseConnection()
 
@@ -108,7 +106,7 @@ class P2PProtocol(Protocol):
             self.update_counters()
             self.in_counter += 1
             if self.in_counter > self.rate_limit:
-                self.factory.ban_peer(self)
+                self.peer_manager.ban_channel(self)
 
             if self._valid_message_count < config.dev.trust_min_msgcount * 2:
                 # Avoid overflows
@@ -270,7 +268,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         trusted_peers = self.peer_manager.trusted_addresses
-        logger.debug('<<< Sending connected peers to %s [%s]', self.peer.full_address, trusted_peers)
+        logger.debug('<<< Sending connected peers to %s [%s]', self.peer, trusted_peers)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
                                           plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
@@ -293,7 +291,7 @@ class P2PProtocol(Protocol):
         Sends request for the block number n.
         :return:
         """
-        logger.info('<<<Fetching block: %s from %s', block_idx, self.peer.full_address)
+        logger.info('<<<Fetching block: %s from %s', block_idx, self.peer)
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)

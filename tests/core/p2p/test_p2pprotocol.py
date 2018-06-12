@@ -122,7 +122,7 @@ class TestP2PProtocol(TestCase):
         acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
         self.channel._buffer = 10 * acknowledgement_bytes
         self.channel.dataReceived(acknowledgement_bytes)
-        self.channel.factory.ban_peer.assert_called_with(self.channel)
+        self.channel.peer_manager.ban_channel.assert_called_with(self.channel)
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_send_sync(self, getTime):

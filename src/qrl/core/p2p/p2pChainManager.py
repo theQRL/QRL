@@ -28,7 +28,7 @@ class P2PChainManager(P2PBaseObserver):
 
         block_number = message.fbData.index
 
-        logger.info(' Request for %s by %s', block_number, source.peer.full_address)
+        logger.info(' Request for %s by %s', block_number, source.peer)
         if 0 < block_number <= source.factory.chain_height:
             block = source.factory.get_block(block_number)
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
@@ -54,7 +54,7 @@ class P2PChainManager(P2PBaseObserver):
             source.factory.block_received(source, block)
 
         except Exception as e:
-            logger.error('block rejected - unable to decode serialised data %s', source.peer.full_address)
+            logger.error('block rejected - unable to decode serialised data %s', source.peer)
             logger.exception(e)
 
     def handle_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # block received
@@ -67,7 +67,7 @@ class P2PChainManager(P2PBaseObserver):
         try:
             block = Block(message.block)
         except Exception as e:
-            logger.error('block rejected - unable to decode serialised data %s', source.peer.full_address)
+            logger.error('block rejected - unable to decode serialised data %s', source.peer)
             logger.exception(e)
             return
 

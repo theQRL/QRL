@@ -75,7 +75,7 @@ class P2PFactory(ServerFactory):
         self._chain_manager.set_broadcast_tx(self.broadcast_tx)
 
         self._syncing_enabled = False
-        self._target_peer = None
+        self._target_channel = None
         self._target_node_header_hash = None
         self._last_requested_block_idx = None
 
@@ -190,10 +190,10 @@ class P2PFactory(ServerFactory):
         self.pow.last_pb_time = ntp.getTime()
         logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))
 
-        if source != self._target_peer:
+        if source != self._target_channel:
             logger.warning('Received block from unexpected peer')
-            logger.warning('Expected peer: %s', self._target_peer.peer.full_address)
-            logger.warning('Found peer: %s', source.peer.full_address)
+            logger.warning('Expected peer: %s', self._target_channel.peer)
+            logger.warning('Found peer: %s', source.peer)
             return
 
         if block.block_number != self._last_requested_block_idx:
@@ -233,9 +233,6 @@ class P2PFactory(ServerFactory):
 
         self.peer_fetch_block()
 
-    def ban_peer(self, peer_obj):
-        self._qrl_node.ban_peer(peer_obj)
-
     def is_syncing(self) -> bool:
         return self._syncing_enabled
 
@@ -244,7 +241,7 @@ class P2PFactory(ServerFactory):
         if curr_index == len(self._target_node_header_hash.headerhashes) or force_finish:
             self._last_requested_block_idx = None
             self._target_node_header_hash = None
-            self._target_peer = None
+            self._target_channel = None
             self._syncing_enabled = False
             return True
 
@@ -259,7 +256,7 @@ class P2PFactory(ServerFactory):
 
         if retry >= 5:
             logger.debug('Retry Limit Hit')
-            self._qrl_node.ban_peer(self._target_peer)
+            self._qrl_node.peer_manager.ban_channel(self._target_channel)
             self.is_syncing_finished(force_finish=True)
             return
 
@@ -272,7 +269,7 @@ class P2PFactory(ServerFactory):
         if self.is_syncing_finished():
             return
 
-        self._target_peer.send_fetch_block(self._last_requested_block_idx)
+        self._target_channel.send_fetch_block(self._last_requested_block_idx)
         reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry + 1)
 
     def compare_and_sync(self, source_peer, node_header_hash: qrl_pb2.NodeHeaderHash):
@@ -295,7 +292,7 @@ class P2PFactory(ServerFactory):
             fork_found = True
 
         if fork_found or (last_block.block_number < node_last_block_number):
-            self._target_peer = source_peer
+            self._target_channel = source_peer
             self._target_node_header_hash = node_header_hash
             self._last_requested_block_idx = fork_block_number
             self._syncing_enabled = True
@@ -472,19 +469,19 @@ class P2PFactory(ServerFactory):
 
         if self.reached_conn_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?
-            logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer.full_address)
+            logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer)
             conn_protocol.loseConnection()
             return False
 
         if conn_protocol.peer.ip == conn_protocol.host.ip and conn_protocol.peer.port == config.user.p2p_public_port:
-            peer_list = [p for p in self._qrl_node.peer_addresses if p != conn_protocol.peer.full_address]
+            peer_list = [p for p in self._qrl_node.peer_manager.peer_addresses if p != conn_protocol.peer.full_address]
             self._qrl_node.peer_manager.update_peer_addresses(peer_list)
             conn_protocol.loseConnection()
             return False
 
         self._peer_connections.append(conn_protocol)
 
-        logger.debug('>>> new connection: %s ', conn_protocol.peer.full_address)
+        logger.debug('>>> new connection: %s ', conn_protocol.peer)
         return True
 
     def remove_connection(self, conn_protocol):

@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
 from enum import Enum
-from typing import Callable
+from typing import Callable, Set
 
 from pyqryptonight.pyqryptonight import UInt256ToString
 
@@ -12,8 +12,8 @@ from qrl.core.misc import logger, ntp
 from qrl.core.misc.expiring_set import ExpiringSet
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
-from qrl.core.p2p.p2pObserver import P2PBaseObserver
 from qrl.core.p2p.IPMetadata import IPMetadata
+from qrl.core.p2p.p2pObserver import P2PBaseObserver
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
@@ -35,8 +35,8 @@ class P2PPeerManager(P2PBaseObserver):
                                        config.dev.peers_filename)
 
         self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
-        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
-                                         filename=self.banned_peers_filename)
+        self._banned_peer_ips = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
+                                            filename=self.banned_peers_filename)
 
         self._observable = Observable(self)
         self._p2pfactory = None
@@ -49,7 +49,7 @@ class P2PPeerManager(P2PBaseObserver):
         return self._peer_addresses
 
     def trusted_peer(self, channel: P2PProtocol):
-        if self.is_banned(channel.peer.full_address):
+        if self.is_banned(channel.peer):
             return False
 
         if channel.valid_message_count < config.dev.trust_min_msgcount:
@@ -93,7 +93,7 @@ class P2PPeerManager(P2PBaseObserver):
         logger.info('Known Peers: %s', self._peer_addresses)
 
     @staticmethod
-    def get_valid_peers(peer_ips, peer_ip, public_port):
+    def get_valid_peers(peer_ips, peer_ip, public_port)->Set[IPMetadata]:
         new_peers = set()
         tmp = list(peer_ips)
         tmp.append("{0}:{1}".format(peer_ip, public_port))
@@ -181,7 +181,7 @@ class P2PPeerManager(P2PBaseObserver):
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
 
         if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
-            logger.warning('%s genesis_prev_headerhash mismatch', source.peer.full_address)
+            logger.warning('%s genesis_prev_headerhash mismatch', source.peer)
             logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
@@ -226,7 +226,7 @@ class P2PPeerManager(P2PBaseObserver):
             delta = current_timestamp - self._peer_node_status[channel].timestamp
             if delta > config.user.chain_state_timeout:
                 del self._peer_node_status[channel]
-                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.peer.full_address, delta)
+                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.peer, delta)
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
@@ -258,7 +258,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         source.bytes_sent -= message.p2pAckData.bytes_processed
         if source.bytes_sent < 0:
-            logger.warning('Disconnecting Peer %s', source.peer.full_address)
+            logger.warning('Disconnecting Peer %s', source.peer)
             logger.warning('Reason: negative bytes_sent value')
             logger.warning('bytes_sent %s', source.bytes_sent)
             logger.warning('Ack bytes_processed %s', message.p2pAckData.bytes_processed)
@@ -270,13 +270,13 @@ class P2PPeerManager(P2PBaseObserver):
     ####################################################
     ####################################################
     ####################################################
-    def is_banned(self, addr_remote: str):
-        return addr_remote in self._banned_peers
+    def is_banned(self, peer: IPMetadata):
+        return peer.ip in self._banned_peer_ips
 
-    def ban_peer(self, peer_obj):
-        self._banned_peers.add(peer_obj.peer.full_address)
-        logger.warning('Banned %s', peer_obj.peer.full_address)
-        peer_obj.loseConnection()
+    def ban_channel(self, channel: P2PProtocol):
+        self._banned_peer_ips.add(channel.peer.ip)
+        logger.warning('Banned %s', channel.peer.ip)
+        channel.loseConnection()
 
     def connect_peers(self):
         logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)

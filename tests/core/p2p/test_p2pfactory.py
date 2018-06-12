@@ -95,7 +95,7 @@ class TestP2PFactory(TestCase):
         channel_4 = Mock(autospec=P2PProtocol, name='mock Channel 4', host_ip='4.4.4.4', peer_ip='4.4.4.4',
                          peer_port=9000,
                          addr_remote='4.4.4.4:9000')
-        self.factory._qrl_node.peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000', '4.4.4.4:9000']
+        self.factory._qrl_node.peer_manager.peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000', '4.4.4.4:9000']
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()
@@ -528,7 +528,7 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
         self.factory.add_connection(self.channel_2)
         self.factory.add_connection(self.channel_3)
 
-        self.factory._target_peer = self.channel_1
+        self.factory._target_channel = self.channel_1
         self.factory.is_syncing_finished = Mock(return_value=False, autospec=P2PFactory.is_syncing_finished)
         self.factory._target_node_header_hash = qrl_pb2.NodeHeaderHash(
             block_number=1,
@@ -613,7 +613,7 @@ class TestP2PFactoryBlockReceived(TestCase):
         )
 
         # This mocking ensures that the Block gets added to the Chain, and that the next block is requested.
-        self.factory._target_peer = self.channel_1
+        self.factory._target_channel = self.channel_1
         self.factory._last_requested_block_idx = 1
         self.factory._chain_manager.add_block.return_value = True
         self.factory.peer_fetch_block = Mock(autospec=P2PFactory.peer_fetch_block)
@@ -653,7 +653,7 @@ class TestP2PFactoryBlockReceived(TestCase):
         self.factory.block_received(self.channel_1, block_2)
 
         self.factory._chain_manager.add_block.assert_called_once()
-        self.assertIsNone(self.factory._target_peer)
+        self.assertIsNone(self.factory._target_channel)
         self.factory.peer_fetch_block.assert_not_called()
 
     def test_block_received_suspend_mining_when_we_just_updated_chain(self, m_reactor, m_logger):
@@ -674,7 +674,7 @@ class TestP2PFactoryBlockReceived(TestCase):
         block = Mock(autospec=Block, block_number=1, headerhash=bhstr2bin('123456'))
         block.validate.return_value = True
 
-        self.factory._target_peer = self.channel_2
+        self.factory._target_channel = self.channel_2
 
         self.factory.block_received(self.channel_1, block)
 
