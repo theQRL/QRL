@@ -538,7 +538,7 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
             block_number=1,
             headerhashes=[bhstr2bin('123456'), bhstr2bin('deadbeef'), bhstr2bin('abcdef')]
         )
-        self.factory._last_requested_block_idx = 1
+        self.factory._last_requested_block_number = 1
 
     def test_peer_fetch_block_we_dont_already_have_the_block(self, m_reactor, m_logger):
         """
@@ -617,8 +617,8 @@ class TestP2PFactoryBlockReceived(TestCase):
         )
 
         # This mocking ensures that the Block gets added to the Chain, and that the next block is requested.
-        self.factory._target_channel = self.channel_1
-        self.factory._last_requested_block_idx = 1
+        self.factory._target_peer = self.channel_1
+        self.factory._last_requested_block_number = 1
         self.factory._chain_manager.add_block.return_value = True
         self.factory.peer_fetch_block = Mock(autospec=P2PFactory.peer_fetch_block)
 
