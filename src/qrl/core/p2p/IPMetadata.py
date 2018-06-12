@@ -74,3 +74,7 @@ class IPMetadata(object):
                 raise ValueError('Local Peer IP Found {}'.format(full_address))
 
         return answer
+
+    @staticmethod
+    def canonical_full_address(full_address: str, check_global=False):
+        return IPMetadata.from_full_address(full_address, check_global).full_address

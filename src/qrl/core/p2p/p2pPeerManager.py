@@ -3,8 +3,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
 from enum import Enum
-from typing import Callable, Set
+from typing import Callable, Set, List
 
+import simplejson as json
 from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
@@ -30,7 +31,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         self._peer_node_status = dict()
 
-        self._peer_addresses = set()
+        self._known_peers = set()
         self.peers_path = os.path.join(config.user.data_dir,
                                        config.dev.peers_filename)
 
@@ -45,8 +46,8 @@ class P2PPeerManager(P2PBaseObserver):
         self._observable.register(message_type, func)
 
     @property
-    def peer_addresses(self):
-        return self._peer_addresses
+    def known_peer_addresses(self):
+        return self._known_peers
 
     def trusted_peer(self, channel: P2PProtocol):
         if self.is_banned(channel.peer):
@@ -68,58 +69,52 @@ class P2PPeerManager(P2PBaseObserver):
     def peer_node_status(self):
         return self._peer_node_status
 
-    def load_peer_addresses(self) -> None:
+    def load_known_peers(self) -> List[str]:
+        known_peers = []
         try:
-            if os.path.isfile(self.peers_path):
-                logger.info('Opening peers.qrl')
-                with open(self.peers_path, 'rb') as infile:
-                    known_peers = qrl_pb2.StoredPeers()
-                    known_peers.ParseFromString(infile.read())
-
-                    # FIXME: Refactor, move to json?
-                    self._peer_addresses |= set([peer.ip for peer in known_peers.peers])
-                    self._peer_addresses |= set(config.user.peer_list)
-                    return
-
+            logger.info('Loading known peers')
+            with open(self.peers_path, 'r') as infile:
+                known_peers = json.load(infile)
         except Exception as e:
-            logger.warning("Error loading peers")
-            logger.exception(e)
+            logger.info("Could not open known_peers list")
 
-        logger.info('Creating peers.qrl')
-        # Ensure the data path exists
+        return [IPMetadata.canonical_full_address(fa) for fa in known_peers]
+
+    def save_known_peers(self, known_peers: List[str]):
+        tmp = list(known_peers)
         config.create_path(config.user.data_dir)
-        self.update_peer_addresses(config.user.peer_list)
+        with open(self.peers_path, 'w') as outfile:
+            json.dump(tmp, outfile)
 
-        logger.info('Known Peers: %s', self._peer_addresses)
+    def load_peer_addresses(self) -> None:
+        known_peers = self.load_known_peers()
+        self._known_peers = self.combine_peer_lists(known_peers, config.user.peer_list)
+        logger.info('Loaded known peers: %s', self._known_peers)
+        self.save_known_peers(self._known_peers)
 
-    @staticmethod
-    def get_valid_peers(peer_ips, peer_ip, public_port) -> Set[IPMetadata]:
-        new_peers = set()
-        tmp = list(peer_ips)
-        tmp.append("{0}:{1}".format(peer_ip, public_port))
-
-        for full_address in tmp:
-            try:
-                peer_address = IPMetadata.from_full_address(full_address, check_global=True)
-                new_peers.add(peer_address.full_address)
-            except Exception as e:
-                logger.warning("Invalid Peer Address {} sent by {} - {}".format(full_address, peer_ip, e))
-
-        return new_peers
-
-    def update_peer_addresses(self, peer_addresses: set) -> None:
-        new_addresses = set(peer_addresses) - self._peer_addresses
+    def extend_known_peers(self, new_peer_addresses: set) -> None:
+        new_addresses = set(new_peer_addresses) - self._known_peers
 
         if self._p2pfactory is not None:
             for peer_address in new_addresses:
                 self._p2pfactory.connect_peer(peer_address)
 
-        self._peer_addresses |= set(peer_addresses)
+        self._known_peers |= set(new_peer_addresses)
+        self.save_known_peers(list(self._known_peers))
 
-        known_peers = qrl_pb2.StoredPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
-        with open(self.peers_path, "wb") as outfile:
-            outfile.write(known_peers.SerializeToString())
+    @staticmethod
+    def combine_peer_lists(peer_ips, sender_full_addresses: List) -> Set[IPMetadata]:
+        tmp_list = list(peer_ips)
+        tmp_list.extend(sender_full_addresses)
+
+        answer = set()
+        for item in tmp_list:
+            try:
+                answer.add(IPMetadata.canonical_full_address(item, check_global=True))
+            except Exception:  # no_qa
+                logger.warning("Invalid Peer Address {}".format(item))
+
+        return answer
 
     def get_better_difficulty(self, current_cumulative_difficulty):
         best_cumulative_difficulty = int(UInt256ToString(current_cumulative_difficulty))
@@ -195,13 +190,13 @@ class P2PPeerManager(P2PBaseObserver):
         if not message.plData.peer_ips:
             return
 
-        new_peers = self.get_valid_peers(message.plData.peer_ips,
-                                         source.peer.ip,
-                                         message.plData.public_port)
-        new_peers.discard(source.host.ip)  # Remove local address
+        sender_peer = IPMetadata(source.peer.ip, message.plData.public_port)
+
+        new_peers = self.combine_peer_lists(message.plData.peer_ips, [sender_peer.full_address])
+        new_peers.discard(source.host.full_address)  # Remove local address
 
         logger.info('%s peers data received: %s', source.peer.ip, new_peers)
-        self.update_peer_addresses(new_peers)
+        self.extend_known_peers(new_peers)
 
     def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
@@ -279,8 +274,8 @@ class P2PPeerManager(P2PBaseObserver):
         channel.loseConnection()
 
     def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer_address in self.peer_addresses:
+        logger.info('<<<Reconnecting to peer list: %s', self.known_peer_addresses)
+        for peer_address in self.known_peer_addresses:
             if self.is_banned(peer_address):
                 continue
             self._p2pfactory.connect_peer(peer_address)

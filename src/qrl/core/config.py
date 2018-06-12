@@ -216,7 +216,7 @@ class DevConfig(object):
 
         # Directories and files
         self.db_name = 'state'
-        self.peers_filename = 'peers.qrl'
+        self.peers_filename = 'known_peers.json'
         self.chain_file_directory = 'data'
         self.wallet_dat_filename = 'wallet.json'
         self.slave_dat_filename = 'slave.qrl'
