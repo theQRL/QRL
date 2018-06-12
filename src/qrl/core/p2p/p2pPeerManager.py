@@ -14,6 +14,7 @@ from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
 from qrl.core.p2p.IPMetadata import IPMetadata
+from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
@@ -47,9 +48,21 @@ class P2PPeerManager(P2PBaseObserver):
     def peer_addresses(self):
         return self._peer_addresses
 
+    def trusted_peer(self, channel: P2PProtocol):
+        if self.is_banned(channel.peer.full_address):
+            return False
+
+        if channel.valid_message_count < config.dev.trust_min_msgcount:
+            return False
+
+        if channel.connection_time < config.dev.trust_min_conntime:
+            return False
+
+        return True
+
     @property
     def trusted_addresses(self):
-        return set([peer.addr_remote for peer in self._p2pfactory.connections if peer.trusted])
+        return set([peer.peer.full_address for peer in self._p2pfactory.connections if self.trusted_peer(peer)])
 
     @property
     def peer_node_status(self):
@@ -161,14 +174,14 @@ class P2PPeerManager(P2PBaseObserver):
             return
 
         logger.info('%s version: %s | genesis prev_headerhash %s',
-                    source.peer_ip,
+                    source.peer.ip,
                     message.veData.version,
                     message.veData.genesis_prev_hash)
 
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
 
         if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
-            logger.warning('%s genesis_prev_headerhash mismatch', source.addr_remote)
+            logger.warning('%s genesis_prev_headerhash mismatch', source.peer.full_address)
             logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
@@ -183,11 +196,11 @@ class P2PPeerManager(P2PBaseObserver):
             return
 
         new_peers = self.get_valid_peers(message.plData.peer_ips,
-                                         source.peer_ip,
+                                         source.peer.ip,
                                          message.plData.public_port)
-        new_peers.discard(source.host_ip)  # Remove local address
+        new_peers.discard(source.host.ip)  # Remove local address
 
-        logger.info('%s peers data received: %s', source.peer_ip, new_peers)
+        logger.info('%s peers data received: %s', source.peer.ip, new_peers)
         self.update_peer_addresses(new_peers)
 
     def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
@@ -213,7 +226,7 @@ class P2PPeerManager(P2PBaseObserver):
             delta = current_timestamp - self._peer_node_status[channel].timestamp
             if delta > config.user.chain_state_timeout:
                 del self._peer_node_status[channel]
-                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.addr_remote, delta)
+                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.peer.full_address, delta)
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
@@ -245,7 +258,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         source.bytes_sent -= message.p2pAckData.bytes_processed
         if source.bytes_sent < 0:
-            logger.warning('Disconnecting Peer %s', source.addr_remote)
+            logger.warning('Disconnecting Peer %s', source.peer.full_address)
             logger.warning('Reason: negative bytes_sent value')
             logger.warning('bytes_sent %s', source.bytes_sent)
             logger.warning('Ack bytes_processed %s', message.p2pAckData.bytes_processed)
@@ -261,8 +274,8 @@ class P2PPeerManager(P2PBaseObserver):
         return addr_remote in self._banned_peers
 
     def ban_peer(self, peer_obj):
-        self._banned_peers.add(peer_obj.addr_remote)
-        logger.warning('Banned %s', peer_obj.addr_remote)
+        self._banned_peers.add(peer_obj.peer.full_address)
+        logger.warning('Banned %s', peer_obj.peer.full_address)
         peer_obj.loseConnection()
 
     def connect_peers(self):
@@ -277,8 +290,8 @@ class P2PPeerManager(P2PBaseObserver):
         # Copying the list of keys, to avoid any change by other thread
         for source in list(self.peer_node_status.keys()):
             try:
-                peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
-                                             port=source.peer_port,
+                peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer.ip.encode(),
+                                             port=source.peer.port,
                                              node_chain_state=self.peer_node_status[source])
                 peers_stat.append(peer_stat)
             except KeyError:

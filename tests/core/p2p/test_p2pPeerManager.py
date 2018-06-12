@@ -1,19 +1,23 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase
-from mock import Mock, patch
 import os
 import time
+from unittest import TestCase
 
-from tests.misc.helper import set_qrl_dir
+from mock import Mock, patch, mock
+from pyqrllib.pyqrllib import hstr2bin
+from pyqryptonight.pyqryptonight import StringToUInt256
+
 from qrl.core import config
+from qrl.core.misc import ntp
+from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2, qrllegacy_pb2
-from pyqryptonight.pyqryptonight import StringToUInt256
 from tests.misc.helper import replacement_getTime
+from tests.misc.helper import set_qrl_dir
 
 
 def make_channel(name=''):
@@ -447,3 +451,37 @@ class TestP2PPeerManager(TestCase):
         self.peer_manager.handle_p2p_acknowledgement(channel, ack)
 
         channel.loseConnection.assert_called_once_with()
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer')
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.send')
+    def test_trusted_message_count(self, send, get_peer):
+        channel = P2PProtocol()
+        with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+            time_mock.return_value = channel.connected_at + 100
+            get_peer.return_value = IPMetadata('192.168.0.1', 1000)
+
+            self.assertFalse(self.peer_manager.trusted_peer(channel))
+
+            for _ in range(config.dev.trust_min_msgcount - 1):
+                buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+                channel.dataReceived(buffer)
+                self.assertFalse(self.peer_manager.trusted_peer(channel))
+
+            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+            channel.dataReceived(buffer)
+            self.assertTrue(self.peer_manager.trusted_peer(channel))
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer')
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.send')
+    def test_trusted_time(self, send, get_peer):
+        channel = P2PProtocol()
+        with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+            time_mock.return_value = channel.connected_at + 1
+            get_peer.return_value = IPMetadata('192.168.0.1', 1000)
+
+            for _ in range(config.dev.trust_min_msgcount):
+                buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+                channel.dataReceived(buffer)
+
+            time_mock.return_value = channel.connected_at + config.dev.trust_min_conntime + 1
+            self.assertTrue(self.peer_manager.trusted_peer(channel))

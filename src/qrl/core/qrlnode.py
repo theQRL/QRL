@@ -181,7 +181,7 @@ class QRLNode:
         channel = self.peer_manager.get_better_difficulty(block_metadata.cumulative_difficulty)
         logger.debug('Got better difficulty %s', channel)
         if channel:
-            logger.debug('Connection id >> %s', channel.addr_remote)
+            logger.debug('Connection id >> %s', channel.peer.full_address)
             channel.send_get_headerhash_list(self._chain_manager.height)
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 

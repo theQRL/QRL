@@ -52,13 +52,13 @@ class TestP2PProtocol(TestCase):
         """
         This is more to ensure that the transport is mocked correctly.
         """
-        self.assertEqual('127.0.0.2:9000', self.channel.addr_remote)
+        self.assertEqual('127.0.0.2:9000', self.channel.peer.full_address)
 
     def test_addr_local_works(self):
         """
         This is more to ensure that the transport is mocked correctly.
         """
-        self.assertEqual('127.0.0.1:9000', self.channel.addr_local)
+        self.assertEqual('127.0.0.1:9000', self.channel.host.full_address)
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_connectionMade_behavior(self, getTime):
@@ -154,31 +154,6 @@ class TestP2PProtocol(TestCase):
                                               '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
         messages = self.channel._parse_buffer([0])
         self.assertEqual(2, len(list(messages)))
-
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_trusted_message_count(self, getTime):
-        getTime.return_value = self.channel.connected_at + 20
-        self.assertFalse(self.channel.trusted)
-
-        for _ in range(config.dev.trust_min_msgcount - 1):
-            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-            self.channel.dataReceived(buffer)
-            self.assertFalse(self.channel.trusted)
-
-        buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-        self.channel.dataReceived(buffer)
-        self.assertTrue(self.channel.trusted)
-
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_trusted_time(self, getTime):
-        getTime.return_value = self.channel.connected_at + 1
-
-        for _ in range(config.dev.trust_min_msgcount):
-            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-            self.channel.dataReceived(buffer)
-
-        getTime.return_value = self.channel.connected_at + config.dev.trust_min_conntime + 1
-        self.assertTrue(self.channel.trusted)
 
     @patch('qrl.core.p2p.p2pprotocol.logger', autospec=True)
     def test_parse_buffer_invalid_data(self, logger):

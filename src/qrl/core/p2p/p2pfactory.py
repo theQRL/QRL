@@ -111,7 +111,7 @@ class P2PFactory(ServerFactory):
         selected_peer_connections = []
         for addr_remote in best_connection_ids:
             for peer_conn in self._peer_connections:
-                if peer_conn.addr_remote == addr_remote:
+                if peer_conn.peer.full_address == addr_remote:
                     selected_peer_connections.append(peer_conn)
 
         if len(selected_peer_connections) == 0 or max_cumulative_difficulty == 0:
@@ -154,7 +154,7 @@ class P2PFactory(ServerFactory):
         return len(self._peer_connections) >= config.user.max_peers_limit
 
     def get_connected_peer_addrs(self):
-        return set([peer.addr_remote for peer in self._peer_connections])
+        return set([peer.peer.full_address for peer in self._peer_connections])
 
     ###################################################
     ###################################################
@@ -192,8 +192,8 @@ class P2PFactory(ServerFactory):
 
         if source != self._target_peer:
             logger.warning('Received block from unexpected peer')
-            logger.warning('Expected peer: %s', self._target_peer.addr_remote)
-            logger.warning('Found peer: %s', source.addr_remote)
+            logger.warning('Expected peer: %s', self._target_peer.peer.full_address)
+            logger.warning('Found peer: %s', source.peer.full_address)
             return
 
         if block.block_number != self._last_requested_block_idx:
@@ -466,33 +466,33 @@ class P2PFactory(ServerFactory):
 
     def add_connection(self, conn_protocol) -> bool:
         # TODO: Most of this can go peer manager
-        if self._qrl_node.is_banned(conn_protocol.addr_remote):
+        if self._qrl_node.peer_manager.is_banned(conn_protocol.peer.full_address):
             conn_protocol.loseConnection()
             return False
 
         if self.reached_conn_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?
-            logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.addr_remote)
+            logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer.full_address)
             conn_protocol.loseConnection()
             return False
 
-        if conn_protocol.peer_ip == conn_protocol.host_ip and conn_protocol.peer_port == config.user.p2p_public_port:
-            peer_list = [p for p in self._qrl_node.peer_addresses if p != conn_protocol.addr_remote]
+        if conn_protocol.peer.ip == conn_protocol.host.ip and conn_protocol.peer.port == config.user.p2p_public_port:
+            peer_list = [p for p in self._qrl_node.peer_addresses if p != conn_protocol.peer.full_address]
             self._qrl_node.peer_manager.update_peer_addresses(peer_list)
             conn_protocol.loseConnection()
             return False
 
         self._peer_connections.append(conn_protocol)
 
-        logger.debug('>>> new connection: %s ', conn_protocol.addr_remote)
+        logger.debug('>>> new connection: %s ', conn_protocol.peer.full_address)
         return True
 
     def remove_connection(self, conn_protocol):
         if conn_protocol in self._peer_connections:
             self._peer_connections.remove(conn_protocol)
 
-        if conn_protocol.addr_remote in self.peer_blockheight:
-            del self.peer_blockheight[conn_protocol.addr_remote]
+        if conn_protocol.peer.full_address in self.peer_blockheight:
+            del self.peer_blockheight[conn_protocol.peer.full_address]
 
     def monitor_connections(self):
         reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)
@@ -504,7 +504,7 @@ class P2PFactory(ServerFactory):
 
         connected_peers_set = set()
         for conn_protocol in self._peer_connections:
-            connected_peers_set.add(conn_protocol.peer_ip)
+            connected_peers_set.add(conn_protocol.peer.ip)
 
         for ip in config.user.peer_list:
             if ip not in connected_peers_set:
