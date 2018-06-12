@@ -33,7 +33,6 @@ class ExpiringSet(Set):
 
     def _refresh(self):
         # FIXME: refactored from banned peers. Rework to use a priority queue instead
-
         current_time = ntp.getTime()
         self._data = {k: v for k, v in self._data.items() if v < current_time}
         self._store()

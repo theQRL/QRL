@@ -16,7 +16,6 @@ from qrl.core.State import State
 from qrl.core.misc import ntp
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState
-from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pChainManager import P2PChainManager
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement

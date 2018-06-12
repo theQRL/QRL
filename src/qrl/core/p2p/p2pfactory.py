@@ -496,26 +496,27 @@ class P2PFactory(ServerFactory):
 
         if len(self._peer_connections) == 0:
             logger.warning('No Connected Peer Found')
-            reactor.callLater(60, self._qrl_node.connect_peers)
+            reactor.callLater(10, self._qrl_node.peer_manager.connect_peers)
             return
 
         connected_peers_set = set()
         for conn_protocol in self._peer_connections:
-            connected_peers_set.add(conn_protocol.peer.ip)
+            connected_peers_set.add(conn_protocol.peer.full_address)
 
-        for ip in config.user.peer_list:
-            if ip not in connected_peers_set:
-                self.connect_peer(ip)
+        for peer_item in config.user.peer_list:
+            peer_metadata = IPMetadata.from_full_address(peer_item)
+            if peer_metadata.full_address not in connected_peers_set:
+                self.connect_peer(peer_metadata.full_address)
 
-    def connect_peer(self, peer_address):
+    def connect_peer(self, full_address):
         try:
-            addr = IPMetadata.from_full_address(peer_address)
+            addr = IPMetadata.from_full_address(full_address)
 
             connected_peers = self.get_connected_peer_addrs()
-            should_connect = peer_address not in connected_peers
+            should_connect = addr.full_address not in connected_peers
 
             if should_connect:
                 reactor.connectTCP(addr.ip, addr.port, self)
 
         except Exception as e:
-            logger.warning("Could not connect to %s - %s", peer_address, str(e))
+            logger.warning("Could not connect to %s - %s", full_address, str(e))

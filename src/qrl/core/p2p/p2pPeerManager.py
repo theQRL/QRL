@@ -93,7 +93,7 @@ class P2PPeerManager(P2PBaseObserver):
         logger.info('Known Peers: %s', self._peer_addresses)
 
     @staticmethod
-    def get_valid_peers(peer_ips, peer_ip, public_port)->Set[IPMetadata]:
+    def get_valid_peers(peer_ips, peer_ip, public_port) -> Set[IPMetadata]:
         new_peers = set()
         tmp = list(peer_ips)
         tmp.append("{0}:{1}".format(peer_ip, public_port))

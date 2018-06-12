@@ -98,6 +98,7 @@ class P2PProtocol(Protocol):
             logger.warning('Disconnecting peer %s', self.peer)
             logger.warning('Buffer Size %s', len(self._buffer))
             self.loseConnection()
+            return
 
         read_bytes = [0]
 

@@ -15,6 +15,8 @@ from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core.misc import logger
 from qrl.core.node import POW
+from qrl.core.p2p.IPMetadata import IPMetadata
+from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
@@ -46,17 +48,16 @@ class TestP2PFactory(TestCase):
     def setUp(self):
         port = 9000
         self.m_qrlnode = Mock(autospec=QRLNode, name='Fake QRLNode')
-        self.channel_1 = Mock(autospec=P2PProtocol, name='mock Channel 1', peer_ip='1.1.1.1', peer_port=port,
-                              addr_remote='1.1.1.1:9000')
-        self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer_ip='2.2.2.2', peer_port=port,
-                              addr_remote='2.2.2.2:9000')
-        self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer_ip='3.3.3.3', peer_port=port,
-                              addr_remote='3.3.3.3:9000')
+        self.m_qrlnode.peer_manager = Mock(autospec=P2PPeerManager, name='Fake PeerManager')
+        self.m_qrlnode.peer_manager.is_banned.return_value = False
+
+        self.channel_1 = Mock(autospec=P2PProtocol, name='mock Channel 1', peer=IPMetadata('1.1.1.1', port))
+        self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer=IPMetadata('2.2.2.2', port))
+        self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer=IPMetadata('3.3.3.3', port))
 
         self.factory = P2PFactory(chain_manager=Mock(autospec=ChainManager), sync_state=None, qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
 
-        self.m_qrlnode.is_banned.return_value = False
         self.factory.add_connection(self.channel_1)
         self.factory.add_connection(self.channel_2)
         self.factory.add_connection(self.channel_3)
@@ -77,8 +78,10 @@ class TestP2PFactory(TestCase):
         When we've reached the connection_limit, add_connection() should refuse to do anything.
         In fact, it should disconnect the P2PProtocol.
         """
-        channel_4 = Mock(autospec=P2PProtocol, name='mock Channel 4', peer_ip='4.4.4.4', peer_port='9000',
-                         addr_remote='4.4.4.4:9000')
+        channel_4 = Mock(autospec=P2PProtocol,
+                         name='mock Channel 4',
+                         peer=IPMetadata('4.4.4.4', 9000))
+
         m_config.user.max_peers_limit = 3
 
         self.factory.add_connection(channel_4)
@@ -92,10 +95,11 @@ class TestP2PFactory(TestCase):
         P2PProtocol.host_ip should always be our IP address.
         If add_connection() detects this, then it will rebuild the peer_list, excluding this IP address.
         """
-        channel_4 = Mock(autospec=P2PProtocol, name='mock Channel 4', host_ip='4.4.4.4', peer_ip='4.4.4.4',
-                         peer_port=9000,
-                         addr_remote='4.4.4.4:9000')
-        self.factory._qrl_node.peer_manager.peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000', '4.4.4.4:9000']
+        channel_4 = Mock(autospec=P2PProtocol, name='mock Channel 4',
+                         host=IPMetadata('4.4.4.4', 9000),
+                         peer=IPMetadata('4.4.4.4', 9000))
+        self.factory._qrl_node.peer_manager.peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000',
+                                                              '4.4.4.4:9000']
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()
@@ -172,7 +176,7 @@ class TestP2PFactory(TestCase):
         with patch('qrl.core.p2p.p2pfactory.config', autospec=True) as m_config:
             m_config.user.peer_list = ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']
             self.factory.monitor_connections()
-            self.factory.connect_peer.assert_called_once_with('4.4.4.4')
+            self.factory.connect_peer.assert_called_once_with('4.4.4.4:9000')
 
     def test_monitor_connections_no_peers_connected(self, m_reactor, m_logger):
         self.factory.remove_connection(self.channel_1)
@@ -582,7 +586,7 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
 
         self.factory.peer_fetch_block(retry=5)
 
-        self.m_qrlnode.ban_peer.assert_called_once_with(self.channel_1)
+        self.m_qrlnode.peer_manager.ban_channel.assert_called_once_with(self.channel_1)
         self.factory.is_syncing_finished.assert_called_once_with(force_finish=True)
 
 

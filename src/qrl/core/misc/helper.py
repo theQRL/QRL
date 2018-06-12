@@ -1,11 +1,9 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from ipaddress import IPv4Address
 from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.core.AddressState import AddressState
-from qrl.core import config
 
 
 def parse_hexblob(blob: str) -> bytes:

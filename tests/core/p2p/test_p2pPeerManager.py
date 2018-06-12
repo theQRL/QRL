@@ -10,7 +10,6 @@ from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
-from qrl.core.misc import ntp
 from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory
@@ -279,13 +278,13 @@ class TestP2PPeerManager(TestCase):
                                                             peer_ips={'127.0.0.3:5000', '127.0.0.4:5001'},
                                                             public_port=9000))
         channel = make_channel()
-        channel.host_ip = '187.0.0.1'
-        channel.peer_ip = '187.0.0.2'
+        channel.host = IPMetadata('187.0.0.1', 9000)
+        channel.peer = IPMetadata('187.0.0.2', 9000)
 
         # handle_peer_list() will call update_peer_addresses(), so we gotta mock it out. It's tested elsewhere anyway.
         self.peer_manager.update_peer_addresses = Mock(autospec=P2PPeerManager.update_peer_addresses)
         self.peer_manager.handle_peer_list(channel, peer_list_message)
-        self.peer_manager.update_peer_addresses.assert_called_once_with({"{0}:{1}".format(channel.peer_ip, 9000)})
+        self.peer_manager.update_peer_addresses.assert_called_once_with({channel.peer.full_address})
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_handle_peer_list_empty_peer_list_message(self, logger):

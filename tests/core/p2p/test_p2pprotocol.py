@@ -3,18 +3,16 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import namedtuple
 from unittest import TestCase
-from mock import Mock, patch, MagicMock
 
+from mock import Mock, patch, MagicMock
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
-from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.p2p import p2pPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory, p2p_msg_priority
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
-
 from tests.misc.helper import replacement_getTime
 
 logger.initialize_default()

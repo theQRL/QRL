@@ -6,7 +6,12 @@ from qrl.core import config
 class IPMetadata(object):
     def __init__(self, ip_str: str, port: int):
         self._ip = ip_str
-        self._port = port
+
+        try:
+            self._port = int(port)
+        except ValueError:
+            raise ValueError('Invalid Peer Port {}'.format(port))
+
         self.ip_address = IPv4Address(self._ip)
 
         if not (0 < self._port <= 65535):  # Validate port number
