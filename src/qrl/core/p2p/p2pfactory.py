@@ -463,7 +463,7 @@ class P2PFactory(ServerFactory):
 
     def add_connection(self, conn_protocol) -> bool:
         # TODO: Most of this can go peer manager
-        if self._qrl_node.peer_manager.is_banned(conn_protocol.peer.full_address):
+        if self._qrl_node.peer_manager.is_banned(conn_protocol.peer):
             conn_protocol.loseConnection()
             return False
 

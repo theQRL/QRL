@@ -104,7 +104,7 @@ class TestP2PPeerManager(TestCase):
                     self.assertIn(p, contents)
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
-    def test_get_valid_peers_works(self, logger):
+    def test_combine_peer_lists_works(self, logger):
         """
         combine_peer_lists takes: a set of IP:PORTs from a peer; the peer's ip; the peer's port
         It validates the set of IP:PORTs and adds valid ones to the node's peerlist.
@@ -115,32 +115,32 @@ class TestP2PPeerManager(TestCase):
         """
         # The second IP in the set has an invalid port, but the peer to which we are connected should be in the set.
         result = self.peer_manager.combine_peer_lists({'1.1.1.1:9000', '1.2.3.4:65536'},
-                                                      ['187.0.0.1:1000'])
+                                                      ['187.0.0.1:1000'], check_global=True)
         self.assertEqual(result, {'1.1.1.1:9000', '187.0.0.1:1000'})
 
         # What happens if the peer we are connected to now has a different port? it should replace the entry in the set.
         result = self.peer_manager.combine_peer_lists({'1.1.1.1:9000', '127.0.0.1:1000'},
-                                                      ['187.0.0.1:2000'])
+                                                      ['187.0.0.1:2000'], check_global=True)
         self.assertEqual(result, {'1.1.1.1:9000', '187.0.0.1:2000'})
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
-    def test_get_valid_peers_bad_ip_list(self, logger):
+    def test_combine_peer_lists_bad_ip_list(self, logger):
         """
         combine_peer_lists should revalidate all existing ip:port pairs when adding a new one to the list.
         but why isn't validation happening in another layer so that the set is always clean?
         """
         bad_ip_list_result = self.peer_manager.combine_peer_lists({'256.256.256.256:9000', '187.0.0.3:90000'},
-                                                                  ['187.0.0.1:9000'])
+                                                                  ['187.0.0.1:9000'], check_global=True)
         self.assertEqual(bad_ip_list_result, {'187.0.0.1:9000'})
 
         # A local IP in the incoming set should be ignored.
         result = self.peer_manager.combine_peer_lists({'1.1.1.1:8000', '127.0.0.1:1111'},
-                                                      ['127.0.0.1:3000'])
+                                                      ['127.0.0.1:3000'], check_global=True)
         self.assertEqual(result, {'1.1.1.1:8000'})
 
         # A bad IP in the set should not pass.
         result = self.peer_manager.combine_peer_lists({'255.255.255.255:8000'},
-                                                      ['127.0.0.1:3000'])
+                                                      ['127.0.0.1:3000'], check_global=True)
         self.assertEqual(result, set())
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)

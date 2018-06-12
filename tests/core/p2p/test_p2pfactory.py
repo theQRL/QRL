@@ -99,7 +99,7 @@ class TestP2PFactory(TestCase):
                          host=IPMetadata('4.4.4.4', 9000),
                          peer=IPMetadata('4.4.4.4', 9000))
         self.factory._qrl_node.peer_manager.known_peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000',
-                                                              '4.4.4.4:9000']
+                                                                    '4.4.4.4:9000']
         self.factory.add_connection(channel_4)
 
         channel_4.loseConnection.assert_called_once()

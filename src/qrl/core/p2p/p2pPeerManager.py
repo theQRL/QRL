@@ -88,7 +88,7 @@ class P2PPeerManager(P2PBaseObserver):
 
     def load_peer_addresses(self) -> None:
         known_peers = self.load_known_peers()
-        self._known_peers = self.combine_peer_lists(known_peers, config.user.peer_list)
+        self._known_peers = self.combine_peer_lists(known_peers, config.user.peer_list, )
         logger.info('Loaded known peers: %s', self._known_peers)
         self.save_known_peers(self._known_peers)
 
@@ -103,16 +103,17 @@ class P2PPeerManager(P2PBaseObserver):
         self.save_known_peers(list(self._known_peers))
 
     @staticmethod
-    def combine_peer_lists(peer_ips, sender_full_addresses: List) -> Set[IPMetadata]:
+    def combine_peer_lists(peer_ips, sender_full_addresses: List, check_global=False) -> Set[IPMetadata]:
         tmp_list = list(peer_ips)
         tmp_list.extend(sender_full_addresses)
 
         answer = set()
         for item in tmp_list:
             try:
-                answer.add(IPMetadata.canonical_full_address(item, check_global=True))
-            except Exception:  # no_qa
+                answer.add(IPMetadata.canonical_full_address(item, check_global))
+            except Exception as e:  # no_qa
                 logger.warning("Invalid Peer Address {}".format(item))
+                logger.exception(e)
 
         return answer
 
@@ -192,7 +193,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         sender_peer = IPMetadata(source.peer.ip, message.plData.public_port)
 
-        new_peers = self.combine_peer_lists(message.plData.peer_ips, [sender_peer.full_address])
+        new_peers = self.combine_peer_lists(message.plData.peer_ips, [sender_peer.full_address], check_global=True)
         new_peers.discard(source.host.full_address)  # Remove local address
 
         logger.info('%s peers data received: %s', source.peer.ip, new_peers)
@@ -276,7 +277,7 @@ class P2PPeerManager(P2PBaseObserver):
     def connect_peers(self):
         logger.info('<<<Reconnecting to peer list: %s', self.known_peer_addresses)
         for peer_address in self.known_peer_addresses:
-            if self.is_banned(peer_address):
+            if self.is_banned(IPMetadata.from_full_address(peer_address)):
                 continue
             self._p2pfactory.connect_peer(peer_address)
 
