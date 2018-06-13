@@ -31,8 +31,8 @@ class TestBlock(TestCase):
     def test_verify_blob(self):
         alice_xmss = get_alice_xmss()
         block = Block.create(block_number=5,
-                             prev_block_headerhash=bytes(sha2_256(b'test')),
-                             prev_block_timestamp=10,
+                             prev_headerhash=bytes(sha2_256(b'test')),
+                             prev_timestamp=10,
                              transactions=[],
                              miner_address=alice_xmss.address)
         mining_blob = block.mining_blob
@@ -41,8 +41,8 @@ class TestBlock(TestCase):
     def test_mining_blob(self):
         alice_xmss = get_alice_xmss()
         block = Block.create(block_number=5,
-                             prev_block_headerhash=bytes(sha2_256(b'test')),
-                             prev_block_timestamp=10,
+                             prev_headerhash=bytes(sha2_256(b'test')),
+                             prev_timestamp=10,
                              transactions=[],
                              miner_address=alice_xmss.address)
 
@@ -62,8 +62,8 @@ class TestBlock(TestCase):
     def test_set_mining_nonce_from_blob(self):
         alice_xmss = get_alice_xmss()
         block = Block.create(block_number=5,
-                             prev_block_headerhash=bytes(sha2_256(b'test')),
-                             prev_block_timestamp=10,
+                             prev_headerhash=bytes(sha2_256(b'test')),
+                             prev_timestamp=10,
                              transactions=[],
                              miner_address=alice_xmss.address)
         current_mining_nonce = block.mining_nonce
@@ -78,8 +78,8 @@ class TestBlock(TestCase):
         alice_xmss = get_alice_xmss()
         bob_xmss = get_bob_xmss()
         block = Block.create(block_number=5,
-                             prev_block_headerhash=bytes(sha2_256(b'test')),
-                             prev_block_timestamp=10,
+                             prev_headerhash=bytes(sha2_256(b'test')),
+                             prev_timestamp=10,
                              transactions=[],
                              miner_address=alice_xmss.address)
         block.update_mining_address(mining_address=bob_xmss.address)

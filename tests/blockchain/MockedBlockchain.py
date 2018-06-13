@@ -53,8 +53,8 @@ class MockedBlockchain(object):
         self.ntp_mock.return_value = self.ntp_mock.return_value + time_offset
 
         block_new = Block.create(block_number=block_idx,
-                                 prev_block_headerhash=block_prev.headerhash,
-                                 prev_block_timestamp=block_prev.timestamp,
+                                 prev_headerhash=block_prev.headerhash,
+                                 prev_timestamp=block_prev.timestamp,
                                  transactions=transactions,
                                  miner_address=mining_address)
 

@@ -276,8 +276,8 @@ class TestPublicAPI(TestCase):
         # Find a block
         db_state.get_block_by_number = MagicMock(
             return_value=Block.create(block_number=1,
-                                      prev_block_headerhash=sha256(b'reveal'),
-                                      prev_block_timestamp=10,
+                                      prev_headerhash=sha256(b'reveal'),
+                                      prev_timestamp=10,
                                       transactions=[],
                                       miner_address=alice_xmss.address))
 
@@ -303,8 +303,8 @@ class TestPublicAPI(TestCase):
                                                       xmss_pk=alice_xmss.pk))
 
             blocks.append(Block.create(block_number=i,
-                                       prev_block_headerhash=sha256(b'reveal'),
-                                       prev_block_timestamp=10,
+                                       prev_headerhash=sha256(b'reveal'),
+                                       prev_timestamp=10,
                                        transactions=txs,
                                        miner_address=alice_xmss.address))
 

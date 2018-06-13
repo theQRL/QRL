@@ -33,8 +33,8 @@ def ask_difficulty_tracker(difficulty: str):
 
 def create_block(block_number, previous_block, miner_address):
     return Block.create(block_number=block_number,
-                        prev_block_headerhash=previous_block.headerhash,
-                        prev_block_timestamp=previous_block.timestamp,
+                        prev_headerhash=previous_block.headerhash,
+                        prev_timestamp=previous_block.timestamp,
                         transactions=[],
                         miner_address=miner_address
                         )
@@ -103,8 +103,8 @@ class TestChainManagerReal(TestCase):
         time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
         block_1 = Block.create(block_number=1,
-                               prev_block_headerhash=self.genesis_block.headerhash,
-                               prev_block_timestamp=self.genesis_block.timestamp,
+                               prev_headerhash=self.genesis_block.headerhash,
+                               prev_timestamp=self.genesis_block.timestamp,
                                transactions=[],
                                miner_address=alice.address)
         block_1.set_nonces(99, 0)
@@ -141,8 +141,8 @@ class TestChainManagerReal(TestCase):
         time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
         block_1 = Block.create(block_number=1,
-                               prev_block_headerhash=self.genesis_block.headerhash,
-                               prev_block_timestamp=self.genesis_block.timestamp,
+                               prev_headerhash=self.genesis_block.headerhash,
+                               prev_timestamp=self.genesis_block.timestamp,
                                transactions=[transfer_transaction],
                                miner_address=alice.address)
         block_1.set_nonces(78, 0)
@@ -190,8 +190,8 @@ class TestChainManagerReal(TestCase):
             time_mock.return_value = 1615270948  # Very high to get an easy difficulty
 
             block_1 = Block.create(block_number=1,
-                                   prev_block_headerhash=self.genesis_block.headerhash,
-                                   prev_block_timestamp=self.genesis_block.timestamp,
+                                   prev_headerhash=self.genesis_block.headerhash,
+                                   prev_timestamp=self.genesis_block.timestamp,
                                    transactions=[slave_tx],
                                    miner_address=alice.address)
             block_1.set_nonces(0, 0)
@@ -215,8 +215,8 @@ class TestChainManagerReal(TestCase):
         with patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1715270948  # Very high to get an easy difficulty
             fork_block = Block.create(block_number=1,
-                                      prev_block_headerhash=self.genesis_block.headerhash,
-                                      prev_block_timestamp=self.genesis_block.timestamp,
+                                      prev_headerhash=self.genesis_block.headerhash,
+                                      prev_timestamp=self.genesis_block.timestamp,
                                       transactions=[],
                                       miner_address=bob.address)
 
@@ -239,8 +239,8 @@ class TestChainManagerReal(TestCase):
         with patch('qrl.core.misc.ntp.getTime') as time_mock:
             time_mock.return_value = 1815270948  # Very high to get an easy difficulty
             block_2 = fork_block.create(block_number=2,
-                                        prev_block_headerhash=fork_block.headerhash,
-                                        prev_block_timestamp=fork_block.timestamp,
+                                        prev_headerhash=fork_block.headerhash,
+                                        prev_timestamp=fork_block.timestamp,
                                         transactions=[],
                                         miner_address=bob.address)
 
