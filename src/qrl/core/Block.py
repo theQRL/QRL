@@ -57,7 +57,7 @@ class Block(object):
 
     @property
     def prev_headerhash(self):
-        return self.blockheader.prev_blockheaderhash
+        return self.blockheader.prev_headerhash
 
     @property
     def transactions(self):

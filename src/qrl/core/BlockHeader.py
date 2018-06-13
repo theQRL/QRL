@@ -46,7 +46,7 @@ class BlockHeader(object):
         return self._data.hash_header
 
     @property
-    def prev_blockheaderhash(self):
+    def prev_headerhash(self):
         return self._data.hash_header_prev
 
     @property
@@ -81,7 +81,7 @@ class BlockHeader(object):
     def mining_blob(self) -> bytes:
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
                + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
-               + self.prev_blockheaderhash \
+               + self.prev_headerhash \
                + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
@@ -220,7 +220,7 @@ class BlockHeader(object):
             logger.warning('Block numbers out of sequence: failed validation')
             return False
 
-        if parent_block.headerhash != self.prev_blockheaderhash:
+        if parent_block.headerhash != self.prev_headerhash:
             logger.warning('Headerhash not in sequence: failed validation')
             return False
 

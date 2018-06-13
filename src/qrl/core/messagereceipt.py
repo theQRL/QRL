@@ -155,7 +155,7 @@ class MessageReceipt(object):
         if block.block_number != params.block_number:
             return False
 
-        if block.prev_blockheaderhash != params.prev_headerhash:
+        if block.prev_headerhash != params.prev_headerhash:
             return False
 
         if block.reveal_hash != params.reveal_hash:
