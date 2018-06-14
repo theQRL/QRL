@@ -12,6 +12,7 @@ from twisted.internet.protocol import Protocol, connectionDone
 from qrl.core import config
 from qrl.core.OutgoingMessage import OutgoingMessage
 from qrl.core.misc import logger, ntp
+from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
@@ -36,51 +37,24 @@ class P2PProtocol(Protocol):
         self._valid_message_count = 0
 
     @property
-    def peer_ip(self):
-        return self.transport.getPeer().host
+    def peer(self):
+        return IPMetadata(self.transport.getPeer().host, self.transport.getPeer().port)
 
     @property
-    def peer_port(self):
-        return self.transport.getPeer().port
-
-    @property
-    def host_ip(self):
-        return self.transport.getHost().host
-
-    @property
-    def host_port(self):
-        return self.transport.getHost().port
-
-    @property
-    def is_banned(self):
-        return self.peer_manager.is_banned(self.addr_remote)
-
-    @property
-    def trusted(self):
-        if self.peer_manager.is_banned(self.addr_remote):
-            return False
-
-        if self._valid_message_count < config.dev.trust_min_msgcount or \
-                self.connection_time < config.dev.trust_min_conntime:
-            return False
-
-        return True
+    def host(self):
+        return IPMetadata(self.transport.getHost().host, self.transport.getHost().port)
 
     @property
     def connected_at(self):
         return self._connected_at
 
     @property
+    def valid_message_count(self):
+        return self._valid_message_count
+
+    @property
     def connection_time(self):
         return ntp.getTime() - self._connected_at
-
-    @property
-    def addr_remote(self):
-        return "{}:{}".format(self.peer_ip, self.peer_port)
-
-    @property
-    def addr_local(self):
-        return "{}:{}".format(self.host_ip, self.host_port)
 
     @property
     def peer_manager(self):
@@ -110,9 +84,7 @@ class P2PProtocol(Protocol):
             self.send_version_request()
 
     def connectionLost(self, reason=connectionDone):
-        logger.debug('%s disconnected. remainder connected: %d',
-                     self.addr_remote,
-                     self.factory.num_connections)
+        logger.debug('%s disconnected. remainder connected: %d', self.peer, self.factory.num_connections)
 
         self.factory.remove_connection(self)
         if self.peer_manager:
@@ -123,9 +95,10 @@ class P2PProtocol(Protocol):
         total_read = len(self._buffer)
 
         if total_read > config.dev.max_bytes_out:
-            logger.warning('Disconnecting peer %s', self.addr_remote)
+            logger.warning('Disconnecting peer %s', self.peer)
             logger.warning('Buffer Size %s', len(self._buffer))
             self.loseConnection()
+            return
 
         read_bytes = [0]
 
@@ -134,7 +107,7 @@ class P2PProtocol(Protocol):
             self.update_counters()
             self.in_counter += 1
             if self.in_counter > self.rate_limit:
-                self.factory.ban_peer(self)
+                self.peer_manager.ban_channel(self)
 
             if self._valid_message_count < config.dev.trust_min_msgcount * 2:
                 # Avoid overflows
@@ -149,7 +122,8 @@ class P2PProtocol(Protocol):
             self.send(msg)
 
     def update_counters(self):
-        if ntp.getTime() - self.last_rate_limit_update > 60:
+        time_diff = ntp.getTime() - self.last_rate_limit_update
+        if time_diff > 60:
             self.out_counter = 0
             self.in_counter = 0
             self.last_rate_limit_update = ntp.getTime()
@@ -295,7 +269,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         trusted_peers = self.peer_manager.trusted_addresses
-        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, trusted_peers)
+        logger.debug('<<< Sending connected peers to %s [%s]', self.peer, trusted_peers)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
                                           plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
@@ -318,7 +292,7 @@ class P2PProtocol(Protocol):
         Sends request for the block number n.
         :return:
         """
-        logger.info('<<<Fetching block: %s from %s', block_idx, self.addr_remote)
+        logger.info('<<<Fetching block: %s from %s', block_idx, self.peer)
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
